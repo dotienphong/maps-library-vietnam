@@ -1,6 +1,7 @@
-export const ALLOWED_REMOTE = /^git@github\.com-dotienphong:dotienphong\/MapsLibVN(\.git)?$/;
+export const ALLOWED_REMOTE =
+  /^git@github\.com-dotienphong:dotienphong\/maps-library-vietnam(\.git)?$/;
 export const FORBIDDEN_EMAIL = /bark/i;
-export const REQUIRED_REMOTE = 'git@github.com-dotienphong:dotienphong/MapsLibVN.git';
+export const REQUIRED_REMOTE = 'git@github.com-dotienphong:dotienphong/maps-library-vietnam.git';
 
 /**
  * Kiểm tra remote và author có đúng account cá nhân dotienphong không.

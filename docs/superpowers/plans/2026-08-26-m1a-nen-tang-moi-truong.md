@@ -255,7 +255,7 @@ Cài Docker Desktop và Node 22 (khuyên dùng `fnm`), rồi:
 
 ## Quy tắc GitHub
 
-Chỉ dùng remote `git@github.com-dotienphong:dotienphong/MapsLibVN.git` (account cá nhân). Hook `pre-push` sẽ chặn nếu sai.
+Chỉ dùng remote `git@github.com-dotienphong:dotienphong/maps-library-vietnam.git` (account cá nhân). Hook `pre-push` sẽ chặn nếu sai.
 ```
 
 - [x] **Step 7: Cài dependency và kiểm tra lint/typecheck**
@@ -303,7 +303,7 @@ git commit -m "chore: khung monorepo pnpm + turbo + biome + vitest"
 
 ## 2. Bước kế tiếp
 
-M1a Task 3 — thêm remote GitHub `git@github.com-dotienphong:dotienphong/MapsLibVN.git` và push `main` (PHONG tạo repo private trước).
+M1a Task 3 — thêm remote GitHub `git@github.com-dotienphong:dotienphong/maps-library-vietnam.git` và push `main` (PHONG tạo repo private trước).
 
 ## 3. Quyết định phát sinh
 
@@ -323,7 +323,7 @@ M1a Task 3 — thêm remote GitHub `git@github.com-dotienphong:dotienphong/MapsL
 import { describe, expect, it } from 'vitest';
 import { checkGitIdentity } from './git-identity.mjs';
 
-const GOOD_REMOTE = 'git@github.com-dotienphong:dotienphong/MapsLibVN.git';
+const GOOD_REMOTE = 'git@github.com-dotienphong:dotienphong/maps-library-vietnam.git';
 const GOOD_EMAIL = 'dotienphong1993@gmail.com';
 
 describe('checkGitIdentity', () => {
@@ -339,13 +339,13 @@ describe('checkGitIdentity', () => {
   });
 
   it('từ chối host github.com trơn (sẽ dùng key/account mặc định)', () => {
-    const r = checkGitIdentity({ remoteUrl: 'git@github.com:dotienphong/MapsLibVN.git', email: GOOD_EMAIL });
+    const r = checkGitIdentity({ remoteUrl: 'git@github.com:dotienphong/maps-library-vietnam.git', email: GOOD_EMAIL });
     expect(r.errors).toHaveLength(1);
     expect(r.errors[0]).toMatch(/Remote origin sai/);
   });
 
   it('từ chối remote HTTPS', () => {
-    const r = checkGitIdentity({ remoteUrl: 'https://github.com/dotienphong/MapsLibVN.git', email: GOOD_EMAIL });
+    const r = checkGitIdentity({ remoteUrl: 'https://github.com/dotienphong/maps-library-vietnam.git', email: GOOD_EMAIL });
     expect(r.errors).toHaveLength(1);
   });
 
@@ -372,9 +372,9 @@ Expected: FAIL — `Failed to load url ./git-identity.mjs` (file chưa tồn t�
 
 `scripts/lib/git-identity.mjs`:
 ```js
-export const ALLOWED_REMOTE = /^git@github\.com-dotienphong:dotienphong\/MapsLibVN(\.git)?$/;
+export const ALLOWED_REMOTE = /^git@github\.com-dotienphong:dotienphong\/maps-library-vietnam(\.git)?$/;
 export const FORBIDDEN_EMAIL = /bark/i;
-export const REQUIRED_REMOTE = 'git@github.com-dotienphong:dotienphong/MapsLibVN.git';
+export const REQUIRED_REMOTE = 'git@github.com-dotienphong:dotienphong/maps-library-vietnam.git';
 
 /**
  * Kiểm tra remote và author có đúng account cá nhân dotienphong không.
@@ -457,7 +457,7 @@ Expected: không in gì.
 Run: `pnpm check:git`
 Expected: một dòng `CẢNH BÁO: Chưa có remote origin…` rồi `[git-identity] OK …` (chưa có remote ở task này là đúng).
 
-Run: `node scripts/check-git-identity.mjs --remote-url git@github.com:dotienphong/MapsLibVN.git; echo "exit=$?"`
+Run: `node scripts/check-git-identity.mjs --remote-url git@github.com:dotienphong/maps-library-vietnam.git; echo "exit=$?"`
 Expected: `LỖI: Remote origin sai…` và `exit=1`.
 
 Run: `pnpm lint && pnpm typecheck`
@@ -478,22 +478,22 @@ git commit -m "chore: DEVLOG + hook pre-push chặn remote/author không phải 
 
 **Files:** không tạo file; cấu hình git.
 
-- [ ] **Step 1: Việc tay của PHONG — tạo repo**
+- [x] **Step 1: Việc tay của PHONG — tạo repo**
 
 Đăng nhập GitHub bằng account **dotienphong** (không phải account bark) → New repository → tên `MapsLibVN`, **Private**, không tick README/.gitignore/license → Create.
 
-- [ ] **Step 2: Kiểm tra SSH alias đúng account**
+- [x] **Step 2: Kiểm tra SSH alias đúng account**
 
 Run: `ssh -T git@github.com-dotienphong`
 Expected: `Hi dotienphong! You've successfully authenticated, but GitHub does not provide shell access.`
 Nếu ra tên khác hoặc lỗi key: dừng, báo PHONG kiểm tra `~/.ssh/config` (Host `github.com-dotienphong`, IdentityFile `~/.ssh/id_ed25519_dotienphong`).
 
-- [ ] **Step 3: Thêm remote và kiểm tra**
+- [x] **Step 3: Thêm remote và kiểm tra**
 
-Run: `git remote add origin git@github.com-dotienphong:dotienphong/MapsLibVN.git && pnpm check:git`
+Run: `git remote add origin git@github.com-dotienphong:dotienphong/maps-library-vietnam.git && pnpm check:git`
 Expected: `[git-identity] OK …` không cảnh báo.
 
-- [ ] **Step 4: Push (hook pre-push sẽ chạy)**
+- [x] **Step 4: Push (hook pre-push sẽ chạy)**
 
 Run: `git push -u origin main`
 Expected: dòng `[git-identity] OK …` từ hook, rồi `branch 'main' set up to track 'origin/main'`.
@@ -501,7 +501,7 @@ Expected: dòng `[git-identity] OK …` từ hook, rồi `branch 'main' set up t
 Run: `git ls-remote --heads origin`
 Expected: một dòng `… refs/heads/main`.
 
-- [ ] **Step 5: Cập nhật DEVLOG và commit**
+- [x] **Step 5: Cập nhật DEVLOG và commit**
 
 Sửa `docs/DEVLOG.md`: mục 1 "Môi trường đã dựng: … remote GitHub OK", "Task đang làm: Task 4"; mục 4 thêm `2026-08-26 · M1a T3 · remote GitHub cá nhân + push đầu tiên`.
 
@@ -1266,8 +1266,8 @@ git push
 ```
 
 Xem trạng thái **chỉ bằng PAT cá nhân** (không dùng `gh` mặc định):
-Run: `GH_TOKEN="$(cat ~/.config/gh-dotienphong.token)" gh run list -R dotienphong/MapsLibVN --limit 3`
-Expected: run mới nhất `completed success` sau ~10 phút (job `image` lâu nhất). Nếu PAT hết hạn hoặc thiếu quyền `actions:read` cho repo mới, xem trên web `https://github.com/dotienphong/MapsLibVN/actions` bằng account dotienphong.
+Run: `GH_TOKEN="$(cat ~/.config/gh-dotienphong.token)" gh run list -R dotienphong/maps-library-vietnam --limit 3`
+Expected: run mới nhất `completed success` sau ~10 phút (job `image` lâu nhất). Nếu PAT hết hạn hoặc thiếu quyền `actions:read` cho repo mới, xem trên web `https://github.com/dotienphong/maps-library-vietnam/actions` bằng account dotienphong.
 
 - [ ] **Step 3: Nếu job đỏ**
 
@@ -1294,7 +1294,7 @@ git push
 
 Run:
 ```bash
-cd "$(mktemp -d)" && git clone git@github.com-dotienphong:dotienphong/MapsLibVN.git && cd MapsLibVN \
+cd "$(mktemp -d)" && git clone git@github.com-dotienphong:dotienphong/maps-library-vietnam.git && cd maps-library-vietnam \
   && corepack enable && time (pnpm install && pnpm setup)
 ```
 Expected: `✔ Môi trường sẵn sàng`, `real` < 15 phút (thường 2–4 phút khi image Postgres đã có trên máy). Lưu ý: clone này dùng cùng Docker daemon nên Postgres `mapslibvn-dev` đã chạy sẽ được dùng lại — đúng mong đợi.

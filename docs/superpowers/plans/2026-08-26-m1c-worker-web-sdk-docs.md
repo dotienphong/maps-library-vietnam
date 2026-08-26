@@ -1418,7 +1418,7 @@ git commit -m "ci: deploy API/docs, data-update dự phòng trên Actions"
 git push
 ```
 
-Run: `GH_TOKEN="$(cat ~/.config/gh-dotienphong.token)" gh workflow run "Data update" -R dotienphong/MapsLibVN -f args="--dry-run"` rồi `… gh run list -R dotienphong/MapsLibVN --limit 5`
+Run: `GH_TOKEN="$(cat ~/.config/gh-dotienphong.token)" gh workflow run "Data update" -R dotienphong/maps-library-vietnam -f args="--dry-run"` rồi `… gh run list -R dotienphong/maps-library-vietnam --limit 5`
 Expected: Deploy API, Deploy Docs `success` (do push chạm paths); Data update `success` với log `Kế hoạch: {"tiles":false,"poi":false…}` hoặc `(dry-run) dừng.`
 
 - [ ] **Step 6: DEVLOG, commit**

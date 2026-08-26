@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { checkGitIdentity } from './git-identity.mjs';
 
-const GOOD_REMOTE = 'git@github.com-dotienphong:dotienphong/MapsLibVN.git';
+const GOOD_REMOTE = 'git@github.com-dotienphong:dotienphong/maps-library-vietnam.git';
 const GOOD_EMAIL = 'dotienphong1993@gmail.com';
 
 describe('checkGitIdentity', () => {
@@ -21,7 +21,7 @@ describe('checkGitIdentity', () => {
 
   it('từ chối host github.com trơn (sẽ dùng key/account mặc định)', () => {
     const result = checkGitIdentity({
-      remoteUrl: 'git@github.com:dotienphong/MapsLibVN.git',
+      remoteUrl: 'git@github.com:dotienphong/maps-library-vietnam.git',
       email: GOOD_EMAIL,
     });
     expect(result.errors).toHaveLength(1);
@@ -30,7 +30,7 @@ describe('checkGitIdentity', () => {
 
   it('từ chối remote HTTPS', () => {
     const result = checkGitIdentity({
-      remoteUrl: 'https://github.com/dotienphong/MapsLibVN.git',
+      remoteUrl: 'https://github.com/dotienphong/maps-library-vietnam.git',
       email: GOOD_EMAIL,
     });
     expect(result.errors).toHaveLength(1);

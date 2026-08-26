@@ -137,7 +137,7 @@ export interface AttributionLink {
 }
 
 export const ATTRIBUTION_LINKS: readonly AttributionLink[] = [
-  { text: '© MapsLibVN', href: 'https://github.com/dotienphong/MapsLibVN' },
+  { text: '© MapsLibVN', href: 'https://github.com/dotienphong/maps-library-vietnam' },
   { text: '© OpenStreetMap contributors', href: 'https://www.openstreetmap.org/copyright', license: 'ODbL' },
   { text: '© OpenMapTiles', href: 'https://openmaptiles.org/' },
   { text: 'Places: Overture Maps Foundation', href: 'https://overturemaps.org/', license: 'CDLA-Permissive 2.0' },

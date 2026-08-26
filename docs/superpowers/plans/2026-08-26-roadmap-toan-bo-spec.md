@@ -14,7 +14,7 @@
 
 ### 0.1 GitHub — chỉ account cá nhân `dotienphong`
 
-- Remote duy nhất: `git@github.com-dotienphong:dotienphong/MapsLibVN.git` (SSH alias trong `~/.ssh/config`, key `id_ed25519_dotienphong`).
+- Remote duy nhất: `git@github.com-dotienphong:dotienphong/maps-library-vietnam.git` (SSH alias trong `~/.ssh/config`, key `id_ed25519_dotienphong`).
 - Commit author: `dotienphong1993 <dotienphong1993@gmail.com>` (đã set local trong repo).
 - **CẤM TUYỆT ĐỐI** dùng GitHub/account của bark cho dự án này: không `gh` mặc định (đang đăng nhập account công ty qua `GITHUB_TOKEN`), không host `github.com` trơn, không email `@bark.com`. Hook `.githooks/pre-push` (M1a Task 2) từ chối push nếu vi phạm; `pnpm setup` kiểm tra lại mỗi lần dựng môi trường.
 - Nếu cần gọi API GitHub (xem Actions), chỉ dùng PAT cá nhân: `GH_TOKEN="$(cat ~/.config/gh-dotienphong.token)" gh …`.

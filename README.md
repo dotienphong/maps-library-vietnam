@@ -20,5 +20,6 @@ Cài Docker Desktop và Node 22 (khuyên dùng `fnm`), rồi:
 
 ## Quy tắc GitHub
 
-Chỉ dùng remote `git@github.com-dotienphong:dotienphong/MapsLibVN.git` (account cá
+Chỉ dùng remote
+`git@github.com-dotienphong:dotienphong/maps-library-vietnam.git` (account cá
 nhân). Hook `pre-push` sẽ chặn nếu sai.
