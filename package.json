@@ -1,0 +1,34 @@
+{
+  "name": "mapslibvn",
+  "private": true,
+  "version": "0.0.0",
+  "packageManager": "pnpm@9.15.0",
+  "engines": {
+    "node": ">=22.0.0"
+  },
+  "scripts": {
+    "setup": "node scripts/setup.mjs",
+    "dev": "turbo run dev --parallel",
+    "build": "turbo run build",
+    "lint": "biome check .",
+    "lint:fix": "biome check --write .",
+    "typecheck": "tsc -p tsconfig.scripts.json && turbo run typecheck --continue",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "db:up": "docker compose --env-file .env -f infra/dev/compose.yml up -d postgres",
+    "db:down": "docker compose --env-file .env -f infra/dev/compose.yml down",
+    "db:migrate": "node scripts/db-migrate.mjs",
+    "image:build": "node scripts/image.mjs build",
+    "image:smoke": "node scripts/image.mjs smoke",
+    "check:git": "node scripts/check-git-identity.mjs"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "1.9.4",
+    "@types/node": "^22.10.0",
+    "dotenv": "^16.4.5",
+    "postgres": "^3.4.5",
+    "turbo": "^2.3.0",
+    "typescript": "^5.6.0",
+    "vitest": "^2.1.0"
+  }
+}

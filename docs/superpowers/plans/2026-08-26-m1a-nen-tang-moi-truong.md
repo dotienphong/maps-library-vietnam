@@ -40,7 +40,7 @@ Mỗi file một trách nhiệm: `scripts/lib/*` là hàm thuần (test được
 **Files:**
 - Create: `package.json`, `pnpm-workspace.yaml`, `turbo.json`, `biome.json`, `tsconfig.base.json`, `tsconfig.scripts.json`, `vitest.config.ts`, `.gitignore`, `.gitattributes`, `.editorconfig`, `.nvmrc`, `README.md`
 
-- [ ] **Step 1: Kiểm tra công cụ trên máy**
+- [x] **Step 1: Kiểm tra công cụ trên máy**
 
 Run: `node --version && corepack --version`
 Expected: `v22.x.x` và một số phiên bản corepack. Nếu Node < 22: cài `fnm` (`brew install fnm`) rồi `fnm install 22 && fnm use 22`.
@@ -48,7 +48,7 @@ Expected: `v22.x.x` và một số phiên bản corepack. Nếu Node < 22: cài 
 Run: `corepack enable && corepack prepare pnpm@9.15.0 --activate && pnpm --version`
 Expected: `9.15.0`
 
-- [ ] **Step 2: Tạo `package.json` gốc**
+- [x] **Step 2: Tạo `package.json` gốc**
 
 ```json
 {
@@ -85,7 +85,7 @@ Expected: `9.15.0`
 }
 ```
 
-- [ ] **Step 3: Tạo `pnpm-workspace.yaml`, `turbo.json`, `biome.json`**
+- [x] **Step 3: Tạo `pnpm-workspace.yaml`, `turbo.json`, `biome.json`**
 
 `pnpm-workspace.yaml`:
 ```yaml
@@ -130,7 +130,7 @@ packages:
 }
 ```
 
-- [ ] **Step 4: Tạo tsconfig và vitest config**
+- [x] **Step 4: Tạo tsconfig và vitest config**
 
 `tsconfig.base.json`:
 ```json
@@ -182,7 +182,7 @@ export default defineConfig({
 });
 ```
 
-- [ ] **Step 5: Tạo file dotfile**
+- [x] **Step 5: Tạo file dotfile**
 
 `.gitignore`:
 ```
@@ -231,7 +231,7 @@ trim_trailing_whitespace = false
 22
 ```
 
-- [ ] **Step 6: Tạo `README.md`**
+- [x] **Step 6: Tạo `README.md`**
 
 ```markdown
 # MapsLibVN
@@ -258,7 +258,7 @@ Cài Docker Desktop và Node 22 (khuyên dùng `fnm`), rồi:
 Chỉ dùng remote `git@github.com-dotienphong:dotienphong/MapsLibVN.git` (account cá nhân). Hook `pre-push` sẽ chặn nếu sai.
 ```
 
-- [ ] **Step 7: Cài dependency và kiểm tra lint/typecheck**
+- [x] **Step 7: Cài dependency và kiểm tra lint/typecheck**
 
 Run: `pnpm install`
 Expected: tạo `pnpm-lock.yaml`, `node_modules/`, không lỗi.
@@ -272,7 +272,7 @@ Expected: `tsc` không lỗi (chưa có file trong `scripts/` là bình thườn
 Run: `pnpm test`
 Expected: Vitest báo `No test files found` với exit code **1** — đây là hành vi mặc định khi chưa có test; Task 2 sẽ thêm test đầu tiên. Không sửa gì ở bước này.
 
-- [ ] **Step 8: Commit**
+- [x] **Step 8: Commit**
 
 ```bash
 git add -A
