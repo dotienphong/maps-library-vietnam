@@ -1,7 +1,7 @@
 # MapsLibVN — Thiết kế hệ thống Maps SDK nhúng (Việt Nam trước)
 
 - Ngày: 2026-08-26 (bản 2 — cập nhật hạ tầng 0 đ, môi trường di động, lệnh cập nhật dữ liệu)
-- Trạng thái: thiết kế đã duyệt miệng; chờ PHONG review bản viết này trước khi lập kế hoạch thực thi
+- Trạng thái: bản viết đã được PHONG review; roadmap và plan M1 sẵn sàng thực thi
 - Chủ dự án: PHONG
 - Repo: `software_business/MapsLibVN` (repo riêng, private ở giai đoạn nội bộ)
 

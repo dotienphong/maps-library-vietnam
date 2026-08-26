@@ -286,7 +286,7 @@ git commit -m "chore: khung monorepo pnpm + turbo + biome + vitest"
 **Files:**
 - Create: `docs/DEVLOG.md`, `.githooks/pre-push`, `scripts/lib/git-identity.mjs`, `scripts/lib/git-identity.test.mjs`, `scripts/check-git-identity.mjs`
 
-- [ ] **Step 1: Tạo `docs/DEVLOG.md`**
+- [x] **Step 1: Tạo `docs/DEVLOG.md`**
 
 ```markdown
 # DEVLOG — MapsLibVN
@@ -316,7 +316,7 @@ M1a Task 3 — thêm remote GitHub `git@github.com-dotienphong:dotienphong/MapsL
 - 2026-08-26 · M1a T1 · khung monorepo · (commit)
 ```
 
-- [ ] **Step 2: Viết test cho hàm kiểm tra danh tính git**
+- [x] **Step 2: Viết test cho hàm kiểm tra danh tính git**
 
 `scripts/lib/git-identity.test.mjs`:
 ```js
@@ -363,12 +363,12 @@ describe('checkGitIdentity', () => {
 });
 ```
 
-- [ ] **Step 3: Chạy test để thấy thất bại**
+- [x] **Step 3: Chạy test để thấy thất bại**
 
 Run: `pnpm test`
 Expected: FAIL — `Failed to load url ./git-identity.mjs` (file chưa tồn tại).
 
-- [ ] **Step 4: Viết hàm thuần**
+- [x] **Step 4: Viết hàm thuần**
 
 `scripts/lib/git-identity.mjs`:
 ```js
@@ -403,12 +403,12 @@ export function checkGitIdentity({ remoteUrl, email }) {
 }
 ```
 
-- [ ] **Step 5: Chạy test để thấy xanh**
+- [x] **Step 5: Chạy test để thấy xanh**
 
 Run: `pnpm test`
 Expected: `6 passed`.
 
-- [ ] **Step 6: Viết CLI và hook**
+- [x] **Step 6: Viết CLI và hook**
 
 `scripts/check-git-identity.mjs`:
 ```js
@@ -452,7 +452,7 @@ node "$ROOT/scripts/check-git-identity.mjs" --remote-url "$2" || {
 Run: `chmod +x .githooks/pre-push && git config core.hooksPath .githooks`
 Expected: không in gì.
 
-- [ ] **Step 7: Kiểm tra CLI và hook bằng tay**
+- [x] **Step 7: Kiểm tra CLI và hook bằng tay**
 
 Run: `pnpm check:git`
 Expected: một dòng `CẢNH BÁO: Chưa có remote origin…` rồi `[git-identity] OK …` (chưa có remote ở task này là đúng).
@@ -463,7 +463,7 @@ Expected: `LỖI: Remote origin sai…` và `exit=1`.
 Run: `pnpm lint && pnpm typecheck`
 Expected: không lỗi (nếu Biome yêu cầu format, chạy `pnpm lint:fix`).
 
-- [ ] **Step 8: Cập nhật DEVLOG và commit**
+- [x] **Step 8: Cập nhật DEVLOG và commit**
 
 Sửa `docs/DEVLOG.md`: mục 1 "Task đang làm: Task 3", mục 4 thêm dòng `2026-08-26 · M1a T2 · DEVLOG + hook pre-push khoá account cá nhân · (commit)`.
 

@@ -1,0 +1,8 @@
+#!/bin/sh
+# Chặn push nếu URL remote hoặc user.email không thuộc account cá nhân dotienphong.
+# git truyền: $1 = tên remote, $2 = URL remote
+ROOT="$(git rev-parse --show-toplevel)"
+node "$ROOT/scripts/check-git-identity.mjs" --remote-url "$2" || {
+  echo "pre-push: BỊ CHẶN — xem lỗi ở trên. Cấm dùng account bark cho MapsLibVN." >&2
+  exit 1
+}
