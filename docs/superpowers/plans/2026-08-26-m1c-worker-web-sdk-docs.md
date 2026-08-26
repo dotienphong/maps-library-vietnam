@@ -1438,7 +1438,7 @@ git add docs/DEVLOG.md && git commit -m "docs(devlog): workflows deploy xanh" &&
 
 - [ ] **Step 1: Chạy checklist và ghi kết quả thật vào DEVLOG mục 4**
 
-1. `pnpm setup` trên máy mới (macOS): … giây. Windows: ghi "PENDING" nếu chưa có máy.
+1. `pnpm run setup` trên máy mới (macOS): … giây. Windows: ghi "PENDING" nếu chưa có máy.
 2. Playground production (`mapslibvn-docs.pages.dev/playground.html?api=<worker>`): bản đồ VN nhãn tiếng Việt; đổi `&style=dark` OK; tiles đọc từ `tiles.<domain>` (tab Network: request Range 206 tới `tiles.<domain>`, không có request tới Worker cho tile).
 3. Zoom z4: 2 nhãn chủ quyền hiện; QA lần build gần nhất xanh (log `data:update`).
 4. Trang HTML trắng nhúng bằng `<script src="https://mapslibvn-docs.pages.dev/sdk/mapslibvn.umd.js">` + `MapsLibVN.createMap({...})` → chạy.

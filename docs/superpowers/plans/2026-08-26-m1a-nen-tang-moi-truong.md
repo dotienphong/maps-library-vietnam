@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Dựng monorepo MapsLibVN với quy trình ghi chép (DEVLOG), khoá GitHub vào account cá nhân, môi trường dev một lệnh (`pnpm setup`) chạy giống nhau trên macOS/Windows/Linux, image Docker chứa toàn bộ công cụ pipeline, Dev Container và CI xanh.
+**Goal:** Dựng monorepo MapsLibVN với quy trình ghi chép (DEVLOG), khoá GitHub vào account cá nhân, môi trường dev một lệnh (`pnpm run setup`) chạy giống nhau trên macOS/Windows/Linux, image Docker chứa toàn bộ công cụ pipeline, Dev Container và CI xanh.
 
 **Architecture:** pnpm workspace + Turborepo; script tiện ích viết bằng Node thuần trong `scripts/` (không bash trong `package.json`); Postgres/PostGIS chạy Docker Compose (`infra/dev`); mọi công cụ geo (Java/Planetiler, tippecanoe, osmium, pyosmium, DuckDB, rclone) nằm trong một image (`pipelines/Dockerfile`) dùng chung cho máy dev, máy chủ và CI.
 
@@ -244,7 +244,7 @@ Cài Docker Desktop và Node 22 (khuyên dùng `fnm`), rồi:
 
     corepack enable
     pnpm install
-    pnpm setup      # tạo .env, dựng Postgres, chạy migration, kiểm tra git identity
+    pnpm run setup  # tạo .env, dựng Postgres, chạy migration, kiểm tra git identity
     pnpm dev
 
 ## Tài liệu
@@ -742,17 +742,17 @@ git push
 
 ---
 
-### Task 5: `pnpm setup` — dựng môi trường một lệnh
+### Task 5: `pnpm run setup` — dựng môi trường một lệnh
 
 **Files:**
-- Create: `scripts/lib/setup-checks.mjs`, `scripts/lib/setup-checks.test.mjs`, `scripts/lib/run.mjs`, `scripts/setup.mjs`
+- Create: `scripts/lib/setup-checks.mjs`, `scripts/lib/setup-checks.test.mjs`, `scripts/lib/setup-command.test.mjs`, `scripts/lib/run.mjs`, `scripts/setup.mjs`
 
-- [ ] **Step 1: Viết test cho hàm kiểm tra phiên bản**
+- [x] **Step 1: Viết test cho hàm kiểm tra phiên bản**
 
 `scripts/lib/setup-checks.test.mjs`:
 ```js
 import { describe, expect, it } from 'vitest';
-import { checkNodeVersion, parseDockerVersion, waitPlan } from './setup-checks.mjs';
+import { checkNodeVersion, isPostgresReady, parseDockerVersion, waitPlan } from './setup-checks.mjs';
 
 describe('checkNodeVersion', () => {
   it('chấp nhận v22 trở lên', () => {
@@ -780,14 +780,23 @@ describe('waitPlan', () => {
     expect(plan.intervalMs).toBe(2_000);
   });
 });
+
+describe('isPostgresReady', () => {
+  it('chỉ sẵn sàng khi PID 1 là postgres và pg_isready chấp nhận kết nối', () => {
+    expect(isPostgresReady('postgres', '/var/run/postgresql:5432 - accepting connections')).toBe(true);
+  });
+  it('từ chối server tạm khi entrypoint vẫn là PID 1', () => {
+    expect(isPostgresReady('docker-entrypoint.sh', '/var/run/postgresql:5432 - accepting connections')).toBe(false);
+  });
+});
 ```
 
-- [ ] **Step 2: Chạy test để thấy thất bại**
+- [x] **Step 2: Chạy test để thấy thất bại**
 
 Run: `pnpm test`
 Expected: FAIL — không tìm thấy `./setup-checks.mjs`.
 
-- [ ] **Step 3: Viết hàm thuần và helper chạy lệnh**
+- [x] **Step 3: Viết hàm thuần và helper chạy lệnh**
 
 `scripts/lib/setup-checks.mjs`:
 ```js
@@ -806,6 +815,10 @@ export function parseDockerVersion(output) {
 /** @param {number} totalMs @param {number} intervalMs */
 export function waitPlan(totalMs, intervalMs) {
   return { attempts: Math.ceil(totalMs / intervalMs), intervalMs };
+}
+
+export function isPostgresReady(pidOneCommand, pgIsReadyOutput) {
+  return pidOneCommand.trim() === 'postgres' && pgIsReadyOutput.includes('accepting connections');
 }
 ```
 
@@ -841,19 +854,24 @@ export function sleep(ms) {
 }
 ```
 
-- [ ] **Step 4: Chạy test để thấy xanh**
+- [x] **Step 4: Chạy test để thấy xanh**
 
 Run: `pnpm test`
-Expected: `16 passed`.
+Expected: `20 passed` (gồm regression guard cho xung đột `pnpm setup` built-in và PostGIS init restart).
 
-- [ ] **Step 5: Viết `scripts/setup.mjs`**
+- [x] **Step 5: Viết `scripts/setup.mjs`**
 
 ```js
 #!/usr/bin/env node
 // Dựng môi trường dev một lệnh. Chạy giống nhau trên macOS / Windows (PowerShell hoặc WSL) / Linux.
 import { copyFileSync, existsSync } from 'node:fs';
 import { resolve } from 'node:path';
-import { checkNodeVersion, parseDockerVersion, waitPlan } from './lib/setup-checks.mjs';
+import {
+  checkNodeVersion,
+  isPostgresReady,
+  parseDockerVersion,
+  waitPlan,
+} from './lib/setup-checks.mjs';
 import { capture, run, sleep } from './lib/run.mjs';
 
 const t0 = Date.now();
@@ -875,7 +893,7 @@ if (!dockerVersion) {
   process.exit(1);
 }
 if (!capture('docker', ['info', '--format', '{{.ServerVersion}}'])) {
-  console.error('Docker daemon chưa chạy. Mở Docker Desktop rồi chạy lại "pnpm setup".');
+  console.error('Docker daemon chưa chạy. Mở Docker Desktop rồi chạy lại "pnpm run setup".');
   process.exit(1);
 }
 console.log(`Docker ${dockerVersion.major}.${dockerVersion.minor} OK`);
@@ -895,7 +913,9 @@ step('Chờ Postgres sẵn sàng');
 const plan = waitPlan(90_000, 2_000);
 let ready = false;
 for (let i = 0; i < plan.attempts && !ready; i++) {
-  ready = capture('docker', [...compose, 'exec', '-T', 'postgres', 'pg_isready', '-U', 'mapslibvn']).includes('accepting');
+  const pidOneCommand = capture('docker', [...compose, 'exec', '-T', 'postgres', 'cat', '/proc/1/comm']);
+  const pgIsReadyOutput = capture('docker', [...compose, 'exec', '-T', 'postgres', 'pg_isready', '-U', 'mapslibvn']);
+  ready = isPostgresReady(pidOneCommand, pgIsReadyOutput);
   if (!ready) await sleep(plan.intervalMs);
 }
 if (!ready) {
@@ -922,17 +942,17 @@ Tiếp theo:
 `);
 ```
 
-- [ ] **Step 6: Chạy `pnpm setup` trên trạng thái hiện tại (đã có Postgres)**
+- [x] **Step 6: Chạy `pnpm run setup` trên trạng thái hiện tại (đã có Postgres)**
 
-Run: `pnpm setup`
+Run: `pnpm run setup`
 Expected: các bước ▶ lần lượt OK, `Không có migration mới.`, `[git-identity] OK`, dòng `✔ Môi trường sẵn sàng sau Ns` với N < 30.
 
-- [ ] **Step 7: Chạy `pnpm setup` từ trạng thái sạch**
+- [x] **Step 7: Chạy `pnpm run setup` từ trạng thái sạch**
 
-Run: `pnpm db:down -v 2>/dev/null || docker compose --env-file .env -f infra/dev/compose.yml down -v; rm .env; pnpm setup`
+Run: `pnpm db:down -v 2>/dev/null || docker compose --env-file .env -f infra/dev/compose.yml down -v; rm .env; pnpm run setup`
 Expected: `Đã tạo .env từ .env.example`, Postgres khởi động lại, `Áp dụng 0001_extensions.sql`, `✔ Môi trường sẵn sàng`.
 
-- [ ] **Step 8: Lint, DEVLOG, commit**
+- [x] **Step 8: Lint, DEVLOG, commit**
 
 Run: `pnpm lint && pnpm typecheck && pnpm test`
 Expected: xanh.
@@ -941,7 +961,7 @@ Sửa `docs/DEVLOG.md`: "Task đang làm: Task 6"; mục 4 thêm dòng T5 kèm s
 
 ```bash
 git add -A
-git commit -m "feat(scripts): pnpm setup — dựng môi trường dev một lệnh"
+git commit -m "feat(scripts): pnpm run setup — dựng môi trường dev một lệnh"
 git push
 ```
 
@@ -1295,7 +1315,7 @@ git push
 Run:
 ```bash
 cd "$(mktemp -d)" && git clone git@github.com-dotienphong:dotienphong/maps-library-vietnam.git && cd maps-library-vietnam \
-  && corepack enable && time (pnpm install && pnpm setup)
+  && corepack enable && time (pnpm install && pnpm run setup)
 ```
 Expected: `✔ Môi trường sẵn sàng`, `real` < 15 phút (thường 2–4 phút khi image Postgres đã có trên máy). Lưu ý: clone này dùng cùng Docker daemon nên Postgres `mapslibvn-dev` đã chạy sẽ được dùng lại — đúng mong đợi.
 
@@ -1309,7 +1329,7 @@ Expected: `LỖI: user.email "someone@bark.com" thuộc account công ty`, `pre-
 - [ ] **Step 3: Checklist nghiệm thu (ghi kết quả thật vào DEVLOG mục 4)**
 
 - `pnpm install && pnpm lint && pnpm typecheck && pnpm test` xanh trên máy dev.
-- `pnpm setup` từ clone sạch: … giây.
+- `pnpm run setup` từ clone sạch: … giây.
 - `pnpm image:smoke` xanh trên arm64 (Mac) — CI xanh trên amd64.
 - Hook chặn email bark: đã kiểm.
 - Windows: **chưa kiểm** (chờ PHONG có máy) — ghi rõ "PENDING Windows" trong DEVLOG mục 1.

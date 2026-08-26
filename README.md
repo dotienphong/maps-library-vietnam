@@ -9,7 +9,7 @@ Cài Docker Desktop và Node 22 (khuyên dùng `fnm`), rồi:
 
     corepack enable
     pnpm install
-    pnpm setup      # tạo .env, dựng Postgres, chạy migration, kiểm tra git identity
+    pnpm run setup  # tạo .env, dựng Postgres, chạy migration, kiểm tra git identity
     pnpm dev
 
 ## Tài liệu

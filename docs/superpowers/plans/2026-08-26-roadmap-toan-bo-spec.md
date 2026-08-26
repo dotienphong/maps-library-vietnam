@@ -16,7 +16,7 @@
 
 - Remote duy nhất: `git@github.com-dotienphong:dotienphong/maps-library-vietnam.git` (SSH alias trong `~/.ssh/config`, key `id_ed25519_dotienphong`).
 - Commit author: `dotienphong1993 <dotienphong1993@gmail.com>` (đã set local trong repo).
-- **CẤM TUYỆT ĐỐI** dùng GitHub/account của bark cho dự án này: không `gh` mặc định (đang đăng nhập account công ty qua `GITHUB_TOKEN`), không host `github.com` trơn, không email `@bark.com`. Hook `.githooks/pre-push` (M1a Task 2) từ chối push nếu vi phạm; `pnpm setup` kiểm tra lại mỗi lần dựng môi trường.
+- **CẤM TUYỆT ĐỐI** dùng GitHub/account của bark cho dự án này: không `gh` mặc định (đang đăng nhập account công ty qua `GITHUB_TOKEN`), không host `github.com` trơn, không email `@bark.com`. Hook `.githooks/pre-push` (M1a Task 2) từ chối push nếu vi phạm; `pnpm run setup` kiểm tra lại mỗi lần dựng môi trường.
 - Nếu cần gọi API GitHub (xem Actions), chỉ dùng PAT cá nhân: `GH_TOKEN="$(cat ~/.config/gh-dotienphong.token)" gh …`.
 
 ### 0.2 Ghi chép để "quay lại biết bắt đầu từ đâu" — DEVLOG
@@ -41,7 +41,7 @@ Quy tắc: **bước cuối của mọi task** là (a) tick checkbox trong plan,
 
 | # | Plan | Mốc | Trạng thái |
 |---|---|---|---|
-| 1 | `2026-08-26-m1a-nen-tang-moi-truong.md` | M1a — monorepo, DEVLOG, hook GitHub, dev compose + migration, `pnpm setup`, image Docker, devcontainer, CI | Đã viết, sẵn sàng thực thi |
+| 1 | `2026-08-26-m1a-nen-tang-moi-truong.md` | M1a — monorepo, DEVLOG, hook GitHub, dev compose + migration, `pnpm run setup`, image Docker, devcontainer, CI | Đã viết, sẵn sàng thực thi |
 | 2 | `2026-08-26-m1b-tiles-style-web-sdk.md` | M1b — `@mapslibvn/core` (attribution + client khung), `@mapslibvn/style` (template light/dark, chủ quyền), pipeline tiles (download/patch/build/fixture/QA/upload/manifest), `data:update --tiles`, `data:rollback` | Đã viết, sẵn sàng thực thi |
 | 2b | `2026-08-26-m1c-worker-web-sdk-docs.md` | M1c — Worker `apps/api` (styles từ manifest, attribution, tiles fallback, `/r2` dev), `@mapslibvn/web` + UMD, docs Starlight + playground + E2E, workflows deploy/data-update, nghiệm thu M1 | Đã viết, sẵn sàng thực thi |
 | 3 | `YYYY-MM-DD-m2-kho-poi-may-chu.md` | M2 — máy chủ nội bộ, migration kho POI, chuẩn hoá VI, parser địa chỉ, ingest 3 nguồn, gộp, anchors, poi.pmtiles, `data:update` đầy đủ | Viết cấp bước khi bắt đầu M2 (mục 3) |
@@ -61,7 +61,7 @@ Lý do M2–M5 viết cấp bước sau: chúng phụ thuộc kết quả M1 (Pl
 | Trước M2 Task 1 | Chuẩn bị máy nội bộ 24/7 (≥ 8 GB RAM, SSD ≥ 50 GB, Docker) | M2 T1 |
 | Trong M2 Task 1 | Theo `infra/server/README.md`: tạo Tunnel, Access application + service token, Hyperdrive config | M2 T1 |
 | Trước M5 | Hỏi luật sư (Điều 51, ODbL, nhãn hiệu) | M5 T3 checklist |
-| Khi có máy Windows | Chạy `pnpm setup` trên Windows và ghi kết quả vào DEVLOG | Nghiệm thu M1 mục "Windows" |
+| Khi có máy Windows | Chạy `pnpm run setup` trên Windows và ghi kết quả vào DEVLOG | Nghiệm thu M1 mục "Windows" |
 
 ---
 
@@ -75,11 +75,11 @@ Plan cấp bước: `docs/superpowers/plans/2026-08-26-m1a-nen-tang-moi-truong.m
 | 2 DEVLOG + hook GitHub | `docs/DEVLOG.md`, `.githooks/pre-push`, `scripts/lib/git-identity.mjs` + test | Hook từ chối remote sai/email bark; DEVLOG có 4 mục |
 | 3 Remote GitHub | `origin` = alias cá nhân, push `main` | `git ls-remote origin` chạy qua `github.com-dotienphong` |
 | 4 Dev DB + migration | `infra/dev/compose.yml` (Postgres 16 + PostGIS), `.env.example`, `db/migrations/0001_extensions.sql`, `scripts/db-migrate.mjs` | `pnpm db:migrate` tạo extension; chạy lại không làm gì |
-| 5 `pnpm setup` | `scripts/setup.mjs`: kiểm tra Docker/Node, tạo `.env`, compose up, chờ DB, migrate, kiểm tra git identity, in hướng dẫn | Máy sạch → chạy được `pnpm dev` ≤ 15 phút |
+| 5 `pnpm run setup` | `scripts/setup.mjs`: kiểm tra Docker/Node, tạo `.env`, compose up, chờ DB, migrate, kiểm tra git identity, in hướng dẫn | Máy sạch → chạy được `pnpm dev` ≤ 15 phút |
 | 6 Image Docker pipeline | `pipelines/Dockerfile` (Java 21, Planetiler, tippecanoe, osmium-tool, pyosmium, DuckDB CLI, rclone, Node 22), `pnpm image:build`, `pnpm image:smoke` | Smoke in ra phiên bản 6 công cụ trên arm64 và amd64 |
 | 7 Dev Container | `.devcontainer/devcontainer.json` + compose | "Reopen in Container" chạy được `pnpm test` |
 | 8 CI | `.github/workflows/ci.yml`: lint, typecheck, test, build image (push GHCR) | Run đầu tiên xanh trên GitHub |
-| 9 Nghiệm thu M1a | DEVLOG cập nhật; thử `pnpm setup` từ clone sạch | Ghi thời gian thực vào DEVLOG |
+| 9 Nghiệm thu M1a | DEVLOG cập nhật; thử `pnpm run setup` từ clone sạch | Ghi thời gian thực vào DEVLOG |
 
 ## 2. M1b + M1c — Tiles, style, Worker, Web SDK, docs
 

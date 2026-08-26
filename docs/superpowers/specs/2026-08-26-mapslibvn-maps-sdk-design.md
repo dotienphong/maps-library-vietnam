@@ -28,7 +28,7 @@ MapsLibVN là nền tảng bản đồ **nhúng được vào bất kỳ dự á
 - Web SDK (`@mapslibvn/web`, ESM + UMD) và React bindings (`@mapslibvn/react`).
 - API key theo tenant, quota, ghi nguồn (attribution) bắt buộc, đo lường sử dụng.
 - Tài liệu + playground công khai.
-- Môi trường dev một lệnh (`pnpm setup`) và máy chủ nội bộ một lệnh (`pnpm server:setup`); lệnh cập nhật dữ liệu `pnpm data:update`.
+- Môi trường dev một lệnh (`pnpm run setup`) và máy chủ nội bộ một lệnh (`pnpm server:setup`); lệnh cập nhật dữ liệu `pnpm data:update`.
 
 ### 1.3 Ngoài phạm vi MVP (có chỗ trong kiến trúc, làm sau)
 
@@ -57,7 +57,7 @@ MapsLibVN là nền tảng bản đồ **nhúng được vào bất kỳ dự á
 | Kiến trúc | A — tĩnh tối đa (serverless) | Tiles/POI tĩnh trên CDN; chỉ tìm kiếm và đóng góp chạm DB; mọi nâng cấp nằm sau Worker |
 | Hạ tầng | Cloudflare (R2, Workers, KV, Pages, Hyperdrive, Tunnel, Access) + **Postgres/PostGIS self-host bằng Docker trên máy nội bộ chạy 24/7** | 0 đ cho 5.000 user đầu; không managed Postgres nào free đủ 2–3 GB (Supabase 500 MB, Aiven 1 GB, Neon 0,5 GB); Hyperdrive→Access→Tunnel là đường Cloudflare hỗ trợ chính thức |
 | Khi thương mại | Chuyển DB sang VPS Singapore / cloud VN / Supabase Pro bằng `pg_dump` + đổi cấu hình Hyperdrive | Khách trả tiền cần SLA; nhà riêng không phải nơi giữ dữ liệu khách hàng |
-| Môi trường | Chỉ cài Docker + Node 22 trên máy host; mọi công cụ khác trong Docker; `pnpm setup` một lệnh; Dev Container | PHONG sắp đổi MacBook → Windows |
+| Môi trường | Chỉ cài Docker + Node 22 trên máy host; mọi công cụ khác trong Docker; `pnpm run setup` một lệnh; Dev Container | PHONG sắp đổi MacBook → Windows |
 | Tên | MapsLibVN; gói `@mapslibvn/*`; global UMD `MapsLibVN` | Do PHONG chọn |
 
 ## 2. Kiến trúc tổng thể
@@ -166,12 +166,12 @@ MapsLibVN/
 Mục tiêu: máy mới → làm việc được trong **≤ 15 phút**, kể cả tải image.
 
 - **Cài trên máy host chỉ 2 thứ**: Docker Desktop (Windows: bật WSL2, Docker dùng backend WSL2) và Node 22 (qua `fnm`, có bản Windows; `corepack enable` để có pnpm). Java, Planetiler, tippecanoe, pyosmium, DuckDB, Postgres, cloudflared **đều nằm trong Docker** — không cài native, không lệch phiên bản giữa máy.
-- **Một lệnh**: `git clone <repo> && cd MapsLibVN && pnpm install && pnpm setup`. `scripts/setup.mjs` (Node, không bash): kiểm tra Docker/Node, tạo `.env` từ `.env.example`, `docker compose -f infra/dev/compose.yml up -d` (Postgres+PostGIS), chạy migration, nạp fixture Quận 1 (~3 phút), kiểm tra `wrangler login`, in hướng dẫn `pnpm dev` (playground + `wrangler dev` cùng lúc).
+- **Một lệnh**: `git clone <repo> && cd maps-library-vietnam && pnpm install && pnpm run setup`. `scripts/setup.mjs` (Node, không bash): kiểm tra Docker/Node, tạo `.env` từ `.env.example`, `docker compose -f infra/dev/compose.yml up -d` (Postgres+PostGIS), chạy migration, nạp fixture Quận 1 (~3 phút), kiểm tra `wrangler login`, in hướng dẫn `pnpm dev` (playground + `wrangler dev` cùng lúc).
 - **Dev Container** (tuỳ chọn, khuyến nghị khi đổi máy): `.devcontainer/devcontainer.json` dùng `pipelines/Dockerfile` làm base + service Postgres; VS Code/Cursor "Reopen in Container" → môi trường giống hệt trên mọi HĐH, kể cả chạy pipeline đầy đủ.
 - **Windows**: clone repo bên trong hệ thống file WSL (`~/src/MapsLibVN`) để I/O nhanh và tránh vấn đề đường dẫn; `.gitattributes` ép LF; mọi script npm là Node (`scripts/*.mjs`), không có lệnh bash trong `package.json`; `.editorconfig` thống nhất.
 - **Bí mật**: `.env.example` chỉ chứa giá trị dev mặc định an toàn (Postgres local). Bí mật thật (token Tunnel, Cloudflare API token, `EDIT_SALT`, service token Access) không nằm trong git — PHONG giữ trong password manager; máy dev mới chỉ cần `wrangler login`. Bí mật Worker nạp bằng `wrangler secret`; bí mật máy chủ nằm trong `infra/server/.env` trên chính máy đó.
 - **Dữ liệu cho dev**: mặc định fixture Quận 1 (nhanh, đủ test mọi tính năng). Cần toàn VN thì `pnpm db:restore --latest` tải bản `pg_dump` mới nhất từ R2 (~1 GB, 10–15 phút). Máy dev không cần chạy pipeline đầy đủ.
-- **Đồng bộ giữa máy**: code qua GitHub (remote alias `github.com-dotienphong`), không copy thư mục; `node_modules`, `.env`, dữ liệu Docker không di chuyển — dựng lại bằng `pnpm setup`.
+- **Đồng bộ giữa máy**: code qua GitHub (remote alias `github.com-dotienphong`), không copy thư mục; `node_modules`, `.env`, dữ liệu Docker không di chuyển — dựng lại bằng `pnpm run setup`.
 
 ## 4. P1 — Tiles nền Việt Nam
 
@@ -522,7 +522,7 @@ Khi p95 autocomplete > 300 ms bền vững hoặc DAU > 20K: thêm Meilisearch (
 | Tích hợp pipeline | chạy toàn pipeline trong image Docker trên PBF cắt bbox Quận 1 cũ + Overture/FSQ cùng bbox (fixture parquet trong repo, ~20 MB): số POI hợp lý, không lỗi, `poi.pmtiles` sinh ra | Vitest + DuckDB |
 | Tích hợp tiles | QA chủ quyền (4.3), validate style, đọc 20 tile ngẫu nhiên | script TS |
 | Tích hợp API | Postgres docker (`infra/dev`) nạp fixture, `wrangler dev` + Miniflare; **2 fixture bắt buộc**: `q=Trường Tiểu học Hoàng Diệu&near=10.77,106.70` → ≥ 3 kết quả, trường Linh Xuân (10.85594, 106.77325) đứng đầu; `geocode?q=88/9 Nguyễn Lâm&near=10.76,106.66` → `precision=interpolated`, toạ độ cách (10.7647, 106.6631) ≤ 60 m | Vitest |
-| Môi trường | `pnpm setup` trên máy sạch (container Ubuntu trong CI + thử tay trên macOS và Windows) hoàn tất ≤ 15 phút, `pnpm dev` chạy; `pnpm server:setup` dựng compose máy chủ và Postgres nhận kết nối TLS | CI + checklist tay |
+| Môi trường | `pnpm run setup` trên máy sạch (container Ubuntu trong CI + thử tay trên macOS và Windows) hoàn tất ≤ 15 phút, `pnpm dev` chạy; `pnpm server:setup` dựng compose máy chủ và Postgres nhận kết nối TLS | CI + checklist tay |
 | E2E | playground tải bản đồ (mọi tile 200/204), gõ "highlands" có gợi ý ≤ 1 s, bấm POI hiện chi tiết, attribution hiện | Playwright |
 | Cổng CI | lint, typecheck, unit, size-limit, style validate; `data:update` có QA riêng | GitHub Actions |
 
@@ -591,7 +591,7 @@ Nominatim công cộng và Overpass API chỉ dùng cho kiểm tra phát triển
 
 | Mốc | Nội dung | Tiêu chí chấp nhận | Ước lượng |
 |---|---|---|---|
-| **M1** Bản đồ câm + môi trường | monorepo, `pipelines/Dockerfile`, `infra/dev`, `scripts/setup.mjs`, `.devcontainer`; `pipelines/tiles` (patch + Planetiler + QA + upload R2 + manifest); `packages/style`; Worker `/v1/styles` + tiles fallback; `@mapslibvn/core` (attribution) + `@mapslibvn/web` (createMap, pmtiles protocol, UMD); playground | `pnpm setup` trên máy mới (thử macOS **và** Windows) ≤ 15 phút; playground hiện bản đồ VN nhãn tiếng Việt, theme sáng/tối, tiles đọc thẳng từ `tiles.<domain>`; QA chủ quyền xanh; nhúng bằng `<script>` chạy trên trang HTML trắng; `data:update --tiles` chạy trọn vòng | 1,5–2 tuần |
+| **M1** Bản đồ câm + môi trường | monorepo, `pipelines/Dockerfile`, `infra/dev`, `scripts/setup.mjs`, `.devcontainer`; `pipelines/tiles` (patch + Planetiler + QA + upload R2 + manifest); `packages/style`; Worker `/v1/styles` + tiles fallback; `@mapslibvn/core` (attribution) + `@mapslibvn/web` (createMap, pmtiles protocol, UMD); playground | `pnpm run setup` trên máy mới (thử macOS **và** Windows) ≤ 15 phút; playground hiện bản đồ VN nhãn tiếng Việt, theme sáng/tối, tiles đọc thẳng từ `tiles.<domain>`; QA chủ quyền xanh; nhúng bằng `<script>` chạy trên trang HTML trắng; `data:update --tiles` chạy trọn vòng | 1,5–2 tuần |
 | **M2** Kho POI + máy chủ | `infra/server` (compose, `server:setup`, Tunnel/Access/Hyperdrive theo checklist, backup); `db/migrations`; `pipelines/poi` (ingest 3 nguồn, chuẩn hoá, gộp, taxonomy, anchors/street/alley/admin); `poi.pmtiles`; lớp POI trong style; `data:update` đầy đủ | Máy nội bộ chạy Postgres nhận kết nối TLS qua Tunnel từ Worker; `data:update` chạy trọn trên máy nội bộ; ≥ 1,5 triệu `poi` active; POI hiện theo zoom; bấm POI thấy tên/loại từ tile; báo cáo số liệu gộp; `db:restore --latest` phục hồi được trên máy dev | 2 tuần |
 | **M3** Places API | 7 endpoint đọc, ranking, geocode ladder, cache, key/quota cơ bản, `@mapslibvn/core` đầy đủ, `<mapslibvn-autocomplete>`, `@mapslibvn/react` | 2 fixture bắt buộc xanh; p95 autocomplete < 300 ms từ VN; quota 429 hoạt động với tenant `free` thử nghiệm; React demo | 2 tuần |
 | **M4** Đóng góp | `POST /v1/edits`, luật auto-approve, `apps/admin` sau Access, áp dụng edit vào `poi`/anchor, pipeline tôn trọng `locked_fields` | Gửi sửa giờ mở cửa → auto-approve → thấy ngay qua API; tạo POI mới → pending → duyệt → có trong build kế tiếp | 1 tuần |
@@ -609,7 +609,7 @@ Tổng ≈ 8 tuần làm việc. Sau M5: spec React Native SDK.
 | Tên phường/quận cũ-mới sau 2025 | không khớp địa chỉ | `admin_alias` + fixture địa chỉ cũ |
 | **Máy nội bộ mất điện/mạng/hỏng ổ** | tìm kiếm & đóng góp trả 503 | bản đồ + lớp POI tĩnh trên R2 vẫn chạy; UPS; cảnh báo Tunnel; backup hằng ngày lên R2; dựng lại máy < 1 giờ; chuyển VPS khi thương mại |
 | ISP gia đình đổi IP / CGNAT | mất kết nối DB | Tunnel là kết nối ra ngoài từ máy chủ, không cần IP tĩnh hay mở cổng |
-| Đổi máy dev macOS → Windows | môi trường lệch, script hỏng | mọi công cụ trong Docker/devcontainer, script Node thuần, LF ép bằng `.gitattributes`, test `pnpm setup` trên cả hai HĐH ở M1 |
+| Đổi máy dev macOS → Windows | môi trường lệch, script hỏng | mọi công cụ trong Docker/devcontainer, script Node thuần, LF ép bằng `.gitattributes`, test `pnpm run setup` trên cả hai HĐH ở M1 |
 | Workers Free 100K request/ngày | API bị chặn khi DAU > ~8K | tiles không qua Worker; nâng Workers Paid 5 USD khi cần |
 | Dự án cá nhân/cộng đồng ngừng (Planetiler, PMTiles) | không build được | đều là mã mở, pin phiên bản trong image, có thể fork |
 | Tên MapsLibVN vướng nhãn hiệu MapLibre | phải đổi tên gói | tên là hằng số; rà soát trước khi publish npm |
