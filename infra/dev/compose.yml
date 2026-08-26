@@ -1,0 +1,47 @@
+name: mapslibvn-dev
+
+services:
+  postgres:
+    image: postgis/postgis:16-3.4
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-mapslibvn}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-mapslibvn}
+      POSTGRES_DB: ${POSTGRES_DB:-mapslibvn}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -U ${POSTGRES_USER:-mapslibvn} -d ${POSTGRES_DB:-mapslibvn}",
+        ]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  # Chạy pipeline/tools trong image chung. Chỉ bật khi cần: --profile pipeline
+  pipeline:
+    profiles: ["pipeline"]
+    image: ${PIPELINE_IMAGE:-mapslibvn/pipeline:local}
+    build:
+      context: ../..
+      dockerfile: pipelines/Dockerfile
+    env_file:
+      - ../../.env
+    environment:
+      MAPSLIBVN_IN_CONTAINER: "1"
+      POSTGRES_HOST: postgres
+    volumes:
+      - pipeline-work:/app/work
+      - pipeline-out:/app/out
+    depends_on:
+      postgres:
+        condition: service_healthy
+    command: ["sleep", "infinity"]
+
+volumes:
+  pgdata:
+  pipeline-work:
+  pipeline-out:

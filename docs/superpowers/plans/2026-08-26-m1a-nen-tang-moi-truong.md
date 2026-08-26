@@ -518,7 +518,7 @@ git push
 **Files:**
 - Create: `infra/dev/compose.yml`, `.env.example`, `db/migrations/0001_extensions.sql`, `scripts/lib/migrations.mjs`, `scripts/lib/migrations.test.mjs`, `scripts/db-migrate.mjs`
 
-- [ ] **Step 1: Viết test cho hàm thuần của migration**
+- [x] **Step 1: Viết test cho hàm thuần của migration**
 
 `scripts/lib/migrations.test.mjs`:
 ```js
@@ -553,12 +553,12 @@ describe('databaseUrlFromEnv', () => {
 });
 ```
 
-- [ ] **Step 2: Chạy test để thấy thất bại**
+- [x] **Step 2: Chạy test để thấy thất bại**
 
 Run: `pnpm test`
 Expected: FAIL — không tìm thấy `./migrations.mjs`.
 
-- [ ] **Step 3: Viết hàm thuần**
+- [x] **Step 3: Viết hàm thuần**
 
 `scripts/lib/migrations.mjs`:
 ```js
@@ -589,12 +589,12 @@ export function databaseUrlFromEnv(env) {
 }
 ```
 
-- [ ] **Step 4: Chạy test để thấy xanh**
+- [x] **Step 4: Chạy test để thấy xanh**
 
 Run: `pnpm test`
 Expected: `11 passed` (6 của Task 2 + 5 mới).
 
-- [ ] **Step 5: Tạo compose, `.env.example`, migration đầu tiên**
+- [x] **Step 5: Tạo compose, `.env.example`, migration đầu tiên**
 
 `infra/dev/compose.yml`:
 ```yaml
@@ -674,7 +674,7 @@ CREATE EXTENSION IF NOT EXISTS pg_trgm;
 CREATE EXTENSION IF NOT EXISTS unaccent;
 ```
 
-- [ ] **Step 6: Viết CLI migrate**
+- [x] **Step 6: Viết CLI migrate**
 
 `scripts/db-migrate.mjs`:
 ```js
@@ -710,7 +710,7 @@ try {
 }
 ```
 
-- [ ] **Step 7: Chạy Postgres và migrate**
+- [x] **Step 7: Chạy Postgres và migrate**
 
 Run: `cp .env.example .env && pnpm db:up`
 Expected: `Container mapslibvn-dev-postgres-1 Started` (lần đầu tải image ~ 1–2 phút).
@@ -727,7 +727,7 @@ Expected: `[db:migrate] Không có migration mới.` rồi `Xong — áp dụng 
 Run: `docker compose --env-file .env -f infra/dev/compose.yml exec postgres psql -U mapslibvn -d mapslibvn -c "SELECT extname FROM pg_extension ORDER BY 1"`
 Expected: có `pg_trgm`, `postgis`, `unaccent`.
 
-- [ ] **Step 8: Lint, DEVLOG, commit**
+- [x] **Step 8: Lint, DEVLOG, commit**
 
 Run: `pnpm lint && pnpm typecheck && pnpm test`
 Expected: tất cả xanh.
