@@ -5,19 +5,20 @@ commit với code).
 
 ## 1. Trạng thái hiện tại
 
-- Mốc: M1a — Nền tảng & môi trường
-- Plan: `docs/superpowers/plans/2026-08-26-m1a-nen-tang-moi-truong.md`
-- Task đang làm: Task 9 (Nghiệm thu M1a)
-- Commit cuối: `469836a`
+- Mốc: M1b — Tiles, style, Worker, Web SDK
+- Plan: `docs/superpowers/plans/2026-08-26-m1b-tiles-style-web-sdk.md`
+- Task đang làm: Task 1 (`@mapslibvn/core`)
+- Commit cuối: `4a7552c`
 - Môi trường đã dựng: máy dev macOS; remote GitHub cá nhân; Postgres/PostGIS dev,
   migration `0001_extensions.sql`; `pnpm run setup` sạch đạt 6,51 giây; image
   pipeline local đã build/smoke trên arm64 và chạy được qua Compose; Dev Container
   đã dựng thành công và chạy đủ 20 test trong Linux container; CI GitHub xanh
-  trên amd64 và image đã được push lên GHCR
+  trên amd64 và image đã được push lên GHCR; M1a đã nghiệm thu trên macOS arm64;
+  **PENDING Windows** (chờ PHONG có máy để kiểm)
 
 ## 2. Bước kế tiếp
 
-M1a Task 9 — nghiệm thu từ clone sạch và chốt mốc.
+M1b Task 1 — `@mapslibvn/core` (attribution + client khung).
 
 ## 3. Quyết định phát sinh
 
@@ -34,6 +35,7 @@ M1a Task 9 — nghiệm thu từ clone sạch và chốt mốc.
 | 2026-08-26 | Planetiler tải 8 HTTP range song song, cache từng part, kiểm tra đúng 93.278.824 byte và SHA-256 | GitHub release chỉ đạt khoảng 22 KB/s/kết nối; tải một luồng mất hơn một giờ và dễ mất tiến độ | `67a7b99` |
 | 2026-08-27 | Override Dev Container dùng `../..` cho build context và bind mount | Đường dẫn Compose được resolve theo file đầu tiên ở `infra/dev`, không theo thư mục `.devcontainer` | `673f6fe` |
 | 2026-08-27 | CI gọi chung `pnpm image:smoke` thay vì lặp lệnh kiểm tra tool trong YAML | Local và CI dùng cùng một hợp đồng smoke đã được kiểm chứng ở Task 6 | `469836a` |
+| 2026-08-27 | `pnpm run setup` luôn cấu hình author cá nhân bằng `git config --local` trước khi kiểm | Clone sạch kế thừa email Bark từ Git global và không thể đạt setup; cấu hình local giữ global nguyên vẹn, hook vẫn chặn override sai | `4a7552c` |
 
 ## 4. Nhật ký
 
@@ -45,3 +47,9 @@ M1a Task 9 — nghiệm thu từ clone sạch và chốt mốc.
 - 2026-08-26 · M1a T6 · image pipeline đủ 8 tool, cached rebuild 4,8 giây · `67a7b99`
 - 2026-08-27 · M1a T7 · Dev Container dựng thành công, 20/20 test trong Linux · `673f6fe`
 - 2026-08-27 · M1a T8 · CI xanh: test 18 giây, image + smoke 3 phút 52 giây · `469836a` · https://github.com/dotienphong/maps-library-vietnam/actions/runs/33024223882
+- 2026-08-27 · M1a T9 · nghiệm thu đạt trên macOS arm64 · (commit hiện tại):
+  - Clone sạch: install + setup `real 4,42s`; setup báo sẵn sàng sau 2 giây.
+  - Máy dev: install lockfile, lint, typecheck và 21/21 test đều xanh.
+  - Image local arm64 smoke đủ 8 tool; CI amd64 của bản sửa setup xanh: https://github.com/dotienphong/maps-library-vietnam/actions/runs/33024620355
+  - Hook từ chối `someone@bark.com`, in `pre-push: BỊ CHẶN`, trả `exit=1`.
+  - Windows: **PENDING Windows** (chờ PHONG có máy để kiểm).

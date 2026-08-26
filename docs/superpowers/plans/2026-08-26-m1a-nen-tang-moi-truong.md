@@ -1328,7 +1328,7 @@ git push
 **Files:**
 - Modify: `docs/DEVLOG.md`, `docs/superpowers/plans/2026-08-26-m1a-nen-tang-moi-truong.md` (tick checkbox)
 
-- [ ] **Step 1: Thử từ clone sạch, đo thời gian**
+- [x] **Step 1: Thử từ clone sạch, đo thời gian**
 
 Run:
 ```bash
@@ -1339,12 +1339,19 @@ Expected: `✔ Môi trường sẵn sàng`, `real` < 15 phút (thường 2–4 p
 
 Dọn: `cd - && rm -rf "$OLDPWD"`.
 
-- [ ] **Step 2: Kiểm tra hook vẫn chặn account sai**
+Kết quả thực tế 2026-08-27: lần đầu phát hiện clone kế thừa Git global Bark nên
+setup bị chặn đúng chính sách. Commit `4a7552c` cấu hình author bằng
+`git config --local`; clone sạch lần hai đạt `real 4,42s`, setup báo sẵn sàng sau
+2 giây và Git global không bị thay đổi. Hai thư mục clone tạm đã được dọn.
+
+- [x] **Step 2: Kiểm tra hook vẫn chặn account sai**
 
 Run: `git -c user.email=someone@bark.com push --dry-run origin main; echo "exit=$?"`
 Expected: `LỖI: user.email "someone@bark.com" thuộc account công ty`, `pre-push: BỊ CHẶN`, `exit=1`.
 
-- [ ] **Step 3: Checklist nghiệm thu (ghi kết quả thật vào DEVLOG mục 4)**
+Kết quả thực tế: đạt đủ ba dấu hiệu trên, `exit=1`.
+
+- [x] **Step 3: Checklist nghiệm thu (ghi kết quả thật vào DEVLOG mục 4)**
 
 - `pnpm install && pnpm lint && pnpm typecheck && pnpm test` xanh trên máy dev.
 - `pnpm run setup` từ clone sạch: … giây.
@@ -1352,7 +1359,7 @@ Expected: `LỖI: user.email "someone@bark.com" thuộc account công ty`, `pre-
 - Hook chặn email bark: đã kiểm.
 - Windows: **chưa kiểm** (chờ PHONG có máy) — ghi rõ "PENDING Windows" trong DEVLOG mục 1.
 
-- [ ] **Step 4: Cập nhật DEVLOG chuyển mốc**
+- [x] **Step 4: Cập nhật DEVLOG chuyển mốc**
 
 `docs/DEVLOG.md` mục 1: "Mốc: M1b — Tiles, style, Worker, Web SDK"; "Plan: `docs/superpowers/plans/2026-08-26-m1b-tiles-style-web-sdk.md`"; "Task đang làm: Task 1". Mục 2: "M1b Task 1 — `@mapslibvn/core` (attribution + client khung)". Mục 4: dòng nghiệm thu M1a.
 
