@@ -7,16 +7,17 @@ commit với code).
 
 - Mốc: M1a — Nền tảng & môi trường
 - Plan: `docs/superpowers/plans/2026-08-26-m1a-nen-tang-moi-truong.md`
-- Task đang làm: Task 8 (CI trên GitHub Actions)
-- Commit cuối: `67a7b99`
+- Task đang làm: Task 9 (Nghiệm thu M1a)
+- Commit cuối: `469836a`
 - Môi trường đã dựng: máy dev macOS; remote GitHub cá nhân; Postgres/PostGIS dev,
   migration `0001_extensions.sql`; `pnpm run setup` sạch đạt 6,51 giây; image
   pipeline local đã build/smoke trên arm64 và chạy được qua Compose; Dev Container
-  đã dựng thành công và chạy đủ 20 test trong Linux container
+  đã dựng thành công và chạy đủ 20 test trong Linux container; CI GitHub xanh
+  trên amd64 và image đã được push lên GHCR
 
 ## 2. Bước kế tiếp
 
-M1a Task 8 — thêm CI GitHub Actions cho kiểm tra mã nguồn và image pipeline.
+M1a Task 9 — nghiệm thu từ clone sạch và chốt mốc.
 
 ## 3. Quyết định phát sinh
 
@@ -31,7 +32,8 @@ M1a Task 8 — thêm CI GitHub Actions cho kiểm tra mã nguồn và image pipe
 | 2026-08-26 | Setup chỉ migrate khi PID 1 trong container là `postgres` và `pg_isready` đạt | PostGIS entrypoint chạy server tạm rồi restart; chỉ `pg_isready` gây ECONNRESET | `cc16199` |
 | 2026-08-26 | Image pin Planetiler 0.10.2, tippecanoe 2.62.5, DuckDB 1.5.3, pyosmium 4.0.2, Node 22 và pnpm 9.15.0 | Các release/asset đã được build và smoke thật trên arm64; DuckDB 1.5.5 chưa có CLI asset | `67a7b99` |
 | 2026-08-26 | Planetiler tải 8 HTTP range song song, cache từng part, kiểm tra đúng 93.278.824 byte và SHA-256 | GitHub release chỉ đạt khoảng 22 KB/s/kết nối; tải một luồng mất hơn một giờ và dễ mất tiến độ | `67a7b99` |
-| 2026-08-27 | Override Dev Container dùng `../..` cho build context và bind mount | Đường dẫn Compose được resolve theo file đầu tiên ở `infra/dev`, không theo thư mục `.devcontainer` | (Task 7) |
+| 2026-08-27 | Override Dev Container dùng `../..` cho build context và bind mount | Đường dẫn Compose được resolve theo file đầu tiên ở `infra/dev`, không theo thư mục `.devcontainer` | `673f6fe` |
+| 2026-08-27 | CI gọi chung `pnpm image:smoke` thay vì lặp lệnh kiểm tra tool trong YAML | Local và CI dùng cùng một hợp đồng smoke đã được kiểm chứng ở Task 6 | `469836a` |
 
 ## 4. Nhật ký
 
@@ -41,4 +43,5 @@ M1a Task 8 — thêm CI GitHub Actions cho kiểm tra mã nguồn và image pipe
 - 2026-08-26 · M1a T4 · Postgres/PostGIS dev + migration idempotent · `d4186f3`
 - 2026-08-26 · M1a T5 · `pnpm run setup` sạch đạt 6,51 giây · `cc16199`
 - 2026-08-26 · M1a T6 · image pipeline đủ 8 tool, cached rebuild 4,8 giây · `67a7b99`
-- 2026-08-27 · M1a T7 · Dev Container dựng thành công, 20/20 test trong Linux · (commit hiện tại)
+- 2026-08-27 · M1a T7 · Dev Container dựng thành công, 20/20 test trong Linux · `673f6fe`
+- 2026-08-27 · M1a T8 · CI xanh: test 18 giây, image + smoke 3 phút 52 giây · `469836a` · https://github.com/dotienphong/maps-library-vietnam/actions/runs/33024223882

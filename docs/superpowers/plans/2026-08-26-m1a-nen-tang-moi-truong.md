@@ -1228,7 +1228,7 @@ git push
 **Files:**
 - Create: `.github/workflows/ci.yml`
 
-- [ ] **Step 1: Tạo workflow**
+- [x] **Step 1: Tạo workflow**
 
 ```yaml
 name: CI
@@ -1291,7 +1291,7 @@ jobs:
           docker run --rm "$PIPELINE_IMAGE" sh -c 'planetiler --help | head -1 && tippecanoe -v 2>&1 | head -1 && duckdb --version && osmium --version | head -1 && python -c "import osmium; print(osmium.__version__)" && rclone version | head -1 && node --version && pnpm --version'
 ```
 
-- [ ] **Step 2: Commit, push, xem run**
+- [x] **Step 2: Commit, push, xem run**
 
 ```bash
 git add .github/workflows/ci.yml
@@ -1303,11 +1303,15 @@ Xem trạng thái **chỉ bằng PAT cá nhân** (không dùng `gh` mặc địn
 Run: `GH_TOKEN="$(cat ~/.config/gh-dotienphong.token)" gh run list -R dotienphong/maps-library-vietnam --limit 3`
 Expected: run mới nhất `completed success` sau ~10 phút (job `image` lâu nhất). Nếu PAT hết hạn hoặc thiếu quyền `actions:read` cho repo mới, xem trên web `https://github.com/dotienphong/maps-library-vietnam/actions` bằng account dotienphong.
 
-- [ ] **Step 3: Nếu job đỏ**
+- [x] **Step 3: Nếu job đỏ**
 
 Đọc log, sửa, commit lại. Lỗi thường gặp: Biome format (chạy `pnpm lint:fix`), tag tippecanoe không tồn tại (xem Task 6 Step 2), GHCR permission (repo Settings → Actions → General → Workflow permissions: Read and write).
 
-- [ ] **Step 4: DEVLOG và commit**
+Kết quả thực tế 2026-08-27: không có job đỏ. Run `33024223882` xanh;
+job `test` hoàn tất trong 18 giây và job `image` (gồm push GHCR + smoke) hoàn
+tất trong 3 phút 52 giây.
+
+- [x] **Step 4: DEVLOG và commit**
 
 Sửa `docs/DEVLOG.md`: "Task đang làm: Task 9"; "Môi trường đã dựng: … CI GitHub xanh, image trên GHCR"; mục 4 thêm dòng T8 với URL run.
 
