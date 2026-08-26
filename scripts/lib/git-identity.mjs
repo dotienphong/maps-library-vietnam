@@ -2,6 +2,19 @@ export const ALLOWED_REMOTE =
   /^git@github\.com-dotienphong:dotienphong\/maps-library-vietnam(\.git)?$/;
 export const FORBIDDEN_EMAIL = /bark/i;
 export const REQUIRED_REMOTE = 'git@github.com-dotienphong:dotienphong/maps-library-vietnam.git';
+export const PERSONAL_GIT_NAME = 'dotienphong1993';
+export const PERSONAL_GIT_EMAIL = 'dotienphong1993@gmail.com';
+
+/**
+ * Giữ identity cá nhân trong phạm vi repo, không thay đổi Git global của máy.
+ * @returns {string[][]}
+ */
+export function personalGitIdentityCommands() {
+  return [
+    ['config', '--local', 'user.name', PERSONAL_GIT_NAME],
+    ['config', '--local', 'user.email', PERSONAL_GIT_EMAIL],
+  ];
+}
 
 /**
  * Kiểm tra remote và author có đúng account cá nhân dotienphong không.
@@ -21,7 +34,7 @@ export function checkGitIdentity({ remoteUrl, email }) {
   }
 
   if (!mail) {
-    errors.push('Chưa cấu hình user.email. Dùng: git config user.email dotienphong1993@gmail.com');
+    errors.push(`Chưa cấu hình user.email. Dùng: git config user.email ${PERSONAL_GIT_EMAIL}`);
   } else if (FORBIDDEN_EMAIL.test(mail)) {
     errors.push(`user.email "${mail}" thuộc account công ty — CẤM dùng cho MapsLibVN`);
   }

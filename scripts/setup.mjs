@@ -2,6 +2,7 @@
 // Dựng môi trường dev một lệnh. Chạy giống nhau trên macOS / Windows (PowerShell hoặc WSL) / Linux.
 import { copyFileSync, existsSync } from 'node:fs';
 import { resolve } from 'node:path';
+import { personalGitIdentityCommands } from './lib/git-identity.mjs';
 import { capture, run, sleep } from './lib/run.mjs';
 import {
   checkNodeVersion,
@@ -84,7 +85,8 @@ console.log('Postgres OK');
 step('Chạy migration');
 run(process.execPath, ['scripts/db-migrate.mjs']);
 
-step('Cấu hình hook git và kiểm tra danh tính GitHub');
+step('Cấu hình Git local, hook và kiểm tra danh tính GitHub');
+for (const args of personalGitIdentityCommands()) run('git', args);
 run('git', ['config', 'core.hooksPath', '.githooks']);
 run(process.execPath, ['scripts/check-git-identity.mjs']);
 

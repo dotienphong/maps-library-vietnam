@@ -1,10 +1,17 @@
 import { describe, expect, it } from 'vitest';
-import { checkGitIdentity } from './git-identity.mjs';
+import { checkGitIdentity, personalGitIdentityCommands } from './git-identity.mjs';
 
 const GOOD_REMOTE = 'git@github.com-dotienphong:dotienphong/maps-library-vietnam.git';
 const GOOD_EMAIL = 'dotienphong1993@gmail.com';
 
 describe('checkGitIdentity', () => {
+  it('cấu hình author cá nhân ở phạm vi repo cho clone sạch', () => {
+    expect(personalGitIdentityCommands()).toEqual([
+      ['config', '--local', 'user.name', 'dotienphong1993'],
+      ['config', '--local', 'user.email', GOOD_EMAIL],
+    ]);
+  });
+
   it('chấp nhận remote alias cá nhân và email cá nhân', () => {
     const result = checkGitIdentity({ remoteUrl: GOOD_REMOTE, email: GOOD_EMAIL });
     expect(result.errors).toEqual([]);
