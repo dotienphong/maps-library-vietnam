@@ -1,0 +1,12 @@
+node_modules
+**/node_modules
+.git
+.turbo
+dist
+**/dist
+work
+out
+.env
+.wrangler
+apps
+packages

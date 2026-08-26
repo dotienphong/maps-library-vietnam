@@ -972,7 +972,7 @@ git push
 **Files:**
 - Create: `pipelines/Dockerfile`, `.dockerignore`, `scripts/image.mjs`
 
-- [ ] **Step 1: Tạo `.dockerignore`**
+- [x] **Step 1: Tạo `.dockerignore`**
 
 ```
 node_modules
@@ -989,7 +989,7 @@ apps
 packages
 ```
 
-- [ ] **Step 2: Tạo `pipelines/Dockerfile`**
+- [x] **Step 2: Tạo `pipelines/Dockerfile`**
 
 ```dockerfile
 # syntax=docker/dockerfile:1.7
@@ -1049,7 +1049,7 @@ CMD ["node", "--version"]
 
 Nếu `git clone --branch 2.62.5` báo tag không tồn tại: chạy `git ls-remote --tags https://github.com/felt/tippecanoe.git | tail -5`, chọn tag mới nhất, sửa `ARG TIPPECANOE_VERSION`, ghi "Quyết định phát sinh" trong DEVLOG. Tương tự với `PYOSMIUM_VERSION` (`pip index versions osmium`) và `DUCKDB_VERSION` (trang releases DuckDB).
 
-- [ ] **Step 3: Viết `scripts/image.mjs`**
+- [x] **Step 3: Viết `scripts/image.mjs`**
 
 ```js
 #!/usr/bin/env node
@@ -1080,28 +1080,36 @@ if (cmd === 'build') {
 }
 ```
 
-- [ ] **Step 4: Build và smoke trên máy (arm64 nếu là Apple Silicon)**
+- [x] **Step 4: Build và smoke trên máy (arm64 nếu là Apple Silicon)**
 
 Run: `pnpm image:build`
 Expected: kết thúc `naming to docker.io/mapslibvn/pipeline:local` — lần đầu 6–12 phút (tippecanoe biên dịch).
 
 Run: `pnpm image:smoke`
-Expected: 8 dòng phiên bản (Planetiler usage, `tippecanoe v2.62.5`, `v1.5.5 …`, `osmium version 1.16.0`, `pyosmium 4.0.2`, `rclone v1.6x`, `v22.x`, `9.15.0`) rồi `✔ Image … có đủ công cụ.`
+Expected: 8 dòng phiên bản (Planetiler usage, `tippecanoe v2.62.5`, `v1.5.3 …`, `osmium version 1.16.0`, `pyosmium 4.0.2`, `rclone v1.6x`, `v22.x`, `9.15.0`) rồi `✔ Image … có đủ công cụ.`
 
-- [ ] **Step 5: Ghi phiên bản Planetiler thực tế và pin**
+- [x] **Step 5: Ghi phiên bản Planetiler thực tế và pin**
 
 Run: `docker run --rm mapslibvn/pipeline:local sh -c "unzip -p /opt/planetiler/planetiler.jar META-INF/MANIFEST.MF | grep -i -E 'version|Implementation' | head -5"`
 Expected: có dòng phiên bản (ví dụ `Implementation-Version: 0.9.x`). Sửa `ARG PLANETILER_URL` thành `https://github.com/onthegomap/planetiler/releases/download/v<phiên bản>/planetiler.jar`, ghi dòng "Quyết định phát sinh: pin Planetiler v…" vào DEVLOG.
 
+Thực tế: manifest chỉ ghi Java 21, không có `Implementation-Version`; metadata
+`META-INF/maven/com.onthegomap.planetiler/planetiler-dist/pom.properties` xác nhận
+`version=0.10.2`. URL đã pin `v0.10.2`; jar tải bằng 8 HTTP range có cache và kiểm
+tra tổng kích thước 93.278.824 byte cùng SHA-256 vì đường truyền GitHub một kết
+nối quá chậm.
+DuckDB dùng CLI release thực tế `v1.5.3`; asset arm64 có hậu tố `arm64`, không
+phải `aarch64`.
+
 Run: `pnpm image:build && pnpm image:smoke`
 Expected: build dùng cache, smoke xanh.
 
-- [ ] **Step 6: Kiểm tra service `pipeline` trong compose chạy được**
+- [x] **Step 6: Kiểm tra service `pipeline` trong compose chạy được**
 
 Run: `docker compose --env-file .env -f infra/dev/compose.yml --profile pipeline run --rm pipeline node --version`
 Expected: `v22.x.x`.
 
-- [ ] **Step 7: Lint, DEVLOG, commit**
+- [x] **Step 7: Lint, DEVLOG, commit**
 
 Run: `pnpm lint && pnpm typecheck && pnpm test`
 Expected: xanh.
