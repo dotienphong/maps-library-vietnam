@@ -12,6 +12,15 @@ Cài Docker Desktop và Node 22 (khuyên dùng `fnm`), rồi:
     pnpm run setup  # tạo .env, dựng Postgres, chạy migration, kiểm tra git identity
     pnpm dev
 
+## Dev Container (tuỳ chọn, khuyên dùng khi đổi máy)
+
+VS Code/Cursor → **“Dev Containers: Clone Repository in Container Volume…”** →
+dán URL repo. Môi trường Node, Java, tippecanoe, DuckDB và Postgres sẽ giống nhau
+trên mọi hệ điều hành.
+
+Cách **“Reopen in Container”** vẫn hoạt động; các volume `node_modules` riêng
+giữ dependency Linux tách khỏi máy host.
+
 ## Tài liệu
 
 - Spec: `docs/superpowers/specs/2026-08-26-mapslibvn-maps-sdk-design.md`

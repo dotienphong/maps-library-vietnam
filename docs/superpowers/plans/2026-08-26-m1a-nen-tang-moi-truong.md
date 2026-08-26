@@ -1129,7 +1129,7 @@ git push
 **Files:**
 - Create: `.devcontainer/devcontainer.json`, `.devcontainer/compose.devcontainer.yml`
 
-- [ ] **Step 1: Tạo compose bổ sung cho devcontainer**
+- [x] **Step 1: Tạo compose bổ sung cho devcontainer**
 
 `.devcontainer/compose.devcontainer.yml`:
 ```yaml
@@ -1168,7 +1168,7 @@ volumes:
   dev-node-modules-tiles:
 ```
 
-- [ ] **Step 2: Tạo `devcontainer.json`**
+- [x] **Step 2: Tạo `devcontainer.json`**
 
 ```json
 {
@@ -1188,17 +1188,23 @@ volumes:
 
 Ghi chú cho người dùng (đưa vào README mục "Dev Container"): trên Windows/macOS nên dùng lệnh VS Code **"Dev Containers: Clone Repository in Container Volume…"** để tránh I/O chậm qua bind mount; cách "Reopen in Container" vẫn hoạt động nhờ các volume `node_modules` riêng.
 
-- [ ] **Step 3: Kiểm tra bằng CLI devcontainer (không cần mở VS Code)**
+- [x] **Step 3: Kiểm tra bằng CLI devcontainer (không cần mở VS Code)**
 
 Run: `pnpm dlx @devcontainers/cli@latest up --workspace-folder .`
 Expected: kết thúc bằng JSON có `"outcome":"success"` (lần đầu build image ~ vài phút, dùng cache từ Task 6).
 
 Run: `pnpm dlx @devcontainers/cli@latest exec --workspace-folder . pnpm test`
-Expected: `16 passed` chạy **trong** container.
+Expected: `20 passed` chạy **trong** container.
 
 Run: `docker compose -p mapslibvn-dev down` (tắt sau khi kiểm) — hoặc để chạy nếu muốn dùng tiếp.
 
-- [ ] **Step 4: Bổ sung README và commit**
+Kết quả thực tế 2026-08-27: `up` trả `"outcome":"success"`; 20/20 test đạt
+trong Linux container. Vì đường dẫn của nhiều file Compose được resolve theo file
+đầu tiên (`infra/dev/compose.yml`), override dùng `../..` thay cho `..`. Lệnh dọn
+đã chạy với cả hai file Compose:
+`docker compose -p mapslibvn-dev -f infra/dev/compose.yml -f .devcontainer/compose.devcontainer.yml down`.
+
+- [x] **Step 4: Bổ sung README và commit**
 
 Thêm vào `README.md` sau mục "Bắt đầu":
 ```markdown

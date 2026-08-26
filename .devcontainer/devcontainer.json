@@ -1,0 +1,13 @@
+{
+  "name": "MapsLibVN",
+  "dockerComposeFile": ["../infra/dev/compose.yml", "compose.devcontainer.yml"],
+  "service": "dev",
+  "workspaceFolder": "/workspace",
+  "shutdownAction": "stopCompose",
+  "postCreateCommand": "corepack enable && pnpm install && cp -n .env.example .env; node scripts/db-migrate.mjs",
+  "customizations": {
+    "vscode": {
+      "extensions": ["biomejs.biome", "vitest.explorer", "ms-azuretools.vscode-docker"]
+    }
+  }
+}

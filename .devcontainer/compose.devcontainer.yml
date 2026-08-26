@@ -1,0 +1,34 @@
+services:
+  dev:
+    build:
+      # Compose resolve đường dẫn override theo thư mục của file đầu tiên: infra/dev.
+      context: ../..
+      dockerfile: pipelines/Dockerfile
+      target: tools
+    volumes:
+      - ../..:/workspace:cached
+      # node_modules riêng cho Linux trong container, không đụng máy host.
+      - dev-node-modules-root:/workspace/node_modules
+      - dev-node-modules-api:/workspace/apps/api/node_modules
+      - dev-node-modules-docs:/workspace/apps/docs/node_modules
+      - dev-node-modules-core:/workspace/packages/core/node_modules
+      - dev-node-modules-web:/workspace/packages/web/node_modules
+      - dev-node-modules-style:/workspace/packages/style/node_modules
+      - dev-node-modules-tiles:/workspace/pipelines/tiles/node_modules
+    working_dir: /workspace
+    environment:
+      POSTGRES_HOST: postgres
+      MAPSLIBVN_IN_CONTAINER: "1"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    command: ["sleep", "infinity"]
+
+volumes:
+  dev-node-modules-root:
+  dev-node-modules-api:
+  dev-node-modules-docs:
+  dev-node-modules-core:
+  dev-node-modules-web:
+  dev-node-modules-style:
+  dev-node-modules-tiles:
