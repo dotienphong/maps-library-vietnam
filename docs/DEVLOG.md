@@ -5,10 +5,10 @@ commit với code).
 
 ## 1. Trạng thái hiện tại
 
-- Mốc: M1c — Worker, Web SDK, docs
-- Plan: `docs/superpowers/plans/2026-08-26-m1c-worker-web-sdk-docs.md`
-- Task đang làm: Task 4 (Step 5) + Task 5
-- Commit cuối: Task M1c T4 (commit hiện tại)
+- Mốc: M2 — Kho POI + máy chủ nội bộ
+- Plan: `docs/superpowers/plans/2026-08-27-m2-kho-poi-may-chu.md` (11 task, 6.393 dòng)
+- Task đang làm: Task 0 — xác nhận giả định G1–G7
+- Commit cuối: nghiệm thu M1 (commit hiện tại)
 - Môi trường đã dựng: máy dev macOS; remote GitHub cá nhân; Postgres/PostGIS dev,
   migration `0001_extensions.sql`; `pnpm run setup` sạch đạt 6,51 giây; image
   pipeline local đã build/smoke trên arm64 và chạy được qua Compose; Dev Container
@@ -17,30 +17,27 @@ commit với code).
   custom domain `tiles.ai-solutions.io.vn` (SSL active), CORS, KV
   `mapslibvn-META` và Cache Rule đã cấu hình; tiles `vn-20260827` đã publish,
   smoke 20/20 qua custom domain và manifest KV đã active; M1a/M1b đã nghiệm thu
-  trên macOS arm64;
+  trên macOS arm64; Worker `mapslibvn-api-production.dotienphong1993.workers.dev`
+  và docs `mapslibvn-docs.pages.dev` đã chạy production; repo GitHub chuyển **private**
+  với 8 secret Actions; **M1 (M1a+M1b+M1c) đã nghiệm thu 27/08/2026**;
   **PENDING Windows** (chờ PHONG có máy để kiểm)
 
 ## 2. Bước kế tiếp
 
-Worker và docs đã lên production:
+M2 Task 0 — xác nhận 7 giả định G1–G7 của plan
+`docs/superpowers/plans/2026-08-27-m2-kho-poi-may-chu.md` và dựng khung test tích hợp DB.
 
-- Worker: `https://mapslibvn-api-production.dotienphong1993.workers.dev`
-  (version `6a7d5c14-5e27-4208-8403-169ee22d09a8`, upload 182,82 KiB / gzip 38,97 KiB,
-  startup 19 ms). Kiểm thật: `/healthz` → `{"ok":true,"environment":"production"}`;
-  `/v1/styles/light.json` → 105 layer, `pmtiles://https://tiles.ai-solutions.io.vn/tiles/vn-20260827.pmtiles`,
-  `cache-control: public, max-age=3600`, 2 nhãn chủ quyền; theme lạ → 404; `/r2/*` → 404
-  (chặn đúng ở production). Tile fallback đọc R2 qua binding: z8/z12/z14 đều 200
-  (66.609 / 60.924 / 200.978 byte) kèm `content-encoding: gzip`.
-- Docs: `https://mapslibvn-docs.pages.dev` (32 file). Playground ở `/playground`
-  — Cloudflare Pages tự 308 từ `/playground.html`, trình duyệt theo redirect nên link
-  trong sidebar vẫn chạy.
+**Việc tay PHONG cần chuẩn bị cho M2 Task 1:** máy chủ nội bộ chạy 24/7 (Postgres/PostGIS,
+Cloudflare Tunnel + Access, Hyperdrive, backup, cron). Đây là điều kiện chặn của Task 1.
 
-**BLOCKER đang chờ PHONG (việc tay trên dashboard):** sửa Cache Rule của zone
-`ai-solutions.io.vn` — xem mục 5 "Sự cố đang mở". Chưa sửa thì bản đồ production
-không dùng được.
-
-Sau khi sửa xong: đo lại Range → nghiệm thu M1c T4 Step 5 (kiểm 3 workflow) và
-Task 5 (nghiệm thu M1), rồi chuyển mốc sang M2.
+**Việc còn treo từ M1 (không chặn M2):**
+- Nghiệm thu `pnpm run setup` trên **Windows** — chờ PHONG có máy.
+- QA `requireIslands` cho Hoàng Sa đang tắt (chỉ cảnh báo): extract `vietnam.poly` của
+  Geofabrik không phủ Hoàng Sa và chỉ phủ Trường Sa tới 114,6°E. Nhãn chủ quyền hiện do
+  lớp `sovereignty` của style bảo đảm và đã kiểm chứng hiện thật ở z4. Cần PHONG chốt
+  nguồn extract OSM bổ sung rồi bật lại.
+- Tiles còn dùng `tiles.ai-solutions.io.vn`; khi có domain riêng, **nhớ mang theo cặp
+  Cache Rule** ở SC-1.
 
 ## 3. Quyết định phát sinh
 
@@ -74,6 +71,8 @@ Task 5 (nghiệm thu M1), rồi chuyển mốc sang M2.
 | 2026-08-27 | `fakeBucket` trong test R2Source phải cast `as unknown as Pick<R2Bucket, 'get'>` | `exactOptionalPropertyTypes: true` khiến overload `R2Bucket.get` (có `onlyIf`, `range: Headers \| R2Range`) không nhận stub hẹp | (Task M1c T1) |
 | 2026-08-27 | Token Cloudflare mới `mapslibvn-deploy` (custom, 6 quyền: Workers Scripts Edit, Cloudflare Pages Edit, Workers KV Edit, Workers R2 Edit, Account Settings Read, User Details Read) thay token cũ chỉ có KV | Token cũ deploy Worker trả `Authentication error [code: 10000]`; template "Edit Cloudflare Workers" không kèm quyền Pages nên phải tạo custom | (Task M1c T1/T3) |
 | 2026-08-27 | Tiles tạm giữ trên `tiles.ai-solutions.io.vn`, đổi sang domain riêng của MapsLibVN khi PHONG mua (dự kiến trước M5) | Tài khoản Cloudflare hiện chỉ có 1 zone; `TILES_BASE` đã tham số hoá nên chuyển domain chỉ tốn sửa `wrangler.toml` + `.env` + secret rồi redeploy. Tách domain là quyết định thương hiệu, độc lập với lỗi Range bên dưới | (Task M1c T3) |
+| 2026-08-27 | Repo GitHub chuyển **private** đúng roadmap; `data-update.yml` bỏ `schedule`, chỉ còn `workflow_dispatch` | Repo private ở gói Free chỉ có 2.000 phút Actions/tháng, mà một lần `data:update` đủ tốn 60–180 phút; lịch định kỳ do máy nội bộ đảm nhận từ M2 | `058dafc` |
+| 2026-08-27 | Đẩy secret bằng `printf '%s' "$v" \| gh secret set NAME` (stdin), **không dùng `--body -`** | `gh secret set --body -` không đọc stdin mà lưu đúng ký tự `-`; cả 8 secret nhận giá trị `-` khiến 3 workflow fail (`7003 No route for that URI`, `dial tcp: lookup -: no such host`). Dấu hiệu nhận biết: GitHub che **mọi** dấu `-` trong log thành `***` (`pnpm ***filter`, `maps***library***vietnam`) | (Task M1c T4) |
 | 2026-08-27 | `apps/docs/tsconfig.json` phải `exclude: ["dist", "public"]` | `astro check` với `include: ["**/*"]` kéo cả `public/sdk/mapslibvn.umd.js` (1 MB) và sourcemap (2,4 MB) vào TypeScript → hết heap 4 GB, exit 137 | (Task M1c T3) |
 | 2026-08-27 | `biome.json` bỏ qua `apps/docs/public/sdk/**` | Thư mục là artefact copy từ bản build web; biome báo vượt giới hạn 1 MiB và lỗi CSS của maplibre | (Task M1c T3) |
 
@@ -218,11 +217,15 @@ Chạy 27/08/2026 trên production thật (Chromium headless qua Playwright, ả
 | 5b | `data:update --tiles` trọn vòng | Đã chạy thật ở M1b T6 (download → patch → build → QA → R2 → smoke 20/20 → manifest). **Không chạy lại `--force`** ở bước nghiệm thu: tốn 60–90 phút build lại trong khi vòng đời đã được chứng minh và `--dry-run` xác nhận trạng thái nhất quán |
 | 6 | Spec 4.2 — lớp thế giới ngoài VN ở z0–6 | **ĐẠT.** z2 hiển thị đầy đủ hình khối toàn cầu (landcover 25, boundary 7, water 10 feature), không có "lỗ đen"; Planetiler đã dùng Natural Earth cho z0–7. **Hạn chế đã biết:** không có nhãn địa danh ngoài Việt Nam — ở z2/z4 chỉ có nhãn "Việt Nam", z6 chỉ các đô thị VN (Huế, Pleiku, Kon Tum, Buôn Ma Thuột, Quảng Ngãi…). Chấp nhận được cho M1 ("bản đồ câm", định hướng Việt Nam trước); **không cần Protomaps**. Nếu sau này muốn tên nước láng giềng, cân nhắc ở M3: bật lớp place của Natural Earth trong profile Planetiler |
 | 7 | Test và CI | lint 75 file, typecheck 9/9, **79/79 test** (69 root + 10 api), E2E Playwright 2/2 offline; CI xanh liên tiếp |
+| 8 | 3 workflow deploy trên Actions | **Cả 3 xanh.** Deploy API 47 giây → `Deployed mapslibvn-api-production`, version `eedb3317-2431-4f89-91b8-6ea2118d823e`. Deploy Docs 1 phút 2 giây → `Uploaded 8 files (24 already uploaded)`, deployment complete. Data update 41 giây trong image GHCR → `Kế hoạch: {"tiles":false,"poi":false,"reasons":[]}` rồi `(dry-run) dừng.` |
 
-**Còn lại để đóng M1:** M1c T4 Step 5 — kiểm 3 workflow trên Actions, đang chờ quyền
-`Secrets: Read and write` cho PAT GitHub.
+**Kết luận: M1 (M1a + M1b + M1c) NGHIỆM THU ĐẠT ngày 27/08/2026**, trừ hai việc đã ghi
+rõ ở mục 2 và không chặn M2: kiểm trên Windows, và bật lại `requireIslands` cho Hoàng Sa.
 - 2026-08-27 · M1c · SC-1 đóng: sau khi tách Cache Rule, Range trên cache key mới trả
   `206`/1.024 B trong 1,10 s (`DYNAMIC`), font vẫn `HIT` · (commit hiện tại)
 - 2026-08-27 · M1c T5 · nghiệm thu M1 trên production: playground light/dark, nhúng UMD
   từ trang bên thứ ba, z4 hiện đủ 2 nhãn chủ quyền, tile toàn `206` đọc thẳng R2,
   `data:update --dry-run` idempotent, spec 4.2 đánh giá ĐẠT · (commit hiện tại)
+- 2026-08-27 · M1c T4 S1+S5 · 8 secret lên repo private; 3 workflow chạy: **Cả 3 xanh.** Deploy API 47 giây → `Deployed mapslibvn-api-production`, version `eedb3317-2431-4f89-91b8-6ea2118d823e`. Deploy Docs 1 phút 2 giây → `Uploaded 8 files (24 already uploaded)`, deployment complete. Data update 41 giây trong image GHCR → `Kế hoạch: {"tiles":false,"poi":false,"reasons":[]}` rồi `(dry-run) dừng.` · (commit hiện tại)
+- 2026-08-27 · M1c T5 · **nghiệm thu M1 đạt**, chuyển mốc sang M2 — kho POI + máy chủ
+  nội bộ, plan `2026-08-27-m2-kho-poi-may-chu.md`, Task 0 · (commit hiện tại)

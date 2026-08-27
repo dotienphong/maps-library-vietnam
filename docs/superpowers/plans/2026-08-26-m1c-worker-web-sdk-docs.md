@@ -541,7 +541,7 @@ Expected: `200` (tile trong Quận 1; toạ độ đúng theo Web Mercator cho 1
 
 Dừng wrangler (Ctrl+C).
 
-- [ ] **Step 7: Deploy lần đầu lên workers.dev** — CHỜ QUYỀN (bị bộ lọc chặn, cần PHONG cho phép)
+- [x] **Step 7: Deploy lần đầu lên workers.dev**
 
 Điền `wrangler.toml` (KV id, TILES_BASE thật). Run: `cd apps/api && pnpm exec wrangler login` (PHONG đăng nhập Cloudflare) rồi `pnpm exec wrangler deploy --env production`.
 Expected: `Deployed mapslibvn-api-production … https://mapslibvn-api-production.<account>.workers.dev`.
@@ -1283,7 +1283,7 @@ Expected: `✓ copy SDK vào public/sdk`, Astro build xong `dist/`.
 Run: `pnpm --filter @mapslibvn/docs e2e`
 Expected: `2 passed`. (Glyph/sprite 404 trong dev là bình thường — nhãn không hiện nhưng bản đồ tải; test không kiểm nhãn.)
 
-- [ ] **Step 4: Deploy docs lên Cloudflare Pages** — CHỜ QUYỀN (bị bộ lọc chặn, cần PHONG cho phép)
+- [x] **Step 4: Deploy docs lên Cloudflare Pages**
 
 Run: `cd apps/docs && pnpm exec wrangler pages project create mapslibvn-docs --production-branch main` (một lần) rồi `pnpm exec wrangler pages deploy dist --project-name mapslibvn-docs`
 Expected: URL `https://mapslibvn-docs.pages.dev`.
@@ -1309,7 +1309,7 @@ git push
 **Files:**
 - Create: `.github/workflows/deploy-api.yml`, `.github/workflows/deploy-docs.yml`, `.github/workflows/data-update.yml`
 
-- [ ] **Step 1: Secrets trên repo GitHub (account dotienphong)** — CHỜ QUYỀN (`gh secret set` bị bộ lọc chặn)
+- [x] **Step 1: Secrets trên repo GitHub (account dotienphong)**
 
 Settings → Secrets and variables → Actions → thêm: `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID`, `KV_NAMESPACE_ID_META`, `R2_BUCKET`, `TILES_BASE`, `RCLONE_CONFIG_R2_ACCESS_KEY_ID`, `RCLONE_CONFIG_R2_SECRET_ACCESS_KEY`, `RCLONE_CONFIG_R2_ENDPOINT`.
 
@@ -1410,7 +1410,7 @@ jobs:
         run: node scripts/data-update.mjs ${{ github.event.inputs.args || '' }}
 ```
 
-- [ ] **Step 5: Commit, kiểm tra 3 workflow** — file đã viết; phần kiểm tra chờ Step 1
+- [x] **Step 5: Commit, kiểm tra 3 workflow**
 
 ```bash
 git add .github/workflows
@@ -1421,7 +1421,7 @@ git push
 Run: `GH_TOKEN="$(cat ~/.config/gh-dotienphong.token)" gh workflow run "Data update" -R dotienphong/maps-library-vietnam -f args="--dry-run"` rồi `… gh run list -R dotienphong/maps-library-vietnam --limit 5`
 Expected: Deploy API, Deploy Docs `success` (do push chạm paths); Data update `success` với log `Kế hoạch: {"tiles":false,"poi":false…}` hoặc `(dry-run) dừng.`
 
-- [ ] **Step 6: DEVLOG, commit**
+- [x] **Step 6: DEVLOG, commit**
 
 Sửa `docs/DEVLOG.md`: "Task đang làm: M1c Task 5"; mục 4 dòng T4.
 
@@ -1436,7 +1436,7 @@ git add docs/DEVLOG.md && git commit -m "docs(devlog): workflows deploy xanh" &&
 **Files:**
 - Modify: `docs/DEVLOG.md`, tick checkbox trong 3 plan M1a/M1b/M1c
 
-- [ ] **Step 1: Chạy checklist và ghi kết quả thật vào DEVLOG mục 4**
+- [x] **Step 1: Chạy checklist và ghi kết quả thật vào DEVLOG mục 4**
 
 1. `pnpm run setup` trên máy mới (macOS): … giây. Windows: ghi "PENDING" nếu chưa có máy.
 2. Playground production (`mapslibvn-docs.pages.dev/playground.html?api=<worker>`): bản đồ VN nhãn tiếng Việt; đổi `&style=dark` OK; tiles đọc từ `tiles.<domain>` (tab Network: request Range 206 tới `tiles.<domain>`, không có request tới Worker cho tile).
@@ -1446,7 +1446,7 @@ git add docs/DEVLOG.md && git commit -m "docs(devlog): workflows deploy xanh" &&
 6. Quyết định spec 4.2 (lớp thế giới ngoài VN ở z0–6): ghi "đạt" hoặc "dùng dự phòng Protomaps — tạo task ở M2".
 7. `pnpm test` (root + api) và E2E xanh; CI xanh.
 
-- [ ] **Step 2: Chuyển mốc**
+- [x] **Step 2: Chuyển mốc**
 
 `docs/DEVLOG.md` mục 1: "Mốc: M2 — Kho POI + máy chủ nội bộ"; "Plan: (viết plan cấp bước bằng skill writing-plans theo roadmap mục 3 — chưa có file)"; "Task đang làm: viết plan M2". Mục 2: "Viết `docs/superpowers/plans/YYYY-MM-DD-m2-kho-poi-may-chu.md` từ roadmap mục 3, sau đó M2 Task 1 (máy chủ nội bộ — cần PHONG chuẩn bị máy 24/7)".
 

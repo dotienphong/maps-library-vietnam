@@ -41,9 +41,9 @@ Quy tắc: **bước cuối của mọi task** là (a) tick checkbox trong plan,
 
 | # | Plan | Mốc | Trạng thái |
 |---|---|---|---|
-| 1 | `2026-08-26-m1a-nen-tang-moi-truong.md` | M1a — monorepo, DEVLOG, hook GitHub, dev compose + migration, `pnpm run setup`, image Docker, devcontainer, CI | Đã viết, sẵn sàng thực thi |
-| 2 | `2026-08-26-m1b-tiles-style-web-sdk.md` | M1b — `@mapslibvn/core` (attribution + client khung), `@mapslibvn/style` (template light/dark, chủ quyền), pipeline tiles (download/patch/build/fixture/QA/upload/manifest), `data:update --tiles`, `data:rollback` | Đã viết, sẵn sàng thực thi |
-| 2b | `2026-08-26-m1c-worker-web-sdk-docs.md` | M1c — Worker `apps/api` (styles từ manifest, attribution, tiles fallback, `/r2` dev), `@mapslibvn/web` + UMD, docs Starlight + playground + E2E, workflows deploy/data-update, nghiệm thu M1 | Đã viết, sẵn sàng thực thi |
+| 1 | `2026-08-26-m1a-nen-tang-moi-truong.md` | M1a — monorepo, DEVLOG, hook GitHub, dev compose + migration, `pnpm run setup`, image Docker, devcontainer, CI | **Đã xong 27/08/2026** |
+| 2 | `2026-08-26-m1b-tiles-style-web-sdk.md` | M1b — `@mapslibvn/core` (attribution + client khung), `@mapslibvn/style` (template light/dark, chủ quyền), pipeline tiles (download/patch/build/fixture/QA/upload/manifest), `data:update --tiles`, `data:rollback` | **Đã xong 27/08/2026** |
+| 2b | `2026-08-26-m1c-worker-web-sdk-docs.md` | M1c — Worker `apps/api` (styles từ manifest, attribution, tiles fallback, `/r2` dev), `@mapslibvn/web` + UMD, docs Starlight + playground + E2E, workflows deploy/data-update, nghiệm thu M1 | **Đã xong 27/08/2026** (28/28 bước) |
 | 3 | `2026-08-27-m2-kho-poi-may-chu.md` | M2 — máy chủ nội bộ, migration kho POI, chuẩn hoá VI, parser địa chỉ, ingest 3 nguồn, gộp, anchors, poi.pmtiles, `data:update` đầy đủ | Đã viết (27/08/2026, trước khi M1 nghiệm thu — Task 0 xác nhận giả định G1–G7) |
 | 4 | `YYYY-MM-DD-m3-places-api.md` | M3 — auth/quota, Hyperdrive, 7 endpoint đọc, geocode ladder, core client đầy đủ, web component, React | Viết khi bắt đầu M3 (mục 4) |
 | 5 | `YYYY-MM-DD-m4-dong-gop.md` | M4 — `POST /v1/edits`, auto-approve, áp dụng edit, `apps/admin` | Viết khi bắt đầu M4 (mục 5) |
@@ -152,7 +152,9 @@ Sau M5: brainstorming + spec riêng cho `@mapslibvn/react-native`.
 
 ## 7. Định nghĩa "toàn bộ spec đã xong"
 
-- [ ] M1a, M1b nghiệm thu (bản đồ câm, môi trường một lệnh trên macOS và Windows).
+- [x] M1 (M1a + M1b + M1c) nghiệm thu 27/08/2026 — bản đồ câm chạy thật trên
+      production, môi trường một lệnh đạt trên macOS. **Windows còn PENDING** (chờ
+      PHONG có máy); xem DEVLOG mục 6 để biết bảng kết quả đầy đủ.
 - [ ] M2 nghiệm thu (máy chủ nội bộ, ≥ 1,5 triệu POI, `data:update` trọn vòng, `db:restore`).
 - [ ] M3 nghiệm thu (2 fixture bắt buộc, p95 < 300 ms).
 - [ ] M4 nghiệm thu (đóng góp end-to-end).
