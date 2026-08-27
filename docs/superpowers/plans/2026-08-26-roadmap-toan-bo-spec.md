@@ -44,7 +44,7 @@ Quy tắc: **bước cuối của mọi task** là (a) tick checkbox trong plan,
 | 1 | `2026-08-26-m1a-nen-tang-moi-truong.md` | M1a — monorepo, DEVLOG, hook GitHub, dev compose + migration, `pnpm run setup`, image Docker, devcontainer, CI | Đã viết, sẵn sàng thực thi |
 | 2 | `2026-08-26-m1b-tiles-style-web-sdk.md` | M1b — `@mapslibvn/core` (attribution + client khung), `@mapslibvn/style` (template light/dark, chủ quyền), pipeline tiles (download/patch/build/fixture/QA/upload/manifest), `data:update --tiles`, `data:rollback` | Đã viết, sẵn sàng thực thi |
 | 2b | `2026-08-26-m1c-worker-web-sdk-docs.md` | M1c — Worker `apps/api` (styles từ manifest, attribution, tiles fallback, `/r2` dev), `@mapslibvn/web` + UMD, docs Starlight + playground + E2E, workflows deploy/data-update, nghiệm thu M1 | Đã viết, sẵn sàng thực thi |
-| 3 | `YYYY-MM-DD-m2-kho-poi-may-chu.md` | M2 — máy chủ nội bộ, migration kho POI, chuẩn hoá VI, parser địa chỉ, ingest 3 nguồn, gộp, anchors, poi.pmtiles, `data:update` đầy đủ | Viết cấp bước khi bắt đầu M2 (mục 3) |
+| 3 | `2026-08-27-m2-kho-poi-may-chu.md` | M2 — máy chủ nội bộ, migration kho POI, chuẩn hoá VI, parser địa chỉ, ingest 3 nguồn, gộp, anchors, poi.pmtiles, `data:update` đầy đủ | Đã viết (27/08/2026, trước khi M1 nghiệm thu — Task 0 xác nhận giả định G1–G7) |
 | 4 | `YYYY-MM-DD-m3-places-api.md` | M3 — auth/quota, Hyperdrive, 7 endpoint đọc, geocode ladder, core client đầy đủ, web component, React | Viết khi bắt đầu M3 (mục 4) |
 | 5 | `YYYY-MM-DD-m4-dong-gop.md` | M4 — `POST /v1/edits`, auto-approve, áp dụng edit, `apps/admin` | Viết khi bắt đầu M4 (mục 5) |
 | 6 | `YYYY-MM-DD-m5-phat-hanh-noi-bo.md` | M5 — docs, notices, điều khoản, key app kết bạn, báo cáo tuần, `export:odbl` | Viết khi bắt đầu M5 (mục 6) |
