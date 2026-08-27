@@ -5,20 +5,25 @@ commit với code).
 
 ## 1. Trạng thái hiện tại
 
-- Mốc: M1b — Tiles, style, Worker, Web SDK
-- Plan: `docs/superpowers/plans/2026-08-26-m1b-tiles-style-web-sdk.md`
-- Task đang làm: Task 6 (upload R2, manifest KV, `data:update --tiles`)
-- Commit cuối: `2534482`
+- Mốc: M1c — Worker, Web SDK, docs
+- Plan: `docs/superpowers/plans/2026-08-26-m1c-worker-web-sdk-docs.md`
+- Task đang làm: Task 1
+- Commit cuối: Task M1b T6 (commit hiện tại)
 - Môi trường đã dựng: máy dev macOS; remote GitHub cá nhân; Postgres/PostGIS dev,
   migration `0001_extensions.sql`; `pnpm run setup` sạch đạt 6,51 giây; image
   pipeline local đã build/smoke trên arm64 và chạy được qua Compose; Dev Container
   đã dựng thành công và chạy đủ 20 test trong Linux container; CI GitHub xanh
-  trên amd64 và image đã được push lên GHCR; M1a đã nghiệm thu trên macOS arm64;
+  trên amd64 và image đã được push lên GHCR; R2 bucket `mapslibvn-tiles` (APAC),
+  custom domain `tiles.ai-solutions.io.vn` (SSL active), CORS, KV
+  `mapslibvn-META` và Cache Rule đã cấu hình; tiles `vn-20260827` đã publish,
+  smoke 20/20 qua custom domain và manifest KV đã active; M1a/M1b đã nghiệm thu
+  trên macOS arm64;
   **PENDING Windows** (chờ PHONG có máy để kiểm)
 
 ## 2. Bước kế tiếp
 
-M1b Task 6 — upload R2, manifest KV, `pnpm data:update --tiles`, `pnpm data:rollback` (cần PHONG tạo R2 bucket + custom domain, KV `META`, API token trước — roadmap 0.5).
+M1c Task 1 — tạo Cloudflare Worker phục vụ manifest/style và route API theo plan
+`2026-08-26-m1c-worker-web-sdk-docs.md`.
 
 ## 3. Quyết định phát sinh
 
@@ -44,6 +49,9 @@ M1b Task 6 — upload R2, manifest KV, `pnpm data:update --tiles`, `pnpm data:ro
 | 2026-08-27 | Patch tầng 1 thêm vùng biển Đông `[102, 6, 117.8, 17.5]` với luật hẹp: `name` chữ CJK không có `name:vi` → xoá (có `name:vi` → thay), xoá `name:zh*`; tên Latin giữ nguyên; `Collector` dùng `locations=True` | Núi ngầm tên Trung Quốc ngay ngoài hai bbox (`镜台海山` 111,34°E 11,40°N, `流春海山` 111,62°E 12,36°N…) lọt vào tile z10 giao bbox Trường Sa; vùng dừng ở 17,5°N để không chạm Hải Nam và đệm biên giới bắc | (Task M1b T5) |
 | 2026-08-27 | Test `lonLatToTile` kỳ vọng TP.HCM z10 = (815, 481) thay cho (815, 483) trong plan | Tính lại Web Mercator: ln(tan φ + sec φ)/π = 0,0602 → y = 481; plan gõ sai | (Task M1b T5) |
 | 2026-08-27 | QA: kiểm "có đảo tên VI ở z8–10" cấu hình theo bbox (`requireIslands`); Hoàng Sa tạm **tắt, chỉ cảnh báo**; Trường Sa bắt buộc | Extract `vietnam.poly` của Geofabrik không phủ Hoàng Sa (6 node, 1 way) và chỉ phủ Trường Sa tới 114,6°E — không có đảo để kiểm; nhãn chủ quyền vẫn do lớp `sovereignty` (style) bảo đảm. **Việc còn lại:** merge thêm extract OSM cho bbox Hoàng Sa/Trường Sa đông (nguồn cần PHONG chốt) rồi bật lại `requireIslands` | (Task M1b T5) |
+| 2026-08-27 | Thêm 4 MCP server Cloudflare vào `.mcp.json` (scope project): `cloudflare-api` (mcp.cloudflare.com — toàn bộ REST API qua search/execute), `cloudflare-bindings` (KV/R2/D1/Workers), `cloudflare-docs`, `cloudflare-observability` | Phần lớn "việc tay của PHONG" ở M1b T6 và M2 T1 (R2 bucket, custom domain, CORS, KV namespace, Cache Rule, Tunnel/Access/Hyperdrive) làm được qua API; scope project để không lẫn vào các repo khác. Xác thực OAuth qua `/mcp` — chỉ PHONG làm được. **Chưa chắc qua API:** khoá S3 của R2 API token và Workers API token có thể vẫn phải tạo trên dashboard | (sau M1b T5) |
+| 2026-08-27 | Task 6 dùng preflight credentials trước khi build; `manifest.mjs get` dùng Wrangler 4 `--text`; `--poi` bị từ chối rõ ở M1 | Tránh build tốn thời gian rồi mới lỗi upload, tránh parse nhầm output nhị phân của KV, và không ghi OSM state khi pipeline POI chưa tồn tại | (Task M1b T6) |
+| 2026-08-27 | Token R2 object-level bắt buộc `no_check_bucket=true`; image pin rclone 1.75.0 bằng SHA-256 cho arm64/amd64; rollback chạy lại trong pipeline container | Cloudflare yêu cầu bỏ bucket check cho token scoped; rclone 1.60.1-DEV của Ubuntu gây 501 cho từng object; chạy Wrangler trực tiếp trên host phụ thuộc DNS/quyền log | (Task M1b T6) |
 
 ## 4. Nhật ký
 
@@ -74,10 +82,17 @@ M1b Task 6 — upload R2, manifest KV, `pnpm data:update --tiles`, `pnpm data:ro
 - 2026-08-27 · M1b T4 · fixture Quận 1 1,0 MB/25 tile; full archive
   `vn-20260827.pmtiles` 952 MiB, zoom 0–14, bounds toàn cầu, 16 layer và
   6.291.183 tile entry; build nén temp hoàn tất trong 3 phút 24 giây; lint,
-  typecheck và 38/38 test xanh · (commit hiện tại)
+  typecheck và 38/38 test xanh · `2534482`
 - 2026-08-27 · M1b T5 · QA chủ quyền: `qa.mjs` giải mã 574 tile giao hai bbox (z4–z10 toàn
   phần, z11–z14 quanh 13 điểm đảo), lọc theo hình học thật; lần 1 bắt 259 vi phạm tên chữ Hán
   (núi ngầm `镜台海山`, `流春海山`… ngay ngoài bbox) → mở rộng patch vùng biển Đông (thêm 85
   object: 72 node, 13 way), build lại archive 952 MB (3 phút, cache) → 0 vi phạm tên, Trường Sa
   có đảo tên VI, Hoàng Sa cảnh báo vì extract Geofabrik không phủ; style 2 nhãn chủ quyền đạt;
-  47/47 test JS + pytest xanh · (commit hiện tại)
+  47/47 test JS + pytest xanh · `cceae80`
+- 2026-08-27 · M1b T6 · Cloudflare resource active; pipeline thật dùng OSM MD5
+  `620d0258ffecd450363e24560d0a7b8b`, patch 193 object, build archive 997 MB
+  trong 3 phút 18 giây, QA giải mã 574 tile đạt; upload R2, smoke HTTP 20/20,
+  manifest `vn-20260827`, state idempotent và rollback→restore đều đạt. Token
+  object-level dùng `no_check_bucket=true`; image pin rclone 1.75.0 để loại 501;
+  rollback chạy trong container; lint 46 file, typecheck 3/3, build 2/2,
+  61/61 test JS, image smoke 8 tool và pytest 1/1 đều xanh · (commit hiện tại)

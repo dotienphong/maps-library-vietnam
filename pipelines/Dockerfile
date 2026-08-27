@@ -5,8 +5,28 @@ ARG DEBIAN_FRONTEND=noninteractive
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
       ca-certificates curl unzip git build-essential libsqlite3-dev zlib1g-dev \
-      openjdk-21-jre-headless osmium-tool rclone python3 python3-venv \
+      openjdk-21-jre-headless osmium-tool python3 python3-venv \
     && rm -rf /var/lib/apt/lists/*
+
+# Rclone bản Ubuntu 24.04 là 1.60.1-DEV và phát sinh 501 khi ghi object lên R2.
+# Pin bản stable chính thức, kiểm SHA-256 riêng cho amd64/arm64.
+ARG RCLONE_RELEASE=1.75.0
+ARG RCLONE_SHA256_AMD64=aa2804e08f48250e71009c727124b6341cd0288465804a9a09d14663cabafbaa
+ARG RCLONE_SHA256_ARM64=d0ad88ba4c8e285b7c9efa591e0ab643280a91741e13c27f3a9c0957ccfa5203
+RUN ARCH="$(dpkg --print-architecture)"; \
+    case "$ARCH" in \
+      amd64) SHA="$RCLONE_SHA256_AMD64" ;; \
+      arm64) SHA="$RCLONE_SHA256_ARM64" ;; \
+      *) echo "Kiến trúc rclone không hỗ trợ: $ARCH" >&2; exit 1 ;; \
+    esac; \
+    FILE="rclone-v${RCLONE_RELEASE}-linux-${ARCH}.zip"; \
+    curl -fsSL --retry 5 --retry-all-errors -o "/tmp/${FILE}" \
+      "https://downloads.rclone.org/v${RCLONE_RELEASE}/${FILE}"; \
+    echo "${SHA}  /tmp/${FILE}" | sha256sum -c -; \
+    unzip -q "/tmp/${FILE}" -d /tmp/rclone; \
+    install -m 0755 "/tmp/rclone/rclone-v${RCLONE_RELEASE}-linux-${ARCH}/rclone" /usr/local/bin/rclone; \
+    rm -rf "/tmp/${FILE}" /tmp/rclone; \
+    rclone version
 
 # tippecanoe (BSD-2) — build từ source theo tag
 ARG TIPPECANOE_VERSION=2.62.5

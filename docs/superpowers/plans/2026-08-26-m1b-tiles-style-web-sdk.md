@@ -1440,7 +1440,11 @@ git push
 - Create: `pipelines/tiles/src/upload.mjs`, `pipelines/tiles/src/smoke.mjs`, `pipelines/tiles/src/manifest.mjs`, `scripts/lib/update-plan.mjs`, `scripts/lib/update-plan.test.mjs`, `scripts/data-update.mjs`, `scripts/data-rollback.mjs`
 - Modify: `package.json` (thêm `wrangler`, script `data:update`, `data:rollback`), `.env.example` (thêm `CLOUDFLARE_API_TOKEN`)
 
-- [ ] **Step 1: Việc tay của PHONG trên Cloudflare (làm trước)**
+- [x] **Step 1: Việc tay của PHONG trên Cloudflare (làm trước)**
+
+> Hoàn tất 27/08/2026: bucket `mapslibvn-tiles` (APAC), custom domain
+> `tiles.ai-solutions.io.vn` (SSL active), CORS, KV `mapslibvn-META`, Cache Rule
+> và hai token đã tạo/kiểm tra. Secret chỉ lưu trong `.env` bị ignore.
 
 1. R2 → Create bucket `mapslibvn-tiles` (location hint: Asia-Pacific). Settings → Custom Domains → thêm `tiles.<domain>` (zone hiện có). CORS policy:
 ```json
@@ -1457,7 +1461,7 @@ Thêm vào `.env.example` dưới `KV_NAMESPACE_ID_META=`:
 CLOUDFLARE_API_TOKEN=
 ```
 
-- [ ] **Step 2: Test kế hoạch cập nhật (thất bại)**
+- [x] **Step 2: Test kế hoạch cập nhật (thất bại)**
 
 `scripts/lib/update-plan.test.mjs`:
 ```js
@@ -1499,7 +1503,7 @@ describe('nextState', () => {
 Run: `pnpm test`
 Expected: FAIL — không tìm thấy `./update-plan.mjs`.
 
-- [ ] **Step 3: Viết `update-plan.mjs`**
+- [x] **Step 3: Viết `update-plan.mjs`**
 
 ```js
 /**
@@ -1533,7 +1537,7 @@ export function nextState(state, versions, built) {
 Run: `pnpm test`
 Expected: xanh.
 
-- [ ] **Step 4: `upload.mjs`, `smoke.mjs`, `manifest.mjs`**
+- [x] **Step 4: `upload.mjs`, `smoke.mjs`, `manifest.mjs`**
 
 `pipelines/tiles/src/upload.mjs`:
 ```js
@@ -1628,7 +1632,7 @@ Thêm `wrangler` vào root `package.json` devDependencies: `"wrangler": "^4.0.0"
 ```
 Run: `pnpm install`.
 
-- [ ] **Step 5: `scripts/data-update.mjs` và `scripts/data-rollback.mjs`**
+- [x] **Step 5: `scripts/data-update.mjs` và `scripts/data-rollback.mjs`**
 
 `scripts/data-update.mjs`:
 ```js
@@ -1688,7 +1692,7 @@ import { run } from './lib/run.mjs';
 run('node', ['pipelines/tiles/src/manifest.mjs', 'rollback']);
 ```
 
-- [ ] **Step 6: Chạy dry-run rồi chạy thật**
+- [x] **Step 6: Chạy dry-run rồi chạy thật**
 
 Run: `pnpm data:update --dry-run`
 Expected: image build (cache), rồi `Kế hoạch: {"tiles":true,"poi":true,"reasons":["OSM đổi (md5 ∅ → …)"]}` và `(dry-run) dừng.`
@@ -1702,7 +1706,7 @@ Expected: `Kế hoạch: {"tiles":false,"poi":false,"reasons":[]}` — idempoten
 Run: `node pipelines/tiles/src/manifest.mjs get` (cần `.env` đã nạp: `set -a; . ./.env; set +a` trước, hoặc `pnpm exec dotenv -- node …`)
 Expected: `current.vn = "vn-YYYYMMDD"`.
 
-- [ ] **Step 7: Lint, DEVLOG, commit**
+- [x] **Step 7: Lint, DEVLOG, commit**
 
 Run: `pnpm lint && pnpm typecheck && pnpm test`
 
