@@ -22,17 +22,29 @@ commit với code).
 
 ## 2. Bước kế tiếp
 
-Toàn bộ phần viết mã của M1c đã xong (T1, T2, T3, T4 Step 2–4). **Bốn việc còn lại
-đều bị bộ lọc quyền của Claude Code chặn và cần PHONG cho phép rồi chạy lại:**
+Toàn bộ phần viết mã của M1c đã xong (T1, T2, T3, T4 Step 2–4). Quyền chạy lệnh
+trong Claude Code đã được mở. **Việc còn lại chặn ở phạm vi của hai credential —
+cần PHONG sửa trên dashboard:**
 
-1. M1c T1 Step 7 — `cd apps/api && pnpm exec wrangler deploy --env production`
-2. M1c T3 Step 4 — `wrangler pages project create mapslibvn-docs --production-branch main`
-   rồi `wrangler pages deploy dist --project-name mapslibvn-docs`
-3. M1c T4 Step 1 — `gh secret set` 8 khoá lên repo (CLOUDFLARE_API_TOKEN,
-   CLOUDFLARE_ACCOUNT_ID, KV_NAMESPACE_ID_META, R2_BUCKET, TILES_BASE và 3 khoá RCLONE)
-4. M1c T4 Step 5 + T5 — kiểm 3 workflow và nghiệm thu M1 trên production
+1. **Cloudflare API token** (`CLOUDFLARE_API_TOKEN` trong `.env`, id
+   `787597d1feaeac4b142af28778f65ba7`) — active và **có** quyền Workers KV
+   (đã dùng ở M1b T6) nhưng **thiếu** `Workers Scripts: Edit` và
+   `Cloudflare Pages: Edit`. `wrangler deploy` trả `Authentication error
+   [code: 10000]`. Cần thêm (dash.cloudflare.com/profile/api-tokens):
+   Account → Workers Scripts → Edit; Account → Cloudflare Pages → Edit;
+   Account → Account Settings → Read; User → User Details → Read.
+   CI cũng dùng chính token này nên bắt buộc phải nâng, không thay bằng
+   `wrangler login` được.
+2. **GitHub fine-grained PAT** (`~/.config/gh-dotienphong.token`) — thiếu
+   Repository permissions → `Secrets: Read and write`. `gh secret set` trả
+   HTTP 403 `Resource not accessible by personal access token`.
 
-Làm xong 1–3 thì phần còn lại chạy tự động được.
+Đã kiểm chứng bundle production sạch bằng `wrangler deploy --env production
+--dry-run`: 182,82 KiB (gzip 38,97 KiB), bindings đúng — META (KV), TILES (R2),
+TILES_BASE, ENVIRONMENT=production. Chỉ còn thiếu quyền để đẩy lên.
+
+Sau khi nâng quyền: M1c T1 S7 (deploy Worker) → T3 S4 (Pages create + deploy) →
+T4 S1+S5 (secret + kiểm 3 workflow) → T5 nghiệm thu M1.
 
 ## 3. Quyết định phát sinh
 
@@ -139,3 +151,7 @@ Làm xong 1–3 thì phần còn lại chạy tự động được.
   `data-update.yml` (dispatch/cron chủ nhật 19:00 UTC, chạy trong image GHCR,
   `--memory 6g`, timeout 180 phút). **Chưa kiểm chạy: Step 1 đặt secret bị bộ lọc
   quyền chặn** · (commit hiện tại)
+- 2026-08-27 · M1c · phát hiện khi chạy deploy: token Cloudflare thiếu
+  `Workers Scripts: Edit` + `Cloudflare Pages: Edit` (chỉ có KV), PAT GitHub thiếu
+  `Secrets: Read and write`. Dry-run bundle Worker production đạt 182,82 KiB
+  (gzip 38,97 KiB) với đủ 4 binding · (commit hiện tại)
