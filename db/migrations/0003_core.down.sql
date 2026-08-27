@@ -1,0 +1,5 @@
+DROP TABLE IF EXISTS poi_edit;
+DROP TABLE IF EXISTS poi_source_link;
+DROP TABLE IF EXISTS poi;
+DROP TABLE IF EXISTS category_map;
+DROP TABLE IF EXISTS category;

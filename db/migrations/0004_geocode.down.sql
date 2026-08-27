@@ -1,0 +1,5 @@
+DROP TABLE IF EXISTS address_anchor;
+DROP TABLE IF EXISTS alley;
+DROP TABLE IF EXISTS street;
+DROP TABLE IF EXISTS admin_alias;
+DROP TABLE IF EXISTS admin_area;

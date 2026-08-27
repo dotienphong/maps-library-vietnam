@@ -1,0 +1,3 @@
+ALTER TABLE poi_edit DROP CONSTRAINT IF EXISTS poi_edit_tenant_fk;
+DROP TABLE IF EXISTS api_key;
+DROP TABLE IF EXISTS tenant;

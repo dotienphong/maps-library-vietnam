@@ -1064,7 +1064,7 @@ git push
 - Modify: `scripts/lib/migrations.mjs`, `scripts/lib/migrations.test.mjs`, `scripts/db-migrate.mjs`
 - Create: `.github/workflows/dbtest.yml`
 
-- [ ] **Step 1: Test hàm thuần cho `.down.sql` (thất bại)**
+- [x] **Step 1: Test hàm thuần cho `.down.sql` (thất bại)**
 
 Thêm vào `scripts/lib/migrations.test.mjs`:
 ```js
@@ -1097,7 +1097,7 @@ describe('databaseUrlFromEnv với POSTGRES_SSL', () => {
 Run: `pnpm test`
 Expected: FAIL — `lastApplied is not a function` / test `.down.sql` đỏ.
 
-- [ ] **Step 2: Sửa `migrations.mjs` và `db-migrate.mjs`**
+- [x] **Step 2: Sửa `migrations.mjs` và `db-migrate.mjs`**
 
 `scripts/lib/migrations.mjs` — thay `MIGRATION_FILE` và thêm hai hàm:
 ```js
@@ -1159,7 +1159,7 @@ if (process.argv.includes('--down')) {
 Run: `pnpm test`
 Expected: xanh.
 
-- [ ] **Step 3: Migration 0002 — roles + bảng nguồn**
+- [x] **Step 3: Migration 0002 — roles + bảng nguồn**
 
 `db/migrations/0002_sources.sql`:
 ```sql
@@ -1229,7 +1229,7 @@ DROP TABLE IF EXISTS src_osm_place;
 -- Không xoá role api/pipeline (có thể còn login trên máy chủ)
 ```
 
-- [ ] **Step 4: Migration 0003 — taxonomy, poi, liên kết nguồn, đóng góp**
+- [x] **Step 4: Migration 0003 — taxonomy, poi, liên kết nguồn, đóng góp**
 
 `db/migrations/0003_core.sql`:
 ```sql
@@ -1325,7 +1325,7 @@ DROP TABLE IF EXISTS category_map;
 DROP TABLE IF EXISTS category;
 ```
 
-- [ ] **Step 5: Migration 0004 — geocoding (mốc, đường, hẻm, hành chính)**
+- [x] **Step 5: Migration 0004 — geocoding (mốc, đường, hẻm, hành chính)**
 
 `db/migrations/0004_geocode.sql`:
 ```sql
@@ -1410,7 +1410,7 @@ DROP TABLE IF EXISTS admin_alias;
 DROP TABLE IF EXISTS admin_area;
 ```
 
-- [ ] **Step 6: Migration 0005 — tenant, api_key**
+- [x] **Step 6: Migration 0005 — tenant, api_key**
 
 `db/migrations/0005_tenant.sql`:
 ```sql
@@ -1450,7 +1450,7 @@ DROP TABLE IF EXISTS api_key;
 DROP TABLE IF EXISTS tenant;
 ```
 
-- [ ] **Step 7: Test tích hợp lược đồ (dbtest)**
+- [x] **Step 7: Test tích hợp lược đồ (dbtest)**
 
 `db/schema.dbtest.mjs`:
 ```js
@@ -1547,7 +1547,7 @@ Expected: 6 test xanh; log có `Áp dụng 0002_sources.sql … 0005_tenant.sql`
 Run: `pnpm db:migrate`
 Expected: `Không có migration mới.`
 
-- [ ] **Step 8: Chạy migration trên máy chủ và thêm job CI**
+- [x] **Step 8: Chạy migration trên máy chủ và thêm job CI** *(phần `pnpm server:update` chạy ở Task 1 Step 8 khi dựng máy chủ — Task 1 làm sau Task 9)*
 
 Run (trên máy chủ, hoặc máy dev nếu G3 chưa có): `pnpm server:update`
 Expected: `Áp dụng 0002 … 0005`, `✔ server:update xong`.
@@ -1589,7 +1589,7 @@ jobs:
       - run: pnpm test:db
 ```
 
-- [ ] **Step 9: Lint, DEVLOG, commit**
+- [x] **Step 9: Lint, DEVLOG, commit**
 
 Run: `pnpm lint && pnpm typecheck && pnpm test`
 

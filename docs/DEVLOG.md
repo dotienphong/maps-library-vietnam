@@ -7,8 +7,8 @@ commit với code).
 
 - Mốc: M2 — Kho POI + máy chủ nội bộ
 - Plan: `docs/superpowers/plans/2026-08-27-m2-kho-poi-may-chu.md` (11 task, 6.535 dòng sau review lần 3)
-- Task đang làm: Task 2 — migration 0002–0005 (thứ tự thực thi: 0 → 2 → 3 → 4 → 5 → 6 → 7 → 8 → 9 → 1 → 10) (thứ tự thực thi: 0 → 2 → 3 → 4 → 5 → 6 → 7 → 8 → 9 → 1 → 10)
-- Commit cuối: M2 T0 (commit hiện tại)
+- Task đang làm: Task 3 — normalizeVi/nameCore (thứ tự thực thi: 0 → 2 → 3 → 4 → 5 → 6 → 7 → 8 → 9 → 1 → 10) (thứ tự thực thi: 0 → 2 → 3 → 4 → 5 → 6 → 7 → 8 → 9 → 1 → 10)
+- Commit cuối: M2 T2 (commit hiện tại)
 - Môi trường đã dựng: máy dev macOS; remote GitHub cá nhân; Postgres/PostGIS dev,
   migration `0001_extensions.sql`; `pnpm run setup` sạch đạt 6,51 giây; image
   pipeline local đã build/smoke trên arm64 và chạy được qua Compose; Dev Container
@@ -24,9 +24,8 @@ commit với code).
 
 ## 2. Bước kế tiếp
 
-M2 Task 2 — migration 0002–0005 (roles `api`/`pipeline` NOLOGIN, bảng nguồn, `poi`,
-geocoding, tenant), `db:migrate --down`, `db/schema.dbtest.mjs`, workflow `dbtest.yml` riêng.
-Task 0 đã xong: G1–G8 xác nhận, vitest tách hai tầng (`pnpm test` unit, `pnpm test:db` dbtest).
+M2 Task 3 — `normalizeVi`/`nameCore` trong `@mapslibvn/core` (bỏ dấu, viết tắt, từ đệm,
+alias thương hiệu) với fixture ≥ 200 trường hợp; rồi Task 4 `parseAddress`.
 
 **Việc tay PHONG trước Task 1 (làm sau Task 9):** máy dev làm máy chủ tạm — tắt ngủ máy;
 tạo token Cloudflare riêng `mapslibvn-pipeline` (Workers KV Edit + Workers R2 Edit) cho
@@ -254,3 +253,8 @@ rõ ở mục 2 và không chặn M2: kiểm trên Windows, và bật lại `req
   `@duckdb/node-api 1.5.5-r.4`, G8 token HF của PHONG đã được cấp quyền gated; vitest tách
   unit/dbtest, scripts `test:db`/`server:setup`/`server:update`/`db:restore` khai báo sẵn;
   lint 76 file, typecheck 9/9 · (commit hiện tại)
+- 2026-08-27 · M2 T2 · migration 0002–0005 (roles `api`/`pipeline` NOLOGIN, 3 bảng nguồn,
+  `category`/`poi`/`poi_source_link`/`poi_edit`, 5 bảng geocoding, `tenant`/`api_key`) + 4 file
+  `.down.sql`; `db:migrate --down` revert đúng một migration; `databaseUrlFromEnv` hỗ trợ
+  `POSTGRES_SSL=require`; `db/schema.dbtest.mjs` 6/6 xanh (16 bảng, SRID, index, ràng buộc,
+  quyền, down×4 → migrate lại); workflow `dbtest.yml` riêng có `paths`; unit 87/87 · (commit hiện tại)

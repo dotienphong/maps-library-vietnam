@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { databaseUrlFromEnv, pendingMigrations } from './migrations.mjs';
+import { databaseUrlFromEnv, downFileFor, lastApplied, pendingMigrations } from './migrations.mjs';
 
 describe('pendingMigrations', () => {
   it('trả về file .sql chưa áp dụng, theo thứ tự tên', () => {
@@ -28,6 +28,32 @@ describe('databaseUrlFromEnv', () => {
   it('ghép từ các biến POSTGRES_* với mặc định', () => {
     expect(databaseUrlFromEnv({ POSTGRES_PASSWORD: 'secret' })).toBe(
       'postgres://mapslibvn:secret@localhost:5432/mapslibvn',
+    );
+  });
+});
+
+describe('pendingMigrations bỏ qua file .down.sql', () => {
+  it('không coi 0002_x.down.sql là migration', () => {
+    expect(pendingMigrations([], ['0002_x.sql', '0002_x.down.sql'])).toEqual(['0002_x.sql']);
+  });
+});
+
+describe('lastApplied / downFileFor', () => {
+  it('lấy migration cuối theo tên và tên file down tương ứng', () => {
+    expect(lastApplied(['0001_a.sql', '0003_c.sql', '0002_b.sql'])).toBe('0003_c.sql');
+    expect(lastApplied([])).toBeNull();
+    expect(downFileFor('0003_c.sql')).toBe('0003_c.down.sql');
+  });
+});
+
+describe('databaseUrlFromEnv với POSTGRES_SSL', () => {
+  it('POSTGRES_SSL=require → thêm ?sslmode=require; DATABASE_URL giữ nguyên', () => {
+    expect(databaseUrlFromEnv({ POSTGRES_SSL: 'require' })).toBe(
+      'postgres://mapslibvn:mapslibvn@localhost:5432/mapslibvn?sslmode=require',
+    );
+    expect(databaseUrlFromEnv({})).toBe('postgres://mapslibvn:mapslibvn@localhost:5432/mapslibvn');
+    expect(databaseUrlFromEnv({ DATABASE_URL: 'postgres://x', POSTGRES_SSL: 'require' })).toBe(
+      'postgres://x',
     );
   });
 });
