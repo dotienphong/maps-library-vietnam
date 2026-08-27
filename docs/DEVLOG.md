@@ -6,8 +6,8 @@ commit với code).
 ## 1. Trạng thái hiện tại
 
 - Mốc: M2 — Kho POI + máy chủ nội bộ
-- Plan: `docs/superpowers/plans/2026-08-27-m2-kho-poi-may-chu.md` (11 task, 6.393 dòng)
-- Task đang làm: Task 0 — xác nhận giả định G1–G7
+- Plan: `docs/superpowers/plans/2026-08-27-m2-kho-poi-may-chu.md` (11 task, 6.535 dòng sau review lần 3)
+- Task đang làm: Task 0 — xác nhận giả định G1–G8 (thứ tự thực thi: 0 → 2 → 3 → 4 → 5 → 6 → 7 → 8 → 9 → 1 → 10)
 - Commit cuối: nghiệm thu M1 (commit hiện tại)
 - Môi trường đã dựng: máy dev macOS; remote GitHub cá nhân; Postgres/PostGIS dev,
   migration `0001_extensions.sql`; `pnpm run setup` sạch đạt 6,51 giây; image
@@ -24,11 +24,17 @@ commit với code).
 
 ## 2. Bước kế tiếp
 
-M2 Task 0 — xác nhận 7 giả định G1–G7 của plan
-`docs/superpowers/plans/2026-08-27-m2-kho-poi-may-chu.md` và dựng khung test tích hợp DB.
+M2 Task 0 — xác nhận giả định G1–G8 của plan
+`docs/superpowers/plans/2026-08-27-m2-kho-poi-may-chu.md` (đã review lần 3 ngày 27/08, 55 chỗ
+sửa — xem đoạn "Review lần 3" đầu plan) và dựng khung test tích hợp DB.
 
-**Việc tay PHONG cần chuẩn bị cho M2 Task 1:** máy chủ nội bộ chạy 24/7 (Postgres/PostGIS,
-Cloudflare Tunnel + Access, Hyperdrive, backup, cron). Đây là điều kiện chặn của Task 1.
+**Việc tay PHONG trước Task 5:** tạo tài khoản Hugging Face, mở
+https://huggingface.co/datasets/foursquare/fsq-os-places → chấp nhận điều khoản gated →
+Settings → Access Tokens → token **Read** → `HF_TOKEN=` trong `.env` (G8).
+
+**Việc tay PHONG trước Task 1 (làm sau Task 9):** máy dev làm máy chủ tạm — tắt ngủ máy;
+tạo token Cloudflare riêng `mapslibvn-pipeline` (Workers KV Edit + Workers R2 Edit) cho
+`infra/server/.env`; Tunnel/Access/Hyperdrive theo `infra/server/README.md`.
 
 **Việc còn treo từ M1 (không chặn M2):**
 - Nghiệm thu `pnpm run setup` trên **Windows** — chờ PHONG có máy.
@@ -38,6 +44,8 @@ Cloudflare Tunnel + Access, Hyperdrive, backup, cron). Đây là điều kiện 
   nguồn extract OSM bổ sung rồi bật lại.
 - Tiles còn dùng `tiles.ai-solutions.io.vn`; khi có domain riêng, **nhớ mang theo cặp
   Cache Rule** ở SC-1.
+- `.github/workflows/data-update.yml` thiếu `RCLONE_CONFIG_R2_NO_CHECK_BUCKET` (M1c để
+  lọt, dry-run không lộ) — sửa ở M2 Task 10 cùng lúc thêm biến Tunnel/HF.
 
 ## 3. Quyết định phát sinh
 
@@ -73,6 +81,15 @@ Cloudflare Tunnel + Access, Hyperdrive, backup, cron). Đây là điều kiện 
 | 2026-08-27 | Tiles tạm giữ trên `tiles.ai-solutions.io.vn`, đổi sang domain riêng của MapsLibVN khi PHONG mua (dự kiến trước M5) | Tài khoản Cloudflare hiện chỉ có 1 zone; `TILES_BASE` đã tham số hoá nên chuyển domain chỉ tốn sửa `wrangler.toml` + `.env` + secret rồi redeploy. Tách domain là quyết định thương hiệu, độc lập với lỗi Range bên dưới | (Task M1c T3) |
 | 2026-08-27 | Repo GitHub chuyển **private** đúng roadmap; `data-update.yml` bỏ `schedule`, chỉ còn `workflow_dispatch` | Repo private ở gói Free chỉ có 2.000 phút Actions/tháng, mà một lần `data:update` đủ tốn 60–180 phút; lịch định kỳ do máy nội bộ đảm nhận từ M2 | `058dafc` |
 | 2026-08-27 | Đẩy secret bằng `printf '%s' "$v" \| gh secret set NAME` (stdin), **không dùng `--body -`** | `gh secret set --body -` không đọc stdin mà lưu đúng ký tự `-`; cả 8 secret nhận giá trị `-` khiến 3 workflow fail (`7003 No route for that URI`, `dial tcp: lookup -: no such host`). Dấu hiệu nhận biết: GitHub che **mọi** dấu `-` trong log thành `***` (`pnpm ***filter`, `maps***library***vietnam`) | (Task M1c T4) |
+| 2026-08-27 | **Foursquare OS Places đọc qua Hugging Face** (`hf://datasets/foursquare/fsq-os-places/release/dt=…/places/parquet/`, gated, cần `HF_TOKEN` Read), không qua S3 | Bucket `fsq-os-places-us-east-1` chỉ còn LICENSE/NOTICE, `release/` trả `KeyCount 0`, file parquet cũ → 404; docs Foursquare: "now delivered through the Foursquare Places Portal … instead of the legacy public S3 bucket". PHONG chọn phương án HF thay vì bỏ FSQ hay dùng Places Portal/Iceberg | (review plan M2) |
+| 2026-08-27 | **Máy dev là máy chủ nội bộ tạm** (G3); compose `mapslibvn-server` chạy song song compose dev; chuyển máy thật sau bằng `server:setup` + `db:restore --latest` + dán lại `TUNNEL_TOKEN` | PHONG chưa có máy 24/7; kiến trúc Docker-volume + backup R2 hằng ngày đã cho phép chuyển máy bằng ba lệnh — điều kiện: backup→restore phải được thử ngay ở Task 1 Step 8 | (review plan M2) |
+| 2026-08-27 | Thứ tự thực thi M2: `0 → 2 → 3 → 4 → 5 → 6 → 7 → 8 → 9 → 1 → 10` (Task 1 sau Task 9) | Task 1 phụ thuộc việc tay Cloudflare + máy chủ; mọi task khác chạy trên Postgres dev. Commit binding Hyperdrive chỉ khi có ID thật vì `deploy-api.yml` tự deploy mỗi push chạm `apps/api/**` | (review plan M2) |
+| 2026-08-27 | `pg_hba.conf` máy chủ: `hostssl all all all` + `hostnossl all all all reject`, không có dòng `samenet`; `databaseUrlFromEnv` thêm `?sslmode=require` khi `POSTGRES_SSL=require` | Plan cũ xếp `host … samenet` trước `hostssl` → cloudflared (cùng mạng compose) không bị buộc TLS, câu "sslmode=disable bị từ chối" trong README là sai; client `postgres` mặc định không TLS nên compose phải đặt `POSTGRES_SSL` | (review plan M2) |
+| 2026-08-27 | `publishNew` chỉ `setval` khi bảng có cột `id` (kiểm `information_schema.columns`) | Đã chạy thật trên Postgres 16: `pg_get_serial_sequence('bảng_không_có_id','id')` **ném lỗi** `column "id" … does not exist`, không trả NULL như plan giả định → src_*, admin_alias sẽ fail ngay lần đầu | (review plan M2) |
+| 2026-08-27 | `db:restore` phục hồi vào DB tạm `<db>_restore` (TEMPLATE template0) rồi `ALTER DATABASE … RENAME`, không `--clean` lên DB đang chạy | `spatial_ref_sys` là bảng cấu hình của extension PostGIS → dump có data → restore `--clean` trùng khoá/vướng phụ thuộc; DB đang phục vụ không bị bỏ trống nếu restore lỗi | (review plan M2) |
+| 2026-08-27 | Job `dbtest` tách thành workflow `dbtest.yml` có `paths` filter + `workflow_dispatch`, không nằm trong `ci.yml` | Repo private chỉ có 2.000 phút Actions/tháng; dbtest 10–15 phút mỗi lần | (review plan M2) |
+| 2026-08-27 | Pin `cloudflared 2026.8.2` (plan cũ 2025.8.1); `@duckdb/node-api` pin bản không pre-release (hiện `pnpm view` trả `1.5.5-r.4`); Overture mới nhất `2026-08-19.0` | Kiểm thật 27/08 | (review plan M2) |
+| 2026-08-27 | Icon lá `category.json`: `rail`→`railway`, `rail_metro`→`railway_metro`, `doctor`→`doctors`, `beach`→`swimming` | Sprite osm-liberty (244 icon) không có 4 tên cũ; API M3 sẽ trả tên icon không tồn tại | (review plan M2) |
 | 2026-08-27 | `apps/docs/tsconfig.json` phải `exclude: ["dist", "public"]` | `astro check` với `include: ["**/*"]` kéo cả `public/sdk/mapslibvn.umd.js` (1 MB) và sourcemap (2,4 MB) vào TypeScript → hết heap 4 GB, exit 137 | (Task M1c T3) |
 | 2026-08-27 | `biome.json` bỏ qua `apps/docs/public/sdk/**` | Thư mục là artefact copy từ bản build web; biome báo vượt giới hạn 1 MiB và lỗi CSS của maplibre | (Task M1c T3) |
 
@@ -229,3 +246,7 @@ rõ ở mục 2 và không chặn M2: kiểm trên Windows, và bật lại `req
 - 2026-08-27 · M1c T4 S1+S5 · 8 secret lên repo private; 3 workflow chạy: **Cả 3 xanh.** Deploy API 47 giây → `Deployed mapslibvn-api-production`, version `eedb3317-2431-4f89-91b8-6ea2118d823e`. Deploy Docs 1 phút 2 giây → `Uploaded 8 files (24 already uploaded)`, deployment complete. Data update 41 giây trong image GHCR → `Kế hoạch: {"tiles":false,"poi":false,"reasons":[]}` rồi `(dry-run) dừng.` · (commit hiện tại)
 - 2026-08-27 · M1c T5 · **nghiệm thu M1 đạt**, chuyển mốc sang M2 — kho POI + máy chủ
   nội bộ, plan `2026-08-27-m2-kho-poi-may-chu.md`, Task 0 · (commit hiện tại)
+- 2026-08-27 · M2 · review plan lần 3 trước khi thực thi: 4 điểm chặn (FSQ mất S3 công khai,
+  `publishNew` lỗi trên bảng không có `id`, thiếu `RCLONE_CONFIG_R2_NO_CHECK_BUCKET` ở máy
+  chủ/Actions, trình tự Hyperdrive vs auto-deploy) + 7 điểm quan trọng — đã sửa 55 chỗ
+  thẳng vào plan; PHONG quyết FSQ qua Hugging Face và máy dev làm máy chủ tạm · (commit hiện tại)

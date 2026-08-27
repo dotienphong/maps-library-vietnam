@@ -16,6 +16,14 @@
 
 Plan này được viết khi **M1a đã nghiệm thu (27/08/2026), M1b/M1c chưa làm**. Review lần 2 (27/08) đã đối chiếu với mã M1a thật. Mọi giả định dưới đây phải được kiểm tra ở Task 0; sai ở đâu thì sửa plan ở đó và ghi "Quyết định phát sinh" trong DEVLOG.
 
+**Review lần 3 (27/08, sau khi M1 nghiệm thu)** — đối chiếu toàn bộ 10 task với mã M1 thật và kiểm chứng giả định bằng lệnh thật. Kết quả đã sửa thẳng vào plan này:
+
+1. **Foursquare OS Places không còn trên S3 công khai** (bucket `fsq-os-places-us-east-1` chỉ còn LICENSE/NOTICE; docs Foursquare: "now delivered through the Foursquare Places Portal … instead of the legacy public S3 bucket"). PHONG chọn **đọc qua Hugging Face** `hf://datasets/foursquare/fsq-os-places/…` (gated — cần `HF_TOKEN`, cùng layout `release/dt=YYYY-MM-DD/places/parquet/`). Mọi chỗ FSQ trong Task 0/5/10 đã đổi theo.
+2. **G3**: PHONG chưa có máy riêng → **máy dev là máy chủ tạm** (compose `mapslibvn-server` chạy song song compose dev, `PIPELINE_IMAGE=mapslibvn/pipeline:local`). Chuyển máy sau này = `git clone` → `pnpm server:setup` → `pnpm db:restore --latest` → dán lại `TUNNEL_TOKEN`; vì thế **backup → restore phải được thử ngay ở Task 1 Step 8**, không đợi Task 10.
+3. **Thứ tự thực thi**: `0 → 2 → 3 → 4 → 5 → 6 → 7 → 8 → 9 → 1 → 10`. Task 1 (máy chủ, Tunnel, Hyperdrive) làm sau khi pipeline đã chứng minh trên DB dev; commit binding Hyperdrive vào `wrangler.toml` **chỉ khi đã có ID thật** vì `deploy-api.yml` tự deploy mỗi push chạm `apps/api/**`.
+4. Lỗi kỹ thuật đã sửa trong plan: `publishNew` gọi `pg_get_serial_sequence` trên bảng không có cột `id` (ném lỗi, không trả NULL — đã kiểm trên Postgres dev); `pg_hba.conf` xếp `samenet` trước `hostssl` khiến kết nối qua Tunnel không bị buộc TLS; `renderServerEnv` và `data-update.yml` thiếu `RCLONE_CONFIG_R2_NO_CHECK_BUCKET` (upload.mjs bắt buộc); `data-update.mjs` viết lại đã bỏ preflight `missingLiveEnv` và `readState` nuốt lỗi rclone; `db:restore --clean` vào DB có PostGIS (đổi sang DB mới); job `dbtest` chạy mỗi push (repo private, 2.000 phút/tháng → workflow riêng có `paths`); pin `cloudflared` cũ một năm; icon lá `rail/rail_metro/doctor/beach` không có trong sprite; token Cloudflare cho máy chủ nên tách riêng (KV + R2, không có Workers/Pages Edit).
+5. Quy ước từ M1c: mã trong plan dài hơn `lineWidth: 100` của Biome — **chạy `pnpm exec biome check --write <thư mục>` trước `pnpm lint`** ở mỗi step commit.
+
 **Task nào cần gì từ M1 (để có thể bắt đầu sớm, song song với M1b/M1c):**
 
 | Task M2 | Cần | Ghi chú |
@@ -30,11 +38,12 @@ Plan này được viết khi **M1a đã nghiệm thu (27/08/2026), M1b/M1c chư
 |---|---|---|---|
 | G1 | M1a–M1c đã xong: có `pipelines/tiles/*`, `packages/core`, `packages/style` (template + `fillTemplate` nhận `POI_FILE`), `apps/api` (Worker với `renderStyle`, KV `META`, R2 `TILES`), `scripts/data-update.mjs` + `scripts/lib/update-plan.mjs`, `pipelines/tiles/src/{upload,smoke,manifest,qa}.mjs`, fixture `pipelines/tiles/fixtures/q1.pmtiles` | `ls` các file; `pnpm test` xanh | Dừng, hoàn tất M1 trước |
 | G2 | Image pipeline có: Node 22, DuckDB CLI 1.5.x, osmium-tool, tippecanoe, rclone, Python/pyosmium (Dockerfile hiện tại) | `pnpm image:smoke` | Sửa Dockerfile trước |
-| G3 | PHONG đã có máy nội bộ 24/7 (≥ 8 GB RAM, SSD ≥ 50 GB, Docker, Linux/macOS/WSL2) và có quyền tạo Tunnel/Access/Hyperdrive trên zone Cloudflare hiện có | hỏi PHONG | Task 1 dùng máy dev làm "máy chủ tạm" để hoàn tất mã; việc tay chuyển sang máy thật sau |
+| G3 | ~~PHONG đã có máy nội bộ 24/7~~ **Đã xác nhận 27/08: chưa có máy riêng.** Máy dev (macOS) làm máy chủ tạm: tắt ngủ máy, cần ≥ 16 GB RAM vì chạy song song compose dev + compose server + DuckDB 3 GB + Java 4 GB khi `data:update` | — | Task 1 chạy trên máy dev với `PIPELINE_IMAGE=mapslibvn/pipeline:local`; chuyển máy thật sau bằng `server:setup` + `db:restore --latest` |
 | G4 | Overture Places release mới nhất có lược đồ 2025: `id, geometry (WKB), bbox{xmin,xmax,ymin,ymax}, names{primary,…}, categories{primary,alternate}, confidence, websites[], phones[], addresses[{freeform,locality,region,postcode,country}], sources[]` | `DESCRIBE SELECT * FROM read_parquet('s3://overturemaps-us-west-2/release/<ver>/theme=places/type=place/*.parquet') LIMIT 0` trong DuckDB | Sửa `ingest/overture.mjs` Step 3 theo cột thật |
-| G5 | Foursquare OS Places parquet có cột `fsq_place_id, name, latitude, longitude, address, locality, region, tel, website, date_closed, fsq_category_labels[]`, partition `release/dt=YYYY-MM-DD/places/parquet/` | `DESCRIBE` tương tự | Sửa `ingest/fsq.mjs` Step 3 |
+| G5 | Foursquare OS Places đọc qua **Hugging Face** `hf://datasets/foursquare/fsq-os-places/release/dt=YYYY-MM-DD/places/parquet/*.parquet` (gated, Apache-2.0) có cột `fsq_place_id, name, latitude, longitude, address, locality, region, tel, website, date_closed, fsq_category_labels[]`. **S3 công khai đã đóng (kiểm 27/08).** | `DESCRIBE` qua DuckDB với secret `huggingface` | Sửa `ingest/fsq.mjs` Step 7 theo cột thật |
 | G6 | OSM VN có ranh giới `admin_level=4` (34 tỉnh sau 1/7/2025) và `admin_level=8` (phường/xã); `admin_level=6` có thể còn hoặc không | Task 8 Step 6 đếm thật và ghi `pipelines/poi/README.md` | Đổi danh sách level trong `geocode/admin.mjs` |
-| G7 | `@duckdb/node-api` có bản ổn định ≥ 1.4 với binary linux-x64/arm64 và hỗ trợ `INSTALL/LOAD spatial, httpfs` | `pnpm view @duckdb/node-api version` | Pin bản mới nhất có sẵn; ghi DEVLOG |
+| G7 | `@duckdb/node-api` có bản ổn định ≥ 1.4 với binary linux-x64/arm64 và hỗ trợ `INSTALL/LOAD spatial, httpfs` (27/08: `pnpm view` trả `1.5.5-r.4` — kiểm `pnpm view @duckdb/node-api versions` và pin bản **không** có hậu tố pre-release) | `pnpm view @duckdb/node-api versions` | Pin bản mới nhất có sẵn; ghi DEVLOG |
+| G8 | PHONG đã tạo tài khoản Hugging Face, chấp nhận điều khoản gated của `foursquare/fsq-os-places` và có token đọc (`HF_TOKEN`) | `curl -s -H "Authorization: Bearer $HF_TOKEN" https://huggingface.co/api/datasets/foursquare/fsq-os-places/tree/main/release` trả JSON danh sách `dt=…` | Chưa có token → Task 5 làm OSM + Overture trước, FSQ bổ sung khi có; ghi DEVLOG |
 
 **Khác biệt so với roadmap mục 3 (đã cân nhắc khi viết plan, ghi DEVLOG ở Task 0):**
 
@@ -124,14 +133,15 @@ Expected: có các cột `id, geometry, bbox, names, categories, confidence, web
 
 Run:
 ```bash
-curl -s 'https://fsq-os-places-us-east-1.s3.us-east-1.amazonaws.com/?list-type=2&prefix=release/&delimiter=/' | grep -o 'release/dt=[0-9-]*/' | sort | tail -1
+curl -s -H "Authorization: Bearer $HF_TOKEN" https://huggingface.co/api/datasets/foursquare/fsq-os-places/tree/main/release | grep -o 'dt=[0-9-]*' | sort | tail -1
 ```
-Expected: `release/dt=2026-MM-DD/` — ghi là `<FSQ_DT>`.
+Expected: `dt=2026-MM-DD` — ghi là `<FSQ_DT>` (chỉ phần ngày). 401/403 → G8 chưa đạt: đăng nhập huggingface.co, mở trang dataset, bấm chấp nhận điều khoản, tạo token Read; đặt `HF_TOKEN=` vào `.env`.
 
 Run:
 ```bash
-PIPE pipeline duckdb -c "INSTALL httpfs; LOAD httpfs; SET s3_region='us-east-1'; \
-  DESCRIBE SELECT * FROM read_parquet('s3://fsq-os-places-us-east-1/release/<FSQ_DT>/places/parquet/*.parquet') LIMIT 0;"
+# $HF_TOKEN được compose đưa vào container qua env_file .env — để nguyên trong nháy đơn để host không expand
+PIPE pipeline sh -c 'duckdb -c "INSTALL httpfs; LOAD httpfs; CREATE SECRET hf (TYPE huggingface, TOKEN '\''$HF_TOKEN'\''); \
+  DESCRIBE SELECT * FROM read_parquet('\''hf://datasets/foursquare/fsq-os-places/release/dt=<FSQ_DT>/places/parquet/*.parquet'\'') LIMIT 0;"'
 ```
 Expected: có `fsq_place_id, name, latitude, longitude, address, locality, region, tel, website, date_closed, fsq_category_labels`.
 
@@ -186,9 +196,9 @@ Expected: vẫn xanh (chưa có dbtest nào).
 
 - [ ] **Step 4: Ghi DEVLOG và roadmap, commit**
 
-Sửa `docs/superpowers/plans/2026-08-26-roadmap-toan-bo-spec.md` mục 0.4 hàng 3: `YYYY-MM-DD-m2-kho-poi-may-chu.md` → `2026-08-27-m2-kho-poi-may-chu.md`, trạng thái "Đã viết, sẵn sàng thực thi".
+(Roadmap đã cập nhật tên file plan M2 ngày 27/08 — bỏ qua bước sửa roadmap.)
 
-Sửa `docs/DEVLOG.md`: mục 1 "Mốc: M2 — Kho POI + máy chủ nội bộ", "Plan: `docs/superpowers/plans/2026-08-27-m2-kho-poi-may-chu.md`", "Task đang làm: Task 1"; mục 3 thêm 7 dòng khác biệt (mục "Khác biệt so với roadmap" ở trên, mỗi dòng một quyết định) và kết quả G4/G5/G7 (`<OVERTURE_VER>`, `<FSQ_DT>`, phiên bản `@duckdb/node-api`); mục 4 dòng `M2 T0`.
+Sửa `docs/DEVLOG.md`: mục 1 "Mốc: M2 — Kho POI + máy chủ nội bộ", "Plan: `docs/superpowers/plans/2026-08-27-m2-kho-poi-may-chu.md`", "Task đang làm: Task 2" (Task 1 làm sau Task 9 — xem "Thứ tự thực thi" ở đầu plan); mục 3 thêm 7 dòng khác biệt (mục "Khác biệt so với roadmap" ở trên, mỗi dòng một quyết định) và kết quả G4/G5/G7 (`<OVERTURE_VER>`, `<FSQ_DT>`, phiên bản `@duckdb/node-api`); mục 4 dòng `M2 T0`.
 
 ```bash
 git add -A
@@ -241,6 +251,8 @@ describe('renderServerEnv / parseEnv', () => {
     expect(env.PG_SHARED_BUFFERS).toBe('2048MB');
     expect(env.TUNNEL_TOKEN).toBe('');
     expect(env.PIPELINE_IMAGE).toBe('ghcr.io/dotienphong/mapslibvn-pipeline:latest');
+    expect(env.RCLONE_CONFIG_R2_NO_CHECK_BUCKET).toBe('true');
+    expect(env.HF_TOKEN).toBe('');
     expect(text).toContain('# Bí mật máy chủ');
   });
 
@@ -344,7 +356,8 @@ export function renderServerEnv(v) {
     '# Token Tunnel: Cloudflare Zero Trust → Networks → Tunnels → tạo tunnel "mapslibvn-db" → copy token',
     `TUNNEL_TOKEN=${v.tunnelToken}`,
     `PIPELINE_IMAGE=${v.pipelineImage}`,
-    '# Các biến Cloudflare/R2 cho backup và data:update — chép từ .env máy dev (xem .env.example gốc repo)',
+    '# Các biến Cloudflare/R2 cho backup và data:update — chép từ .env máy dev (xem .env.example gốc repo).',
+    '# CLOUDFLARE_API_TOKEN ở đây dùng token RIÊNG cho pipeline (Workers KV Edit + Workers R2 Edit), không dùng token deploy.',
     'TILES_BASE=',
     'R2_BUCKET=mapslibvn-tiles',
     'KV_NAMESPACE_ID_META=',
@@ -356,6 +369,9 @@ export function renderServerEnv(v) {
     'RCLONE_CONFIG_R2_ACCESS_KEY_ID=',
     'RCLONE_CONFIG_R2_SECRET_ACCESS_KEY=',
     'RCLONE_CONFIG_R2_ENDPOINT=',
+    'RCLONE_CONFIG_R2_NO_CHECK_BUCKET=true',
+    '# Token Hugging Face (Read) cho dataset gated foursquare/fsq-os-places — ingest FSQ',
+    'HF_TOKEN=',
     '',
   ].join('\n');
 }
@@ -451,13 +467,13 @@ timezone = 'Asia/Ho_Chi_Minh'
 
 `infra/server/postgres/pg_hba.conf`:
 ```
-# local (trong container)
-local   all   all                 trust
-# cùng mạng Docker (backup, pipeline, cloudflared): mật khẩu, TLS tuỳ chọn
-host    all   all   samenet       scram-sha-256
-# mọi nơi khác (qua Tunnel từ Hyperdrive): BẮT BUỘC TLS
-hostssl all   all   0.0.0.0/0     scram-sha-256
-hostssl all   all   ::/0          scram-sha-256
+# local (trong container): psql qua socket cho healthcheck, init-roles.sh, exec tay
+local     all   all         trust
+# MỌI kết nối TCP (backup, pipeline, cloudflared → Tunnel → Hyperdrive) bắt buộc TLS + mật khẩu.
+# Không có dòng `host … samenet`: cloudflared cũng nằm trong mạng compose, nếu cho phép samenet thì
+# đường Tunnel sẽ không bị buộc TLS (lỗi phát hiện ở review lần 3).
+hostssl   all   all   all   scram-sha-256
+hostnossl all   all   all   reject
 ```
 
 `infra/server/postgres/init-roles.sh` (chạy một lần khi volume `pgdata` trống):
@@ -514,7 +530,7 @@ services:
     # KHÔNG có `ports:` — DB không mở cổng ra ngoài; chỉ cloudflared/backup/pipeline trong mạng compose nối tới.
 
   cloudflared:
-    image: cloudflare/cloudflared:2025.8.1
+    image: cloudflare/cloudflared:2026.8.2
     restart: unless-stopped
     command: ["tunnel", "--no-autoupdate", "run", "--token", "${TUNNEL_TOKEN}"]
     depends_on:
@@ -531,6 +547,7 @@ services:
       POSTGRES_USER: mapslibvn
       POSTGRES_PASSWORD: ${POSTGRES_SUPER_PASSWORD}
       POSTGRES_DB: mapslibvn
+      POSTGRES_SSL: require
     command: ["node", "infra/server/backup/backup.mjs", "--daemon"]
     # backup dùng superuser để pg_dump trọn DB (kể cả poi_edit, tenant, api_key)
     volumes:
@@ -551,6 +568,7 @@ services:
       POSTGRES_USER: pipeline
       POSTGRES_PASSWORD: ${PIPELINE_PASSWORD}
       POSTGRES_DB: mapslibvn
+      POSTGRES_SSL: require
       JAVA_OPTS: -Xmx4g
       NODE_OPTIONS: --max-old-space-size=4096
     command: ["node", "scripts/cron.mjs"]
@@ -577,7 +595,7 @@ volumes:
 `infra/server/.env.example`: nội dung đúng bằng output của `renderServerEnv({ superPassword: 'DOI_TOI', apiPassword: 'DOI_TOI', pipelinePassword: 'DOI_TOI', sharedBuffers: '2048MB', tunnelToken: '', pipelineImage: 'ghcr.io/dotienphong/mapslibvn-pipeline:latest' })` — tạo bằng:
 
 Run: `node -e "import('./scripts/lib/server-env.mjs').then(m => process.stdout.write(m.renderServerEnv({superPassword:'DOI_TOI',apiPassword:'DOI_TOI',pipelinePassword:'DOI_TOI',sharedBuffers:'2048MB',tunnelToken:'',pipelineImage:'ghcr.io/dotienphong/mapslibvn-pipeline:latest'})))" > infra/server/.env.example`
-Expected: file có 20 dòng, bắt đầu bằng `# Bí mật máy chủ`.
+Expected: file có 24 dòng, bắt đầu bằng `# Bí mật máy chủ`, có `RCLONE_CONFIG_R2_NO_CHECK_BUCKET=true`.
 
 - [ ] **Step 4: Bổ sung công cụ máy chủ vào image pipeline**
 
@@ -585,7 +603,7 @@ Sửa `pipelines/Dockerfile`, stage `tools`: thêm `postgresql-client-16 zstd` v
 
 ```dockerfile
 # cloudflared (Apache-2.0) — `cloudflared access tcp` khi chạy data:update/db:restore từ máy dev qua Tunnel
-ARG CLOUDFLARED_VERSION=2025.8.1
+ARG CLOUDFLARED_VERSION=2026.8.2
 RUN ARCH="$(dpkg --print-architecture)"; \
     curl -fsSL --retry 5 --retry-all-errors -o /usr/local/bin/cloudflared \
       "https://github.com/cloudflare/cloudflared/releases/download/${CLOUDFLARED_VERSION}/cloudflared-linux-${ARCH}" \
@@ -625,7 +643,7 @@ Nếu `packages/core` hoặc `packages/style` chưa tồn tại (chưa làm M1b)
 Thêm vào `SMOKE` trong `scripts/image.mjs` ba mục: `'pg_dump --version'`, `'zstd --version'`, `'cloudflared --version'`.
 
 Run: `pnpm image:build && pnpm image:smoke`
-Expected: build dùng cache cho tippecanoe; smoke in thêm `pg_dump (PostgreSQL) 16.x`, `*** zstd command line interface …`, `cloudflared version 2025.8.1`. Nếu tag cloudflared không tồn tại: `curl -sI https://github.com/cloudflare/cloudflared/releases/latest | grep -i location` lấy tag mới nhất, sửa ARG, ghi DEVLOG.
+Expected: build dùng cache cho tippecanoe; smoke in thêm `pg_dump (PostgreSQL) 16.x`, `*** zstd command line interface …`, `cloudflared version 2026.8.2`. Nếu tag cloudflared không tồn tại: `curl -sI https://github.com/cloudflare/cloudflared/releases/latest | grep -i location` lấy tag mới nhất, sửa ARG, ghi DEVLOG.
 
 - [ ] **Step 5: `backup.mjs` và `cron.mjs`**
 
@@ -912,7 +930,9 @@ pnpm server:setup
 - Không bao giờ thêm `ports:` cho `postgres`. Mọi truy cập đi qua Tunnel + Access.
 ````
 
-- [ ] **Step 8: Chạy `pnpm server:setup` (trên máy chủ; nếu chưa có máy — G3 — chạy trên máy dev với `PIPELINE_IMAGE=mapslibvn/pipeline:local` để hoàn tất mã)**
+- [ ] **Step 8: Chạy `pnpm server:setup` trên máy dev (G3: máy chủ tạm) với `PIPELINE_IMAGE=mapslibvn/pipeline:local`**
+
+Trước khi chạy: tắt chế độ ngủ của máy (macOS: System Settings → Displays → Advanced → "Prevent automatic sleeping"; hoặc `caffeinate -s` trong một terminal riêng). Compose server (`mapslibvn-server`) và compose dev (`mapslibvn-dev`) chạy song song — không xung đột cổng vì Postgres server không mở `ports:`.
 
 Run: `pnpm server:setup`
 Expected: các bước ▶ OK; `[db:migrate] Áp dụng 0001_extensions.sql` (các migration 0002–0005 xuất hiện sau Task 2 — chạy lại `server:setup` khi đó); `ssl = on`; checklist in ra.
@@ -923,8 +943,23 @@ Expected: `api|t` và `pipeline|t`.
 Run: `docker compose --env-file infra/server/.env -f infra/server/compose.yml exec -T postgres sh -c 'PGPASSWORD=$API_PASSWORD psql "postgres://api@127.0.0.1:5432/mapslibvn?sslmode=require" -tAc "select ssl from pg_stat_ssl where pid = pg_backend_pid()"'`
 Expected: `t`.
 
+Run: `docker compose --env-file infra/server/.env -f infra/server/compose.yml exec -T postgres sh -c 'PGPASSWORD=$API_PASSWORD psql "postgres://api@127.0.0.1:5432/mapslibvn?sslmode=disable" -c "select 1"'`
+Expected: **bị từ chối** — `FATAL: pg_hba.conf rejects connection … SSL off`. Đây là phép thử chứng minh TLS bắt buộc thật (không chỉ trên README).
+
 Run: `docker compose --env-file infra/server/.env -f infra/server/compose.yml exec -T backup node infra/server/backup/backup.mjs --once`
 Expected: `✓ backup mapslibvn-YYYYMMDD-HHMM.dump.zst (N MB) → r2:…/backups/daily` (cần biến R2 trong `infra/server/.env`; nếu chưa điền, lệnh báo lỗi rclone — điền rồi chạy lại).
+
+**Thử phục hồi ngay (không đợi Task 10)** — chứng minh lời hứa "chuyển máy < 1 giờ" và lộ sớm lỗi PostGIS khi restore. Phục hồi vào **DB mới** trong cùng container (không `--clean` lên DB đang chạy — `spatial_ref_sys` là bảng cấu hình của extension, restore trùng khoá):
+```bash
+C="docker compose --env-file infra/server/.env -f infra/server/compose.yml"
+F=$($C exec -T backup rclone lsf r2:mapslibvn-tiles/backups/daily | sort | tail -1)
+$C exec -T postgres psql -U mapslibvn -d postgres -c "DROP DATABASE IF EXISTS restore_smoke" -c "CREATE DATABASE restore_smoke"
+$C exec -T backup sh -c "rclone cat r2:mapslibvn-tiles/backups/daily/$F | zstd -dc | pg_restore --no-owner --no-privileges -d \"\$(echo \$DATABASE_URL | sed s#/mapslibvn#/restore_smoke#)\"" \
+  || echo "pg_restore có cảnh báo — xem dòng lỗi; lỗi về extension postgis đã tồn tại là chấp nhận được"
+$C exec -T postgres psql -U mapslibvn -d restore_smoke -tAc "select count(*) from schema_migrations"
+$C exec -T postgres psql -U mapslibvn -d postgres -c "DROP DATABASE restore_smoke"
+```
+Expected: dòng cuối trả số migration đã áp dụng (= số file trong `db/migrations` lúc đó). Nếu pg_restore lỗi thật (không phải cảnh báo extension): sửa `backup.mjs` (ví dụ thêm `--exclude-table-data=spatial_ref_sys`) **trước khi** đi tiếp — Task 10 `db-restore.mjs` dùng đúng cách phục hồi vào DB mới này.
 
 - [ ] **Step 9: Việc tay Cloudflare + kiểm psql qua Tunnel**
 
@@ -941,7 +976,9 @@ PIPELINE_DATABASE_URL=
 Run lệnh "TLS bắt buộc từ ngoài" trong README.
 Expected: `api | t`.
 
-- [ ] **Step 10: Worker `/healthz/db` qua Hyperdrive** *(cần `apps/api` của M1c Task 1 — nếu chưa có, để lại step này và làm tiếp Task 2; quay lại khi M1c xong)*
+- [ ] **Step 10: Worker `/healthz/db` qua Hyperdrive**
+
+> **Trình tự bắt buộc:** `deploy-api.yml` tự deploy production mỗi push chạm `apps/api/**`. Nếu commit `wrangler.toml` với `id = "DIEN_HYPERDRIVE_ID"` trước khi PHONG tạo Hyperdrive, **mọi lần Deploy API sẽ đỏ**. Làm Step 9 (PHONG tạo Tunnel/Access/Hyperdrive, có ID thật) xong mới sửa `wrangler.toml`, kiểm local, rồi commit một lần cùng Step 11.
 
 `apps/api/package.json` → dependencies thêm `"postgres": "^3.4.5"`. Run: `pnpm install`.
 
@@ -1024,13 +1061,14 @@ git push
 
 **Files:**
 - Create: `db/migrations/0002_sources.sql`, `0002_sources.down.sql`, `0003_core.sql`, `0003_core.down.sql`, `0004_geocode.sql`, `0004_geocode.down.sql`, `0005_tenant.sql`, `0005_tenant.down.sql`, `db/schema.dbtest.mjs`
-- Modify: `scripts/lib/migrations.mjs`, `scripts/lib/migrations.test.mjs`, `scripts/db-migrate.mjs`, `.github/workflows/ci.yml`
+- Modify: `scripts/lib/migrations.mjs`, `scripts/lib/migrations.test.mjs`, `scripts/db-migrate.mjs`
+- Create: `.github/workflows/dbtest.yml`
 
 - [ ] **Step 1: Test hàm thuần cho `.down.sql` (thất bại)**
 
 Thêm vào `scripts/lib/migrations.test.mjs`:
 ```js
-import { downFileFor, lastApplied, pendingMigrations } from './migrations.mjs';
+import { databaseUrlFromEnv, downFileFor, lastApplied, pendingMigrations } from './migrations.mjs';
 
 describe('pendingMigrations bỏ qua file .down.sql', () => {
   it('không coi 0002_x.down.sql là migration', () => {
@@ -1043,6 +1081,14 @@ describe('lastApplied / downFileFor', () => {
     expect(lastApplied(['0001_a.sql', '0003_c.sql', '0002_b.sql'])).toBe('0003_c.sql');
     expect(lastApplied([])).toBeNull();
     expect(downFileFor('0003_c.sql')).toBe('0003_c.down.sql');
+  });
+});
+
+describe('databaseUrlFromEnv với POSTGRES_SSL', () => {
+  it('POSTGRES_SSL=require → thêm ?sslmode=require; DATABASE_URL giữ nguyên', () => {
+    expect(databaseUrlFromEnv({ POSTGRES_SSL: 'require' })).toBe('postgres://mapslibvn:mapslibvn@localhost:5432/mapslibvn?sslmode=require');
+    expect(databaseUrlFromEnv({})).toBe('postgres://mapslibvn:mapslibvn@localhost:5432/mapslibvn');
+    expect(databaseUrlFromEnv({ DATABASE_URL: 'postgres://x', POSTGRES_SSL: 'require' })).toBe('postgres://x');
   });
 });
 ```
@@ -1073,7 +1119,19 @@ export function downFileFor(name) {
   return name.replace(/\.sql$/, '.down.sql');
 }
 ```
-(`databaseUrlFromEnv` giữ nguyên.)
+`databaseUrlFromEnv` thêm TLS theo biến môi trường (compose máy chủ đặt `POSTGRES_SSL=require` cho backup/pipeline vì `pg_hba` từ chối kết nối không TLS; client `postgres` mặc định **không** dùng TLS):
+```js
+export function databaseUrlFromEnv(env) {
+  if (env.DATABASE_URL) return env.DATABASE_URL;
+  const user = env.POSTGRES_USER ?? 'mapslibvn';
+  const password = env.POSTGRES_PASSWORD ?? 'mapslibvn';
+  const host = env.POSTGRES_HOST ?? 'localhost';
+  const port = env.POSTGRES_PORT ?? '5432';
+  const database = env.POSTGRES_DB ?? 'mapslibvn';
+  const ssl = env.POSTGRES_SSL === 'require' ? '?sslmode=require' : '';
+  return `postgres://${user}:${password}@${host}:${port}/${database}${ssl}`;
+}
+```
 
 `scripts/db-migrate.mjs` — thêm nhánh `--down` (revert đúng một migration cuối) trước vòng lặp áp dụng:
 ```js
@@ -1494,8 +1552,18 @@ Expected: `Không có migration mới.`
 Run (trên máy chủ, hoặc máy dev nếu G3 chưa có): `pnpm server:update`
 Expected: `Áp dụng 0002 … 0005`, `✔ server:update xong`.
 
-Thêm job vào `.github/workflows/ci.yml` sau job `test`:
+Tạo workflow **riêng** `.github/workflows/dbtest.yml` — repo private chỉ có 2.000 phút Actions/tháng, dbtest tốn 10–15 phút nên chỉ chạy khi chạm mã DB/pipeline hoặc chạy tay:
 ```yaml
+name: DB tests
+on:
+  push:
+    branches: [main]
+    paths: ['db/**', 'pipelines/poi/**', 'scripts/**', 'packages/core/**', 'vitest.db.config.ts']
+  workflow_dispatch:
+concurrency:
+  group: dbtest-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
   dbtest:
     runs-on: ubuntu-latest
     services:
@@ -2065,7 +2133,9 @@ function parseStreetPart(orig: string, key: string, out: ParsedAddress): void {
   }
   let hn: string | undefined;
   if (hnRaw) {
-    const at = key.indexOf(hnRaw);
+    // Tìm số nhà SAU tiền tố (số/sn/lô/căn/kiot) để không bắt nhầm chữ số trong tiền tố
+    const prefixLen = /^(?:(?:so(?:\s*nha)?|sn|lo|can|kiot)\.?\s*)?/.exec(key)?.[0].length ?? 0;
+    const at = key.indexOf(hnRaw, prefixLen);
     hn = orig.slice(at, at + hnRaw.length);
   }
   const alleys = [...alleyText.matchAll(RE_ALLEY_EACH)];
@@ -2271,7 +2341,7 @@ git push
 
 **Files:**
 - Create: `pipelines/poi/package.json`, `pipelines/poi/tsconfig.json`, `pipelines/poi/README.md`, `pipelines/poi/src/lib/{env,vn-bbox,copy-format,geometry,osmium-id}.mjs`, `pipelines/poi/src/{duck,pg}.mjs`, `pipelines/poi/src/ingest/{osm,overture,fsq}.mjs`, `pipelines/poi/scripts/{make-vn-boundary,make-fixture}.mjs`, `pipelines/poi/data/vn-boundary.geojson`, `pipelines/poi/fixtures/{q1.osm.pbf,overture-q1.parquet,fsq-q1.parquet}`, `pipelines/poi/tests/{copy-format,geometry,osmium-id}.test.mjs`, `pipelines/poi/tests/ingest.dbtest.mjs`
-- Modify: `pipelines/Dockerfile`, `infra/dev/compose.yml` (bind mount mã nguồn cho service `pipeline`), `.dockerignore`, `.github/workflows/ci.yml` (job `dbtest` chạy trong image), `.env.example`
+- Modify: `pipelines/Dockerfile`, `infra/dev/compose.yml` (bind mount mã nguồn cho service `pipeline`), `.dockerignore`, `.github/workflows/dbtest.yml` (chạy trong image), `.env.example`
 
 - [ ] **Step 1: Package, env, và test hàm định dạng COPY + tâm hình học (thất bại)**
 
@@ -2319,9 +2389,9 @@ export const OSM_PBF = FIXTURE ? resolve(FIXTURES, 'q1.osm.pbf') : resolve(WORK,
 /** @param {string} release ví dụ 2026-08-20.0 */
 export const overtureSource = (release) =>
   FIXTURE ? resolve(FIXTURES, 'overture-q1.parquet') : `s3://overturemaps-us-west-2/release/${release}/theme=places/type=place/*.parquet`;
-/** @param {string} dt ví dụ 2026-08-05 */
+/** FSQ OS Places qua Hugging Face (gated; S3 công khai đã đóng 2026). @param {string} dt ví dụ 2026-08-11 */
 export const fsqSource = (dt) =>
-  FIXTURE ? resolve(FIXTURES, 'fsq-q1.parquet') : `s3://fsq-os-places-us-east-1/release/dt=${dt}/places/parquet/*.parquet`;
+  FIXTURE ? resolve(FIXTURES, 'fsq-q1.parquet') : `hf://datasets/foursquare/fsq-os-places/release/dt=${dt}/places/parquet/*.parquet`;
 
 /** @param {string} name @param {string | undefined} fallback */
 export function arg(name, fallback) {
@@ -2556,6 +2626,15 @@ export async function openDuck({ memory = process.env.DUCKDB_MEMORY ?? '3GB', th
     },
     /** Đọc S3 công khai không cần khoá. @param {string} region */
     anonymousS3: (region) => conn.run(`CREATE OR REPLACE SECRET s3anon (TYPE s3, REGION '${region}')`),
+    /** Dataset gated trên Hugging Face (FSQ). Cần HF_TOKEN; bỏ qua khi --fixture (đọc file local). */
+    huggingface: () => {
+      const token = process.env.HF_TOKEN;
+      if (!token) {
+        if (process.argv.includes('--fixture')) return Promise.resolve();
+        throw new Error('Thiếu HF_TOKEN (token Read của Hugging Face, đã chấp nhận điều khoản foursquare/fsq-os-places)');
+      }
+      return conn.run(`CREATE OR REPLACE SECRET hf (TYPE huggingface, TOKEN '${token.replace(/'/g, "''")}')`);
+    },
     close: () => {
       conn.closeSync();
       instance.closeSync();
@@ -2577,7 +2656,10 @@ import { copyRow } from './lib/copy-format.mjs';
 import { VN_BOUNDARY } from './lib/env.mjs';
 
 export function connect() {
-  return postgres(databaseUrlFromEnv(process.env), { max: 4, onnotice: () => {}, idle_timeout: 60, connect_timeout: 30 });
+  // work_mem cao cho session pipeline: sort/hash của poi_work_pair (hàng chục triệu dòng) không tràn đĩa với 32MB mặc định
+  return postgres(databaseUrlFromEnv(process.env), {
+    max: 4, onnotice: () => {}, idle_timeout: 60, connect_timeout: 30, connection: { work_mem: '512MB' },
+  });
 }
 
 /** Tạo bảng <name>_new giống <name> (INCLUDING ALL: cột, default, CHECK, index; KHÔNG copy FK — bảng thật giữ FK). */
@@ -2619,8 +2701,14 @@ export async function publishNew(sql, names) {
     await tx.unsafe(`TRUNCATE ${names.join(', ')}`);
     for (const name of names) {
       await tx.unsafe(`INSERT INTO ${name} SELECT * FROM ${name}_new`);
-      const [seq] = await tx.unsafe(`SELECT pg_get_serial_sequence('${name}', 'id') AS s`);
-      if (seq?.s) await tx.unsafe(`SELECT setval('${seq.s}', COALESCE((SELECT max(id) FROM ${name}), 0) + 1, false)`);
+      // pg_get_serial_sequence NÉM LỖI (không trả NULL) khi bảng không có cột id — src_*, admin_alias. Kiểm cột trước.
+      const [col] = await tx.unsafe(
+        `SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = '${name}' AND column_name = 'id'`,
+      );
+      if (col) {
+        const [seq] = await tx.unsafe(`SELECT pg_get_serial_sequence('${name}', 'id') AS s`);
+        if (seq?.s) await tx.unsafe(`SELECT setval('${seq.s}', COALESCE((SELECT max(id) FROM ${name}), 0) + 1, false)`);
+      }
       await tx.unsafe(`DROP TABLE ${name}_new`);
     }
   });
@@ -2708,6 +2796,8 @@ Thêm vào `.env.example`:
 # ---- Nguồn POI (M2) — để trống thì data:update tự dò bản mới nhất ----
 OVERTURE_RELEASE=
 FSQ_RELEASE=
+# Token Read của Hugging Face — dataset gated foursquare/fsq-os-places (chấp nhận điều khoản trên web trước)
+HF_TOKEN=
 DUCKDB_MEMORY=3GB
 DUCKDB_THREADS=4
 ```
@@ -2830,7 +2920,8 @@ try {
 `pipelines/poi/src/ingest/fsq.mjs`:
 ```js
 #!/usr/bin/env node
-// Foursquare OS Places (Apache-2.0): parquet S3 công khai theo bbox VN → JSONL → COPY src_fsq_place. Dùng: node fsq.mjs --release 2026-08-05 [--fixture]
+// Foursquare OS Places (Apache-2.0, gated trên Hugging Face — cần HF_TOKEN): parquet theo bbox VN → JSONL → COPY src_fsq_place.
+// Dùng: node fsq.mjs --release 2026-08-11 [--fixture]
 import { mkdirSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { openDuck } from '../duck.mjs';
@@ -2846,7 +2937,7 @@ const out = resolve(POI_WORK, 'fsq.jsonl');
 
 const duck = await openDuck();
 try {
-  await duck.anonymousS3('us-east-1');
+  await duck.huggingface();
   await duck.run(`COPY (
     SELECT fsq_place_id, name, fsq_category_labels AS categories, address, locality, region, tel, website, date_closed,
            longitude AS lon, latitude AS lat
@@ -2907,7 +2998,7 @@ try {
   await duck.anonymousS3('us-west-2');
   await duck.run(`COPY (SELECT * FROM read_parquet('${overtureSource(overture)}', hive_partitioning = true) WHERE ${overtureBboxWhere(Q1_BBOX)})
     TO '${resolve(FIXTURES, 'overture-q1.parquet')}' (FORMAT parquet, COMPRESSION zstd)`);
-  await duck.anonymousS3('us-east-1');
+  await duck.huggingface();
   await duck.run(`COPY (SELECT * FROM read_parquet('${fsqSource(fsq)}') WHERE ${lonLatWhere(Q1_BBOX)})
     TO '${resolve(FIXTURES, 'fsq-q1.parquet')}' (FORMAT parquet, COMPRESSION zstd)`);
 } finally {
@@ -2917,7 +3008,7 @@ for (const f of ['q1.osm.pbf', 'overture-q1.parquet', 'fsq-q1.parquet']) console
 ```
 
 Run: `PIPE pipeline node pipelines/poi/scripts/make-fixture.mjs --overture <OVERTURE_VER> --fsq <FSQ_DT>`
-Expected: 3 dòng kích cỡ; tổng ≤ 20 MB (Overture ~5–10 nghìn dòng ≈ 2–4 MB; FSQ ≈ 1–2 MB; PBF ≈ 3–6 MB). FSQ đọc toàn bộ ~10 GB partition (không có thống kê theo toạ độ) — 20–40 phút lần đầu; chấp nhận vì chỉ tạo fixture một lần. Nếu tổng > 20 MB: thu bbox còn `106.69,10.77,106.71,10.79` (đổi `Q1_BBOX`) và chạy lại.
+Expected: 3 dòng kích cỡ; tổng ≤ 20 MB (Overture ~5–10 nghìn dòng ≈ 2–4 MB; FSQ ≈ 1–2 MB; PBF ≈ 3–6 MB). FSQ đọc toàn bộ ~10 GB partition qua Hugging Face (không có thống kê theo toạ độ) — 20–40 phút lần đầu, cần `HF_TOKEN` trong `.env`; chấp nhận vì chỉ tạo fixture một lần. Nếu tổng > 20 MB: thu bbox còn `106.69,10.77,106.71,10.79` (đổi `Q1_BBOX`) và chạy lại.
 
 Chạy 3 ingest trên fixture:
 Run: `PIPE pipeline sh -c "node pipelines/poi/src/ingest/osm.mjs --fixture && node pipelines/poi/src/ingest/overture.mjs --fixture && node pipelines/poi/src/ingest/fsq.mjs --fixture"`
@@ -2980,8 +3071,9 @@ describe('ingest fixture Quận 1', () => {
 Run: `PIPE pipeline pnpm test:db`
 Expected: `db/schema.dbtest.mjs` + `ingest.dbtest.mjs` xanh (2–4 phút).
 
-Sửa job `dbtest` trong `.github/workflows/ci.yml` để chạy trong image (có osmium/duckdb) với service Postgres:
+Sửa `.github/workflows/dbtest.yml` (Task 2) để job chạy trong image (có osmium/duckdb) với service Postgres — giữ nguyên `on:`/`concurrency:`, thay phần `jobs:`:
 ```yaml
+jobs:
   dbtest:
     runs-on: ubuntu-latest
     container:
@@ -3001,6 +3093,7 @@ Sửa job `dbtest` trong `.github/workflows/ci.yml` để chạy trong image (c�
     env:
       DATABASE_URL: postgres://mapslibvn:mapslibvn@postgres:5432/mapslibvn
       MAPSLIBVN_WORK: /tmp/work
+      HF_TOKEN: ${{ secrets.HF_TOKEN }}   # không cần cho --fixture, nhưng để sẵn cho test đọc HF sau này
     steps:
       - uses: actions/checkout@v4
       - run: pnpm install --frozen-lockfile
@@ -3121,16 +3214,16 @@ git push
 {"code":"it_services","group":"services","vi":"Dịch vụ CNTT","en":"IT services","icon":"shop","rank":5},
 {"code":"services_other","group":"services","vi":"Dịch vụ khác","en":"Other services","icon":"shop","rank":5},
 {"code":"hospital","group":"health","vi":"Bệnh viện","en":"Hospital","icon":"hospital","rank":1},
-{"code":"clinic","group":"health","vi":"Phòng khám","en":"Clinic","icon":"doctor","rank":3},
+{"code":"clinic","group":"health","vi":"Phòng khám","en":"Clinic","icon":"doctors","rank":3},
 {"code":"pharmacy","group":"health","vi":"Nhà thuốc","en":"Pharmacy","icon":"pharmacy","rank":4},
 {"code":"dentist","group":"health","vi":"Nha khoa","en":"Dentist","icon":"dentist","rank":4},
-{"code":"doctor","group":"health","vi":"Bác sĩ","en":"Doctor","icon":"doctor","rank":4},
+{"code":"doctor","group":"health","vi":"Bác sĩ","en":"Doctor","icon":"doctors","rank":4},
 {"code":"veterinary","group":"health","vi":"Thú y","en":"Veterinary","icon":"veterinary","rank":5},
 {"code":"optician","group":"health","vi":"Kính mắt","en":"Optician","icon":"shop","rank":5},
-{"code":"medical_lab","group":"health","vi":"Xét nghiệm","en":"Medical laboratory","icon":"doctor","rank":4},
+{"code":"medical_lab","group":"health","vi":"Xét nghiệm","en":"Medical laboratory","icon":"doctors","rank":4},
 {"code":"maternity","group":"health","vi":"Sản khoa","en":"Maternity","icon":"hospital","rank":3},
-{"code":"traditional_medicine","group":"health","vi":"Y học cổ truyền","en":"Traditional medicine","icon":"doctor","rank":5},
-{"code":"health_other","group":"health","vi":"Y tế khác","en":"Other health","icon":"doctor","rank":4},
+{"code":"traditional_medicine","group":"health","vi":"Y học cổ truyền","en":"Traditional medicine","icon":"doctors","rank":5},
+{"code":"health_other","group":"health","vi":"Y tế khác","en":"Other health","icon":"doctors","rank":4},
 {"code":"kindergarten","group":"education","vi":"Trường mầm non","en":"Kindergarten","icon":"school","rank":3},
 {"code":"primary_school","group":"education","vi":"Trường tiểu học","en":"Primary school","icon":"school","rank":2},
 {"code":"secondary_school","group":"education","vi":"Trường THCS","en":"Secondary school","icon":"school","rank":2},
@@ -3185,14 +3278,14 @@ git push
 {"code":"aquarium","group":"culture_tourism","vi":"Thuỷ cung","en":"Aquarium","icon":"aquarium","rank":2},
 {"code":"park","group":"culture_tourism","vi":"Công viên","en":"Park","icon":"park","rank":1},
 {"code":"garden","group":"culture_tourism","vi":"Vườn hoa, vườn thực vật","en":"Garden","icon":"garden","rank":3},
-{"code":"beach","group":"culture_tourism","vi":"Bãi biển","en":"Beach","icon":"beach","rank":1},
+{"code":"beach","group":"culture_tourism","vi":"Bãi biển","en":"Beach","icon":"swimming","rank":1},
 {"code":"cultural_center","group":"culture_tourism","vi":"Trung tâm văn hoá","en":"Cultural center","icon":"town_hall","rank":3},
 {"code":"tourist_info","group":"culture_tourism","vi":"Thông tin du lịch","en":"Tourist information","icon":"information","rank":4},
 {"code":"culture_tourism_other","group":"culture_tourism","vi":"Văn hoá, du lịch khác","en":"Other culture & tourism","icon":"attraction","rank":4},
 {"code":"bus_stop","group":"transport","vi":"Trạm xe buýt","en":"Bus stop","icon":"bus","rank":5},
 {"code":"bus_station","group":"transport","vi":"Bến xe","en":"Bus station","icon":"bus","rank":1},
-{"code":"train_station","group":"transport","vi":"Ga tàu","en":"Train station","icon":"rail","rank":1},
-{"code":"metro_station","group":"transport","vi":"Ga metro","en":"Metro station","icon":"rail_metro","rank":1},
+{"code":"train_station","group":"transport","vi":"Ga tàu","en":"Train station","icon":"railway","rank":1},
+{"code":"metro_station","group":"transport","vi":"Ga metro","en":"Metro station","icon":"railway_metro","rank":1},
 {"code":"airport","group":"transport","vi":"Sân bay","en":"Airport","icon":"airport","rank":1},
 {"code":"ferry_terminal","group":"transport","vi":"Bến phà, bến tàu","en":"Ferry terminal","icon":"ferry","rank":2},
 {"code":"taxi_stand","group":"transport","vi":"Điểm đón taxi","en":"Taxi stand","icon":"car","rank":5},
@@ -5919,8 +6012,8 @@ describe('parseS3Prefixes / latest*', () => {
   it('Overture: bản mới nhất theo thứ tự chuỗi YYYY-MM-DD.N', () => {
     expect(latestOvertureRelease(['release/2026-06-25.0/', 'release/2026-08-20.0/', 'release/2026-07-23.1/'])).toBe('2026-08-20.0');
   });
-  it('FSQ: partition dt= mới nhất', () => {
-    expect(latestFsqRelease(['release/dt=2026-07-08/', 'release/dt=2026-08-05/'])).toBe('2026-08-05');
+  it('FSQ: partition dt= mới nhất từ cây thư mục Hugging Face', () => {
+    expect(latestFsqRelease([{ path: 'release/dt=2026-07-08', type: 'directory' }, { path: 'release/dt=2026-08-11', type: 'directory' }, { path: 'release/README.md', type: 'file' }])).toBe('2026-08-11');
   });
 });
 
@@ -5931,13 +6024,14 @@ describe('detectSources', () => {
       if (u.endsWith('.md5')) return new Response('abc123  vietnam-latest.osm.pbf\n');
       if (u.includes('geofabrik')) return new Response(null, { headers: { 'last-modified': 'Mon, 24 Aug 2026 20:00:00 GMT' } });
       if (u.includes('overturemaps')) return new Response(XML);
-      return new Response('<ListBucketResult><Prefix>release/</Prefix><CommonPrefixes><Prefix>release/dt=2026-08-05/</Prefix></CommonPrefixes></ListBucketResult>');
+      return new Response(JSON.stringify([{ path: 'release/dt=2026-08-11', type: 'directory' }]));
     });
-    expect(await detectSources(fetchFn)).toEqual({
+    expect(await detectSources(fetchFn, 'hf_test')).toEqual({
       osm: { lastModified: 'Mon, 24 Aug 2026 20:00:00 GMT', md5: 'abc123' },
       overture: { release: '2026-08-20.0' },
-      fsq: { release: '2026-08-05' },
+      fsq: { release: '2026-08-11' },
     });
+    expect(fetchFn.mock.calls.some(([url, init]) => String(url).includes('huggingface.co') && init?.headers?.Authorization === 'Bearer hf_test')).toBe(true);
   });
 });
 ```
@@ -5996,7 +6090,8 @@ Expected: FAIL — `sources.mjs` chưa có; test update-plan đỏ (chưa có ov
 ```js
 export const GEOFABRIK_PBF = 'https://download.geofabrik.de/asia/vietnam-latest.osm.pbf';
 const OVERTURE_LIST = 'https://overturemaps-us-west-2.s3.us-west-2.amazonaws.com/?list-type=2&prefix=release/&delimiter=/';
-const FSQ_LIST = 'https://fsq-os-places-us-east-1.s3.us-east-1.amazonaws.com/?list-type=2&prefix=release/&delimiter=/';
+// FSQ: S3 công khai đã đóng (2026) — dò qua API cây thư mục của dataset gated trên Hugging Face (cần token Read)
+const FSQ_TREE = 'https://huggingface.co/api/datasets/foursquare/fsq-os-places/tree/main/release';
 
 /** CommonPrefixes của ListObjectsV2 (delimiter=/), bỏ Prefix gốc. @param {string} xml @param {string} base */
 export function parseS3Prefixes(xml, base) {
@@ -6009,22 +6104,26 @@ export function latestOvertureRelease(prefixes) {
   return [...versions].sort().at(-1) ?? null;
 }
 
-/** @param {string[]} prefixes */
-export function latestFsqRelease(prefixes) {
-  const dts = prefixes.map((p) => /release\/dt=(\d{4}-\d{2}-\d{2})\//.exec(p)?.[1]).filter((v) => v !== undefined);
+/** @param {{ path: string, type: string }[]} entries kết quả JSON của HF tree API */
+export function latestFsqRelease(entries) {
+  const dts = entries.filter((e) => e.type === 'directory').map((e) => /dt=(\d{4}-\d{2}-\d{2})$/.exec(e.path)?.[1]).filter((v) => v !== undefined);
   return [...dts].sort().at(-1) ?? null;
 }
 
-/** Dò phiên bản 3 nguồn (spec 5.9 bước 1). @param {typeof fetch} fetchFn */
-export async function detectSources(fetchFn = fetch) {
-  const [head, md5Text, overtureXml, fsqXml] = await Promise.all([
+/** Dò phiên bản 3 nguồn (spec 5.9 bước 1). @param {typeof fetch} fetchFn @param {string | undefined} hfToken */
+export async function detectSources(fetchFn = fetch, hfToken = process.env.HF_TOKEN) {
+  if (!hfToken) throw new Error('Thiếu HF_TOKEN để dò phiên bản Foursquare (dataset gated)');
+  const [head, md5Text, overtureXml, fsqTree] = await Promise.all([
     fetchFn(GEOFABRIK_PBF, { method: 'HEAD' }),
     fetchFn(`${GEOFABRIK_PBF}.md5`).then((r) => r.text()),
     fetchFn(OVERTURE_LIST).then((r) => r.text()),
-    fetchFn(FSQ_LIST).then((r) => r.text()),
+    fetchFn(FSQ_TREE, { headers: { Authorization: `Bearer ${hfToken}` } }).then((r) => {
+      if (!r.ok) throw new Error(`HF tree API: HTTP ${r.status} — token hết hạn hoặc chưa chấp nhận điều khoản dataset`);
+      return r.json();
+    }),
   ]);
   const overture = latestOvertureRelease(parseS3Prefixes(overtureXml, 'release/'));
-  const fsq = latestFsqRelease(parseS3Prefixes(fsqXml, 'release/'));
+  const fsq = latestFsqRelease(/** @type {{ path: string, type: string }[]} */ (fsqTree));
   if (!overture || !fsq) throw new Error(`Không dò được phiên bản: overture=${overture} fsq=${fsq}`);
   return {
     osm: { lastModified: head.headers.get('last-modified') ?? '', md5: md5Text.split(/\s+/)[0] ?? '' },
@@ -6069,7 +6168,20 @@ export function nextState(state, v, built) {
     releases: { vn: built.vn ?? state.releases?.vn ?? null, poi: built.poi ?? state.releases?.poi ?? null },
   };
 }
+
+const LIVE_ENV = [
+  'TILES_BASE', 'R2_BUCKET', 'CLOUDFLARE_ACCOUNT_ID', 'KV_NAMESPACE_ID_META', 'CLOUDFLARE_API_TOKEN',
+  'RCLONE_CONFIG_R2_ACCESS_KEY_ID', 'RCLONE_CONFIG_R2_SECRET_ACCESS_KEY', 'RCLONE_CONFIG_R2_ENDPOINT',
+  'RCLONE_CONFIG_R2_NO_CHECK_BUCKET', 'HF_TOKEN',
+];
+
+/** Preflight (quyết định M1b T6): thiếu credential thì dừng TRƯỚC khi build hàng giờ. @param {Record<string, string | undefined>} env @param {Flags & { dryRun?: boolean }} flags */
+export function missingLiveEnv(env, flags) {
+  if (flags.dryRun) return [];
+  return LIVE_ENV.filter((name) => !env[name]?.trim());
+}
 ```
+(Giữ test `missingLiveEnv` của M1b trong `update-plan.test.mjs`; thêm trường hợp `HF_TOKEN` thiếu → có trong danh sách.)
 
 Run: `pnpm test`
 Expected: xanh.
@@ -6085,12 +6197,18 @@ import { execFileSync, spawn } from 'node:child_process';
 import { existsSync } from 'node:fs';
 import { createConnection } from 'node:net';
 import { releaseName } from '../pipelines/tiles/src/lib/dates.mjs';
-import { capture, run, sleep } from './lib/run.mjs';
+import { hasListedFile } from '../pipelines/tiles/src/lib/manifest-state.mjs';
+import { run, sleep } from './lib/run.mjs';
 import { detectSources } from './lib/sources.mjs';
-import { decideWork, nextState } from './lib/update-plan.mjs';
+import { decideWork, missingLiveEnv, nextState } from './lib/update-plan.mjs';
 
 const argv = process.argv.slice(2);
 const flags = { force: argv.includes('--force'), onlyTiles: argv.includes('--tiles'), onlyPoi: argv.includes('--poi'), dryRun: argv.includes('--dry-run') };
+if (flags.onlyTiles && flags.onlyPoi) throw new Error('Chỉ dùng một trong --tiles hoặc --poi');
+const missingEnv = missingLiveEnv(process.env, flags);
+if (missingEnv.length > 0) {
+  throw new Error(`Thiếu credentials cho lần chạy live: ${missingEnv.join(', ')}. Điền vào .env / infra/server/.env; không gửi secret qua chat.`);
+}
 const compose = ['compose', '--env-file', '.env', '-f', 'infra/dev/compose.yml', '--profile', 'pipeline'];
 
 if (process.env.MAPSLIBVN_IN_CONTAINER !== '1') {
@@ -6105,12 +6223,13 @@ const WORK = process.env.MAPSLIBVN_WORK ?? '/app/work';
 const OUT = process.env.MAPSLIBVN_OUT ?? '/app/out';
 const bucket = process.env.R2_BUCKET ?? 'mapslibvn-tiles';
 const stateKey = `r2:${bucket}/state/releases.json`;
+/** @param {string[]} args */
+const rcloneText = (args) => execFileSync('rclone', args, { encoding: 'utf8', stdio: ['ignore', 'pipe', 'inherit'] }).trim();
+// Không nuốt lỗi rclone: credential sai phải DỪNG ở đây, không được coi là "state rỗng" rồi lên kế hoạch rebuild toàn bộ
 const readState = () => {
-  try {
-    return JSON.parse(capture('rclone', ['cat', stateKey]) || '{}');
-  } catch {
-    return {};
-  }
+  const listed = rcloneText(['lsf', `r2:${bucket}/state`, '--files-only']);
+  if (!hasListedFile(listed, 'releases.json')) return {};
+  return JSON.parse(rcloneText(['cat', stateKey]));
 };
 const writeState = (/** @type {unknown} */ s) => execFileSync('rclone', ['rcat', stateKey], { input: JSON.stringify(s, null, 2) });
 
@@ -6189,7 +6308,7 @@ writeState(nextState(state, versions, built));
 log(`✓ data:update xong ${JSON.stringify(built)} — ${Math.round((Date.now() - t0) / 60000)} phút`);
 ```
 
-Cập nhật `.github/workflows/data-update.yml` (M1c): thêm vào `env` các secret `DB_TUNNEL_HOSTNAME`, `CF_ACCESS_CLIENT_ID`, `CF_ACCESS_CLIENT_SECRET`, `PIPELINE_DATABASE_URL`, `OVERTURE_RELEASE: ''`, `FSQ_RELEASE: ''`; `timeout-minutes: 300`; thêm 4 secret tương ứng vào repo GitHub (account dotienphong).
+Cập nhật `.github/workflows/data-update.yml` (M1c): thêm vào `env` **`RCLONE_CONFIG_R2_NO_CHECK_BUCKET: "true"`** (M1c để thiếu — `upload.mjs` bắt buộc, dry-run không lộ), `HF_TOKEN: ${{ secrets.HF_TOKEN }}`, các secret `DB_TUNNEL_HOSTNAME`, `CF_ACCESS_CLIENT_ID`, `CF_ACCESS_CLIENT_SECRET`, `PIPELINE_DATABASE_URL`, `OVERTURE_RELEASE: ''`, `FSQ_RELEASE: ''`; `timeout-minutes: 300`; thêm 5 secret tương ứng vào repo GitHub (`gh secret set NAME -R dotienphong/maps-library-vietnam` đọc từ stdin bằng `printf '%s' "$v" |` — **không** dùng `--body -`, xem DEVLOG M1c).
 
 Run: `pnpm data:update --dry-run`
 Expected: `Phiên bản: OSM md5 … · Overture 2026-… · FSQ 2026-…`, `Kế hoạch: {"tiles":false,"poi":true,"reasons":["Overture đổi (∅ → …)","FSQ đổi (∅ → …)"]}` (state cũ chưa có Overture/FSQ), `(dry-run) dừng.`
@@ -6233,8 +6352,28 @@ const dump = zst.replace(/\.zst$/, '');
 console.log(`Tải ${name} …`);
 run('rclone', ['copyto', `r2:${bucket}/backups/daily/${name}`, zst]);
 run('zstd', ['-d', '-f', '-q', zst, '-o', dump]);
-console.log('pg_restore --clean --if-exists …');
-run('pg_restore', ['--clean', '--if-exists', '--no-owner', '--no-privileges', '--exit-on-error', '-d', url, dump]);
+// Phục hồi vào DB MỚI rồi đổi tên: không dùng --clean lên DB đang có PostGIS (spatial_ref_sys là bảng cấu hình của extension → trùng khoá),
+// và DB đang phục vụ không bị bỏ trống nếu pg_restore lỗi giữa chừng.
+const target = new URL(url);
+const dbName = target.pathname.slice(1);
+const adminUrl = new URL(url);
+adminUrl.pathname = '/postgres';
+const psql = (/** @type {string} */ cmd) => run('psql', ['-v', 'ON_ERROR_STOP=1', '-d', adminUrl.href, '-c', cmd]);
+psql(`DROP DATABASE IF EXISTS ${dbName}_restore`);
+psql(`CREATE DATABASE ${dbName}_restore TEMPLATE template0`);
+const restoreUrl = new URL(url);
+restoreUrl.pathname = `/${dbName}_restore`;
+console.log('pg_restore vào DB tạm …');
+// Không --exit-on-error: cảnh báo về extension đã có sẵn là bình thường; kiểm số bảng sau restore
+run('pg_restore', ['--no-owner', '--no-privileges', '-d', restoreUrl.href, dump]);
+const tables = execFileSync('psql', ['-tAc', "SELECT count(*) FROM information_schema.tables WHERE table_schema = 'public'", '-d', restoreUrl.href], { encoding: 'utf8' }).trim();
+if (Number(tables) < 16) throw new Error(`Restore thiếu bảng (${tables} < 16) — không đổi DB`);
+console.log(`Đổi ${dbName}_restore → ${dbName} (ngắt kết nối đang mở) …`);
+psql(`SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname IN ('${dbName}', '${dbName}_restore') AND pid <> pg_backend_pid()`);
+psql(`DROP DATABASE IF EXISTS ${dbName}_old`);
+psql(`ALTER DATABASE ${dbName} RENAME TO ${dbName}_old`);
+psql(`ALTER DATABASE ${dbName}_restore RENAME TO ${dbName}`);
+psql(`DROP DATABASE ${dbName}_old`);
 run(process.execPath, ['scripts/db-migrate.mjs']); // áp dụng migration mới hơn bản backup, nếu có
 rmSync(work, { recursive: true, force: true });
 console.log(`✓ đã phục hồi ${name} vào ${host}`);
@@ -6243,7 +6382,7 @@ console.log(`✓ đã phục hồi ${name} vào ${host}`);
 Run (máy dev, DB dev đang có dữ liệu fixture): `pnpm db:restore --latest`
 Expected: `Tải mapslibvn-YYYYMMDD-HHMM.dump.zst …`, pg_restore chạy 5–15 phút cho bản toàn VN (~1 GB nén), `✓ đã phục hồi …`. Kiểm: `docker compose --env-file .env -f infra/dev/compose.yml exec -T postgres psql -U mapslibvn -d mapslibvn -tAc "select count(*) from poi"` → ≥ 1,5 triệu.
 
-Lưu ý `--clean --if-exists` xoá và tạo lại bảng theo bản dump; role `api`/`pipeline` phải tồn tại (migration 0002 đã tạo). Nếu pg_restore báo lỗi về extension (`postgis` đã có): dùng `--exit-on-error` bỏ qua bằng cách thêm `-L` danh sách… đơn giản hơn: bỏ `--exit-on-error` và kiểm số bảng sau restore — ghi DEVLOG cách đã dùng.
+Lưu ý: phục hồi qua DB tạm `<db>_restore` rồi `ALTER DATABASE … RENAME` — DB đang chạy không bị đụng nếu restore lỗi; mọi kết nối đang mở bị ngắt đúng lúc đổi tên (trên máy dev không sao; trên máy chủ dừng `pipeline`/`backup` trước). Role `api`/`pipeline` phải tồn tại trước (migration 0002 hoặc `init-roles.sh`). Cách này đã được thử ở Task 1 Step 8.
 
 - [ ] **Step 5: Test tích hợp toàn pipeline trên fixture (spec 10 "Tích hợp pipeline")**
 
@@ -6358,7 +6497,7 @@ Expected: `Kế hoạch: {"tiles":false,"poi":false,"reasons":[]}` — idempoten
 Run: `curl -s https://mapslibvn-api-production.<account>.workers.dev/v1/styles/light.json | grep -o 'poi-[0-9]*\.pmtiles'`
 Expected: `poi-YYYYMMDD.pmtiles`.
 
-Mở `https://mapslibvn-docs.pages.dev/playground.html?api=https://mapslibvn-api-production.<account>.workers.dev`: z10–11 chỉ hiện trường/bệnh viện/bến xe/UBND chất lượng cao; z13+ hiện tên; bấm một POI → dòng trạng thái hiện `Tên · loại (nhóm)` (nghiệm thu "bấm POI thấy tên/loại từ tile").
+Mở `https://mapslibvn-docs.pages.dev/playground?api=https://mapslibvn-api-production.dotienphong1993.workers.dev` (Cloudflare Pages bỏ đuôi `.html`): z10–11 chỉ hiện trường/bệnh viện/bến xe/UBND chất lượng cao; z13+ hiện tên; bấm một POI → dòng trạng thái hiện `Tên · loại (nhóm)` (nghiệm thu "bấm POI thấy tên/loại từ tile").
 
 - [ ] **Step 7: Nghiệm thu M2 (spec 13/M2 + roadmap mục 3) — ghi kết quả thật vào DEVLOG mục 4**
 
@@ -6391,3 +6530,7 @@ git push
 - **Bảng làm việc** (`vn_boundary`, `poi_work_*`, `osm_road_raw`, `osm_admin_raw`) do pipeline tạo lúc chạy, không nằm trong migration; role `pipeline` có `CREATE` trên schema public (0002). Có thể `DROP` an toàn.
 - **Tài nguyên**: máy chủ 8 GB RAM đủ (DuckDB 3 GB, Node 4 GB heap, Postgres shared_buffers 2 GB) nhưng không chạy song song tiles và POI — `data-update.mjs` chạy tuần tự. Nếu OOM ở `conflate.mjs`: giảm `NODE_OPTIONS=--max-old-space-size=3072` và thay `sourceIds` (mảng chuỗi) bằng truy vấn `source_id` theo `primary_rid` lúc ghi meta.
 - **M4 sẽ sửa** `publish.mjs`: loại trừ `locked_fields` khi UPDATE và không re-point `poi_source_link` đang trỏ tới POI `created_by='user'`; `admin.mjs`/`anchors.mjs` thêm nguồn `user` (confidence 0,95).
+- **Lint**: Biome `lineWidth: 100`; mã trong plan dài hơn — trước mỗi `pnpm lint` chạy `pnpm exec biome check --write <thư mục vừa sửa>` (đây là bước đã lặp lại ở mọi task M1c).
+- **Foursquare qua Hugging Face**: `HF_TOKEN` ở ba nơi — `.env` máy dev, `infra/server/.env`, secret Actions. Token là Read-only; nếu Foursquare đổi điều khoản gated hoặc token hết hạn, `detectSources` dừng có thông điệp rõ; khi đó `data:update --tiles` vẫn chạy (không cần FSQ). Điều khoản gated cần được PHONG đọc lại một lần về quyền phân phối lại dữ liệu đã gộp (ghi `docs/legal/` ở M5).
+- **Danh sách file bổ sung** so với mục "Cấu trúc file" ở đầu plan: `pipelines/poi/tests/{geometry,osmium-id,export-tiles}.test.mjs`, `pipelines/poi/src/lib/{geometry,osmium-id}.mjs`, `scripts/db-fixture.mjs`, `.github/workflows/dbtest.yml`.
+- **dbtest chạy lại ingest fixture trong từng file** (ingest / conflate / geocode / pipeline-fixture đều tự ingest ở `beforeAll`) — cố ý để mỗi file độc lập; tổng 10–15 phút. Nếu quá chậm, gom vào một `globalSetup` của `vitest.db.config.ts`.
