@@ -159,45 +159,70 @@ Task 5 (nghiệm thu M1), rồi chuyển mốc sang M2.
 - 2026-08-27 · M1c T3 S4 · Pages project `mapslibvn-docs` tạo + deploy 32 file:
   `https://mapslibvn-docs.pages.dev` · (commit hiện tại)
 
-## 5. Sự cố đang mở
+## 5. Sự cố
 
-### SC-1 · Cache Rule nuốt Range của PMTiles (mở 27/08/2026, chặn nghiệm thu M1)
+### SC-1 · Cache Rule nuốt Range của PMTiles — **ĐÃ ĐÓNG 27/08/2026**
 
 **Triệu chứng.** Client đọc `https://tiles.ai-solutions.io.vn/tiles/vn-20260827.pmtiles`
 bằng `Range: bytes=0-1023` nhận **HTTP 200 kèm toàn bộ 997.786.022 byte** thay vì
 `206` + 1 KB. Trình duyệt sẽ tải 952 MB rồi mới vẽ được bản đồ.
 
-**Nguyên nhân gốc (đã xác định, không phải phỏng đoán).** Cache Rule của zone là
-`(http.host eq "tiles.ai-solutions.io.vn")` → `cache: true`, edge TTL 1 năm — áp cho
-**toàn bộ** hostname, gồm cả archive 951,6 MiB. Zone ở gói **Free**, giới hạn object
-cache là **512 MB**. Khi gặp một cache key chưa biết, Cloudflare cố cache-fill: bỏ qua
-header `Range`, kéo trọn object từ R2 và trả nguyên cho client; chỉ sau đó mới kết luận
-không cache được (`cf-cache-status: BYPASS`) và ghi nhớ — nên request sau **trên cùng
-cache key** mới được proxy Range đúng.
+**Nguyên nhân gốc.** Cache Rule của zone là `(http.host eq "tiles.ai-solutions.io.vn")`
+→ `cache: true`, edge TTL 1 năm — áp cho **toàn bộ** hostname, gồm cả archive 951,6 MiB.
+Zone ở gói **Free**, giới hạn object cache là **512 MB**. Khi gặp một cache key chưa biết,
+Cloudflare cố cache-fill: bỏ qua header `Range`, kéo trọn object từ R2 và trả nguyên cho
+client; chỉ sau đó mới kết luận không cache được (`cf-cache-status: BYPASS`) và ghi nhớ —
+nên request sau **trên cùng cache key** mới được proxy Range đúng. Hệ quả: người dùng đầu
+tiên chạm vào mỗi PoP chưa warm phải tải 952 MB.
 
-**Bằng chứng phân biệt.**
+**Bằng chứng phân biệt (trước khi sửa).**
 
 | Phép đo | Kết quả |
 |---|---|
-| Range, cache key cũ (URL gốc) | `206`, 1.024 B, `BYPASS` |
-| Range, cache key mới (`?x=…`) × 3 lần | `200`, tải 245 MB / 207 MB / 189 MB trước khi ngắt, `BYPASS` |
+| Range, cache key cũ | `206`, 1.024 B, `BYPASS` |
+| Range, cache key mới × 3 | `200`, tải 245 MB / 207 MB / 189 MB trước khi ngắt |
 | Range trên font nhỏ cùng bucket | `206`, 100 B |
 | Worker đọc R2 qua binding | 200, tile đúng ở z8/z12/z14 |
 
-Hai dòng cuối chứng minh archive trong R2 lành lặn và R2 có hỗ trợ Range — lỗi nằm ở
-tầng cache của Cloudflare, không ở dữ liệu.
+Hai dòng cuối chứng minh archive trong R2 lành lặn và R2 hỗ trợ Range — lỗi ở tầng cache
+của Cloudflare, không ở dữ liệu.
 
-**Cách sửa (chờ PHONG làm trên dashboard).** Tách rule hiện tại thành hai, để archive
-không bao giờ đi vào đường cache-fill:
+**Cách sửa (PHONG áp trên dashboard).** Tách rule cũ thành hai, loại trừ lẫn nhau nên
+không phụ thuộc thứ tự:
 
-1. Sửa rule đang có, thêm loại trừ:
-   `(http.host eq "tiles.ai-solutions.io.vn" and not ends_with(http.request.uri.path, ".pmtiles"))`
-   — giữ nguyên Eligible for cache, edge 1 năm, browser 1 ngày (phục vụ font/sprite).
-2. Thêm rule mới `(http.host eq "tiles.ai-solutions.io.vn" and ends_with(http.request.uri.path, ".pmtiles"))`
+1. `(http.host eq "tiles.ai-solutions.io.vn" and not ends_with(http.request.uri.path, ".pmtiles"))`
+   → Eligible for cache, edge 1 năm, browser 1 ngày (font, sprite).
+2. `(http.host eq "tiles.ai-solutions.io.vn" and ends_with(http.request.uri.path, ".pmtiles"))`
    → **Bypass cache**.
 
-Không làm được qua API trong phiên này: token `mapslibvn-deploy` không có quyền
-Zone → Cache Rules → Edit, và bộ lọc quyền chặn MCP ghi cấu hình zone.
+**Kiểm chứng sau khi sửa.** Cache key hoàn toàn mới → `206`, đúng 1.024 byte, 1,10 s rồi
+0,34 s, `cf-cache-status: DYNAMIC`. Font → `206`, `cf-cache-status: HIT` (vẫn cache đúng).
 
-**Kiểm chứng sau khi sửa:** `curl -r 0-1023 "…/vn-20260827.pmtiles?x=<chuỗi ngẫu nhiên>"`
-phải trả `206` và đúng 1.024 byte **ngay ở lần đầu**.
+**Bài học.** Với gói Free/Pro/Business, mọi object > 512 MB phục vụ qua Cloudflare phải
+được đặt **Bypass cache** — nếu không, mỗi cache key lạnh phải trả giá một lần kéo trọn
+file và Range bị vô hiệu. Khi đổi sang domain riêng của MapsLibVN, **phải mang theo cặp
+rule này**, nếu không lỗi lặp lại y hệt.
+
+## 6. Nghiệm thu M1 (spec mục 13, hàng M1)
+
+Chạy 27/08/2026 trên production thật (Chromium headless qua Playwright, ảnh lưu ngoài repo).
+
+| # | Hạng mục | Kết quả |
+|---|---|---|
+| 1 | `pnpm run setup` clone sạch | macOS arm64: `real 4,42s`, báo sẵn sàng sau 2 giây (M1a T9). **Windows: PENDING** |
+| 2 | Playground production, style light | Bản đồ TP.HCM nhãn tiếng Việt đủ dấu; 14 tile request **toàn bộ `206`**, tải 3.127 KB; **0 request tới Worker cho tile** — client đọc thẳng R2 đúng kiến trúc spec |
+| 2b | Style dark | Tải được, 14 tile `206`, 2.495 KB |
+| 3 | Zoom z4, nhãn chủ quyền | `queryRenderedFeatures` trên lớp `sovereignty-label` trả đúng 2 nhãn **"Quần đảo Hoàng Sa (Việt Nam)"** và **"Quần đảo Trường Sa (Việt Nam)"** — hiện thật trên ảnh |
+| 4 | Trang HTML trắng của bên thứ ba nhúng bằng một thẻ `<script>` UMD | Bản đồ Hà Nội tải, 8 tile `206`, attribution chứa cả "OpenStreetMap" lẫn "MapsLibVN", 1 marker, không lỗi trang |
+| 5 | `pnpm data:update --dry-run` | `Kế hoạch: {"tiles":false,"poi":false,"reasons":[]}` → `(dry-run) dừng.` — idempotent |
+| 5b | `data:update --tiles` trọn vòng | Đã chạy thật ở M1b T6 (download → patch → build → QA → R2 → smoke 20/20 → manifest). **Không chạy lại `--force`** ở bước nghiệm thu: tốn 60–90 phút build lại trong khi vòng đời đã được chứng minh và `--dry-run` xác nhận trạng thái nhất quán |
+| 6 | Spec 4.2 — lớp thế giới ngoài VN ở z0–6 | **ĐẠT.** z2 hiển thị đầy đủ hình khối toàn cầu (landcover 25, boundary 7, water 10 feature), không có "lỗ đen"; Planetiler đã dùng Natural Earth cho z0–7. **Hạn chế đã biết:** không có nhãn địa danh ngoài Việt Nam — ở z2/z4 chỉ có nhãn "Việt Nam", z6 chỉ các đô thị VN (Huế, Pleiku, Kon Tum, Buôn Ma Thuột, Quảng Ngãi…). Chấp nhận được cho M1 ("bản đồ câm", định hướng Việt Nam trước); **không cần Protomaps**. Nếu sau này muốn tên nước láng giềng, cân nhắc ở M3: bật lớp place của Natural Earth trong profile Planetiler |
+| 7 | Test và CI | lint 75 file, typecheck 9/9, **79/79 test** (69 root + 10 api), E2E Playwright 2/2 offline; CI xanh liên tiếp |
+
+**Còn lại để đóng M1:** M1c T4 Step 5 — kiểm 3 workflow trên Actions, đang chờ quyền
+`Secrets: Read and write` cho PAT GitHub.
+- 2026-08-27 · M1c · SC-1 đóng: sau khi tách Cache Rule, Range trên cache key mới trả
+  `206`/1.024 B trong 1,10 s (`DYNAMIC`), font vẫn `HIT` · (commit hiện tại)
+- 2026-08-27 · M1c T5 · nghiệm thu M1 trên production: playground light/dark, nhúng UMD
+  từ trang bên thứ ba, z4 hiện đủ 2 nhãn chủ quyền, tile toàn `206` đọc thẳng R2,
+  `data:update --dry-run` idempotent, spec 4.2 đánh giá ĐẠT · (commit hiện tại)
