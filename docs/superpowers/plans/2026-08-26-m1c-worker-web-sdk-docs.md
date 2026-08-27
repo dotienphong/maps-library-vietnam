@@ -1309,11 +1309,11 @@ git push
 **Files:**
 - Create: `.github/workflows/deploy-api.yml`, `.github/workflows/deploy-docs.yml`, `.github/workflows/data-update.yml`
 
-- [ ] **Step 1: Secrets trên repo GitHub (account dotienphong)**
+- [ ] **Step 1: Secrets trên repo GitHub (account dotienphong)** — CHỜ QUYỀN (`gh secret set` bị bộ lọc chặn)
 
 Settings → Secrets and variables → Actions → thêm: `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID`, `KV_NAMESPACE_ID_META`, `R2_BUCKET`, `TILES_BASE`, `RCLONE_CONFIG_R2_ACCESS_KEY_ID`, `RCLONE_CONFIG_R2_SECRET_ACCESS_KEY`, `RCLONE_CONFIG_R2_ENDPOINT`.
 
-- [ ] **Step 2: `deploy-api.yml`**
+- [x] **Step 2: `deploy-api.yml`**
 
 ```yaml
 name: Deploy API
@@ -1341,7 +1341,7 @@ jobs:
 ```
 (Base style đã commit trong `packages/style/src/base/` nên không cần `vendor` ở CI.)
 
-- [ ] **Step 3: `deploy-docs.yml`**
+- [x] **Step 3: `deploy-docs.yml`**
 
 ```yaml
 name: Deploy Docs
@@ -1367,7 +1367,7 @@ jobs:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
 ```
 
-- [ ] **Step 4: `data-update.yml` (dự phòng cho máy nội bộ; chạy trong image GHCR)**
+- [x] **Step 4: `data-update.yml` (dự phòng cho máy nội bộ; chạy trong image GHCR)**
 
 ```yaml
 name: Data update
@@ -1410,7 +1410,7 @@ jobs:
         run: node scripts/data-update.mjs ${{ github.event.inputs.args || '' }}
 ```
 
-- [ ] **Step 5: Commit, kiểm tra 3 workflow**
+- [ ] **Step 5: Commit, kiểm tra 3 workflow** — file đã viết; phần kiểm tra chờ Step 1
 
 ```bash
 git add .github/workflows

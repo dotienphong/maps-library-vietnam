@@ -22,10 +22,17 @@ commit với code).
 
 ## 2. Bước kế tiếp
 
-M1c Task 4 — 3 workflow GitHub Actions (deploy API, deploy docs, data-update dự phòng).
-**Việc chờ PHONG:** hai bước deploy bị bộ lọc quyền chặn và cần cho phép rồi chạy lại —
-M1c T1 Step 7 (`wrangler deploy --env production`) và M1c T3 Step 4
-(`wrangler pages project create mapslibvn-docs` + `pages deploy`).
+Toàn bộ phần viết mã của M1c đã xong (T1, T2, T3, T4 Step 2–4). **Bốn việc còn lại
+đều bị bộ lọc quyền của Claude Code chặn và cần PHONG cho phép rồi chạy lại:**
+
+1. M1c T1 Step 7 — `cd apps/api && pnpm exec wrangler deploy --env production`
+2. M1c T3 Step 4 — `wrangler pages project create mapslibvn-docs --production-branch main`
+   rồi `wrangler pages deploy dist --project-name mapslibvn-docs`
+3. M1c T4 Step 1 — `gh secret set` 8 khoá lên repo (CLOUDFLARE_API_TOKEN,
+   CLOUDFLARE_ACCOUNT_ID, KV_NAMESPACE_ID_META, R2_BUCKET, TILES_BASE và 3 khoá RCLONE)
+4. M1c T4 Step 5 + T5 — kiểm 3 workflow và nghiệm thu M1 trên production
+
+Làm xong 1–3 thì phần còn lại chạy tự động được.
 
 ## 3. Quyết định phát sinh
 
@@ -126,3 +133,9 @@ M1c T1 Step 7 (`wrangler deploy --env production`) và M1c T3 Step 4
   3 trang trong 7,11 giây, E2E **2/2 passed (11,4 giây)** — tile Range 206/200,
   attribution chứa "OpenStreetMap", marker Chợ Bến Thành hiện, style dark cũng tải.
   Lint 75 file, typecheck 9/9, 79/79 test · (commit hiện tại)
+- 2026-08-27 · M1c T4 (một phần) · 3 workflow: `deploy-api.yml` (push chạm
+  `apps/api`/`packages/core`/`packages/style` → build + test api + `wrangler deploy
+  --env production`), `deploy-docs.yml` (build core+web+docs → `pages deploy`),
+  `data-update.yml` (dispatch/cron chủ nhật 19:00 UTC, chạy trong image GHCR,
+  `--memory 6g`, timeout 180 phút). **Chưa kiểm chạy: Step 1 đặt secret bị bộ lọc
+  quyền chặn** · (commit hiện tại)

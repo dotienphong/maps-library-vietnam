@@ -1,0 +1,38 @@
+name: Data update
+on:
+  workflow_dispatch:
+    inputs:
+      args:
+        description: "Tham số: --tiles | --poi | --force | --dry-run"
+        default: "--dry-run"
+  schedule:
+    - cron: "0 19 * * 0"   # 02:00 thứ Hai giờ VN — chỉ chạy khi máy nội bộ không đảm nhận (tắt bằng cách xoá schedule)
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    container:
+      image: ghcr.io/dotienphong/mapslibvn-pipeline:latest
+      credentials:
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+      options: --memory 6g
+    env:
+      MAPSLIBVN_IN_CONTAINER: "1"
+      MAPSLIBVN_WORK: /app/work
+      MAPSLIBVN_OUT: /app/out
+      TILES_BASE: ${{ secrets.TILES_BASE }}
+      R2_BUCKET: ${{ secrets.R2_BUCKET }}
+      KV_NAMESPACE_ID_META: ${{ secrets.KV_NAMESPACE_ID_META }}
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      RCLONE_CONFIG_R2_TYPE: s3
+      RCLONE_CONFIG_R2_PROVIDER: Cloudflare
+      RCLONE_CONFIG_R2_ACL: private
+      RCLONE_CONFIG_R2_ACCESS_KEY_ID: ${{ secrets.RCLONE_CONFIG_R2_ACCESS_KEY_ID }}
+      RCLONE_CONFIG_R2_SECRET_ACCESS_KEY: ${{ secrets.RCLONE_CONFIG_R2_SECRET_ACCESS_KEY }}
+      RCLONE_CONFIG_R2_ENDPOINT: ${{ secrets.RCLONE_CONFIG_R2_ENDPOINT }}
+    steps:
+      - name: data:update
+        working-directory: /app
+        run: node scripts/data-update.mjs ${{ github.event.inputs.args || '' }}
