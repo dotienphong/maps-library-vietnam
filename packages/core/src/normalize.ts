@@ -37,11 +37,7 @@ const ALIAS_RULES = Object.entries(BRAND_ALIAS)
 
 /** Bỏ dấu tiếng Việt (giữ chữ hoa/thường), đ → d. */
 export function stripDiacritics(s: string): string {
-  return s
-    .normalize('NFD')
-    .replace(/\p{M}/gu, '')
-    .replace(/đ/g, 'd')
-    .replace(/Đ/g, 'D');
+  return s.normalize('NFD').replace(/\p{M}/gu, '').replace(/đ/g, 'd').replace(/Đ/g, 'D');
 }
 
 /** Thay viết tắt (bảng abbrev.json) trên chuỗi đã lowercase + bỏ dấu; `f` trước số → `phuong`. */
