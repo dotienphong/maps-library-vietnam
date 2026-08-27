@@ -7,8 +7,8 @@ commit với code).
 
 - Mốc: M1b — Tiles, style, Worker, Web SDK
 - Plan: `docs/superpowers/plans/2026-08-26-m1b-tiles-style-web-sdk.md`
-- Task đang làm: Task 5 (QA chủ quyền và cấu trúc tiles)
-- Commit cuối: `889a500`
+- Task đang làm: Task 6 (upload R2, manifest KV, `data:update --tiles`)
+- Commit cuối: `2534482`
 - Môi trường đã dựng: máy dev macOS; remote GitHub cá nhân; Postgres/PostGIS dev,
   migration `0001_extensions.sql`; `pnpm run setup` sạch đạt 6,51 giây; image
   pipeline local đã build/smoke trên arm64 và chạy được qua Compose; Dev Container
@@ -18,7 +18,7 @@ commit với code).
 
 ## 2. Bước kế tiếp
 
-M1b Task 5 — QA chủ quyền và cấu trúc tiles trên fixture lẫn archive thật.
+M1b Task 6 — upload R2, manifest KV, `pnpm data:update --tiles`, `pnpm data:rollback` (cần PHONG tạo R2 bucket + custom domain, KV `META`, API token trước — roadmap 0.5).
 
 ## 3. Quyết định phát sinh
 
@@ -40,6 +40,10 @@ M1b Task 5 — QA chủ quyền và cấu trúc tiles trên fixture lẫn archiv
 | 2026-08-27 | Template style M1 chỉ dùng placeholder `TILES_BASE`/`VN_FILE` | `API_BASE`/`KEY` chỉ cần khi bổ sung POI details ở M2/M3 | `1cfb4d2` |
 | 2026-08-27 | Dependency `pmtiles` được smoke từ workspace `pipelines/tiles`, không từ root `/app` | pnpm strict isolation chỉ expose dependency tại package khai báo nó | (Task M1b T3) |
 | 2026-08-27 | Full build Planetiler bật `--compress-temp` | Temp mmap không nén tăng 7,9 GB và làm host chỉ còn 131 MiB; nén hoàn tất cùng archive 952 MiB và giữ host an toàn | (Task M1b T4) |
+| 2026-08-27 | QA chỉ tính đối tượng có hình học giao bbox (giải mã `toGeoJSON`), không tính mọi feature trong tile giao bbox | Tile z4–z7 giao bbox trải tới đất liền và phần đệm nước láng giềng; công viên `花山` (Quảng Tây, 22°N) lọt vào tile z5/z6 của Hoàng Sa là dương tính giả | (Task M1b T5) |
+| 2026-08-27 | Patch tầng 1 thêm vùng biển Đông `[102, 6, 117.8, 17.5]` với luật hẹp: `name` chữ CJK không có `name:vi` → xoá (có `name:vi` → thay), xoá `name:zh*`; tên Latin giữ nguyên; `Collector` dùng `locations=True` | Núi ngầm tên Trung Quốc ngay ngoài hai bbox (`镜台海山` 111,34°E 11,40°N, `流春海山` 111,62°E 12,36°N…) lọt vào tile z10 giao bbox Trường Sa; vùng dừng ở 17,5°N để không chạm Hải Nam và đệm biên giới bắc | (Task M1b T5) |
+| 2026-08-27 | Test `lonLatToTile` kỳ vọng TP.HCM z10 = (815, 481) thay cho (815, 483) trong plan | Tính lại Web Mercator: ln(tan φ + sec φ)/π = 0,0602 → y = 481; plan gõ sai | (Task M1b T5) |
+| 2026-08-27 | QA: kiểm "có đảo tên VI ở z8–10" cấu hình theo bbox (`requireIslands`); Hoàng Sa tạm **tắt, chỉ cảnh báo**; Trường Sa bắt buộc | Extract `vietnam.poly` của Geofabrik không phủ Hoàng Sa (6 node, 1 way) và chỉ phủ Trường Sa tới 114,6°E — không có đảo để kiểm; nhãn chủ quyền vẫn do lớp `sovereignty` (style) bảo đảm. **Việc còn lại:** merge thêm extract OSM cho bbox Hoàng Sa/Trường Sa đông (nguồn cần PHONG chốt) rồi bật lại `requireIslands` | (Task M1b T5) |
 
 ## 4. Nhật ký
 
@@ -71,3 +75,9 @@ M1b Task 5 — QA chủ quyền và cấu trúc tiles trên fixture lẫn archiv
   `vn-20260827.pmtiles` 952 MiB, zoom 0–14, bounds toàn cầu, 16 layer và
   6.291.183 tile entry; build nén temp hoàn tất trong 3 phút 24 giây; lint,
   typecheck và 38/38 test xanh · (commit hiện tại)
+- 2026-08-27 · M1b T5 · QA chủ quyền: `qa.mjs` giải mã 574 tile giao hai bbox (z4–z10 toàn
+  phần, z11–z14 quanh 13 điểm đảo), lọc theo hình học thật; lần 1 bắt 259 vi phạm tên chữ Hán
+  (núi ngầm `镜台海山`, `流春海山`… ngay ngoài bbox) → mở rộng patch vùng biển Đông (thêm 85
+  object: 72 node, 13 way), build lại archive 952 MB (3 phút, cache) → 0 vi phạm tên, Trường Sa
+  có đảo tên VI, Hoàng Sa cảnh báo vì extract Geofabrik không phủ; style 2 nhãn chủ quyền đạt;
+  47/47 test JS + pytest xanh · (commit hiện tại)

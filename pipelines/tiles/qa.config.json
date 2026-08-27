@@ -1,0 +1,20 @@
+{
+  "bboxes": [
+    {
+      "name": "Hoàng Sa",
+      "bbox": [111.0, 15.7, 113.0, 17.2],
+      "requireIslands": false,
+      "note": "Extract Geofabrik vietnam.poly không phủ Hoàng Sa (6 node) → chưa có đảo để kiểm; nhãn chủ quyền do lớp sovereignty bảo đảm. Bật lại khi merge thêm extract OSM cho bbox này."
+    },
+    {
+      "name": "Trường Sa",
+      "bbox": [111.5, 6.5, 117.8, 12.0],
+      "requireIslands": true
+    }
+  ],
+  "fullScanZooms": [4, 10],
+  "pointScanZooms": [11, 14],
+  "islandPoints": [[112.336, 16.834], [111.2, 15.78], [111.61, 16.53], [112.27, 16.98], [112.73, 16.67], [114.33, 11.43], [111.92, 8.64], [114.32, 9.88], [114.37, 10.18], [114.48, 10.37], [112.92, 7.87], [114.36, 10.38], [114.28, 11.05]],
+  "forbiddenWords": ["Paracel", "Spratly", "Xisha", "Nansha", "Huangyan", "Zhongsha"],
+  "islandClasses": ["island", "islet", "archipelago"]
+}

@@ -1221,7 +1221,7 @@ git push
 **Files:**
 - Create: `pipelines/tiles/qa.config.json`, `pipelines/tiles/src/lib/qa-rules.mjs`, `pipelines/tiles/src/lib/qa-rules.test.mjs`, `pipelines/tiles/src/qa.mjs`
 
-- [ ] **Step 1: Cấu hình QA**
+- [x] **Step 1: Cấu hình QA**
 
 `pipelines/tiles/qa.config.json`:
 ```json
@@ -1242,7 +1242,7 @@ git push
 }
 ```
 
-- [ ] **Step 2: Test luật QA (thất bại)**
+- [x] **Step 2: Test luật QA (thất bại)**
 
 `pipelines/tiles/src/lib/qa-rules.test.mjs`:
 ```js
@@ -1285,7 +1285,7 @@ describe('hasIslandFeature', () => {
 Run: `pnpm test`
 Expected: FAIL — không tìm thấy `./qa-rules.mjs`.
 
-- [ ] **Step 3: Viết `qa-rules.mjs`**
+- [x] **Step 3: Viết `qa-rules.mjs`**
 
 ```js
 const CJK = /[㐀-鿿぀-ヿ가-힯]/;
@@ -1335,7 +1335,7 @@ export function hasIslandFeature(features, islandClasses) {
 Run: `pnpm test`
 Expected: xanh.
 
-- [ ] **Step 4: Viết `qa.mjs`**
+- [x] **Step 4: Viết `qa.mjs`**
 
 ```js
 #!/usr/bin/env node
@@ -1412,7 +1412,7 @@ if (violations.length) {
 console.log('✓ QA chủ quyền và style đạt');
 ```
 
-- [ ] **Step 5: Chạy QA trên fixture và trên bản build thật**
+- [x] **Step 5: Chạy QA trên fixture và trên bản build thật**
 
 Run: `pnpm --filter @mapslibvn/style build && node pipelines/tiles/src/qa.mjs pipelines/tiles/fixtures/q1.pmtiles --skip-islands`
 Expected: `QA: giải mã N tile` (N có thể là 0 vì fixture không phủ bbox) rồi `✓ QA chủ quyền và style đạt`.
@@ -1420,7 +1420,7 @@ Expected: `QA: giải mã N tile` (N có thể là 0 vì fixture không phủ bb
 Run (bản thật, trong container để đọc `/app/out`): `docker compose --env-file .env -f infra/dev/compose.yml --profile pipeline run --rm pipeline sh -c "node pipelines/tiles/src/qa.mjs /app/out/vn-*.pmtiles"`
 Expected: `✓ QA chủ quyền và style đạt`. Nếu báo thiếu đảo có tên: kiểm tra OSM có `name:vi` cho đảo trong bbox (Overpass dev) — nếu dữ liệu thực sự thiếu, thêm nhãn vào `sovereignty.geojson` và ghi DEVLOG; nếu báo vi phạm tên: sửa patch (Task 3) và build lại.
 
-- [ ] **Step 6: Lint, DEVLOG, commit**
+- [x] **Step 6: Lint, DEVLOG, commit**
 
 Run: `pnpm lint && pnpm typecheck && pnpm test`
 
