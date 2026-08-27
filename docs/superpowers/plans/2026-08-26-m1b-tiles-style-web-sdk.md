@@ -42,7 +42,7 @@ scripts/lib/{update-plan.mjs,update-plan.test.mjs}
 - Create: `packages/core/package.json`, `packages/core/tsconfig.json`, `packages/core/src/index.ts`, `packages/core/src/attribution.ts`, `packages/core/src/attribution.test.ts`, `packages/core/src/errors.ts`, `packages/core/src/client.ts`, `packages/core/src/client.test.ts`
 - Modify: `vitest.config.ts` (thêm `.mjs` cho pipelines)
 
-- [ ] **Step 1: Tạo package**
+- [x] **Step 1: Tạo package**
 
 `packages/core/package.json`:
 ```json
@@ -96,7 +96,7 @@ export default defineConfig({
 Run: `pnpm install`
 Expected: cài `tsup`; lockfile cập nhật.
 
-- [ ] **Step 2: Test attribution (thất bại)**
+- [x] **Step 2: Test attribution (thất bại)**
 
 `packages/core/src/attribution.test.ts`:
 ```ts
@@ -127,7 +127,7 @@ describe('attribution', () => {
 Run: `pnpm test`
 Expected: FAIL — không tìm thấy `./attribution`.
 
-- [ ] **Step 3: Viết `attribution.ts`**
+- [x] **Step 3: Viết `attribution.ts`**
 
 ```ts
 export interface AttributionLink {
@@ -172,7 +172,7 @@ export function attributionHtml(): string {
 Run: `pnpm test`
 Expected: 3 test attribution xanh.
 
-- [ ] **Step 4: Test client khung (thất bại)**
+- [x] **Step 4: Test client khung (thất bại)**
 
 `packages/core/src/client.test.ts`:
 ```ts
@@ -219,7 +219,7 @@ describe('createClient', () => {
 Run: `pnpm test`
 Expected: FAIL — không tìm thấy `./client`, `./errors`.
 
-- [ ] **Step 5: Viết `errors.ts`, `client.ts`, `index.ts`**
+- [x] **Step 5: Viết `errors.ts`, `client.ts`, `index.ts`**
 
 `packages/core/src/errors.ts`:
 ```ts
@@ -308,7 +308,7 @@ export * from './errors';
 Run: `pnpm test`
 Expected: 6 test core xanh (tổng 22).
 
-- [ ] **Step 6: Build, typecheck, commit**
+- [x] **Step 6: Build, typecheck, commit**
 
 Run: `pnpm --filter @mapslibvn/core build && pnpm typecheck && pnpm lint`
 Expected: `dist/index.js`, `dist/index.d.ts` sinh ra; không lỗi.

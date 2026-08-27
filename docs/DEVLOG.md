@@ -7,8 +7,8 @@ commit với code).
 
 - Mốc: M1b — Tiles, style, Worker, Web SDK
 - Plan: `docs/superpowers/plans/2026-08-26-m1b-tiles-style-web-sdk.md`
-- Task đang làm: Task 1 (`@mapslibvn/core`)
-- Commit cuối: `4a7552c`
+- Task đang làm: Task 2 (`@mapslibvn/style`)
+- Commit cuối: `c5e3f40`
 - Môi trường đã dựng: máy dev macOS; remote GitHub cá nhân; Postgres/PostGIS dev,
   migration `0001_extensions.sql`; `pnpm run setup` sạch đạt 6,51 giây; image
   pipeline local đã build/smoke trên arm64 và chạy được qua Compose; Dev Container
@@ -18,7 +18,7 @@ commit với code).
 
 ## 2. Bước kế tiếp
 
-M1b Task 1 — `@mapslibvn/core` (attribution + client khung).
+M1b Task 2 — `@mapslibvn/style` (base style, template, font và lớp chủ quyền).
 
 ## 3. Quyết định phát sinh
 
@@ -47,9 +47,12 @@ M1b Task 1 — `@mapslibvn/core` (attribution + client khung).
 - 2026-08-26 · M1a T6 · image pipeline đủ 8 tool, cached rebuild 4,8 giây · `67a7b99`
 - 2026-08-27 · M1a T7 · Dev Container dựng thành công, 20/20 test trong Linux · `673f6fe`
 - 2026-08-27 · M1a T8 · CI xanh: test 18 giây, image + smoke 3 phút 52 giây · `469836a` · https://github.com/dotienphong/maps-library-vietnam/actions/runs/33024223882
-- 2026-08-27 · M1a T9 · nghiệm thu đạt trên macOS arm64 · (commit hiện tại):
+- 2026-08-27 · M1a T9 · nghiệm thu đạt trên macOS arm64 · `c5e3f40`:
   - Clone sạch: install + setup `real 4,42s`; setup báo sẵn sàng sau 2 giây.
   - Máy dev: install lockfile, lint, typecheck và 21/21 test đều xanh.
   - Image local arm64 smoke đủ 8 tool; CI amd64 của bản sửa setup xanh: https://github.com/dotienphong/maps-library-vietnam/actions/runs/33024620355
   - Hook từ chối `someone@bark.com`, in `pre-push: BỊ CHẶN`, trả `exit=1`.
   - Windows: **PENDING Windows** (chờ PHONG có máy để kiểm).
+- 2026-08-27 · M1b T1 · `@mapslibvn/core`: attribution spec 12.3, client
+  `attribution()`/`styleUrl()`, lỗi có `code`/`requestId`; build ESM + declarations,
+  typecheck và 27/27 test xanh · (commit hiện tại)
