@@ -7,8 +7,8 @@ commit với code).
 
 - Mốc: M1c — Worker, Web SDK, docs
 - Plan: `docs/superpowers/plans/2026-08-26-m1c-worker-web-sdk-docs.md`
-- Task đang làm: Task 4
-- Commit cuối: Task M1c T3 (commit hiện tại)
+- Task đang làm: Task 4 (Step 5) + Task 5
+- Commit cuối: Task M1c T4 (commit hiện tại)
 - Môi trường đã dựng: máy dev macOS; remote GitHub cá nhân; Postgres/PostGIS dev,
   migration `0001_extensions.sql`; `pnpm run setup` sạch đạt 6,51 giây; image
   pipeline local đã build/smoke trên arm64 và chạy được qua Compose; Dev Container
@@ -22,29 +22,25 @@ commit với code).
 
 ## 2. Bước kế tiếp
 
-Toàn bộ phần viết mã của M1c đã xong (T1, T2, T3, T4 Step 2–4). Quyền chạy lệnh
-trong Claude Code đã được mở. **Việc còn lại chặn ở phạm vi của hai credential —
-cần PHONG sửa trên dashboard:**
+Worker và docs đã lên production:
 
-1. **Cloudflare API token** (`CLOUDFLARE_API_TOKEN` trong `.env`, id
-   `787597d1feaeac4b142af28778f65ba7`) — active và **có** quyền Workers KV
-   (đã dùng ở M1b T6) nhưng **thiếu** `Workers Scripts: Edit` và
-   `Cloudflare Pages: Edit`. `wrangler deploy` trả `Authentication error
-   [code: 10000]`. Cần thêm (dash.cloudflare.com/profile/api-tokens):
-   Account → Workers Scripts → Edit; Account → Cloudflare Pages → Edit;
-   Account → Account Settings → Read; User → User Details → Read.
-   CI cũng dùng chính token này nên bắt buộc phải nâng, không thay bằng
-   `wrangler login` được.
-2. **GitHub fine-grained PAT** (`~/.config/gh-dotienphong.token`) — thiếu
-   Repository permissions → `Secrets: Read and write`. `gh secret set` trả
-   HTTP 403 `Resource not accessible by personal access token`.
+- Worker: `https://mapslibvn-api-production.dotienphong1993.workers.dev`
+  (version `6a7d5c14-5e27-4208-8403-169ee22d09a8`, upload 182,82 KiB / gzip 38,97 KiB,
+  startup 19 ms). Kiểm thật: `/healthz` → `{"ok":true,"environment":"production"}`;
+  `/v1/styles/light.json` → 105 layer, `pmtiles://https://tiles.ai-solutions.io.vn/tiles/vn-20260827.pmtiles`,
+  `cache-control: public, max-age=3600`, 2 nhãn chủ quyền; theme lạ → 404; `/r2/*` → 404
+  (chặn đúng ở production). Tile fallback đọc R2 qua binding: z8/z12/z14 đều 200
+  (66.609 / 60.924 / 200.978 byte) kèm `content-encoding: gzip`.
+- Docs: `https://mapslibvn-docs.pages.dev` (32 file). Playground ở `/playground`
+  — Cloudflare Pages tự 308 từ `/playground.html`, trình duyệt theo redirect nên link
+  trong sidebar vẫn chạy.
 
-Đã kiểm chứng bundle production sạch bằng `wrangler deploy --env production
---dry-run`: 182,82 KiB (gzip 38,97 KiB), bindings đúng — META (KV), TILES (R2),
-TILES_BASE, ENVIRONMENT=production. Chỉ còn thiếu quyền để đẩy lên.
+**BLOCKER đang chờ PHONG (việc tay trên dashboard):** sửa Cache Rule của zone
+`ai-solutions.io.vn` — xem mục 5 "Sự cố đang mở". Chưa sửa thì bản đồ production
+không dùng được.
 
-Sau khi nâng quyền: M1c T1 S7 (deploy Worker) → T3 S4 (Pages create + deploy) →
-T4 S1+S5 (secret + kiểm 3 workflow) → T5 nghiệm thu M1.
+Sau khi sửa xong: đo lại Range → nghiệm thu M1c T4 Step 5 (kiểm 3 workflow) và
+Task 5 (nghiệm thu M1), rồi chuyển mốc sang M2.
 
 ## 3. Quyết định phát sinh
 
@@ -76,6 +72,8 @@ T4 S1+S5 (secret + kiểm 3 workflow) → T5 nghiệm thu M1.
 | 2026-08-27 | Test Worker khai báo binding qua `apps/api/test/env.d.ts` (`interface ProvidedEnv extends Env`) | `cloudflare:test` không tự suy ra `META`/`TILES` từ `wrangler.toml`; không có file này `env.META` báo TS2339 | (Task M1c T1) |
 | 2026-08-27 | Toạ độ kiểm tile Quận 1 z14 là `13048/7698`, không phải `13049/7752` như plan | Web Mercator cho 106,700°E 10,776°N: x = 13048, y = 7698; toạ độ trong plan trả 204 vì nằm ngoài fixture | (Task M1c T1) |
 | 2026-08-27 | `fakeBucket` trong test R2Source phải cast `as unknown as Pick<R2Bucket, 'get'>` | `exactOptionalPropertyTypes: true` khiến overload `R2Bucket.get` (có `onlyIf`, `range: Headers \| R2Range`) không nhận stub hẹp | (Task M1c T1) |
+| 2026-08-27 | Token Cloudflare mới `mapslibvn-deploy` (custom, 6 quyền: Workers Scripts Edit, Cloudflare Pages Edit, Workers KV Edit, Workers R2 Edit, Account Settings Read, User Details Read) thay token cũ chỉ có KV | Token cũ deploy Worker trả `Authentication error [code: 10000]`; template "Edit Cloudflare Workers" không kèm quyền Pages nên phải tạo custom | (Task M1c T1/T3) |
+| 2026-08-27 | Tiles tạm giữ trên `tiles.ai-solutions.io.vn`, đổi sang domain riêng của MapsLibVN khi PHONG mua (dự kiến trước M5) | Tài khoản Cloudflare hiện chỉ có 1 zone; `TILES_BASE` đã tham số hoá nên chuyển domain chỉ tốn sửa `wrangler.toml` + `.env` + secret rồi redeploy. Tách domain là quyết định thương hiệu, độc lập với lỗi Range bên dưới | (Task M1c T3) |
 | 2026-08-27 | `apps/docs/tsconfig.json` phải `exclude: ["dist", "public"]` | `astro check` với `include: ["**/*"]` kéo cả `public/sdk/mapslibvn.umd.js` (1 MB) và sourcemap (2,4 MB) vào TypeScript → hết heap 4 GB, exit 137 | (Task M1c T3) |
 | 2026-08-27 | `biome.json` bỏ qua `apps/docs/public/sdk/**` | Thư mục là artefact copy từ bản build web; biome báo vượt giới hạn 1 MiB và lỗi CSS của maplibre | (Task M1c T3) |
 
@@ -155,3 +153,51 @@ T4 S1+S5 (secret + kiểm 3 workflow) → T5 nghiệm thu M1.
   `Workers Scripts: Edit` + `Cloudflare Pages: Edit` (chỉ có KV), PAT GitHub thiếu
   `Secrets: Read and write`. Dry-run bundle Worker production đạt 182,82 KiB
   (gzip 38,97 KiB) với đủ 4 binding · (commit hiện tại)
+- 2026-08-27 · M1c T1 S7 · Worker deploy production thành công sau khi thay token:
+  `mapslibvn-api-production.dotienphong1993.workers.dev`, 4 binding đúng (META KV,
+  TILES R2, TILES_BASE, ENVIRONMENT=production) · (commit hiện tại)
+- 2026-08-27 · M1c T3 S4 · Pages project `mapslibvn-docs` tạo + deploy 32 file:
+  `https://mapslibvn-docs.pages.dev` · (commit hiện tại)
+
+## 5. Sự cố đang mở
+
+### SC-1 · Cache Rule nuốt Range của PMTiles (mở 27/08/2026, chặn nghiệm thu M1)
+
+**Triệu chứng.** Client đọc `https://tiles.ai-solutions.io.vn/tiles/vn-20260827.pmtiles`
+bằng `Range: bytes=0-1023` nhận **HTTP 200 kèm toàn bộ 997.786.022 byte** thay vì
+`206` + 1 KB. Trình duyệt sẽ tải 952 MB rồi mới vẽ được bản đồ.
+
+**Nguyên nhân gốc (đã xác định, không phải phỏng đoán).** Cache Rule của zone là
+`(http.host eq "tiles.ai-solutions.io.vn")` → `cache: true`, edge TTL 1 năm — áp cho
+**toàn bộ** hostname, gồm cả archive 951,6 MiB. Zone ở gói **Free**, giới hạn object
+cache là **512 MB**. Khi gặp một cache key chưa biết, Cloudflare cố cache-fill: bỏ qua
+header `Range`, kéo trọn object từ R2 và trả nguyên cho client; chỉ sau đó mới kết luận
+không cache được (`cf-cache-status: BYPASS`) và ghi nhớ — nên request sau **trên cùng
+cache key** mới được proxy Range đúng.
+
+**Bằng chứng phân biệt.**
+
+| Phép đo | Kết quả |
+|---|---|
+| Range, cache key cũ (URL gốc) | `206`, 1.024 B, `BYPASS` |
+| Range, cache key mới (`?x=…`) × 3 lần | `200`, tải 245 MB / 207 MB / 189 MB trước khi ngắt, `BYPASS` |
+| Range trên font nhỏ cùng bucket | `206`, 100 B |
+| Worker đọc R2 qua binding | 200, tile đúng ở z8/z12/z14 |
+
+Hai dòng cuối chứng minh archive trong R2 lành lặn và R2 có hỗ trợ Range — lỗi nằm ở
+tầng cache của Cloudflare, không ở dữ liệu.
+
+**Cách sửa (chờ PHONG làm trên dashboard).** Tách rule hiện tại thành hai, để archive
+không bao giờ đi vào đường cache-fill:
+
+1. Sửa rule đang có, thêm loại trừ:
+   `(http.host eq "tiles.ai-solutions.io.vn" and not ends_with(http.request.uri.path, ".pmtiles"))`
+   — giữ nguyên Eligible for cache, edge 1 năm, browser 1 ngày (phục vụ font/sprite).
+2. Thêm rule mới `(http.host eq "tiles.ai-solutions.io.vn" and ends_with(http.request.uri.path, ".pmtiles"))`
+   → **Bypass cache**.
+
+Không làm được qua API trong phiên này: token `mapslibvn-deploy` không có quyền
+Zone → Cache Rules → Edit, và bộ lọc quyền chặn MCP ghi cấu hình zone.
+
+**Kiểm chứng sau khi sửa:** `curl -r 0-1023 "…/vn-20260827.pmtiles?x=<chuỗi ngẫu nhiên>"`
+phải trả `206` và đúng 1.024 byte **ngay ở lần đầu**.
