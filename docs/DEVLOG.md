@@ -7,8 +7,8 @@ commit với code).
 
 - Mốc: M1b — Tiles, style, Worker, Web SDK
 - Plan: `docs/superpowers/plans/2026-08-26-m1b-tiles-style-web-sdk.md`
-- Task đang làm: Task 2 (`@mapslibvn/style`)
-- Commit cuối: `c5e3f40`
+- Task đang làm: Task 3 (pipeline download + patch chủ quyền)
+- Commit cuối: `595dd37`
 - Môi trường đã dựng: máy dev macOS; remote GitHub cá nhân; Postgres/PostGIS dev,
   migration `0001_extensions.sql`; `pnpm run setup` sạch đạt 6,51 giây; image
   pipeline local đã build/smoke trên arm64 và chạy được qua Compose; Dev Container
@@ -18,7 +18,7 @@ commit với code).
 
 ## 2. Bước kế tiếp
 
-M1b Task 2 — `@mapslibvn/style` (base style, template, font và lớp chủ quyền).
+M1b Task 3 — tải nguồn tiles và patch chủ quyền bằng pyosmium.
 
 ## 3. Quyết định phát sinh
 
@@ -36,6 +36,8 @@ M1b Task 2 — `@mapslibvn/style` (base style, template, font và lớp chủ qu
 | 2026-08-27 | Override Dev Container dùng `../..` cho build context và bind mount | Đường dẫn Compose được resolve theo file đầu tiên ở `infra/dev`, không theo thư mục `.devcontainer` | `673f6fe` |
 | 2026-08-27 | CI gọi chung `pnpm image:smoke` thay vì lặp lệnh kiểm tra tool trong YAML | Local và CI dùng cùng một hợp đồng smoke đã được kiểm chứng ở Task 6 | `469836a` |
 | 2026-08-27 | `pnpm run setup` luôn cấu hình author cá nhân bằng `git config --local` trước khi kiểm | Clone sạch kế thừa email Bark từ Git global và không thể đạt setup; cấu hình local giữ global nguyên vẹn, hook vẫn chặn override sai | `4a7552c` |
+| 2026-08-27 | Font vendor dùng asset `noto-sans.zip` của OpenMapTiles v2.0, không dùng `v2.0.zip` | `v2.0.zip` chỉ có Roboto; asset Noto riêng chứa đúng 3 stack cần phục vụ glyph | (Task M1b T2) |
+| 2026-08-27 | Template style M1 chỉ dùng placeholder `TILES_BASE`/`VN_FILE` | `API_BASE`/`KEY` chỉ cần khi bổ sung POI details ở M2/M3 | (Task M1b T2) |
 
 ## 4. Nhật ký
 
@@ -55,4 +57,7 @@ M1b Task 2 — `@mapslibvn/style` (base style, template, font và lớp chủ qu
   - Windows: **PENDING Windows** (chờ PHONG có máy để kiểm).
 - 2026-08-27 · M1b T1 · `@mapslibvn/core`: attribution spec 12.3, client
   `attribution()`/`styleUrl()`, lỗi có `code`/`requestId`; build ESM + declarations,
-  typecheck và 27/27 test xanh · (commit hiện tại)
+  typecheck và 27/27 test xanh · `595dd37`
+- 2026-08-27 · M1b T2 · style light/dark vendor từ OSM Liberty/Dark Matter,
+  template 105/48 layer hợp lệ, `name:vi` fallback, 3 stack Noto và 2 nhãn chủ
+  quyền; typecheck và 35/35 test xanh · (commit hiện tại)

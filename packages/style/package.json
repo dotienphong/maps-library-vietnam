@@ -1,0 +1,22 @@
+{
+  "name": "@mapslibvn/style",
+  "version": "0.1.0",
+  "description": "Style MapLibre (light/dark) dạng template + lớp chủ quyền cho MapsLibVN",
+  "license": "MIT",
+  "type": "module",
+  "main": "./src/transform.mjs",
+  "exports": {
+    ".": "./src/transform.mjs",
+    "./templates/light": "./dist/mapslibvn-light.template.json",
+    "./templates/dark": "./dist/mapslibvn-dark.template.json"
+  },
+  "scripts": {
+    "vendor": "node scripts/vendor.mjs",
+    "build": "node scripts/build.mjs",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@maplibre/maplibre-gl-style-spec": "^23.0.0",
+    "typescript": "^5.6.0"
+  }
+}

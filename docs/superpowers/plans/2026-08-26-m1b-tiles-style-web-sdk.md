@@ -328,7 +328,7 @@ git push
 **Files:**
 - Create: `packages/style/package.json`, `packages/style/tsconfig.json`, `packages/style/scripts/vendor.mjs`, `packages/style/scripts/build.mjs`, `packages/style/src/transform.mjs`, `packages/style/src/transform.test.ts`, `packages/style/src/sovereignty.geojson`, `packages/style/src/base/SOURCES.md`, `packages/style/.gitignore`
 
-- [ ] **Step 1: Tạo package và vendor base style + sprite**
+- [x] **Step 1: Tạo package và vendor base style + sprite**
 
 `packages/style/package.json`:
 ```json
@@ -383,7 +383,7 @@ import { spawnSync } from 'node:child_process';
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const OSM_LIBERTY = 'https://raw.githubusercontent.com/maputnik/osm-liberty/gh-pages';
 const DARK_MATTER = 'https://raw.githubusercontent.com/openmaptiles/dark-matter-gl-style/master';
-const FONTS_ZIP = 'https://github.com/openmaptiles/fonts/releases/download/v2.0/v2.0.zip';
+const FONTS_ZIP = 'https://github.com/openmaptiles/fonts/releases/download/v2.0/noto-sans.zip';
 const FONT_STACKS = ['Noto Sans Regular', 'Noto Sans Bold', 'Noto Sans Italic'];
 
 async function download(url, dest, { optional = false } = {}) {
@@ -446,11 +446,14 @@ if (!only || only === 'fonts') {
 Run: `pnpm install && pnpm --filter @mapslibvn/style vendor`
 Expected: các dòng `✓ src/base/osm-liberty.json` … `✓ fonts: Noto Sans Regular, Noto Sans Bold, Noto Sans Italic`.
 
+Kết quả thực tế 2026-08-27: `v2.0.zip` chỉ chứa Roboto; release v2.0 có asset
+`noto-sans.zip` riêng và asset này đã cung cấp đủ ba stack, tổng 101 MB sau giải nén.
+
 Nếu URL fonts trả 404 (tên asset release khác): mở `https://github.com/openmaptiles/fonts/releases`, lấy URL zip đúng, sửa `FONTS_ZIP`, ghi "Quyết định phát sinh" trong DEVLOG. Nếu zip không có 3 stack Noto Sans: dùng phương án sinh glyph trong container — `docker run --rm -v "$PWD/packages/style/assets:/out" mapslibvn/pipeline:local sh -c "npm i -g fontnik && build-glyphs /path/NotoSans-Regular.ttf '/out/fonts/Noto Sans Regular'"` với TTF từ `https://github.com/notofonts/latin-greek-cyrillic/releases` (OFL) — ghi lại cách đã dùng.
 
 Kiểm tra: `ls packages/style/assets/fonts/"Noto Sans Regular" | head -3` → `0-255.pbf 1024-1279.pbf …`.
 
-- [ ] **Step 2: Tạo `sovereignty.geojson`**
+- [x] **Step 2: Tạo `sovereignty.geojson`**
 
 `packages/style/src/sovereignty.geojson`:
 ```json
@@ -471,7 +474,7 @@ Kiểm tra: `ls packages/style/assets/fonts/"Noto Sans Regular" | head -3` → `
 }
 ```
 
-- [ ] **Step 3: Test transform (thất bại)**
+- [x] **Step 3: Test transform (thất bại)**
 
 `packages/style/src/transform.test.ts`:
 ```ts
@@ -576,7 +579,7 @@ describe('transformStyle (base thật đã vendor)', () => {
       const out = transformStyle(base, { theme, sovereignty });
       expect(validateStyleMin(filled(out))).toEqual([]);
       for (const l of out.layers) {
-        if (l.type !== 'symbol' || !l.layout) continue;
+        if (l.type !== 'symbol' || l.source !== 'openmaptiles' || !l.layout) continue;
         const tf = l.layout['text-field'];
         if (tf && JSON.stringify(tf).includes('name')) {
           expect(tf).toEqual(['coalesce', ['get', 'name:vi'], ['get', 'name']]);
@@ -592,7 +595,7 @@ describe('transformStyle (base thật đã vendor)', () => {
 Run: `pnpm test`
 Expected: FAIL — không tìm thấy `./transform.mjs`.
 
-- [ ] **Step 4: Viết `transform.mjs`**
+- [x] **Step 4: Viết `transform.mjs`**
 
 ```js
 // Biến style MapLibre nền (OSM Liberty / Dark Matter) thành template MapsLibVN.
@@ -685,7 +688,7 @@ export function fillTemplate(templateJson, values) {
 Run: `pnpm test`
 Expected: tất cả test style xanh (kể cả với 2 base thật). Nếu `validateStyleMin` báo lỗi ở base thật (ví dụ thuộc tính lạ), in lỗi, sửa transform (thường là layer có `source` khác tên) và ghi vào DEVLOG.
 
-- [ ] **Step 5: Script build template**
+- [x] **Step 5: Script build template**
 
 `packages/style/scripts/build.mjs`:
 ```js
@@ -715,7 +718,7 @@ copyFileSync(resolve(root, 'src/sovereignty.geojson'), resolve(root, 'dist/sover
 Run: `pnpm --filter @mapslibvn/style build`
 Expected: `✓ dist/mapslibvn-light.template.json N layers`, `✓ dist/mapslibvn-dark.template.json N layers`.
 
-- [ ] **Step 6: Lint, typecheck, DEVLOG, commit (kèm base + sprite đã vendor)**
+- [x] **Step 6: Lint, typecheck, DEVLOG, commit (kèm base + sprite đã vendor)**
 
 Run: `pnpm lint && pnpm typecheck && pnpm test`
 Expected: xanh.

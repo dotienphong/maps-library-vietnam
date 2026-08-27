@@ -1,0 +1,27 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Quần đảo Hoàng Sa (Việt Nam)",
+        "id": "hoang-sa"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [112.0, 16.5]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Quần đảo Trường Sa (Việt Nam)",
+        "id": "truong-sa"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [114.0, 10.0]
+      }
+    }
+  ]
+}
