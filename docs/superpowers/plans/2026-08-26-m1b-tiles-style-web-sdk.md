@@ -1066,7 +1066,7 @@ git push
 **Files:**
 - Create: `pipelines/tiles/src/build.mjs`, `pipelines/tiles/src/make-fixture.mjs`, `pipelines/tiles/src/inspect.mjs`, `pipelines/tiles/src/lib/node-source.mjs`, `pipelines/tiles/fixtures/q1.pmtiles`
 
-- [ ] **Step 1: `node-source.mjs` và `inspect.mjs`**
+- [x] **Step 1: `node-source.mjs` và `inspect.mjs`**
 
 `pipelines/tiles/src/lib/node-source.mjs`:
 ```js
@@ -1117,7 +1117,7 @@ console.log(JSON.stringify({
 await close();
 ```
 
-- [ ] **Step 2: `build.mjs`**
+- [x] **Step 2: `build.mjs`**
 
 ```js
 #!/usr/bin/env node
@@ -1149,7 +1149,7 @@ run('planetiler', [
 console.log(`✓ ${output}`);
 ```
 
-- [ ] **Step 3: `make-fixture.mjs`**
+- [x] **Step 3: `make-fixture.mjs`**
 
 ```js
 #!/usr/bin/env node
@@ -1184,7 +1184,10 @@ Expected: `✓ pipelines/tiles/fixtures/q1.pmtiles` (1–3 phút).
 Run: `ls -la pipelines/tiles/fixtures/q1.pmtiles && node pipelines/tiles/src/inspect.mjs pipelines/tiles/fixtures/q1.pmtiles`
 Expected: kích cỡ ≤ 15 MB; JSON có `zoom: [0, 14]`, `layers` gồm `water`, `transportation`, `place`, `poi`… Nếu > 15 MB, thu bbox còn `106.69,10.77,106.71,10.79` và chạy lại.
 
-- [ ] **Step 4: Build thật lần đầu (20–40 phút)**
+Kết quả thật 27/08/2026: fixture 1,0 MB, 25 tile, zoom `[0, 14]`, đủ các
+layer chính (`water`, `transportation`, `place`, `poi`...).
+
+- [x] **Step 4: Build thật lần đầu (20–40 phút)**
 
 Run: `docker compose --env-file .env -f infra/dev/compose.yml --profile pipeline run --rm pipeline node pipelines/tiles/src/build.mjs`
 Expected: Planetiler chạy hết, `✓ /app/out/vn-YYYYMMDD.pmtiles`.
@@ -1192,9 +1195,14 @@ Expected: Planetiler chạy hết, `✓ /app/out/vn-YYYYMMDD.pmtiles`.
 Run: `docker compose --env-file .env -f infra/dev/compose.yml --profile pipeline run --rm pipeline sh -c "ls -la /app/out && node pipelines/tiles/src/inspect.mjs /app/out/vn-*.pmtiles"`
 Expected: file ~0,7–1,5 GB; `bounds` ≈ `[-180, -85, 180, 85]`, `zoom [0, 14]`.
 
+Kết quả thật 27/08/2026: bật `--compress-temp` vì lần chạy đầu làm Docker
+volume tăng 7,9 GB và đẩy host xuống còn 131 MiB. Lần chạy lại hoàn tất trong
+3 phút 24 giây; file 952 MiB (Planetiler báo archive 997 MB), zoom `[0, 14]`,
+bounds `[-180, -85.0511, 180, 85.0511]`, 6.291.183 tile entry và đủ 16 layer.
+
 Quyết định spec 4.2 (lớp thế giới z0–6): xem nhanh bằng `pmtiles` sau khi có Worker (M1c). Nếu ngoài VN chỉ có biển, ghi DEVLOG "dùng dự phòng Protomaps extract" và tạo task bổ sung ở M1c.
 
-- [ ] **Step 5: Lint, DEVLOG, commit (kèm fixture)**
+- [x] **Step 5: Lint, DEVLOG, commit (kèm fixture)**
 
 Run: `pnpm lint && pnpm typecheck && pnpm test`
 

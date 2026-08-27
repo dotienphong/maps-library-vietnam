@@ -7,8 +7,8 @@ commit với code).
 
 - Mốc: M1b — Tiles, style, Worker, Web SDK
 - Plan: `docs/superpowers/plans/2026-08-26-m1b-tiles-style-web-sdk.md`
-- Task đang làm: Task 4 (build Planetiler + fixture Quận 1)
-- Commit cuối: `1cfb4d2`
+- Task đang làm: Task 5 (QA chủ quyền và cấu trúc tiles)
+- Commit cuối: `889a500`
 - Môi trường đã dựng: máy dev macOS; remote GitHub cá nhân; Postgres/PostGIS dev,
   migration `0001_extensions.sql`; `pnpm run setup` sạch đạt 6,51 giây; image
   pipeline local đã build/smoke trên arm64 và chạy được qua Compose; Dev Container
@@ -18,7 +18,7 @@ commit với code).
 
 ## 2. Bước kế tiếp
 
-M1b Task 4 — build Planetiler và tạo fixture PMTiles Quận 1.
+M1b Task 5 — QA chủ quyền và cấu trúc tiles trên fixture lẫn archive thật.
 
 ## 3. Quyết định phát sinh
 
@@ -39,6 +39,7 @@ M1b Task 4 — build Planetiler và tạo fixture PMTiles Quận 1.
 | 2026-08-27 | Font vendor dùng asset `noto-sans.zip` của OpenMapTiles v2.0, không dùng `v2.0.zip` | `v2.0.zip` chỉ có Roboto; asset Noto riêng chứa đúng 3 stack cần phục vụ glyph | `1cfb4d2` |
 | 2026-08-27 | Template style M1 chỉ dùng placeholder `TILES_BASE`/`VN_FILE` | `API_BASE`/`KEY` chỉ cần khi bổ sung POI details ở M2/M3 | `1cfb4d2` |
 | 2026-08-27 | Dependency `pmtiles` được smoke từ workspace `pipelines/tiles`, không từ root `/app` | pnpm strict isolation chỉ expose dependency tại package khai báo nó | (Task M1b T3) |
+| 2026-08-27 | Full build Planetiler bật `--compress-temp` | Temp mmap không nén tăng 7,9 GB và làm host chỉ còn 131 MiB; nén hoàn tất cùng archive 952 MiB và giữ host an toàn | (Task M1b T4) |
 
 ## 4. Nhật ký
 
@@ -65,4 +66,8 @@ M1b Task 4 — build Planetiler và tạo fixture PMTiles Quận 1.
 - 2026-08-27 · M1b T3 · pipeline tải nguồn trong 4 phút 4 giây, Geofabrik PBF
   327 MB khớp MD5 `620d0258ffecd450363e24560d0a7b8b`; patch thật đổi 108
   object trong 10.351 node/486 way thuộc bbox; Python fixture xanh và tổng 37/37
-  test xanh · (commit hiện tại)
+  test xanh · `889a500`
+- 2026-08-27 · M1b T4 · fixture Quận 1 1,0 MB/25 tile; full archive
+  `vn-20260827.pmtiles` 952 MiB, zoom 0–14, bounds toàn cầu, 16 layer và
+  6.291.183 tile entry; build nén temp hoàn tất trong 3 phút 24 giây; lint,
+  typecheck và 38/38 test xanh · (commit hiện tại)
