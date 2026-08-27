@@ -1,0 +1,24 @@
+name = "mapslibvn-api"
+main = "src/index.ts"
+compatibility_date = "2025-08-01"
+compatibility_flags = ["nodejs_compat"]
+
+[vars]
+TILES_BASE = "https://tiles.ai-solutions.io.vn"
+ENVIRONMENT = "dev"
+
+[[kv_namespaces]]
+binding = "META"
+id = "a50e778ff63a4ad7956f783eba456ed5"
+
+[[r2_buckets]]
+binding = "TILES"
+bucket_name = "mapslibvn-tiles"
+
+[observability]
+enabled = true
+
+[env.production]
+vars = { TILES_BASE = "https://tiles.ai-solutions.io.vn", ENVIRONMENT = "production" }
+kv_namespaces = [{ binding = "META", id = "a50e778ff63a4ad7956f783eba456ed5" }]
+r2_buckets = [{ binding = "TILES", bucket_name = "mapslibvn-tiles" }]

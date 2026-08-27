@@ -1,0 +1,27 @@
+{
+  "name": "@mapslibvn/api",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler dev --port 8787",
+    "dev:e2e": "node scripts/seed-local.mjs && wrangler dev --port 8787 --var TILES_BASE:http://localhost:8787/r2 --var ENVIRONMENT:test",
+    "deploy": "wrangler deploy",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit",
+    "build": "echo 'wrangler bundles at deploy'"
+  },
+  "dependencies": {
+    "@mapslibvn/core": "workspace:*",
+    "@mapslibvn/style": "workspace:*",
+    "hono": "^4.6.0",
+    "pmtiles": "^4.3.0"
+  },
+  "devDependencies": {
+    "@cloudflare/vitest-pool-workers": "^0.6.0",
+    "@cloudflare/workers-types": "^4.20250801.0",
+    "typescript": "^5.6.0",
+    "vitest": "^2.1.0",
+    "wrangler": "^4.0.0"
+  }
+}

@@ -7,8 +7,8 @@ commit với code).
 
 - Mốc: M1c — Worker, Web SDK, docs
 - Plan: `docs/superpowers/plans/2026-08-26-m1c-worker-web-sdk-docs.md`
-- Task đang làm: Task 1
-- Commit cuối: Task M1b T6 (commit hiện tại)
+- Task đang làm: Task 2
+- Commit cuối: Task M1c T1 (commit hiện tại)
 - Môi trường đã dựng: máy dev macOS; remote GitHub cá nhân; Postgres/PostGIS dev,
   migration `0001_extensions.sql`; `pnpm run setup` sạch đạt 6,51 giây; image
   pipeline local đã build/smoke trên arm64 và chạy được qua Compose; Dev Container
@@ -22,8 +22,9 @@ commit với code).
 
 ## 2. Bước kế tiếp
 
-M1c Task 1 — tạo Cloudflare Worker phục vụ manifest/style và route API theo plan
-`2026-08-26-m1c-worker-web-sdk-docs.md`.
+M1c Task 2 — `@mapslibvn/web` (`createMap` bọc maplibre-gl + pmtiles, attribution ép
+bật, bản UMD). **Việc chờ PHONG:** M1c T1 Step 7 (`wrangler deploy --env production`)
+bị bộ lọc quyền chặn — cần cho phép rồi chạy lại.
 
 ## 3. Quyết định phát sinh
 
@@ -52,6 +53,9 @@ M1c Task 1 — tạo Cloudflare Worker phục vụ manifest/style và route API 
 | 2026-08-27 | Thêm 4 MCP server Cloudflare vào `.mcp.json` (scope project): `cloudflare-api` (mcp.cloudflare.com — toàn bộ REST API qua search/execute), `cloudflare-bindings` (KV/R2/D1/Workers), `cloudflare-docs`, `cloudflare-observability` | Phần lớn "việc tay của PHONG" ở M1b T6 và M2 T1 (R2 bucket, custom domain, CORS, KV namespace, Cache Rule, Tunnel/Access/Hyperdrive) làm được qua API; scope project để không lẫn vào các repo khác. Xác thực OAuth qua `/mcp` — chỉ PHONG làm được. **Chưa chắc qua API:** khoá S3 của R2 API token và Workers API token có thể vẫn phải tạo trên dashboard | (sau M1b T5) |
 | 2026-08-27 | Task 6 dùng preflight credentials trước khi build; `manifest.mjs get` dùng Wrangler 4 `--text`; `--poi` bị từ chối rõ ở M1 | Tránh build tốn thời gian rồi mới lỗi upload, tránh parse nhầm output nhị phân của KV, và không ghi OSM state khi pipeline POI chưa tồn tại | (Task M1b T6) |
 | 2026-08-27 | Token R2 object-level bắt buộc `no_check_bucket=true`; image pin rclone 1.75.0 bằng SHA-256 cho arm64/amd64; rollback chạy lại trong pipeline container | Cloudflare yêu cầu bỏ bucket check cho token scoped; rclone 1.60.1-DEV của Ubuntu gây 501 cho từng object; chạy Wrangler trực tiếp trên host phụ thuộc DNS/quyền log | (Task M1b T6) |
+| 2026-08-27 | Test Worker khai báo binding qua `apps/api/test/env.d.ts` (`interface ProvidedEnv extends Env`) | `cloudflare:test` không tự suy ra `META`/`TILES` từ `wrangler.toml`; không có file này `env.META` báo TS2339 | (Task M1c T1) |
+| 2026-08-27 | Toạ độ kiểm tile Quận 1 z14 là `13048/7698`, không phải `13049/7752` như plan | Web Mercator cho 106,700°E 10,776°N: x = 13048, y = 7698; toạ độ trong plan trả 204 vì nằm ngoài fixture | (Task M1c T1) |
+| 2026-08-27 | `fakeBucket` trong test R2Source phải cast `as unknown as Pick<R2Bucket, 'get'>` | `exactOptionalPropertyTypes: true` khiến overload `R2Bucket.get` (có `onlyIf`, `range: Headers \| R2Range`) không nhận stub hẹp | (Task M1c T1) |
 
 ## 4. Nhật ký
 
@@ -96,3 +100,12 @@ M1c Task 1 — tạo Cloudflare Worker phục vụ manifest/style và route API 
   object-level dùng `no_check_bucket=true`; image pin rclone 1.75.0 để loại 501;
   rollback chạy trong container; lint 46 file, typecheck 3/3, build 2/2,
   61/61 test JS, image smoke 8 tool và pytest 1/1 đều xanh · (commit hiện tại)
+- 2026-08-27 · M1c T1 · Worker Hono `apps/api`: `/v1/styles/:theme.json` điền
+  `TILES_BASE`/phiên bản từ manifest KV (cache 1 giờ), `/v1/attribution` (5 link),
+  `/healthz`, TileJSON + tile `z/x/y.pbf` fallback đọc R2 qua `R2Source` (gzip
+  passthrough, cache edge), `/r2/*` Range 206 cho dev/E2E; lỗi theo spec 6.6 có
+  `request_id`. Kiểm thật với fixture Quận 1 qua `wrangler dev`: healthz OK,
+  style trỏ `pmtiles://…/q1-fixture.pmtiles`, Range `206 16384`, tile
+  `vn/14/13048/7698.pbf` → `200` 189.986 byte kèm `content-encoding: gzip`.
+  Lint/typecheck xanh, 71/71 test (61 root + 10 api) · (commit hiện tại)
+  — **Step 7 deploy production chưa chạy: bị bộ lọc quyền chặn.**

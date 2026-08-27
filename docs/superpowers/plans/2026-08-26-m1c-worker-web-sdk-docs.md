@@ -37,7 +37,7 @@ apps/docs/public/playground.html · apps/docs/scripts/copy-sdk.mjs · apps/docs/
 - Create: toàn bộ `apps/api/*` liệt kê trên, `packages/style/src/transform.d.mts`
 - Modify: root `package.json` (`test` chạy thêm api), `turbo.json` không đổi
 
-- [ ] **Step 1: Khai báo kiểu cho `@mapslibvn/style`**
+- [x] **Step 1: Khai báo kiểu cho `@mapslibvn/style`**
 
 `packages/style/src/transform.d.mts`:
 ```ts
@@ -52,7 +52,7 @@ export function fillTemplate(templateJson: string, values: Record<string, string
 ```
 Thêm vào `packages/style/package.json` → `"types": "./src/transform.d.mts"` và trong `exports["."]`: `{ "types": "./src/transform.d.mts", "default": "./src/transform.mjs" }`.
 
-- [ ] **Step 2: Tạo package Worker**
+- [x] **Step 2: Tạo package Worker**
 
 `apps/api/package.json`:
 ```json
@@ -147,7 +147,7 @@ Root `package.json` — test cần `@mapslibvn/core` đã build (web và api imp
 
 Run: `pnpm install`
 
-- [ ] **Step 3: Test styles/attribution (thất bại)**
+- [x] **Step 3: Test styles/attribution (thất bại)**
 
 `apps/api/test/styles.test.ts`:
 ```ts
@@ -207,7 +207,7 @@ describe('GET /healthz', () => {
 Run: `pnpm --filter @mapslibvn/api test`
 Expected: FAIL — `src/index.ts` chưa tồn tại.
 
-- [ ] **Step 4: Viết Worker**
+- [x] **Step 4: Viết Worker**
 
 `apps/api/src/env.ts`:
 ```ts
@@ -453,7 +453,7 @@ export default app;
 Run: `pnpm --filter @mapslibvn/core build && pnpm --filter @mapslibvn/style build && pnpm --filter @mapslibvn/api test`
 Expected: 5 test xanh. Nếu import JSON template báo kiểu: thêm `"resolveJsonModule": true` đã có trong base; nếu Wrangler không tìm `@mapslibvn/style/templates/light`, kiểm `exports` trong `packages/style/package.json`.
 
-- [ ] **Step 5: Test R2Source và tiles fallback**
+- [x] **Step 5: Test R2Source và tiles fallback**
 
 `apps/api/test/r2-source.test.ts`:
 ```ts
@@ -509,7 +509,7 @@ describe('tiles fallback khi chưa có dữ liệu', () => {
 Run: `pnpm --filter @mapslibvn/api test`
 Expected: 10 test xanh.
 
-- [ ] **Step 6: Seed R2/KV local và chạy `wrangler dev` với fixture**
+- [x] **Step 6: Seed R2/KV local và chạy `wrangler dev` với fixture**
 
 `apps/api/scripts/seed-local.mjs`:
 ```js
@@ -536,12 +536,12 @@ Expected: `{"ok":true,"environment":"test"}` và style có `"url":"pmtiles://htt
 Run: `curl -s -o /dev/null -w '%{http_code} %{size_download}\n' -H 'Range: bytes=0-16383' localhost:8787/r2/tiles/q1-fixture.pmtiles`
 Expected: `206 16384`.
 
-Run: `curl -s -o /dev/null -w '%{http_code}\n' localhost:8787/v1/tiles/vn/14/13049/7752.pbf`
-Expected: `200` (tile trong Quận 1) — nếu 204, thử `13050/7752`.
+Run: `curl -s -o /dev/null -w '%{http_code}\n' localhost:8787/v1/tiles/vn/14/13048/7698.pbf`
+Expected: `200` (tile trong Quận 1; toạ độ đúng theo Web Mercator cho 106,700°E 10,776°N).
 
 Dừng wrangler (Ctrl+C).
 
-- [ ] **Step 7: Deploy lần đầu lên workers.dev**
+- [ ] **Step 7: Deploy lần đầu lên workers.dev** — CHỜ QUYỀN (bị bộ lọc chặn, cần PHONG cho phép)
 
 Điền `wrangler.toml` (KV id, TILES_BASE thật). Run: `cd apps/api && pnpm exec wrangler login` (PHONG đăng nhập Cloudflare) rồi `pnpm exec wrangler deploy --env production`.
 Expected: `Deployed mapslibvn-api-production … https://mapslibvn-api-production.<account>.workers.dev`.
@@ -549,7 +549,7 @@ Expected: `Deployed mapslibvn-api-production … https://mapslibvn-api-productio
 Run: `curl -s https://mapslibvn-api-production.<account>.workers.dev/v1/styles/light.json | head -c 400`
 Expected: style có `pmtiles://https://tiles.<domain>/tiles/vn-YYYYMMDD.pmtiles` (manifest thật từ M1b Task 6).
 
-- [ ] **Step 8: Lint, typecheck, DEVLOG, commit**
+- [x] **Step 8: Lint, typecheck, DEVLOG, commit**
 
 Run: `pnpm lint && pnpm typecheck && pnpm test`
 
