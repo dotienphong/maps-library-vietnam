@@ -91,6 +91,12 @@ importers:
 
   packages/core:
     devDependencies:
+      '@size-limit/file':
+        specifier: ^11.1.0
+        version: 11.2.0(size-limit@11.2.0)
+      size-limit:
+        specifier: ^11.1.0
+        version: 11.2.0
       tsup:
         specifier: ^8.3.0
         version: 8.5.1(jiti@2.7.0)(postcss@8.5.26)(typescript@5.9.3)(yaml@2.9.0)

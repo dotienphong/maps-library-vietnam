@@ -1911,7 +1911,7 @@ git push
 - Create: `packages/core/src/address.ts`, `packages/core/src/provinces.json`, `packages/core/tests/address.test.ts`, `packages/core/tests/fixtures/addresses.jsonl`, `packages/core/.size-limit.json`, `pipelines/poi/scripts/sample-addresses.mjs`
 - Modify: `packages/core/src/index.ts`, `packages/core/package.json`
 
-- [ ] **Step 1: Fixture tuyển chọn (curated) — 49 dòng bắt buộc đúng 100%**
+- [x] **Step 1: Fixture tuyển chọn (curated) — 49 dòng bắt buộc đúng 100%**
 
 `packages/core/tests/fixtures/addresses.jsonl` — mỗi dòng `{"input", "expected", "curated": true}`; `expected` là **tập con** các trường phải khớp (trường không nêu không kiểm). Dòng lấy mẫu thật (Step 5) nối thêm phía dưới với `"curated": false`.
 ```jsonl
@@ -1966,7 +1966,7 @@ git push
 {"input":"TT. Hóc Môn, H. Hóc Môn","expected":{"ward":"Hóc Môn","district":"Hóc Môn"},"curated":true}
 ```
 
-- [ ] **Step 2: Test (thất bại)**
+- [x] **Step 2: Test (thất bại)**
 
 `packages/core/tests/address.test.ts`:
 ```ts
@@ -2022,7 +2022,7 @@ describe('parseAddress — hành vi biên', () => {
 Run: `pnpm test`
 Expected: FAIL — không tìm thấy `../src/address`.
 
-- [ ] **Step 3: `provinces.json` — 34 tỉnh/thành sau 1/7/2025, alias gồm tên cũ đã sáp nhập**
+- [x] **Step 3: `provinces.json` — 34 tỉnh/thành sau 1/7/2025, alias gồm tên cũ đã sáp nhập**
 
 `packages/core/src/provinces.json` (khoá = tên hiển thị; giá trị = alias đã chuẩn hoá theo `normalizeVi`, tên tỉnh cũ trỏ về tỉnh mới):
 ```json
@@ -2065,7 +2065,7 @@ Expected: FAIL — không tìm thấy `../src/address`.
 ```
 Nguồn: Nghị quyết 202/2025/QH15 (sắp xếp đơn vị hành chính cấp tỉnh). Alias là **tên tỉnh cũ và thành phố lớn** để địa chỉ cũ vẫn về đúng tỉnh mới; alias phường/xã cũ nằm ở `admin_alias` (Task 8), không ở đây.
 
-- [ ] **Step 4: `address.ts`**
+- [x] **Step 4: `address.ts`**
 
 ```ts
 import { normalizeVi, stripDiacritics } from './normalize';
@@ -2264,7 +2264,7 @@ Thêm vào `packages/core/src/index.ts`: `export * from './address';`
 Run: `pnpm test`
 Expected: 49 test curated + 2 test biên xanh; **đỏ duy nhất**: "có ≥ 300 dòng" và có thể "≥ 95%" (cho tới Step 6). Dòng curated đỏ → sửa mã (không sửa fixture curated, trừ khi kỳ vọng sai rõ ràng — ghi commit message).
 
-- [ ] **Step 5: Lấy mẫu 300 địa chỉ thật từ Overture (ẩn danh: chỉ giữ chuỗi địa chỉ)**
+- [x] **Step 5: Lấy mẫu 300 địa chỉ thật từ Overture (ẩn danh: chỉ giữ chuỗi địa chỉ)**
 
 `pipelines/poi/scripts/sample-addresses.mjs` (chạy **trong image**; đọc S3 công khai bằng DuckDB CLI, phân tầng 4 nhóm; ghi nháp `expected` bằng parser để người review sửa):
 ```js
@@ -2302,7 +2302,7 @@ console.error(`✓ ${seen.size} địa chỉ (nháp expected bằng parser — P
 Run: `pnpm --filter @mapslibvn/core build && PIPE pipeline node pipelines/poi/scripts/sample-addresses.mjs <OVERTURE_VER> >> packages/core/tests/fixtures/addresses.jsonl`
 Expected: `✓ ~300 địa chỉ` (2–5 phút — DuckDB chỉ đọc row-group VN nhờ thống kê `bbox`). Nếu dưới 300 do trùng: tăng số dòng mỗi tầng thêm 20% và chạy lại (xoá phần đã nối trước).
 
-- [ ] **Step 6: Review tay kỳ vọng (không bỏ qua)**
+- [x] **Step 6: Review tay kỳ vọng (không bỏ qua)**
 
 Mở `addresses.jsonl`, với **mỗi** dòng `"reviewed": false`: so `input` với `expected` nháp; sửa `expected` khi parser sai (ví dụ tên toà nhà lọt vào `ward`, tỉnh không nhận ra, số nhà dính chữ) — chỉ giữ trong `expected` các trường bạn chắc chắn; xoá dòng không phải địa chỉ (rác, tiếng nước ngoài); đổi `"reviewed": true`. Ghi số dòng đã sửa. Mục tiêu của bước này là kỳ vọng đúng **theo ngữ nghĩa**, không phải theo parser.
 
@@ -2312,7 +2312,7 @@ Expected: `0`.
 Run: `pnpm test`
 Expected: test "≥ 300 dòng" xanh; test "≥ 95%" in `address fixture: N/M khớp` — nếu < 95%: xem 10 ví dụ lệch, sửa parser (thêm rule vào `RE_IGNORE`/alias tỉnh/alley) rồi chạy lại; ghi DEVLOG các rule thêm.
 
-- [ ] **Step 7: Ngân sách kích cỡ core ≤ 8 kB gzip (spec 7.1)**
+- [x] **Step 7: Ngân sách kích cỡ core ≤ 8 kB gzip (spec 7.1)**
 
 `packages/core/.size-limit.json`:
 ```json
@@ -2323,7 +2323,7 @@ Expected: test "≥ 300 dòng" xanh; test "≥ 95%" in `address fixture: N/M kh�
 Run: `pnpm install && pnpm --filter @mapslibvn/core build`
 Expected: `dist/index.js … Size: X kB with all dependencies, minified and gzipped` với X ≤ 8. Nếu vượt: chuyển `provinces.json` + `brand_alias.json` sang subpath export `@mapslibvn/core/vi` (tsup entry thứ hai `src/vi.ts`, client web import từ `.`), ghi DEVLOG.
 
-- [ ] **Step 8: Lint, typecheck, DEVLOG, commit**
+- [x] **Step 8: Lint, typecheck, DEVLOG, commit**
 
 Run: `pnpm lint && pnpm typecheck && pnpm test`
 

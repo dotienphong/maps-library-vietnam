@@ -12,14 +12,18 @@
       "import": "./dist/index.js"
     }
   },
-  "files": ["dist"],
+  "files": [
+    "dist"
+  ],
   "sideEffects": false,
   "scripts": {
-    "build": "tsup src/index.ts --format esm --dts --clean --target es2022",
+    "build": "tsup src/index.ts --format esm --dts --clean --target es2022 && size-limit",
     "typecheck": "tsc --noEmit"
   },
   "devDependencies": {
     "tsup": "^8.3.0",
-    "typescript": "^5.6.0"
+    "typescript": "^5.6.0",
+    "size-limit": "^11.1.0",
+    "@size-limit/file": "^11.1.0"
   }
 }

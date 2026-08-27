@@ -1,0 +1,341 @@
+{"input":"88/9 Nguyễn Lâm, Phường 6, Quận 10, TP.HCM","expected":{"housenumber":"88/9","alleyChain":["88"],"houseInAlley":"9","street":"Nguyễn Lâm","streetNorm":"nguyen lam","ward":"6","district":"10","province":"Thành phố Hồ Chí Minh","confidence":1},"curated":true}
+{"input":"88/9 Nguyễn Lâm P.6 Q.10","expected":{"housenumber":"88/9","alleyChain":["88"],"houseInAlley":"9","street":"Nguyễn Lâm","ward":"6","district":"10","confidence":0.85},"curated":true}
+{"input":"Số 5 Hẻm 112 Nguyễn Lâm, P.6, Q.10, TP.HCM","expected":{"housenumber":"112/5","alleyChain":["112"],"houseInAlley":"5","alleyKeyword":"hem","street":"Nguyễn Lâm","ward":"6","district":"10","province":"Thành phố Hồ Chí Minh"},"curated":true}
+{"input":"Hẻm 112 Nguyễn Lâm, Quận 10","expected":{"alleyChain":["112"],"alleyKeyword":"hem","street":"Nguyễn Lâm","district":"10","confidence":0.45},"curated":true}
+{"input":"130C Lê Lợi, Bến Nghé, Quận 1, Hồ Chí Minh","expected":{"housenumber":"130C","alleyChain":[],"street":"Lê Lợi","ward":"Bến Nghé","district":"1","province":"Thành phố Hồ Chí Minh","confidence":1},"curated":true}
+{"input":"12/59F Đường Phạm Văn Chiêu, P.14, Gò Vấp","expected":{"housenumber":"12/59F","alleyChain":["12"],"houseInAlley":"59F","street":"Phạm Văn Chiêu","ward":"14","district":"Gò Vấp"},"curated":true}
+{"input":"Đường số 7, Phường Tân Phú, TP Thủ Đức, TPHCM","expected":{"street":"Đường số 7","streetNorm":"duong so 7","ward":"Tân Phú","district":"Thủ Đức","province":"Thành phố Hồ Chí Minh","confidence":0.75},"curated":true}
+{"input":"36 Xã Đàn, Đống Đa, Hà Nội","expected":{"housenumber":"36","street":"Xã Đàn","province":"Hà Nội"},"curated":true}
+{"input":"Ngõ 25 Phố Vũ Ngọc Phan, Láng Hạ, Đống Đa, Hà Nội","expected":{"alleyKeyword":"ngo","alleyChain":["25"],"street":"Vũ Ngọc Phan","province":"Hà Nội"},"curated":true}
+{"input":"Số 3 Ngách 15 Ngõ 78 Đường Giải Phóng, Hà Nội","expected":{"housenumber":"78/15/3","alleyChain":["78","15"],"houseInAlley":"3","alleyKeyword":"ngach","street":"Giải Phóng","province":"Hà Nội"},"curated":true}
+{"input":"Kiệt 42 Trần Cao Vân, Thanh Khê, Đà Nẵng","expected":{"alleyKeyword":"kiet","alleyChain":["42"],"street":"Trần Cao Vân","province":"Đà Nẵng"},"curated":true}
+{"input":"Quốc lộ 1A, Xã Tân Thông Hội, Huyện Củ Chi, TP. Hồ Chí Minh","expected":{"street":"Quốc lộ 1A","streetNorm":"quoc lo 1a","ward":"Tân Thông Hội","district":"Củ Chi","province":"Thành phố Hồ Chí Minh"},"curated":true}
+{"input":"Thị trấn Củ Chi, Huyện Củ Chi","expected":{"ward":"Củ Chi","district":"Củ Chi","confidence":0.25},"curated":true}
+{"input":"Tổ 5, Khu phố 3, Thị trấn Hóc Môn, Hóc Môn, TP.HCM","expected":{"ward":"Hóc Môn","district":"Hóc Môn","province":"Thành phố Hồ Chí Minh"},"curated":true}
+{"input":"Ấp 3, Xã Phước Vĩnh An, Củ Chi","expected":{"ward":"Phước Vĩnh An","district":"Củ Chi"},"curated":true}
+{"input":"12 Lê Lợi, Vũng Tàu","expected":{"housenumber":"12","street":"Lê Lợi","province":"Thành phố Hồ Chí Minh"},"curated":true}
+{"input":"Số 1 Đại lộ Thăng Long, Nam Từ Liêm, Hà Nội","expected":{"housenumber":"1","street":"Đại lộ Thăng Long","province":"Hà Nội"},"curated":true}
+{"input":"Tp Hồ Chí Minh, Quận 1, Phường Bến Nghé, 12 Lê Lợi","expected":{"housenumber":"12","street":"Lê Lợi","ward":"Bến Nghé","district":"1","province":"Thành phố Hồ Chí Minh"},"curated":true}
+{"input":"12 le loi, q.1, tp.hcm","expected":{"housenumber":"12","street":"le loi","streetNorm":"le loi","district":"1","province":"Thành phố Hồ Chí Minh"},"curated":true}
+{"input":"12 LÊ LỢI, Q1, HCM","expected":{"housenumber":"12","street":"LÊ LỢI","district":"1","province":"Thành phố Hồ Chí Minh"},"curated":true}
+{"input":"P6 Q10","expected":{"ward":"6","district":"10"},"curated":true}
+{"input":"Phường Diên Hồng, Quận 10","expected":{"ward":"Diên Hồng","district":"10"},"curated":true}
+{"input":"168 Hai Bà Trưng, Phường Đa Kao, Quận 1, Thành phố Hồ Chí Minh, Việt Nam","expected":{"housenumber":"168","street":"Hai Bà Trưng","ward":"Đa Kao","district":"1","province":"Thành phố Hồ Chí Minh"},"curated":true}
+{"input":"168 Hai Bà Trưng, Đa Kao, Quận 1, TP HCM 700000","expected":{"housenumber":"168","street":"Hai Bà Trưng","ward":"Đa Kao","district":"1","province":"Thành phố Hồ Chí Minh"},"curated":true}
+{"input":"Số 2 Nguyễn Bỉnh Khiêm, Bến Nghé, 1, Hồ Chí Minh","expected":{"housenumber":"2","street":"Nguyễn Bỉnh Khiêm","ward":"Bến Nghé","district":"1","province":"Thành phố Hồ Chí Minh"},"curated":true}
+{"input":"Đ. Nguyễn Văn Linh, P. Tân Phong, Q. 7","expected":{"street":"Nguyễn Văn Linh","ward":"Tân Phong","district":"7"},"curated":true}
+{"input":"1 Võ Văn Ngân, Linh Chiểu, Thủ Đức, Bình Dương","expected":{"housenumber":"1","street":"Võ Văn Ngân","ward":"Linh Chiểu","district":"Thủ Đức","province":"Thành phố Hồ Chí Minh"},"curated":true}
+{"input":"Phường Linh Xuân, Thành phố Thủ Đức","expected":{"ward":"Linh Xuân","district":"Thủ Đức"},"curated":true}
+{"input":"19 Nguyễn Hữu Thọ, Tân Hưng, Quận 7, Sài Gòn","expected":{"housenumber":"19","street":"Nguyễn Hữu Thọ","ward":"Tân Hưng","district":"7","province":"Thành phố Hồ Chí Minh"},"curated":true}
+{"input":"Số 9 Tôn Thất Thuyết, Phường Dịch Vọng Hậu, Cầu Giấy, Hà Nội","expected":{"housenumber":"9","street":"Tôn Thất Thuyết","ward":"Dịch Vọng Hậu","district":"Cầu Giấy","province":"Hà Nội"},"curated":true}
+{"input":"Tòa nhà Bitexco, 2 Hải Triều, Q1","expected":{"housenumber":"2","street":"Hải Triều","district":"1"},"curated":true}
+{"input":"Lô A, Đường D2, Khu công nghệ cao, Phường Tăng Nhơn Phú A, Quận 9","expected":{"street":"Đường D2","ward":"Tăng Nhơn Phú A","district":"9"},"curated":true}
+{"input":"Chung cư Sunrise City, 23 Nguyễn Hữu Thọ, Tân Hưng, Quận 7","expected":{"housenumber":"23","street":"Nguyễn Hữu Thọ","ward":"Tân Hưng","district":"7"},"curated":true}
+{"input":"Tầng 5, Tòa nhà ABC, 12 Lê Duẩn, Bến Nghé, Q.1","expected":{"housenumber":"12","street":"Lê Duẩn","ward":"Bến Nghé","district":"1"},"curated":true}
+{"input":"Xa lộ Hà Nội, Phường Thảo Điền, TP Thủ Đức","expected":{"street":"Xa lộ Hà Nội","ward":"Thảo Điền","district":"Thủ Đức"},"curated":true}
+{"input":"Khu phố 3, Phường Tân Định, Quận 1","expected":{"ward":"Tân Định","district":"1"},"curated":true}
+{"input":"Thôn Đông, Xã Vân Canh, Huyện Hoài Đức, Hà Nội","expected":{"ward":"Vân Canh","district":"Hoài Đức","province":"Hà Nội"},"curated":true}
+{"input":"Tỉnh Bình Định","expected":{"province":"Gia Lai","confidence":0.15},"curated":true}
+{"input":"Nha Trang, Khánh Hòa","expected":{"province":"Khánh Hòa"},"curated":true}
+{"input":"Số 10 ngõ 15 Tạ Quang Bửu, Hai Bà Trưng, Hà Nội","expected":{"housenumber":"15/10","alleyChain":["15"],"houseInAlley":"10","alleyKeyword":"ngo","street":"Tạ Quang Bửu","province":"Hà Nội"},"curated":true}
+{"input":"123 đường 3 tháng 2, P.11, Q.10","expected":{"housenumber":"123","street":"3 tháng 2","streetNorm":"3 thang 2","ward":"11","district":"10"},"curated":true}
+{"input":"Lô 12 Đường số 3, KDC Trung Sơn, Bình Hưng, Bình Chánh","expected":{"housenumber":"12","street":"Đường số 3","ward":"Bình Hưng","district":"Bình Chánh"},"curated":true}
+{"input":"Số 1 Công trường Công xã Paris, Phường Bến Nghé, Quận 1, TP. Hồ Chí Minh","expected":{"housenumber":"1","street":"Công trường Công xã Paris","ward":"Bến Nghé","district":"1","province":"Thành phố Hồ Chí Minh"},"curated":true}
+{"input":"01 Đinh Tiên Hoàng, Đa Kao, Q1, HCM","expected":{"housenumber":"01","street":"Đinh Tiên Hoàng","ward":"Đa Kao","district":"1","province":"Thành phố Hồ Chí Minh"},"curated":true}
+{"input":"Thị xã Thuận An, Bình Dương","expected":{"district":"Thuận An","province":"Thành phố Hồ Chí Minh"},"curated":true}
+{"input":"ĐƯỜNG NGUYỄN TRÃI, QUẬN 5","expected":{"street":"NGUYỄN TRÃI","streetNorm":"nguyen trai","district":"5"},"curated":true}
+{"input":"Phường 6 - Quận 10 - TP.HCM","expected":{"ward":"6","district":"10","province":"Thành phố Hồ Chí Minh"},"curated":true}
+{"input":"45 Trần Phú, Phường Lộc Thọ, Nha Trang","expected":{"housenumber":"45","street":"Trần Phú","ward":"Lộc Thọ","province":"Khánh Hòa"},"curated":true}
+{"input":"TT. Hóc Môn, H. Hóc Môn","expected":{"ward":"Hóc Môn","district":"Hóc Môn"},"curated":true}
+{"input": "410/9A CMT8 P.11 Q.3", "expected": {"alleyChain": ["410"], "street": "CMT8", "streetNorm": "cmt8", "housenumber": "410/9A", "houseInAlley": "9A", "ward": "11", "district": "3"}, "curated": false, "reviewed": true}
+{"input": "71/3/6 Chế Lan Viên - Phường Tây Thạnh, Q.Tân Phú", "expected": {"alleyChain": ["71", "3"], "street": "Chế Lan Viên", "streetNorm": "che lan vien", "housenumber": "71/3/6", "houseInAlley": "6", "ward": "Tây Thạnh", "district": "Tân Phú"}, "curated": false, "reviewed": true}
+{"input": "87/3 Nguyễn Sỹ Sách", "expected": {"alleyChain": ["87"], "street": "Nguyễn Sỹ Sách", "streetNorm": "nguyen sy sach", "housenumber": "87/3", "houseInAlley": "3"}, "curated": false, "reviewed": true}
+{"input": "95/71 Lê Văn Lương", "expected": {"alleyChain": ["95"], "street": "Lê Văn Lương", "streetNorm": "le van luong", "housenumber": "95/71", "houseInAlley": "71"}, "curated": false, "reviewed": true}
+{"input": "69/23/12 Hẻm 69/23 Đường Số 3", "expected": {"housenumber": "69/23/12", "alleyChain": ["69", "23"], "houseInAlley": "12", "alleyKeyword": "hem", "street": "Đường Số 3"}, "curated": false, "reviewed": true}
+{"input": "38/2 Đ. Nguyễn Công Hoan", "expected": {"alleyChain": ["38"], "street": "Nguyễn Công Hoan", "streetNorm": "nguyen cong hoan", "housenumber": "38/2", "houseInAlley": "2"}, "curated": false, "reviewed": true}
+{"input": "119/54 Đường An Dương Vương", "expected": {"alleyChain": ["119"], "street": "An Dương Vương", "streetNorm": "an duong vuong", "housenumber": "119/54", "houseInAlley": "54"}, "curated": false, "reviewed": true}
+{"input": "21/13 Hẻm 21 Nguyễn Thiện Thuật", "expected": {"housenumber": "21/13", "alleyChain": ["21"], "houseInAlley": "13", "alleyKeyword": "hem", "street": "Nguyễn Thiện Thuật"}, "curated": false, "reviewed": true}
+{"input": "176/6 Hẻm 176 Nguyễn Văn Thương", "expected": {"housenumber": "176/6", "alleyChain": ["176"], "houseInAlley": "6", "alleyKeyword": "hem", "street": "Nguyễn Văn Thương"}, "curated": false, "reviewed": true}
+{"input": "9/19 Đ. ĐT 1-2A", "expected": {"alleyChain": ["9"], "street": "ĐT 1-2A", "streetNorm": "dt 1-2a", "housenumber": "9/19", "houseInAlley": "19"}, "curated": false, "reviewed": true}
+{"input": "71 Đường 30/4", "expected": {"alleyChain": [], "street": "30/4", "streetNorm": "30/4", "housenumber": "71"}, "curated": false, "reviewed": true}
+{"input": "161/7 TA13 phường Thới An, Quận 12", "expected": {"housenumber": "161/7", "alleyChain": ["161"], "houseInAlley": "7", "street": "TA13", "ward": "Thới An", "district": "12"}, "curated": false, "reviewed": true}
+{"input": "47/12 Hẻm 47 Hòa Bình", "expected": {"housenumber": "47/12", "alleyChain": ["47"], "houseInAlley": "12", "alleyKeyword": "hem", "street": "Hòa Bình"}, "curated": false, "reviewed": true}
+{"input": "20/2A Lê Văn Phiên", "expected": {"alleyChain": ["20"], "street": "Lê Văn Phiên", "streetNorm": "le van phien", "housenumber": "20/2A", "houseInAlley": "2A"}, "curated": false, "reviewed": true}
+{"input": "20/9 Hẻm 20 Đoàn Văn Bơ", "expected": {"housenumber": "20/9", "alleyChain": ["20"], "houseInAlley": "9", "alleyKeyword": "hem", "street": "Đoàn Văn Bơ"}, "curated": false, "reviewed": true}
+{"input": "2/25 Đ. Lê Đức Thọ", "expected": {"alleyChain": ["2"], "street": "Lê Đức Thọ", "streetNorm": "le duc tho", "housenumber": "2/25", "houseInAlley": "25"}, "curated": false, "reviewed": true}
+{"input": "21/3B đường Mỹ Huề, xã Trung Chánh, huyện Hóc Môn, TPHCM", "expected": {"alleyChain": ["21"], "street": "Mỹ Huề", "streetNorm": "my hue", "housenumber": "21/3B", "houseInAlley": "3B", "ward": "Trung Chánh", "district": "Hóc Môn", "province": "Thành phố Hồ Chí Minh"}, "curated": false, "reviewed": true}
+{"input": "499/6/52 Đường Quang Trung", "expected": {"alleyChain": ["499", "6"], "street": "Quang Trung", "streetNorm": "quang trung", "housenumber": "499/6/52", "houseInAlley": "52"}, "curated": false, "reviewed": true}
+{"input": "33/2 Đường Mậu Thân", "expected": {"alleyChain": ["33"], "street": "Mậu Thân", "streetNorm": "mau than", "housenumber": "33/2", "houseInAlley": "2"}, "curated": false, "reviewed": true}
+{"input": "61/18/17 Hẻm 61 Đường Trung Mỹ Tây 17", "expected": {"housenumber": "61/18/17", "alleyChain": ["61", "18"], "houseInAlley": "17", "alleyKeyword": "hem", "street": "Trung Mỹ Tây 17"}, "curated": false, "reviewed": true}
+{"input": "54/3 Thành Thái, Phường 12, Quận 10", "expected": {"alleyChain": ["54"], "street": "Thành Thái", "streetNorm": "thanh thai", "housenumber": "54/3", "houseInAlley": "3", "ward": "12", "district": "10"}, "curated": false, "reviewed": true}
+{"input": "144/Ấp 1, xã Phước Vĩnh Tây, huyện Cần Giuộc, tỉnh Long An", "expected": {"housenumber": "144", "ward": "Phước Vĩnh Tây", "district": "Cần Giuộc", "province": "Tây Ninh"}, "curated": false, "reviewed": true}
+{"input": "28/2 Đường Nguyễn Trãi", "expected": {"alleyChain": ["28"], "street": "Nguyễn Trãi", "streetNorm": "nguyen trai", "housenumber": "28/2", "houseInAlley": "2"}, "curated": false, "reviewed": true}
+{"input": "44/20 hiệp thành 43, quận 12", "expected": {"alleyChain": ["44"], "street": "hiệp thành 43", "streetNorm": "hiep thanh 43", "housenumber": "44/20", "houseInAlley": "20", "district": "12"}, "curated": false, "reviewed": true}
+{"input": "350/54 Hẻm 350 Lê Đức Thọ", "expected": {"housenumber": "350/54", "alleyChain": ["350"], "houseInAlley": "54", "alleyKeyword": "hem", "street": "Lê Đức Thọ"}, "curated": false, "reviewed": true}
+{"input": "116/56 Hẻm 116 Dương Quảng Hàm", "expected": {"housenumber": "116/56", "alleyChain": ["116"], "houseInAlley": "56", "alleyKeyword": "hem", "street": "Dương Quảng Hàm"}, "curated": false, "reviewed": true}
+{"input": "489a/17 Huỳnh Văn Bánh", "expected": {"alleyChain": ["489A"], "street": "Huỳnh Văn Bánh", "streetNorm": "huynh van banh", "housenumber": "489a/17", "houseInAlley": "17"}, "curated": false, "reviewed": true}
+{"input": "56/3 Đường Phạm Thái Bường", "expected": {"alleyChain": ["56"], "street": "Phạm Thái Bường", "streetNorm": "pham thai buong", "housenumber": "56/3", "houseInAlley": "3"}, "curated": false, "reviewed": true}
+{"input": "79/1 Đ. Tôn Thất Thuyết", "expected": {"alleyChain": ["79"], "street": "Tôn Thất Thuyết", "streetNorm": "ton that thuyet", "housenumber": "79/1", "houseInAlley": "1"}, "curated": false, "reviewed": true}
+{"input": "7/2 Hẻm 7 Hồ Biểu Chánh", "expected": {"housenumber": "7/2", "alleyChain": ["7"], "houseInAlley": "2", "alleyKeyword": "hem", "street": "Hồ Biểu Chánh"}, "curated": false, "reviewed": true}
+{"input": "581/36 Hẻm 581 Trường Chinh", "expected": {"housenumber": "581/36", "alleyChain": ["581"], "houseInAlley": "36", "alleyKeyword": "hem", "street": "Trường Chinh"}, "curated": false, "reviewed": true}
+{"input": "778/B1 Hẻm 778 Nguyễn Kiệm", "expected": {"housenumber": "778/B1", "alleyChain": ["778"], "houseInAlley": "B1", "alleyKeyword": "hem", "street": "Nguyễn Kiệm"}, "curated": false, "reviewed": true}
+{"input": "74/10 Hẻm 74 Vườn Lài", "expected": {"housenumber": "74/10", "alleyChain": ["74"], "houseInAlley": "10", "alleyKeyword": "hem", "street": "Vườn Lài"}, "curated": false, "reviewed": true}
+{"input": "20/11 Đ. Âu Cơ", "expected": {"alleyChain": ["20"], "street": "Âu Cơ", "streetNorm": "au co", "housenumber": "20/11", "houseInAlley": "11"}, "curated": false, "reviewed": true}
+{"input": "668/25/5 QL13", "expected": {"alleyChain": ["668", "25"], "street": "QL13", "streetNorm": "ql13", "housenumber": "668/25/5", "houseInAlley": "5"}, "curated": false, "reviewed": true}
+{"input": "30/54 Võ Duy Ninh Phường Thạnh Mỹ Tây,", "expected": {"alleyChain": ["30"], "street": "Võ Duy Ninh", "streetNorm": "vo duy ninh", "housenumber": "30/54", "houseInAlley": "54", "ward": "Thạnh Mỹ Tây"}, "curated": false, "reviewed": true}
+{"input": "59/5 Lý Chiêu Hoàng P10. QUẬN 6", "expected": {"alleyChain": ["59"], "street": "Lý Chiêu Hoàng", "streetNorm": "ly chieu hoang", "housenumber": "59/5", "houseInAlley": "5", "ward": "10", "district": "6"}, "curated": false, "reviewed": true}
+{"input": "79/76/1 Hẻm 79 Trần Văn Đang", "expected": {"housenumber": "79/76/1", "alleyChain": ["79", "76"], "houseInAlley": "1", "alleyKeyword": "hem", "street": "Trần Văn Đang"}, "curated": false, "reviewed": true}
+{"input": "E4/15 Đường N9", "expected": {"housenumber": "E4/15", "alleyChain": ["E4"], "houseInAlley": "15", "street": "Đường N9", "streetNorm": "duong n9"}, "curated": false, "reviewed": true}
+{"input": "144/36/74 Hẻm 144/36 Đường Số 6", "expected": {"housenumber": "144/36/74", "alleyChain": ["144", "36"], "houseInAlley": "74", "alleyKeyword": "hem", "street": "Đường Số 6"}, "curated": false, "reviewed": true}
+{"input": "28/A11 Đường X1", "expected": {"housenumber": "28/A11", "alleyChain": ["28"], "houseInAlley": "A11", "street": "Đường X1"}, "curated": false, "reviewed": true}
+{"input": "63/4 Đường Trần Hưng Đạo", "expected": {"alleyChain": ["63"], "street": "Trần Hưng Đạo", "streetNorm": "tran hung dao", "housenumber": "63/4", "houseInAlley": "4"}, "curated": false, "reviewed": true}
+{"input": "115/1 Tôn Đức Thắng", "expected": {"alleyChain": ["115"], "street": "Tôn Đức Thắng", "streetNorm": "ton duc thang", "housenumber": "115/1", "houseInAlley": "1"}, "curated": false, "reviewed": true}
+{"input": "18/34 Bùi Thế Mỹ, Phường Bảy Hiền", "expected": {"alleyChain": ["18"], "street": "Bùi Thế Mỹ", "streetNorm": "bui the my", "housenumber": "18/34", "houseInAlley": "34", "ward": "Bảy Hiền"}, "curated": false, "reviewed": true}
+{"input": "112/6 Phổ Quang, Phú Nhuận", "expected": {"housenumber": "112/6", "alleyChain": ["112"], "houseInAlley": "6", "street": "Phổ Quang", "streetNorm": "pho quang"}, "curated": false, "reviewed": true}
+{"input": "87/13b Đinh Tiên Hoàng", "expected": {"alleyChain": ["87"], "street": "Đinh Tiên Hoàng", "streetNorm": "dinh tien hoang", "housenumber": "87/13b", "houseInAlley": "13b"}, "curated": false, "reviewed": true}
+{"input": "288/19 Đường Nơ Trang Long", "expected": {"alleyChain": ["288"], "street": "Nơ Trang Long", "streetNorm": "no trang long", "housenumber": "288/19", "houseInAlley": "19"}, "curated": false, "reviewed": true}
+{"input": "285/31 Hẻm 285 Đường Cách Mạng Tháng 8", "expected": {"housenumber": "285/31", "alleyChain": ["285"], "houseInAlley": "31", "alleyKeyword": "hem", "street": "Cách Mạng Tháng 8"}, "curated": false, "reviewed": true}
+{"input": "133/38b đường Văn Thân, Quận 6", "expected": {"alleyChain": ["133"], "street": "Văn Thân", "streetNorm": "van than", "housenumber": "133/38b", "houseInAlley": "38b", "district": "6"}, "curated": false, "reviewed": true}
+{"input": "36/13 Nguyễn Gia Trí", "expected": {"alleyChain": ["36"], "street": "Nguyễn Gia Trí", "streetNorm": "nguyen gia tri", "housenumber": "36/13", "houseInAlley": "13"}, "curated": false, "reviewed": true}
+{"input": "933/5A Tỉnh Lộ 10", "expected": {"housenumber": "933/5A", "alleyChain": ["933"], "houseInAlley": "5A", "street": "Tỉnh Lộ 10", "streetNorm": "tinh lo 10"}, "curated": false, "reviewed": true}
+{"input": "17/6 Hẻm 17/4 Trần Văn Ơn", "expected": {"housenumber": "17/4/6", "alleyChain": ["17", "4"], "houseInAlley": "6", "alleyKeyword": "hem", "street": "Trần Văn Ơn"}, "curated": false, "reviewed": true}
+{"input": "506/19/9 3 Tháng 2", "expected": {"alleyChain": ["506", "19"], "street": "3 Tháng 2", "streetNorm": "3 thang 2", "housenumber": "506/19/9", "houseInAlley": "9"}, "curated": false, "reviewed": true}
+{"input": "37/4/1 Hẻm 37/4 Đường Ngô Tất Tố", "expected": {"housenumber": "37/4/1", "alleyChain": ["37", "4"], "houseInAlley": "1", "alleyKeyword": "hem", "street": "Ngô Tất Tố"}, "curated": false, "reviewed": true}
+{"input": "579/2 Đ. Lò Gốm", "expected": {"alleyChain": ["579"], "street": "Lò Gốm", "streetNorm": "lo gom", "housenumber": "579/2", "houseInAlley": "2"}, "curated": false, "reviewed": true}
+{"input": "165/81 Nguyen Thai Binh, Nguyen Thai Binh Ward, District 1", "expected": {"housenumber": "165/81", "street": "Nguyen Thai Binh", "ward": "Nguyen Thai Binh", "district": "1"}, "curated": false, "reviewed": true}
+{"input": "81/33 Hồ Văn Huê", "expected": {"alleyChain": ["81"], "street": "Hồ Văn Huê", "streetNorm": "ho van hue", "housenumber": "81/33", "houseInAlley": "33"}, "curated": false, "reviewed": true}
+{"input": "736/169/10, Đ. Lê Đức Thọ", "expected": {"housenumber": "736/169/10", "alleyChain": ["736", "169"], "houseInAlley": "10", "street": "Lê Đức Thọ", "streetNorm": "le duc tho"}, "curated": false, "reviewed": true}
+{"input": "240/37C Hẻm 240 Nguyễn Văn Luông", "expected": {"housenumber": "240/37C", "alleyChain": ["240"], "houseInAlley": "37C", "alleyKeyword": "hem", "street": "Nguyễn Văn Luông"}, "curated": false, "reviewed": true}
+{"input": "68/280 Đ. Trần Quang Khải", "expected": {"alleyChain": ["68"], "street": "Trần Quang Khải", "streetNorm": "tran quang khai", "housenumber": "68/280", "houseInAlley": "280"}, "curated": false, "reviewed": true}
+{"input": "47/24/12A Hẻm 47/24 Bùi Đình Túy", "expected": {"housenumber": "47/24/12A", "alleyChain": ["47", "24"], "houseInAlley": "12A", "alleyKeyword": "hem", "street": "Bùi Đình Túy"}, "curated": false, "reviewed": true}
+{"input": "315/1 Hẻm 315 Lê Văn Sỹ", "expected": {"housenumber": "315/1", "alleyChain": ["315"], "houseInAlley": "1", "alleyKeyword": "hem", "street": "Lê Văn Sỹ"}, "curated": false, "reviewed": true}
+{"input": "72/21 Dương Đức Hiền", "expected": {"housenumber": "72/21", "alleyChain": ["72"], "houseInAlley": "21", "street": "Dương Đức Hiền", "streetNorm": "duong duc hien"}, "curated": false, "reviewed": true}
+{"input": "2/43 Đường Hà Huy Giáp", "expected": {"alleyChain": ["2"], "street": "Hà Huy Giáp", "streetNorm": "ha huy giap", "housenumber": "2/43", "houseInAlley": "43"}, "curated": false, "reviewed": true}
+{"input": "98/1 ấp Ba Rinh, xã Đại Hải, huyện Kế Sách tỉnh Sóc Trăng", "expected": {"housenumber": "98/1", "ward": "Đại Hải", "district": "Kế Sách", "province": "Cần Thơ"}, "curated": false, "reviewed": true}
+{"input": "68/4 Đường Tân Thới Hiệp 7", "expected": {"alleyChain": ["68"], "street": "Tân Thới Hiệp 7", "streetNorm": "tan thoi hiep 7", "housenumber": "68/4", "houseInAlley": "4"}, "curated": false, "reviewed": true}
+{"input": "888 30/4 , Phường 11 , Vũng Tàu", "expected": {"alleyChain": [], "street": "30/4", "streetNorm": "30/4", "housenumber": "888", "ward": "11", "province": "Thành phố Hồ Chí Minh"}, "curated": false, "reviewed": true}
+{"input": "277/27/8 Xô Viết Nghệ Tĩnh,Phường 15, Quận Bình Thạnh", "expected": {"alleyChain": ["277", "27"], "street": "Xô Viết Nghệ Tĩnh", "streetNorm": "xo viet nghe tinh", "housenumber": "277/27/8", "houseInAlley": "8", "ward": "15", "district": "Bình Thạnh"}, "curated": false, "reviewed": true}
+{"input": "144/7 Pasteur", "expected": {"alleyChain": ["144"], "street": "Pasteur", "streetNorm": "pasteur", "housenumber": "144/7", "houseInAlley": "7"}, "curated": false, "reviewed": true}
+{"input": "171/64 Nguyễn Tư Giản", "expected": {"alleyChain": ["171"], "street": "Nguyễn Tư Giản", "streetNorm": "nguyen tu gian", "housenumber": "171/64", "houseInAlley": "64"}, "curated": false, "reviewed": true}
+{"input": "72/21 Hẻm 72 Trần Quốc Toản", "expected": {"housenumber": "72/21", "alleyChain": ["72"], "houseInAlley": "21", "alleyKeyword": "hem", "street": "Trần Quốc Toản"}, "curated": false, "reviewed": true}
+{"input": "A6/17N Hương Lộ 80", "expected": {"housenumber": "A6/17N", "street": "Hương Lộ 80", "streetNorm": "huong lo 80"}, "curated": false, "reviewed": true}
+{"input": "998/19A Hẻm 998 Quang Trung", "expected": {"housenumber": "998/19A", "alleyChain": ["998"], "houseInAlley": "19A", "alleyKeyword": "hem", "street": "Quang Trung"}, "curated": false, "reviewed": true}
+{"input": "37/6 Đường Nguyễn Thái Bình", "expected": {"alleyChain": ["37"], "street": "Nguyễn Thái Bình", "streetNorm": "nguyen thai binh", "housenumber": "37/6", "houseInAlley": "6"}, "curated": false, "reviewed": true}
+{"input": "180/30, đường số 28, Phường 6, Quận Gò vấp", "expected": {"housenumber": "180/30", "alleyChain": ["180"], "houseInAlley": "30", "streetNorm": "duong so 28", "ward": "6", "district": "Gò vấp"}, "curated": false, "reviewed": true}
+{"input": "256/5 Phan Huy Ích", "expected": {"alleyChain": ["256"], "street": "Phan Huy Ích", "streetNorm": "phan huy ich", "housenumber": "256/5", "houseInAlley": "5"}, "curated": false, "reviewed": true}
+{"input": "115/9 Trần Văn Ơn", "expected": {"alleyChain": ["115"], "street": "Trần Văn Ơn", "streetNorm": "tran van on", "housenumber": "115/9", "houseInAlley": "9"}, "curated": false, "reviewed": true}
+{"input": "112/35 TX 48", "expected": {"alleyChain": ["112"], "street": "TX 48", "streetNorm": "tx 48", "housenumber": "112/35", "houseInAlley": "35"}, "curated": false, "reviewed": true}
+{"input": "212/88 Đ. Nguyễn Thiện Thuật", "expected": {"alleyChain": ["212"], "street": "Nguyễn Thiện Thuật", "streetNorm": "nguyen thien thuat", "housenumber": "212/88", "houseInAlley": "88"}, "curated": false, "reviewed": true}
+{"input": "86/9 Hẻm 90 Trường Chinh", "expected": {"alleyKeyword": "hem", "street": "Trường Chinh", "houseInAlley": "9"}, "curated": false, "reviewed": true}
+{"input": "14/24 Hẻm 14 Đường Hoàng Dư Khương", "expected": {"housenumber": "14/24", "alleyChain": ["14"], "houseInAlley": "24", "alleyKeyword": "hem", "street": "Hoàng Dư Khương"}, "curated": false, "reviewed": true}
+{"input": "50C/2 Đường Trần Nam Phú", "expected": {"alleyChain": ["50C"], "street": "Trần Nam Phú", "streetNorm": "tran nam phu", "housenumber": "50C/2", "houseInAlley": "2"}, "curated": false, "reviewed": true}
+{"input": "161/28/39A Bình Trị Đông", "expected": {"alleyChain": ["161", "28"], "street": "Bình Trị Đông", "streetNorm": "binh tri dong", "housenumber": "161/28/39A", "houseInAlley": "39A"}, "curated": false, "reviewed": true}
+{"input": "116/70 Hẻm 116 Dương Quảng Hàm", "expected": {"housenumber": "116/70", "alleyChain": ["116"], "houseInAlley": "70", "alleyKeyword": "hem", "street": "Dương Quảng Hàm"}, "curated": false, "reviewed": true}
+{"input": "135/37/9 Nguyễn Hữu Cảnh", "expected": {"alleyChain": ["135", "37"], "street": "Nguyễn Hữu Cảnh", "streetNorm": "nguyen huu canh", "housenumber": "135/37/9", "houseInAlley": "9"}, "curated": false, "reviewed": true}
+{"input": "165/20 Hẻm 165 Phan Văn Hớn", "expected": {"housenumber": "165/20", "alleyChain": ["165"], "houseInAlley": "20", "alleyKeyword": "hem", "street": "Phan Văn Hớn"}, "curated": false, "reviewed": true}
+{"input": "45/16A Đường Nguyễn Thị Búp", "expected": {"alleyChain": ["45"], "street": "Nguyễn Thị Búp", "streetNorm": "nguyen thi bup", "housenumber": "45/16A", "houseInAlley": "16A"}, "curated": false, "reviewed": true}
+{"input": "507/1 Hẻm 545 Đường Lê Quang Định", "expected": {"alleyKeyword": "hem", "street": "Lê Quang Định", "houseInAlley": "1"}, "curated": false, "reviewed": true}
+{"input": "124/34 Đ. Lê Thị Bạch Cát", "expected": {"alleyChain": ["124"], "street": "Lê Thị Bạch Cát", "streetNorm": "le thi bach cat", "housenumber": "124/34", "houseInAlley": "34"}, "curated": false, "reviewed": true}
+{"input": "150/36 Nguyễn Trãi", "expected": {"alleyChain": ["150"], "street": "Nguyễn Trãi", "streetNorm": "nguyen trai", "housenumber": "150/36", "houseInAlley": "36"}, "curated": false, "reviewed": true}
+{"input": "72/5 Đ. Số 1", "expected": {"housenumber": "72/5", "alleyChain": ["72"], "houseInAlley": "5", "streetNorm": "duong so 1"}, "curated": false, "reviewed": true}
+{"input": "51/8 Đường Hiệp Bình, Phường Hiệp Bình Chánh", "expected": {"alleyChain": ["51"], "street": "Hiệp Bình", "streetNorm": "hiep binh", "housenumber": "51/8", "houseInAlley": "8", "ward": "Hiệp Bình Chánh"}, "curated": false, "reviewed": true}
+{"input": "504/6 Đ. Kinh Dương Vương", "expected": {"alleyChain": ["504"], "street": "Kinh Dương Vương", "streetNorm": "kinh duong vuong", "housenumber": "504/6", "houseInAlley": "6"}, "curated": false, "reviewed": true}
+{"input": "34A/4 Đường Trần Huỳnh", "expected": {"alleyChain": ["34A"], "street": "Trần Huỳnh", "streetNorm": "tran huynh", "housenumber": "34A/4", "houseInAlley": "4"}, "curated": false, "reviewed": true}
+{"input": "700/8 Hẻm 700 Quốc Lộ 13", "expected": {"housenumber": "700/8", "alleyChain": ["700"], "houseInAlley": "8", "alleyKeyword": "hem", "street": "Quốc Lộ 13"}, "curated": false, "reviewed": true}
+{"input": "130/4 đường thành 13. Quận 12. TP. HCM", "expected": {"housenumber": "130/4", "alleyChain": ["130"], "houseInAlley": "4", "district": "12", "province": "Thành phố Hồ Chí Minh"}, "curated": false, "reviewed": true}
+{"input": "104/41 Hẻm 104 Thành Thái", "expected": {"housenumber": "104/41", "alleyChain": ["104"], "houseInAlley": "41", "alleyKeyword": "hem", "street": "Thành Thái"}, "curated": false, "reviewed": true}
+{"input": "Hẻm 225 Đ. Trần Phú", "expected": {"alleyChain": ["225"], "street": "Trần Phú", "streetNorm": "tran phu", "alleyKeyword": "hem"}, "curated": false, "reviewed": true}
+{"input": "Hẻm 26 Đường Số 4", "expected": {"alleyChain": ["26"], "street": "Đường Số 4", "streetNorm": "duong so 4", "alleyKeyword": "hem"}, "curated": false, "reviewed": true}
+{"input": "12 Hẻm 16 Trần Thiện Chánh", "expected": {"housenumber": "16/12", "alleyChain": ["16"], "houseInAlley": "12", "alleyKeyword": "hem", "street": "Trần Thiện Chánh"}, "curated": false, "reviewed": true}
+{"input": "44/32/15 Hẻm 44/32 Đường Trương Phước Phan", "expected": {"housenumber": "44/32/15", "alleyChain": ["44", "32"], "houseInAlley": "15", "alleyKeyword": "hem", "street": "Trương Phước Phan"}, "curated": false, "reviewed": true}
+{"input": "55 Hẻm 26 Đường Bến Vân Đồn", "expected": {"housenumber": "26/55", "alleyChain": ["26"], "houseInAlley": "55", "alleyKeyword": "hem", "street": "Bến Vân Đồn"}, "curated": false, "reviewed": true}
+{"input": "206/39 Hẻm 104 Phạm Văn Bạch", "expected": {"alleyKeyword": "hem", "street": "Phạm Văn Bạch", "houseInAlley": "39"}, "curated": false, "reviewed": true}
+{"input": "Hẻm 51 (Số 12C Hồ Bún Xáng - kế quán nhậu Sinh Viên cũ)", "expected": {"alleyChain": ["51"], "alleyKeyword": "hem"}, "curated": false, "reviewed": true}
+{"input": "21/24 Hẻm 21 Đường Số 10", "expected": {"housenumber": "21/24", "alleyChain": ["21"], "houseInAlley": "24", "alleyKeyword": "hem", "street": "Đường Số 10"}, "curated": false, "reviewed": true}
+{"input": "337/9 Hẻm 337 Đường Tân Kỳ Tân Quý", "expected": {"housenumber": "337/9", "alleyChain": ["337"], "houseInAlley": "9", "alleyKeyword": "hem", "street": "Tân Kỳ Tân Quý"}, "curated": false, "reviewed": true}
+{"input": "Ngõ 80 Phố Hoàng Đạo Thành", "expected": {"alleyChain": ["80"], "street": "Hoàng Đạo Thành", "streetNorm": "hoang dao thanh", "alleyKeyword": "ngo"}, "curated": false, "reviewed": true}
+{"input": "Hẻm 463B Cách Mạng Tháng Tám", "expected": {"alleyChain": ["463B"], "alleyKeyword": "hem", "street": "Cách Mạng Tháng Tám"}, "curated": false, "reviewed": true}
+{"input": "824/1 Hẻm 824 Sư Vạn Hạnh", "expected": {"housenumber": "824/1", "alleyChain": ["824"], "houseInAlley": "1", "alleyKeyword": "hem", "street": "Sư Vạn Hạnh"}, "curated": false, "reviewed": true}
+{"input": "1 Hẻm 55 Ấp Tiền Lân", "expected": {"housenumber": "55/1", "alleyChain": ["55"], "houseInAlley": "1", "alleyKeyword": "hem"}, "curated": false, "reviewed": true}
+{"input": "Hẻm 590 Đ. Phan Văn Trị", "expected": {"alleyChain": ["590"], "street": "Phan Văn Trị", "streetNorm": "phan van tri", "alleyKeyword": "hem"}, "curated": false, "reviewed": true}
+{"input": "497/10 Hẻm 497 Phan Văn Trị", "expected": {"housenumber": "497/10", "alleyChain": ["497"], "houseInAlley": "10", "alleyKeyword": "hem", "street": "Phan Văn Trị"}, "curated": false, "reviewed": true}
+{"input": "154/1 Hẻm 154 Nguyễn Kim", "expected": {"housenumber": "154/1", "alleyChain": ["154"], "houseInAlley": "1", "alleyKeyword": "hem", "street": "Nguyễn Kim"}, "curated": false, "reviewed": true}
+{"input": "Hẻm 561 Điện Biên Phủ", "expected": {"alleyChain": ["561"], "street": "Điện Biên Phủ", "streetNorm": "dien bien phu", "alleyKeyword": "hem"}, "curated": false, "reviewed": true}
+{"input": "Số 21/27A Lý Phục Man (thông hẻm 502/4 Huỳnh Tấn Phát)", "expected": {"housenumber": "21/27A", "alleyChain": ["21"], "houseInAlley": "27A", "street": "Lý Phục Man", "streetNorm": "ly phuc man"}, "curated": false, "reviewed": true}
+{"input": "18/8 Hẻm 18 Thích Quảng Đức", "expected": {"housenumber": "18/8", "alleyChain": ["18"], "houseInAlley": "8", "alleyKeyword": "hem", "street": "Thích Quảng Đức"}, "curated": false, "reviewed": true}
+{"input": "213/1 Hẻm 213 Quang Trung", "expected": {"housenumber": "213/1", "alleyChain": ["213"], "houseInAlley": "1", "alleyKeyword": "hem", "street": "Quang Trung"}, "curated": false, "reviewed": true}
+{"input": "26 Hẻm 14 Đường Nguyễn Văn Lượng", "expected": {"housenumber": "14/26", "alleyChain": ["14"], "houseInAlley": "26", "alleyKeyword": "hem", "street": "Nguyễn Văn Lượng"}, "curated": false, "reviewed": true}
+{"input": "86/176 Hẻm 86 Trường Chinh", "expected": {"housenumber": "86/176", "alleyChain": ["86"], "houseInAlley": "176", "alleyKeyword": "hem", "street": "Trường Chinh"}, "curated": false, "reviewed": true}
+{"input": "1 Hẻm 43 Đường Nguyễn Thái Học", "expected": {"housenumber": "43/1", "alleyChain": ["43"], "houseInAlley": "1", "alleyKeyword": "hem", "street": "Nguyễn Thái Học"}, "curated": false, "reviewed": true}
+{"input": "2 Hẻm 38 Đường 3 Tháng 2", "expected": {"housenumber": "38/2", "alleyChain": ["38"], "houseInAlley": "2", "alleyKeyword": "hem", "street": "3 Tháng 2"}, "curated": false, "reviewed": true}
+{"input": "55/107/4 Hẻm 55/107 Thành Mỹ", "expected": {"housenumber": "55/107/4", "alleyChain": ["55", "107"], "houseInAlley": "4", "alleyKeyword": "hem", "street": "Thành Mỹ"}, "curated": false, "reviewed": true}
+{"input": "gần công viên làng hoa, cuối hẻm 189, Đ. Lê Văn Thọ", "expected": {"street": "Lê Văn Thọ", "streetNorm": "le van tho"}, "curated": false, "reviewed": true}
+{"input": "43/2C Hẻm 43 Ấp Hậu Lân", "expected": {"housenumber": "43/2C", "alleyChain": ["43"], "houseInAlley": "2C", "alleyKeyword": "hem"}, "curated": false, "reviewed": true}
+{"input": "15 Ngõ 116 Nguyễn Xiển", "expected": {"housenumber": "116/15", "alleyChain": ["116"], "houseInAlley": "15", "alleyKeyword": "ngo", "street": "Nguyễn Xiển"}, "curated": false, "reviewed": true}
+{"input": "189/1 Hẻm 189 Hoàng Hoa Thám", "expected": {"housenumber": "189/1", "alleyChain": ["189"], "houseInAlley": "1", "alleyKeyword": "hem", "street": "Hoàng Hoa Thám"}, "curated": false, "reviewed": true}
+{"input": "491/33 Hẻm 491 Huỳnh Văn Bánh", "expected": {"housenumber": "491/33", "alleyChain": ["491"], "houseInAlley": "33", "alleyKeyword": "hem", "street": "Huỳnh Văn Bánh"}, "curated": false, "reviewed": true}
+{"input": "22 Hẻm 1 Đỗ Thúc Tịnh", "expected": {"housenumber": "1/22", "alleyChain": ["1"], "houseInAlley": "22", "alleyKeyword": "hem", "street": "Đỗ Thúc Tịnh"}, "curated": false, "reviewed": true}
+{"input": "244/15 Hẻm 244 Huỳnh Văn Bánh", "expected": {"housenumber": "244/15", "alleyChain": ["244"], "houseInAlley": "15", "alleyKeyword": "hem", "street": "Huỳnh Văn Bánh"}, "curated": false, "reviewed": true}
+{"input": "2 Hẻm 50 Đường Phan Chu Trinh", "expected": {"housenumber": "50/2", "alleyChain": ["50"], "houseInAlley": "2", "alleyKeyword": "hem", "street": "Phan Chu Trinh"}, "curated": false, "reviewed": true}
+{"input": "158/2 Hẻm 158 Xô Viết Nghệ Tĩnh", "expected": {"housenumber": "158/2", "alleyChain": ["158"], "houseInAlley": "2", "alleyKeyword": "hem", "street": "Xô Viết Nghệ Tĩnh"}, "curated": false, "reviewed": true}
+{"input": "335/14 Hẻm 335 Điện Biên Phủ", "expected": {"housenumber": "335/14", "alleyChain": ["335"], "houseInAlley": "14", "alleyKeyword": "hem", "street": "Điện Biên Phủ"}, "curated": false, "reviewed": true}
+{"input": "347/15 Hẻm 347 Lê Văn Thọ", "expected": {"housenumber": "347/15", "alleyChain": ["347"], "houseInAlley": "15", "alleyKeyword": "hem", "street": "Lê Văn Thọ"}, "curated": false, "reviewed": true}
+{"input": "221/7/2 Hẻm 221 Trần Huy Liệu", "expected": {"housenumber": "221/7/2", "alleyChain": ["221", "7"], "houseInAlley": "2", "alleyKeyword": "hem", "street": "Trần Huy Liệu"}, "curated": false, "reviewed": true}
+{"input": "80/28 Hẻm 80 Huỳnh Văn Nghệ", "expected": {"housenumber": "80/28", "alleyChain": ["80"], "houseInAlley": "28", "alleyKeyword": "hem", "street": "Huỳnh Văn Nghệ"}, "curated": false, "reviewed": true}
+{"input": "685/36 Hẻm 685 Xô Viết Nghệ Tĩnh", "expected": {"housenumber": "685/36", "alleyChain": ["685"], "houseInAlley": "36", "alleyKeyword": "hem", "street": "Xô Viết Nghệ Tĩnh"}, "curated": false, "reviewed": true}
+{"input": "58/11 Hẻm 58 Hồ Thị Kỷ", "expected": {"housenumber": "58/11", "alleyChain": ["58"], "houseInAlley": "11", "alleyKeyword": "hem", "street": "Hồ Thị Kỷ"}, "curated": false, "reviewed": true}
+{"input": "48/50 Hẻm 48 Huỳnh Văn Chính", "expected": {"housenumber": "48/50", "alleyChain": ["48"], "houseInAlley": "50", "alleyKeyword": "hem", "street": "Huỳnh Văn Chính"}, "curated": false, "reviewed": true}
+{"input": "Hẻm 493/36 CMT8 Phường Hoà Hưng ( P13 Q10 cũ )", "expected": {"alleyChain": ["493", "36"], "alleyKeyword": "hem", "street": "CMT8", "ward": "Hoà Hưng"}, "curated": false, "reviewed": true}
+{"input": "465/2 Hẻm 465 Phan Văn Trị", "expected": {"housenumber": "465/2", "alleyChain": ["465"], "houseInAlley": "2", "alleyKeyword": "hem", "street": "Phan Văn Trị"}, "curated": false, "reviewed": true}
+{"input": "62/6 Hẻm 62 Trương Phước Phan", "expected": {"housenumber": "62/6", "alleyChain": ["62"], "houseInAlley": "6", "alleyKeyword": "hem", "street": "Trương Phước Phan"}, "curated": false, "reviewed": true}
+{"input": "52/33 Hẻm 52 Huỳnh Văn Nghệ", "expected": {"housenumber": "52/33", "alleyChain": ["52"], "houseInAlley": "33", "alleyKeyword": "hem", "street": "Huỳnh Văn Nghệ"}, "curated": false, "reviewed": true}
+{"input": "3 Hẻm 2 Cao Thắng", "expected": {"housenumber": "2/3", "alleyChain": ["2"], "houseInAlley": "3", "alleyKeyword": "hem", "street": "Cao Thắng"}, "curated": false, "reviewed": true}
+{"input": "13 Hẻm 433 Sư Vạn Hạnh", "expected": {"housenumber": "433/13", "alleyChain": ["433"], "houseInAlley": "13", "alleyKeyword": "hem", "street": "Sư Vạn Hạnh"}, "curated": false, "reviewed": true}
+{"input": "80/38 Hẻm 80 Đường Số 3", "expected": {"housenumber": "80/38", "alleyChain": ["80"], "houseInAlley": "38", "alleyKeyword": "hem", "street": "Đường Số 3"}, "curated": false, "reviewed": true}
+{"input": "595/5 Hẻm 595 Thống Nhất", "expected": {"housenumber": "595/5", "alleyChain": ["595"], "houseInAlley": "5", "alleyKeyword": "hem", "street": "Thống Nhất"}, "curated": false, "reviewed": true}
+{"input": "178/6 Hẻm 178 Nguyễn Văn Thương", "expected": {"housenumber": "178/6", "alleyChain": ["178"], "houseInAlley": "6", "alleyKeyword": "hem", "street": "Nguyễn Văn Thương"}, "curated": false, "reviewed": true}
+{"input": "302/50 Hẻm 302 Lê Đình Cẩn", "expected": {"housenumber": "302/50", "alleyChain": ["302"], "houseInAlley": "50", "alleyKeyword": "hem", "street": "Lê Đình Cẩn"}, "curated": false, "reviewed": true}
+{"input": "98/9 Hẻm 98 Phan Huy Ích", "expected": {"housenumber": "98/9", "alleyChain": ["98"], "houseInAlley": "9", "alleyKeyword": "hem", "street": "Phan Huy Ích"}, "curated": false, "reviewed": true}
+{"input": "285 Hẻm 285 Cách Mạng Tháng Tám", "expected": {"alleyChain": ["285"], "alleyKeyword": "hem", "street": "Cách Mạng Tháng Tám"}, "curated": false, "reviewed": true}
+{"input": "C33 Hẻm 6 Đường Số 15", "expected": {"housenumber": "6/C33", "alleyChain": ["6"], "houseInAlley": "C33", "alleyKeyword": "hem", "street": "Đường Số 15", "streetNorm": "duong so 15"}, "curated": false, "reviewed": true}
+{"input": "Hẻm 609 Lê Quang Định", "expected": {"alleyChain": ["609"], "street": "Lê Quang Định", "streetNorm": "le quang dinh", "alleyKeyword": "hem"}, "curated": false, "reviewed": true}
+{"input": "17 Ngõ 55 Huỳnh Thúc Kháng", "expected": {"housenumber": "55/17", "alleyChain": ["55"], "houseInAlley": "17", "alleyKeyword": "ngo", "street": "Huỳnh Thúc Kháng"}, "curated": false, "reviewed": true}
+{"input": "Hẻm 137 Huỳnh Mẫn Đạt - Tp Hồ Chí Minh", "expected": {"alleyChain": ["137"], "street": "Huỳnh Mẫn Đạt", "streetNorm": "huynh man dat", "alleyKeyword": "hem", "province": "Thành phố Hồ Chí Minh"}, "curated": false, "reviewed": true}
+{"input": "112/37 Hẻm 112 Bùi Quang Là", "expected": {"housenumber": "112/37", "alleyChain": ["112"], "houseInAlley": "37", "alleyKeyword": "hem", "street": "Bùi Quang Là"}, "curated": false, "reviewed": true}
+{"input": "525/96 Hẻm 525 Huỳnh Văn Bánh", "expected": {"housenumber": "525/96", "alleyChain": ["525"], "houseInAlley": "96", "alleyKeyword": "hem", "street": "Huỳnh Văn Bánh"}, "curated": false, "reviewed": true}
+{"input": "109 Phú Thọ Hoà P. Phú Thọ Hoà Q. Tân Phú", "expected": {"alleyChain": [], "street": "Phú Thọ Hoà", "streetNorm": "phu tho hoa", "housenumber": "109", "ward": "Phú Thọ Hoà", "district": "Tân Phú"}, "curated": false, "reviewed": true}
+{"input": "Số 3 đường 7A, Cư Xá Bình Thới, P.08, Q.11, HCM", "expected": {"alleyChain": [], "street": "7A", "streetNorm": "7a", "housenumber": "3", "ward": "08", "district": "11", "province": "Thành phố Hồ Chí Minh"}, "curated": false, "reviewed": true}
+{"input": "R37 đường số 15 phường tân thới nhất quận 12", "expected": {"housenumber": "R37", "streetNorm": "duong so 15", "ward": "tân thới nhất", "district": "12"}, "curated": false, "reviewed": true}
+{"input": "Sân Pickleball Liberty N7 Phường 1 TP. Trà Vinh, Việt Nam", "expected": {"ward": "1", "province": "Vĩnh Long"}, "curated": false, "reviewed": true}
+{"input": "410 đường 3/2, phường 12, quận 10", "expected": {"alleyChain": [], "street": "3/2", "streetNorm": "3/2", "housenumber": "410", "ward": "12", "district": "10"}, "curated": false, "reviewed": true}
+{"input": "số 6 đường số 2, khu đô thị Him Lam, phường Tân Hưng, quận 7", "expected": {"alleyChain": [], "street": "đường số 2", "streetNorm": "duong so 2", "housenumber": "6", "ward": "Tân Hưng", "district": "7"}, "curated": false, "reviewed": true}
+{"input": "513 ÂU CƠ PHƯỜNG PHÚ TRUNG QUẬN TÂN PHÚ", "expected": {"alleyChain": [], "street": "ÂU CƠ", "streetNorm": "au co", "housenumber": "513", "ward": "PHÚ TRUNG", "district": "TÂN PHÚ"}, "curated": false, "reviewed": true}
+{"input": "Số 227 Kinh Dương Vương, phường 12", "expected": {"alleyChain": [], "street": "Kinh Dương Vương", "streetNorm": "kinh duong vuong", "housenumber": "227", "ward": "12"}, "curated": false, "reviewed": true}
+{"input": "350 Âu Cơ phường bảy hiền Tphcm", "expected": {"alleyChain": [], "street": "Âu Cơ", "streetNorm": "au co", "housenumber": "350", "ward": "bảy hiền", "province": "Thành phố Hồ Chí Minh"}, "curated": false, "reviewed": true}
+{"input": "L1K6C TTTM Vincom Imperia,Phường Hồng Bàng, Hải Phòng", "expected": {"ward": "Hồng Bàng", "province": "Hải Phòng"}, "curated": false, "reviewed": true}
+{"input": "94 Đường số 4, Cư xá Đô Thành, phường 4, Quận 3", "expected": {"alleyChain": [], "street": "Đường số 4", "streetNorm": "duong so 4", "housenumber": "94", "ward": "4", "district": "3"}, "curated": false, "reviewed": true}
+{"input": "165 , Quốc Lộ 62 , Phường 6 , Tân An", "expected": {"housenumber": "165", "street": "Quốc Lộ 62", "streetNorm": "quoc lo 62", "ward": "6", "province": "Tây Ninh"}, "curated": false, "reviewed": true}
+{"input": "407 Đường 30/4 Khóm 5, Phường Tân Thành ( P5 Củ) Tp Cà Mau", "expected": {"housenumber": "407", "street": "30/4", "ward": "Tân Thành", "province": "Cà Mau"}, "curated": false, "reviewed": true}
+{"input": "472, Đoàn Văn Bơ, Phường 14, Quận 4, Thành Phố Hồ Chí Minh, Thành Phố Hồ Chí Minh", "expected": {"housenumber": "472", "street": "Đoàn Văn Bơ", "ward": "14", "district": "4", "province": "Thành phố Hồ Chí Minh"}, "curated": false, "reviewed": true}
+{"input": "315/4/9 Trương Thị Hoa, Phường Tân Thới Hiệp, Quận 12", "expected": {"alleyChain": ["315", "4"], "street": "Trương Thị Hoa", "streetNorm": "truong thi hoa", "housenumber": "315/4/9", "houseInAlley": "9", "ward": "Tân Thới Hiệp", "district": "12"}, "curated": false, "reviewed": true}
+{"input": "102/17 đường số 2, KP1, Phường Phú Mỹ, Quận 7", "expected": {"alleyChain": ["102"], "street": "đường số 2", "streetNorm": "duong so 2", "housenumber": "102/17", "houseInAlley": "17", "ward": "Phú Mỹ", "district": "7"}, "curated": false, "reviewed": true}
+{"input": "77 Đường số 85, Phường Tân Quy, Quận 7", "expected": {"alleyChain": [], "street": "Đường số 85", "streetNorm": "duong so 85", "housenumber": "77", "ward": "Tân Quy", "district": "7"}, "curated": false, "reviewed": true}
+{"input": "79/F2 Đường Âu Cơ, Phường 14, Q11, Tp. Hồ Chí Minh", "expected": {"housenumber": "79/F2", "alleyChain": ["79"], "houseInAlley": "F2", "street": "Âu Cơ", "ward": "14", "district": "11", "province": "Thành phố Hồ Chí Minh"}, "curated": false, "reviewed": true}
+{"input": "AEON MALL Tân Phú Celadon, 30 Bờ Bao Tân Thắng, Phường Sơn Kỳ", "expected": {"alleyChain": [], "street": "Bờ Bao Tân Thắng", "streetNorm": "bo bao tan thang", "housenumber": "30", "ward": "Sơn Kỳ"}, "curated": false, "reviewed": true}
+{"input": "628C Giang Văn Minh, An Phú, Quận 2", "expected": {"alleyChain": [], "street": "Giang Văn Minh", "streetNorm": "giang van minh", "housenumber": "628C", "district": "2", "ward": "An Phú"}, "curated": false, "reviewed": true}
+{"input": "Khóm 4, Phường Tân Thành, Tân Thành, Thành phố Cà Mau", "expected": {"alleyChain": [], "ward": "Tân Thành", "province": "Cà Mau", "district": "Tân Thành"}, "curated": false, "reviewed": true}
+{"input": "Lô P2 – 36 + 37 Đường 3/2, P. An Hòa, TP. Rạch Giá, T. Kiên Giang Việt Nam", "expected": {"alleyChain": [], "ward": "An Hòa", "province": "An Giang"}, "curated": false, "reviewed": true}
+{"input": "993 CMT8, phường 7, Tân Bình", "expected": {"alleyChain": [], "street": "CMT8", "streetNorm": "cmt8", "housenumber": "993", "ward": "7", "district": "Tân Bình"}, "curated": false, "reviewed": true}
+{"input": "2/38/5 hẻm 2, đường 3 Tháng 2, P. Tân An, TP. Cần Thơ", "expected": {"housenumber": "2/38/5", "alleyChain": ["2", "38"], "houseInAlley": "5", "alleyKeyword": "hem", "street": "3 Tháng 2", "streetNorm": "3 thang 2", "ward": "Tân An", "province": "Cần Thơ"}, "curated": false, "reviewed": true}
+{"input": "30 Đô Đốc Chấn, Phường Sơn Kỳ, Quận Tân Phú, Thành phố Hồ Chí Minh", "expected": {"alleyChain": [], "street": "Đô Đốc Chấn", "streetNorm": "do doc chan", "housenumber": "30", "ward": "Sơn Kỳ", "district": "Tân Phú", "province": "Thành phố Hồ Chí Minh"}, "curated": false, "reviewed": true}
+{"input": "23 Tân Cảng, Phường Thạnh Mỹ Tây", "expected": {"alleyChain": [], "street": "Tân Cảng", "streetNorm": "tan cang", "housenumber": "23", "ward": "Thạnh Mỹ Tây"}, "curated": false, "reviewed": true}
+{"input": "788 Đường Số 8 Phường Bình Hưng Hòa Quận Bình Tân", "expected": {"alleyChain": [], "street": "Đường Số 8", "streetNorm": "duong so 8", "housenumber": "788", "ward": "Bình Hưng Hòa", "district": "Bình Tân"}, "curated": false, "reviewed": true}
+{"input": "19 Cao Thắng, P.2, Q.3, Tp. Hồ Chí Minh", "expected": {"alleyChain": [], "street": "Cao Thắng", "streetNorm": "cao thang", "housenumber": "19", "ward": "2", "district": "3", "province": "Thành phố Hồ Chí Minh"}, "curated": false, "reviewed": true}
+{"input": "Đường Bùi Thế Mỹ, phường 10, quận Tân Bình", "expected": {"alleyChain": [], "street": "Bùi Thế Mỹ", "streetNorm": "bui the my", "ward": "10", "district": "Tân Bình"}, "curated": false, "reviewed": true}
+{"input": "62 Đường B1 KDT Đông Tăng Long Phường Trường Thạnh Quận 9, Thủ Đức, Thành phố Hồ Chí Minh 77000, Vietnam", "expected": {"housenumber": "62", "ward": "Trường Thạnh", "district": "9", "province": "Thành phố Hồ Chí Minh"}, "curated": false, "reviewed": true}
+{"input": "3 Tháng 2, Quận 10", "expected": {"street": "3 Tháng 2", "streetNorm": "3 thang 2", "district": "10"}, "curated": false, "reviewed": true}
+{"input": "600 Điện Biên Phủ, Phường Thạnh Mỹ Tây", "expected": {"alleyChain": [], "street": "Điện Biên Phủ", "streetNorm": "dien bien phu", "housenumber": "600", "ward": "Thạnh Mỹ Tây"}, "curated": false, "reviewed": true}
+{"input": "Lý Thường Kiệt, Cư Xá Lữ Gia, Quận 11, đối diện ĐHBK, gần nhà thi đấu Phú Thọ, bệnh viện Trưng Vương", "expected": {"street": "Lý Thường Kiệt", "district": "11"}, "curated": false, "reviewed": true}
+{"input": "59/22 đường 12 p.trường thạnh, Q.9, Tp.HCM", "expected": {"housenumber": "59/22", "alleyChain": ["59"], "houseInAlley": "22", "streetNorm": "12", "ward": "trường thạnh", "district": "9", "province": "Thành phố Hồ Chí Minh"}, "curated": false, "reviewed": true}
+{"input": "49 Trần Quốc Hoàn, Phường 4", "expected": {"alleyChain": [], "street": "Trần Quốc Hoàn", "streetNorm": "tran quoc hoan", "housenumber": "49", "ward": "4"}, "curated": false, "reviewed": true}
+{"input": "272A4 Trần Vĩnh Kiết, phường An Bình, quận Ninh Kiều", "expected": {"housenumber": "272A4", "street": "Trần Vĩnh Kiết", "ward": "An Bình", "district": "Ninh Kiều"}, "curated": false, "reviewed": true}
+{"input": "109F - KDC Hàng Bàng, Phường An Khánh, Quận Ninh Kiều", "expected": {"alleyChain": [], "housenumber": "109F", "ward": "An Khánh", "district": "Ninh Kiều"}, "curated": false, "reviewed": true}
+{"input": "929 QL1A, Thới An, Quận 12,", "expected": {"alleyChain": [], "street": "QL1A", "streetNorm": "ql1a", "housenumber": "929", "district": "12", "ward": "Thới An"}, "curated": false, "reviewed": true}
+{"input": "577/30 Hiệp Bình Phước, Thủ Đức, TP.HCM", "expected": {"alleyChain": ["577"], "street": "Hiệp Bình Phước", "streetNorm": "hiep binh phuoc", "housenumber": "577/30", "houseInAlley": "30", "province": "Thành phố Hồ Chí Minh", "ward": "Thủ Đức"}, "curated": false, "reviewed": true}
+{"input": "Đường 30/4, Phường An Phú, Quận Ninh Kiều", "expected": {"alleyChain": [], "street": "30/4", "streetNorm": "30/4", "ward": "An Phú", "district": "Ninh Kiều"}, "curated": false, "reviewed": true}
+{"input": "B/19 Chợ Hoàng Hoa Thám, Phường 13, Quận Tân Bình", "expected": {"ward": "13", "district": "Tân Bình"}, "curated": false, "reviewed": true}
+{"input": "Belleza Đường số 2, Phường Tân Mỹ, TPHCM", "expected": {"ward": "Tân Mỹ", "province": "Thành phố Hồ Chí Minh"}, "curated": false, "reviewed": true}
+{"input": "172b Nguyễn Văn Tư, Phường 5, Thành phố Bến Tre, Tỉnh Bến Tre", "expected": {"alleyChain": [], "street": "Nguyễn Văn Tư", "streetNorm": "nguyen van tu", "housenumber": "172b", "ward": "5", "province": "Vĩnh Long"}, "curated": false, "reviewed": true}
+{"input": "139C/4 đường Trần Vĩnh Kiết, phường An Bình, quận Ninh Kiều, thành phố Cần Thơ", "expected": {"alleyChain": ["139C"], "street": "Trần Vĩnh Kiết", "streetNorm": "tran vinh kiet", "housenumber": "139C/4", "houseInAlley": "4", "ward": "An Bình", "district": "Ninh Kiều", "province": "Cần Thơ"}, "curated": false, "reviewed": true}
+{"input": "47L Đường số 11, Phường 1, Quận Bình Thạnh", "expected": {"alleyChain": [], "street": "Đường số 11", "streetNorm": "duong so 11", "housenumber": "47L", "ward": "1", "district": "Bình Thạnh"}, "curated": false, "reviewed": true}
+{"input": "Đường N6 (Hoa Sim), khu dân cư Hiệp Thành, Quận 12", "expected": {"street": "Đường N6", "streetNorm": "duong n6", "district": "12"}, "curated": false, "reviewed": true}
+{"input": "89, Dương Văn An, phường An Phú, quận 2", "expected": {"housenumber": "89", "street": "Dương Văn An", "ward": "An Phú", "district": "2"}, "curated": false, "reviewed": true}
+{"input": "410/32B Hậu Giang, Phường 12, quận 6 ,Thành Phố Hồ Chí Minh", "expected": {"alleyChain": ["410"], "street": "Hậu Giang", "streetNorm": "hau giang", "housenumber": "410/32B", "houseInAlley": "32B", "ward": "12", "district": "6", "province": "Thành phố Hồ Chí Minh"}, "curated": false, "reviewed": true}
+{"input": "390a Nguyễn Văn Cừ (nối dài),Phường An Khánh", "expected": {"housenumber": "390a", "street": "Nguyễn Văn Cừ", "ward": "An Khánh"}, "curated": false, "reviewed": true}
+{"input": "Khóm Chòm Xoài, Phường Nhà Mát", "expected": {"alleyChain": [], "ward": "Nhà Mát"}, "curated": false, "reviewed": true}
+{"input": "số 7, đường số 1, phường 4, quận Gò Vấp, Thành phố Hồ Chí Minh", "expected": {"housenumber": "7", "streetNorm": "duong so 1", "ward": "4", "district": "Gò Vấp", "province": "Thành phố Hồ Chí Minh"}, "curated": false, "reviewed": true}
+{"input": "1691/3N Quốc Lộ 1A, P. An Phú Đông, Tp.hcm", "expected": {"alleyChain": ["1691"], "street": "Quốc Lộ 1A", "streetNorm": "quoc lo 1a", "housenumber": "1691/3N", "houseInAlley": "3N", "ward": "An Phú Đông", "province": "Thành phố Hồ Chí Minh"}, "curated": false, "reviewed": true}
+{"input": "2/1/9 đường 84 Cao Lỗ, phường 4, quận 8", "expected": {"alleyChain": ["2", "1"], "street": "84 Cao Lỗ", "streetNorm": "84 cao lo", "housenumber": "2/1/9", "houseInAlley": "9", "ward": "4", "district": "8"}, "curated": false, "reviewed": true}
+{"input": "50 tân quý quận tân phú hồ chí minh", "expected": {"housenumber": "50", "street": "tân quý"}, "curated": false, "reviewed": true}
+{"input": "Đường Đinh Tiên Hoàng – Khu đô thị mới lấn biển Hà Tiên - Phường Pháo Đài Thành phố Hà Tiên, Kiên Giang 91000", "expected": {"ward": "Pháo Đài", "province": "An Giang"}, "curated": false, "reviewed": true}
+{"input": "Vincom thảo điền, Quận 2", "expected": {"district": "2"}, "curated": false, "reviewed": true}
+{"input": "Villa E4, khu biệt thự village An Phú Đông, Quận 12, Tp Hồ Chí Minh", "expected": {"district": "12", "province": "Thành phố Hồ Chí Minh"}, "curated": false, "reviewed": true}
+{"input": "1716/9/2 Huỳnh Tấn Phát, Xã Nhà Bè TP.HCM", "expected": {"housenumber": "1716/9/2", "alleyChain": ["1716", "9"], "houseInAlley": "2", "street": "Huỳnh Tấn Phát", "ward": "Nhà Bè", "province": "Thành phố Hồ Chí Minh"}, "curated": false, "reviewed": true}
+{"input": "35/1D Ao Đôi phường Bình Trị Đông A Thành phố Hồ Chí Minh", "expected": {"alleyChain": ["35"], "street": "Ao Đôi", "streetNorm": "ao doi", "housenumber": "35/1D", "houseInAlley": "1D", "ward": "Bình Trị Đông A", "province": "Thành phố Hồ Chí Minh"}, "curated": false, "reviewed": true}
+{"input": "114 Đường Trường Chinh", "expected": {"alleyChain": [], "street": "Trường Chinh", "streetNorm": "truong chinh", "housenumber": "114"}, "curated": false, "reviewed": true}
+{"input": "1 Đường Mai Thị Tốt", "expected": {"alleyChain": [], "street": "Mai Thị Tốt", "streetNorm": "mai thi tot", "housenumber": "1"}, "curated": false, "reviewed": true}
+{"input": "325 Đường Lý Thánh Tông", "expected": {"alleyChain": [], "street": "Lý Thánh Tông", "streetNorm": "ly thanh tong", "housenumber": "325"}, "curated": false, "reviewed": true}
+{"input": "367 Đường Lê Đại Hành", "expected": {"alleyChain": [], "street": "Lê Đại Hành", "streetNorm": "le dai hanh", "housenumber": "367"}, "curated": false, "reviewed": true}
+{"input": "Phố Đông côi, Thị Trấn Hồ, Thuận Thành", "expected": {"alleyChain": [], "street": "Đông côi", "streetNorm": "dong coi", "ward": "Hồ", "district": "Thuận Thành"}, "curated": false, "reviewed": true}
+{"input": "Số 03, đường số 32( cạnh Khách sạn Hồng Kong 2), Phường Trần Hưng Đạo", "expected": {"housenumber": "03", "streetNorm": "duong so 32", "ward": "Trần Hưng Đạo"}, "curated": false, "reviewed": true}
+{"input": "Tầng 9, tòa nhà Viễn Đông, 14 Phan Tôn, phường Dakao, Quận 1", "expected": {"alleyChain": [], "street": "Phan Tôn", "streetNorm": "phan ton", "housenumber": "14", "ward": "Dakao", "district": "1"}, "curated": false, "reviewed": true}
+{"input": "Đường Ankroet, phường 7, tp Đà Lạt", "expected": {"alleyChain": [], "street": "Ankroet", "streetNorm": "ankroet", "ward": "7", "province": "Lâm Đồng"}, "curated": false, "reviewed": true}
+{"input": "113 Phan Xích Long", "expected": {"alleyChain": [], "street": "Phan Xích Long", "streetNorm": "phan xich long", "housenumber": "113"}, "curated": false, "reviewed": true}
+{"input": "202 Trần Quý", "expected": {"alleyChain": [], "street": "Trần Quý", "streetNorm": "tran quy", "housenumber": "202"}, "curated": false, "reviewed": true}
+{"input": "NGÕ 68 CẦU GIẤY", "expected": {"alleyChain": ["68"], "street": "CẦU GIẤY", "streetNorm": "cau giay", "alleyKeyword": "ngo"}, "curated": false, "reviewed": true}
+{"input": "46310 Hoàng mai", "expected": {"street": "Hoàng mai"}, "curated": false, "reviewed": true}
+{"input": "15 Phố Nguyễn Công Hoan B", "expected": {"alleyChain": [], "street": "Nguyễn Công Hoan B", "streetNorm": "nguyen cong hoan b", "housenumber": "15"}, "curated": false, "reviewed": true}
+{"input": "42485 Hoàng mai", "expected": {"street": "Hoàng mai"}, "curated": false, "reviewed": true}
+{"input": "44D Đường Trần Nhân Tông", "expected": {"alleyChain": [], "street": "Trần Nhân Tông", "streetNorm": "tran nhan tong", "housenumber": "44D"}, "curated": false, "reviewed": true}
+{"input": "QL1A, Suối Cát, Xuân Lộc,", "expected": {"alleyChain": [], "street": "QL1A", "streetNorm": "ql1a", "ward": "Suối Cát", "district": "Xuân Lộc"}, "curated": false, "reviewed": true}
+{"input": "Tòa nhà Hemisco, P. Phúc La", "expected": {"alleyChain": [], "ward": "Phúc La"}, "curated": false, "reviewed": true}
+{"input": "87 Đường Lê Lợi", "expected": {"alleyChain": [], "street": "Lê Lợi", "streetNorm": "le loi", "housenumber": "87"}, "curated": false, "reviewed": true}
+{"input": "Tây Hồ Hà Nội", "expected": {"province": "Hà Nội"}, "curated": false, "reviewed": true}
+{"input": "282 Lạch Tray", "expected": {"alleyChain": [], "street": "Lạch Tray", "streetNorm": "lach tray", "housenumber": "282"}, "curated": false, "reviewed": true}
+{"input": "131 Đ. Trần Huy Liệu", "expected": {"alleyChain": [], "street": "Trần Huy Liệu", "streetNorm": "tran huy lieu", "housenumber": "131"}, "curated": false, "reviewed": true}
+{"input": "31 Đường Nguyễn Thị Định", "expected": {"alleyChain": [], "street": "Nguyễn Thị Định", "streetNorm": "nguyen thi dinh", "housenumber": "31"}, "curated": false, "reviewed": true}
+{"input": "1426 Trần Thủ Độ", "expected": {"alleyChain": [], "street": "Trần Thủ Độ", "streetNorm": "tran thu do", "housenumber": "1426"}, "curated": false, "reviewed": true}
+{"input": "135 Nguyễn Du", "expected": {"alleyChain": [], "street": "Nguyễn Du", "streetNorm": "nguyen du", "housenumber": "135"}, "curated": false, "reviewed": true}
+{"input": "BT2 Phố Lưu Hữu Phước", "expected": {"street": "Lưu Hữu Phước", "streetNorm": "luu huu phuoc"}, "curated": false, "reviewed": true}
+{"input": "132B Đại Đức Hữu Nhem", "expected": {"alleyChain": [], "street": "Đại Đức Hữu Nhem", "streetNorm": "dai duc huu nhem", "housenumber": "132B"}, "curated": false, "reviewed": true}
+{"input": "7A Đ. Tăng Bạt Hổ", "expected": {"alleyChain": [], "street": "Tăng Bạt Hổ", "streetNorm": "tang bat ho", "housenumber": "7A"}, "curated": false, "reviewed": true}
+{"input": "9E Lữ Gia Phường9 TP Đà Lạt", "expected": {"alleyChain": [], "street": "Lữ Gia", "streetNorm": "lu gia", "housenumber": "9E", "ward": "9", "province": "Lâm Đồng"}, "curated": false, "reviewed": true}
+{"input": "Võ Thị Sáu, Phường Thống Nhất", "expected": {"alleyChain": [], "ward": "Thống Nhất", "street": "Võ Thị Sáu", "streetNorm": "vo thi sau"}, "curated": false, "reviewed": true}
+{"input": "191 Đường Thống Nhất", "expected": {"alleyChain": [], "street": "Thống Nhất", "streetNorm": "thong nhat", "housenumber": "191"}, "curated": false, "reviewed": true}
+{"input": "119 Ngõ 401 Xuân Đỉnh", "expected": {"housenumber": "401/119", "alleyChain": ["401"], "houseInAlley": "119", "alleyKeyword": "ngo", "street": "Xuân Đỉnh"}, "curated": false, "reviewed": true}
+{"input": "986 Quốc Lộ 1A", "expected": {"alleyChain": [], "street": "Quốc Lộ 1A", "streetNorm": "quoc lo 1a", "housenumber": "986"}, "curated": false, "reviewed": true}
+{"input": "1 Đường Ngô Quyền", "expected": {"alleyChain": [], "street": "Ngô Quyền", "streetNorm": "ngo quyen", "housenumber": "1"}, "curated": false, "reviewed": true}
+{"input": "51 Đường D5, Khu dân cư K8 Thanh Lễ, Thủ Dầu Một, Bình Dương", "expected": {"alleyChain": [], "street": "Đường D5", "streetNorm": "duong d5", "housenumber": "51", "province": "Thành phố Hồ Chí Minh"}, "curated": false, "reviewed": true}
+{"input": "Xã Nam Thanh", "expected": {"alleyChain": [], "ward": "Nam Thanh"}, "curated": false, "reviewed": true}
+{"input": "30860 Hoàng mai", "expected": {"street": "Hoàng mai"}, "curated": false, "reviewed": true}
+{"input": "X trường Đại Học Công Nghiệp, Nhà X, 4 Nguyễn Văn Bảo", "expected": {"alleyChain": [], "street": "Nguyễn Văn Bảo", "streetNorm": "nguyen van bao", "housenumber": "4"}, "curated": false, "reviewed": true}
+{"input": "Việt Hùng, Quế Võ", "expected": {"ward": "Việt Hùng", "district": "Quế Võ"}, "curated": false, "reviewed": true}
+{"input": "99 Nguyễn Thị Thập", "expected": {"alleyChain": [], "street": "Nguyễn Thị Thập", "streetNorm": "nguyen thi thap", "housenumber": "99"}, "curated": false, "reviewed": true}
+{"input": "123 Lý Tự Trọng", "expected": {"alleyChain": [], "street": "Lý Tự Trọng", "streetNorm": "ly tu trong", "housenumber": "123"}, "curated": false, "reviewed": true}
+{"input": "1163 Xô Viết Nghệ Tĩnh", "expected": {"alleyChain": [], "street": "Xô Viết Nghệ Tĩnh", "streetNorm": "xo viet nghe tinh", "housenumber": "1163"}, "curated": false, "reviewed": true}
+{"input": "1 Ngõ 6 P. Vũ Đức Thận", "expected": {"alleyChain": ["6"], "alleyKeyword": "ngo", "houseInAlley": "1"}, "curated": false, "reviewed": true}
+{"input": "Ngã Tư Thanh Đa, Xã Thanh Đa, Phúc Thọ, Hà Nội", "expected": {"alleyChain": [], "ward": "Thanh Đa", "province": "Hà Nội", "street": "Ngã Tư Thanh Đa", "streetNorm": "nga tu thanh da", "district": "Phúc Thọ"}, "curated": false, "reviewed": true}
+{"input": "63 Đường Yên Thế", "expected": {"alleyChain": [], "street": "Yên Thế", "streetNorm": "yen the", "housenumber": "63"}, "curated": false, "reviewed": true}
+{"input": "112 Trần Quang Khải", "expected": {"alleyChain": [], "street": "Trần Quang Khải", "streetNorm": "tran quang khai", "housenumber": "112"}, "curated": false, "reviewed": true}
+{"input": "Khu Phố 4, Phường Tân Uyên, Thành phố Hồ Chí Minh", "expected": {"alleyChain": [], "ward": "Tân Uyên", "province": "Thành phố Hồ Chí Minh"}, "curated": false, "reviewed": true}
+{"input": "20 Đường Nguyễn Đức Tịnh", "expected": {"alleyChain": [], "street": "Nguyễn Đức Tịnh", "streetNorm": "nguyen duc tinh", "housenumber": "20"}, "curated": false, "reviewed": true}
+{"input": "Khu 4, P. Đại Phúc, TP Bắc Ninh", "expected": {"alleyChain": [], "ward": "Đại Phúc", "province": "Bắc Ninh"}, "curated": false, "reviewed": true}
+{"input": "90 Ngô Kim Tài", "expected": {"alleyChain": [], "street": "Ngô Kim Tài", "streetNorm": "ngo kim tai", "housenumber": "90"}, "curated": false, "reviewed": true}
+{"input": "122 Phố Nghĩa Tân", "expected": {"alleyChain": [], "street": "Nghĩa Tân", "streetNorm": "nghia tan", "housenumber": "122"}, "curated": false, "reviewed": true}
+{"input": "28Trần Quốc Toản", "expected": {"housenumber": "28", "street": "Trần Quốc Toản", "streetNorm": "tran quoc toan"}, "curated": false, "reviewed": true}
+{"input": "142 Đường Hai Bà Trưng", "expected": {"alleyChain": [], "street": "Hai Bà Trưng", "streetNorm": "hai ba trung", "housenumber": "142"}, "curated": false, "reviewed": true}
+{"input": "19 Ngõ 19 Duy Tân", "expected": {"housenumber": "19/19", "alleyChain": ["19"], "houseInAlley": "19", "alleyKeyword": "ngo", "street": "Duy Tân"}, "curated": false, "reviewed": true}
+{"input": "12B Đường Lê Lai", "expected": {"alleyChain": [], "street": "Lê Lai", "streetNorm": "le lai", "housenumber": "12B"}, "curated": false, "reviewed": true}
+{"input": "Hẻm 11 Lê Hồng Phong, Phường 4, Thành phố Đà Lạt", "expected": {"alleyChain": ["11"], "street": "Lê Hồng Phong", "streetNorm": "le hong phong", "alleyKeyword": "hem", "ward": "4", "province": "Lâm Đồng"}, "curated": false, "reviewed": true}
+{"input": "586 Cộng Hòa", "expected": {"alleyChain": [], "street": "Cộng Hòa", "streetNorm": "cong hoa", "housenumber": "586"}, "curated": false, "reviewed": true}
+{"input": "279 Nguyễn Huệ", "expected": {"alleyChain": [], "street": "Nguyễn Huệ", "streetNorm": "nguyen hue", "housenumber": "279"}, "curated": false, "reviewed": true}
+{"input": "120 Phố Hàng Tiện", "expected": {"alleyChain": [], "street": "Hàng Tiện", "streetNorm": "hang tien", "housenumber": "120"}, "curated": false, "reviewed": true}
+{"input": "12B Nguyễn Huy Tự", "expected": {"alleyChain": [], "street": "Nguyễn Huy Tự", "streetNorm": "nguyen huy tu", "housenumber": "12B"}, "curated": false, "reviewed": true}
+{"input": "21 Phạm Ngũ Lão", "expected": {"alleyChain": [], "street": "Phạm Ngũ Lão", "streetNorm": "pham ngu lao", "housenumber": "21"}, "curated": false, "reviewed": true}
+{"input": "Xã Thạch Hòa", "expected": {"alleyChain": [], "ward": "Thạch Hòa"}, "curated": false, "reviewed": true}
+{"input": "63A Võ Văn Tần", "expected": {"alleyChain": [], "street": "Võ Văn Tần", "streetNorm": "vo van tan", "housenumber": "63A"}, "curated": false, "reviewed": true}
+{"input": "23 Đường Hoàng Việt", "expected": {"alleyChain": [], "street": "Hoàng Việt", "streetNorm": "hoang viet", "housenumber": "23"}, "curated": false, "reviewed": true}
+{"input": "34 An Thượng 24", "expected": {"alleyChain": [], "street": "An Thượng 24", "streetNorm": "an thuong 24", "housenumber": "34"}, "curated": false, "reviewed": true}
+{"input": "222 Đ. Cách Mạng Tháng Tám", "expected": {"alleyChain": [], "street": "Cách Mạng Tháng Tám", "streetNorm": "cach mang thang tam", "housenumber": "222"}, "curated": false, "reviewed": true}
+{"input": "2 Khu Đô Thị Văn Khê", "expected": {"housenumber": "2"}, "curated": false, "reviewed": true}
+{"input": "235 Đường Lê Bình", "expected": {"alleyChain": [], "street": "Lê Bình", "streetNorm": "le binh", "housenumber": "235"}, "curated": false, "reviewed": true}
+{"input": "An Bình, 3 Đường Hoàng Thái Hiếu", "expected": {"alleyChain": [], "street": "Hoàng Thái Hiếu", "streetNorm": "hoang thai hieu", "housenumber": "3"}, "curated": false, "reviewed": true}
+{"input": "4 Đường 2 Tháng 4", "expected": {"alleyChain": [], "street": "2 Tháng 4", "streetNorm": "2 thang 4", "housenumber": "4"}, "curated": false, "reviewed": true}
+{"input": "TT Tân Quới, Bình Tân", "expected": {"ward": "Tân Quới", "district": "Bình Tân"}, "curated": false, "reviewed": true}
+{"input": "189 Phố Linh Đường", "expected": {"alleyChain": [], "street": "Linh Đường", "streetNorm": "linh duong", "housenumber": "189"}, "curated": false, "reviewed": true}
+{"input": "02 Trần Nguyên Đán", "expected": {"alleyChain": [], "street": "Trần Nguyên Đán", "streetNorm": "tran nguyen dan", "housenumber": "02"}, "curated": false, "reviewed": true}
+{"input": "448 Đ. Thống Nhất", "expected": {"alleyChain": [], "street": "Thống Nhất", "streetNorm": "thong nhat", "housenumber": "448"}, "curated": false, "reviewed": true}
+{"input": "16 Phố Chùa Vua", "expected": {"alleyChain": [], "street": "Chùa Vua", "streetNorm": "chua vua", "housenumber": "16"}, "curated": false, "reviewed": true}
+{"input": "150 Đường Nguyễn Xí", "expected": {"alleyChain": [], "street": "Nguyễn Xí", "streetNorm": "nguyen xi", "housenumber": "150"}, "curated": false, "reviewed": true}
+{"input": "30 Đ. Nguyễn Văn Cừ", "expected": {"alleyChain": [], "street": "Nguyễn Văn Cừ", "streetNorm": "nguyen van cu", "housenumber": "30"}, "curated": false, "reviewed": true}
+{"input": "712 Đ. 29 Tháng 3", "expected": {"alleyChain": [], "street": "29 Tháng 3", "streetNorm": "29 thang 3", "housenumber": "712"}, "curated": false, "reviewed": true}
