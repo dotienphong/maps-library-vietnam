@@ -7,8 +7,8 @@ commit với code).
 
 - Mốc: M2 — Kho POI + máy chủ nội bộ
 - Plan: `docs/superpowers/plans/2026-08-27-m2-kho-poi-may-chu.md` (11 task, 6.535 dòng sau review lần 3)
-- Task đang làm: Task 3 — normalizeVi/nameCore (thứ tự thực thi: 0 → 2 → 3 → 4 → 5 → 6 → 7 → 8 → 9 → 1 → 10) (thứ tự thực thi: 0 → 2 → 3 → 4 → 5 → 6 → 7 → 8 → 9 → 1 → 10)
-- Commit cuối: M2 T2 (commit hiện tại)
+- Task đang làm: Task 4 — parseAddress (thứ tự thực thi: 0 → 2 → 3 → 4 → 5 → 6 → 7 → 8 → 9 → 1 → 10) (thứ tự thực thi: 0 → 2 → 3 → 4 → 5 → 6 → 7 → 8 → 9 → 1 → 10)
+- Commit cuối: M2 T3 (commit hiện tại)
 - Môi trường đã dựng: máy dev macOS; remote GitHub cá nhân; Postgres/PostGIS dev,
   migration `0001_extensions.sql`; `pnpm run setup` sạch đạt 6,51 giây; image
   pipeline local đã build/smoke trên arm64 và chạy được qua Compose; Dev Container
@@ -24,8 +24,9 @@ commit với code).
 
 ## 2. Bước kế tiếp
 
-M2 Task 3 — `normalizeVi`/`nameCore` trong `@mapslibvn/core` (bỏ dấu, viết tắt, từ đệm,
-alias thương hiệu) với fixture ≥ 200 trường hợp; rồi Task 4 `parseAddress`.
+M2 Task 4 — `parseAddress` (spec 5.7): số nhà/chuỗi hẻm, đường, phường/quận/tỉnh với
+34 tỉnh sau 1/7/2025; 49 fixture curated + lấy mẫu 300 địa chỉ thật từ Overture (chạy trong
+image, cần review tay kỳ vọng).
 
 **Việc tay PHONG trước Task 1 (làm sau Task 9):** máy dev làm máy chủ tạm — tắt ngủ máy;
 tạo token Cloudflare riêng `mapslibvn-pipeline` (Workers KV Edit + Workers R2 Edit) cho
@@ -88,6 +89,7 @@ tạo token Cloudflare riêng `mapslibvn-pipeline` (Workers KV Edit + Workers R2
 | 2026-08-27 | G4/G5/G7 kiểm xong bằng lược đồ thật: Overture `2026-08-19.0` có `geometry` kiểu **GEOMETRY native** (không WKB) + cột mới `socials`, `operating_status`, `taxonomy`; FSQ `dt=2026-08-11` qua HF đủ cột, `date_closed` là VARCHAR, có `country`; `@duckdb/node-api` pin `1.5.5-r.4` (mọi bản đều `-r.N`) | `ST_GeomFromWKB` trong plan sẽ lỗi trên GEOMETRY; `operating_status`/`socials` cho `closed`/facebook chính xác hơn suy từ `sources`; token HF của PHONG đã được cấp quyền gated (`HTTP 200`) | (M2 T0) |
 | 2026-08-27 | M2 khác roadmap mục 3 ở 7 điểm (đã cân nhắc khi viết plan): (1) OSM POI qua `osmium tags-filter` + `export` GeoJSONSeq thay `ST_ReadOSM` để giữ POI dạng vùng; (2) cặp ứng viên gộp sinh bằng PostGIS (`ST_DWithin` + `similarity`) thay DuckDB; (3) nạp Postgres bằng `COPY FROM STDIN` từ Node thay `ATTACH postgres`; (4) test pipeline là `.mjs` + JSDoc, `*.dbtest.mjs` cần Postgres dev; (5) `init-roles.sql` → `init-roles.sh`, roles tạo NOLOGIN ở migration 0002; (6) `poi` gộp (UPDATE/INSERT/đóng) không hoán đổi bảng vì `poi_edit` FK; (7) thêm nhóm giả `other` + lá `<nhóm>_other` | Xem phần "Khác biệt so với roadmap" trong plan; ghi ở đây để roadmap mục 3 không bị hiểu là nguồn chân lý | (M2 T0) |
 | 2026-08-27 | Vitest tách hai tầng: `vitest.config.ts` (unit, loại `**/*.dbtest.mjs`) và `vitest.db.config.ts` (`fileParallelism: false`, timeout 120 giây, `--passWithNoTests`) | dbtest cần Postgres dev và chạy hàng phút; không được lẫn vào `pnpm test` của CI chính | (M2 T0) |
+| 2026-08-27 | `NAME_FILLERS` có thêm `mtv`; `abbrev.json` thêm `tx.`, `h.`, `x.` so với spec 5.3; alias thương hiệu chỉ áp ở đầu chuỗi | "Công ty TNHH MTV …" rất phổ biến trong tên đăng ký; thị xã/huyện/xã xuất hiện trong địa chỉ ngoài đô thị; alias giữa chuỗi gây dương tính giả ("Quán TCH") | (M2 T3) |
 | 2026-08-27 | `apps/docs/tsconfig.json` phải `exclude: ["dist", "public"]` | `astro check` với `include: ["**/*"]` kéo cả `public/sdk/mapslibvn.umd.js` (1 MB) và sourcemap (2,4 MB) vào TypeScript → hết heap 4 GB, exit 137 | (Task M1c T3) |
 | 2026-08-27 | `biome.json` bỏ qua `apps/docs/public/sdk/**` | Thư mục là artefact copy từ bản build web; biome báo vượt giới hạn 1 MiB và lỗi CSS của maplibre | (Task M1c T3) |
 
@@ -258,3 +260,7 @@ rõ ở mục 2 và không chặn M2: kiểm trên Windows, và bật lại `req
   `.down.sql`; `db:migrate --down` revert đúng một migration; `databaseUrlFromEnv` hỗ trợ
   `POSTGRES_SSL=require`; `db/schema.dbtest.mjs` 6/6 xanh (16 bảng, SRID, index, ràng buộc,
   quyền, down×4 → migrate lại); workflow `dbtest.yml` riêng có `paths`; unit 87/87 · (commit hiện tại)
+- 2026-08-27 · M2 T3 · `@mapslibvn/core`: `stripDiacritics`/`expandAbbrev`/`normalizeVi`/
+  `applyBrandAlias`/`nameCore` + `abbrev.json` (12 viết tắt) + `brand_alias.json` (25 thương
+  hiệu); fixture 85 dòng × 3 biến thể (gốc/HOA/NFD) = 255 + 4 test hàm → **259/259 xanh ngay
+  lần đầu**; build ESM + d.ts, lint, typecheck 9/9, unit 331/331 · (commit hiện tại)

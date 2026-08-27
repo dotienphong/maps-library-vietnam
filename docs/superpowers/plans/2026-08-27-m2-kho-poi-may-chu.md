@@ -1609,7 +1609,7 @@ git push
 - Create: `packages/core/src/normalize.ts`, `packages/core/src/abbrev.json`, `packages/core/src/brand_alias.json`, `packages/core/tests/normalize.test.ts`, `packages/core/tests/fixtures/normalize.csv`
 - Modify: `packages/core/src/index.ts`, `packages/core/tsconfig.json` (include `tests`)
 
-- [ ] **Step 1: Fixture ≥ 200 trường hợp**
+- [x] **Step 1: Fixture ≥ 200 trường hợp**
 
 `packages/core/tests/fixtures/normalize.csv` — định dạng `input|normalizeVi|nameCore`, dòng `#` là chú thích. Test chạy mỗi dòng ở 3 biến thể (gốc, VIẾT HOA, NFD) → 85 dòng = 255 trường hợp.
 ```
@@ -1701,7 +1701,7 @@ FPT Shop Cách Mạng Tháng 8|fpt shop cach mang thang 8|fpt shop cach mang tha
 FPTShop|fptshop|fpt shop
 ```
 
-- [ ] **Step 2: Test (thất bại)**
+- [x] **Step 2: Test (thất bại)**
 
 `packages/core/tests/normalize.test.ts`:
 ```ts
@@ -1755,7 +1755,7 @@ Sửa `packages/core/tsconfig.json` → `"include": ["src", "tests"]` và **bỏ
 Run: `pnpm test`
 Expected: FAIL — không tìm thấy `../src/normalize`.
 
-- [ ] **Step 3: Bảng viết tắt và alias thương hiệu**
+- [x] **Step 3: Bảng viết tắt và alias thương hiệu**
 
 `packages/core/src/abbrev.json` (khoá đã bỏ dấu vì áp dụng **sau** bước bỏ dấu: `đ.` → `d.`; thứ tự trong file là thứ tự áp dụng):
 ```json
@@ -1806,7 +1806,7 @@ Expected: FAIL — không tìm thấy `../src/normalize`.
 }
 ```
 
-- [ ] **Step 4: `normalize.ts`**
+- [x] **Step 4: `normalize.ts`**
 
 ```ts
 import abbrevJson from './abbrev.json';
@@ -1890,7 +1890,7 @@ Thêm vào `packages/core/src/index.ts`: `export * from './normalize';`
 Run: `pnpm test`
 Expected: 255 + 4 test normalize xanh. Dòng nào đỏ: đọc kỳ vọng trong CSV và output thật; nếu output thật hợp lý hơn (ví dụ quy tắc alias), **sửa CSV** và ghi lý do vào commit message; nếu mã sai, sửa mã. Không xoá dòng fixture.
 
-- [ ] **Step 5: Build, typecheck, lint, DEVLOG, commit**
+- [x] **Step 5: Build, typecheck, lint, DEVLOG, commit**
 
 Run: `pnpm --filter @mapslibvn/core build && pnpm typecheck && pnpm lint`
 Expected: xanh; `dist/index.js` chứa bảng abbrev/alias.
