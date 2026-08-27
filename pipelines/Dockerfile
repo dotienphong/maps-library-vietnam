@@ -5,7 +5,7 @@ ARG DEBIAN_FRONTEND=noninteractive
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
       ca-certificates curl unzip git build-essential libsqlite3-dev zlib1g-dev \
-      openjdk-21-jre-headless osmium-tool python3 python3-venv \
+      openjdk-21-jre-headless osmium-tool python3 python3-venv postgresql-client-16 zstd \
     && rm -rf /var/lib/apt/lists/*
 
 # Rclone bản Ubuntu 24.04 là 1.60.1-DEV và phát sinh 501 khi ghi object lên R2.
@@ -77,6 +77,13 @@ RUN --mount=type=cache,id=mapslibvn-planetiler,target=/var/cache/mapslibvn \
     printf '#!/bin/sh\nexec java ${JAVA_OPTS:--Xmx4g} -jar /opt/planetiler/planetiler.jar "$@"\n' > /usr/local/bin/planetiler; \
     chmod +x /usr/local/bin/planetiler
 
+# cloudflared (Apache-2.0) — `cloudflared access tcp` khi chạy data:update/db:restore từ máy dev qua Tunnel (M2 Task 1)
+ARG CLOUDFLARED_VERSION=2026.8.2
+RUN ARCH="$(dpkg --print-architecture)"; \
+    curl -fsSL --retry 5 --retry-all-errors -o /usr/local/bin/cloudflared \
+      "https://github.com/cloudflare/cloudflared/releases/download/${CLOUDFLARED_VERSION}/cloudflared-linux-${ARCH}" \
+    && chmod +x /usr/local/bin/cloudflared
+
 # pyosmium (BSD) trong venv riêng
 ARG PYOSMIUM_VERSION=4.0.2
 RUN python3 -m venv /opt/venv \
@@ -95,6 +102,9 @@ FROM tools AS app
 WORKDIR /app
 ENV MAPSLIBVN_IN_CONTAINER=1 MAPSLIBVN_WORK=/app/work MAPSLIBVN_OUT=/app/out
 COPY . .
-RUN pnpm install --frozen-lockfile --filter . --filter "./pipelines/*" --filter "@mapslibvn/style" \
+RUN pnpm install --frozen-lockfile --filter . --filter "./pipelines/*" --filter "@mapslibvn/style" --filter "@mapslibvn/core" \
+    && pnpm --filter @mapslibvn/core build \
     && node packages/style/scripts/build.mjs
+# Cài sẵn extension DuckDB cho @duckdb/node-api (chạy offline/nhanh; extension lưu trong ~/.duckdb của image)
+RUN cd pipelines/poi && node -e "import('@duckdb/node-api').then(async (m) => { const i = await m.DuckDBInstance.create(':memory:'); const c = await i.connect(); await c.run('INSTALL spatial; INSTALL httpfs;'); console.log('duckdb node-api + extensions OK'); })"
 CMD ["node", "--version"]

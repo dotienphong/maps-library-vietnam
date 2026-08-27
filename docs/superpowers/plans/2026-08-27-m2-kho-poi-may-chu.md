@@ -5321,7 +5321,7 @@ function ewktOf(g) {
 async function* roadRows() {
   for await (const f of readJsonl(roadsSeq)) {
     const p = f.properties ?? {};
-    const id = parseOsmiumId(p.id);
+    const id = parseOsmiumId(f.id ?? p.id); // osmium export ghi id ở feature.id (Task 5 phát hiện)
     if (!id || id.type !== 'w' || !p.name || !ROAD_TYPES.has(p.highway) || f.geometry?.type !== 'LineString') continue;
     const alley = parseAlleyName(p.name);
     yield [id.id, p.name, streetNameNorm(p.name), p.highway, alley?.keyword ?? null, alley?.number ?? null, alley?.parentNorm ?? null, ewktOf(f.geometry)];
@@ -5330,7 +5330,7 @@ async function* roadRows() {
 async function* adminRows() {
   for await (const f of readJsonl(adminSeq)) {
     const p = f.properties ?? {};
-    const id = parseOsmiumId(p.id);
+    const id = parseOsmiumId(f.id ?? p.id);
     const level = Number(p.admin_level);
     const name = p['name:vi'] ?? p.name;
     if (!id || id.type !== 'r' || !Number.isInteger(level) || !name || !f.geometry) continue;

@@ -10,6 +10,9 @@ const SMOKE = [
   'osmium --version | head -1',
   "python -c \"from importlib.metadata import version; print('pyosmium', version('osmium'))\"",
   'rclone version | head -1',
+  'pg_dump --version',
+  'zstd --version | head -1',
+  'cloudflared --version',
   'node --version',
   'pnpm --version',
 ].join(' && ');

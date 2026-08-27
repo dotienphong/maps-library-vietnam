@@ -36,6 +36,13 @@ services:
     volumes:
       - pipeline-work:/app/work
       - pipeline-out:/app/out
+      # Bind mount mã nguồn: sửa code không cần build lại image (node_modules vẫn của image — symlink pnpm tương đối)
+      - ../../pipelines:/app/pipelines
+      - ../../scripts:/app/scripts
+      - ../../db:/app/db
+      - ../../infra:/app/infra
+      - ../../packages/core/dist:/app/packages/core/dist
+      - ../../packages/style/dist:/app/packages/style/dist
     depends_on:
       postgres:
         condition: service_healthy

@@ -12,3 +12,4 @@ out
 .wrangler
 packages/style/assets/fonts
 pipelines/tiles/fixtures
+pipelines/poi/fixtures
