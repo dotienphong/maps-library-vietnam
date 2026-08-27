@@ -1,0 +1,30 @@
+{
+  "name": "@mapslibvn/web",
+  "version": "0.1.0",
+  "description": "SDK web MapsLibVN: bọc maplibre-gl, pmtiles, attribution bắt buộc",
+  "license": "MIT",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": { "types": "./dist/index.d.ts", "import": "./dist/index.js" },
+    "./umd": "./dist/mapslibvn.umd.js",
+    "./style.css": "./dist/mapslibvn.css"
+  },
+  "files": ["dist"],
+  "sideEffects": false,
+  "scripts": {
+    "build": "tsup src/index.ts --format esm --dts --clean --target es2022 --external maplibre-gl --external pmtiles && vite build -c vite.umd.config.ts && size-limit",
+    "typecheck": "tsc --noEmit"
+  },
+  "peerDependencies": { "maplibre-gl": "^5.0.0" },
+  "dependencies": { "@mapslibvn/core": "workspace:*", "pmtiles": "^4.3.0" },
+  "devDependencies": {
+    "@size-limit/file": "^11.1.0",
+    "maplibre-gl": "^5.0.0",
+    "size-limit": "^11.1.0",
+    "tsup": "^8.3.0",
+    "typescript": "^5.6.0",
+    "vite": "^6.0.0"
+  }
+}

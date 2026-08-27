@@ -7,8 +7,8 @@ commit với code).
 
 - Mốc: M1c — Worker, Web SDK, docs
 - Plan: `docs/superpowers/plans/2026-08-26-m1c-worker-web-sdk-docs.md`
-- Task đang làm: Task 2
-- Commit cuối: Task M1c T1 (commit hiện tại)
+- Task đang làm: Task 3
+- Commit cuối: Task M1c T2 (commit hiện tại)
 - Môi trường đã dựng: máy dev macOS; remote GitHub cá nhân; Postgres/PostGIS dev,
   migration `0001_extensions.sql`; `pnpm run setup` sạch đạt 6,51 giây; image
   pipeline local đã build/smoke trên arm64 và chạy được qua Compose; Dev Container
@@ -22,9 +22,9 @@ commit với code).
 
 ## 2. Bước kế tiếp
 
-M1c Task 2 — `@mapslibvn/web` (`createMap` bọc maplibre-gl + pmtiles, attribution ép
-bật, bản UMD). **Việc chờ PHONG:** M1c T1 Step 7 (`wrangler deploy --env production`)
-bị bộ lọc quyền chặn — cần cho phép rồi chạy lại.
+M1c Task 3 — docs Astro Starlight + playground + E2E Playwright offline bằng fixture
+Quận 1. **Việc chờ PHONG:** M1c T1 Step 7 (`wrangler deploy --env production`) bị bộ
+lọc quyền chặn — cần cho phép rồi chạy lại; T3 Step 4 (deploy Pages) sẽ vướng tương tự.
 
 ## 3. Quyết định phát sinh
 
@@ -109,3 +109,10 @@ bị bộ lọc quyền chặn — cần cho phép rồi chạy lại.
   `vn/14/13048/7698.pbf` → `200` 189.986 byte kèm `content-encoding: gzip`.
   Lint/typecheck xanh, 71/71 test (61 root + 10 api) · (commit hiện tại)
   — **Step 7 deploy production chưa chạy: bị bộ lọc quyền chặn.**
+- 2026-08-27 · M1c T2 · `@mapslibvn/web`: `createMap` bọc maplibre-gl với dependency
+  injection (test không cần WebGL), `pmtiles://` đăng ký đúng một lần, attribution ép
+  bật bằng `AttributionControl` riêng (`attributionControl: false` + `customAttribution`),
+  `addMarker`/`fitBounds`/`flyTo`/`poiClick`/`lang`, bản UMD gói kèm maplibre + CSS.
+  Build: `dist/index.js` 1,47 kB gzip (giới hạn 15 kB), `dist/mapslibvn.umd.js`
+  294 kB gzip (giới hạn 350 kB), `dist/mapslibvn.css` 10,06 kB gzip. Lint/typecheck
+  xanh, 79/79 test (69 root + 10 api) · (commit hiện tại)

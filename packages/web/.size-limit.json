@@ -1,0 +1,4 @@
+[
+  { "path": "dist/index.js", "limit": "15 kB", "gzip": true },
+  { "path": "dist/mapslibvn.umd.js", "limit": "350 kB", "gzip": true }
+]

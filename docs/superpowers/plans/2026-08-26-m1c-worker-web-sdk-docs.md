@@ -568,7 +568,7 @@ git push
 **Files:**
 - Create: `packages/web/package.json`, `packages/web/tsconfig.json`, `packages/web/vite.umd.config.ts`, `packages/web/.size-limit.json`, `packages/web/src/{index.ts,map.ts,map.test.ts,protocol.ts,language.ts,language.test.ts,umd.ts}`
 
-- [ ] **Step 1: Tạo package**
+- [x] **Step 1: Tạo package**
 
 `packages/web/package.json`:
 ```json
@@ -639,7 +639,7 @@ export default defineConfig({
 
 Run: `pnpm install`
 
-- [ ] **Step 2: Test đổi ngôn ngữ nhãn (thất bại)**
+- [x] **Step 2: Test đổi ngôn ngữ nhãn (thất bại)**
 
 `packages/web/src/language.test.ts`:
 ```ts
@@ -677,7 +677,7 @@ describe('applyLanguage', () => {
 Run: `pnpm test`
 Expected: FAIL — không tìm thấy `./language`.
 
-- [ ] **Step 3: Viết `language.ts` và `protocol.ts`**
+- [x] **Step 3: Viết `language.ts` và `protocol.ts`**
 
 `packages/web/src/language.ts`:
 ```ts
@@ -728,7 +728,7 @@ export function resetProtocolForTests(): void {
 Run: `pnpm test`
 Expected: test language xanh.
 
-- [ ] **Step 4: Test `createMap` với maplibre giả (thất bại)**
+- [x] **Step 4: Test `createMap` với maplibre giả (thất bại)**
 
 `packages/web/src/map.test.ts`:
 ```ts
@@ -841,7 +841,7 @@ describe('createMap', () => {
 Run: `pnpm test`
 Expected: FAIL — không tìm thấy `./map`.
 
-- [ ] **Step 5: Viết `map.ts`, `index.ts`, `umd.ts`**
+- [x] **Step 5: Viết `map.ts`, `index.ts`, `umd.ts`**
 
 `packages/web/src/map.ts`:
 ```ts
@@ -1000,14 +1000,14 @@ export { maplibregl };
 Run: `pnpm test`
 Expected: 6 test map + 2 language xanh.
 
-- [ ] **Step 6: Build ESM + UMD, size-limit**
+- [x] **Step 6: Build ESM + UMD, size-limit**
 
 Run: `pnpm --filter @mapslibvn/core build && pnpm --filter @mapslibvn/web build`
 Expected: `dist/index.js`, `dist/index.d.ts`, `dist/mapslibvn.umd.js`, `dist/mapslibvn.css`; size-limit báo `dist/index.js` < 15 kB và UMD < 350 kB gzip (maplibre-gl 5 ≈ 250–300 kB gzip). Nếu UMD vượt: nâng giới hạn lên đúng số đo + 10% và ghi DEVLOG.
 
 Run: `pnpm typecheck && pnpm lint`
 
-- [ ] **Step 7: DEVLOG, commit**
+- [x] **Step 7: DEVLOG, commit**
 
 Sửa `docs/DEVLOG.md`: "Task đang làm: M1c Task 3"; mục 4 dòng T2 kèm kích cỡ bundle.
 
