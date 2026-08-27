@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8" />
+  <title>MapsLibVN Playground</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="stylesheet" href="/sdk/mapslibvn.css" />
+  <style>
+    html, body, #map { height: 100%; margin: 0; }
+    #status { position: fixed; top: 8px; left: 8px; background: #fff; padding: 6px 10px; font: 13px system-ui; border-radius: 6px; z-index: 10; }
+  </style>
+</head>
+<body>
+  <div id="status" data-state="loading">Đang tải…</div>
+  <div id="map"></div>
+  <script src="/sdk/mapslibvn.umd.js"></script>
+  <script>
+    const params = new URLSearchParams(location.search);
+    const apiBase = params.get('api') || 'http://localhost:8787';
+    const status = document.getElementById('status');
+    try {
+      const map = MapsLibVN.createMap({
+        container: 'map',
+        apiKey: params.get('key') || 'mlv_live_demo',
+        apiBase,
+        style: params.get('style') || 'light',
+        center: [106.700, 10.776],
+        zoom: 14,
+      });
+      map.on('load', () => { status.textContent = 'Bản đồ đã tải'; status.dataset.state = 'loaded'; });
+      map.gl.on('error', (e) => { console.warn('maplibre', e.error && e.error.message); });
+      map.addMarker({ lng: 106.6981, lat: 10.7725, popupHtml: '<b>Chợ Bến Thành</b>' });
+      window.__map = map;
+    } catch (e) {
+      status.textContent = 'Lỗi: ' + e.message; status.dataset.state = 'error';
+    }
+  </script>
+</body>
+</html>

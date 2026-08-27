@@ -1,0 +1,22 @@
+---
+title: MapsLibVN
+description: Bản đồ nhúng cho web và mobile, dữ liệu mở, Việt Nam trước.
+template: splash
+hero:
+  tagline: Nhúng bản đồ Việt Nam bằng một dòng. Không Google, không phí, không khoá.
+  actions:
+    - text: Bắt đầu 5 phút
+      link: /bat-dau/
+      icon: right-arrow
+    - text: Mở playground
+      link: /playground.html
+      variant: minimal
+---
+
+import { Card, CardGrid } from '@astrojs/starlight/components';
+
+<CardGrid>
+  <Card title="Mã nguồn mở" icon="open-book">MapLibre GL + OpenStreetMap + Overture + Foursquare OS. Ghi nguồn đầy đủ.</Card>
+  <Card title="Tiếng Việt trước" icon="star">Nhãn tiếng Việt, địa chỉ kiểu hẻm, phường/xã sau sáp nhập 2025.</Card>
+  <Card title="Chi phí 0 đ" icon="rocket">Tiles tĩnh trên CDN, đọc thẳng, không tính theo lượt.</Card>
+</CardGrid>

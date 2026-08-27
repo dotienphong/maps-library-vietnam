@@ -7,8 +7,8 @@ commit với code).
 
 - Mốc: M1c — Worker, Web SDK, docs
 - Plan: `docs/superpowers/plans/2026-08-26-m1c-worker-web-sdk-docs.md`
-- Task đang làm: Task 3
-- Commit cuối: Task M1c T2 (commit hiện tại)
+- Task đang làm: Task 4
+- Commit cuối: Task M1c T3 (commit hiện tại)
 - Môi trường đã dựng: máy dev macOS; remote GitHub cá nhân; Postgres/PostGIS dev,
   migration `0001_extensions.sql`; `pnpm run setup` sạch đạt 6,51 giây; image
   pipeline local đã build/smoke trên arm64 và chạy được qua Compose; Dev Container
@@ -22,9 +22,10 @@ commit với code).
 
 ## 2. Bước kế tiếp
 
-M1c Task 3 — docs Astro Starlight + playground + E2E Playwright offline bằng fixture
-Quận 1. **Việc chờ PHONG:** M1c T1 Step 7 (`wrangler deploy --env production`) bị bộ
-lọc quyền chặn — cần cho phép rồi chạy lại; T3 Step 4 (deploy Pages) sẽ vướng tương tự.
+M1c Task 4 — 3 workflow GitHub Actions (deploy API, deploy docs, data-update dự phòng).
+**Việc chờ PHONG:** hai bước deploy bị bộ lọc quyền chặn và cần cho phép rồi chạy lại —
+M1c T1 Step 7 (`wrangler deploy --env production`) và M1c T3 Step 4
+(`wrangler pages project create mapslibvn-docs` + `pages deploy`).
 
 ## 3. Quyết định phát sinh
 
@@ -56,6 +57,8 @@ lọc quyền chặn — cần cho phép rồi chạy lại; T3 Step 4 (deploy P
 | 2026-08-27 | Test Worker khai báo binding qua `apps/api/test/env.d.ts` (`interface ProvidedEnv extends Env`) | `cloudflare:test` không tự suy ra `META`/`TILES` từ `wrangler.toml`; không có file này `env.META` báo TS2339 | (Task M1c T1) |
 | 2026-08-27 | Toạ độ kiểm tile Quận 1 z14 là `13048/7698`, không phải `13049/7752` như plan | Web Mercator cho 106,700°E 10,776°N: x = 13048, y = 7698; toạ độ trong plan trả 204 vì nằm ngoài fixture | (Task M1c T1) |
 | 2026-08-27 | `fakeBucket` trong test R2Source phải cast `as unknown as Pick<R2Bucket, 'get'>` | `exactOptionalPropertyTypes: true` khiến overload `R2Bucket.get` (có `onlyIf`, `range: Headers \| R2Range`) không nhận stub hẹp | (Task M1c T1) |
+| 2026-08-27 | `apps/docs/tsconfig.json` phải `exclude: ["dist", "public"]` | `astro check` với `include: ["**/*"]` kéo cả `public/sdk/mapslibvn.umd.js` (1 MB) và sourcemap (2,4 MB) vào TypeScript → hết heap 4 GB, exit 137 | (Task M1c T3) |
+| 2026-08-27 | `biome.json` bỏ qua `apps/docs/public/sdk/**` | Thư mục là artefact copy từ bản build web; biome báo vượt giới hạn 1 MiB và lỗi CSS của maplibre | (Task M1c T3) |
 
 ## 4. Nhật ký
 
@@ -116,3 +119,10 @@ lọc quyền chặn — cần cho phép rồi chạy lại; T3 Step 4 (deploy P
   Build: `dist/index.js` 1,47 kB gzip (giới hạn 15 kB), `dist/mapslibvn.umd.js`
   294 kB gzip (giới hạn 350 kB), `dist/mapslibvn.css` 10,06 kB gzip. Lint/typecheck
   xanh, 79/79 test (69 root + 10 api) · (commit hiện tại)
+- 2026-08-27 · M1c T3 · docs Astro Starlight (tiếng Việt, 3 trang: trang chủ splash,
+  "Bắt đầu 5 phút", playground) + `scripts/copy-sdk.mjs` đưa bản UMD vào `public/sdk`;
+  E2E Playwright chạy **offline hoàn toàn** bằng fixture Quận 1: Worker `dev:e2e` seed
+  R2/KV local rồi phục vụ `/r2/*`, Chromium tải bản đồ thật. Kết quả thật: build docs
+  3 trang trong 7,11 giây, E2E **2/2 passed (11,4 giây)** — tile Range 206/200,
+  attribution chứa "OpenStreetMap", marker Chợ Bến Thành hiện, style dark cũng tải.
+  Lint 75 file, typecheck 9/9, 79/79 test · (commit hiện tại)

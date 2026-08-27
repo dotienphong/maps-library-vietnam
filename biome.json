@@ -26,6 +26,7 @@
   "files": {
     "ignore": [
       "**/dist/**",
+      "apps/docs/public/sdk/**",
       "**/node_modules/**",
       "**/.astro/**",
       "**/fixtures/**",

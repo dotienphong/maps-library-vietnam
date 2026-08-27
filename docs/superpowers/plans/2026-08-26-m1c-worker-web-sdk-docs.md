@@ -1024,7 +1024,7 @@ git push
 **Files:**
 - Create: `apps/docs/package.json`, `apps/docs/astro.config.mjs`, `apps/docs/tsconfig.json`, `apps/docs/src/content.config.ts`, `apps/docs/src/content/docs/index.mdx`, `apps/docs/src/content/docs/bat-dau.md`, `apps/docs/public/playground.html`, `apps/docs/scripts/copy-sdk.mjs`, `apps/docs/playwright.config.ts`, `apps/docs/e2e/playground.spec.ts`
 
-- [ ] **Step 1: Tạo site**
+- [x] **Step 1: Tạo site**
 
 `apps/docs/package.json`:
 ```json
@@ -1190,7 +1190,7 @@ console.log('✓ copy SDK vào public/sdk');
 
 Thêm `public/sdk/` vào `apps/docs/.gitignore` (tạo file với dòng `public/sdk/` và `dist/`).
 
-- [ ] **Step 2: Playground**
+- [x] **Step 2: Playground**
 
 `apps/docs/public/playground.html`:
 ```html
@@ -1235,7 +1235,7 @@ Thêm `public/sdk/` vào `apps/docs/.gitignore` (tạo file với dòng `public/
 </html>
 ```
 
-- [ ] **Step 3: Playwright**
+- [x] **Step 3: Playwright**
 
 `apps/docs/playwright.config.ts`:
 ```ts
@@ -1283,14 +1283,14 @@ Expected: `✓ copy SDK vào public/sdk`, Astro build xong `dist/`.
 Run: `pnpm --filter @mapslibvn/docs e2e`
 Expected: `2 passed`. (Glyph/sprite 404 trong dev là bình thường — nhãn không hiện nhưng bản đồ tải; test không kiểm nhãn.)
 
-- [ ] **Step 4: Deploy docs lên Cloudflare Pages**
+- [ ] **Step 4: Deploy docs lên Cloudflare Pages** — CHỜ QUYỀN (bị bộ lọc chặn, cần PHONG cho phép)
 
 Run: `cd apps/docs && pnpm exec wrangler pages project create mapslibvn-docs --production-branch main` (một lần) rồi `pnpm exec wrangler pages deploy dist --project-name mapslibvn-docs`
 Expected: URL `https://mapslibvn-docs.pages.dev`.
 
 Mở `https://mapslibvn-docs.pages.dev/playground.html?api=https://mapslibvn-api-production.<account>.workers.dev` → bản đồ Việt Nam thật với nhãn tiếng Việt, tiles từ `tiles.<domain>`. Zoom ra z4: thấy 2 nhãn "Quần đảo Hoàng Sa (Việt Nam)", "Quần đảo Trường Sa (Việt Nam)". Ghi kết quả (kể cả quyết định spec 4.2 về lớp thế giới ngoài VN) vào DEVLOG.
 
-- [ ] **Step 5: Lint, DEVLOG, commit**
+- [x] **Step 5: Lint, DEVLOG, commit**
 
 Run: `pnpm lint && pnpm typecheck && pnpm test`
 
