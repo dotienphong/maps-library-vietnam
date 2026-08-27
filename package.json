@@ -22,7 +22,11 @@
     "image:smoke": "node scripts/image.mjs smoke",
     "data:update": "node scripts/data-update.mjs",
     "data:rollback": "node scripts/data-rollback.mjs",
-    "check:git": "node scripts/check-git-identity.mjs"
+    "check:git": "node scripts/check-git-identity.mjs",
+    "test:db": "vitest run --config vitest.db.config.ts --passWithNoTests",
+    "server:setup": "node scripts/server-setup.mjs",
+    "server:update": "node scripts/server-update.mjs",
+    "db:restore": "node scripts/db-restore.mjs"
   },
   "devDependencies": {
     "@biomejs/biome": "1.9.4",

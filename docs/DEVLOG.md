@@ -7,8 +7,8 @@ commit với code).
 
 - Mốc: M2 — Kho POI + máy chủ nội bộ
 - Plan: `docs/superpowers/plans/2026-08-27-m2-kho-poi-may-chu.md` (11 task, 6.535 dòng sau review lần 3)
-- Task đang làm: Task 0 — G4/G5/G7/G8 đã xác nhận 27/08; còn Step 1 (G1/G2) và Step 3 (vitest hai tầng) (thứ tự thực thi: 0 → 2 → 3 → 4 → 5 → 6 → 7 → 8 → 9 → 1 → 10)
-- Commit cuối: nghiệm thu M1 (commit hiện tại)
+- Task đang làm: Task 2 — migration 0002–0005 (thứ tự thực thi: 0 → 2 → 3 → 4 → 5 → 6 → 7 → 8 → 9 → 1 → 10) (thứ tự thực thi: 0 → 2 → 3 → 4 → 5 → 6 → 7 → 8 → 9 → 1 → 10)
+- Commit cuối: M2 T0 (commit hiện tại)
 - Môi trường đã dựng: máy dev macOS; remote GitHub cá nhân; Postgres/PostGIS dev,
   migration `0001_extensions.sql`; `pnpm run setup` sạch đạt 6,51 giây; image
   pipeline local đã build/smoke trên arm64 và chạy được qua Compose; Dev Container
@@ -24,13 +24,9 @@ commit với code).
 
 ## 2. Bước kế tiếp
 
-M2 Task 0 — xác nhận giả định G1–G8 của plan
-`docs/superpowers/plans/2026-08-27-m2-kho-poi-may-chu.md` (đã review lần 3 ngày 27/08, 55 chỗ
-sửa — xem đoạn "Review lần 3" đầu plan) và dựng khung test tích hợp DB.
-
-**Việc tay PHONG trước Task 5:** tạo tài khoản Hugging Face, mở
-https://huggingface.co/datasets/foursquare/fsq-os-places → chấp nhận điều khoản gated →
-Settings → Access Tokens → token **Read** → `HF_TOKEN=` trong `.env` (G8).
+M2 Task 2 — migration 0002–0005 (roles `api`/`pipeline` NOLOGIN, bảng nguồn, `poi`,
+geocoding, tenant), `db:migrate --down`, `db/schema.dbtest.mjs`, workflow `dbtest.yml` riêng.
+Task 0 đã xong: G1–G8 xác nhận, vitest tách hai tầng (`pnpm test` unit, `pnpm test:db` dbtest).
 
 **Việc tay PHONG trước Task 1 (làm sau Task 9):** máy dev làm máy chủ tạm — tắt ngủ máy;
 tạo token Cloudflare riêng `mapslibvn-pipeline` (Workers KV Edit + Workers R2 Edit) cho
@@ -91,6 +87,8 @@ tạo token Cloudflare riêng `mapslibvn-pipeline` (Workers KV Edit + Workers R2
 | 2026-08-27 | Pin `cloudflared 2026.8.2` (plan cũ 2025.8.1); `@duckdb/node-api` pin bản không pre-release (hiện `pnpm view` trả `1.5.5-r.4`); Overture mới nhất `2026-08-19.0` | Kiểm thật 27/08 | (review plan M2) |
 | 2026-08-27 | Icon lá `category.json`: `rail`→`railway`, `rail_metro`→`railway_metro`, `doctor`→`doctors`, `beach`→`swimming` | Sprite osm-liberty (244 icon) không có 4 tên cũ; API M3 sẽ trả tên icon không tồn tại | (review plan M2) |
 | 2026-08-27 | G4/G5/G7 kiểm xong bằng lược đồ thật: Overture `2026-08-19.0` có `geometry` kiểu **GEOMETRY native** (không WKB) + cột mới `socials`, `operating_status`, `taxonomy`; FSQ `dt=2026-08-11` qua HF đủ cột, `date_closed` là VARCHAR, có `country`; `@duckdb/node-api` pin `1.5.5-r.4` (mọi bản đều `-r.N`) | `ST_GeomFromWKB` trong plan sẽ lỗi trên GEOMETRY; `operating_status`/`socials` cho `closed`/facebook chính xác hơn suy từ `sources`; token HF của PHONG đã được cấp quyền gated (`HTTP 200`) | (M2 T0) |
+| 2026-08-27 | M2 khác roadmap mục 3 ở 7 điểm (đã cân nhắc khi viết plan): (1) OSM POI qua `osmium tags-filter` + `export` GeoJSONSeq thay `ST_ReadOSM` để giữ POI dạng vùng; (2) cặp ứng viên gộp sinh bằng PostGIS (`ST_DWithin` + `similarity`) thay DuckDB; (3) nạp Postgres bằng `COPY FROM STDIN` từ Node thay `ATTACH postgres`; (4) test pipeline là `.mjs` + JSDoc, `*.dbtest.mjs` cần Postgres dev; (5) `init-roles.sql` → `init-roles.sh`, roles tạo NOLOGIN ở migration 0002; (6) `poi` gộp (UPDATE/INSERT/đóng) không hoán đổi bảng vì `poi_edit` FK; (7) thêm nhóm giả `other` + lá `<nhóm>_other` | Xem phần "Khác biệt so với roadmap" trong plan; ghi ở đây để roadmap mục 3 không bị hiểu là nguồn chân lý | (M2 T0) |
+| 2026-08-27 | Vitest tách hai tầng: `vitest.config.ts` (unit, loại `**/*.dbtest.mjs`) và `vitest.db.config.ts` (`fileParallelism: false`, timeout 120 giây, `--passWithNoTests`) | dbtest cần Postgres dev và chạy hàng phút; không được lẫn vào `pnpm test` của CI chính | (M2 T0) |
 | 2026-08-27 | `apps/docs/tsconfig.json` phải `exclude: ["dist", "public"]` | `astro check` với `include: ["**/*"]` kéo cả `public/sdk/mapslibvn.umd.js` (1 MB) và sourcemap (2,4 MB) vào TypeScript → hết heap 4 GB, exit 137 | (Task M1c T3) |
 | 2026-08-27 | `biome.json` bỏ qua `apps/docs/public/sdk/**` | Thư mục là artefact copy từ bản build web; biome báo vượt giới hạn 1 MiB và lỗi CSS của maplibre | (Task M1c T3) |
 
@@ -251,3 +249,8 @@ rõ ở mục 2 và không chặn M2: kiểm trên Windows, và bật lại `req
   `publishNew` lỗi trên bảng không có `id`, thiếu `RCLONE_CONFIG_R2_NO_CHECK_BUCKET` ở máy
   chủ/Actions, trình tự Hyperdrive vs auto-deploy) + 7 điểm quan trọng — đã sửa 55 chỗ
   thẳng vào plan; PHONG quyết FSQ qua Hugging Face và máy dev làm máy chủ tạm · (commit hiện tại)
+- 2026-08-27 · M2 T0 · G1 (79/79 test, đủ file M1), G2 (image 8 công cụ), G4 Overture
+  `2026-08-19.0` (GEOMETRY native), G5 FSQ `dt=2026-08-11` qua HF (`HTTP 200`), G7 pin
+  `@duckdb/node-api 1.5.5-r.4`, G8 token HF của PHONG đã được cấp quyền gated; vitest tách
+  unit/dbtest, scripts `test:db`/`server:setup`/`server:update`/`db:restore` khai báo sẵn;
+  lint 76 file, typecheck 9/9 · (commit hiện tại)

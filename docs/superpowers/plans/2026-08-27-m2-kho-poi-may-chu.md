@@ -109,12 +109,12 @@ PIPE() { docker compose --env-file .env -f infra/dev/compose.yml --profile pipel
 - Create: `vitest.db.config.ts`
 - Modify: `vitest.config.ts`, `package.json` (scripts `test:db`), `docs/DEVLOG.md`, `docs/superpowers/plans/2026-08-26-roadmap-toan-bo-spec.md` (tên file plan M2)
 
-- [ ] **Step 1: Kiểm tra G1, G2 — xác định task M2 nào được phép bắt đầu**
+- [x] **Step 1: Kiểm tra G1, G2 — xác định task M2 nào được phép bắt đầu**
 
 Run: `pnpm test && pnpm image:smoke && ls packages/core/src pipelines/tiles/src/lib/dates.mjs packages/style/dist apps/api/src scripts/data-update.mjs 2>&1`
 Expected: test xanh; smoke in 8 dòng phiên bản (Planetiler, tippecanoe, DuckDB, osmium, pyosmium, rclone, node, pnpm). Với mỗi đường dẫn "No such file", đánh dấu task M2 tương ứng (bảng "Task nào cần gì từ M1") là **chờ** — chỉ chạy các task đã đủ điều kiện; không sửa file của M1b/M1c trong plan này.
 
-- [ ] **Step 2: Kiểm tra G4, G5, G7 bằng DuckDB CLI trong image**
+- [x] **Step 2: Kiểm tra G4, G5, G7 bằng DuckDB CLI trong image**
 
 Run:
 ```bash
@@ -148,7 +148,7 @@ Expected: có `fsq_place_id, name, latitude, longitude, address, locality, regio
 Run: `pnpm view @duckdb/node-api version`
 Expected: một phiên bản (ví dụ `1.5.x`). Ghi lại để pin ở Task 5.
 
-- [ ] **Step 3: Cấu hình Vitest hai tầng (unit / dbtest)**
+- [x] **Step 3: Cấu hình Vitest hai tầng (unit / dbtest)**
 
 `vitest.config.ts` (thay toàn bộ):
 ```ts
@@ -185,7 +185,7 @@ export default defineConfig({
 
 Thêm vào `package.json` scripts:
 ```json
-"test:db": "vitest run --config vitest.db.config.ts",
+"test:db": "vitest run --config vitest.db.config.ts --passWithNoTests",
 "server:setup": "node scripts/server-setup.mjs",
 "server:update": "node scripts/server-update.mjs",
 "db:restore": "node scripts/db-restore.mjs"
@@ -194,7 +194,7 @@ Thêm vào `package.json` scripts:
 Run: `pnpm test`
 Expected: vẫn xanh (chưa có dbtest nào).
 
-- [ ] **Step 4: Ghi DEVLOG và roadmap, commit**
+- [x] **Step 4: Ghi DEVLOG và roadmap, commit**
 
 (Roadmap đã cập nhật tên file plan M2 ngày 27/08 — bỏ qua bước sửa roadmap.)
 
