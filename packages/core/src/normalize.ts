@@ -39,7 +39,7 @@ const ALIAS_RULES = Object.entries(BRAND_ALIAS)
 export function stripDiacritics(s: string): string {
   return s
     .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/\p{M}/gu, '')
     .replace(/đ/g, 'd')
     .replace(/Đ/g, 'D');
 }
