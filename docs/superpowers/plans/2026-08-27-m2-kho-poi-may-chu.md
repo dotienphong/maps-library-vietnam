@@ -39,10 +39,10 @@ Plan này được viết khi **M1a đã nghiệm thu (27/08/2026), M1b/M1c chư
 | G1 | M1a–M1c đã xong: có `pipelines/tiles/*`, `packages/core`, `packages/style` (template + `fillTemplate` nhận `POI_FILE`), `apps/api` (Worker với `renderStyle`, KV `META`, R2 `TILES`), `scripts/data-update.mjs` + `scripts/lib/update-plan.mjs`, `pipelines/tiles/src/{upload,smoke,manifest,qa}.mjs`, fixture `pipelines/tiles/fixtures/q1.pmtiles` | `ls` các file; `pnpm test` xanh | Dừng, hoàn tất M1 trước |
 | G2 | Image pipeline có: Node 22, DuckDB CLI 1.5.x, osmium-tool, tippecanoe, rclone, Python/pyosmium (Dockerfile hiện tại) | `pnpm image:smoke` | Sửa Dockerfile trước |
 | G3 | ~~PHONG đã có máy nội bộ 24/7~~ **Đã xác nhận 27/08: chưa có máy riêng.** Máy dev (macOS) làm máy chủ tạm: tắt ngủ máy, cần ≥ 16 GB RAM vì chạy song song compose dev + compose server + DuckDB 3 GB + Java 4 GB khi `data:update` | — | Task 1 chạy trên máy dev với `PIPELINE_IMAGE=mapslibvn/pipeline:local`; chuyển máy thật sau bằng `server:setup` + `db:restore --latest` |
-| G4 | Overture Places release mới nhất có lược đồ 2025: `id, geometry (WKB), bbox{xmin,xmax,ymin,ymax}, names{primary,…}, categories{primary,alternate}, confidence, websites[], phones[], addresses[{freeform,locality,region,postcode,country}], sources[]` | `DESCRIBE SELECT * FROM read_parquet('s3://overturemaps-us-west-2/release/<ver>/theme=places/type=place/*.parquet') LIMIT 0` trong DuckDB | Sửa `ingest/overture.mjs` Step 3 theo cột thật |
-| G5 | Foursquare OS Places đọc qua **Hugging Face** `hf://datasets/foursquare/fsq-os-places/release/dt=YYYY-MM-DD/places/parquet/*.parquet` (gated, Apache-2.0) có cột `fsq_place_id, name, latitude, longitude, address, locality, region, tel, website, date_closed, fsq_category_labels[]`. **S3 công khai đã đóng (kiểm 27/08).** | `DESCRIBE` qua DuckDB với secret `huggingface` | Sửa `ingest/fsq.mjs` Step 7 theo cột thật |
+| G4 | **Đã kiểm 27/08 trên `2026-08-19.0`**: `id, geometry` (kiểu **`GEOMETRY('OGC:CRS84')` native của DuckDB 1.5 — KHÔNG phải WKB blob**, dùng `ST_X(geometry)` thẳng, không `ST_GeomFromWKB`), `bbox`, `names{primary, common MAP, rules}`, `categories{primary, alternate}`, `confidence`, `websites[]`, `emails[]`, `socials[]` (URL Facebook có sẵn), `phones[]`, `brand`, `addresses[{freeform,locality,postcode,region,country}]`, `sources[]{dataset,record_id,update_time,…}`, **`operating_status`** (dùng cho `closed`), `basic_category`, `taxonomy{primary,hierarchy[],alternates[]}`, `version` | đã làm | `ingest/overture.mjs` (Task 5 Step 7) đã sửa theo cột thật |
+| G5 | Foursquare OS Places đọc qua **Hugging Face** `hf://datasets/foursquare/fsq-os-places/release/dt=YYYY-MM-DD/places/parquet/*.parquet` (gated, Apache-2.0) có cột `fsq_place_id, name, latitude, longitude, address, locality, region, tel, website, date_closed, fsq_category_labels[]`. **S3 công khai đã đóng (kiểm 27/08).** | **Đã kiểm 27/08 trên `dt=2026-08-11`**: đủ các cột trên; thêm `country`, `postcode`, `email`, `facebook_id`, `instagram`, `fsq_category_ids[]`, `date_refreshed`, `geom GEOMETRY`, `bbox`; **`date_closed` là VARCHAR** (COPY vào cột `date` được khi là `YYYY-MM-DD`; dùng `NULLIF(date_closed, '')`) | `ingest/fsq.mjs` đã sửa: lọc thêm `country = 'VN'` |
 | G6 | OSM VN có ranh giới `admin_level=4` (34 tỉnh sau 1/7/2025) và `admin_level=8` (phường/xã); `admin_level=6` có thể còn hoặc không | Task 8 Step 6 đếm thật và ghi `pipelines/poi/README.md` | Đổi danh sách level trong `geocode/admin.mjs` |
-| G7 | `@duckdb/node-api` có bản ổn định ≥ 1.4 với binary linux-x64/arm64 và hỗ trợ `INSTALL/LOAD spatial, httpfs` (27/08: `pnpm view` trả `1.5.5-r.4` — kiểm `pnpm view @duckdb/node-api versions` và pin bản **không** có hậu tố pre-release) | `pnpm view @duckdb/node-api versions` | Pin bản mới nhất có sẵn; ghi DEVLOG |
+| G7 | `@duckdb/node-api` có bản ổn định ≥ 1.4 với binary linux-x64/arm64 và hỗ trợ `INSTALL/LOAD spatial, httpfs` — **đã kiểm 27/08: dist-tag `latest` = `1.5.5-r.4`**; mọi bản của gói này đều mang hậu tố `-r.N` (quy ước phát hành của họ, không phải pre-release) → **pin `1.5.5-r.4`** ở Task 5 | đã làm | — |
 | G8 | PHONG đã tạo tài khoản Hugging Face, chấp nhận điều khoản gated của `foursquare/fsq-os-places` và có token đọc (`HF_TOKEN`) | `curl -s -H "Authorization: Bearer $HF_TOKEN" https://huggingface.co/api/datasets/foursquare/fsq-os-places/tree/main/release` trả JSON danh sách `dt=…` | Chưa có token → Task 5 làm OSM + Overture trước, FSQ bổ sung khi có; ghi DEVLOG |
 
 **Khác biệt so với roadmap mục 3 (đã cân nhắc khi viết plan, ghi DEVLOG ở Task 0):**
@@ -2345,7 +2345,7 @@ git push
 
 - [ ] **Step 1: Package, env, và test hàm định dạng COPY + tâm hình học (thất bại)**
 
-`pipelines/poi/package.json` (thay `<DUCKDB_NODE_API>` bằng phiên bản ghi ở Task 0):
+`pipelines/poi/package.json`:
 ```json
 {
   "name": "@mapslibvn/pipeline-poi",
@@ -2355,7 +2355,7 @@ git push
   "description": "Pipeline kho POI: ingest (DuckDB/osmium) → chuẩn hoá → gộp → anchors → Postgres → poi.pmtiles",
   "scripts": { "typecheck": "tsc -p tsconfig.json" },
   "dependencies": {
-    "@duckdb/node-api": "<DUCKDB_NODE_API>",
+    "@duckdb/node-api": "1.5.5-r.4",
     "@mapslibvn/core": "workspace:*",
     "postgres": "^3.4.5"
   },
@@ -2887,7 +2887,8 @@ try {
   await duck.anonymousS3('us-west-2');
   await duck.run(`COPY (
     SELECT id, names.primary AS name, names, categories.primary AS category, categories, confidence, addresses, websites, phones, sources,
-           ST_X(ST_GeomFromWKB(geometry)) AS lon, ST_Y(ST_GeomFromWKB(geometry)) AS lat
+           socials, operating_status,
+           ST_X(geometry) AS lon, ST_Y(geometry) AS lat            -- geometry là GEOMETRY native (DuckDB 1.5), không phải WKB
     FROM read_parquet('${overtureSource(release)}', hive_partitioning = true)
     WHERE ${overtureBboxWhere(VN_BBOX)}
   ) TO '${out}' (FORMAT json)`);
@@ -2898,8 +2899,10 @@ try {
 async function* rows() {
   for await (const r of readJsonl(out)) {
     if (r.lon === null || r.lat === null) continue;
+    // socials/operating_status nhét vào sources JSON để không đổi lược đồ 0002: records.mjs đọc lại từ đó
+    const sources = [...(r.sources ?? []), { dataset: '_overture_extra', socials: r.socials ?? [], operating_status: r.operating_status ?? null }];
     yield [r.id, r.name ?? null, pgJson(r.names), r.category ?? null, pgJson(r.categories), r.confidence ?? null, pgJson(r.addresses),
-      pgArray(r.websites), pgArray(r.phones), pgJson(r.sources), ewkt(r.lon, r.lat), release];
+      pgArray(r.websites), pgArray(r.phones), pgJson(sources), ewkt(r.lon, r.lat), release];
   }
 }
 
@@ -2939,10 +2942,11 @@ const duck = await openDuck();
 try {
   await duck.huggingface();
   await duck.run(`COPY (
-    SELECT fsq_place_id, name, fsq_category_labels AS categories, address, locality, region, tel, website, date_closed,
+    SELECT fsq_place_id, name, fsq_category_labels AS categories, address, locality, region, tel, website,
+           NULLIF(date_closed, '') AS date_closed,                 -- date_closed là VARCHAR trong parquet FSQ
            longitude AS lon, latitude AS lat
     FROM read_parquet('${fsqSource(release)}')
-    WHERE ${lonLatWhere(VN_BBOX)}
+    WHERE ${lonLatWhere(VN_BBOX)} AND (country IS NULL OR country = 'VN')
   ) TO '${out}' (FORMAT json)`);
 } finally {
   duck.close();
@@ -2969,7 +2973,7 @@ try {
 }
 ```
 
-Nếu G4/G5 (Task 0) cho thấy cột khác: sửa `SELECT` tương ứng (ví dụ `names.primary` → `names['primary']`), ghi DEVLOG.
+SELECT ở trên đã theo lược đồ thật đo ngày 27/08 (G4/G5). Nếu release mới đổi cột: `DESCRIBE` lại như Task 0 Step 2 rồi sửa, ghi DEVLOG.
 
 - [ ] **Step 8: Fixture Quận 1 (commit, ≤ 20 MB)**
 
@@ -4800,15 +4804,19 @@ async function* overtureRows(sql) {
       const cat = categoryFor(maps, 'overture', [r.category, ...alt]) ?? { code: 'other', group: 'other' };
       const a = r.addresses?.[0] ?? {};
       const meta = (r.sources ?? []).find((s) => s?.dataset === 'meta');
+      const extra = (r.sources ?? []).find((s) => s?.dataset === '_overture_extra') ?? {};
+      const fb = (extra.socials ?? []).find((u) => /facebook\.com|fb\.com/.test(String(u))) ?? (meta?.record_id ? `https://www.facebook.com/${meta.record_id}` : null);
       const common = r.names?.common ? Object.values(r.names.common) : [];
       yield buildRow({
         source: 'overture', sourceId: r.id, name: r.name,
         nameAlt: /** @type {string[]} */ (common.filter((x) => typeof x === 'string' && x !== r.name)),
         cat: { code: refineSchool(cat.code, r.name), group: cat.group }, confidence: r.confidence ?? 0.5,
         phones: r.phones ?? [], websites: r.websites ?? [],
-        facebook: meta?.record_id ? `https://www.facebook.com/${meta.record_id}` : null,
+        facebook: fb,
         hours: null, address: [a.freeform, a.locality, a.region].filter(Boolean).join(', ') || null,
-        updatedAt: r.sources?.[0]?.update_time ?? today, closed: false, lon: r.lon, lat: r.lat,
+        updatedAt: r.sources?.[0]?.update_time ?? today,
+        closed: extra.operating_status !== null && extra.operating_status !== undefined && extra.operating_status !== 'open', // Overture operating_status
+        lon: r.lon, lat: r.lat,
       });
     }
   }
