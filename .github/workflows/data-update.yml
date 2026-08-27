@@ -5,8 +5,11 @@ on:
       args:
         description: "Tham số: --tiles | --poi | --force | --dry-run"
         default: "--dry-run"
-  schedule:
-    - cron: "0 19 * * 0"   # 02:00 thứ Hai giờ VN — chỉ chạy khi máy nội bộ không đảm nhận (tắt bằng cách xoá schedule)
+# Không đặt schedule: repo là private nên Actions chỉ có 2.000 phút/tháng ở gói Free,
+# trong khi một lần chạy đủ tốn 60–180 phút. Đây là đường dự phòng chạy tay; lịch định kỳ
+# do máy nội bộ đảm nhận từ M2. Nếu cần lịch trên Actions, thêm lại:
+#   schedule:
+#     - cron: "0 19 * * 0"   # 02:00 thứ Hai giờ VN
 jobs:
   update:
     runs-on: ubuntu-latest
