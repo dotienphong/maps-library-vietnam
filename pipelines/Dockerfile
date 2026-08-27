@@ -73,9 +73,8 @@ RUN curl -fsSL https://deb.nodesource.com/setup_22.x | bash - \
 
 FROM tools AS app
 WORKDIR /app
-ENV MAPSLIBVN_IN_CONTAINER=1
-COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
-RUN pnpm install --frozen-lockfile --filter .
-COPY scripts ./scripts
-COPY pipelines ./pipelines
+ENV MAPSLIBVN_IN_CONTAINER=1 MAPSLIBVN_WORK=/app/work MAPSLIBVN_OUT=/app/out
+COPY . .
+RUN pnpm install --frozen-lockfile --filter . --filter "./pipelines/*" --filter "@mapslibvn/style" \
+    && node packages/style/scripts/build.mjs
 CMD ["node", "--version"]

@@ -739,7 +739,7 @@ git push
 - Create: `pipelines/tiles/package.json`, `pipelines/tiles/src/lib/env.mjs`, `pipelines/tiles/src/lib/dates.mjs`, `pipelines/tiles/src/lib/dates.test.mjs`, `pipelines/tiles/src/download.mjs`, `pipelines/tiles/python/patch_sovereignty.py`, `pipelines/tiles/python/test_patch_sovereignty.py`
 - Modify: `pipelines/Dockerfile` (cài deps của pipelines), `.dockerignore`
 
-- [ ] **Step 1: Package và helper**
+- [x] **Step 1: Package và helper**
 
 `pipelines/tiles/package.json`:
 ```json
@@ -823,7 +823,7 @@ export function releaseName(prefix, d = new Date()) {
 Run: `pnpm install && pnpm test`
 Expected: test dates xanh.
 
-- [ ] **Step 2: `download.mjs`**
+- [x] **Step 2: `download.mjs`**
 
 ```js
 #!/usr/bin/env node
@@ -848,7 +848,7 @@ console.log(`✓ ${OSM_PBF} md5 ${actual}`);
 
 Ghi chú: Planetiler lưu file dưới `<download-dir>/sources/vietnam.osm.pbf`. Nếu tên file khác (`--help` cho biết), sửa `OSM_PBF` trong `env.mjs` và ghi DEVLOG.
 
-- [ ] **Step 3: Test patch (pytest, thất bại)**
+- [x] **Step 3: Test patch (pytest, thất bại)**
 
 `pipelines/tiles/python/test_patch_sovereignty.py`:
 ```python
@@ -899,7 +899,7 @@ Run (trong image, bind-mount thư mục pipelines):
 `docker run --rm -v "$PWD/pipelines:/app/pipelines" mapslibvn/pipeline:local pytest -q /app/pipelines/tiles/python`
 Expected: FAIL — `patch_sovereignty.py` không tồn tại.
 
-- [ ] **Step 4: Viết `patch_sovereignty.py`**
+- [x] **Step 4: Viết `patch_sovereignty.py`**
 
 ```python
 #!/usr/bin/env python3
@@ -1002,7 +1002,7 @@ Expected: `1 passed`.
 
 Nếu pyosmium báo `replace()` không nhận `tags=dict`: đổi thành `tags=[(k, v) for k, v in new.items()]` — ghi DEVLOG.
 
-- [ ] **Step 5: Cập nhật Dockerfile + `.dockerignore` để image có deps pipeline và style**
+- [x] **Step 5: Cập nhật Dockerfile + `.dockerignore` để image có deps pipeline và style**
 
 Sửa `.dockerignore` (copy toàn repo trừ thứ nặng/bí mật — pnpm cần mọi `package.json` của workspace để kiểm lockfile):
 ```
@@ -1031,10 +1031,10 @@ RUN pnpm install --frozen-lockfile --filter . --filter "./pipelines/*" --filter 
 CMD ["node", "--version"]
 ```
 
-Run: `pnpm image:build && docker run --rm mapslibvn/pipeline:local sh -c "ls packages/style/dist && node -e \"import('pmtiles').then(()=>console.log('pmtiles ok'))\""`
+Run: `pnpm image:build && docker run --rm mapslibvn/pipeline:local sh -c "ls packages/style/dist && cd pipelines/tiles && node -e \"import('pmtiles').then(()=>console.log('pmtiles ok'))\""`
 Expected: 2 file template + `sovereignty.geojson`, `pmtiles ok`.
 
-- [ ] **Step 6: Chạy download thật (một lần, ~350 MB + Natural Earth)**
+- [x] **Step 6: Chạy download thật (một lần, ~350 MB + Natural Earth)**
 
 Run: `docker compose --env-file .env -f infra/dev/compose.yml --profile pipeline run --rm pipeline node pipelines/tiles/src/download.mjs`
 Expected: log tải của Planetiler, rồi `✓ /app/work/data/sources/vietnam.osm.pbf md5 …` (5–15 phút tuỳ mạng). Dữ liệu nằm trong volume `mapslibvn-dev_pipeline-work`, không tải lại ở lần sau.
@@ -1042,7 +1042,11 @@ Expected: log tải của Planetiler, rồi `✓ /app/work/data/sources/vietnam.
 Run: `docker compose --env-file .env -f infra/dev/compose.yml --profile pipeline run --rm pipeline python pipelines/tiles/python/patch_sovereignty.py /app/work/data/sources/vietnam.osm.pbf /app/work/vietnam-patched.osm.pbf`
 Expected: `patched objects: N; nodes in bbox: …; ways in bbox: …` với N > 0 (vài chục đến vài trăm), ~5–10 phút.
 
-- [ ] **Step 7: Lint, DEVLOG, commit**
+Kết quả thực tế 2026-08-27: download hoàn tất trong 4 phút 4 giây; PBF 327 MB
+khớp MD5 `620d0258ffecd450363e24560d0a7b8b`. Patch đổi 108 object, với
+10.351 node và 486 way nằm trong hai bbox.
+
+- [x] **Step 7: Lint, DEVLOG, commit**
 
 Run: `pnpm lint && pnpm typecheck && pnpm test`
 Expected: xanh.

@@ -1,12 +1,14 @@
 node_modules
 **/node_modules
 .git
+.pnpm-store
 .turbo
 dist
 **/dist
+**/.astro
 work
 out
 .env
 .wrangler
-apps
-packages
+packages/style/assets/fonts
+pipelines/tiles/fixtures
