@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 // Bước 2 gộp (spec 5.4): poi_work_record → poi_work_pair (PostGIS) → 2 lượt ghép tham lam → poi_work_cluster + poi_work_cluster_meta.
 import { createClusterer, pairAllowed } from './lib/greedy.mjs';
+import { applyApprovedEditPopularity, resolvePoiIds } from './lib/poi-ids.mjs';
 import { stableId } from './lib/stable-id.mjs';
 import { connect, copyInto, countRows } from './pg.mjs';
 import { pickPrimary, popularity, qualityScore } from './score.mjs';
@@ -192,17 +193,8 @@ try {
     UPDATE poi_work_cluster_meta m SET poi_id = NULL FROM conflicts c
     WHERE c.cluster_no = m.cluster_no AND c.keep_rank > 1`);
   await sql.unsafe('UPDATE poi_work_cluster_meta SET poi_id = stable_id WHERE poi_id IS NULL');
-  // Một ID cũ có thể bằng stable_id của cụm khác sau khi cụm cũ tách. Ưu tiên ID ổn định
-  // của chính cụm để POI mới luôn có khoá duy nhất; cụm còn lại nhận stable_id riêng của nó.
-  await sql.unsafe(`WITH final_conflicts AS (
-      SELECT m.cluster_no, row_number() OVER (
-        PARTITION BY m.poi_id
-        ORDER BY (m.poi_id = m.stable_id) DESC, m.cluster_no
-      ) AS keep_rank
-      FROM poi_work_cluster_meta m
-    )
-    UPDATE poi_work_cluster_meta m SET poi_id = m.stable_id FROM final_conflicts c
-    WHERE c.cluster_no = m.cluster_no AND c.keep_rank > 1`);
+  await resolvePoiIds(sql);
+  await applyApprovedEditPopularity(sql);
   await sql.unsafe('ANALYZE poi_work_cluster; ANALYZE poi_work_cluster_meta');
 
   const s = /** @type {any} */ (

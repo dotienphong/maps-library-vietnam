@@ -47,8 +47,12 @@ try {
         contact = n.contact, hours = n.hours, primary_source = n.primary_source, primary_source_id = n.primary_source_id,
         quality_score = n.quality_score, popularity = n.popularity, status = n.status, updated_at = now()
       FROM poi_new n WHERE n.id = p.id AND p.created_by = 'pipeline'
-        AND (p.name, p.category, p.address_text, p.contact::text, p.hours::text, p.primary_source, p.primary_source_id, p.quality_score, p.status, ST_AsText(p.geom))
-            IS DISTINCT FROM (n.name, n.category, n.address_text, n.contact::text, n.hours::text, n.primary_source, n.primary_source_id, n.quality_score, n.status, ST_AsText(n.geom))`);
+        AND (p.name, p.name_norm, p.name_alt, p.category, p.housenumber, p.street, p.ward, p.province,
+             p.address_text, p.contact::text, p.hours::text, p.primary_source, p.primary_source_id,
+             p.quality_score, p.popularity, p.status, ST_AsText(p.geom))
+            IS DISTINCT FROM (n.name, n.name_norm, n.name_alt, n.category, n.housenumber, n.street, n.ward, n.province,
+                              n.address_text, n.contact::text, n.hours::text, n.primary_source, n.primary_source_id,
+                              n.quality_score, n.popularity, n.status, ST_AsText(n.geom))`);
     await tx.unsafe(
       'INSERT INTO poi SELECT n.* FROM poi_new n WHERE NOT EXISTS (SELECT 1 FROM poi p WHERE p.id = n.id)',
     );

@@ -4,6 +4,7 @@ import { execFileSync } from 'node:child_process';
 import postgres from 'postgres';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { databaseUrlFromEnv } from '../../../scripts/lib/migrations.mjs';
+import { applyApprovedEditPopularity, resolvePoiIds } from '../src/lib/poi-ids.mjs';
 
 const sql = postgres(databaseUrlFromEnv(process.env), { max: 1, onnotice: () => {} });
 const node = (/** @type {string[]} */ ...args) =>
@@ -54,6 +55,38 @@ describe('gộp trên fixture Quận 1', () => {
   it('Overture confidence < 0,4 đơn lẻ → không tạo poi (spec 5.4.10)', async () => {
     expect(await poiOf('overture', 'test-lowconf')).toBeUndefined();
   });
+  it('popularity nhận approved/auto_approved edits một lần theo POI lịch sử, có cap', async () => {
+    const before = await poiOf('osm', 'n900000000001');
+    for (const status of [
+      'approved',
+      'approved',
+      'auto_approved',
+      'approved',
+      'rejected',
+      'pending',
+    ])
+      await sql`INSERT INTO poi_edit (poi_id, kind, status) VALUES (${before.id}, 'update', ${status})`;
+    runAll();
+    const after = await poiOf('osm', 'n900000000001');
+    expect(after.id).toBe(before.id);
+    expect(Number(after.popularity)).toBeCloseTo(Number(before.popularity) + 1);
+  }, 120_000);
+  it('publish cập nhật mọi trường pipeline khi chỉ name_norm/name_alt/địa chỉ/popularity thay đổi', async () => {
+    const before = await poiOf('overture', 'test-hl-2');
+    await sql`UPDATE poi_work_record SET name_norm = 'highlands changed', name_alt = ARRAY['alias changed'],
+      housenumber = '99', street = 'Đường đổi', ward = 'Phường đổi', province = 'Tỉnh đổi'
+      WHERE source = 'overture' AND source_id = 'test-hl-2'`;
+    await sql`UPDATE poi_work_cluster_meta SET popularity = 9.25 WHERE poi_id = ${before.id}`;
+    node('pipelines/poi/src/publish.mjs', '--force');
+    const after = await poiOf('overture', 'test-hl-2');
+    expect(after.name_norm).toBe('highlands changed');
+    expect(after.name_alt).toEqual(['alias changed']);
+    expect(after.housenumber).toBe('99');
+    expect(after.street).toBe('Đường đổi');
+    expect(after.ward).toBe('Phường đổi');
+    expect(after.province).toBe('Tỉnh đổi');
+    expect(Number(after.popularity)).toBeCloseTo(9.25);
+  }, 120_000);
   it('mỗi bản ghi nguồn liên kết đúng một poi; poi nào cũng có category và geom; chỉ other chưa ánh xạ < 10 %', async () => {
     const [{ n }] =
       await sql`SELECT count(*)::int AS n FROM poi p WHERE NOT EXISTS (SELECT 1 FROM poi_source_link l WHERE l.poi_id = p.id)`;
@@ -86,4 +119,27 @@ describe('gộp trên fixture Quận 1', () => {
     expect(moved.id).toBe(before.id);
     expect(moved.primary_source).toBe('overture');
   }, 240_000);
+  it('chuỗi va chạm nhiều hop trả về poi_id duy nhất trước publish', async () => {
+    const rows =
+      await sql`SELECT cluster_no FROM poi_work_cluster_meta ORDER BY cluster_no LIMIT 3`;
+    expect(rows).toHaveLength(3);
+    const [a, b, c] = rows;
+    const historical = await poiOf('overture', 'test-cong');
+    await sql`UPDATE poi_work_cluster_meta SET stable_id = ${historical.id}, poi_id = ${historical.id}, popularity = 0 WHERE cluster_no = ${a.cluster_no}`;
+    await sql`UPDATE poi_work_cluster_meta SET stable_id = 'stable-b', poi_id = ${historical.id}, popularity = 0 WHERE cluster_no = ${b.cluster_no}`;
+    await sql`UPDATE poi_work_cluster_meta SET stable_id = 'stable-c', poi_id = 'stable-b', popularity = 0 WHERE cluster_no = ${c.cluster_no}`;
+    await resolvePoiIds(sql);
+    await applyApprovedEditPopularity(sql);
+    const resolved =
+      await sql`SELECT cluster_no, poi_id FROM poi_work_cluster_meta WHERE cluster_no IN (${a.cluster_no}, ${b.cluster_no}, ${c.cluster_no}) ORDER BY cluster_no`;
+    expect(resolved.map((r) => r.poi_id)).toEqual([historical.id, 'stable-b', 'stable-c']);
+    const popularity =
+      await sql`SELECT cluster_no, popularity FROM poi_work_cluster_meta WHERE cluster_no IN (${a.cluster_no}, ${b.cluster_no}, ${c.cluster_no}) ORDER BY cluster_no`;
+    expect(Number(popularity[0].popularity)).toBeCloseTo(1);
+    expect(Number(popularity[1].popularity)).toBe(0);
+    expect(Number(popularity[2].popularity)).toBe(0);
+    const [{ total, distinct_ids }] =
+      await sql`SELECT count(*)::int AS total, count(DISTINCT poi_id)::int AS distinct_ids FROM poi_work_cluster_meta`;
+    expect(distinct_ids).toBe(total);
+  });
 });

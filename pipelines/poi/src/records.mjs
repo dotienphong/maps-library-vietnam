@@ -68,7 +68,7 @@ export function buildRow(r) {
     website: websites.length > 0,
     hours: r.hours !== null,
     hn: Boolean(addr.housenumber),
-    cat: r.cat.code !== 'other' && !r.cat.code.endsWith('_other'),
+    cat: r.cat.code !== 'other',
   };
   const completeness =
     3 * Number(f.phone) +
