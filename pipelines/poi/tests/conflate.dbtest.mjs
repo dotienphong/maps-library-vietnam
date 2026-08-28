@@ -1,8 +1,9 @@
 // Chạy trong image: PIPE pipeline pnpm test:db — cần ingest fixture (ingest.dbtest chạy trước theo thứ tự tên file? KHÔNG — tự chạy lại ở đây)
 import 'dotenv/config';
-import { execFileSync } from 'node:child_process';
+import { execFile } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
+import { promisify } from 'node:util';
 import postgres from 'postgres';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { databaseUrlFromEnv } from '../../../scripts/lib/migrations.mjs';
@@ -15,19 +16,21 @@ import {
 } from '../src/lib/poi-ids.mjs';
 
 const sql = postgres(databaseUrlFromEnv(process.env), { max: 1, onnotice: () => {} });
+const execFileAsync = promisify(execFile);
+const EDIT_NOTE = 'task7-popularity-cap-test';
 const node = (/** @type {string[]} */ ...args) =>
-  execFileSync(process.execPath, args, { encoding: 'utf8', stdio: ['ignore', 'pipe', 'inherit'] });
-const runAll = () => {
-  node('pipelines/poi/src/records.mjs');
-  node('pipelines/poi/src/conflate.mjs');
-  node('pipelines/poi/src/publish.mjs', '--force');
+  execFileAsync(process.execPath, args, { encoding: 'utf8' });
+const runAll = async () => {
+  await node('pipelines/poi/src/records.mjs');
+  await node('pipelines/poi/src/conflate.mjs');
+  await node('pipelines/poi/src/publish.mjs', '--force');
 };
 
 beforeAll(async () => {
-  node('scripts/db-migrate.mjs');
+  await node('scripts/db-migrate.mjs');
   for (const s of ['osm', 'overture', 'fsq'])
-    node(`pipelines/poi/src/ingest/${s}.mjs`, '--fixture');
-  node('pipelines/poi/src/taxonomy.mjs', 'load');
+    await node(`pipelines/poi/src/ingest/${s}.mjs`, '--fixture');
+  await node('pipelines/poi/src/taxonomy.mjs', 'load');
   await sql`DELETE FROM src_overture_place WHERE id LIKE 'test-%'`;
   await sql`DELETE FROM src_osm_place WHERE osm_type = 'n' AND osm_id >= 900000000000`;
   await sql`INSERT INTO src_osm_place (osm_type, osm_id, name, names, tags, geom, release) VALUES
@@ -38,7 +41,8 @@ beforeAll(async () => {
     ('test-hl-1', 'Highlands Nguyen Hue', '{"primary":"Highlands Nguyen Hue"}', 'coffee_shop', '{"primary":"coffee_shop"}', 0.8, '[{"freeform":"18 Nguyễn Huệ, Quận 1"}]', '{}', '{}', '[]', ST_SetSRID(ST_MakePoint(106.7041, 10.7741), 4326), 'fixture-q1'),
     ('test-hl-2', 'Highlands Coffee', '{"primary":"Highlands Coffee"}', 'coffee_shop', '{"primary":"coffee_shop"}', 0.8, '[{"freeform":"76 Nguyễn Huệ, Quận 1"}]', '{}', '{}', '[]', ST_SetSRID(ST_MakePoint(106.7044, 10.7745), 4326), 'fixture-q1'),
     ('test-lowconf', 'Quán Không Tên Rõ', '{"primary":"Quán Không Tên Rõ"}', 'restaurant', '{"primary":"restaurant"}', 0.2, '[]', '{}', '{}', '[]', ST_SetSRID(ST_MakePoint(106.6900, 10.7900), 4326), 'fixture-q1')`;
-  runAll();
+  await sql`DELETE FROM poi_edit WHERE note = ${EDIT_NOTE}`;
+  await runAll();
 });
 afterAll(() => sql.end());
 
@@ -64,7 +68,7 @@ describe('gộp trên fixture Quận 1', () => {
     expect(await poiOf('overture', 'test-lowconf')).toBeUndefined();
   });
   it('report tách bare other, mapped *_other, và combined other', async () => {
-    node('pipelines/poi/src/report.mjs');
+    await node('pipelines/poi/src/report.mjs');
     const report = JSON.parse(
       readFileSync(resolve(OUT, `poi-report-${vnDate().replace(/-/g, '')}.json`), 'utf8'),
     );
@@ -83,11 +87,13 @@ describe('gộp trên fixture Quận 1', () => {
       'approved',
       'auto_approved',
       'approved',
+      'approved',
+      'auto_approved',
       'rejected',
       'pending',
     ])
-      await sql`INSERT INTO poi_edit (poi_id, kind, status) VALUES (${before.id}, 'update', ${status})`;
-    runAll();
+      await sql`INSERT INTO poi_edit (poi_id, kind, status, note) VALUES (${before.id}, 'update', ${status}, ${EDIT_NOTE})`;
+    await runAll();
     const after = await poiOf('osm', 'n900000000001');
     expect(after.id).toBe(before.id);
     expect(Number(after.popularity)).toBeCloseTo(Number(before.popularity) + 1);
@@ -98,7 +104,7 @@ describe('gộp trên fixture Quận 1', () => {
       housenumber = '99', street = 'Đường đổi', ward = 'Phường đổi', province = 'Tỉnh đổi'
       WHERE source = 'overture' AND source_id = 'test-hl-2'`;
     await sql`UPDATE poi_work_cluster_meta SET popularity = 9.25 WHERE poi_id = ${before.id}`;
-    node('pipelines/poi/src/publish.mjs', '--force');
+    await node('pipelines/poi/src/publish.mjs', '--force');
     const after = await poiOf('overture', 'test-hl-2');
     expect(after.name_norm).toBe('highlands changed');
     expect(after.name_alt).toEqual(['alias changed']);
@@ -136,7 +142,7 @@ describe('gộp trên fixture Quận 1', () => {
     const before = await poiOf('osm', 'n900000000001');
     const beforeAll =
       await sql`SELECT l.source, l.source_id, l.poi_id FROM poi_source_link l ORDER BY l.source, l.source_id`;
-    runAll();
+    await runAll();
     const again = await poiOf('osm', 'n900000000001');
     expect(again.id).toBe(before.id);
     expect(again.primary_source).toBe('osm');
@@ -144,7 +150,7 @@ describe('gộp trên fixture Quận 1', () => {
       await sql`SELECT l.source, l.source_id, l.poi_id FROM poi_source_link l ORDER BY l.source, l.source_id`;
     expect(afterAll).toEqual(beforeAll);
     await sql`DELETE FROM src_osm_place WHERE osm_type = 'n' AND osm_id = 900000000001`;
-    runAll();
+    await runAll();
     const moved = await poiOf('overture', 'test-cong');
     expect(moved.id).toBe(before.id);
     expect(moved.primary_source).toBe('overture');
