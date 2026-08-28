@@ -7,8 +7,8 @@ commit với code).
 
 - Mốc: M2 — Kho POI + máy chủ nội bộ
 - Plan: `docs/superpowers/plans/2026-08-27-m2-kho-poi-may-chu.md` (11 task, 6.535 dòng sau review lần 3)
-- Task đang làm: Task 6 — taxonomy 163 lá, ánh xạ 3 nguồn (thứ tự thực thi: 0 → 2 → 3 → 4 → 5 → 6 → 7 → 8 → 9 → 1 → 10) (thứ tự thực thi: 0 → 2 → 3 → 4 → 5 → 6 → 7 → 8 → 9 → 1 → 10)
-- Commit cuối: M2 T5 (commit hiện tại)
+- Task đang làm: Task 7 — gộp (conflation) 3 nguồn → poi (thứ tự thực thi: 0 → 2 → 3 → 4 → 5 → 6 → 7 → 8 → 9 → 1 → 10) (thứ tự thực thi: 0 → 2 → 3 → 4 → 5 → 6 → 7 → 8 → 9 → 1 → 10)
+- Commit cuối: M2 T6 (commit hiện tại)
 - Môi trường đã dựng: máy dev macOS; remote GitHub cá nhân; Postgres/PostGIS dev,
   migration `0001_extensions.sql`; `pnpm run setup` sạch đạt 6,51 giây; image
   pipeline local đã build/smoke trên arm64 và chạy được qua Compose; Dev Container
@@ -24,8 +24,8 @@ commit với code).
 
 ## 2. Bước kế tiếp
 
-M2 Task 6 — taxonomy: `db/seed/category.json` (163 lá, 12 nhóm + `other`), 3 CSV ánh xạ, `mapCategory`,
-đo độ phủ trên `src_*` toàn VN đã có, `taxonomy.mjs load`.
+M2 Task 7 — gộp (conflation): `records.mjs` → `poi_work_record`, cặp ứng viên PostGIS, ghép tham lam
+2 lượt, ID ULID ổn định, `publish.mjs` gộp vào `poi` (mục tiêu ≥ 1,5 triệu active), `report.mjs`.
 
 **Lưu ý vận hành máy dev:** đĩa đã đầy 97 % ngày 27/08 (`~/.cache/uv` 124 GB + JSONL Overture không nén);
 đã dọn còn 44 GiB trống. Trước các bước nặng (Task 7 gộp, Task 10 `data:update`), kiểm `df -h /`.
@@ -94,6 +94,9 @@ tạo token Cloudflare riêng `mapslibvn-pipeline` (Workers KV Edit + Workers R2
 | 2026-08-27 | `NAME_FILLERS` có thêm `mtv`; `abbrev.json` thêm `tx.`, `h.`, `x.` so với spec 5.3; alias thương hiệu chỉ áp ở đầu chuỗi | "Công ty TNHH MTV …" rất phổ biến trong tên đăng ký; thị xã/huyện/xã xuất hiện trong địa chỉ ngoài đô thị; alias giữa chuỗi gây dương tính giả ("Quán TCH") | (M2 T3) |
 | 2026-08-27 | `parseAddress`: 9 luật thêm so với plan sau khi review 300 địa chỉ thật — (1) "N/M Hẻm N X" gộp chuỗi hẻm trùng đầu (`mergeChain`), số hẻm nhận dạng `A/B`; (2) tiền tố "Đường/Phố" chỉ khi bản gốc có `Đ`/`ố` (tránh nuốt "Dương Quảng Hàm", "Phổ Quang"); (3) `tỉnh lộ` không phải tỉnh; (4) phần đã tách dấu phẩy được tách tiếp ở phường/quận (không tách `xã` vì "Xã Đàn"); (5) tên đường ở phần kế sau số nhà đứng riêng ("736/169/10, Đ. Lê Đức Thọ"); (6) số nhà có chữ `272A4`, `E4/15`, `C33` (loại `p6/q10/f6/tp`, mã đường `QL/TL/ĐT/HL`); (7) "3 Tháng 2" là tên đường; (8) bỏ ngoặc đơn, gạch dài `–`, "Cư xá", "gần/đối diện/cuối", tiếng Anh `Ward`/`District`; (9) "Lô P2" không tách thành phường 2 | Lấy mẫu phân tầng 300 địa chỉ Overture (100 có `/`, 60 hẻm/ngõ, 60 có P./Q., 80 còn lại) lộ các mẫu địa chỉ thật mà 49 dòng curated không phủ | (M2 T4) |
 | 2026-08-27 | JSONL trung gian của ingest Overture/FSQ **nén gzip** (`COPY … (FORMAT json, COMPRESSION gzip)`, `readJsonl` tự giải nén theo đuôi `.gz`) | Bản không nén ~3–4 GB cho 2 triệu dòng làm đầy đĩa dev (còn 435 MiB) → Docker treo, job bị giết; nguyên nhân gốc là `~/.cache/uv` 124 GB nhưng pipeline không nên cần vài GB tạm | `a70514c` |
+| 2026-08-28 | Đo độ phủ taxonomy phân biệt **thiếu ánh xạ** (không có dòng CSV nào khớp, kể cả wildcard — ngưỡng chặn 2 %) với **`*_other` chủ đích** (có dòng CSV trỏ thẳng tới `<nhóm>_other`) | Bản đo đầu gộp chung hai loại nên báo Overture 29,3 % "chưa ánh xạ", nhưng phần lớn là nhóm cha chung của nguồn (`professional_services` → `services_other`) — ánh xạ đúng ngữ nghĩa, không thể chi tiết hơn | (M2 T6) |
+| 2026-08-28 | `OSM_DROP` mở rộng thêm 22 giá trị: hạ tầng đường sắt (`railway=level_crossing/switch/signal/platform/stop/crossing/subway_entrance/buffer_stop/milestone`), sân bay (`aeroway=gate/taxiway/runway/holding_position/parking_position`), và `amenity=house/shower/watering_place/water_point/bicycle_repair_station/smoking_area/lounger/trolley_bay`, `leisure=outdoor_seating/swimming_area` | Đo trên 228 nghìn đối tượng OSM VN: đây là hạ tầng, không phải địa điểm để tìm kiếm; giữ lại sẽ tạo POI rác | (M2 T6) |
+| 2026-08-28 | 55 ánh xạ bổ sung so với plan, chọn theo số lượng thật trong dữ liệu VN (Overture `health_spa` 4.114 → `spa`, `bridal_shop` 3.683 → `clothes`, `laundromat` 1.865 → `laundry`, `day_care_preschool` 1.752 → `kindergarten`…; FSQ `Structure`, `Factory`, `Assisted Living`…); `farm`/`agriculture`/`agricultural_service` cố ý để rơi vào `other` | Địa điểm nông nghiệp không thuộc 12 nhóm của spec 5.6; ghi chú `#` ngay trong CSV | (M2 T6) |
 | 2026-08-27 | `osmium export` ghi id đối tượng ở `feature.id`, không ở `properties.id` như plan giả định → `parseOsmiumId(f.id ?? f.properties?.id)`; sửa cả `osm-roads.mjs` (Task 8) trong plan | Ingest OSM fixture trả 0 dòng cho tới khi sửa | `f9f1fda` |
 | 2026-08-27 | Fixture `q1.osm.pbf` dùng `-s smart -S types=any` nên có node ngoài bbox Quận 1 (bbox thật 105,77–108,43°E); test bbox chỉ áp cho Overture/FSQ, OSM kiểm trong VN + ≥ 500 đối tượng trong Quận 1 | Giữ trọn relation ranh giới để Task 8 dựng `admin_area` trên fixture | `f9f1fda` |
 | 2026-08-27 | Dockerfile gộp luôn Task 1 Step 4 (`postgresql-client-16`, `zstd`, `cloudflared 2026.8.2`) vào lần rebuild của Task 5 | Chỉ rebuild image một lần (~10 phút) thay vì hai | `f9f1fda` |
@@ -286,3 +289,10 @@ rõ ở mục 2 và không chặn M2: kiểm trên Windows, và bật lại `req
   trong 11 giây; **toàn VN**: OSM 228.144 (10,5 s), Overture 1.501.161 (3 phút 18 s; 6,6 % không phân loại
   — spec 7 %; 6.7 % không có địa chỉ chữ), FSQ 272.349 (73 s); DB dev 2,2 GB. Sự cố đĩa đầy 97 %
   giữa chừng (xem mục 3), dọn xong còn 44 GiB · (commit hiện tại)
+- 2026-08-28 · M2 T6 · taxonomy: `db/seed/category.json` 164 mã lá (12 nhóm thật + `other`, mọi icon có
+  trong sprite osm-liberty), 3 CSV ánh xạ 955 dòng (OSM 296, Overture 380, FSQ 279), `taxonomy.mjs`
+  (`mapCategory`, `osmCandidates` với tag phụ religion/sport/station, `refineSchool`, CLI `load`);
+  9/9 test đơn vị; `category-coverage.mjs` đo trên dữ liệu VN thật: **thiếu ánh xạ OSM 0,4 % ·
+  Overture 0,8 % · FSQ 0 %** (ngưỡng 2 %), `*_other` chủ đích 7,5 / 23,1 / 11,8 %, Overture còn
+  24,6 % other ở mức bản ghi sau khi dùng `alternate`; nạp DB idempotent (164 mã, 955 dòng, chạy
+  hai lần cùng kết quả); unit 402/402 · (commit hiện tại)

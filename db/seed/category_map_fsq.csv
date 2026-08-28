@@ -1,0 +1,282 @@
+# FSQ fsq_category_labels — lá, cấp 2, cấp 1. mapCategory thử lá trước, rồi đường dẫn cấp 2, rồi cấp 1.
+Dining and Drinking,food_drink_other
+Restaurant,restaurant
+Vietnamese Restaurant,restaurant
+Asian Restaurant,restaurant
+Seafood Restaurant,restaurant
+Chinese Restaurant,restaurant
+Japanese Restaurant,restaurant
+Korean Restaurant,restaurant
+Thai Restaurant,restaurant
+Indian Restaurant,restaurant
+Italian Restaurant,restaurant
+French Restaurant,restaurant
+BBQ Joint,restaurant
+Hot Pot Restaurant,restaurant
+Vegan and Vegetarian Restaurant,restaurant
+Noodle Restaurant,restaurant
+Pizzeria,restaurant
+Sushi Restaurant,restaurant
+Steakhouse,restaurant
+Buffet,restaurant
+Breakfast Spot,restaurant
+Diner,restaurant
+Bistro,restaurant
+Cafeteria,restaurant
+Soup Spot,restaurant
+Burger Joint,fast_food
+Fried Chicken Joint,fast_food
+Fast Food Restaurant,fast_food
+Street Food Gathering,street_food
+Food Truck,street_food
+Food Stand,street_food
+Snack Place,street_food
+Food Court,food_court
+"Cafe, Coffee, and Tea House",cafe
+Café,cafe
+Cafe,cafe
+Coffee Shop,cafe
+Tea Room,tea_house
+Bubble Tea Shop,bubble_tea
+Juice Bar,juice_bar
+Smoothie Shop,juice_bar
+Bakery,bakery
+Dessert Shop,dessert
+Ice Cream Parlor,ice_cream
+Bar,bar
+Beer Bar,bar
+Beer Garden,pub
+Brewery,pub
+Pub,pub
+Cocktail Bar,bar
+Wine Bar,bar
+Lounge,bar
+Hookah Bar,bar
+Night Club,nightclub
+Karaoke Bar,karaoke
+Retail,shopping_other
+Grocery Store,convenience
+Supermarket,supermarket
+Convenience Store,convenience
+Shopping Mall,mall
+Market,market
+Flea Market,market
+Fashion Retail,clothes
+Clothing Store,clothes
+Women's Store,clothes
+Men's Store,clothes
+Kids Store,clothes
+Boutique,clothes
+Shoe Store,shoes
+Computers and Electronics Retail,electronics
+Electronics Store,electronics
+Mobile Phone Store,mobile_phone
+Furniture and Home Store,furniture
+Hardware Store,hardware
+Jewelry Store,jewelry
+Bookstore,bookshop
+Office Supply Store,stationery
+Flower Store,florist
+Gift Store,gift
+Cosmetics Store,cosmetics
+Sporting Goods Retail,sports_shop
+Pet Supplies Store,pet_shop
+Toy Store,toys
+Motorcycle Dealership,motorcycle_shop
+Car Dealership,car_dealer
+Automotive Retail,shopping_other
+Bicycle Store,bicycle_shop
+Department Store,department_store
+Discount Store,shopping_other
+Drugstore,pharmacy
+Pharmacy,pharmacy
+Optical Store,optician
+Food and Beverage Retail,shopping_other
+Liquor Store,shopping_other
+Wholesale Store,shopping_other
+Business and Professional Services,services_other
+Health and Beauty Service,beauty_salon
+Hair Salon,hair_salon
+Barbershop,hair_salon
+Nail Salon,beauty_salon
+Skin Care Clinic,beauty_salon
+Tattoo Parlor,beauty_salon
+Spa,spa
+Massage Clinic,spa
+Laundromat,laundry
+Laundry Service,laundry
+Dry Cleaner,laundry
+Tailor,tailor
+Photography Studio,photo_studio
+Print Store,printing
+Real Estate Service,real_estate
+Real Estate Agency,real_estate
+Legal Service,lawyer
+Lawyer,lawyer
+Accounting and Bookkeeping Service,accounting
+Travel Agency,travel_agency
+Coworking Space,coworking
+Office,office
+Factory,services_other
+Warehouse,services_other
+Automotive Service,car_repair
+Automotive Repair Shop,car_repair
+Motorcycle Repair Shop,motorcycle_repair
+Car Wash and Detail,car_wash
+Fuel Station,fuel
+Shipping Store,courier
+Insurance Agency,insurance
+IT Service,it_services
+Computer Repair Service,it_services
+Advertising Agency,services_other
+Construction,services_other
+Financial Service,credit_fund
+Banking and Finance,bank
+Bank,bank
+ATM,atm
+Currency Exchange,money_exchange
+Pawn Shop,pawnshop
+Health and Medicine,health_other
+Hospital,hospital
+Emergency Room,hospital
+Medical Center,clinic
+Urgent Care Center,clinic
+Physician,doctor
+Dermatologist,doctor
+Pediatrician,doctor
+Dentist,dentist
+Veterinarian,veterinary
+Optometrist,optician
+Medical Lab,medical_lab
+Obstetrician Gynecologist (Ob-gyn),maternity
+Maternity Clinic,maternity
+Alternative Medicine Clinic,traditional_medicine
+Acupuncture Clinic,traditional_medicine
+Physical Therapy Clinic,health_other
+Community and Government,public_admin_other
+Education,education_other
+Preschool,kindergarten
+Elementary School,primary_school
+Middle School,secondary_school
+High School,high_school
+School,school
+Private School,school
+College and University,university
+University,university
+Community College,college
+Language School,language_center
+Tutoring Service,tutoring
+Vocational School,training_center
+Driving School,driving_school
+Library,library
+Music School,training_center
+Art School,training_center
+Government Building,government_office
+City Hall,town_hall
+Town Hall,town_hall
+Police Station,police
+Fire Station,fire_station
+Courthouse,courthouse
+Post Office,post_office
+Embassy or Consulate,embassy
+Social Services Organization,social_facility
+Community Center,community_center
+Public Bathroom,public_toilet
+Cemetery,cemetery
+Organization,public_admin_other
+Non-Profit Organization,public_admin_other
+Residential Building,public_admin_other
+Apartment or Condo,public_admin_other
+Housing Development,public_admin_other
+Spiritual Center,religion_community_other
+Buddhist Temple,pagoda
+Church,church
+Temple,temple
+Mosque,mosque
+Hindu Temple,temple
+Shrine,shrine
+Monastery,monastery
+Arts and Entertainment,entertainment_sport_other
+Movie Theater,cinema
+Museum,museum
+Art Gallery,art_gallery
+Theater,theatre
+Performing Arts Venue,theatre
+Concert Hall,theatre
+Music Venue,theatre
+Amusement Park,amusement_park
+Water Park,water_park
+Arcade,gaming_center
+Internet Cafe,gaming_center
+Bowling Alley,bowling
+Pool Hall,billiards
+Zoo,zoo
+Aquarium,aquarium
+Stadium,stadium
+Casino,entertainment_sport_other
+Sports and Recreation,entertainment_sport_other
+Gym and Studio,gym
+Gym,gym
+Yoga Studio,gym
+Martial Arts Dojo,gym
+Swimming Pool,swimming_pool
+Soccer Field,football_pitch
+Athletic Field,football_pitch
+Badminton Court,badminton_court
+Tennis Court,tennis_court
+Sports Club,sports_center
+Golf Course,entertainment_sport_other
+Basketball Court,entertainment_sport_other
+Playground,entertainment_sport_other
+Landmarks and Outdoors,culture_tourism_other
+Park,park
+Garden,garden
+Botanical Garden,garden
+Beach,beach
+Scenic Lookout,viewpoint
+Historic and Protected Site,historic_site
+Monument,monument
+Public Art,monument
+Structure,culture_tourism_other
+Bridge,culture_tourism_other
+Lake,culture_tourism_other
+Mountain,culture_tourism_other
+Plaza,culture_tourism_other
+Island,culture_tourism_other
+River,culture_tourism_other
+Travel and Transportation,transport_other
+Lodging,lodging_other
+Hotel,hotel
+Motel,motel
+Hostel,hostel
+Bed and Breakfast,guest_house
+Resort,resort
+Vacation Rental,homestay
+Bus Stop,bus_stop
+Bus Station,bus_station
+Train Station,train_station
+Metro Station,metro_station
+Airport,airport
+Airport Terminal,airport
+Boat or Ferry,ferry_terminal
+Pier,port
+Port,port
+Taxi,taxi_stand
+Parking,parking
+Electric Vehicle Charging Station,charging_station
+Toll Plaza,toll_booth
+Rest Area,transport_other
+Road,transport_other
+# --- bổ sung sau khi đo độ phủ trên 272 nghìn bản ghi VN (Task 6) ---
+Arts and Crafts Store,shopping_other
+Miscellaneous Store,shopping_other
+Other Great Outdoors,culture_tourism_other
+Event Space,entertainment_sport_other
+Design Studio,services_other
+Assisted Living,social_facility
+Business Service,services_other
+Business Center,services_other
+Bus Line,transport_other
+Transportation Service,transport_other
+Public Transportation,transport_other
+# Neighborhood/Town/Village/Farm: địa danh hành chính hoặc nông nghiệp, không phải POI → `other` có chủ đích

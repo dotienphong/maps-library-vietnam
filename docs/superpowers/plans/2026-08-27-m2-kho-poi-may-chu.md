@@ -3153,7 +3153,7 @@ git push
 **Files:**
 - Create: `db/seed/category.json`, `db/seed/category_map_osm.csv`, `db/seed/category_map_overture.csv`, `db/seed/category_map_fsq.csv`, `pipelines/poi/src/taxonomy.mjs`, `pipelines/poi/scripts/category-coverage.mjs`, `pipelines/poi/tests/taxonomy.test.mjs`
 
-- [ ] **Step 1: `category.json` (spec 5.6) — 12 nhóm thật + nhóm giả `other`**
+- [x] **Step 1: `category.json` (spec 5.6) — 12 nhóm thật + nhóm giả `other`**
 
 `db/seed/category.json` — mỗi dòng một lá `{code, group, vi, en, icon, rank}`; `icon` là tên sprite Maki trong osm-liberty (style Task 9 vẽ icon theo **nhóm**, `icon` lá dùng cho API); `rank` 1 = hiện sớm nhất theo zoom:
 ```json
@@ -3325,7 +3325,7 @@ git push
 ]
 ```
 
-- [ ] **Step 2: Test taxonomy (thất bại)**
+- [x] **Step 2: Test taxonomy (thất bại)**
 
 `pipelines/poi/tests/taxonomy.test.mjs`:
 ```js
@@ -3410,7 +3410,7 @@ describe('mapCategory', () => {
 Run: `pnpm test`
 Expected: FAIL — không tìm thấy `../src/taxonomy.mjs`.
 
-- [ ] **Step 3: `taxonomy.mjs`**
+- [x] **Step 3: `taxonomy.mjs`**
 
 ```js
 #!/usr/bin/env node
@@ -3567,7 +3567,7 @@ if (process.argv[1]?.endsWith('taxonomy.mjs') && process.argv[2] === 'load') {
 }
 ```
 
-- [ ] **Step 4: Ba bảng ánh xạ (`source_value,code`; tách ở dấu phẩy cuối; `khoá=*` là dự phòng theo khoá)**
+- [x] **Step 4: Ba bảng ánh xạ (`source_value,code`; tách ở dấu phẩy cuối; `khoá=*` là dự phòng theo khoá)**
 
 `db/seed/category_map_osm.csv`:
 ```
@@ -4302,7 +4302,7 @@ Rest Area,transport_other
 Run: `pnpm test`
 Expected: toàn bộ test taxonomy xanh. Nếu một mã đích gõ sai (test "mọi mã đích tồn tại" đỏ) → sửa CSV theo `category.json`.
 
-- [ ] **Step 5: Script đo độ phủ trên dữ liệu thật + nạp taxonomy vào DB**
+- [x] **Step 5: Script đo độ phủ trên dữ liệu thật + nạp taxonomy vào DB**
 
 `pipelines/poi/scripts/category-coverage.mjs`:
 ```js
@@ -4360,7 +4360,7 @@ Expected: `✓ category 163 mã; category_map N dòng`.
 Run: `PIPE pipeline node pipelines/poi/src/taxonomy.mjs load` (lần 2)
 Expected: cùng kết quả — idempotent.
 
-- [ ] **Step 6: Lint, DEVLOG, commit**
+- [x] **Step 6: Lint, DEVLOG, commit**
 
 Run: `pnpm lint && pnpm typecheck && pnpm test`
 

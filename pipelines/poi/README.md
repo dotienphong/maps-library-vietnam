@@ -12,6 +12,16 @@ Số liệu ingest thật toàn VN (27–28/08/2026, DB dev): `src_osm_place` 22
 1.501.161 (COPY 2.011.973 trong bbox, loại 510.812 ngoài ranh giới VN đệm 2 km; 3 phút 18 giây), `src_fsq_place`
 272.349 (73 giây). File trung gian JSONL **nén gzip** — bản không nén (3–4 GB) đã làm đầy đĩa dev một lần.
 
+| Taxonomy | `node pipelines/poi/src/taxonomy.mjs load` | `db/seed/category*.{json,csv}` → `category`, `category_map` |
+| Đo độ phủ loại | `node pipelines/poi/scripts/category-coverage.mjs [--top 200]` | `src_*` → báo cáo % thiếu ánh xạ / `*_other` chủ đích |
+
+Taxonomy (Task 6): 164 mã lá (12 nhóm + `other`), 955 dòng ánh xạ (OSM 296, Overture 380, FSQ 279).
+Độ phủ đo trên dữ liệu VN thật: **thiếu ánh xạ** OSM 0,4 %, Overture 0,8 %, FSQ 0 % (ngưỡng 2 %).
+Phần rơi vào `<nhóm>_other` **có chủ đích** (nhóm cha chung chung của nguồn, không thể chi tiết hơn):
+OSM 7,5 %, Overture 23,1 %, FSQ 11,8 % — chủ yếu do Overture có `professional_services` (73.802) và
+`shopping` (53.637). Sau khi dùng cả `categories.alternate`, Overture còn 24,6 % `other` ở mức bản ghi;
+con số này sẽ giảm ở bảng `poi` sau gộp vì OSM phân loại chi tiết hơn (Task 7).
+
 Bảng phụ do pipeline tạo: `vn_boundary` (ranh giới VN đệm 2 km), `poi_work_*` (Task 7–8).
 
 Fixture Quận 1: `pipelines/poi/fixtures/` (tạo lại bằng `scripts/make-fixture.mjs`). Ranh giới: `data/vn-boundary.geojson` (Natural Earth, public domain).
