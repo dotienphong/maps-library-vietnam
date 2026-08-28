@@ -4,7 +4,7 @@ import { execFile } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import postgres from 'postgres';
-import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest';
 import { databaseUrlFromEnv } from '../../../scripts/lib/migrations.mjs';
 import { OUT, vnDate } from '../src/lib/env.mjs';
 import {
@@ -68,6 +68,7 @@ beforeAll(async () => {
   await sql`DELETE FROM poi_edit WHERE note = ${EDIT_NOTE}`;
   await runAll();
 });
+afterEach(abortActiveChildren);
 afterAll(async () => {
   await abortActiveChildren();
   await sql`DELETE FROM poi_edit WHERE note = ${EDIT_NOTE}`;
