@@ -22,7 +22,8 @@ const release =
   arg('--release', process.env.OVERTURE_RELEASE) ?? (FIXTURE ? 'fixture-q1' : undefined);
 if (!release) throw new Error('Thiếu --release <ver> (hoặc OVERTURE_RELEASE)');
 mkdirSync(POI_WORK, { recursive: true });
-const out = resolve(POI_WORK, 'overture.jsonl');
+// Nén gzip: JSONL ~2 triệu dòng chiếm 3–4 GB không nén — đĩa dev đã đầy một lần (27/08)
+const out = resolve(POI_WORK, 'overture.jsonl.gz');
 
 const duck = await openDuck();
 try {
@@ -33,7 +34,7 @@ try {
            ST_X(geometry) AS lon, ST_Y(geometry) AS lat            -- geometry là GEOMETRY native (DuckDB 1.5), không phải WKB
     FROM read_parquet('${overtureSource(release)}', hive_partitioning = true)
     WHERE ${overtureBboxWhere(VN_BBOX)}
-  ) TO '${out}' (FORMAT json)`);
+  ) TO '${out}' (FORMAT json, COMPRESSION gzip)`);
 } finally {
   duck.close();
 }

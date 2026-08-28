@@ -3,6 +3,7 @@ import { createReadStream, readFileSync } from 'node:fs';
 import { createInterface } from 'node:readline';
 import { Readable } from 'node:stream';
 import { pipeline } from 'node:stream/promises';
+import { createGunzip } from 'node:zlib';
 import postgres from 'postgres';
 import { databaseUrlFromEnv } from '../../../scripts/lib/migrations.mjs';
 import { copyRow } from './lib/copy-format.mjs';
@@ -49,10 +50,11 @@ export async function copyInto(sql, table, columns, rows) {
   return n;
 }
 
-/** Đọc JSONL từng dòng. Bỏ ký tự RS (mã 30, GeoJSON Text Sequence) nếu đứng đầu dòng. @param {string} file */
+/** Đọc JSONL (hoặc .jsonl.gz) từng dòng. Bỏ ký tự RS (mã 30, GeoJSON Text Sequence) nếu đứng đầu dòng. @param {string} file */
 export async function* readJsonl(file) {
+  const raw = createReadStream(file);
   const rl = createInterface({
-    input: createReadStream(file),
+    input: file.endsWith('.gz') ? raw.pipe(createGunzip()) : raw,
     crlfDelay: Number.POSITIVE_INFINITY,
   });
   for await (const raw of rl) {

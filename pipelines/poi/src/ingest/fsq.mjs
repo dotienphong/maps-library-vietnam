@@ -21,7 +21,8 @@ import {
 const release = arg('--release', process.env.FSQ_RELEASE) ?? (FIXTURE ? '2000-01-01' : undefined);
 if (!release) throw new Error('Thiếu --release <YYYY-MM-DD> (hoặc FSQ_RELEASE)');
 mkdirSync(POI_WORK, { recursive: true });
-const out = resolve(POI_WORK, 'fsq.jsonl');
+// Nén gzip: JSONL ~2 triệu dòng chiếm 3–4 GB không nén — đĩa dev đã đầy một lần (27/08)
+const out = resolve(POI_WORK, 'fsq.jsonl.gz');
 
 const duck = await openDuck();
 try {
@@ -32,7 +33,7 @@ try {
            longitude AS lon, latitude AS lat
     FROM read_parquet('${fsqSource(release)}')
     WHERE ${lonLatWhere(VN_BBOX)} AND (country IS NULL OR country = 'VN')
-  ) TO '${out}' (FORMAT json)`);
+  ) TO '${out}' (FORMAT json, COMPRESSION gzip)`);
 } finally {
   duck.close();
 }
