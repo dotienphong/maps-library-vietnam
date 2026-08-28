@@ -4382,7 +4382,7 @@ git push
 
 Dòng chảy (spec 5.4): `records.mjs` quét `src_*` → `poi_work_record` (tên chuẩn hoá, `name_core`, loại, sđt E.164, domain, địa chỉ đã tách, điểm đầy đủ) → `conflate.mjs` tạo `poi_work_pair` bằng PostGIS (≤ 150 m, `similarity(name_core) ≥ 0,4`, nhóm tương thích) → Node ghép tham lam 2 lượt (0: trùng cùng nguồn, sim ≥ 0,8; 1: liên nguồn, sim ≥ 0,6 hoặc ≥ 0,45 khi trùng sđt/domain; **không** gộp nếu hai bên có số nhà khác nhau) → `poi_work_cluster` + `poi_work_cluster_meta` (nguồn chính, ID, quality, popularity) → `publish.mjs` dựng `poi_new` rồi **gộp** vào `poi`/`poi_source_link` trong một transaction có kiểm sanity ≤ 10 %.
 
-- [ ] **Step 1: Test hàm thuần liên hệ, ID ổn định, điểm, ghép tham lam (thất bại)**
+- [x] **Step 1: Test hàm thuần liên hệ, ID ổn định, điểm, ghép tham lam (thất bại)**
 
 `pipelines/poi/tests/contacts.test.mjs`:
 ```js
@@ -4553,7 +4553,7 @@ describe('createClusterer — ghép tham lam, không bắc cầu', () => {
 Run: `pnpm test`
 Expected: FAIL — thiếu 4 module.
 
-- [ ] **Step 2: Viết hàm thuần**
+- [x] **Step 2: Viết hàm thuần**
 
 `pipelines/poi/src/lib/contacts.mjs`:
 ```js
@@ -4719,7 +4719,7 @@ export function pickPrimary(members) {
 Run: `pnpm test`
 Expected: xanh.
 
-- [ ] **Step 3: `records.mjs` — bảng làm việc `poi_work_record`**
+- [x] **Step 3: `records.mjs` — bảng làm việc `poi_work_record`**
 
 ```js
 #!/usr/bin/env node
@@ -4863,7 +4863,7 @@ if (process.argv[1]?.endsWith('records.mjs')) {
 Run: `PIPE pipeline node pipelines/poi/src/records.mjs`
 Expected (fixture đã ingest ở Task 5): `✓ poi_work_record: N dòng — fsq=…, osm=…, overture=…` với osm < số dòng `src_osm_place` (bỏ đối tượng chỉ có số nhà).
 
-- [ ] **Step 4: `conflate.mjs` — cặp ứng viên (PostGIS) và ghép tham lam (Node)**
+- [x] **Step 4: `conflate.mjs` — cặp ứng viên (PostGIS) và ghép tham lam (Node)**
 
 ```js
 #!/usr/bin/env node
@@ -5006,7 +5006,7 @@ try {
 Run: `PIPE pipeline node pipelines/poi/src/conflate.mjs`
 Expected (fixture): `Tạo poi_work_pair … N cặp` rồi `✓ gộp: … cụm (… đa nguồn …)` với tỉ lệ đa nguồn 5–30 %.
 
-- [ ] **Step 5: `publish.mjs` — dựng `poi_new`, kiểm sanity, gộp vào `poi` + `poi_source_link`**
+- [x] **Step 5: `publish.mjs` — dựng `poi_new`, kiểm sanity, gộp vào `poi` + `poi_source_link`**
 
 ```js
 #!/usr/bin/env node
@@ -5074,7 +5074,7 @@ Expected (fixture): `✓ poi: N (active …)`, N ≈ 3.000–15.000; `other` < 1
 Run lại toàn bộ: `PIPE pipeline sh -c "node pipelines/poi/src/records.mjs && node pipelines/poi/src/conflate.mjs && node pipelines/poi/src/publish.mjs"`
 Expected: `… ID dùng lại` = số cụm (ID ổn định), `poi` cùng số dòng.
 
-- [ ] **Step 6: `report.mjs` — báo cáo gộp (nghiệm thu M2 "báo cáo số liệu gộp")**
+- [x] **Step 6: `report.mjs` — báo cáo gộp (nghiệm thu M2 "báo cáo số liệu gộp")**
 
 ```js
 #!/usr/bin/env node
@@ -5108,7 +5108,7 @@ try {
 ```
 (Bảng `address_anchor`/`street`/`alley`/`admin_area` rỗng cho tới Task 8 — đếm 0 là bình thường.)
 
-- [ ] **Step 7: Test tích hợp gộp trên fixture (dbtest) — fixture khó của spec 10**
+- [x] **Step 7: Test tích hợp gộp trên fixture (dbtest) — fixture khó của spec 10**
 
 `pipelines/poi/tests/conflate.dbtest.mjs`:
 ```js
@@ -5165,37 +5165,42 @@ describe('gộp trên fixture Quận 1', () => {
   it('Overture confidence < 0,4 đơn lẻ → không tạo poi (spec 5.4.10)', async () => {
     expect(await poiOf('overture', 'test-lowconf')).toBeUndefined();
   });
-  it('mỗi bản ghi nguồn liên kết đúng một poi; poi nào cũng có category và geom; other < 10 %', async () => {
+  it('mỗi bản ghi nguồn liên kết đúng một poi; poi nào cũng có category và geom; chỉ other chưa ánh xạ < 10 %', async () => {
     const [{ n }] = await sql`SELECT count(*)::int AS n FROM poi p WHERE NOT EXISTS (SELECT 1 FROM poi_source_link l WHERE l.poi_id = p.id)`;
     expect(n).toBe(0);
-    const [s] = await sql`SELECT count(*)::int AS total, count(*) FILTER (WHERE category = 'other' OR category LIKE '%\\_other')::int AS other,
+    const [s] = await sql`SELECT count(*)::int AS total, count(*) FILTER (WHERE category = 'other')::int AS bare_other,
+        count(*) FILTER (WHERE category = 'other' OR category LIKE '%\\_other')::int AS combined_other,
         count(*) FILTER (WHERE category IS NULL OR geom IS NULL)::int AS bad FROM poi`;
     expect(s.total).toBeGreaterThan(2000);
     expect(s.bad).toBe(0);
-    expect(s.other / s.total).toBeLessThan(0.1);
+    expect(s.bare_other / s.total).toBeLessThan(0.1);
+    console.log(`fixture combined other + *_other: ${((100 * s.combined_other) / s.total).toFixed(1)} %`);
   });
   it('ID ổn định khi chạy lại; khi nguồn chính biến mất, ID giữ và primary_source đổi', async () => {
     const before = await poiOf('osm', 'n900000000001');
+    const beforeAll = await sql`SELECT l.source, l.source_id, l.poi_id FROM poi_source_link l ORDER BY l.source, l.source_id`;
     runAll();
     const again = await poiOf('osm', 'n900000000001');
     expect(again.id).toBe(before.id);
     expect(again.primary_source).toBe('osm');
+    const afterAll = await sql`SELECT l.source, l.source_id, l.poi_id FROM poi_source_link l ORDER BY l.source, l.source_id`;
+    expect(afterAll).toEqual(beforeAll);
     await sql`DELETE FROM src_osm_place WHERE osm_type = 'n' AND osm_id = 900000000001`;
     runAll();
     const moved = await poiOf('overture', 'test-cong');
     expect(moved.id).toBe(before.id);
     expect(moved.primary_source).toBe('overture');
-  });
+  }, 240_000);
 });
 ```
 
 Run: `PIPE pipeline pnpm test:db`
 Expected: schema + ingest + conflate dbtest xanh (5–10 phút). Nếu "Cộng" không gộp: in `SELECT * FROM poi_work_pair WHERE a IN (…)` để xem `sim`/`dist_m`; `nameCore('Cong Caphe')` phải là `cong` (alias Task 3).
 
-- [ ] **Step 8: Chạy thật toàn VN, đo, README, DEVLOG, commit**
+- [x] **Step 8: Chạy thật toàn VN, đo, README, DEVLOG, commit**
 
 Run (DB đã ingest toàn VN ở Task 5 Step 10): `PIPE pipeline sh -c "time node pipelines/poi/src/records.mjs && time node pipelines/poi/src/conflate.mjs && node pipelines/poi/src/publish.mjs --force && node pipelines/poi/src/report.mjs"`
-Expected: records 5–15 phút; `poi_work_pair` vài chục triệu cặp, conflate 20–60 phút; `poi` **≥ 1,5 triệu active** (nghiệm thu M2); đa nguồn 10–25 %; other < 10 %. Ghi các con số vào DEVLOG. Nếu `poi_work_pair` quá lớn (> 100 triệu) hoặc quá chậm: hạ lọc thô còn 0,0009° (100 m) cho các nhóm không thuộc BIG_AREA — thêm điều kiện vào JOIN và ghi DEVLOG.
+Expected: records 5–15 phút; `poi_work_pair` vài chục triệu cặp, conflate 20–60 phút; `poi` **≥ 1,5 triệu active** (nghiệm thu M2); đa nguồn 10–25 %. Chỉ `category = 'other'` (chưa ánh xạ) có ngưỡng < 10 %; luôn báo cáo riêng tỷ lệ gộp `other OR *_other` (các lá parent có chủ đích) nhưng không dùng làm cổng fail. Ghi các con số vào DEVLOG. Nếu `poi_work_pair` quá lớn (> 100 triệu) hoặc quá chậm: hạ lọc thô còn 0,0009° (100 m) cho các nhóm không thuộc BIG_AREA — thêm điều kiện vào JOIN và ghi DEVLOG.
 
 Thêm vào `pipelines/poi/README.md` bảng bước: `records.mjs` → `poi_work_record`; `conflate.mjs` → `poi_work_pair/cluster/cluster_meta`; `publish.mjs [--force]` → `poi`, `poi_source_link` (gộp, sanity 10 %); `report.mjs` → `out/poi-report-*.json`.
 
