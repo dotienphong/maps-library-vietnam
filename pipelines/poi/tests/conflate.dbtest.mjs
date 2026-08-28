@@ -3,7 +3,6 @@ import 'dotenv/config';
 import { execFile } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
-import { promisify } from 'node:util';
 import postgres from 'postgres';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { databaseUrlFromEnv } from '../../../scripts/lib/migrations.mjs';
@@ -16,10 +15,35 @@ import {
 } from '../src/lib/poi-ids.mjs';
 
 const sql = postgres(databaseUrlFromEnv(process.env), { max: 1, onnotice: () => {} });
-const execFileAsync = promisify(execFile);
 const EDIT_NOTE = 'task7-popularity-cap-test';
+const CHILD_TIMEOUT_MS = 110_000;
+/** @type {Map<import('node:child_process').ChildProcess, { controller: AbortController, closed: Promise<void> }>} */
+const activeChildren = new Map();
 const node = (/** @type {string[]} */ ...args) =>
-  execFileAsync(process.execPath, args, { encoding: 'utf8' });
+  new Promise((resolve, reject) => {
+    const controller = new AbortController();
+    const child = execFile(
+      process.execPath,
+      args,
+      { encoding: 'utf8', signal: controller.signal, timeout: CHILD_TIMEOUT_MS },
+      (error, stdout, stderr) => {
+        activeChildren.delete(child);
+        if (error) {
+          error.message = `node ${args.join(' ')} thất bại: ${error.message}${stderr ? `\n${stderr}` : ''}`;
+          reject(error);
+          return;
+        }
+        resolve(stdout);
+      },
+    );
+    const closed = new Promise((done) => child.once('close', () => done()));
+    activeChildren.set(child, { controller, closed });
+  });
+const abortActiveChildren = async () => {
+  const running = [...activeChildren.values()];
+  for (const { controller } of running) controller.abort();
+  await Promise.allSettled(running.map(({ closed }) => closed));
+};
 const runAll = async () => {
   await node('pipelines/poi/src/records.mjs');
   await node('pipelines/poi/src/conflate.mjs');
@@ -44,7 +68,11 @@ beforeAll(async () => {
   await sql`DELETE FROM poi_edit WHERE note = ${EDIT_NOTE}`;
   await runAll();
 });
-afterAll(() => sql.end());
+afterAll(async () => {
+  await abortActiveChildren();
+  await sql`DELETE FROM poi_edit WHERE note = ${EDIT_NOTE}`;
+  await sql.end();
+});
 
 const poiOf = async (/** @type {string} */ source, /** @type {string} */ id) =>
   (
@@ -82,22 +110,25 @@ describe('gộp trên fixture Quận 1', () => {
   });
   it('popularity nhận approved/auto_approved edits một lần theo POI lịch sử, có cap', async () => {
     const before = await poiOf('osm', 'n900000000001');
-    for (const status of [
-      'approved',
-      'approved',
-      'auto_approved',
-      'approved',
-      'approved',
-      'auto_approved',
-      'rejected',
-      'pending',
-    ])
+    for (const status of ['approved', 'auto_approved', 'rejected', 'pending'])
+      await sql`INSERT INTO poi_edit (poi_id, kind, status, note) VALUES (${before.id}, 'update', ${status}, ${EDIT_NOTE})`;
+    await runAll();
+    const belowCap = await poiOf('osm', 'n900000000001');
+    expect(belowCap.id).toBe(before.id);
+    expect(Number(belowCap.popularity)).toBeCloseTo(Number(before.popularity) + 0.4);
+
+    for (const status of ['approved', 'approved', 'approved', 'auto_approved'])
       await sql`INSERT INTO poi_edit (poi_id, kind, status, note) VALUES (${before.id}, 'update', ${status}, ${EDIT_NOTE})`;
     await runAll();
     const after = await poiOf('osm', 'n900000000001');
     expect(after.id).toBe(before.id);
     expect(Number(after.popularity)).toBeCloseTo(Number(before.popularity) + 1);
-  }, 120_000);
+
+    await runAll();
+    const rerun = await poiOf('osm', 'n900000000001');
+    expect(rerun.id).toBe(before.id);
+    expect(Number(rerun.popularity)).toBeCloseTo(Number(after.popularity));
+  }, 360_000);
   it('publish cập nhật mọi trường pipeline khi chỉ name_norm/name_alt/địa chỉ/popularity thay đổi', async () => {
     const before = await poiOf('overture', 'test-hl-2');
     await sql`UPDATE poi_work_record SET name_norm = 'highlands changed', name_alt = ARRAY['alias changed'],
