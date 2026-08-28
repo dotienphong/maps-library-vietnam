@@ -7,8 +7,8 @@ commit với code).
 
 - Mốc: M2 — Kho POI + máy chủ nội bộ
 - Plan: `docs/superpowers/plans/2026-08-27-m2-kho-poi-may-chu.md` (11 task, 6.535 dòng sau review lần 3)
-- Task đang làm: Task 5 — ingest OSM/Overture/FSQ (thứ tự thực thi: 0 → 2 → 3 → 4 → 5 → 6 → 7 → 8 → 9 → 1 → 10) (thứ tự thực thi: 0 → 2 → 3 → 4 → 5 → 6 → 7 → 8 → 9 → 1 → 10)
-- Commit cuối: M2 T4 (commit hiện tại)
+- Task đang làm: Task 6 — taxonomy 163 lá, ánh xạ 3 nguồn (thứ tự thực thi: 0 → 2 → 3 → 4 → 5 → 6 → 7 → 8 → 9 → 1 → 10) (thứ tự thực thi: 0 → 2 → 3 → 4 → 5 → 6 → 7 → 8 → 9 → 1 → 10)
+- Commit cuối: M2 T5 (commit hiện tại)
 - Môi trường đã dựng: máy dev macOS; remote GitHub cá nhân; Postgres/PostGIS dev,
   migration `0001_extensions.sql`; `pnpm run setup` sạch đạt 6,51 giây; image
   pipeline local đã build/smoke trên arm64 và chạy được qua Compose; Dev Container
@@ -24,9 +24,11 @@ commit với code).
 
 ## 2. Bước kế tiếp
 
-M2 Task 5 — ingest 3 nguồn: `pipelines/poi` (DuckDB `@duckdb/node-api` 1.5.5-r.4, osmium →
-GeoJSONSeq, `COPY FROM STDIN`), ranh giới VN Natural Earth, fixture Quận 1, image + bind mount,
-dbtest ingest, rồi chạy thật toàn VN (30–70 phút).
+M2 Task 6 — taxonomy: `db/seed/category.json` (163 lá, 12 nhóm + `other`), 3 CSV ánh xạ, `mapCategory`,
+đo độ phủ trên `src_*` toàn VN đã có, `taxonomy.mjs load`.
+
+**Lưu ý vận hành máy dev:** đĩa đã đầy 97 % ngày 27/08 (`~/.cache/uv` 124 GB + JSONL Overture không nén);
+đã dọn còn 44 GiB trống. Trước các bước nặng (Task 7 gộp, Task 10 `data:update`), kiểm `df -h /`.
 
 **Việc tay PHONG trước Task 1 (làm sau Task 9):** máy dev làm máy chủ tạm — tắt ngủ máy;
 tạo token Cloudflare riêng `mapslibvn-pipeline` (Workers KV Edit + Workers R2 Edit) cho
@@ -91,6 +93,11 @@ tạo token Cloudflare riêng `mapslibvn-pipeline` (Workers KV Edit + Workers R2
 | 2026-08-27 | Vitest tách hai tầng: `vitest.config.ts` (unit, loại `**/*.dbtest.mjs`) và `vitest.db.config.ts` (`fileParallelism: false`, timeout 120 giây, `--passWithNoTests`) | dbtest cần Postgres dev và chạy hàng phút; không được lẫn vào `pnpm test` của CI chính | (M2 T0) |
 | 2026-08-27 | `NAME_FILLERS` có thêm `mtv`; `abbrev.json` thêm `tx.`, `h.`, `x.` so với spec 5.3; alias thương hiệu chỉ áp ở đầu chuỗi | "Công ty TNHH MTV …" rất phổ biến trong tên đăng ký; thị xã/huyện/xã xuất hiện trong địa chỉ ngoài đô thị; alias giữa chuỗi gây dương tính giả ("Quán TCH") | (M2 T3) |
 | 2026-08-27 | `parseAddress`: 9 luật thêm so với plan sau khi review 300 địa chỉ thật — (1) "N/M Hẻm N X" gộp chuỗi hẻm trùng đầu (`mergeChain`), số hẻm nhận dạng `A/B`; (2) tiền tố "Đường/Phố" chỉ khi bản gốc có `Đ`/`ố` (tránh nuốt "Dương Quảng Hàm", "Phổ Quang"); (3) `tỉnh lộ` không phải tỉnh; (4) phần đã tách dấu phẩy được tách tiếp ở phường/quận (không tách `xã` vì "Xã Đàn"); (5) tên đường ở phần kế sau số nhà đứng riêng ("736/169/10, Đ. Lê Đức Thọ"); (6) số nhà có chữ `272A4`, `E4/15`, `C33` (loại `p6/q10/f6/tp`, mã đường `QL/TL/ĐT/HL`); (7) "3 Tháng 2" là tên đường; (8) bỏ ngoặc đơn, gạch dài `–`, "Cư xá", "gần/đối diện/cuối", tiếng Anh `Ward`/`District`; (9) "Lô P2" không tách thành phường 2 | Lấy mẫu phân tầng 300 địa chỉ Overture (100 có `/`, 60 hẻm/ngõ, 60 có P./Q., 80 còn lại) lộ các mẫu địa chỉ thật mà 49 dòng curated không phủ | (M2 T4) |
+| 2026-08-27 | JSONL trung gian của ingest Overture/FSQ **nén gzip** (`COPY … (FORMAT json, COMPRESSION gzip)`, `readJsonl` tự giải nén theo đuôi `.gz`) | Bản không nén ~3–4 GB cho 2 triệu dòng làm đầy đĩa dev (còn 435 MiB) → Docker treo, job bị giết; nguyên nhân gốc là `~/.cache/uv` 124 GB nhưng pipeline không nên cần vài GB tạm | `a70514c` |
+| 2026-08-27 | `osmium export` ghi id đối tượng ở `feature.id`, không ở `properties.id` như plan giả định → `parseOsmiumId(f.id ?? f.properties?.id)`; sửa cả `osm-roads.mjs` (Task 8) trong plan | Ingest OSM fixture trả 0 dòng cho tới khi sửa | `f9f1fda` |
+| 2026-08-27 | Fixture `q1.osm.pbf` dùng `-s smart -S types=any` nên có node ngoài bbox Quận 1 (bbox thật 105,77–108,43°E); test bbox chỉ áp cho Overture/FSQ, OSM kiểm trong VN + ≥ 500 đối tượng trong Quận 1 | Giữ trọn relation ranh giới để Task 8 dựng `admin_area` trên fixture | `f9f1fda` |
+| 2026-08-27 | Dockerfile gộp luôn Task 1 Step 4 (`postgresql-client-16`, `zstd`, `cloudflared 2026.8.2`) vào lần rebuild của Task 5 | Chỉ rebuild image một lần (~10 phút) thay vì hai | `f9f1fda` |
+| 2026-08-27 | DuckDB 1.5 `ST_AsGeoJSON` trả kiểu JSON (object) — `make-vn-boundary.mjs` nhận cả object lẫn chuỗi | Bản đầu `JSON.parse` hai lần → lỗi `[object Object]` | `a70514c` |
 | 2026-08-27 | Danh sách 34 tỉnh + alias tên cũ nằm trong `packages/core/src/provinces.json` (NQ 202/2025/QH15) | Địa chỉ cũ ("Bình Dương", "Vũng Tàu", "Bến Tre") vẫn về đúng tỉnh mới | (M2 T4) |
 | 2026-08-27 | `apps/docs/tsconfig.json` phải `exclude: ["dist", "public"]` | `astro check` với `include: ["**/*"]` kéo cả `public/sdk/mapslibvn.umd.js` (1 MB) và sourcemap (2,4 MB) vào TypeScript → hết heap 4 GB, exit 137 | (Task M1c T3) |
 | 2026-08-27 | `biome.json` bỏ qua `apps/docs/public/sdk/**` | Thư mục là artefact copy từ bản build web; biome báo vượt giới hạn 1 MiB và lỗi CSS của maplibre | (Task M1c T3) |
@@ -273,3 +280,9 @@ rõ ở mục 2 và không chặn M2: kiểm trên Windows, và bật lại `req
   parser đạt **339/341 = 99,4 %** (ngưỡng 95 %; 2 dòng lệch chấp nhận: "Tây Hồ Hà Nội",
   "Việt Hùng, Quế Võ" — không có từ khoá hành chính); `dist/index.js` 6,14 kB gzip (ngân sách 8 kB);
   unit 384/384 · (commit hiện tại)
+- 2026-08-27/28 · M2 T5 · `pipelines/poi`: ingest 3 nguồn → `src_*`, ranh giới VN Natural Earth (MultiPolygon
+  119 KB), fixture Quận 1 11,5 MB (PBF 2,0 + Overture 5,9 + FSQ 3,6; tạo trong ~2 phút), image rebuild
+  có pg client/zstd/cloudflared + core dist + extension DuckDB cài sẵn; dbtest 10/10 (schema 6 + ingest 4)
+  trong 11 giây; **toàn VN**: OSM 228.144 (10,5 s), Overture 1.501.161 (3 phút 18 s; 6,6 % không phân loại
+  — spec 7 %; 6.7 % không có địa chỉ chữ), FSQ 272.349 (73 s); DB dev 2,2 GB. Sự cố đĩa đầy 97 %
+  giữa chừng (xem mục 3), dọn xong còn 44 GiB · (commit hiện tại)

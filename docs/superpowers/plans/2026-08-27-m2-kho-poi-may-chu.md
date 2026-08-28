@@ -2343,7 +2343,7 @@ git push
 - Create: `pipelines/poi/package.json`, `pipelines/poi/tsconfig.json`, `pipelines/poi/README.md`, `pipelines/poi/src/lib/{env,vn-bbox,copy-format,geometry,osmium-id}.mjs`, `pipelines/poi/src/{duck,pg}.mjs`, `pipelines/poi/src/ingest/{osm,overture,fsq}.mjs`, `pipelines/poi/scripts/{make-vn-boundary,make-fixture}.mjs`, `pipelines/poi/data/vn-boundary.geojson`, `pipelines/poi/fixtures/{q1.osm.pbf,overture-q1.parquet,fsq-q1.parquet}`, `pipelines/poi/tests/{copy-format,geometry,osmium-id}.test.mjs`, `pipelines/poi/tests/ingest.dbtest.mjs`
 - Modify: `pipelines/Dockerfile`, `infra/dev/compose.yml` (bind mount mã nguồn cho service `pipeline`), `.dockerignore`, `.github/workflows/dbtest.yml` (chạy trong image), `.env.example`
 
-- [ ] **Step 1: Package, env, và test hàm định dạng COPY + tâm hình học (thất bại)**
+- [x] **Step 1: Package, env, và test hàm định dạng COPY + tâm hình học (thất bại)**
 
 `pipelines/poi/package.json`:
 ```json
@@ -2500,7 +2500,7 @@ describe('parseOsmiumId', () => {
 Run: `pnpm install && pnpm test`
 Expected: FAIL — không tìm thấy `../src/lib/copy-format.mjs`, `../src/lib/geometry.mjs`, `../src/lib/osmium-id.mjs`.
 
-- [ ] **Step 2: Hàm thuần `copy-format.mjs`, `geometry.mjs`, `osmium-id.mjs`**
+- [x] **Step 2: Hàm thuần `copy-format.mjs`, `geometry.mjs`, `osmium-id.mjs`**
 
 `pipelines/poi/src/lib/osmium-id.mjs`:
 ```js
@@ -2600,7 +2600,7 @@ export function featureCentroid(g) {
 Run: `pnpm test`
 Expected: xanh.
 
-- [ ] **Step 3: `duck.mjs` và `pg.mjs`**
+- [x] **Step 3: `duck.mjs` và `pg.mjs`**
 
 `pipelines/poi/src/duck.mjs` (bọc `@duckdb/node-api`; tên phương thức theo README của bản pin — kiểm `node_modules/@duckdb/node-api/README.md` nếu khác):
 ```js
@@ -2738,7 +2738,7 @@ export async function countRows(sql, table) {
 }
 ```
 
-- [ ] **Step 4: Ranh giới VN (Natural Earth, public domain) — sinh một lần và commit**
+- [x] **Step 4: Ranh giới VN (Natural Earth, public domain) — sinh một lần và commit**
 
 `pipelines/poi/scripts/make-vn-boundary.mjs`:
 ```js
@@ -2769,7 +2769,7 @@ console.log(`✓ ${VN_BOUNDARY} (${geometry.type}, ${JSON.stringify(geometry).le
 Run (sau Step 5 để có bind mount): `mkdir -p pipelines/poi/data && PIPE pipeline node pipelines/poi/scripts/make-vn-boundary.mjs && ls -la pipelines/poi/data/`
 Expected: `✓ … (MultiPolygon, N byte)` với N < 300.000.
 
-- [ ] **Step 5: Image và compose dev**
+- [x] **Step 5: Image và compose dev**
 
 `pipelines/Dockerfile` stage `app` — sau `RUN pnpm install … && node packages/style/scripts/build.mjs` thêm lớp cài sẵn extension DuckDB cho `@duckdb/node-api` (để chạy offline/nhanh):
 ```dockerfile
@@ -2805,7 +2805,7 @@ DUCKDB_THREADS=4
 Run: `pnpm --filter @mapslibvn/core build && pnpm --filter @mapslibvn/style build && pnpm image:build && PIPE pipeline sh -c "cd pipelines/poi && node -e \"import('@duckdb/node-api').then(async m=>{const i=await m.DuckDBInstance.create(':memory:');const c=await i.connect();await c.run('LOAD spatial; LOAD httpfs'); console.log('ok')})\""`
 Expected: `ok` (không tải extension). Rồi chạy Step 4. (Build `dist` của core/style trên host trước để bind mount không tạo thư mục rỗng thuộc root trên Linux.)
 
-- [ ] **Step 6: Ingest OSM (`osmium` → GeoJSONSeq → COPY)**
+- [x] **Step 6: Ingest OSM (`osmium` → GeoJSONSeq → COPY)**
 
 `pipelines/poi/src/ingest/osm.mjs`:
 ```js
@@ -2862,7 +2862,7 @@ try {
 Run: `PIPE pipeline node pipelines/poi/src/ingest/osm.mjs --fixture`
 Expected: log osmium (2 lệnh, vài giây), rồi `✓ src_osm_place: N dòng (COPY N, ngoài VN 0, …)` với N ≈ 2.000–8.000 cho Quận 1 (cần fixture ở Step 8 — tạo fixture trước nếu chưa có). Nếu osmium báo `unknown option -x`: bỏ `-x print_record_separator=false` (readJsonl đã bỏ RS).
 
-- [ ] **Step 7: Ingest Overture và Foursquare (DuckDB S3 → JSONL → COPY)**
+- [x] **Step 7: Ingest Overture và Foursquare (DuckDB S3 → JSONL → COPY)**
 
 `pipelines/poi/src/ingest/overture.mjs`:
 ```js
@@ -2975,7 +2975,7 @@ try {
 
 SELECT ở trên đã theo lược đồ thật đo ngày 27/08 (G4/G5). Nếu release mới đổi cột: `DESCRIBE` lại như Task 0 Step 2 rồi sửa, ghi DEVLOG.
 
-- [ ] **Step 8: Fixture Quận 1 (commit, ≤ 20 MB)**
+- [x] **Step 8: Fixture Quận 1 (commit, ≤ 20 MB)**
 
 `pipelines/poi/scripts/make-fixture.mjs`:
 ```js
@@ -3018,7 +3018,7 @@ Chạy 3 ingest trên fixture:
 Run: `PIPE pipeline sh -c "node pipelines/poi/src/ingest/osm.mjs --fixture && node pipelines/poi/src/ingest/overture.mjs --fixture && node pipelines/poi/src/ingest/fsq.mjs --fixture"`
 Expected: 3 dòng `✓ src_*: N dòng`, N > 0 cho cả ba.
 
-- [ ] **Step 9: Test tích hợp ingest (dbtest, chạy trong image)**
+- [x] **Step 9: Test tích hợp ingest (dbtest, chạy trong image)**
 
 `pipelines/poi/tests/ingest.dbtest.mjs`:
 ```js
@@ -3106,7 +3106,7 @@ jobs:
 ```
 (Image `latest` là bản build từ commit `main` trước — chỉ cung cấp công cụ; mã lấy từ checkout.)
 
-- [ ] **Step 10: Chạy ingest thật toàn VN (máy dev, DB dev; hoặc máy chủ) — đo thời gian, kiểm chất lượng**
+- [x] **Step 10: Chạy ingest thật toàn VN (máy dev, DB dev; hoặc máy chủ) — đo thời gian, kiểm chất lượng**
 
 Run: `PIPE pipeline sh -c "node pipelines/poi/src/ingest/osm.mjs && node pipelines/poi/src/ingest/overture.mjs --release <OVERTURE_VER> && node pipelines/poi/src/ingest/fsq.mjs --release <FSQ_DT>"`
 Expected: `src_osm_place` ≈ 300–600 nghìn (gồm đối tượng có số nhà); `src_overture_place` ≈ 1,9–2,1 triệu (spec 5.1: 2.011.764 trong bbox, trừ phần ngoài ranh giới); `src_fsq_place` ≈ 0,5–1 triệu (đo lần đầu — ghi DEVLOG, đây là con số spec 5.1 để trống). Thời gian: OSM 5–10 phút, Overture 10–20 phút, FSQ 20–40 phút.
@@ -3114,7 +3114,7 @@ Expected: `src_osm_place` ≈ 300–600 nghìn (gồm đối tượng có số n
 Run: `docker compose --env-file .env -f infra/dev/compose.yml exec -T postgres psql -U mapslibvn -d mapslibvn -c "SELECT 'overture' s, count(*) FILTER (WHERE name IS NULL) no_name, count(*) FILTER (WHERE category IS NULL) no_cat, count(*) FILTER (WHERE addresses IS NULL) no_addr, count(*) total FROM src_overture_place"`
 Expected: `no_cat` ≈ 7%, `no_addr` ≈ 10% (khớp spec 5.1: 93% có phân loại, 90% có địa chỉ).
 
-- [ ] **Step 11: README pipeline, lint, DEVLOG, commit**
+- [x] **Step 11: README pipeline, lint, DEVLOG, commit**
 
 `pipelines/poi/README.md`:
 ```markdown
