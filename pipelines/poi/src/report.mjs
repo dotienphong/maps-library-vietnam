@@ -11,7 +11,9 @@ try {
     (
       await sql`SELECT count(*)::int AS total, count(*) FILTER (WHERE status = 'active')::int AS active, count(*) FILTER (WHERE status = 'closed')::int AS closed,
       round(avg(quality_score))::int AS avg_quality, count(*) FILTER (WHERE quality_score >= 60)::int AS q60,
-      count(*) FILTER (WHERE category = 'other' OR category LIKE '%\\_other')::int AS other FROM poi`
+      count(*) FILTER (WHERE category = 'other')::int AS bare_other,
+      count(*) FILTER (WHERE category LIKE '%\\_other')::int AS mapped_other,
+      count(*) FILTER (WHERE category = 'other' OR category LIKE '%\\_other')::int AS combined_other FROM poi`
     )[0]
   );
   const bySource =
@@ -56,7 +58,9 @@ try {
     active: poi.active,
     closed: poi.closed,
     avg_quality: poi.avg_quality,
-    other_pct: ((100 * poi.other) / Math.max(1, poi.total)).toFixed(1),
+    bare_other_pct: ((100 * poi.bare_other) / Math.max(1, poi.total)).toFixed(1),
+    mapped_other_pct: ((100 * poi.mapped_other) / Math.max(1, poi.total)).toFixed(1),
+    combined_other_pct: ((100 * poi.combined_other) / Math.max(1, poi.total)).toFixed(1),
     multi_source_pct: report.links.multiSourcePct,
     anchors: geo.anchors,
     streets: geo.streets,

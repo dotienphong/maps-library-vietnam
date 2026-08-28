@@ -28,11 +28,11 @@ con số này sẽ giảm ở bảng `poi` sau gộp vì OSM phân loại chi ti
 
 Bảng phụ do pipeline tạo: `vn_boundary` (ranh giới VN đệm 2 km), `poi_work_*` (Task 7–8).
 
-Số liệu gộp toàn VN (28/08/2026): 1.897.933 records → 402.210 cặp → 1.522.368 cụm,
-1.515.935 POI active; 3,3 % POI đa nguồn. Hai lần dựng lại toàn phần cho cùng
-1.583.560 source links cùng hash `3096e40c592b99520f4586ab14af0839`. `category = 'other'` là chưa ánh xạ và có ngưỡng
-fixture <10 %; `*_other` là nhánh cha chủ đích nên luôn báo cáo cùng `other` nhưng không phải cổng fail.
-Tỷ lệ gộp toàn VN là 19,5 % (`other OR *_other`).
+Số liệu gộp toàn VN (28/08/2026, final Task 7): 1.897.933 records → 402.210 cặp → 1.522.371 cụm,
+1.515.938 POI active; 3,3 % POI đa nguồn. Hai lần dựng lại toàn phần cho cùng
+1.583.562 source links cùng hash `1434f2acaaa69fd3eee74a9dbdda47a2`. `category = 'other'` là chưa ánh xạ và có ngưỡng
+fixture <10 %; `*_other` là nhánh cha chủ đích, được báo cáo riêng và không phải cổng fail.
+Tỷ lệ combined là 19,6 % (`other OR *_other`; bare 8,4 %, mapped `*_other` 11,1 %).
 
 Fixture Quận 1: `pipelines/poi/fixtures/` (tạo lại bằng `scripts/make-fixture.mjs`). Ranh giới: `data/vn-boundary.geojson` (Natural Earth, public domain).
 

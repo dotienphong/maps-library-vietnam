@@ -1,10 +1,18 @@
 // Chạy trong image: PIPE pipeline pnpm test:db — cần ingest fixture (ingest.dbtest chạy trước theo thứ tự tên file? KHÔNG — tự chạy lại ở đây)
 import 'dotenv/config';
 import { execFileSync } from 'node:child_process';
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import postgres from 'postgres';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { databaseUrlFromEnv } from '../../../scripts/lib/migrations.mjs';
-import { applyApprovedEditPopularity, resolvePoiIds } from '../src/lib/poi-ids.mjs';
+import { OUT, vnDate } from '../src/lib/env.mjs';
+import {
+  applyApprovedEditPopularity,
+  assignHistoricalPoiIds,
+  resolveHistoricalPoiIdConflicts,
+  resolvePoiIds,
+} from '../src/lib/poi-ids.mjs';
 
 const sql = postgres(databaseUrlFromEnv(process.env), { max: 1, onnotice: () => {} });
 const node = (/** @type {string[]} */ ...args) =>
@@ -55,6 +63,19 @@ describe('gộp trên fixture Quận 1', () => {
   it('Overture confidence < 0,4 đơn lẻ → không tạo poi (spec 5.4.10)', async () => {
     expect(await poiOf('overture', 'test-lowconf')).toBeUndefined();
   });
+  it('report tách bare other, mapped *_other, và combined other', async () => {
+    node('pipelines/poi/src/report.mjs');
+    const report = JSON.parse(
+      readFileSync(resolve(OUT, `poi-report-${vnDate().replace(/-/g, '')}.json`), 'utf8'),
+    );
+    expect(report.poi).toMatchObject({
+      bare_other: expect.any(Number),
+      mapped_other: expect.any(Number),
+      combined_other: expect.any(Number),
+    });
+    expect(report.poi).not.toHaveProperty('other');
+    expect(report.poi.combined_other).toBe(report.poi.bare_other + report.poi.mapped_other);
+  });
   it('popularity nhận approved/auto_approved edits một lần theo POI lịch sử, có cap', async () => {
     const before = await poiOf('osm', 'n900000000001');
     for (const status of [
@@ -87,7 +108,7 @@ describe('gộp trên fixture Quận 1', () => {
     expect(after.province).toBe('Tỉnh đổi');
     expect(Number(after.popularity)).toBeCloseTo(9.25);
   }, 120_000);
-  it('mỗi bản ghi nguồn liên kết đúng một poi; poi nào cũng có category và geom; chỉ other chưa ánh xạ < 10 %', async () => {
+  it('POI published có link, category, geom; bare other chưa ánh xạ < 10 %', async () => {
     const [{ n }] =
       await sql`SELECT count(*)::int AS n FROM poi p WHERE NOT EXISTS (SELECT 1 FROM poi_source_link l WHERE l.poi_id = p.id)`;
     expect(n).toBe(0);
@@ -101,6 +122,15 @@ describe('gộp trên fixture Quận 1', () => {
     console.log(
       `fixture combined other + *_other: ${((100 * s.combined_other) / s.total).toFixed(1)} %`,
     );
+  });
+  it('mọi work record eligible trong cluster có meta liên kết đúng final poi_id và role', async () => {
+    const [{ bad }] = await sql`SELECT count(*)::int AS bad
+      FROM poi_work_cluster c
+      JOIN poi_work_cluster_meta m ON m.cluster_no = c.cluster_no
+      JOIN poi_work_record r ON r.rid = c.rid
+      LEFT JOIN poi_source_link l ON (l.source, l.source_id) = (r.source, r.source_id)
+      WHERE l.poi_id IS DISTINCT FROM m.poi_id OR l.role IS DISTINCT FROM c.role`;
+    expect(bad).toBe(0);
   });
   it('ID ổn định khi chạy lại; khi nguồn chính biến mất, ID giữ và primary_source đổi', async () => {
     const before = await poiOf('osm', 'n900000000001');
@@ -119,6 +149,43 @@ describe('gộp trên fixture Quận 1', () => {
     expect(moved.id).toBe(before.id);
     expect(moved.primary_source).toBe('overture');
   }, 240_000);
+  it('merge/split giữ lịch sử theo previous primary dù record đó là secondary hiện tại', async () => {
+    const historicalPrimary = await poiOf('overture', 'test-cong');
+    const competingHistorical = await poiOf('overture', 'test-hl-2');
+    const [primaryRecord] =
+      await sql`SELECT rid FROM poi_work_record WHERE source = 'overture' AND source_id = 'test-cong'`;
+    const [linkedSecondary] =
+      await sql`SELECT rid FROM poi_work_record WHERE source = 'overture' AND source_id = 'test-hl-2'`;
+    const [outsidePrimary] =
+      await sql`SELECT rid, source, source_id FROM poi_work_record WHERE rid NOT IN (${primaryRecord.rid}, ${linkedSecondary.rid}) ORDER BY rid LIMIT 1`;
+    const [target] =
+      await sql`SELECT cluster_no FROM poi_work_cluster WHERE rid = ${primaryRecord.rid}`;
+    const [split] =
+      await sql`SELECT cluster_no FROM poi_work_cluster WHERE rid = ${outsidePrimary.rid}`;
+    await sql`UPDATE poi SET primary_source = ${outsidePrimary.source}, primary_source_id = ${outsidePrimary.source_id} WHERE id = ${competingHistorical.id}`;
+    await sql`UPDATE poi_work_cluster SET cluster_no = ${target.cluster_no}, role = CASE WHEN rid = ${primaryRecord.rid} THEN 'secondary' ELSE 'primary' END
+      WHERE rid IN (${primaryRecord.rid}, ${linkedSecondary.rid})`;
+    await sql`UPDATE poi_work_cluster_meta SET poi_id = NULL WHERE cluster_no IN (${target.cluster_no}, ${split.cluster_no})`;
+    await assignHistoricalPoiIds(sql);
+    expect(
+      (
+        await sql`SELECT poi_id FROM poi_work_cluster_meta WHERE cluster_no = ${target.cluster_no}`
+      )[0].poi_id,
+    ).toBe(historicalPrimary.id);
+    await sql`UPDATE poi_work_cluster_meta SET poi_id = ${historicalPrimary.id} WHERE cluster_no IN (${target.cluster_no}, ${split.cluster_no})`;
+    await resolveHistoricalPoiIdConflicts(sql);
+    expect(
+      (
+        await sql`SELECT poi_id FROM poi_work_cluster_meta WHERE cluster_no = ${target.cluster_no}`
+      )[0].poi_id,
+    ).toBe(historicalPrimary.id);
+    expect(
+      (
+        await sql`SELECT poi_id FROM poi_work_cluster_meta WHERE cluster_no = ${split.cluster_no}`
+      )[0].poi_id,
+    ).toBeNull();
+    await sql`UPDATE poi_work_cluster_meta SET poi_id = stable_id WHERE cluster_no = ${split.cluster_no}`;
+  });
   it('chuỗi va chạm nhiều hop trả về poi_id duy nhất trước publish', async () => {
     const rows =
       await sql`SELECT cluster_no FROM poi_work_cluster_meta ORDER BY cluster_no LIMIT 3`;

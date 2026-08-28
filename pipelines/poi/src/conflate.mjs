@@ -1,7 +1,12 @@
 #!/usr/bin/env node
 // Bước 2 gộp (spec 5.4): poi_work_record → poi_work_pair (PostGIS) → 2 lượt ghép tham lam → poi_work_cluster + poi_work_cluster_meta.
 import { createClusterer, pairAllowed } from './lib/greedy.mjs';
-import { applyApprovedEditPopularity, resolvePoiIds } from './lib/poi-ids.mjs';
+import {
+  applyApprovedEditPopularity,
+  assignHistoricalPoiIds,
+  resolveHistoricalPoiIdConflicts,
+  resolvePoiIds,
+} from './lib/poi-ids.mjs';
 import { stableId } from './lib/stable-id.mjs';
 import { connect, copyInto, countRows } from './pg.mjs';
 import { pickPrimary, popularity, qualityScore } from './score.mjs';
@@ -176,22 +181,8 @@ try {
   );
   await sql.unsafe('CREATE INDEX poi_work_cluster_cluster_idx ON poi_work_cluster (cluster_no)');
 
-  await sql.unsafe(`UPDATE poi_work_cluster_meta m SET poi_id = x.poi_id FROM (
-      SELECT DISTINCT ON (c.cluster_no) c.cluster_no, l.poi_id, (c.role = 'primary') AS by_primary
-      FROM poi_work_cluster c JOIN poi_work_record r ON r.rid = c.rid JOIN poi_source_link l ON (l.source, l.source_id) = (r.source, r.source_id)
-      ORDER BY c.cluster_no, (c.role = 'primary') DESC) x WHERE x.cluster_no = m.cluster_no`);
-  await sql.unsafe(`WITH conflicts AS (
-      SELECT m.cluster_no, row_number() OVER (
-        PARTITION BY m.poi_id
-        ORDER BY EXISTS (
-          SELECT 1 FROM poi p JOIN poi_work_record r ON r.rid = m.primary_rid
-          WHERE p.id = m.poi_id AND p.primary_source = r.source AND p.primary_source_id = r.source_id
-        ) DESC, m.cluster_no
-      ) AS keep_rank
-      FROM poi_work_cluster_meta m WHERE m.poi_id IS NOT NULL
-    )
-    UPDATE poi_work_cluster_meta m SET poi_id = NULL FROM conflicts c
-    WHERE c.cluster_no = m.cluster_no AND c.keep_rank > 1`);
+  await assignHistoricalPoiIds(sql);
+  await resolveHistoricalPoiIdConflicts(sql);
   await sql.unsafe('UPDATE poi_work_cluster_meta SET poi_id = stable_id WHERE poi_id IS NULL');
   await resolvePoiIds(sql);
   await applyApprovedEditPopularity(sql);

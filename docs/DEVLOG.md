@@ -98,8 +98,8 @@ tạo token Cloudflare riêng `mapslibvn-pipeline` (Workers KV Edit + Workers R2
 | 2026-08-28 | `OSM_DROP` mở rộng thêm 22 giá trị: hạ tầng đường sắt (`railway=level_crossing/switch/signal/platform/stop/crossing/subway_entrance/buffer_stop/milestone`), sân bay (`aeroway=gate/taxiway/runway/holding_position/parking_position`), và `amenity=house/shower/watering_place/water_point/bicycle_repair_station/smoking_area/lounger/trolley_bay`, `leisure=outdoor_seating/swimming_area` | Đo trên 228 nghìn đối tượng OSM VN: đây là hạ tầng, không phải địa điểm để tìm kiếm; giữ lại sẽ tạo POI rác | (M2 T6) |
 | 2026-08-28 | 55 ánh xạ bổ sung so với plan, chọn theo số lượng thật trong dữ liệu VN (Overture `health_spa` 4.114 → `spa`, `bridal_shop` 3.683 → `clothes`, `laundromat` 1.865 → `laundry`, `day_care_preschool` 1.752 → `kindergarten`…; FSQ `Structure`, `Factory`, `Assisted Living`…); `farm`/`agriculture`/`agricultural_service` cố ý để rơi vào `other` | Địa điểm nông nghiệp không thuộc 12 nhóm của spec 5.6; ghi chú `#` ngay trong CSV | (M2 T6) |
 | 2026-08-28 | Cổng fixture phân biệt `category = 'other'` (chưa ánh xạ, <10 %) với tỷ lệ báo cáo `other OR *_other` | `*_other` là lá parent được Task 6 ánh xạ có chủ đích, không phải thất bại taxonomy; fixture gộp đo 16,1 % combined, toàn VN 19,5 %, đều được báo cáo nhưng không nới ánh xạ ở Task 7 | (M2 T7) |
-| 2026-08-28 | Khi nhiều cụm cùng kế thừa một `poi_id`, giữ cụm có `primary_source`/`primary_source_id` khớp POI cũ, còn lại quay về stable ID | Hai cụm có thể tách ở lần chạy sau; kiểm vai trò cụm hiện tại không xác định POI cũ và tạo khoá trùng `poi_new` | (M2 T7) |
-| 2026-08-28 | Ghép tham lam dùng thứ tự toàn phần `score DESC, a, b`; mọi quét nguồn có `ORDER BY` khoá nguồn; `pickPrimary` hoà cùng nguồn dùng `rid` thấp hơn | Không có tie-break làm số cụm thay đổi giữa các lần dựng và có thể tách/kế thừa `poi_id` không ổn định; hai lần toàn VN cuối cùng cùng 402.210 cặp, 1.522.368 POI và hash source-link `3096e40c592b99520f4586ab14af0839` | (M2 T7) |
+| 2026-08-28 | Khi nhiều cụm cùng kế thừa một `poi_id`, giữ cụm chứa **previous** `primary_source`/`primary_source_id` của POI cũ, kể cả record đó hiện là secondary; tie bằng `poi_id`/`cluster_no` | Merge/split có thể đổi primary hiện tại; kiểm role mới không xác định POI lịch sử và tạo khoá trùng `poi_new` hoặc chọn ID tuỳ ý | (M2 T7) |
+| 2026-08-28 | Ghép tham lam dùng thứ tự toàn phần `score DESC, a, b`; mọi quét nguồn có `ORDER BY` khoá nguồn; `pickPrimary` hoà cùng nguồn dùng `rid` thấp hơn | Không có tie-break làm số cụm thay đổi giữa các lần dựng và có thể tách/kế thừa `poi_id` không ổn định; hai pass toàn VN final-head cùng 402.210 cặp, 1.522.371 POI (1.515.938 active), 1.583.562 link và hash source-link `1434f2acaaa69fd3eee74a9dbdda47a2` | (M2 T7) |
 | 2026-08-28 | Không nới ngưỡng gộp chỉ để đạt kỳ vọng đa nguồn 10–25 % | Audit cuối: 50.862/1.522.368 = 3,3 % đa nguồn; Overture chiếm 1.140.030 cụm đơn. 63.269 cặp liên nguồn được luật hiện hành chấp nhận (OSM+Overture 18.405, FSQ+OSM 9.701, FSQ+Overture 35.163); phần còn lại chủ yếu bị khoảng cách/tên/số nhà/đường loại. Đây là thực tế dữ liệu dưới luật chống gộp nhầm, cần quyết định sản phẩm riêng nếu muốn đổi recall | (M2 T7) |
 | 2026-08-27 | `osmium export` ghi id đối tượng ở `feature.id`, không ở `properties.id` như plan giả định → `parseOsmiumId(f.id ?? f.properties?.id)`; sửa cả `osm-roads.mjs` (Task 8) trong plan | Ingest OSM fixture trả 0 dòng cho tới khi sửa | `f9f1fda` |
 | 2026-08-27 | Fixture `q1.osm.pbf` dùng `-s smart -S types=any` nên có node ngoài bbox Quận 1 (bbox thật 105,77–108,43°E); test bbox chỉ áp cho Overture/FSQ, OSM kiểm trong VN + ≥ 500 đối tượng trong Quận 1 | Giữ trọn relation ranh giới để Task 8 dựng `admin_area` trên fixture | `f9f1fda` |
@@ -300,10 +300,11 @@ rõ ở mục 2 và không chặn M2: kiểm trên Windows, và bật lại `req
   Overture 0,8 % · FSQ 0 %** (ngưỡng 2 %), `*_other` chủ đích 7,5 / 23,1 / 11,8 %, Overture còn
   24,6 % other ở mức bản ghi sau khi dùng `alternate`; nạp DB idempotent (164 mã, 955 dòng, chạy
   hai lần cùng kết quả); unit 402/402 · (commit hiện tại)
-- 2026-08-28 · M2 T7 · `records`/PostGIS pairs/ghép tham lam hai lượt/publish/report: toàn VN 1.897.933
-  records → 402.210 cặp → 1.522.368 cụm (50.862 đa nguồn = 3,3 %, 61.203 secondary, 630 ID dùng lại) →
-  1.522.368 POI (1.515.935 active, 6.433 closed), 1.583.560 links; records 1:34.80–1:36.40,
-  conflate 5:04.52–9:54.10, publish 2:05.63–2:45.68. Hai rerun toàn phần cuối cùng có hash link
-  `3096e40c592b99520f4586ab14af0839` trùng nhau. Báo cáo `other OR *_other` 19,5 % (297.539; bare
-  `other` 128.130); fixture combined 16,1 % và bare `other` <10 %; dbtest 15/15 gồm toàn bộ map link
-  ổn định khi rerun + ID giữ khi nguồn chính biến mất · (commit hiện tại)
+- 2026-08-28 · M2 T7 · final-head `records`/PostGIS pairs/ghép tham lam hai lượt/publish/report: toàn VN
+  1.897.933 records → 402.210 cặp → 1.522.371 cụm (50.860 đa nguồn = 3,3 %, 61.201 secondary,
+  946 ID lịch sử dùng lại) → 1.522.371 POI (1.515.938 active, 6.433 closed), 1.583.562 links. Hai pass
+  toàn phần A/B có cùng hash canonical `(source,source_id,poi_id)` `1434f2acaaa69fd3eee74a9dbdda47a2`;
+  B quan sát: records 1:36–2:07, conflate 4:04–10:41, publish 1:57–2:28, report 9,577 s. Báo cáo tách bare
+  `other` 8,4 % (128.087), mapped `*_other` 11,1 % (169.733), combined 19,6 % (297.820); fixture combined
+  16,1 % và bare `other` <10 %. dbtest có forward-link assertion và merge/split historical-primary regression ·
+  (commit hiện tại)
