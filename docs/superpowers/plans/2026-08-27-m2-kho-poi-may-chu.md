@@ -5224,7 +5224,7 @@ git push
 
 Thứ tự chạy: `osm-roads.mjs` (osmium → 2 bảng thô `osm_road_raw`, `osm_admin_raw`) → `admin.mjs` → `streets.mjs` → `alleys.mjs` → `anchors.mjs` (cần `poi_work_record` của Task 7). Tất cả dựng `_new` rồi `publishNew`.
 
-- [ ] **Step 1: Test hàm thuần tên hẻm / tên đường (thất bại)**
+- [x] **Step 1: Test hàm thuần tên hẻm / tên đường (thất bại)**
 
 `pipelines/poi/tests/alley-name.test.mjs`:
 ```js
@@ -5260,7 +5260,7 @@ describe('streetNameNorm', () => {
 Run: `pnpm test`
 Expected: FAIL — không tìm thấy `../src/geocode/alley-name.mjs`.
 
-- [ ] **Step 2: `alley-name.mjs`**
+- [x] **Step 2: `alley-name.mjs`**
 
 ```js
 import { normalizeVi } from '@mapslibvn/core';
@@ -5286,7 +5286,7 @@ export function streetNameNorm(name) {
 Run: `pnpm test`
 Expected: xanh.
 
-- [ ] **Step 3: `osm-roads.mjs` — trích đường + ranh giới từ PBF đã patch → bảng thô**
+- [x] **Step 3: `osm-roads.mjs` — trích đường + ranh giới từ PBF đã patch → bảng thô**
 
 ```js
 #!/usr/bin/env node
@@ -5365,7 +5365,7 @@ try {
 Run: `PIPE pipeline node pipelines/poi/src/geocode/osm-roads.mjs --fixture`
 Expected: `✓ osm_road_raw N đường có tên (…), osm_admin_raw M ranh giới — admin_level: 4=…, 8=…` (fixture: N ≈ 300–1.500, M ≥ 1).
 
-- [ ] **Step 4: `admin.mjs` — `admin_area` + `admin_alias` (seed 63 → 34 tỉnh)**
+- [x] **Step 4: `admin.mjs` — `admin_area` + `admin_alias` (seed 63 → 34 tỉnh)**
 
 `db/seed/admin_alias_2025.csv` (`alias,level,current_name,province`; `alias` viết thường không dấu như `normalizeVi`; `province` để trống cho cấp 4; nguồn: NQ 202/2025/QH15; **phường/xã** bổ sung dần từ các nghị quyết của UBTVQH — việc tay, ghi DEVLOG "Việc tay còn lại"):
 ```
@@ -5456,7 +5456,7 @@ try {
 Run: `PIPE pipeline node pipelines/poi/src/geocode/admin.mjs`
 Expected (fixture): `✓ admin_area N (L4=…, L8=…); admin_alias …` — fixture chỉ có vài ranh giới nên "không khớp" nhiều là bình thường; toàn VN: L4 = 34, L8 ≈ 3.300, "không khớp" phải = 0 cho các dòng cấp 4 (nếu tỉnh mới thiếu trong OSM → ghi DEVLOG).
 
-- [ ] **Step 5: `streets.mjs` — gộp way cùng tên liền kề trong tỉnh; phường chạm**
+- [x] **Step 5: `streets.mjs` — gộp way cùng tên liền kề trong tỉnh; phường chạm**
 
 ```js
 #!/usr/bin/env node
@@ -5482,7 +5482,7 @@ try {
 }
 ```
 
-- [ ] **Step 6: `alleys.mjs` — hẻm, đường mẹ (a) theo tên, (b) theo chạm; `entrance`**
+- [x] **Step 6: `alleys.mjs` — hẻm, đường mẹ (a) theo tên, (b) theo chạm; `entrance`**
 
 ```js
 #!/usr/bin/env node
@@ -5514,7 +5514,7 @@ try {
 Run: `PIPE pipeline sh -c "node pipelines/poi/src/geocode/streets.mjs && node pipelines/poi/src/geocode/alleys.mjs"`
 Expected (fixture): `✓ street … tuyến; alley N (có đường mẹ ≥ 60 % N, …)`.
 
-- [ ] **Step 7: `anchors.mjs` — mốc số nhà từ OSM + Overture/FSQ đã tách; gộp trùng < 30 m (trung vị)**
+- [x] **Step 7: `anchors.mjs` — mốc số nhà từ OSM + Overture/FSQ đã tách; gộp trùng < 30 m (trung vị)**
 
 ```js
 #!/usr/bin/env node
@@ -5575,7 +5575,7 @@ try {
 Run: `PIPE pipeline node pipelines/poi/src/geocode/anchors.mjs`
 Expected (fixture): `✓ address_anchor N mốc (…); Nguyễn Lâm: 0` (Nguyễn Lâm ở Quận 10, ngoài fixture). Toàn VN (Step 9): Nguyễn Lâm ≥ 15.
 
-- [ ] **Step 8: Test tích hợp geocode trên fixture (dbtest)**
+- [x] **Step 8: Test tích hợp geocode trên fixture (dbtest)**
 
 `pipelines/poi/tests/geocode.dbtest.mjs`:
 ```js
@@ -5645,14 +5645,14 @@ describe('geocode tables trên fixture Quận 1', () => {
 Run: `PIPE pipeline pnpm test:db`
 Expected: xanh. Nếu admin cấp 8 rỗng trong fixture: kiểm `make-fixture.mjs` (Task 5) đã dùng `-s smart -S types=any` và tạo lại fixture.
 
-- [ ] **Step 9: Chạy thật toàn VN; xác nhận `admin_level` (G6) và ghi README**
+- [x] **Step 9: Chạy thật toàn VN; xác nhận `admin_level` (G6) và ghi README**
 
 Run: `PIPE pipeline sh -c "node pipelines/poi/src/geocode/osm-roads.mjs && node pipelines/poi/src/geocode/admin.mjs && node pipelines/poi/src/geocode/streets.mjs && node pipelines/poi/src/geocode/alleys.mjs && node pipelines/poi/src/geocode/anchors.mjs && node pipelines/poi/src/report.mjs"`
 Expected: `admin_level: 4=34, 8=~3300` (và `6=…` nếu OSM còn quận/huyện cũ); `street` ≈ 150–300 nghìn; `alley` ≥ 40 nghìn (spec 5.1: 29.917 hẻm có tên riêng TP.HCM); `address_anchor` ≈ 1–2 triệu; **Nguyễn Lâm ≥ 15** (nghiệm thu). Thời gian 20–40 phút.
 
 Điền `pipelines/poi/README.md` mục "admin_level thực tế trong OSM VN": bảng level → số vùng → dùng cho (4 tỉnh/thành; 6 quận/huyện cũ nếu còn → `admin_alias`; 8 phường/xã), ngày đo, và ghi chú tỉnh nào thiếu ranh giới (nếu có).
 
-- [ ] **Step 10: Lint, DEVLOG, commit**
+- [x] **Step 10: Lint, DEVLOG, commit**
 
 Run: `pnpm lint && pnpm typecheck && pnpm test`
 

@@ -7,8 +7,8 @@ commit với code).
 
 - Mốc: M2 — Kho POI + máy chủ nội bộ
 - Plan: `docs/superpowers/plans/2026-08-27-m2-kho-poi-may-chu.md` (11 task, 6.535 dòng sau review lần 3)
-- Task đang làm: Task 8 — kho mốc địa chỉ, đường, hẻm, hành chính (thứ tự thực thi: 0 → 2 → 3 → 4 → 5 → 6 → 7 → 8 → 9 → 1 → 10)
-- Commit cuối: M2 T7 (commit hiện tại)
+- Task đang làm: Task 9 — POI PMTiles + lớp style + Worker (thứ tự thực thi: 0 → 2 → 3 → 4 → 5 → 6 → 7 → 8 → 9 → 1 → 10)
+- Commit cuối: M2 T8 (commit hiện tại)
 - Môi trường đã dựng: máy dev macOS; remote GitHub cá nhân; Postgres/PostGIS dev,
   migration `0001_extensions.sql`; `pnpm run setup` sạch đạt 6,51 giây; image
   pipeline local đã build/smoke trên arm64 và chạy được qua Compose; Dev Container
@@ -24,8 +24,8 @@ commit với code).
 
 ## 2. Bước kế tiếp
 
-M2 Task 8 — kho mốc địa chỉ, đường, hẻm, hành chính: `osm-roads.mjs` → `osm_road_raw`,
-`admin.mjs`/`streets.mjs`/`alleys.mjs`/`anchors.mjs` → các bảng geocoding.
+M2 Task 9 — xuất `poi-YYYYMMDD.pmtiles`, thêm lớp POI vào style và Worker điền
+`{POI_FILE}`; bắt đầu bằng test thuần export/layer theo plan.
 
 **Lưu ý vận hành máy dev:** đĩa đã đầy 97 % ngày 27/08 (`~/.cache/uv` 124 GB + JSONL Overture không nén);
 đã dọn còn 44 GiB trống. Trước các bước nặng (Task 7 gộp, Task 10 `data:update`), kiểm `df -h /`.
@@ -33,6 +33,10 @@ M2 Task 8 — kho mốc địa chỉ, đường, hẻm, hành chính: `osm-roads
 **Việc tay PHONG trước Task 1 (làm sau Task 9):** máy dev làm máy chủ tạm — tắt ngủ máy;
 tạo token Cloudflare riêng `mapslibvn-pipeline` (Workers KV Edit + Workers R2 Edit) cho
 `infra/server/.env`; Tunnel/Access/Hyperdrive theo `infra/server/README.md`.
+
+**Việc tay còn lại của M2 Task 8:** biên soạn bảng alias phường/xã trước→sau sắp xếp
+2025 từ các nghị quyết UBTVQH; bổ sung relation level 4 Khánh Hòa vào nguồn OSM/override
+đã duyệt để nạp được alias Ninh Thuận.
 
 **Việc còn treo từ M1 (không chặn M2):**
 - Nghiệm thu `pnpm run setup` trên **Windows** — chờ PHONG có máy.
@@ -106,6 +110,9 @@ tạo token Cloudflare riêng `mapslibvn-pipeline` (Workers KV Edit + Workers R2
 | 2026-08-27 | Dockerfile gộp luôn Task 1 Step 4 (`postgresql-client-16`, `zstd`, `cloudflared 2026.8.2`) vào lần rebuild của Task 5 | Chỉ rebuild image một lần (~10 phút) thay vì hai | `f9f1fda` |
 | 2026-08-27 | DuckDB 1.5 `ST_AsGeoJSON` trả kiểu JSON (object) — `make-vn-boundary.mjs` nhận cả object lẫn chuỗi | Bản đầu `JSON.parse` hai lần → lỗi `[object Object]` | `a70514c` |
 | 2026-08-27 | Danh sách 34 tỉnh + alias tên cũ nằm trong `packages/core/src/provinces.json` (NQ 202/2025/QH15) | Địa chỉ cũ ("Bình Dương", "Vũng Tàu", "Bến Tre") vẫn về đúng tỉnh mới | (M2 T4) |
+| 2026-08-29 | OSM raw hiện dùng level 6 cho 3.308 phường/xã/thị trấn + 11 đặc khu sau sắp xếp; map chúng sang semantic level 8, loại level 8 cũ đã bị bao phủ và relation biên giới; level 4 lọc theo seed alias tỉnh 2025 | Raw có `L4=39, L6=3.322, L8=565`, không còn theo giả định plan cũ. Kết quả đúng dữ liệu hiện tại là L4=33, L8=3.319; OSM thiếu riêng Khánh Hòa, không tạo geometry giả để ép đủ 34 | (M2 T8) |
+| 2026-08-29 | Parser tên hẻm nhận thêm chuỗi `/`, khoảng `-`, mã chữ-số (`111K1`, `02/K01`), `+`, dấu phẩy/chấm và lỗi thiếu khoảng trắng | Regex spec hẹp làm 109 street cluster toàn VN vẫn mang tên hẻm số; RED từ mẫu OSM thật rồi mở rộng, final còn 0 | (M2 T8) |
+| 2026-08-29 | Anchor gộp hai pass: DBSCAN độ theo plan, sau đó cleanup metric UTM 48N 30,5 m trên các median | Exact indexed national check bắt 1 cặp còn cách 29,509 m sau pass đầu; tăng epsilon độ lên 0,00035 overmerge 8.992 mốc nên bỏ. Two-pass chỉ giảm 5 mốc và đưa duplicate exact về 0 | (M2 T8) |
 | 2026-08-27 | `apps/docs/tsconfig.json` phải `exclude: ["dist", "public"]` | `astro check` với `include: ["**/*"]` kéo cả `public/sdk/mapslibvn.umd.js` (1 MB) và sourcemap (2,4 MB) vào TypeScript → hết heap 4 GB, exit 137 | (Task M1c T3) |
 | 2026-08-27 | `biome.json` bỏ qua `apps/docs/public/sdk/**` | Thư mục là artefact copy từ bản build web; biome báo vượt giới hạn 1 MiB và lỗi CSS của maplibre | (Task M1c T3) |
 
@@ -308,3 +315,10 @@ rõ ở mục 2 và không chặn M2: kiểm trên Windows, và bật lại `req
   `other` 8,4 % (128.087), mapped `*_other` 11,1 % (169.733), combined 19,6 % (297.820); fixture combined
   16,1 % và bare `other` <10 %. dbtest có forward-link assertion và merge/split historical-primary regression ·
   (commit hiện tại)
+- 2026-08-29 · M2 T8 · geocode full national từ PBF 313 MB: 215.360 named road ways / 9.073
+  admin relation raw → `admin_area` 3.352 (L4=33, L8=3.319; OSM thiếu Khánh Hòa), 33
+  alias distinct; 61.031 street; 58.388 alley, 52.789 (90,41 %) có parent+entrance và 0
+  entrance xa đường mẹ >1 m; 918.416 anchor, Nguyễn Lâm 171, exact duplicate ≤30 m = 0.
+  Task 7 bất biến: 1.897.933 records / 1.522.371 POI / 1.583.562 links. TDD pure 5/5,
+  geocode fixture 5/5 async child trên DB `mapslibvn_task8_test`; full run hai lần idempotent;
+  disk volume 352→350 GiB trống, host 24→21 GiB trống · (commit hiện tại)
