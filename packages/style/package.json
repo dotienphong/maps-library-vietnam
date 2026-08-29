@@ -10,6 +10,10 @@
       "types": "./src/transform.d.mts",
       "default": "./src/transform.mjs"
     },
+    "./poi-layers": {
+      "types": "./src/transform.d.mts",
+      "default": "./src/poi-layers.mjs"
+    },
     "./templates/light": "./dist/mapslibvn-light.template.json",
     "./templates/dark": "./dist/mapslibvn-dark.template.json"
   },

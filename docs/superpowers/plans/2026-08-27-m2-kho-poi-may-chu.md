@@ -5680,7 +5680,7 @@ git push
 - Create: `pipelines/poi/src/export-tiles.mjs`, `pipelines/poi/tests/export-tiles.test.mjs`, `packages/style/src/poi-layers.mjs`, `packages/style/src/poi-layers.test.ts`
 - Modify: `packages/style/scripts/build.mjs`, `packages/style/src/transform.d.mts`, `apps/api/src/style.ts`, `apps/api/test/styles.test.ts`, `pipelines/tiles/src/smoke.mjs` (`--set poi`), `apps/docs/public/playground.html` (hiện tên/loại khi bấm POI)
 
-- [ ] **Step 1: Test hàm thuần xuất tiles và lớp style (thất bại)**
+- [x] **Step 1: Test hàm thuần xuất tiles và lớp style (thất bại)**
 
 `pipelines/poi/tests/export-tiles.test.mjs`:
 ```js
@@ -5756,7 +5756,7 @@ describe('addPoiLayers', () => {
 Run: `pnpm test`
 Expected: FAIL — thiếu `export-tiles.mjs`, `poi-layers.mjs`.
 
-- [ ] **Step 2: `poi-layers.mjs` và build style**
+- [x] **Step 2: `poi-layers.mjs` và build style**
 
 `packages/style/src/poi-layers.mjs`:
 ```js
@@ -5838,7 +5838,7 @@ và trong `packages/style/package.json` `exports` thêm `"./poi-layers": { "type
 Run: `pnpm --filter @mapslibvn/style build && pnpm test`
 Expected: test poi-layers xanh. Nếu test "sprite thiếu X" đỏ: `node -e "console.log(Object.keys(require('./packages/style/assets/sprites/osm-liberty.json')).sort().join(' '))"` và đổi tên icon trong `POI_GROUP_ICONS` sang tên có thật (ưu tiên: restaurant, shop, hospital, school, bank, lodging, stadium, museum, bus, town_hall, place_of_worship, marker/circle).
 
-- [ ] **Step 3: `export-tiles.mjs`**
+- [x] **Step 3: `export-tiles.mjs`**
 
 ```js
 #!/usr/bin/env node
@@ -5915,7 +5915,7 @@ Expected (fixture): tippecanoe chạy vài giây; `✓ /app/out/poi-fixture.pmti
 Run: `PIPE pipeline sh -c "node pipelines/tiles/src/inspect.mjs /app/out/poi-fixture.pmtiles && node pipelines/tiles/src/qa.mjs /app/out/poi-fixture.pmtiles --skip-islands"`
 Expected: `zoom: [10, 16]`, `layers: ["poi"]`; QA `✓` (không có tile trong bbox chủ quyền; template style vẫn có 2 nhãn).
 
-- [ ] **Step 4: Worker điền `{POI_FILE}` hoặc bỏ lớp POI khi chưa phát hành**
+- [x] **Step 4: Worker điền `{POI_FILE}` hoặc bỏ lớp POI khi chưa phát hành**
 
 `apps/api/src/style.ts` — thay `renderStyle`:
 ```ts
@@ -5955,7 +5955,7 @@ Thêm vào `apps/api/test/styles.test.ts` (describe `GET /v1/styles/:theme.json`
 Run: `pnpm --filter @mapslibvn/style build && pnpm --filter @mapslibvn/api test`
 Expected: xanh.
 
-- [ ] **Step 5: `smoke.mjs --set poi`, playground hiện tên/loại khi bấm**
+- [x] **Step 5: `smoke.mjs --set poi`, playground hiện tên/loại khi bấm**
 
 Sửa `pipelines/tiles/src/smoke.mjs` (thay phần đầu và vòng lặp):
 ```js
@@ -5995,7 +5995,7 @@ Sửa `apps/docs/public/playground.html` — sau `map.addMarker(…)` thêm:
 Run: `pnpm --filter @mapslibvn/web build && pnpm --filter @mapslibvn/docs build && pnpm --filter @mapslibvn/docs e2e`
 Expected: E2E vẫn xanh (fixture chưa có POI, style bỏ lớp poi).
 
-- [ ] **Step 6: Lint, DEVLOG, commit**
+- [x] **Step 6: Lint, DEVLOG, commit**
 
 Run: `pnpm lint && pnpm typecheck && pnpm test`
 

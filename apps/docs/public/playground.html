@@ -30,6 +30,7 @@
       map.on('load', () => { status.textContent = 'Bản đồ đã tải'; status.dataset.state = 'loaded'; });
       map.gl.on('error', (e) => { console.warn('maplibre', e.error && e.error.message); });
       map.addMarker({ lng: 106.6981, lat: 10.7725, popupHtml: '<b>Chợ Bến Thành</b>' });
+      map.on('poiClick', (poi) => { status.textContent = `${poi.name} · ${poi.category} (${poi.group})`; });
       window.__map = map;
     } catch (e) {
       status.textContent = 'Lỗi: ' + e.message; status.dataset.state = 'error';

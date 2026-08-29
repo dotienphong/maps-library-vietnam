@@ -2,6 +2,7 @@
 import { copyFileSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { addPoiLayers } from '../src/poi-layers.mjs';
 import { transformStyle } from '../src/transform.mjs';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
@@ -16,7 +17,7 @@ const baseThemes = /** @type {const} */ ([
 ]);
 
 for (const [base, theme] of baseThemes) {
-  const output = transformStyle(readJson(base), { theme, sovereignty });
+  const output = addPoiLayers(transformStyle(readJson(base), { theme, sovereignty }), { theme });
   const file = resolve(root, `dist/mapslibvn-${theme}.template.json`);
   writeFileSync(file, JSON.stringify(output));
   console.log('✓', file.replace(`${root}/`, ''), `${output.layers.length} layers`);

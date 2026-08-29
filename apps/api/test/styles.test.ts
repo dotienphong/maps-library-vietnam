@@ -31,6 +31,30 @@ describe('GET /v1/styles/:theme.json', () => {
     expect(body.error.request_id).toMatch(/^[0-9a-f-]{36}$/);
   });
 
+  it('manifest chưa có poi → style không có nguồn/lớp poi', async () => {
+    const res = await SELF.fetch('https://api/v1/styles/light.json');
+    const style = (await res.json()) as {
+      sources: Record<string, unknown>;
+      layers: { id: string }[];
+    };
+    expect(style.sources.poi).toBeUndefined();
+    expect(style.layers.some((l) => l.id === 'poi')).toBe(false);
+  });
+
+  it('manifest có poi → nguồn poi trỏ đúng file, lớp poi minzoom 10', async () => {
+    await env.META.put(
+      'release:current',
+      JSON.stringify({ vn: 'vn-20260826', poi: 'poi-20260901' }),
+    );
+    const res = await SELF.fetch('https://api/v1/styles/dark.json');
+    const style = (await res.json()) as {
+      sources: Record<string, { url?: string }>;
+      layers: { id: string; minzoom?: number }[];
+    };
+    expect(style.sources.poi?.url).toBe('pmtiles://https://tiles.test/tiles/poi-20260901.pmtiles');
+    expect(style.layers.find((l) => l.id === 'poi')?.minzoom).toBe(10);
+  });
+
   it('chưa có manifest → 503 upstream_unavailable', async () => {
     await env.META.delete('release:current');
     const res = await SELF.fetch('https://api/v1/styles/dark.json');

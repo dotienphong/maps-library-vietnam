@@ -7,8 +7,8 @@ commit với code).
 
 - Mốc: M2 — Kho POI + máy chủ nội bộ
 - Plan: `docs/superpowers/plans/2026-08-27-m2-kho-poi-may-chu.md` (11 task, 6.535 dòng sau review lần 3)
-- Task đang làm: Task 9 — POI PMTiles + lớp style + Worker (thứ tự thực thi: 0 → 2 → 3 → 4 → 5 → 6 → 7 → 8 → 9 → 1 → 10)
-- Commit cuối: M2 T8 (commit hiện tại)
+- Task đang làm: Task 10 — `data:update` đầy đủ + `db:restore` + nghiệm thu M2 (thứ tự thực thi: 0 → 2 → 3 → 4 → 5 → 6 → 7 → 8 → 9 → 1 → 10)
+- Commit cuối: M2 T9 (commit hiện tại)
 - Môi trường đã dựng: máy dev macOS; remote GitHub cá nhân; Postgres/PostGIS dev,
   migration `0001_extensions.sql`; `pnpm run setup` sạch đạt 6,51 giây; image
   pipeline local đã build/smoke trên arm64 và chạy được qua Compose; Dev Container
@@ -24,8 +24,9 @@ commit với code).
 
 ## 2. Bước kế tiếp
 
-M2 Task 9 — xuất `poi-YYYYMMDD.pmtiles`, thêm lớp POI vào style và Worker điền
-`{POI_FILE}`; bắt đầu bằng test thuần export/layer theo plan.
+M2 Task 1 — dựng máy chủ nội bộ (compose, `pnpm server:setup`, Tunnel/Access/Hyperdrive,
+backup, cron), rồi Task 10 — `pnpm data:update` đầy đủ 3 nguồn + nhánh `--poi`,
+`pnpm db:restore` và nghiệm thu M2.
 
 **Lưu ý vận hành máy dev:** đĩa đã đầy 97 % ngày 27/08 (`~/.cache/uv` 124 GB + JSONL Overture không nén);
 đã dọn còn 44 GiB trống. Trước các bước nặng (Task 7 gộp, Task 10 `data:update`), kiểm `df -h /`.
@@ -114,6 +115,9 @@ tạo token Cloudflare riêng `mapslibvn-pipeline` (Workers KV Edit + Workers R2
 | 2026-08-29 | Parser tên hẻm nhận thêm chuỗi `/`, khoảng `-`, mã chữ-số (`111K1`, `02/K01`), `+`, dấu phẩy/chấm và lỗi thiếu khoảng trắng | Regex spec hẹp làm 109 street cluster toàn VN vẫn mang tên hẻm số; RED từ mẫu OSM thật rồi mở rộng, final còn 0 | (M2 T8) |
 | 2026-08-29 | Anchor dựng graph cạnh bằng geometry GiST prefilter + geography exact ≤30 m, lấy connected component và lặp trên median đến khi exact duplicate = 0 | Review phát hiện DBSCAN 0,0003°/30,5 m có thể gộp cặp >30 m. Regression 30,1 m giữ tách, 29,9 m gộp và OSM thắng source priority; national thành 923.541 anchor | (M2 T8 review) |
 | 2026-08-29 | `osm_road_raw` + `osm_admin_raw` dựng `_new`, swap cả hai trong một transaction; anchor raw/edge/merge/new luôn cleanup trong `finally`. Alley dùng prefilter + geography exact ≤300/15 m | Fault-injection giữ nguyên hai raw table/bảng anchor published khi lỗi và staging=0; boundary regressions 299/301 m và 14,9/15,1 m xanh | (M2 T8 review) |
+| 2026-08-29 | Style bỏ toàn bộ lớp POI của base OSM Liberty (`source-layer=poi` của `openmaptiles`) và dùng một lớp `poi` riêng từ `poi-YYYYMMDD.pmtiles` | Hai bộ icon chồng nhau ở cùng vị trí; lớp riêng mới có `q`/`grp`/`cat` để lọc theo mật độ 5.8 và bắt sự kiện `poiClick` | (M2 T9) |
+| 2026-08-29 | Worker bỏ hẳn `sources.poi` + lớp `poi` khi `manifest.poi` null, thay vì điền chuỗi rỗng | `pmtiles://…/tiles/.pmtiles` làm MapLibre tải file không tồn tại và báo lỗi ở mọi phiên trước khi có bản POI đầu tiên | (M2 T9) |
+| 2026-08-29 | `export-tiles.mjs` không dùng `--extend-zooms-if-still-dropping` | Cờ này có thể đẩy maxzoom vượt 16, làm `inspect`/`smoke --set poi` lệch với spec 5.8 | (M2 T9) |
 | 2026-08-27 | `apps/docs/tsconfig.json` phải `exclude: ["dist", "public"]` | `astro check` với `include: ["**/*"]` kéo cả `public/sdk/mapslibvn.umd.js` (1 MB) và sourcemap (2,4 MB) vào TypeScript → hết heap 4 GB, exit 137 | (Task M1c T3) |
 | 2026-08-27 | `biome.json` bỏ qua `apps/docs/public/sdk/**` | Thư mục là artefact copy từ bản build web; biome báo vượt giới hạn 1 MiB và lỗi CSS của maplibre | (Task M1c T3) |
 
@@ -323,4 +327,14 @@ rõ ở mục 2 và không chặn M2: kiểm trên Windows, và bật lại `req
   Task 7 bất biến: 1.897.933 records / 1.522.371 POI / 1.583.562 links. TDD pure 5/5,
   geocode fixture 7/7 async child trên DB `mapslibvn_task8_test`, gồm fault cleanup + exact
   boundary/source regressions; staging national=0; disk volume final 349 GiB trống, host 21 GiB trống ·
+  (commit hiện tại)
+- 2026-08-29 · M2 T9 · `export-tiles.mjs` (poi active → GeoJSONSeq → tippecanoe `-Z10 -z16
+  -r1 --drop-densest-as-needed` + bộ lọc mật độ 5.8) chạy thật trên kho national:
+  **1.515.938 POI → 244,6 MB** (dưới mục tiêu 300 MB), `inspect` `zoom: [10, 16]`,
+  `layers: ["poi"]`, 192.467 tile; QA chủ quyền `--skip-islands` đạt. Giải mã tile z10/815/481
+  (TP.HCM) chỉ có 5 nhóm công cộng q ≥ 7 — bộ lọc đúng. Style: lớp `poi` chèn ngay trước
+  `sovereignty-label` (light 102 layers, dark 49), 13 icon nhóm đều có trong sprite
+  osm-liberty; Worker bỏ nguồn/lớp `poi` khi manifest chưa có bản POI. `smoke.mjs --set poi`
+  (maxZoom 16, z12–16, cho phép tile trống, ngưỡng ≥ 15/20); playground hiện tên · loại (nhóm)
+  khi bấm POI. lint sạch, typecheck 10/10, **450/450 test** (438 root + 12 api), E2E 2/2 ·
   (commit hiện tại)
