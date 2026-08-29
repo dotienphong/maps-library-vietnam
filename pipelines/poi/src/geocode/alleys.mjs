@@ -2,8 +2,15 @@
 // Hẻm có số → đường mẹ theo tên hoặc điểm đầu/cuối; entrance nằm trên đường mẹ.
 import { connect, publishNew } from '../pg.mjs';
 
+const STREET_STAGE_MARKER = 'mapslibvn:street-ready:v1';
 const sql = connect();
 try {
+  const [stage] = await sql`SELECT obj_description(
+    to_regclass('public.street_new'), 'pg_class'
+  ) AS marker`;
+  if (stage?.marker !== STREET_STAGE_MARKER) {
+    throw new Error('street_new chưa sẵn sàng; phải chạy lại streets.mjs');
+  }
   await sql.unsafe('DROP TABLE IF EXISTS alley_new');
   await sql.unsafe('CREATE TABLE alley_new (LIKE alley INCLUDING ALL)');
   await sql.unsafe(`INSERT INTO alley_new (osm_way_id, number, name, geom)
@@ -50,5 +57,9 @@ try {
     `✓ street ${streetSummary.n} tuyến; alley ${summary.n} (có đường mẹ ${summary.with_parent}, có entrance ${summary.with_entrance})`,
   );
 } finally {
-  await sql.end();
+  try {
+    await sql.unsafe('DROP TABLE IF EXISTS street_new, alley_new');
+  } finally {
+    await sql.end();
+  }
 }

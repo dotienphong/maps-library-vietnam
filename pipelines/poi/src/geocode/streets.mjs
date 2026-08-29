@@ -2,7 +2,9 @@
 // Đường không phải hẻm → cụm street_new theo tên và tỉnh; alleys.mjs phát hành cùng alley.
 import { connect, countRows, createNewTable } from '../pg.mjs';
 
+const STREET_STAGE_MARKER = 'mapslibvn:street-ready:v1';
 const sql = connect();
+let completed = false;
 try {
   await sql.unsafe(`UPDATE osm_road_raw road SET province_norm = province.name_norm
     FROM admin_area province
@@ -24,10 +26,16 @@ try {
     SELECT array_agg(DISTINCT ward.name_norm)
     FROM admin_area ward WHERE ward.level = 8 AND ST_Intersects(ward.geom, street.geom)
   ), '{}')`);
-  await sql.unsafe('ANALYZE street_new');
+  await sql.unsafe(`ANALYZE street_new;
+    COMMENT ON TABLE street_new IS '${STREET_STAGE_MARKER}'`);
   console.log(
     `✓ street_new ${await countRows(sql, 'street_new')} tuyến (chưa phát hành — alleys.mjs phát hành cùng)`,
   );
+  completed = true;
 } finally {
-  await sql.end();
+  try {
+    if (!completed) await sql.unsafe('DROP TABLE IF EXISTS street_new');
+  } finally {
+    await sql.end();
+  }
 }

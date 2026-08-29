@@ -24,7 +24,7 @@ test thuần + DB fixture cô lập, chạy toàn Việt Nam, kiểm invariant, 
 - `pipelines/poi/src/geocode/raw-tables.mjs`: build/swap atomic hai raw tables, cleanup failure.
 - `pipelines/poi/src/geocode/anchors.mjs`: exact graph dedupe, iterative convergence, staging cleanup.
 - `pipelines/poi/tests/alley-name.test.mjs`: 5 pure tests, gồm mẫu OSM toàn quốc phát hiện khi chạy thật.
-- `pipelines/poi/tests/geocode.dbtest.mjs`: 7 DB tests trên đúng `mapslibvn_task8_test`.
+- `pipelines/poi/tests/geocode.dbtest.mjs`: 8 DB tests trên đúng `mapslibvn_task8_test`.
 - `pipelines/poi/README.md`: commands, admin-level truth và exact national counts.
 - `docs/superpowers/plans/2026-08-27-m2-kho-poi-may-chu.md`: Task 8 Step 1–10 checked.
 - `docs/DEVLOG.md`: checkpoint chuyển sang Task 9, decisions, counts, việc tay còn lại.
@@ -41,7 +41,8 @@ test thuần + DB fixture cô lập, chạy toàn Việt Nam, kiểm invariant, 
    - RED tiếp theo phát hiện PostgreSQL target `UPDATE` không được tham chiếu từ `FROM LATERAL`,
      `array_agg(text[])` không subscript như scalar, mapping OSM 2025 level 6, foreign relation,
      log alias đếm input thay vì row thật, và duplicate anchor exact 30 m.
-   - GREEN trước review: 1 file, 5/5 tests, 23.589 s trong full DB suite; sau review là 7/7.
+   - GREEN trước review: 1 file, 5/5 tests, 23.589 s; Important-review là 7/7;
+     final Minor cleanup là 8/8.
    - Child process dùng `execFile` async/await, timeout 110 s, `AbortController`, cleanup
      `afterEach` + `afterAll`; fail-closed nếu URL pathname không phải `/mapslibvn_task8_test`.
    - Assertions không bị giảm; fixture thêm retired province, legacy ward, đặc khu và foreign-area regressions.
@@ -52,7 +53,7 @@ test thuần + DB fixture cô lập, chạy toàn Việt Nam, kiểm invariant, 
 
 ## Verification commands và exact counts
 
-- `pnpm lint` → exit 0; Biome checked **124 files**, no fixes.
+- `pnpm lint` trước review → exit 0, **124 files**; final branch → exit 0, **125 files**.
 - `pnpm typecheck` → exit 0; Turbo **10/10 tasks successful** (9 cached, Task 8 pipeline fresh).
 - `pnpm test` → exit 0:
   - root Vitest **27 files, 432/432 tests**;
@@ -183,3 +184,20 @@ Review verdict không có Critical, có 4 Important; toàn bộ đã sửa theo 
 - Final gates sau review: lint 125 files; typecheck 10/10 tasks; unit 432/432; API 10/10.
 - Full DB suite sau fixes: **4 files, 28/28 tests, 489,09 s** — conflate 11,
   geocode 7, schema 6, ingest 4.
+
+## Appendix — final Minor cleanup (2026-08-29)
+
+- RED: tạo `street_new` rỗng không có ready marker rồi chạy `alleys.mjs`; promise resolve và
+  publish sai `street=0`, `alley=2.181`. Focused result **1 failed, 7 passed**.
+- GREEN: `streets.mjs` chỉ đặt comment marker `mapslibvn:street-ready:v1` sau khi build/analyze
+  hoàn tất; lỗi trước completion dọn `street_new`. `alleys.mjs` kiểm marker trước khi tạo
+  `alley_new`, và `finally` luôn dọn cả hai staging tables. `admin.mjs` luôn dọn
+  `admin_area_new`/`admin_alias_new` trong `finally`; published tables vẫn chỉ đổi trong
+  transaction của `publishNew`.
+- DB assertion address anchor tách riêng `ward_norm / total > 95%` và
+  `province_norm / total > 95%` thay vì chỉ kiểm province.
+- Focused geocode final: **1 file, 8/8 tests, 38,41 s**.
+- Final gates: lint **125 files**, typecheck **10/10 tasks**, root unit **432/432**, API **10/10**;
+  `git diff --check` sạch.
+- Không rerun national: cleanup/marker chỉ tác động failure/staging path; success path vẫn chạy
+  cùng SQL và cùng atomic publish, không thay đổi dữ liệu/counters national đã nghiệm thu.

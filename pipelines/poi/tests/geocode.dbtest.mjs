@@ -197,9 +197,11 @@ describe('geocode tables trên fixture Quận 1', () => {
         AND a.street_norm = b.street_norm
         AND ST_DWithin(a.geom::geography, b.geom::geography, 30)`;
     expect(dup).toBe(0);
-    const [{ filled, total }] = await sql`SELECT count(province_norm)::int AS filled,
+    const [{ wardFilled, provinceFilled, total }] = await sql`SELECT
+      count(ward_norm)::int AS "wardFilled", count(province_norm)::int AS "provinceFilled",
       count(*)::int AS total FROM address_anchor`;
-    expect(filled / total).toBeGreaterThan(0.95);
+    expect(wardFilled / total).toBeGreaterThan(0.95);
+    expect(provinceFilled / total).toBeGreaterThan(0.95);
     const overThirty = await sql`SELECT source FROM address_anchor
       WHERE housenumber = '9001' AND street_norm = 'boundary exact' ORDER BY id`;
     expect(overThirty).toHaveLength(2);
@@ -269,4 +271,23 @@ describe('geocode tables trên fixture Quận 1', () => {
       )`;
     expect(staging).toBe(0);
   }, 120_000);
+
+  it('alleys từ chối street_new chưa ready và giữ nguyên published tables', async () => {
+    const [before] = await sql`SELECT
+      (SELECT count(*)::int FROM street) AS streets,
+      (SELECT count(*)::int FROM alley) AS alleys`;
+    await sql.unsafe(`DROP TABLE IF EXISTS street_new;
+      CREATE TABLE street_new (LIKE street INCLUDING ALL)`);
+    await expect(node('pipelines/poi/src/geocode/alleys.mjs')).rejects.toThrow(
+      /street_new chưa sẵn sàng/,
+    );
+    expect(
+      await sql`SELECT
+        (SELECT count(*)::int FROM street) AS streets,
+        (SELECT count(*)::int FROM alley) AS alleys`,
+    ).toEqual([before]);
+    const [{ staging }] = await sql`SELECT count(*)::int AS staging
+      FROM information_schema.tables WHERE table_name IN ('street_new', 'alley_new')`;
+    expect(staging).toBe(0);
+  });
 });

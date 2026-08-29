@@ -107,5 +107,9 @@ try {
     `✓ admin_area ${await countRows(sql, 'admin_area')} (${levels.map((level) => `L${level.level}=${level.n}`).join(', ')}); admin_alias ${inserted} dòng, không khớp ${missing.length}${missing.length ? `: ${missing.slice(0, 5).join(' | ')}` : ''}`,
   );
 } finally {
-  await sql.end();
+  try {
+    await sql.unsafe('DROP TABLE IF EXISTS admin_area_new, admin_alias_new');
+  } finally {
+    await sql.end();
+  }
 }
