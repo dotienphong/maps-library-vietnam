@@ -1,0 +1,73 @@
+import { randomInt } from 'node:crypto';
+
+const BASE62 = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+
+/** @param {number} length */
+export function generatePassword(length) {
+  let out = '';
+  for (let i = 0; i < length; i++) out += BASE62[randomInt(BASE62.length)];
+  return out;
+}
+
+/** 25% RAM, bội số 256MB, trong [512MB, 8192MB]. @param {number} totalMemBytes */
+export function sharedBuffersFor(totalMemBytes) {
+  const quarterMb = Math.floor(totalMemBytes / 4 / 2 ** 20);
+  const rounded = Math.floor(quarterMb / 256) * 256;
+  return `${Math.min(8192, Math.max(512, rounded))}MB`;
+}
+
+/**
+ * @param {{ superPassword: string, apiPassword: string, pipelinePassword: string, sharedBuffers: string,
+ *   tunnelToken: string, pipelineImage: string }} v
+ */
+export function renderServerEnv(v) {
+  return [
+    '# Bí mật máy chủ MapsLibVN — KHÔNG commit. Sinh bởi pnpm server:setup.',
+    `POSTGRES_SUPER_PASSWORD=${v.superPassword}`,
+    `API_PASSWORD=${v.apiPassword}`,
+    `PIPELINE_PASSWORD=${v.pipelinePassword}`,
+    `PG_SHARED_BUFFERS=${v.sharedBuffers}`,
+    '# Token Tunnel: Cloudflare Zero Trust → Networks → Tunnels → tạo tunnel "mapslibvn-db" → copy token',
+    `TUNNEL_TOKEN=${v.tunnelToken}`,
+    `PIPELINE_IMAGE=${v.pipelineImage}`,
+    '# Các biến Cloudflare/R2 cho backup và data:update — chép từ .env máy dev (xem .env.example gốc repo).',
+    '# CLOUDFLARE_API_TOKEN ở đây dùng token RIÊNG cho pipeline (Workers KV Edit + Workers R2 Edit), không dùng token deploy.',
+    'TILES_BASE=',
+    'R2_BUCKET=mapslibvn-tiles',
+    'KV_NAMESPACE_ID_META=',
+    'CLOUDFLARE_ACCOUNT_ID=',
+    'CLOUDFLARE_API_TOKEN=',
+    'RCLONE_CONFIG_R2_TYPE=s3',
+    'RCLONE_CONFIG_R2_PROVIDER=Cloudflare',
+    'RCLONE_CONFIG_R2_ACL=private',
+    'RCLONE_CONFIG_R2_ACCESS_KEY_ID=',
+    'RCLONE_CONFIG_R2_SECRET_ACCESS_KEY=',
+    'RCLONE_CONFIG_R2_ENDPOINT=',
+    'RCLONE_CONFIG_R2_NO_CHECK_BUCKET=true',
+    '# Token Hugging Face (Read) cho dataset gated foursquare/fsq-os-places — ingest FSQ',
+    'HF_TOKEN=',
+    '',
+  ].join('\n');
+}
+
+/** @param {string} text @returns {Record<string, string>} */
+export function parseEnv(text) {
+  /** @type {Record<string, string>} */
+  const out = {};
+  for (const raw of text.split(/\r?\n/)) {
+    const line = raw.trim();
+    if (!line || line.startsWith('#')) continue;
+    const eq = line.indexOf('=');
+    if (eq < 0) continue;
+    const key = line.slice(0, eq).trim();
+    let value = line.slice(eq + 1).trim();
+    if (
+      (value.startsWith('"') && value.endsWith('"')) ||
+      (value.startsWith("'") && value.endsWith("'"))
+    ) {
+      value = value.slice(1, -1);
+    }
+    out[key] = value;
+  }
+  return out;
+}

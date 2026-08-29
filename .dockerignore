@@ -9,6 +9,7 @@ dist
 work
 out
 .env
+**/.env
 .wrangler
 packages/style/assets/fonts
 pipelines/tiles/fixtures

@@ -1,0 +1,88 @@
+name: mapslibvn-server
+
+services:
+  postgres:
+    image: postgis/postgis:16-3.4
+    restart: unless-stopped
+    shm_size: 1g
+    environment:
+      POSTGRES_USER: mapslibvn
+      POSTGRES_PASSWORD: ${POSTGRES_SUPER_PASSWORD}
+      POSTGRES_DB: mapslibvn
+      API_PASSWORD: ${API_PASSWORD}
+      PIPELINE_PASSWORD: ${PIPELINE_PASSWORD}
+    command:
+      - postgres
+      - -c
+      - config_file=/etc/postgresql/postgresql.conf
+      - -c
+      - shared_buffers=${PG_SHARED_BUFFERS:-2GB}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - pgcerts:/certs:ro
+      - ./postgres/postgresql.conf:/etc/postgresql/postgresql.conf:ro
+      - ./postgres/pg_hba.conf:/etc/postgresql/pg_hba.conf:ro
+      - ./postgres/init-roles.sh:/docker-entrypoint-initdb.d/10-roles.sh:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U mapslibvn -d mapslibvn"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+    # KHÔNG có `ports:` — DB không mở cổng ra ngoài; chỉ cloudflared/backup/pipeline trong mạng compose nối tới.
+
+  cloudflared:
+    image: cloudflare/cloudflared:2026.8.2
+    restart: unless-stopped
+    command: ["tunnel", "--no-autoupdate", "run", "--token", "${TUNNEL_TOKEN}"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  backup:
+    image: ${PIPELINE_IMAGE:-ghcr.io/dotienphong/mapslibvn-pipeline:latest}
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      MAPSLIBVN_IN_CONTAINER: "1"
+      POSTGRES_HOST: postgres
+      POSTGRES_USER: mapslibvn
+      POSTGRES_PASSWORD: ${POSTGRES_SUPER_PASSWORD}
+      POSTGRES_DB: mapslibvn
+      POSTGRES_SSL: require
+    command: ["node", "infra/server/backup/backup.mjs", "--daemon"]
+    # backup dùng superuser để pg_dump trọn DB (kể cả poi_edit, tenant, api_key)
+    volumes:
+      - backup-tmp:/app/work
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  pipeline:
+    image: ${PIPELINE_IMAGE:-ghcr.io/dotienphong/mapslibvn-pipeline:latest}
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      MAPSLIBVN_IN_CONTAINER: "1"
+      MAPSLIBVN_WORK: /app/work
+      MAPSLIBVN_OUT: /app/out
+      POSTGRES_HOST: postgres
+      POSTGRES_USER: pipeline
+      POSTGRES_PASSWORD: ${PIPELINE_PASSWORD}
+      POSTGRES_DB: mapslibvn
+      POSTGRES_SSL: require
+      JAVA_OPTS: -Xmx4g
+      NODE_OPTIONS: --max-old-space-size=4096
+    command: ["node", "scripts/cron.mjs"]
+    volumes:
+      - pipeline-work:/app/work
+      - pipeline-out:/app/out
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+volumes:
+  pgdata:
+  pgcerts:
+  pipeline-work:
+  pipeline-out:
+  backup-tmp:

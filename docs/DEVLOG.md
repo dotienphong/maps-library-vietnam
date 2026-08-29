@@ -8,7 +8,7 @@ commit với code).
 - Mốc: M2 — Kho POI + máy chủ nội bộ
 - Plan: `docs/superpowers/plans/2026-08-27-m2-kho-poi-may-chu.md` (11 task, 6.535 dòng sau review lần 3)
 - Task đang làm: Task 10 — `data:update` đầy đủ + `db:restore` + nghiệm thu M2 (thứ tự thực thi: 0 → 2 → 3 → 4 → 5 → 6 → 7 → 8 → 9 → 1 → 10)
-- Commit cuối: M2 T9 (commit hiện tại)
+- Commit cuối: M2 T1 (commit hiện tại)
 - Môi trường đã dựng: máy dev macOS; remote GitHub cá nhân; Postgres/PostGIS dev,
   migration `0001_extensions.sql`; `pnpm run setup` sạch đạt 6,51 giây; image
   pipeline local đã build/smoke trên arm64 và chạy được qua Compose; Dev Container
@@ -20,20 +20,41 @@ commit với code).
   trên macOS arm64; Worker `mapslibvn-api-production.dotienphong1993.workers.dev`
   và docs `mapslibvn-docs.pages.dev` đã chạy production; repo GitHub chuyển **private**
   với 8 secret Actions; **M1 (M1a+M1b+M1c) đã nghiệm thu 27/08/2026**;
+  **máy chủ nội bộ (compose `mapslibvn-server`) đã chạy trên chính máy dev (G3 — máy chủ tạm)**:
+  `postgres` PostGIS TLS bắt buộc (không mở `ports:`), `backup` daemon 03:00 VN → R2,
+  `pipeline` cron thứ Hai 02:00 VN; **`cloudflared` CHƯA chạy** (`TUNNEL_TOKEN` còn trống)
+  nên Tunnel `maps-db.<domain>` / Access / Hyperdrive `mapslibvn-db` **chưa có** —
+  Worker `/healthz/db` vì thế cũng chưa làm (Task 1 Step 10);
   **PENDING Windows** (chờ PHONG có máy để kiểm)
 
 ## 2. Bước kế tiếp
 
-M2 Task 1 — dựng máy chủ nội bộ (compose, `pnpm server:setup`, Tunnel/Access/Hyperdrive,
-backup, cron), rồi Task 10 — `pnpm data:update` đầy đủ 3 nguồn + nhánh `--poi`,
-`pnpm db:restore` và nghiệm thu M2.
+M2 Task 10 — `pnpm data:update` đầy đủ 3 nguồn + nhánh `--poi`, `pnpm db:restore`
+và nghiệm thu M2. **Chặn trước:** phần Cloudflare của Task 1 (Step 9 + Step 10) cần PHONG
+làm tay — xem ngay dưới.
 
 **Lưu ý vận hành máy dev:** đĩa đã đầy 97 % ngày 27/08 (`~/.cache/uv` 124 GB + JSONL Overture không nén);
 đã dọn còn 44 GiB trống. Trước các bước nặng (Task 7 gộp, Task 10 `data:update`), kiểm `df -h /`.
 
-**Việc tay PHONG trước Task 1 (làm sau Task 9):** máy dev làm máy chủ tạm — tắt ngủ máy;
-tạo token Cloudflare riêng `mapslibvn-pipeline` (Workers KV Edit + Workers R2 Edit) cho
-`infra/server/.env`; Tunnel/Access/Hyperdrive theo `infra/server/README.md`.
+**Việc tay PHONG còn lại của Task 1 (chặn Step 9 + Step 10):**
+1. **Tắt ngủ máy dev** — nó đang là máy chủ 24/7 (`caffeinate -s`, hoặc System Settings →
+   Displays → Advanced → Prevent automatic sleeping). Chưa làm → backup/cron sẽ ngủ theo máy.
+2. Tunnel `mapslibvn-db` → dán `TUNNEL_TOKEN` vào `infra/server/.env` → chạy lại
+   `PIPELINE_IMAGE=mapslibvn/pipeline:local pnpm server:setup` để bật `cloudflared`;
+   Public Hostname `maps-db.<domain>` → `tcp://postgres:5432`.
+3. Service Token `hyperdrive` + Access application `mapslibvn-db`.
+4. Hyperdrive `mapslibvn-db` (user `api`, password = `API_PASSWORD` trong `infra/server/.env`).
+5. Token Cloudflare riêng `mapslibvn-pipeline` (Workers KV Edit + Workers R2 Edit) →
+   `CLOUDFLARE_API_TOKEN` + `KV_NAMESPACE_ID_META` + `CLOUDFLARE_ACCOUNT_ID` trong
+   `infra/server/.env` (hiện để trống có chủ đích; chỉ khoá `RCLONE_CONFIG_R2_*` đã điền
+   để backup chạy được).
+6. Điền `DB_TUNNEL_HOSTNAME` / `CF_ACCESS_CLIENT_ID` / `CF_ACCESS_CLIENT_SECRET` /
+   `PIPELINE_DATABASE_URL` vào `.env` máy dev (khoá đã có sẵn, còn trống).
+
+Có Hyperdrive ID thật rồi mới làm **Task 1 Step 10** (`apps/api`: `postgres` dependency,
+`db.ts`, `Env.DB`, route `/healthz/db`, `wrangler.toml`). Cố tình chưa làm: `deploy-api.yml`
+tự deploy production mỗi push chạm `apps/api/**`, commit `wrangler.toml` với ID giả sẽ làm
+mọi lần Deploy API đỏ (cảnh báo ngay trong plan Task 1 Step 10).
 
 **Việc tay còn lại của M2 Task 8:** biên soạn bảng alias phường/xã trước→sau sắp xếp
 2025 từ các nghị quyết UBTVQH; bổ sung relation level 4 Khánh Hòa vào nguồn OSM/override
@@ -118,6 +139,9 @@ tạo token Cloudflare riêng `mapslibvn-pipeline` (Workers KV Edit + Workers R2
 | 2026-08-29 | Style bỏ toàn bộ lớp POI của base OSM Liberty (`source-layer=poi` của `openmaptiles`) và dùng một lớp `poi` riêng từ `poi-YYYYMMDD.pmtiles` | Hai bộ icon chồng nhau ở cùng vị trí; lớp riêng mới có `q`/`grp`/`cat` để lọc theo mật độ 5.8 và bắt sự kiện `poiClick` | (M2 T9) |
 | 2026-08-29 | Worker bỏ hẳn `sources.poi` + lớp `poi` khi `manifest.poi` null, thay vì điền chuỗi rỗng | `pmtiles://…/tiles/.pmtiles` làm MapLibre tải file không tồn tại và báo lỗi ở mọi phiên trước khi có bản POI đầu tiên | (M2 T9) |
 | 2026-08-29 | `export-tiles.mjs` không dùng `--extend-zooms-if-still-dropping` | Cờ này có thể đẩy maxzoom vượt 16, làm `inspect`/`smoke --set poi` lệch với spec 5.8 | (M2 T9) |
+| 2026-08-29 | `.dockerignore` thêm `**/.env` (trước chỉ có `.env` ở gốc) | Pattern gốc chỉ khớp `/.env`; `infra/server/.env` chứa mật khẩu superuser/api/pipeline sẽ bị nướng vào layer image ở mọi lần `pnpm image:build` chạy sau `server:setup` | (M2 T1) |
+| 2026-08-29 | Lệnh restore-smoke dựng URL từ `POSTGRES_*` của container thay vì `$DATABASE_URL` | Container `backup` không export `DATABASE_URL` (backup.mjs tự dựng qua `databaseUrlFromEnv`); lệnh trong plan rơi về socket và báo `.s.PGSQL.5432: No such file or directory`. Recipe đúng đã ghi vào `infra/server/README.md` để Task 10 `db-restore.mjs` dùng lại | (M2 T1) |
+| 2026-08-29 | `server-setup.mjs` gán `pipelineImage` có giá trị mặc định thay vì dùng thẳng `env.PIPELINE_IMAGE` | `parseEnv` trả `Record<string, string>` nhưng tsconfig bật `noUncheckedIndexedAccess` → `string \| undefined`, `pnpm typecheck` đỏ ở `spawnSync` | (M2 T1) |
 | 2026-08-27 | `apps/docs/tsconfig.json` phải `exclude: ["dist", "public"]` | `astro check` với `include: ["**/*"]` kéo cả `public/sdk/mapslibvn.umd.js` (1 MB) và sourcemap (2,4 MB) vào TypeScript → hết heap 4 GB, exit 137 | (Task M1c T3) |
 | 2026-08-27 | `biome.json` bỏ qua `apps/docs/public/sdk/**` | Thư mục là artefact copy từ bản build web; biome báo vượt giới hạn 1 MiB và lỗi CSS của maplibre | (Task M1c T3) |
 
@@ -337,4 +361,18 @@ rõ ở mục 2 và không chặn M2: kiểm trên Windows, và bật lại `req
   osm-liberty; Worker bỏ nguồn/lớp `poi` khi manifest chưa có bản POI. `smoke.mjs --set poi`
   (maxZoom 16, z12–16, cho phép tile trống, ngưỡng ≥ 15/20); playground hiện tên · loại (nhóm)
   khi bấm POI. lint sạch, typecheck 10/10, **450/450 test** (438 root + 12 api), E2E 2/2 ·
+  (commit hiện tại)
+- 2026-08-29 · M2 T1 (Step 1–8, **Step 9–10 chờ PHONG**) · máy chủ nội bộ chạy thật trên máy
+  dev với `PIPELINE_IMAGE=mapslibvn/pipeline:local`: `pnpm server:setup` sinh
+  `infra/server/.env` (3 mật khẩu 32 ký tự, `PG_SHARED_BUFFERS` = 25 % RAM), chứng chỉ tự ký
+  10 năm trong volume `pgcerts`, `docker compose up -d` 3 dịch vụ, áp dụng **5 migration**
+  (0001–0005), đồng bộ role, `ssl = on`. Chạy lại **idempotent 8 giây** (`.env` giữ nguyên,
+  chứng chỉ giữ nguyên, 0 migration). Kiểm chứng: `api|t` + `pipeline|t`; kết nối
+  `sslmode=require` → `ssl = t`; `sslmode=disable` → `FATAL: pg_hba.conf rejects connection …
+  no encryption` (TLS bắt buộc thật, không chỉ trên README). `backup --once` →
+  `mapslibvn-20260829-2142.dump.zst` lên `r2:mapslibvn-tiles/backups/daily`; restore vào DB
+  mới `restore_smoke` **không một lỗi nào**, `schema_migrations` = 5 = số migration up trong
+  repo. Log daemon đúng lịch: backup `2026-08-29T20:00:00Z` (03:00 VN), cron
+  `2026-08-30T19:00:00Z` (thứ Hai 02:00 VN). Image rebuild có `backup.mjs`/`cron.mjs`, không
+  chứa `infra/server/.env`. lint sạch, typecheck 10/10, **462/462 test** (450 root + 12 api) ·
   (commit hiện tại)

@@ -222,7 +222,7 @@ staging=0; Task 7 counts giữ nguyên.
 - Create: `infra/server/compose.yml`, `infra/server/.env.example`, `infra/server/.gitignore`, `infra/server/README.md`, `infra/server/postgres/postgresql.conf`, `infra/server/postgres/pg_hba.conf`, `infra/server/postgres/init-roles.sh`, `infra/server/backup/backup.mjs`, `scripts/server-setup.mjs`, `scripts/server-update.mjs`, `scripts/cron.mjs`, `scripts/lib/server-env.mjs`, `scripts/lib/server-env.test.mjs`, `scripts/lib/schedule.mjs`, `scripts/lib/schedule.test.mjs`, `scripts/lib/backup-plan.mjs`, `scripts/lib/backup-plan.test.mjs`, `apps/api/src/db.ts`
 - Modify: `pipelines/Dockerfile`, `apps/api/wrangler.toml`, `apps/api/src/env.ts`, `apps/api/src/index.ts`, `.env.example`
 
-- [ ] **Step 1: Test hàm thuần sinh `.env` máy chủ, lịch chạy, kế hoạch giữ backup (thất bại)**
+- [x] **Step 1: Test hàm thuần sinh `.env` máy chủ, lịch chạy, kế hoạch giữ backup (thất bại)**
 
 `scripts/lib/server-env.test.mjs`:
 ```js
@@ -328,7 +328,7 @@ describe('retentionPlan', () => {
 Run: `pnpm test`
 Expected: FAIL — không tìm thấy `./server-env.mjs`, `./schedule.mjs`, `./backup-plan.mjs`.
 
-- [ ] **Step 2: Viết ba hàm thuần**
+- [x] **Step 2: Viết ba hàm thuần**
 
 `scripts/lib/server-env.mjs`:
 ```js
@@ -448,7 +448,7 @@ export function retentionPlan(existing, keep) {
 Run: `pnpm test`
 Expected: xanh.
 
-- [ ] **Step 3: File cấu hình Postgres và compose máy chủ**
+- [x] **Step 3: File cấu hình Postgres và compose máy chủ**
 
 `infra/server/postgres/postgresql.conf`:
 ```
@@ -605,7 +605,7 @@ volumes:
 Run: `node -e "import('./scripts/lib/server-env.mjs').then(m => process.stdout.write(m.renderServerEnv({superPassword:'DOI_TOI',apiPassword:'DOI_TOI',pipelinePassword:'DOI_TOI',sharedBuffers:'2048MB',tunnelToken:'',pipelineImage:'ghcr.io/dotienphong/mapslibvn-pipeline:latest'})))" > infra/server/.env.example`
 Expected: file có 24 dòng, bắt đầu bằng `# Bí mật máy chủ`, có `RCLONE_CONFIG_R2_NO_CHECK_BUCKET=true`.
 
-- [ ] **Step 4: Bổ sung công cụ máy chủ vào image pipeline**
+- [x] **Step 4: Bổ sung công cụ máy chủ vào image pipeline**
 
 Sửa `pipelines/Dockerfile`, stage `tools`: thêm `postgresql-client-16 zstd` vào dòng `apt-get install` đầu tiên, và thêm khối `cloudflared` ngay sau khối DuckDB:
 
@@ -653,7 +653,7 @@ Thêm vào `SMOKE` trong `scripts/image.mjs` ba mục: `'pg_dump --version'`, `'
 Run: `pnpm image:build && pnpm image:smoke`
 Expected: build dùng cache cho tippecanoe; smoke in thêm `pg_dump (PostgreSQL) 16.x`, `*** zstd command line interface …`, `cloudflared version 2026.8.2`. Nếu tag cloudflared không tồn tại: `curl -sI https://github.com/cloudflare/cloudflared/releases/latest | grep -i location` lấy tag mới nhất, sửa ARG, ghi DEVLOG.
 
-- [ ] **Step 5: `backup.mjs` và `cron.mjs`**
+- [x] **Step 5: `backup.mjs` và `cron.mjs`**
 
 `infra/server/backup/backup.mjs`:
 ```js
@@ -759,7 +759,7 @@ Thêm vào `tsconfig.scripts.json` → `"include": ["scripts/**/*.mjs", "infra/s
 Run: `pnpm typecheck`
 Expected: không lỗi.
 
-- [ ] **Step 6: `server-setup.mjs` và `server-update.mjs`**
+- [x] **Step 6: `server-setup.mjs` và `server-update.mjs`**
 
 `scripts/server-setup.mjs`:
 ```js
@@ -890,7 +890,7 @@ run('docker', [...compose, 'run', '--rm', '-e', 'POSTGRES_USER=mapslibvn', '-e',
 console.log('✔ server:update xong');
 ```
 
-- [ ] **Step 7: `infra/server/README.md` — checklist việc tay và cách kiểm tra**
+- [x] **Step 7: `infra/server/README.md` — checklist việc tay và cách kiểm tra**
 
 ````markdown
 # Máy chủ nội bộ MapsLibVN (spec 11.1)
@@ -938,7 +938,7 @@ pnpm server:setup
 - Không bao giờ thêm `ports:` cho `postgres`. Mọi truy cập đi qua Tunnel + Access.
 ````
 
-- [ ] **Step 8: Chạy `pnpm server:setup` trên máy dev (G3: máy chủ tạm) với `PIPELINE_IMAGE=mapslibvn/pipeline:local`**
+- [x] **Step 8: Chạy `pnpm server:setup` trên máy dev (G3: máy chủ tạm) với `PIPELINE_IMAGE=mapslibvn/pipeline:local`**
 
 Trước khi chạy: tắt chế độ ngủ của máy (macOS: System Settings → Displays → Advanced → "Prevent automatic sleeping"; hoặc `caffeinate -s` trong một terminal riêng). Compose server (`mapslibvn-server`) và compose dev (`mapslibvn-dev`) chạy song song — không xung đột cổng vì Postgres server không mở `ports:`.
 
