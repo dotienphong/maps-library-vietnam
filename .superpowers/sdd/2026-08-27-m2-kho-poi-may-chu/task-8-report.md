@@ -4,6 +4,7 @@ Ngày hoàn tất: 2026-08-29
 Branch/worktree: `feature/m2-task8` / `/tmp/mapslibvn-m2-task8`
 Base: `e02d7367de55040ebbac481dbcd3045b3b8c6650`
 Implementation commit: `ebedbac22ac6f1aef3362963bb38e145490dc69b` (`feat(pipeline-poi): build national geocode warehouse`)
+Review fix commit: `20550a99f2ad9385aa8fdd02476a99487d2f1310` (`fix(pipeline-poi): enforce exact geocode boundaries`)
 Không push, không sửa `AGENTS.md`.
 
 ## Kết quả
@@ -20,7 +21,8 @@ test thuần + DB fixture cô lập, chạy toàn Việt Nam, kiểm invariant, 
 - `pipelines/poi/src/geocode/admin.mjs`: semantic admin levels, current-area filter, alias seed, atomic publish.
 - `pipelines/poi/src/geocode/streets.mjs`: cluster named non-alley ways thành street và ward intersections.
 - `pipelines/poi/src/geocode/alleys.mjs`: alley, parent street, entrance, atomic publish street+alley.
-- `pipelines/poi/src/geocode/anchors.mjs`: raw anchors, two-pass dedupe, admin fill, atomic publish.
+- `pipelines/poi/src/geocode/raw-tables.mjs`: build/swap atomic hai raw tables, cleanup failure.
+- `pipelines/poi/src/geocode/anchors.mjs`: exact graph dedupe, iterative convergence, staging cleanup.
 - `pipelines/poi/tests/alley-name.test.mjs`: 5 pure tests, gồm mẫu OSM toàn quốc phát hiện khi chạy thật.
 - `pipelines/poi/tests/geocode.dbtest.mjs`: 5 DB tests trên đúng `mapslibvn_task8_test`.
 - `pipelines/poi/README.md`: commands, admin-level truth và exact national counts.
@@ -45,7 +47,8 @@ test thuần + DB fixture cô lập, chạy toàn Việt Nam, kiểm invariant, 
    - Assertions không bị giảm; fixture thêm retired province, legacy ward, đặc khu và foreign-area regressions.
 3. Anchor national RED: pass DBSCAN độ ban đầu còn đúng 1 cặp `(310, Minh Khai)` cách
    `29.50896126 m`. Thử epsilon độ `0.00035` làm overmerge 8.992 anchor nên bị loại bỏ.
-   Two-pass metric cleanup chỉ gộp thêm 5 anchor và đưa exact duplicate về 0.
+   Đây là RED/GREEN trước review; review sau đó loại hẳn DBSCAN degree/30,5 m và thay bằng
+   graph geography exact ≤30 m có regression biên, xem phụ lục review fixes.
 
 ## Verification commands và exact counts
 
@@ -55,15 +58,15 @@ test thuần + DB fixture cô lập, chạy toàn Việt Nam, kiểm invariant, 
   - root Vitest **27 files, 432/432 tests**;
   - API Vitest **3 files, 10/10 tests**.
 - `DATABASE_URL=postgres://mapslibvn:mapslibvn@localhost:5432/mapslibvn_task8_test pnpm test:db -- --reporter=verbose`
-  → exit 0; **4 files, 26/26 tests**, 471.90 s:
-  - conflate 11/11 (437.143 s), geocode 5/5 (23.589 s), schema 6/6 (0.969 s), ingest 4/4 (9.606 s).
+  → final sau review exit 0; **4 files, 28/28 tests**, 489,09 s:
+  - conflate 11/11 (439,727 s), geocode 7/7 (38,395 s), schema 6/6 (1,026 s), ingest 4/4 (9,152 s).
 - `git diff --check` → exit 0.
-- Final pipeline report rerun trong Compose → `/app/out/poi-report-20260829.json`, anchors 918.416.
+- Final pipeline report rerun trong Compose → `/app/out/poi-report-20260829.json`, anchors 923.541.
 
 Một DB verification bị ngắt trước đó để lại `poi_new` trong riêng fixture DB, làm schema test
 RED 1/6 (`expected ['schema_migrations']`, got thêm `poi_new`). `pg_stat_activity` xác nhận
 không còn child/connection, chỉ đúng bảng tạm được drop trong `mapslibvn_task8_test`; schema
-rerun 6/6 và full DB suite sau đó 26/26. Không thay assertion/schema logic.
+rerun 6/6 và full DB suite trước review sau đó 26/26. Không thay assertion/schema logic.
 
 ## Full Vietnam runtime
 
@@ -86,13 +89,13 @@ Raw:
 
 Published:
 
-- `admin_area`: **3.352** = L4 **33** + semantic L8 **3.319**.
+- `admin_area`: **3.288** = L4 **33** + semantic L8 **3.255**.
 - `admin_alias`: **33 distinct**; unmatched seed: `ninh thuan,4,Khánh Hòa,`.
 - `street`: **61.031**; 60.983 có ward, 58.979 có province; numeric alley-name còn trong street: **0**.
-- `alley`: **58.388**; parent **52.789**, entrance **52.789** (**90,41 %**);
+- `alley`: **58.388**; parent **52.408**, entrance **52.408** (**89,76 %**);
   entrance cách parent street >1 m: **0**.
-- `address_anchor`: **918.416**; Nguyễn Lâm **171**; ward **918.300**; province **896.232**.
-- Anchor source: OSM **66.055**, Overture **775.848**, FSQ **76.513**.
+- `address_anchor`: **923.541**; Nguyễn Lâm **174**; ward **901.166**; province **901.231**.
+- Anchor source: OSM **66.157**, Overture **780.329**, FSQ **77.055**.
 - Bảng tên `%_new`: **0**.
 
 Exact anchor invariant:
@@ -112,7 +115,7 @@ Task 7 binding invariant trước/sau không đổi:
 ## Disk evidence
 
 - Host `/System/Volumes/Data`/root available: **24 GiB trước → 22/21 GiB trong/sau**; final 21 GiB.
-- Docker `/app/work`: **352 GiB trước → 350 GiB sau**, 19% used.
+- Docker `/app/work`: **352 GiB trước → 349 GiB sau**, 19% used.
 - PBF tồn tại trong volume, không download lại. Không có disk-pressure failure.
 
 ## Deviations/rulings
@@ -126,8 +129,8 @@ Task 7 binding invariant trước/sau không đổi:
   clusters là 61.031 và được giữ theo dữ liệu thật.
 - Parser alley mở rộng từ regex spec theo các RED lấy trực tiếp từ national OSM để không để
   numeric alley lọt vào street.
-- Anchor dùng pass DBSCAN độ theo plan rồi metric cleanup EPSG:32648 30,5 m. Ruling được chọn
-  sau khi exact 30 m invariant bắt một miss; phương án tăng epsilon độ bị bác do overmerge lớn.
+- Anchor cuối dùng exact-edge graph: geometry GiST prefilter + geography ≤30 m, connected
+  components và lặp trên median đến khi exact duplicate = 0. DBSCAN degree/UTM 30,5 m đã bỏ.
 
 ## Remaining concerns
 
@@ -136,3 +139,47 @@ Task 7 binding invariant trước/sau không đổi:
 - Exact national self-join cần geometry GiST prefilter để vận hành; geography-only form không
   thực tế trên 918 nghìn anchors.
 - Không có push/remote CI trong scope được giao; branch và worktree được giữ nguyên để parent tích hợp.
+
+## Appendix — review fixes (2026-08-29)
+
+Review verdict không có Critical, có 4 Important; toàn bộ đã sửa theo TDD. Review fix commit:
+`20550a99f2ad9385aa8fdd02476a99487d2f1310`; report commit riêng theo sau.
+
+### RED evidence trước fix
+
+- Focused geocode DB test: **3 failed, 2 passed**:
+  - foreign Vietnamese-style `Xã Sa Mouay` được nhận sai (`expected 0, received 1`);
+  - alley 301 m và 15,1 m vẫn có parent;
+  - hai anchor cùng address cách 30,1 m bị gộp còn một.
+- Safety regression tiếp theo RED ở collection vì chưa có `raw-tables.mjs`/exported
+  `buildAnchors`; test yêu cầu failure giữ published data và cleanup staging.
+- Bản exact recursive đầu dùng `OR` adjacency join chạm hook timeout 120 s. Root cause là CTE
+  edge không có indexed traversal; đổi sang directed edge table + B-tree, giữ nguyên exact predicate.
+- Exact graph pass đầu còn 4 cặp median-created ≤30 m; regression/invariant không đổi. Thêm
+  iterative exact clustering đến hội tụ thay vì làm yếu assertion.
+
+### Fixes
+
+1. `osm-roads.mjs` gọi `replaceRawTables`: COPY/index/validate trên hai `_new`; drop old +
+   rename cả hai và indexes trong cùng transaction; `finally` dọn staging khi bất kỳ bước nào lỗi.
+2. `anchors.mjs` export `buildAnchors`, cleanup raw/edge/merge/new trong `finally`; graph cạnh
+   chỉ tạo khi exact geography ≤30 m sau GiST prefilter, ưu tiên confidence/source, lặp đến 0 duplicate.
+3. `alleys.mjs` giữ geometry prefilter nhưng parent-name/touch quyết định bằng geography exact
+   ≤300 m/≤15 m và xếp nearest bằng geography distance.
+4. `admin.mjs` lấy 34 current province norms từ `provinces.json`; mọi L6/L8 accepted phải có
+   point-on-surface nằm trong retained L4. Fixture `Xã Sa Mouay` ngoài province bị loại.
+
+### GREEN và national rerun
+
+- Focused geocode: **1 file, 7/7 tests, 37,32 s**; gồm 299/301 m, 14,9/15,1 m,
+  29,9/30,1 m + OSM source priority, dual-raw failure và anchor failure cleanup.
+- Full affected national chain exit 0: raw 215.360/9.073; admin 3.288 (33/3.255), alias 33;
+  street 61.031; alley 58.388, parent+entrance 52.408, entrance far >1 m =0; anchors 923.541,
+  Nguyễn Lâm 174. Pipeline chỉ publish sau exact duplicate ≤30 m =0.
+- Source: OSM 66.157, Overture 780.329, FSQ 77.055; staging table =0.
+- Ward filled 901.166; province filled 901.231. Task 7 binding counts không đổi:
+  1.897.933 work records / 1.522.371 POI / 1.583.562 links.
+- Disk sau rerun: host 21 GiB, `/app/work` 349 GiB available.
+- Final gates sau review: lint 125 files; typecheck 10/10 tasks; unit 432/432; API 10/10.
+- Full DB suite sau fixes: **4 files, 28/28 tests, 489,09 s** — conflate 11,
+  geocode 7, schema 6, ingest 4.
