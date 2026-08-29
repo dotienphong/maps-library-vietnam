@@ -55,11 +55,14 @@ schema MapsLibVN chỉ phát hành đơn vị hành chính Việt Nam còn hiệ
 | 9 | 5.139 | khu phố/thôn, ngoài scope Task 8 |
 
 OSM hiện thiếu relation level 4 của **Khánh Hòa**, nên `admin_area` có L4=33 thay vì 34 và
-alias `ninh thuan → Khánh Hòa` chưa nạp được. `admin_area` cuối có L8=3.319; `admin_alias`
+alias `ninh thuan → Khánh Hòa` chưa nạp được. Mọi L6/L8 phát hành phải nằm trong một L4
+Việt Nam hiện hành; `admin_area` cuối có L8=3.255 và `admin_alias`
 có 33 khóa distinct từ seed 2025. Alias phường/xã mới chỉ có ví dụ spec Diên Hồng; cần
 biên soạn đầy đủ từ các nghị quyết UBTVQH 2025.
 
 Số liệu geocode toàn VN: 215.360 way đường có tên → **61.031 street**; **58.388 alley**,
-52.789 (90,41 %) có đường mẹ và entrance, 0 entrance xa đường mẹ quá 1 m; **918.416
-address_anchor**, trong đó Nguyễn Lâm 171. Kiểm exact `(số nhà, đường, khoảng cách ≤ 30 m)`
-không còn cặp trùng; không còn street mang tên hẻm số và không còn bảng `_new`.
+52.408 (89,76 %) có đường mẹ và entrance, 0 entrance xa đường mẹ quá 1 m; **923.541
+address_anchor**, trong đó Nguyễn Lâm 174. Parent theo tên/chạm dùng geometry GiST prefilter
+rồi geography exact ≤300/15 m. Anchor gộp connected-components theo geography exact ≤30 m
+đến khi hội tụ, ưu tiên source theo confidence; không còn cặp trùng, street mang tên hẻm số,
+hay bảng staging (`*_new`, raw/edge/merge).

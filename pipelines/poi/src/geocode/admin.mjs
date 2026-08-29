@@ -13,27 +13,18 @@ const seedRows = seedLines.map((line) => {
   const [alias, levelString, currentName, province] = line.split(',').map((field) => field.trim());
   return { alias, level: Number(levelString), currentName, province, line };
 });
-const provinceCurrentNorms = [
-  ...new Set(
-    seedRows
-      .filter((row) => row.level === 4)
-      .map((row) => normalizeVi(row.currentName ?? '').replace(/^(?:tinh|thanh pho)\s+/, '')),
-  ),
-];
-const provinceRetiredNorms = [
-  ...new Set(
-    seedRows
-      .filter((row) => row.level === 4)
-      .map((row) => normalizeVi(row.alias ?? ''))
-      .filter((alias) => !provinceCurrentNorms.includes(alias)),
-  ),
-];
-
+const provinceCurrentNorms = Object.keys(
+  JSON.parse(readFileSync(resolve('packages/core/src/provinces.json'), 'utf8')),
+).map((name) => normalizeVi(name).replace(/^(?:tinh|thanh pho)\s+/, ''));
 const sql = connect();
 try {
   await createNewTable(sql, 'admin_area');
   await createNewTable(sql, 'admin_alias');
   await sql`INSERT INTO admin_area_new (id, level, name, name_norm, osm_relation_id, geom)
+    WITH retained_province AS (
+      SELECT * FROM osm_admin_raw
+      WHERE level = 4 AND name_norm !~ ' cu$' AND name_norm = ANY(${provinceCurrentNorms})
+    )
     SELECT row_number() OVER (ORDER BY semantic_level, osm_relation_id),
       semantic_level, name, name_norm, osm_relation_id, geom
     FROM (
@@ -44,27 +35,27 @@ try {
       END AS semantic_level
       FROM osm_admin_raw raw
       WHERE (
-        raw.level = 4 AND raw.name_norm !~ ' cu$'
-          AND (raw.name_norm = ANY(${provinceCurrentNorms})
-            OR NOT (raw.name_norm = ANY(${provinceRetiredNorms})))
+        raw.level = 4 AND EXISTS (
+          SELECT 1 FROM retained_province province
+          WHERE province.osm_relation_id = raw.osm_relation_id
+        )
       ) OR (
         raw.level = 6
         AND (
           raw.name ~* '^(Phường|Xã|Thị trấn|Đặc khu) '
-          OR (
-            raw.name ~* '^(Quận|Huyện|Thành phố|Thị xã) '
-            AND EXISTS (
-              SELECT 1 FROM osm_admin_raw province
-              WHERE province.level = 4 AND province.name_norm !~ ' cu$'
-                AND (province.name_norm = ANY(${provinceCurrentNorms})
-                  OR NOT (province.name_norm = ANY(${provinceRetiredNorms})))
-                AND ST_Contains(province.geom, ST_PointOnSurface(raw.geom))
-            )
-          )
+          OR raw.name ~* '^(Quận|Huyện|Thành phố|Thị xã) '
+        )
+        AND EXISTS (
+          SELECT 1 FROM retained_province province
+          WHERE ST_Contains(province.geom, ST_PointOnSurface(raw.geom))
         )
       ) OR (
         raw.level = 8
         AND raw.name ~* '^(Phường|Xã|Thị trấn|Đặc khu) '
+        AND EXISTS (
+          SELECT 1 FROM retained_province province
+          WHERE ST_Contains(province.geom, ST_PointOnSurface(raw.geom))
+        )
         AND NOT EXISTS (
           SELECT 1 FROM osm_admin_raw current_ward
           WHERE current_ward.level = 6

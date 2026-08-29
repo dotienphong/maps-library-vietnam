@@ -6,8 +6,9 @@ import { normalizeVi } from '@mapslibvn/core';
 import { run } from '../../../../scripts/lib/run.mjs';
 import { OSM_PBF, POI_WORK } from '../lib/env.mjs';
 import { parseOsmiumId } from '../lib/osmium-id.mjs';
-import { connect, copyInto, countRows, readJsonl } from '../pg.mjs';
+import { connect, countRows, readJsonl } from '../pg.mjs';
 import { parseAlleyName, streetNameNorm } from './alley-name.mjs';
+import { replaceRawTables } from './raw-tables.mjs';
 
 const ROAD_TYPES = new Set([
   'motorway',
@@ -144,41 +145,10 @@ async function* adminRows() {
 
 const sql = connect();
 try {
-  await sql.unsafe('DROP TABLE IF EXISTS osm_road_raw, osm_admin_raw');
-  await sql.unsafe(`CREATE TABLE osm_road_raw (
-    osm_way_id bigint PRIMARY KEY, name text NOT NULL, name_norm text NOT NULL,
-    highway text NOT NULL, alley_keyword text, alley_number text, parent_norm text,
-    geom geometry(LineString, 4326) NOT NULL, province_norm text)`);
-  await sql.unsafe(`CREATE TABLE osm_admin_raw (
-    osm_relation_id bigint PRIMARY KEY, level smallint NOT NULL, name text NOT NULL,
-    name_norm text NOT NULL, geom geometry(MultiPolygon, 4326) NOT NULL)`);
-  const roads = await copyInto(
-    sql,
-    'osm_road_raw',
-    [
-      'osm_way_id',
-      'name',
-      'name_norm',
-      'highway',
-      'alley_keyword',
-      'alley_number',
-      'parent_norm',
-      'geom',
-    ],
-    roadRows(),
-  );
-  const admins = await copyInto(
-    sql,
-    'osm_admin_raw',
-    ['osm_relation_id', 'level', 'name', 'name_norm', 'geom'],
-    adminRows(),
-  );
-  await sql.unsafe(`CREATE INDEX osm_road_raw_geom_idx ON osm_road_raw USING gist (geom);
-    CREATE INDEX osm_admin_raw_geom_idx ON osm_admin_raw USING gist (geom);
-    UPDATE osm_admin_raw SET geom = ST_Multi(ST_CollectionExtract(ST_MakeValid(geom), 3))
-      WHERE NOT ST_IsValid(geom);
-    ANALYZE osm_road_raw;
-    ANALYZE osm_admin_raw`);
+  const { roads, admins } = await replaceRawTables(sql, {
+    roadRows: roadRows(),
+    adminRows: adminRows(),
+  });
   const levels =
     await sql`SELECT level, count(*)::int AS n FROM osm_admin_raw GROUP BY 1 ORDER BY 1`;
   console.log(

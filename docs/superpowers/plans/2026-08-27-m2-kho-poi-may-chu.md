@@ -206,6 +206,14 @@ git commit -m "chore(test): tách vitest unit/dbtest; ghi giả định và khá
 git push
 ```
 
+**Post-review ruling 29/08/2026 (đã verification):** hai bảng raw dựng `_new` và swap chung
+transaction, failure cleanup staging; anchor cleanup raw/edge/merge/new trong `finally`. Khoảng
+cách alley dùng geography exact ≤300/15 m sau GiST prefilter. Anchor dùng graph cạnh geography
+exact ≤30 m, connected-components lặp đến khi median không còn cặp exact, thay DBSCAN degree.
+Mọi L6/L8 phải nằm trong retained current L4. National cuối: admin 3.288 (L4=33/L8=3.255),
+street 61.031, alley 58.388 (52.408 parent+entrance), anchor 923.541, Nguyễn Lâm 174,
+staging=0; Task 7 counts giữ nguyên.
+
 ---
 
 ### Task 1: Máy chủ nội bộ — compose, `pnpm server:setup`, Tunnel/Access/Hyperdrive, backup, cron

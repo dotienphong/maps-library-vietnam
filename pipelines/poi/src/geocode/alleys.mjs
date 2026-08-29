@@ -11,17 +11,24 @@ try {
     FROM osm_road_raw WHERE alley_number IS NOT NULL`);
   await sql.unsafe(`UPDATE alley_new alley SET parent_street_id = (
     SELECT street.id FROM street_new street
-    WHERE street.name_norm = road.parent_norm AND ST_DWithin(street.geom, alley.geom, 0.003)
-    ORDER BY ST_Distance(street.geom, alley.geom) LIMIT 1
+    WHERE street.name_norm = road.parent_norm
+      AND ST_DWithin(street.geom, alley.geom, 0.003)
+      AND ST_DWithin(street.geom::geography, alley.geom::geography, 300)
+    ORDER BY ST_Distance(street.geom::geography, alley.geom::geography) LIMIT 1
   ) FROM osm_road_raw road
     WHERE road.osm_way_id = alley.osm_way_id AND road.parent_norm IS NOT NULL`);
   await sql.unsafe(`UPDATE alley_new alley SET parent_street_id = (
     SELECT street.id FROM street_new street
-    WHERE ST_DWithin(street.geom, ST_StartPoint(alley.geom), 0.00015)
-      OR ST_DWithin(street.geom, ST_EndPoint(alley.geom), 0.00015)
+    WHERE (
+      ST_DWithin(street.geom, ST_StartPoint(alley.geom), 0.00015)
+      AND ST_DWithin(street.geom::geography, ST_StartPoint(alley.geom)::geography, 15)
+    ) OR (
+      ST_DWithin(street.geom, ST_EndPoint(alley.geom), 0.00015)
+      AND ST_DWithin(street.geom::geography, ST_EndPoint(alley.geom)::geography, 15)
+    )
     ORDER BY LEAST(
-      ST_Distance(street.geom, ST_StartPoint(alley.geom)),
-      ST_Distance(street.geom, ST_EndPoint(alley.geom))
+      ST_Distance(street.geom::geography, ST_StartPoint(alley.geom)::geography),
+      ST_Distance(street.geom::geography, ST_EndPoint(alley.geom)::geography)
     ) LIMIT 1
   ) WHERE alley.parent_street_id IS NULL`);
   await sql.unsafe(`UPDATE alley_new alley SET entrance = ST_ClosestPoint(street.geom,

@@ -110,9 +110,10 @@ tạo token Cloudflare riêng `mapslibvn-pipeline` (Workers KV Edit + Workers R2
 | 2026-08-27 | Dockerfile gộp luôn Task 1 Step 4 (`postgresql-client-16`, `zstd`, `cloudflared 2026.8.2`) vào lần rebuild của Task 5 | Chỉ rebuild image một lần (~10 phút) thay vì hai | `f9f1fda` |
 | 2026-08-27 | DuckDB 1.5 `ST_AsGeoJSON` trả kiểu JSON (object) — `make-vn-boundary.mjs` nhận cả object lẫn chuỗi | Bản đầu `JSON.parse` hai lần → lỗi `[object Object]` | `a70514c` |
 | 2026-08-27 | Danh sách 34 tỉnh + alias tên cũ nằm trong `packages/core/src/provinces.json` (NQ 202/2025/QH15) | Địa chỉ cũ ("Bình Dương", "Vũng Tàu", "Bến Tre") vẫn về đúng tỉnh mới | (M2 T4) |
-| 2026-08-29 | OSM raw hiện dùng level 6 cho 3.308 phường/xã/thị trấn + 11 đặc khu sau sắp xếp; map chúng sang semantic level 8, loại level 8 cũ đã bị bao phủ và relation biên giới; level 4 lọc theo seed alias tỉnh 2025 | Raw có `L4=39, L6=3.322, L8=565`, không còn theo giả định plan cũ. Kết quả đúng dữ liệu hiện tại là L4=33, L8=3.319; OSM thiếu riêng Khánh Hòa, không tạo geometry giả để ép đủ 34 | (M2 T8) |
+| 2026-08-29 | OSM raw hiện dùng level 6 cho đơn vị cấp xã/đặc khu sau sắp xếp; map sang semantic level 8, nhưng chỉ nhận L6/L8 có point-on-surface nằm trong một L4 thuộc danh sách 34 tỉnh hiện hành | Raw có `L4=39, L6=3.322, L8=565`. Kết quả sau review là L4=33, L8=3.255; loại thêm 64 relation ngoài retained province. OSM thiếu riêng Khánh Hòa, không tạo geometry giả để ép đủ 34 | (M2 T8 review) |
 | 2026-08-29 | Parser tên hẻm nhận thêm chuỗi `/`, khoảng `-`, mã chữ-số (`111K1`, `02/K01`), `+`, dấu phẩy/chấm và lỗi thiếu khoảng trắng | Regex spec hẹp làm 109 street cluster toàn VN vẫn mang tên hẻm số; RED từ mẫu OSM thật rồi mở rộng, final còn 0 | (M2 T8) |
-| 2026-08-29 | Anchor gộp hai pass: DBSCAN độ theo plan, sau đó cleanup metric UTM 48N 30,5 m trên các median | Exact indexed national check bắt 1 cặp còn cách 29,509 m sau pass đầu; tăng epsilon độ lên 0,00035 overmerge 8.992 mốc nên bỏ. Two-pass chỉ giảm 5 mốc và đưa duplicate exact về 0 | (M2 T8) |
+| 2026-08-29 | Anchor dựng graph cạnh bằng geometry GiST prefilter + geography exact ≤30 m, lấy connected component và lặp trên median đến khi exact duplicate = 0 | Review phát hiện DBSCAN 0,0003°/30,5 m có thể gộp cặp >30 m. Regression 30,1 m giữ tách, 29,9 m gộp và OSM thắng source priority; national thành 923.541 anchor | (M2 T8 review) |
+| 2026-08-29 | `osm_road_raw` + `osm_admin_raw` dựng `_new`, swap cả hai trong một transaction; anchor raw/edge/merge/new luôn cleanup trong `finally`. Alley dùng prefilter + geography exact ≤300/15 m | Fault-injection giữ nguyên hai raw table/bảng anchor published khi lỗi và staging=0; boundary regressions 299/301 m và 14,9/15,1 m xanh | (M2 T8 review) |
 | 2026-08-27 | `apps/docs/tsconfig.json` phải `exclude: ["dist", "public"]` | `astro check` với `include: ["**/*"]` kéo cả `public/sdk/mapslibvn.umd.js` (1 MB) và sourcemap (2,4 MB) vào TypeScript → hết heap 4 GB, exit 137 | (Task M1c T3) |
 | 2026-08-27 | `biome.json` bỏ qua `apps/docs/public/sdk/**` | Thư mục là artefact copy từ bản build web; biome báo vượt giới hạn 1 MiB và lỗi CSS của maplibre | (Task M1c T3) |
 
@@ -316,9 +317,10 @@ rõ ở mục 2 và không chặn M2: kiểm trên Windows, và bật lại `req
   16,1 % và bare `other` <10 %. dbtest có forward-link assertion và merge/split historical-primary regression ·
   (commit hiện tại)
 - 2026-08-29 · M2 T8 · geocode full national từ PBF 313 MB: 215.360 named road ways / 9.073
-  admin relation raw → `admin_area` 3.352 (L4=33, L8=3.319; OSM thiếu Khánh Hòa), 33
-  alias distinct; 61.031 street; 58.388 alley, 52.789 (90,41 %) có parent+entrance và 0
-  entrance xa đường mẹ >1 m; 918.416 anchor, Nguyễn Lâm 171, exact duplicate ≤30 m = 0.
+  admin relation raw → `admin_area` 3.288 (L4=33, L8=3.255; OSM thiếu Khánh Hòa), 33
+  alias distinct; 61.031 street; 58.388 alley, 52.408 (89,76 %) có parent+entrance và 0
+  entrance xa đường mẹ >1 m; 923.541 anchor, Nguyễn Lâm 174, exact duplicate ≤30 m = 0.
   Task 7 bất biến: 1.897.933 records / 1.522.371 POI / 1.583.562 links. TDD pure 5/5,
-  geocode fixture 5/5 async child trên DB `mapslibvn_task8_test`; full run hai lần idempotent;
-  disk volume 352→350 GiB trống, host 24→21 GiB trống · (commit hiện tại)
+  geocode fixture 7/7 async child trên DB `mapslibvn_task8_test`, gồm fault cleanup + exact
+  boundary/source regressions; staging national=0; disk volume final 349 GiB trống, host 21 GiB trống ·
+  (commit hiện tại)

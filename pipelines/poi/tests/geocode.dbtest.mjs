@@ -4,6 +4,8 @@ import { execFile } from 'node:child_process';
 import postgres from 'postgres';
 import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest';
 import { databaseUrlFromEnv } from '../../../scripts/lib/migrations.mjs';
+import { buildAnchors } from '../src/geocode/anchors.mjs';
+import { replaceRawTables } from '../src/geocode/raw-tables.mjs';
 
 const databaseUrl = databaseUrlFromEnv(process.env);
 if (new URL(databaseUrl).pathname !== '/mapslibvn_task8_test') {
@@ -53,6 +55,27 @@ beforeAll(async () => {
     await node(`pipelines/poi/src/ingest/${source}.mjs`, '--fixture');
   }
   await node('pipelines/poi/src/taxonomy.mjs', 'load');
+  await sql`INSERT INTO src_osm_place (osm_type, osm_id, name, names, tags, geom, release)
+    VALUES ('n', 990000000001, 'Exact Priority OSM', '{"name":"Exact Priority OSM"}',
+      '{"amenity":"cafe","addr:housenumber":"9002","addr:street":"Boundary Priority"}',
+      ST_SetSRID(ST_MakePoint(106.6, 10.6), 4326), current_date)`;
+  await sql`INSERT INTO src_overture_place
+      (id, name, names, category, categories, confidence, addresses, websites, phones, sources, geom, release)
+    VALUES
+      ('task8-exact-priority', 'Exact Priority Overture', '{"primary":"Exact Priority Overture"}',
+        'coffee_shop', '{"primary":"coffee_shop"}', 0.8,
+        '[{"freeform":"9002 Boundary Priority"}]', '{}', '{}', '[]',
+        ST_Project(ST_SetSRID(ST_MakePoint(106.6, 10.6), 4326)::geography, 29.9, radians(90))::geometry,
+        'task8-fixture'),
+      ('task8-exact-over-1', 'Exact Over One', '{"primary":"Exact Over One"}',
+        'coffee_shop', '{"primary":"coffee_shop"}', 0.8,
+        '[{"freeform":"9001 Boundary Exact"}]', '{}', '{}', '[]',
+        ST_SetSRID(ST_MakePoint(106.55, 10.55), 4326), 'task8-fixture'),
+      ('task8-exact-over-2', 'Exact Over Two', '{"primary":"Exact Over Two"}',
+        'coffee_shop', '{"primary":"coffee_shop"}', 0.8,
+        '[{"freeform":"9001 Boundary Exact"}]', '{}', '{}', '[]',
+        ST_Project(ST_SetSRID(ST_MakePoint(106.55, 10.55), 4326)::geography, 30.1, radians(90))::geometry,
+        'task8-fixture')`;
   await node('pipelines/poi/src/records.mjs');
   await node('pipelines/poi/src/geocode/osm-roads.mjs', '--fixture');
   await sql`INSERT INTO osm_admin_raw (osm_relation_id, level, name, name_norm, geom)
@@ -62,10 +85,38 @@ beforeAll(async () => {
       (999999999998, 8, 'Phường Bến Thành cũ', 'ben thanh cu',
         ST_Multi(ST_Buffer(ST_SetSRID(ST_MakePoint(106.698, 10.772), 4326), 0.0001))),
       (999999999997, 6, 'Đặc khu Test', 'dac khu test',
-        ST_Multi(ST_Buffer(ST_SetSRID(ST_MakePoint(106.5, 10.5), 4326), 0.001))),
-      (999999999996, 6, 'Sa Mouay', 'sa mouay',
+        ST_Multi(ST_Buffer(ST_SetSRID(ST_MakePoint(106.699, 10.773), 4326), 0.00005))),
+      (999999999996, 6, 'Xã Sa Mouay', 'sa mouay',
         ST_Multi(ST_Buffer(ST_SetSRID(ST_MakePoint(106.4, 10.4), 4326), 0.001)))`;
   adminOutput = /** @type {string} */ (await node('pipelines/poi/src/geocode/admin.mjs'));
+  await sql`WITH base AS (
+      SELECT ST_SetSRID(ST_MakePoint(106.4, 10.5), 4326) AS named_base,
+        ST_SetSRID(ST_MakePoint(106.5, 10.5), 4326) AS touch_base
+    ), points AS (
+      SELECT *,
+        ST_Project(named_base::geography, 299, radians(0))::geometry AS named_299,
+        ST_Project(named_base::geography, 301, radians(0))::geometry AS named_301,
+        ST_Project(touch_base::geography, 14.9, radians(0))::geometry AS touch_149,
+        ST_Project(touch_base::geography, 15.1, radians(0))::geometry AS touch_151
+      FROM base
+    )
+    INSERT INTO osm_road_raw
+      (osm_way_id, name, name_norm, highway, alley_keyword, alley_number, parent_norm, geom)
+    SELECT 990000000011, 'Boundary Named Parent', 'boundary named parent', 'residential', NULL, NULL, NULL,
+      ST_MakeLine(named_base, ST_Project(named_base::geography, 50, radians(90))::geometry) FROM points
+    UNION ALL SELECT 990000000012, 'Hẻm 299 Boundary Named Parent', 'hem 299 boundary named parent',
+      'service', 'hem', '299', 'boundary named parent',
+      ST_MakeLine(named_299, ST_Project(named_299::geography, 5, radians(90))::geometry) FROM points
+    UNION ALL SELECT 990000000013, 'Hẻm 301 Boundary Named Parent', 'hem 301 boundary named parent',
+      'service', 'hem', '301', 'boundary named parent',
+      ST_MakeLine(named_301, ST_Project(named_301::geography, 5, radians(90))::geometry) FROM points
+    UNION ALL SELECT 990000000014, 'Boundary Touch Parent', 'boundary touch parent',
+      'residential', NULL, NULL, NULL,
+      ST_MakeLine(touch_base, ST_Project(touch_base::geography, 50, radians(90))::geometry) FROM points
+    UNION ALL SELECT 990000000015, 'Hẻm 149', 'hem 149', 'service', 'hem', '149', NULL,
+      ST_MakeLine(touch_149, ST_Project(touch_149::geography, 5, radians(90))::geometry) FROM points
+    UNION ALL SELECT 990000000016, 'Hẻm 151', 'hem 151', 'service', 'hem', '151', NULL,
+      ST_MakeLine(touch_151, ST_Project(touch_151::geography, 5, radians(90))::geometry) FROM points`;
   await node('pipelines/poi/src/geocode/streets.mjs');
   await node('pipelines/poi/src/geocode/alleys.mjs');
   await node('pipelines/poi/src/geocode/anchors.mjs');
@@ -125,6 +176,16 @@ describe('geocode tables trên fixture Quận 1', () => {
       JOIN street s ON s.id = a.parent_street_id
       WHERE ST_Distance(a.entrance::geography, s.geom::geography) > 1`;
     expect(far).toBe(0);
+    const boundaries = await sql`SELECT osm_way_id, parent_street_id FROM alley
+      WHERE osm_way_id BETWEEN 990000000012 AND 990000000016 ORDER BY osm_way_id`;
+    expect(
+      boundaries.map((row) => [Number(row.osm_way_id), row.parent_street_id !== null]),
+    ).toEqual([
+      [990000000012, true],
+      [990000000013, false],
+      [990000000015, true],
+      [990000000016, false],
+    ]);
   });
 
   it('address_anchor: có mốc Lê Lợi, không trùng (số nhà, đường) trong 30 m, ward/province điền', async () => {
@@ -139,6 +200,12 @@ describe('geocode tables trên fixture Quận 1', () => {
     const [{ filled, total }] = await sql`SELECT count(province_norm)::int AS filled,
       count(*)::int AS total FROM address_anchor`;
     expect(filled / total).toBeGreaterThan(0.95);
+    const overThirty = await sql`SELECT source FROM address_anchor
+      WHERE housenumber = '9001' AND street_norm = 'boundary exact' ORDER BY id`;
+    expect(overThirty).toHaveLength(2);
+    const priority = await sql`SELECT source FROM address_anchor
+      WHERE housenumber = '9002' AND street_norm = 'boundary priority'`;
+    expect(priority).toEqual([{ source: 'osm' }]);
   });
 
   it('chạy lại idempotent (không còn _new, số dòng không đổi)', async () => {
@@ -152,5 +219,54 @@ describe('geocode tables trên fixture Quận 1', () => {
           WHERE table_name LIKE '%\\_new'`
       )[0].n,
     ).toBe(0);
+  }, 120_000);
+
+  it('raw swap thất bại giữ nguyên cả hai bảng cũ và cleanup staging', async () => {
+    const before = await sql`SELECT
+      (SELECT count(*)::int FROM osm_road_raw) AS roads,
+      (SELECT count(*)::int FROM osm_admin_raw) AS admins`;
+    async function* brokenRoads() {
+      yield [
+        990000000099,
+        'Broken staging',
+        'broken staging',
+        'service',
+        null,
+        null,
+        null,
+        'SRID=4326;LINESTRING(106.6 10.6,106.6001 10.6001)',
+      ];
+      throw new Error('task8 intentional raw staging failure');
+    }
+    await expect(replaceRawTables(sql, { roadRows: brokenRoads(), adminRows: [] })).rejects.toThrow(
+      'task8 intentional raw staging failure',
+    );
+    expect(
+      await sql`SELECT
+      (SELECT count(*)::int FROM osm_road_raw) AS roads,
+      (SELECT count(*)::int FROM osm_admin_raw) AS admins`,
+    ).toEqual(before);
+    const [{ staging }] = await sql`SELECT count(*)::int AS staging
+      FROM information_schema.tables
+      WHERE table_name IN ('osm_road_raw_new', 'osm_admin_raw_new')`;
+    expect(staging).toBe(0);
+  });
+
+  it('anchor build thất bại giữ bảng published và cleanup raw/new staging', async () => {
+    const [{ before }] = await sql`SELECT count(*)::int AS before FROM address_anchor`;
+    await expect(
+      buildAnchors({
+        afterRaw: () => {
+          throw new Error('task8 intentional anchor staging failure');
+        },
+      }),
+    ).rejects.toThrow('task8 intentional anchor staging failure');
+    expect((await sql`SELECT count(*)::int AS n FROM address_anchor`)[0].n).toBe(before);
+    const [{ staging }] = await sql`SELECT count(*)::int AS staging
+      FROM information_schema.tables
+      WHERE table_name IN (
+        'address_anchor_raw', 'address_anchor_edge', 'address_anchor_merge', 'address_anchor_new'
+      )`;
+    expect(staging).toBe(0);
   }, 120_000);
 });
