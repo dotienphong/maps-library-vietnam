@@ -24,7 +24,7 @@ test thuần + DB fixture cô lập, chạy toàn Việt Nam, kiểm invariant, 
 - `pipelines/poi/src/geocode/raw-tables.mjs`: build/swap atomic hai raw tables, cleanup failure.
 - `pipelines/poi/src/geocode/anchors.mjs`: exact graph dedupe, iterative convergence, staging cleanup.
 - `pipelines/poi/tests/alley-name.test.mjs`: 5 pure tests, gồm mẫu OSM toàn quốc phát hiện khi chạy thật.
-- `pipelines/poi/tests/geocode.dbtest.mjs`: 5 DB tests trên đúng `mapslibvn_task8_test`.
+- `pipelines/poi/tests/geocode.dbtest.mjs`: 7 DB tests trên đúng `mapslibvn_task8_test`.
 - `pipelines/poi/README.md`: commands, admin-level truth và exact national counts.
 - `docs/superpowers/plans/2026-08-27-m2-kho-poi-may-chu.md`: Task 8 Step 1–10 checked.
 - `docs/DEVLOG.md`: checkpoint chuyển sang Task 9, decisions, counts, việc tay còn lại.
@@ -41,7 +41,7 @@ test thuần + DB fixture cô lập, chạy toàn Việt Nam, kiểm invariant, 
    - RED tiếp theo phát hiện PostgreSQL target `UPDATE` không được tham chiếu từ `FROM LATERAL`,
      `array_agg(text[])` không subscript như scalar, mapping OSM 2025 level 6, foreign relation,
      log alias đếm input thay vì row thật, và duplicate anchor exact 30 m.
-   - GREEN cuối: 1 file, 5/5 tests, 23.589 s trong full DB suite.
+   - GREEN trước review: 1 file, 5/5 tests, 23.589 s trong full DB suite; sau review là 7/7.
    - Child process dùng `execFile` async/await, timeout 110 s, `AbortController`, cleanup
      `afterEach` + `afterAll`; fail-closed nếu URL pathname không phải `/mapslibvn_task8_test`.
    - Assertions không bị giảm; fixture thêm retired province, legacy ward, đặc khu và foreign-area regressions.
