@@ -132,6 +132,7 @@ vẫn là `sleep 1` phút — `sudo pmset -a sleep 0 disksleep 0`.
 | 2026-08-30 | Hyperdrive tạo bằng `wrangler hyperdrive create`, **không điền port** | Luồng private-database qua Tunnel yêu cầu `omit the port` (tài liệu Cloudflare); tunnel đã tự route tới `postgres:5432` qua published application route. Plan ghi port 5432 — sai | (M2 T1) |
 | 2026-08-30 | Lệnh wrangler cho Hyperdrive phải chạy từ `apps/api`, không từ gốc repo | Wrangler 4 đọc `.env` của thư mục hiện tại; ở gốc repo nó nhặt `CLOUDFLARE_API_TOKEN` (token deploy, không có quyền Hyperdrive) và ghi đè OAuth → `Authentication error [code: 10000]` | (M2 T1) |
 | 2026-08-30 | Access application phải tắt hết identity provider và đặt Session Duration “expires immediately” | Tài liệu Cloudflare nêu, plan bỏ sót; để IdP bật thì Access đòi đăng nhập người dùng thay vì chấp nhận service token và Hyperdrive không qua được cửa | (M2 T1) |
+| 2026-08-30 | Test tầng `apps/api` trỏ binding Hyperdrive vào cổng đóng và chỉ kiểm nhánh lỗi 503 của `/healthz/db` | Bản đầu kiểm happy-path qua `localConnectionString` → xanh trên máy dev nhưng đỏ trên runner Deploy API (không có Postgres), chặn luôn bước `wrangler deploy`. Tầng api phải không cần DB — đó là lý do `dbtest` là workflow riêng. Đường đi thật tới Postgres nghiệm thu bằng `wrangler dev --remote` | (M2 T1) |
 | 2026-08-27 | `apps/docs/tsconfig.json` phải `exclude: ["dist", "public"]` | `astro check` với `include: ["**/*"]` kéo cả `public/sdk/mapslibvn.umd.js` (1 MB) và sourcemap (2,4 MB) vào TypeScript → hết heap 4 GB, exit 137 | (Task M1c T3) |
 | 2026-08-27 | `biome.json` bỏ qua `apps/docs/public/sdk/**` | Thư mục là artefact copy từ bản build web; biome báo vượt giới hạn 1 MiB và lỗi CSS của maplibre | (Task M1c T3) |
 
@@ -374,6 +375,5 @@ rõ ở mục 2 và không chặn M2: kiểm trên Windows, và bật lại `req
   `src/db.ts`, `Env.DB`, route `/healthz/db`, binding `DB` trong `wrangler.toml` (dev +
   production). **Nghiệm thu: `wrangler dev --remote` → `/healthz/db` trả
   `{"ok":true,"user":"api","version":"PostgreSQL 16.4"}`** — Worker → Hyperdrive → Access →
-  Tunnel → máy nội bộ thông suốt. Test mới `healthz-db.test.ts` chạy qua
-  `localConnectionString` tới Postgres dev. lint sạch, typecheck 10/10, **463/463 test**
+  Tunnel → máy nội bộ thông suốt. lint sạch, typecheck 10/10, **463/463 test**
   (450 root + 13 api) · (commit hiện tại)
