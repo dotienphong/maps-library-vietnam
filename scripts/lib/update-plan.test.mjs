@@ -3,62 +3,61 @@ import { decideWork, missingLiveEnv, nextState } from './update-plan.mjs';
 
 const state = {
   osm: { lastModified: 'Mon, 18 Aug 2026 20:00:00 GMT', md5: 'aaa' },
-  releases: { vn: 'vn-20260819', poi: null },
+  overture: { release: '2026-07-23.1' },
+  fsq: { release: '2026-07-08' },
+  releases: { vn: 'vn-20260819', poi: 'poi-20260819' },
 };
-const same = {
-  osm: { lastModified: 'Mon, 18 Aug 2026 20:00:00 GMT', md5: 'aaa' },
-};
-const newer = {
+const same = { osm: state.osm, overture: state.overture, fsq: state.fsq };
+const osmNew = {
+  ...same,
   osm: { lastModified: 'Mon, 25 Aug 2026 20:00:00 GMT', md5: 'bbb' },
 };
+const overtureNew = { ...same, overture: { release: '2026-08-20.0' } };
 
-describe('decideWork', () => {
+describe('decideWork (spec 5.9)', () => {
   it('không có gì mới → không làm gì', () => {
-    expect(decideWork(state, same, {})).toEqual({
-      tiles: false,
-      poi: false,
-      reasons: [],
-    });
+    expect(decideWork(state, same, {})).toEqual({ tiles: false, poi: false, reasons: [] });
   });
 
   it('OSM mới → tiles và poi', () => {
-    expect(decideWork(state, newer, {})).toEqual({
+    expect(decideWork(state, osmNew, {})).toEqual({
       tiles: true,
       poi: true,
       reasons: ['OSM đổi (md5 aaa → bbb)'],
     });
   });
 
-  it('--force → làm tất cả kể cả khi không mới', () => {
+  it('Overture/FSQ mới → chỉ poi', () => {
+    expect(decideWork(state, overtureNew, {})).toEqual({
+      tiles: false,
+      poi: true,
+      reasons: ['Overture đổi (2026-07-23.1 → 2026-08-20.0)'],
+    });
+    expect(decideWork(state, { ...same, fsq: { release: '2026-08-05' } }, {}).tiles).toBe(false);
+  });
+
+  it('--force làm tất cả; --tiles/--poi giới hạn', () => {
     expect(decideWork(state, same, { force: true })).toEqual({
       tiles: true,
       poi: true,
       reasons: ['--force'],
     });
+    expect(decideWork(state, osmNew, { onlyTiles: true }).poi).toBe(false);
+    expect(decideWork(state, osmNew, { onlyPoi: true }).tiles).toBe(false);
   });
 
-  it('--tiles chỉ giữ tiles', () => {
-    expect(decideWork(state, newer, { onlyTiles: true })).toEqual({
-      tiles: true,
-      poi: false,
-      reasons: ['OSM đổi (md5 aaa → bbb)'],
-    });
-  });
-
-  it('state rỗng (lần đầu) → làm tất cả', () => {
-    expect(decideWork({}, same, {})).toEqual({
-      tiles: true,
-      poi: true,
-      reasons: ['OSM đổi (md5 ∅ → aaa)'],
-    });
+  it('state rỗng (lần đầu) → làm tất cả với 3 lý do', () => {
+    expect(decideWork({}, same, {}).reasons).toHaveLength(3);
   });
 });
 
 describe('nextState', () => {
-  it('ghi phiên bản nguồn và tên release mới, giữ poi cũ', () => {
-    expect(nextState(state, newer, { vn: 'vn-20260826' })).toEqual({
-      osm: newer.osm,
-      releases: { vn: 'vn-20260826', poi: null },
+  it('ghi cả 3 nguồn và release mới, giữ release cũ nếu không build', () => {
+    expect(nextState(state, overtureNew, { poi: 'poi-20260826' })).toEqual({
+      osm: state.osm,
+      overture: { release: '2026-08-20.0' },
+      fsq: state.fsq,
+      releases: { vn: 'vn-20260819', poi: 'poi-20260826' },
     });
   });
 });
@@ -68,7 +67,7 @@ describe('missingLiveEnv', () => {
     expect(missingLiveEnv({}, { dryRun: true })).toEqual([]);
   });
 
-  it('live tiles liệt kê đúng credentials còn thiếu', () => {
+  it('live tiles liệt kê đúng credentials còn thiếu, gồm HF_TOKEN', () => {
     expect(
       missingLiveEnv(
         {
@@ -85,6 +84,7 @@ describe('missingLiveEnv', () => {
       'RCLONE_CONFIG_R2_ACCESS_KEY_ID',
       'RCLONE_CONFIG_R2_SECRET_ACCESS_KEY',
       'RCLONE_CONFIG_R2_NO_CHECK_BUCKET',
+      'HF_TOKEN',
     ]);
   });
 });

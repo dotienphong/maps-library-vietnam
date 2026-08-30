@@ -1,23 +1,36 @@
 /**
- * @typedef {{ osm?: { lastModified: string, md5: string }, releases?: { vn: string | null, poi: string | null } }} State
- * @typedef {{ osm: { lastModified: string, md5: string } }} Versions
+ * @typedef {{ osm?: { lastModified: string, md5: string }, overture?: { release: string }, fsq?: { release: string },
+ *   releases?: { vn: string | null, poi: string | null } }} State
+ * @typedef {{ osm: { lastModified: string, md5: string }, overture: { release: string }, fsq: { release: string } }} Versions
  * @typedef {{ force?: boolean, onlyTiles?: boolean, onlyPoi?: boolean }} Flags
  */
 
-/** @param {State} state @param {Versions} versions @param {Flags} flags */
+/**
+ * Spec 5.9 bước 2: OSM đổi → tiles + poi; Overture/FSQ đổi → chỉ poi.
+ * @param {State} state
+ * @param {Versions} versions
+ * @param {Flags} flags
+ */
 export function decideWork(state, versions, flags) {
   const reasons = [];
   const osmChanged = !state.osm || state.osm.md5 !== versions.osm.md5;
+  const overtureChanged = !state.overture || state.overture.release !== versions.overture.release;
+  const fsqChanged = !state.fsq || state.fsq.release !== versions.fsq.release;
   if (osmChanged) {
     reasons.push(`OSM đổi (md5 ${state.osm?.md5 ?? '∅'} → ${versions.osm.md5})`);
+  }
+  if (overtureChanged) {
+    reasons.push(`Overture đổi (${state.overture?.release ?? '∅'} → ${versions.overture.release})`);
+  }
+  if (fsqChanged) {
+    reasons.push(`FSQ đổi (${state.fsq?.release ?? '∅'} → ${versions.fsq.release})`);
   }
   if (flags.force) reasons.push('--force');
 
   let tiles = osmChanged || Boolean(flags.force);
-  let poi = osmChanged || Boolean(flags.force);
+  let poi = osmChanged || overtureChanged || fsqChanged || Boolean(flags.force);
   if (flags.onlyTiles) poi = false;
   if (flags.onlyPoi) tiles = false;
-
   return { tiles, poi, reasons };
 }
 
@@ -29,6 +42,8 @@ export function decideWork(state, versions, flags) {
 export function nextState(state, versions, built) {
   return {
     osm: versions.osm,
+    overture: versions.overture,
+    fsq: versions.fsq,
     releases: {
       vn: built.vn ?? state.releases?.vn ?? null,
       poi: built.poi ?? state.releases?.poi ?? null,
@@ -46,9 +61,11 @@ const LIVE_ENV = [
   'RCLONE_CONFIG_R2_SECRET_ACCESS_KEY',
   'RCLONE_CONFIG_R2_ENDPOINT',
   'RCLONE_CONFIG_R2_NO_CHECK_BUCKET',
+  'HF_TOKEN',
 ];
 
 /**
+ * Preflight: thiếu credential thì dừng trước khi build hàng giờ.
  * @param {Record<string, string | undefined>} env
  * @param {Flags & { dryRun?: boolean }} flags
  */
