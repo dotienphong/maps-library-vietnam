@@ -26,7 +26,8 @@
     "test:db": "vitest run --config vitest.db.config.ts --passWithNoTests",
     "server:setup": "node scripts/server-setup.mjs",
     "server:update": "node scripts/server-update.mjs",
-    "db:restore": "node scripts/db-restore.mjs"
+    "db:restore": "node scripts/db-restore.mjs",
+    "db:fixture": "node scripts/db-fixture.mjs"
   },
   "devDependencies": {
     "@biomejs/biome": "1.9.4",

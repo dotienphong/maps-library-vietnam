@@ -97,5 +97,6 @@ console.log(`
 Tiếp theo:
   pnpm dev          # chạy các app (khi đã có)
   pnpm test         # chạy test
+  pnpm db:fixture   # nạp kho POI Quận 1 (~3 phút, cần image pipeline)
   docs/DEVLOG.md    # xem đang ở đâu, bước kế tiếp là gì
 `);
