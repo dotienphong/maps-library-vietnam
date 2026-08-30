@@ -5,6 +5,36 @@ const OVERTURE_LIST =
 const FSQ_TREE = 'https://huggingface.co/api/datasets/foursquare/fsq-os-places/tree/main/release';
 
 /**
+ * Retry lỗi mạng/5xx tạm thời ở biên nguồn dữ liệu; 4xx trả ngay để caller báo lỗi xác thực rõ ràng.
+ * @param {typeof fetch} fetchFn
+ * @param {string} url
+ * @param {RequestInit} init
+ * @param {number} attempts
+ * @param {(ms: number) => Promise<void>} sleepFn
+ */
+export async function fetchWithRetry(
+  fetchFn,
+  url,
+  init = {},
+  attempts = 3,
+  sleepFn = (ms) => new Promise((resolve) => setTimeout(resolve, ms)),
+) {
+  /** @type {unknown} */
+  let lastError;
+  for (let attempt = 0; attempt < attempts; attempt++) {
+    try {
+      const response = await fetchFn(url, init);
+      if (response.ok || response.status < 500) return response;
+      lastError = new Error(`HTTP ${response.status} từ ${url}`);
+    } catch (error) {
+      lastError = error;
+    }
+    if (attempt < attempts - 1) await sleepFn(1000 * 2 ** attempt);
+  }
+  throw lastError;
+}
+
+/**
  * CommonPrefixes của ListObjectsV2 (delimiter=/), bỏ Prefix gốc.
  * @param {string} xml
  * @param {string} base
@@ -40,19 +70,26 @@ export function latestFsqRelease(entries) {
 export async function detectSources(fetchFn = fetch, hfToken = process.env.HF_TOKEN) {
   if (!hfToken) throw new Error('Thiếu HF_TOKEN để dò phiên bản Foursquare (dataset gated)');
 
-  const [head, md5Text, overtureXml, fsqTree] = await Promise.all([
-    fetchFn(GEOFABRIK_PBF, { method: 'HEAD' }),
-    fetchFn(`${GEOFABRIK_PBF}.md5`).then((response) => response.text()),
-    fetchFn(OVERTURE_LIST).then((response) => response.text()),
-    fetchFn(FSQ_TREE, { headers: { Authorization: `Bearer ${hfToken}` } }).then((response) => {
-      if (!response.ok) {
-        throw new Error(
-          `HF tree API: HTTP ${response.status} — token hết hạn hoặc chưa chấp nhận điều khoản dataset`,
-        );
-      }
-      return response.json();
-    }),
+  const [head, md5Response, overtureResponse, fsqTree] = await Promise.all([
+    fetchWithRetry(fetchFn, GEOFABRIK_PBF, { method: 'HEAD' }),
+    fetchWithRetry(fetchFn, `${GEOFABRIK_PBF}.md5`),
+    fetchWithRetry(fetchFn, OVERTURE_LIST),
+    fetchWithRetry(fetchFn, FSQ_TREE, { headers: { Authorization: `Bearer ${hfToken}` } }).then(
+      (response) => {
+        if (!response.ok) {
+          throw new Error(
+            `HF tree API: HTTP ${response.status} — token hết hạn hoặc chưa chấp nhận điều khoản dataset`,
+          );
+        }
+        return response.json();
+      },
+    ),
   ]);
+  if (!head.ok) throw new Error(`HEAD Geofabrik: HTTP ${head.status}`);
+  if (!md5Response.ok) throw new Error(`MD5 Geofabrik: HTTP ${md5Response.status}`);
+  if (!overtureResponse.ok) throw new Error(`Overture listing: HTTP ${overtureResponse.status}`);
+  const md5Text = await md5Response.text();
+  const overtureXml = await overtureResponse.text();
   const overture = latestOvertureRelease(parseS3Prefixes(overtureXml, 'release/'));
   const fsq = latestFsqRelease(/** @type {{ path: string, type: string }[]} */ (fsqTree));
   if (!overture || !fsq) {

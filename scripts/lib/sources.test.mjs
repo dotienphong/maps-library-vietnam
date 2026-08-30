@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import {
   detectSources,
+  fetchWithRetry,
   latestFsqRelease,
   latestOvertureRelease,
   parseS3Prefixes,
@@ -42,7 +43,7 @@ describe('parseS3Prefixes / latest*', () => {
 
 describe('detectSources', () => {
   it('gộp Geofabrik HEAD + md5 + 2 listing S3', async () => {
-    const fetchFn = vi.fn(async (url) => {
+    const fetchFn = vi.fn(async (url, _init) => {
       const value = String(url);
       if (value.endsWith('.md5')) return new Response('abc123  vietnam-latest.osm.pbf\n');
       if (value.includes('geofabrik')) {
@@ -66,5 +67,21 @@ describe('detectSources', () => {
           init?.headers?.Authorization === 'Bearer hf_test',
       ),
     ).toBe(true);
+  });
+});
+
+describe('fetchWithRetry', () => {
+  it('thử lại lỗi mạng tạm thời rồi trả response thành công', async () => {
+    const fetchFn = vi
+      .fn()
+      .mockRejectedValueOnce(new TypeError('fetch failed'))
+      .mockResolvedValueOnce(new Response('ok'));
+    const sleepFn = vi.fn(async () => {});
+
+    const response = await fetchWithRetry(fetchFn, 'https://example.test', {}, 3, sleepFn);
+
+    expect(await response.text()).toBe('ok');
+    expect(fetchFn).toHaveBeenCalledTimes(2);
+    expect(sleepFn).toHaveBeenCalledWith(1000);
   });
 });

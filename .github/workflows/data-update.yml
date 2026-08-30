@@ -13,7 +13,7 @@ on:
 jobs:
   update:
     runs-on: ubuntu-latest
-    timeout-minutes: 180
+    timeout-minutes: 300
     container:
       image: ghcr.io/dotienphong/mapslibvn-pipeline:latest
       credentials:
@@ -35,6 +35,14 @@ jobs:
       RCLONE_CONFIG_R2_ACCESS_KEY_ID: ${{ secrets.RCLONE_CONFIG_R2_ACCESS_KEY_ID }}
       RCLONE_CONFIG_R2_SECRET_ACCESS_KEY: ${{ secrets.RCLONE_CONFIG_R2_SECRET_ACCESS_KEY }}
       RCLONE_CONFIG_R2_ENDPOINT: ${{ secrets.RCLONE_CONFIG_R2_ENDPOINT }}
+      RCLONE_CONFIG_R2_NO_CHECK_BUCKET: "true"
+      HF_TOKEN: ${{ secrets.HF_TOKEN }}
+      DB_TUNNEL_HOSTNAME: ${{ secrets.DB_TUNNEL_HOSTNAME }}
+      CF_ACCESS_CLIENT_ID: ${{ secrets.CF_ACCESS_CLIENT_ID }}
+      CF_ACCESS_CLIENT_SECRET: ${{ secrets.CF_ACCESS_CLIENT_SECRET }}
+      PIPELINE_DATABASE_URL: ${{ secrets.PIPELINE_DATABASE_URL }}
+      OVERTURE_RELEASE: ""
+      FSQ_RELEASE: ""
     steps:
       - name: data:update
         working-directory: /app
