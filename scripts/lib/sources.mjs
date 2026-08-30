@@ -70,8 +70,7 @@ export function latestFsqRelease(entries) {
 export async function detectSources(fetchFn = fetch, hfToken = process.env.HF_TOKEN) {
   if (!hfToken) throw new Error('Thiếu HF_TOKEN để dò phiên bản Foursquare (dataset gated)');
 
-  const [head, md5Response, overtureResponse, fsqTree] = await Promise.all([
-    fetchWithRetry(fetchFn, GEOFABRIK_PBF, { method: 'HEAD' }),
+  const [md5Response, overtureResponse, fsqTree] = await Promise.all([
     fetchWithRetry(fetchFn, `${GEOFABRIK_PBF}.md5`),
     fetchWithRetry(fetchFn, OVERTURE_LIST),
     fetchWithRetry(fetchFn, FSQ_TREE, { headers: { Authorization: `Bearer ${hfToken}` } }).then(
@@ -85,7 +84,6 @@ export async function detectSources(fetchFn = fetch, hfToken = process.env.HF_TO
       },
     ),
   ]);
-  if (!head.ok) throw new Error(`HEAD Geofabrik: HTTP ${head.status}`);
   if (!md5Response.ok) throw new Error(`MD5 Geofabrik: HTTP ${md5Response.status}`);
   if (!overtureResponse.ok) throw new Error(`Overture listing: HTTP ${overtureResponse.status}`);
   const md5Text = await md5Response.text();
@@ -98,7 +96,8 @@ export async function detectSources(fetchFn = fetch, hfToken = process.env.HF_TO
 
   return {
     osm: {
-      lastModified: head.headers.get('last-modified') ?? '',
+      lastModified:
+        md5Response.headers.get('last-modified') ?? md5Response.headers.get('x-derived-from') ?? '',
       md5: md5Text.split(/\s+/)[0] ?? '',
     },
     overture: { release: overture },

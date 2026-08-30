@@ -42,14 +42,16 @@ describe('parseS3Prefixes / latest*', () => {
 });
 
 describe('detectSources', () => {
-  it('gộp Geofabrik HEAD + md5 + 2 listing S3', async () => {
+  it('gộp metadata MD5 Geofabrik + Overture S3 + FSQ Hugging Face, không phụ thuộc HEAD PBF', async () => {
     const fetchFn = vi.fn(async (url, _init) => {
       const value = String(url);
-      if (value.endsWith('.md5')) return new Response('abc123  vietnam-latest.osm.pbf\n');
-      if (value.includes('geofabrik')) {
-        return new Response(null, {
+      if (value.endsWith('.md5')) {
+        return new Response('abc123  vietnam-latest.osm.pbf\n', {
           headers: { 'last-modified': 'Mon, 24 Aug 2026 20:00:00 GMT' },
         });
+      }
+      if (value.includes('geofabrik')) {
+        return new Response('proxy mismatch', { status: 502 });
       }
       if (value.includes('overturemaps')) return new Response(XML);
       return new Response(JSON.stringify([{ path: 'release/dt=2026-08-11', type: 'directory' }]));
