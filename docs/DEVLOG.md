@@ -8,7 +8,7 @@ commit với code).
 - Mốc: M2 — Kho POI + máy chủ nội bộ
 - Plan: `docs/superpowers/plans/2026-08-27-m2-kho-poi-may-chu.md` (11 task, 6.535 dòng sau review lần 3)
 - Task đang làm: Task 10 — `data:update` đầy đủ + `db:restore` + nghiệm thu M2 (thứ tự thực thi: 0 → 2 → 3 → 4 → 5 → 6 → 7 → 8 → 9 → 1 → 10)
-- Commit cuối: M2 T1 (commit hiện tại)
+- Commit cuối: M2 T1 hoàn tất (commit hiện tại)
 - Môi trường đã dựng: máy dev macOS; remote GitHub cá nhân; Postgres/PostGIS dev,
   migration `0001_extensions.sql`; `pnpm run setup` sạch đạt 6,51 giây; image
   pipeline local đã build/smoke trên arm64 và chạy được qua Compose; Dev Container
@@ -20,41 +20,28 @@ commit với code).
   trên macOS arm64; Worker `mapslibvn-api-production.dotienphong1993.workers.dev`
   và docs `mapslibvn-docs.pages.dev` đã chạy production; repo GitHub chuyển **private**
   với 8 secret Actions; **M1 (M1a+M1b+M1c) đã nghiệm thu 27/08/2026**;
-  **máy chủ nội bộ (compose `mapslibvn-server`) đã chạy trên chính máy dev (G3 — máy chủ tạm)**:
-  `postgres` PostGIS TLS bắt buộc (không mở `ports:`), `backup` daemon 03:00 VN → R2,
-  `pipeline` cron thứ Hai 02:00 VN; **`cloudflared` CHƯA chạy** (`TUNNEL_TOKEN` còn trống)
-  nên Tunnel `maps-db.<domain>` / Access / Hyperdrive `mapslibvn-db` **chưa có** —
-  Worker `/healthz/db` vì thế cũng chưa làm (Task 1 Step 10);
+  **máy chủ nội bộ (compose `mapslibvn-server`) đã chạy đủ 4 dịch vụ trên chính máy dev
+  (G3 — máy chủ tạm)**: `postgres` PostGIS TLS bắt buộc (không mở `ports:`), `cloudflared`
+  (tunnel `mapslibvn-db`, 4 kết nối edge Singapore), `backup` daemon 03:00 VN → R2,
+  `pipeline` cron thứ Hai 02:00 VN; Tunnel `maps-db.ai-solutions.io.vn` + Access application
+  `mapslibvn-db` (policy Service Auth, token `hyperdrive`) + Hyperdrive
+  `71d7a62b89e9462e91bb0094af1f750f` đã hoạt động — Worker `/healthz/db` qua
+  `wrangler dev --remote` trả `{"ok":true,"user":"api","version":"PostgreSQL 16.4"}`;
   **PENDING Windows** (chờ PHONG có máy để kiểm)
 
 ## 2. Bước kế tiếp
 
 M2 Task 10 — `pnpm data:update` đầy đủ 3 nguồn + nhánh `--poi`, `pnpm db:restore`
-và nghiệm thu M2. **Chặn trước:** phần Cloudflare của Task 1 (Step 9 + Step 10) cần PHONG
-làm tay — xem ngay dưới.
+và nghiệm thu M2. Task 1 đã đóng hoàn toàn; không còn gì chặn.
 
 **Lưu ý vận hành máy dev:** đĩa đã đầy 97 % ngày 27/08 (`~/.cache/uv` 124 GB + JSONL Overture không nén);
 đã dọn còn 44 GiB trống. Trước các bước nặng (Task 7 gộp, Task 10 `data:update`), kiểm `df -h /`.
 
-**Việc tay PHONG còn lại của Task 1 (chặn Step 9 + Step 10):**
-1. **Tắt ngủ máy dev** — nó đang là máy chủ 24/7 (`caffeinate -s`, hoặc System Settings →
-   Displays → Advanced → Prevent automatic sleeping). Chưa làm → backup/cron sẽ ngủ theo máy.
-2. Tunnel `mapslibvn-db` → dán `TUNNEL_TOKEN` vào `infra/server/.env` → chạy lại
-   `PIPELINE_IMAGE=mapslibvn/pipeline:local pnpm server:setup` để bật `cloudflared`;
-   Public Hostname `maps-db.<domain>` → `tcp://postgres:5432`.
-3. Service Token `hyperdrive` + Access application `mapslibvn-db`.
-4. Hyperdrive `mapslibvn-db` (user `api`, password = `API_PASSWORD` trong `infra/server/.env`).
-5. Token Cloudflare riêng `mapslibvn-pipeline` (Workers KV Edit + Workers R2 Edit) →
-   `CLOUDFLARE_API_TOKEN` + `KV_NAMESPACE_ID_META` + `CLOUDFLARE_ACCOUNT_ID` trong
-   `infra/server/.env` (hiện để trống có chủ đích; chỉ khoá `RCLONE_CONFIG_R2_*` đã điền
-   để backup chạy được).
-6. Điền `DB_TUNNEL_HOSTNAME` / `CF_ACCESS_CLIENT_ID` / `CF_ACCESS_CLIENT_SECRET` /
-   `PIPELINE_DATABASE_URL` vào `.env` máy dev (khoá đã có sẵn, còn trống).
-
-Có Hyperdrive ID thật rồi mới làm **Task 1 Step 10** (`apps/api`: `postgres` dependency,
-`db.ts`, `Env.DB`, route `/healthz/db`, `wrangler.toml`). Cố tình chưa làm: `deploy-api.yml`
-tự deploy production mỗi push chạm `apps/api/**`, commit `wrangler.toml` với ID giả sẽ làm
-mọi lần Deploy API đỏ (cảnh báo ngay trong plan Task 1 Step 10).
+**Việc tay PHONG còn lại trước Task 10 (không chặn Task 1):** tạo token Cloudflare riêng
+`mapslibvn-pipeline` (Workers KV Edit + Workers R2 Edit) → `CLOUDFLARE_API_TOKEN` trong
+`infra/server/.env` (đang trống có chủ đích; không dùng token deploy cho máy chạy 24/7).
+Ngoài ra nên chốt hẳn việc không ngủ máy: `caffeinate` đang giữ máy thức nhưng cài đặt gốc
+vẫn là `sleep 1` phút — `sudo pmset -a sleep 0 disksleep 0`.
 
 **Việc tay còn lại của M2 Task 8:** biên soạn bảng alias phường/xã trước→sau sắp xếp
 2025 từ các nghị quyết UBTVQH; bổ sung relation level 4 Khánh Hòa vào nguồn OSM/override
@@ -142,6 +129,9 @@ mọi lần Deploy API đỏ (cảnh báo ngay trong plan Task 1 Step 10).
 | 2026-08-29 | `.dockerignore` thêm `**/.env` (trước chỉ có `.env` ở gốc) | Pattern gốc chỉ khớp `/.env`; `infra/server/.env` chứa mật khẩu superuser/api/pipeline sẽ bị nướng vào layer image ở mọi lần `pnpm image:build` chạy sau `server:setup` | (M2 T1) |
 | 2026-08-29 | Lệnh restore-smoke dựng URL từ `POSTGRES_*` của container thay vì `$DATABASE_URL` | Container `backup` không export `DATABASE_URL` (backup.mjs tự dựng qua `databaseUrlFromEnv`); lệnh trong plan rơi về socket và báo `.s.PGSQL.5432: No such file or directory`. Recipe đúng đã ghi vào `infra/server/README.md` để Task 10 `db-restore.mjs` dùng lại | (M2 T1) |
 | 2026-08-29 | `server-setup.mjs` gán `pipelineImage` có giá trị mặc định thay vì dùng thẳng `env.PIPELINE_IMAGE` | `parseEnv` trả `Record<string, string>` nhưng tsconfig bật `noUncheckedIndexedAccess` → `string \| undefined`, `pnpm typecheck` đỏ ở `spawnSync` | (M2 T1) |
+| 2026-08-30 | Hyperdrive tạo bằng `wrangler hyperdrive create`, **không điền port** | Luồng private-database qua Tunnel yêu cầu `omit the port` (tài liệu Cloudflare); tunnel đã tự route tới `postgres:5432` qua published application route. Plan ghi port 5432 — sai | (M2 T1) |
+| 2026-08-30 | Lệnh wrangler cho Hyperdrive phải chạy từ `apps/api`, không từ gốc repo | Wrangler 4 đọc `.env` của thư mục hiện tại; ở gốc repo nó nhặt `CLOUDFLARE_API_TOKEN` (token deploy, không có quyền Hyperdrive) và ghi đè OAuth → `Authentication error [code: 10000]` | (M2 T1) |
+| 2026-08-30 | Access application phải tắt hết identity provider và đặt Session Duration “expires immediately” | Tài liệu Cloudflare nêu, plan bỏ sót; để IdP bật thì Access đòi đăng nhập người dùng thay vì chấp nhận service token và Hyperdrive không qua được cửa | (M2 T1) |
 | 2026-08-27 | `apps/docs/tsconfig.json` phải `exclude: ["dist", "public"]` | `astro check` với `include: ["**/*"]` kéo cả `public/sdk/mapslibvn.umd.js` (1 MB) và sourcemap (2,4 MB) vào TypeScript → hết heap 4 GB, exit 137 | (Task M1c T3) |
 | 2026-08-27 | `biome.json` bỏ qua `apps/docs/public/sdk/**` | Thư mục là artefact copy từ bản build web; biome báo vượt giới hạn 1 MiB và lỗi CSS của maplibre | (Task M1c T3) |
 
@@ -375,4 +365,15 @@ rõ ở mục 2 và không chặn M2: kiểm trên Windows, và bật lại `req
   repo. Log daemon đúng lịch: backup `2026-08-29T20:00:00Z` (03:00 VN), cron
   `2026-08-30T19:00:00Z` (thứ Hai 02:00 VN). Image rebuild có `backup.mjs`/`cron.mjs`, không
   chứa `infra/server/.env`. lint sạch, typecheck 10/10, **462/462 test** (450 root + 12 api) ·
-  (commit hiện tại)
+  `7af8c31`
+- 2026-08-30 · M2 T1 Step 9–11 · **Task 1 ĐÓNG.** Tunnel `mapslibvn-db` HEALTHY (4 kết nối
+  quic tới sin21/sin18/sin14). Kiểm hai chiều từ máy dev qua `cloudflared access tcp`: có
+  service token → `current_user = api`, `ssl = t`; bỏ service token → Access đóng kết nối.
+  Hyperdrive `71d7a62b89e9462e91bb0094af1f750f` tạo bằng `wrangler hyperdrive create`
+  (host `maps-db.ai-solutions.io.vn`, user `api`, **không port**). Worker: `postgres@3.4.5`,
+  `src/db.ts`, `Env.DB`, route `/healthz/db`, binding `DB` trong `wrangler.toml` (dev +
+  production). **Nghiệm thu: `wrangler dev --remote` → `/healthz/db` trả
+  `{"ok":true,"user":"api","version":"PostgreSQL 16.4"}`** — Worker → Hyperdrive → Access →
+  Tunnel → máy nội bộ thông suốt. Test mới `healthz-db.test.ts` chạy qua
+  `localConnectionString` tới Postgres dev. lint sạch, typecheck 10/10, **463/463 test**
+  (450 root + 13 api) · (commit hiện tại)

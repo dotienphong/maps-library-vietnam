@@ -15,7 +15,8 @@
     "@mapslibvn/core": "workspace:*",
     "@mapslibvn/style": "workspace:*",
     "hono": "^4.6.0",
-    "pmtiles": "^4.3.0"
+    "pmtiles": "^4.3.0",
+    "postgres": "^3.4.5"
   },
   "devDependencies": {
     "@cloudflare/vitest-pool-workers": "^0.6.0",

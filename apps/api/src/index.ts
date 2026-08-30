@@ -1,6 +1,7 @@
 import { ATTRIBUTION_LINKS, attributionHtml, attributionText } from '@mapslibvn/core';
 import { Hono } from 'hono';
 import { cors } from 'hono/cors';
+import { getSql } from './db';
 import type { Env } from './env';
 import { ApiError, errorResponse } from './errors';
 import { r2 } from './routes/r2';
@@ -20,6 +21,24 @@ app.onError((err, c) => errorResponse(c, err));
 app.notFound((c) => errorResponse(c, new ApiError(404, 'not_found', 'Không có route này')));
 
 app.get('/healthz', (c) => c.json({ ok: true, environment: c.env.ENVIRONMENT }));
+app.get('/healthz/db', async (c) => {
+  const sql = getSql(c.env);
+  try {
+    const [row] = await sql<
+      { ok: number; user: string; version: string }[]
+    >`SELECT 1 AS ok, current_user AS "user", version() AS version`;
+    return c.json({
+      ok: row?.ok === 1,
+      user: row?.user,
+      version: row?.version.split(' ').slice(0, 2).join(' '),
+    });
+  } catch (err) {
+    console.error('healthz/db', err);
+    throw new ApiError(503, 'upstream_unavailable', 'Không nối được DB');
+  } finally {
+    c.executionCtx.waitUntil(sql.end({ timeout: 1 }));
+  }
+});
 app.get('/v1/attribution', (c) =>
   c.json({ text: attributionText(), html: attributionHtml(), links: ATTRIBUTION_LINKS }, 200, {
     'cache-control': 'public, max-age=86400',

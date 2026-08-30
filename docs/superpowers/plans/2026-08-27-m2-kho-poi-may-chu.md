@@ -969,7 +969,7 @@ $C exec -T postgres psql -U mapslibvn -d postgres -c "DROP DATABASE restore_smok
 ```
 Expected: dòng cuối trả số migration đã áp dụng (= số file trong `db/migrations` lúc đó). Nếu pg_restore lỗi thật (không phải cảnh báo extension): sửa `backup.mjs` (ví dụ thêm `--exclude-table-data=spatial_ref_sys`) **trước khi** đi tiếp — Task 10 `db-restore.mjs` dùng đúng cách phục hồi vào DB mới này.
 
-- [ ] **Step 9: Việc tay Cloudflare + kiểm psql qua Tunnel**
+- [x] **Step 9: Việc tay Cloudflare + kiểm psql qua Tunnel**
 
 PHONG làm mục 1–4 trong README. Thêm vào `.env` máy dev (và `.env.example` với giá trị trống):
 ```
@@ -984,7 +984,7 @@ PIPELINE_DATABASE_URL=
 Run lệnh "TLS bắt buộc từ ngoài" trong README.
 Expected: `api | t`.
 
-- [ ] **Step 10: Worker `/healthz/db` qua Hyperdrive**
+- [x] **Step 10: Worker `/healthz/db` qua Hyperdrive**
 
 > **Trình tự bắt buộc:** `deploy-api.yml` tự deploy production mỗi push chạm `apps/api/**`. Nếu commit `wrangler.toml` với `id = "DIEN_HYPERDRIVE_ID"` trước khi PHONG tạo Hyperdrive, **mọi lần Deploy API sẽ đỏ**. Làm Step 9 (PHONG tạo Tunnel/Access/Hyperdrive, có ID thật) xong mới sửa `wrangler.toml`, kiểm local, rồi commit một lần cùng Step 11.
 
@@ -1050,7 +1050,7 @@ Expected: `{"ok":true,"user":"api","version":"PostgreSQL 16.x"}` — **nghiệm 
 Run: `cd apps/api && pnpm exec wrangler deploy --env production && curl -s https://mapslibvn-api-production.<account>.workers.dev/healthz/db`
 Expected: cùng kết quả.
 
-- [ ] **Step 11: Lint, typecheck, DEVLOG, commit**
+- [x] **Step 11: Lint, typecheck, DEVLOG, commit**
 
 Run: `pnpm lint && pnpm typecheck && pnpm test`
 Expected: xanh.
