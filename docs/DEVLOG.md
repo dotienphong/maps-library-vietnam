@@ -6,11 +6,14 @@ commit với code).
 ## 1. Trạng thái hiện tại
 
 - Mốc: M3 — Places API
-- Plan: (viết plan cấp bước bằng skill `writing-plans` theo roadmap mục 4 — chưa có file)
-- Task đang làm: viết plan M3
+- Plan: `docs/superpowers/plans/2026-08-31-m3-places-api.md` — **12 task, 82 step** (viết 31/08,
+  đã review kỹ 1 lượt và sửa 9 lỗi: 4 lỗi typecheck do `exactOptionalPropertyTypes` +
+  `noUncheckedIndexedAccess`, 3 lỗi CI, 2 lỗi kiểu runtime của porsager)
+- Task đang làm: **Task 1 ĐÃ XONG** → việc kế tiếp là **Task 2 (middleware auth `X-Api-Key`)**
 - Mốc trước: **M2 — Kho POI + máy chủ nội bộ đã nghiệm thu 31/08/2026**, 11/11 task; plan
   `docs/superpowers/plans/2026-08-27-m2-kho-poi-may-chu.md` đã tick trọn, kết quả ở mục 7
-- Commit cuối: M2 T10 + 3 bản sửa CI, merge vào `main` tới `30f0274`; CI `test` + `image` + `dbtest` đều xanh
+- Commit cuối: M3 Task 1 (`feat(db): seed tenant nội bộ…`) fast-forward vào `main`; trước đó
+  M2 T10 + 3 bản sửa CI tới `30f0274`; CI `test` + `image` + `dbtest` đều xanh
 - Môi trường đã dựng: máy dev macOS; remote GitHub cá nhân; Postgres/PostGIS dev,
   migration `0001_extensions.sql`; `pnpm run setup` sạch đạt 6,51 giây; image
   pipeline local đã build/smoke trên arm64 và chạy được qua Compose; Dev Container
@@ -34,12 +37,22 @@ commit với code).
 
 ## 2. Bước kế tiếp
 
-Viết `docs/superpowers/plans/2026-08-31-m3-places-api.md` từ roadmap mục 4 — 7 task: auth
-`X-Api-Key` → DB client qua Hyperdrive → autocomplete (trigram + `unaccent`, công thức 6.2) →
-search/nearby/details → geocode/reverse (thang 5 mức 6.3) → core + UI (`createClient`,
-`<mapslibvn-autocomplete>`, React) → quota + đo lường. Hai fixture bắt buộc phải xanh:
-**"Trường Tiểu học Hoàng Diệu"** (autocomplete) và **"88/9 Nguyễn Lâm"** (geocode
-`interpolated`, ≤ 60 m).
+**BẮT ĐẦU TỪ ĐÂY: M3 Task 2 — middleware auth `X-Api-Key`** trong
+`docs/superpowers/plans/2026-08-31-m3-places-api.md`. Tạo `apps/api/src/auth.ts` (+ `AppEnv`
+trong `env.ts`, test `apps/api/test/auth-origin.test.ts`) theo plan; dữ liệu khoá để tra đã có
+sẵn trong DB dev nhờ Task 1. Thứ tự còn lại của plan: 2 → 3 → 4 → 8 (Step 1–4) → 5 → 6 → 7 →
+8 (Step 5–6) → 9 → 10 → 11 → 12 (Task 5/6 import kiểu `Place`/`GeocodeItem` do Task 8 tạo).
+Hai fixture bắt buộc phải xanh: **"Trường Tiểu học Hoàng Diệu"** (autocomplete) và
+**"88/9 Nguyễn Lâm"** (geocode `interpolated`, ≤ 60 m); p95 autocomplete < 300 ms từ VN.
+
+**M3 Task 1 xong 31/08/2026** — `db/seed/tenant_internal.sql` + `scripts/db-seed-tenant.mjs` +
+script gốc `pnpm db:seed-tenant`. Chạy 2 lần đều `api_key active: 2` (idempotent qua
+`ON CONFLICT DO NOTHING`). DB dev hiện có 2 khoá tenant `internal`:
+`mlv_live_demo00000000000000000000` (kind `web`, 4 origin: `http://localhost`,
+`http://127.0.0.1`, `https://mapslibvn-docs.pages.dev`, `https://*.mapslibvn-docs.pages.dev`)
+và `mlv_live_server000000000000000000` (kind `server`, không kiểm origin — dùng cho curl/test).
+Cả hai `scopes={places:read}`, `active=t`, `revoked_at=NULL`. **Chưa seed lên DB máy chủ**
+(cần mở tunnel `cloudflared access tcp` rồi chạy với `DATABASE_URL` qua tunnel — làm ở Task 12).
 
 **Đã xong 31/08:** 5 Actions secret cho workflow `Data update` (`HF_TOKEN`,
 `DB_TUNNEL_HOSTNAME`, `CF_ACCESS_CLIENT_ID`, `CF_ACCESS_CLIENT_SECRET`,

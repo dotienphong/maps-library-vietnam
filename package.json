@@ -18,6 +18,7 @@
     "db:up": "docker compose --env-file .env -f infra/dev/compose.yml up -d postgres",
     "db:down": "docker compose --env-file .env -f infra/dev/compose.yml down",
     "db:migrate": "node scripts/db-migrate.mjs",
+    "db:seed-tenant": "node scripts/db-seed-tenant.mjs",
     "image:build": "node scripts/image.mjs build",
     "image:smoke": "node scripts/image.mjs smoke",
     "data:update": "node scripts/data-update.mjs",
