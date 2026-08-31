@@ -5,10 +5,12 @@ commit với code).
 
 ## 1. Trạng thái hiện tại
 
-- Mốc: M2 — Kho POI + máy chủ nội bộ
-- Plan: `docs/superpowers/plans/2026-08-27-m2-kho-poi-may-chu.md` (11 task, 6.535 dòng sau review lần 3)
-- Task đang làm: Task 10 — `data:update` đầy đủ + `db:restore` + nghiệm thu M2 (thứ tự thực thi: 0 → 2 → 3 → 4 → 5 → 6 → 7 → 8 → 9 → 1 → 10)
-- Commit cuối: M2 T10 implementation + live acceptance (nhánh `feature/m2-task10`)
+- Mốc: M3 — Places API
+- Plan: (viết plan cấp bước bằng skill `writing-plans` theo roadmap mục 4 — chưa có file)
+- Task đang làm: viết plan M3
+- Mốc trước: **M2 — Kho POI + máy chủ nội bộ đã nghiệm thu 31/08/2026**, 11/11 task; plan
+  `docs/superpowers/plans/2026-08-27-m2-kho-poi-may-chu.md` đã tick trọn, kết quả ở mục 7
+- Commit cuối: M2 T10 + 3 bản sửa CI, merge vào `main` tới `30f0274`; CI `test` + `image` + `dbtest` đều xanh
 - Môi trường đã dựng: máy dev macOS; remote GitHub cá nhân; Postgres/PostGIS dev,
   migration `0001_extensions.sql`; `pnpm run setup` sạch đạt 6,51 giây; image
   pipeline local đã build/smoke trên arm64 và chạy được qua Compose; Dev Container
@@ -32,9 +34,18 @@ commit với code).
 
 ## 2. Bước kế tiếp
 
-Chốt M2 Task 10: code/live/local acceptance đã xong. Còn thêm 5 Actions secret và
-xác nhận CI `test` + `dbtest` + `image` sau push; GitHub CLI trên máy hiện có token hết hạn,
-cần `gh auth login -h github.com` bằng tài khoản `dotienphong` trước khi đóng Step 7–8.
+Viết `docs/superpowers/plans/2026-08-31-m3-places-api.md` từ roadmap mục 4 — 7 task: auth
+`X-Api-Key` → DB client qua Hyperdrive → autocomplete (trigram + `unaccent`, công thức 6.2) →
+search/nearby/details → geocode/reverse (thang 5 mức 6.3) → core + UI (`createClient`,
+`<mapslibvn-autocomplete>`, React) → quota + đo lường. Hai fixture bắt buộc phải xanh:
+**"Trường Tiểu học Hoàng Diệu"** (autocomplete) và **"88/9 Nguyễn Lâm"** (geocode
+`interpolated`, ≤ 60 m).
+
+**Việc tay của PHONG (không chặn M3):** thêm 5 Actions secret còn thiếu để workflow
+`Data update` chạy được từ GitHub — `HF_TOKEN`, `DB_TUNNEL_HOSTNAME`, `CF_ACCESS_CLIENT_ID`,
+`CF_ACCESS_CLIENT_SECRET`, `PIPELINE_DATABASE_URL` (repo hiện có 8 secret; giá trị đã có
+trong `.env` ở gốc repo). Cron trên máy nội bộ vẫn chạy thứ Hai 02:00 VN nên đây chỉ là
+đường chạy dự phòng.
 
 **Lưu ý vận hành máy dev:** đĩa đã đầy 97 % ngày 27/08 (`~/.cache/uv` 124 GB + JSONL Overture không nén);
 đã dọn còn 44 GiB trống. Trước các bước nặng (Task 7 gộp, Task 10 `data:update`), kiểm `df -h /`.
@@ -218,6 +229,15 @@ vẫn là `sleep 1` phút — `sudo pmset -a sleep 0 disksleep 0`.
   TILES R2, TILES_BASE, ENVIRONMENT=production) · (commit hiện tại)
 - 2026-08-27 · M1c T3 S4 · Pages project `mapslibvn-docs` tạo + deploy 32 file:
   `https://mapslibvn-docs.pages.dev` · (commit hiện tại)
+- 2026-08-31 · **M2 nghiệm thu ĐẠT** (bảng chi tiết ở mục 7) · `30f0274`: 1.515.983 POI
+  `active` / tổng 1.522.416; `poi-20260830.pmtiles` 244,6 MiB đã vào manifest production,
+  click POI trên playground hiện tên/loại/nhóm; `/healthz/db` trả `{"ok":true,"user":"api"}`
+  qua Hyperdrive → Access → Tunnel → Postgres TLS trên máy nội bộ; `pnpm db:restore --latest`
+  phục hồi từ R2 đạt (1.522.416 POI, owner/grant đúng); báo cáo gộp 3,3 % đa nguồn,
+  19,6 % combined other, 923.567 anchor, "Nguyễn Lâm" 174. Remote CI xanh cả 3 job:
+  `test` + `image` https://github.com/dotienphong/maps-library-vietnam/actions/runs/33358342667
+  và `dbtest` 24 phút 37 giây
+  https://github.com/dotienphong/maps-library-vietnam/actions/runs/33358342671
 
 ## 5. Sự cố
 
@@ -389,10 +409,12 @@ rõ ở mục 2 và không chặn M2: kiểm trên Windows, và bật lại `req
   Restore backup mới nhất trả đúng 1.522.416 POI và owner/grant; DB test **32/32** trong
   595 giây; unit/API **480/480**, E2E docs **2/2**,
   lint/typecheck/build/image smoke sạch. Production playground z14 render 653 POI và click
-  thật hiện `Museum of Ho Chi Minh City · museum (culture_tourism)`. Còn remote CI + 5
-  Actions secrets chờ đăng nhập lại GitHub CLI · (nhánh `feature/m2-task10`)
+  thật hiện `Museum of Ho Chi Minh City · museum (culture_tourism)`. Sau merge vào `main`,
+  remote CI cần 3 bản sửa (build `@mapslibvn/style` trước fixture QA, giữ pending work khi
+  chạy partial, nới `DBTEST_CHILD_TIMEOUT_MS` 840 giây + `timeout-minutes: 45`) rồi xanh cả
+  3 job trên `30f0274`. Còn 5 Actions secret là việc tay của PHONG (mục 2) · `30f0274`
 
-## 7. Nghiệm thu M2 (đang chờ remote CI)
+## 7. Nghiệm thu M2 (spec mục 13, hàng M2) — **ĐẠT 31/08/2026**
 
 | # | Hạng mục | Kết quả |
 |---|---|---|
@@ -402,5 +424,5 @@ rõ ở mục 2 và không chặn M2: kiểm trên Windows, và bật lại `req
 | 4 | PMTiles/playground/click POI | **ĐẠT:** 244,623 MiB; z14 có 653 feature; click hiện tên/loại/nhóm |
 | 5 | Báo cáo gộp/geocode | **ĐẠT:** multi-source 50.868 (3,3 %), combined other 297.823 (19,6 %), 923.567 anchor, Nguyễn Lâm 174 |
 | 6 | Backup/restore | **ĐẠT:** restore mới nhất vào DB tạm rồi rename; 1.522.416 POI; owner/grant đúng |
-| 7 | Test/CI | Local **ĐẠT:** lint, typecheck, build, 480 unit/API, 32 DB, 2 E2E, image smoke. Remote CI **PENDING** do GitHub CLI hết hạn đăng nhập |
-| 8 | Việc tay còn lại | Alias phường/xã 2025 + relation Khánh Hòa; Windows setup; QA Hoàng Sa; đăng nhập GitHub để thêm 5 Actions secret và xác nhận CI. Production còn warning glyph Unicode hiếm (MapLibre fallback vẫn render) |
+| 7 | Test/CI | **ĐẠT:** local lint, typecheck, build, 480 unit/API, 32 DB, 2 E2E, image smoke. Remote CI xanh cả 3 job trên `30f0274` — `test` + `image` (run `33358342667`, 2 phút 11 giây), `dbtest` (run `33358342671`, 24 phút 37 giây) |
+| 8 | Việc tay còn lại | Alias phường/xã 2025 + relation level 4 Khánh Hòa (M2 T8); nghiệm thu `pnpm run setup` trên Windows (từ M1); bật lại QA `requireIslands` cho Hoàng Sa khi chốt nguồn extract OSM (từ M1); **5 Actions secret cho workflow `Data update`** (`HF_TOKEN`, `DB_TUNNEL_HOSTNAME`, `CF_ACCESS_CLIENT_ID`, `CF_ACCESS_CLIENT_SECRET`, `PIPELINE_DATABASE_URL`) — không chặn nghiệm thu vì cron máy nội bộ vẫn chạy. Production còn warning glyph Unicode hiếm (MapLibre fallback vẫn render) |

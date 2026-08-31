@@ -6520,7 +6520,7 @@ Expected: `poi-YYYYMMDD.pmtiles`.
 
 Mở `https://mapslibvn-docs.pages.dev/playground?api=https://mapslibvn-api-production.dotienphong1993.workers.dev` (Cloudflare Pages bỏ đuôi `.html`): z10–11 chỉ hiện trường/bệnh viện/bến xe/UBND chất lượng cao; z13+ hiện tên; bấm một POI → dòng trạng thái hiện `Tên · loại (nhóm)` (nghiệm thu "bấm POI thấy tên/loại từ tile").
 
-- [ ] **Step 7: Nghiệm thu M2 (spec 13/M2 + roadmap mục 3) — ghi kết quả thật vào DEVLOG mục 4**
+- [x] **Step 7: Nghiệm thu M2 (spec 13/M2 + roadmap mục 3) — ghi kết quả thật vào DEVLOG mục 4**
 
 1. Máy nội bộ chạy Postgres nhận kết nối TLS qua Tunnel từ Worker: `curl <worker>/healthz/db` → `{"ok":true,"user":"api"}` ✓ (Task 1).
 2. `data:update` chạy trọn trên máy nội bộ: thời gian … phút; log cron kế tiếp thứ Hai 02:00 (`docker compose … logs pipeline | tail -1`).
@@ -6531,7 +6531,7 @@ Mở `https://mapslibvn-docs.pages.dev/playground?api=https://mapslibvn-api-prod
 7. `pnpm test`, `PIPE pipeline pnpm test:db`, E2E docs, CI (job test + dbtest + image) xanh.
 8. Việc tay còn lại ghi rõ: bảng đối chiếu phường/xã 2025 (`admin_alias`), quyết định spec 4.2 nếu M1 để lại, Windows `pnpm run setup` nếu chưa.
 
-- [ ] **Step 8: Chuyển mốc**
+- [x] **Step 8: Chuyển mốc**
 
 `docs/DEVLOG.md` mục 1: "Mốc: M3 — Places API"; "Plan: (viết plan cấp bước bằng skill writing-plans theo roadmap mục 4 — chưa có file)"; "Task đang làm: viết plan M3"; mục 2: "Viết `docs/superpowers/plans/YYYY-MM-DD-m3-places-api.md` từ roadmap mục 4 (2 fixture bắt buộc: 'Trường Tiểu học Hoàng Diệu', '88/9 Nguyễn Lâm')"; mục 4 dòng nghiệm thu M2.
 
