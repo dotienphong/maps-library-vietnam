@@ -41,11 +41,13 @@ search/nearby/details → geocode/reverse (thang 5 mức 6.3) → core + UI (`cr
 **"Trường Tiểu học Hoàng Diệu"** (autocomplete) và **"88/9 Nguyễn Lâm"** (geocode
 `interpolated`, ≤ 60 m).
 
-**Việc tay của PHONG (không chặn M3):** thêm 5 Actions secret còn thiếu để workflow
-`Data update` chạy được từ GitHub — `HF_TOKEN`, `DB_TUNNEL_HOSTNAME`, `CF_ACCESS_CLIENT_ID`,
-`CF_ACCESS_CLIENT_SECRET`, `PIPELINE_DATABASE_URL` (repo hiện có 8 secret; giá trị đã có
-trong `.env` ở gốc repo). Cron trên máy nội bộ vẫn chạy thứ Hai 02:00 VN nên đây chỉ là
-đường chạy dự phòng.
+**Đã xong 31/08:** 5 Actions secret cho workflow `Data update` (`HF_TOKEN`,
+`DB_TUNNEL_HOSTNAME`, `CF_ACCESS_CLIENT_ID`, `CF_ACCESS_CLIENT_SECRET`,
+`PIPELINE_DATABASE_URL`) đã đặt — repo có 13 secret. Giá trị trong `.env` có dấu ngoặc bao,
+phải bóc trước khi `gh secret set` nếu đặt lại. **Chưa xác nhận:** một lần
+`Data update` với `--dry-run` từ Actions để kiểm đường `cloudflared access tcp` từ runner
+GitHub tới Postgres máy nội bộ; cron trên máy nội bộ vẫn chạy thứ Hai 02:00 VN nên đường
+Actions chỉ là dự phòng.
 
 **Lưu ý vận hành máy dev:** đĩa đã đầy 97 % ngày 27/08 (`~/.cache/uv` 124 GB + JSONL Overture không nén);
 đã dọn còn 44 GiB trống. Trước các bước nặng (Task 7 gộp, Task 10 `data:update`), kiểm `df -h /`.
@@ -425,4 +427,4 @@ rõ ở mục 2 và không chặn M2: kiểm trên Windows, và bật lại `req
 | 5 | Báo cáo gộp/geocode | **ĐẠT:** multi-source 50.868 (3,3 %), combined other 297.823 (19,6 %), 923.567 anchor, Nguyễn Lâm 174 |
 | 6 | Backup/restore | **ĐẠT:** restore mới nhất vào DB tạm rồi rename; 1.522.416 POI; owner/grant đúng |
 | 7 | Test/CI | **ĐẠT:** local lint, typecheck, build, 480 unit/API, 32 DB, 2 E2E, image smoke. Remote CI xanh cả 3 job trên `30f0274` — `test` + `image` (run `33358342667`, 2 phút 11 giây), `dbtest` (run `33358342671`, 24 phút 37 giây) |
-| 8 | Việc tay còn lại | Alias phường/xã 2025 + relation level 4 Khánh Hòa (M2 T8); nghiệm thu `pnpm run setup` trên Windows (từ M1); bật lại QA `requireIslands` cho Hoàng Sa khi chốt nguồn extract OSM (từ M1); **5 Actions secret cho workflow `Data update`** (`HF_TOKEN`, `DB_TUNNEL_HOSTNAME`, `CF_ACCESS_CLIENT_ID`, `CF_ACCESS_CLIENT_SECRET`, `PIPELINE_DATABASE_URL`) — không chặn nghiệm thu vì cron máy nội bộ vẫn chạy. Production còn warning glyph Unicode hiếm (MapLibre fallback vẫn render) |
+| 8 | Việc tay còn lại | Alias phường/xã 2025 + relation level 4 Khánh Hòa (M2 T8); nghiệm thu `pnpm run setup` trên Windows (từ M1); bật lại QA `requireIslands` cho Hoàng Sa khi chốt nguồn extract OSM (từ M1); 5 Actions secret cho workflow `Data update` **đã thêm 31/08** (repo 13 secret), còn chờ một lần `--dry-run` từ Actions để xác nhận đường tunnel từ runner — không chặn nghiệm thu vì cron máy nội bộ vẫn chạy. Production còn warning glyph Unicode hiếm (MapLibre fallback vẫn render) |
