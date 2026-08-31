@@ -211,7 +211,7 @@ Tra khoá trong `api_key` (KV cache 5 phút), kiểm Origin cho khoá `web`, sco
 - Modify: `apps/api/src/env.ts`
 - Test: `apps/api/test/auth-origin.test.ts`
 
-- [ ] **Step 1: Mở rộng `apps/api/src/env.ts`**
+- [x] **Step 1: Mở rộng `apps/api/src/env.ts`**
 
 Thay toàn bộ file bằng:
 
@@ -234,7 +234,7 @@ export interface Env {
 export type AppEnv = { Bindings: Env; Variables: { auth?: AuthInfo } };
 ```
 
-- [ ] **Step 2: Viết test cho `originAllowed` — `apps/api/test/auth-origin.test.ts`**
+- [x] **Step 2: Viết test cho `originAllowed` — `apps/api/test/auth-origin.test.ts`**
 
 ```ts
 import { describe, expect, it } from 'vitest';
@@ -266,12 +266,12 @@ describe('originAllowed', () => {
 });
 ```
 
-- [ ] **Step 3: Chạy để thấy fail**
+- [x] **Step 3: Chạy để thấy fail**
 
 Run: `pnpm --filter @mapslibvn/api test`
 Expected: FAIL — `Cannot find module '../src/auth'`.
 
-- [ ] **Step 4: Viết `apps/api/src/auth.ts`**
+- [x] **Step 4: Viết `apps/api/src/auth.ts`**
 
 ```ts
 import type { Context, Next } from 'hono';
@@ -379,7 +379,8 @@ export function requireAuth() {
     }
     if (info.kind === 'mobile') {
       const bundle = c.req.header('X-Bundle-Id');
-      if (bundle) console.log('bundle-id', info.key, bundle); // kiểm mềm (spec 6.4): log, không chặn
+      // Kiểm mềm (spec 6.4): log theo tenant, không ghi khoá API ra log.
+      if (bundle) console.log('bundle-id', info.tenantId, bundle);
     }
     c.set('auth', info);
     await next();
@@ -387,17 +388,25 @@ export function requireAuth() {
 }
 ```
 
-- [ ] **Step 5: Chạy test + typecheck**
+- [x] **Step 5: Chạy test + typecheck**
 
 Run: `pnpm --filter @mapslibvn/api test && pnpm --filter @mapslibvn/api typecheck`
 Expected: PASS toàn bộ (5 test mới + test cũ).
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add apps/api/src/auth.ts apps/api/src/env.ts apps/api/test/auth-origin.test.ts
 git commit -m "feat(api): middleware auth X-Api-Key — tra api_key, KV cache 5', kiểm origin wildcard"
 ```
+
+**✅ Task 2 ĐÃ XONG (31/08/2026).** Đã thêm `AppEnv` và binding optional cho quota/Analytics,
+middleware đọc `X-Api-Key` hoặc `?key=`, tra DB rồi cache KV 5 phút, kiểm `places:read`, Origin/Referer
+cho khoá web và log mềm bundle ID cho mobile. TDD RED xác nhận thiếu `auth.ts`; GREEN đạt 5/5 test mới,
+tổng API 18/18, typecheck API sạch. **Lệch an toàn so với snippet plan:** log mobile ghi `tenantId` thay
+vì nguyên API key để không rò secret vào Worker logs. Endpoint-level 401/403 vẫn đúng lịch ở Task 4
+khi route places đầu tiên được gắn middleware. **Điểm bắt đầu phiên sau: Task 3 Step 1 — viết RED test
+`apps/api/test/ranking.test.ts`, sau đó `cache.test.ts` và `params.test.ts`.**
 
 ---
 
@@ -3238,4 +3247,3 @@ Tuần tự **1 → 2 → 3 → 4 → 8 (Step 1–4) → 5 → 6 → 7 → 8 (St
 - Format/lint trước mỗi commit: `pnpm exec biome check --write <files đã đổi>`.
 - `pnpm test:api-db` và `pnpm test:db` dùng **chung** DB cô lập `mapslibvn_task8_test` (scripts/lib/db-test.mjs) — không chạy song song hai lệnh này trên cùng máy.
 - Repo bật `exactOptionalPropertyTypes` + `noUncheckedIndexedAccess`: không gán `string | undefined` vào prop optional (dùng spread có điều kiện như code trong plan), không index mảng rồi dùng thẳng thuộc tính.
-
