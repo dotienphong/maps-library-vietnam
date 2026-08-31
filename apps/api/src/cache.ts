@@ -1,3 +1,5 @@
+import { ApiError } from './errors';
+
 /**
  * Cache API với stale-if-error thủ công (spec 6.6): lưu với max-age = staleSec,
  * ghi mốc thời gian vào header; đọc ra tự phân biệt "tươi" (≤ freshSec) và "stale".
@@ -29,6 +31,7 @@ export async function cachedJson(
     ctx.waitUntil(cache.put(request, response.clone()));
     return response;
   } catch (error) {
+    if (error instanceof ApiError && error.status < 500) throw error;
     if (hit && ageSec <= staleSec) return withCacheHeader(hit, 'stale');
     throw error;
   }

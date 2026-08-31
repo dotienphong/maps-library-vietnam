@@ -988,7 +988,7 @@ Ba route trả `Place` (spec 6.1). `place.ts` gom SELECT + mapper dùng chung.
 - Modify: `apps/api/src/index.ts`
 - Test: `apps/api/test/places-routes.test.ts`
 
-- [ ] **Step 1: Viết test — `apps/api/test/places-routes.test.ts`**
+- [x] **Step 1: Viết test — `apps/api/test/places-routes.test.ts`**
 
 ```ts
 import { SELF, env } from 'cloudflare:test';
@@ -1036,12 +1036,12 @@ describe('validation search/nearby/places (không DB)', () => {
 });
 ```
 
-- [ ] **Step 2: Chạy để thấy fail**
+- [x] **Step 2: Chạy để thấy fail**
 
 Run: `pnpm --filter @mapslibvn/api test`
 Expected: FAIL — các route trả 404 not_found.
 
-- [ ] **Step 3: Viết `apps/api/src/place.ts`**
+- [x] **Step 3: Viết `apps/api/src/place.ts`**
 
 ```ts
 import type { Place } from '@mapslibvn/core';
@@ -1059,7 +1059,7 @@ export interface PlaceRow {
   ward: string | null;
   province: string | null;
   address_text: string | null;
-  contact: Record<string, string> | null;
+  contact: Record<string, unknown> | null;
   hours: unknown;
   quality_score: number | null;
   status: Place['status'];
@@ -1109,7 +1109,7 @@ export function toPlace(r: PlaceRow): Place {
 
 Lưu ý: kiểu `Place` import từ `@mapslibvn/core` — **Task 8 mới thêm `types.ts` vào core**. Để Task 5 tự chạy độc lập, tạm khai kiểu tại chỗ nếu Task 8 chưa chạy: thêm đầu file `place.ts` một interface `Place` cục bộ y hệt khối "Kiểu dữ liệu" ở Task 8 Step 2, rồi khi làm Task 8 thay bằng import. **Nếu thực hiện plan tuần tự theo thứ tự khuyến nghị (xem "Thứ tự thực hiện" cuối plan) thì làm Task 8 Step 1–3 trước Task 5** — khi đó dùng thẳng import như trên.
 
-- [ ] **Step 4: Viết `apps/api/src/routes/search.ts`**
+- [x] **Step 4: Viết `apps/api/src/routes/search.ts`**
 
 ```ts
 import { normalizeVi } from '@mapslibvn/core';
@@ -1160,7 +1160,7 @@ search.get('/v1/search', requireAuth(), async (c) => {
 });
 ```
 
-- [ ] **Step 5: Viết `apps/api/src/routes/nearby.ts`**
+- [x] **Step 5: Viết `apps/api/src/routes/nearby.ts`**
 
 ```ts
 import { Hono } from 'hono';
@@ -1204,7 +1204,7 @@ nearby.get('/v1/nearby', requireAuth(), async (c) => {
 });
 ```
 
-- [ ] **Step 6: Viết `apps/api/src/routes/places.ts`** (cache 1 giờ — spec 6.1)
+- [x] **Step 6: Viết `apps/api/src/routes/places.ts`** (cache 1 giờ — spec 6.1)
 
 ```ts
 import { attributionHtml, attributionText } from '@mapslibvn/core';
@@ -1247,9 +1247,10 @@ places.get('/v1/places/:id', requireAuth(), async (c) => {
 });
 ```
 
-Lưu ý: 404 ném từ trong `cachedJson` sẽ **không** bị nuốt — `cachedJson` chỉ trả stale khi có bản cache cũ; id sai không bao giờ có cache nên 404 thoát ra ngoài đúng.
+Lưu ý: 404 ném từ trong `cachedJson` sẽ **không** bị stale che khuất, kể cả khi cache key từng có
+dữ liệu. `cachedJson` chỉ fallback stale cho lỗi upstream 5xx/ngoại lệ hạ tầng.
 
-- [ ] **Step 7: Mount trong `apps/api/src/index.ts`**
+- [x] **Step 7: Mount trong `apps/api/src/index.ts`**
 
 ```ts
 import { nearby } from './routes/nearby';
@@ -1261,7 +1262,7 @@ app.route('/', nearby);
 app.route('/', places);
 ```
 
-- [ ] **Step 8: Chạy test + typecheck, rồi commit**
+- [x] **Step 8: Chạy test + typecheck, rồi commit**
 
 Run: `pnpm --filter @mapslibvn/api test && pnpm --filter @mapslibvn/api typecheck`
 Expected: PASS.
@@ -1270,6 +1271,14 @@ Expected: PASS.
 git add apps/api/src/place.ts apps/api/src/routes/{search,nearby,places}.ts apps/api/src/index.ts apps/api/test/places-routes.test.ts
 git commit -m "feat(api): /v1/search, /v1/nearby, /v1/places/{id} — Place chuẩn spec 6.1"
 ```
+
+**✅ Task 5 ĐÃ XONG (31/08/2026).** TDD xác nhận RED cho route 404, bbox sai và cache stale che
+404; GREEN đạt 11 file / 45 test API, typecheck và lint sạch. Ba route đều có auth, validation biên,
+SQL parameterized và giới hạn truy vấn; place detail cache 1 giờ, stale tối đa 2 giờ chỉ cho lỗi
+upstream. Smoke thật với PostgreSQL local trả HTTP 200 cho search (512 kết quả Highlands), nearby
+và place detail (đủ source + attribution). Dữ liệu thật xác nhận `contact` là JSON hỗn hợp
+(mảng/null), nên contract dùng `Record<string, unknown>`. **Điểm bắt đầu phiên sau: Task 6 Step 1 —
+viết helper `apps/api/src/geocode.ts` cho thang phân giải 5 bước spec 6.3.**
 
 ---
 
@@ -2156,7 +2165,7 @@ export interface Place {
   lat: number;
   lng: number;
   address: PlaceAddress;
-  contact?: Record<string, string> | null;
+  contact?: Record<string, unknown> | null;
   hours?: unknown;
   quality_score: number | null;
   status: 'active' | 'closed' | 'pending' | 'rejected';

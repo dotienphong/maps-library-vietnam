@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { ApiError } from '../src/errors';
-import { clampInt, parseLatLngPair, parseTypes } from '../src/params';
+import { clampInt, parseBbox, parseLatLngPair, parseTypes } from '../src/params';
 
 describe('params', () => {
   it('parseLatLngPair: "10.77,106.70" → {lat,lng}; undefined → null', () => {
@@ -25,5 +25,12 @@ describe('params', () => {
     expect([...parseTypes(undefined)].sort()).toEqual(['address', 'poi', 'street']);
     expect([...parseTypes('poi,street')].sort()).toEqual(['poi', 'street']);
     expect(() => parseTypes('poi,banana')).toThrowError(ApiError);
+  });
+
+  it('parseBbox: nhận bbox hợp lệ, từ chối biên/toạ độ/thứ tự sai', () => {
+    expect(parseBbox('106.6,10.7,106.8,10.9')).toEqual([106.6, 10.7, 106.8, 10.9]);
+    for (const bad of ['106,10,105,11', '106,11,107,10', '181,10,182,11', '106,-91,107,10']) {
+      expect(() => parseBbox(bad)).toThrowError(ApiError);
+    }
   });
 });

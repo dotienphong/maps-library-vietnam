@@ -49,9 +49,22 @@ export function parseTypes(raw: string | undefined): Set<ItemType> {
 /** "minLng,minLat,maxLng,maxLat" → tuple; sai → 400. */
 export function parseBbox(raw: string | undefined): [number, number, number, number] | null {
   if (!raw) return null;
-  const parts = raw.split(',').map(Number);
-  if (parts.length !== 4 || parts.some(Number.isNaN)) {
+  const fields = raw.split(',').map((value) => value.trim());
+  const parts = fields.map(Number);
+  if (parts.length !== 4 || fields.some((value) => value === '') || parts.some(Number.isNaN)) {
     throw new ApiError(400, 'invalid_request', 'bbox phải là "minLng,minLat,maxLng,maxLat"');
   }
-  return parts as [number, number, number, number];
+  const bbox = parts as [number, number, number, number];
+  const [minLng, minLat, maxLng, maxLat] = bbox;
+  if (
+    Math.abs(minLng) > 180 ||
+    Math.abs(maxLng) > 180 ||
+    Math.abs(minLat) > 90 ||
+    Math.abs(maxLat) > 90 ||
+    minLng >= maxLng ||
+    minLat >= maxLat
+  ) {
+    throw new ApiError(400, 'invalid_request', 'bbox có biên hoặc thứ tự không hợp lệ');
+  }
+  return bbox;
 }

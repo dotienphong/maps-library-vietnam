@@ -1,0 +1,95 @@
+import type { getSql } from './db';
+
+type Sql = ReturnType<typeof getSql>;
+
+/** Kiểu cục bộ theo spec 6.1; Task 8 sẽ thay bằng import từ @mapslibvn/core. */
+export interface PlaceCategory {
+  code: string;
+  group: string;
+  name_vi: string;
+  name_en: string;
+}
+
+export interface PlaceAddress {
+  housenumber?: string;
+  street?: string;
+  ward?: string;
+  province?: string;
+  text?: string;
+}
+
+export interface Place {
+  id: string;
+  name: string;
+  category: PlaceCategory | null;
+  lat: number;
+  lng: number;
+  address: PlaceAddress;
+  contact?: Record<string, unknown> | null;
+  hours?: unknown;
+  quality_score: number | null;
+  status: 'active' | 'closed' | 'pending' | 'rejected';
+  updated_at: string;
+}
+
+export interface PlaceRow {
+  id: string;
+  name: string;
+  lat: number;
+  lng: number;
+  housenumber: string | null;
+  street: string | null;
+  ward: string | null;
+  province: string | null;
+  address_text: string | null;
+  contact: Record<string, unknown> | null;
+  hours: unknown;
+  quality_score: number | null;
+  status: Place['status'];
+  /** porsager trả Date cho timestamptz. */
+  updated_at: string | Date;
+  cat_code: string | null;
+  cat_group: string | null;
+  cat_vi: string | null;
+  cat_en: string | null;
+  /** count(*) OVER() là int8 — porsager trả string. */
+  total?: string | number;
+  d?: number;
+}
+
+/** Cột SELECT chuẩn cho Place — luôn dùng alias `p` (poi) và `c` (category). */
+export function placeColumns(sql: Sql) {
+  return sql`p.id, p.name, ST_Y(p.geom) AS lat, ST_X(p.geom) AS lng,
+    p.housenumber, p.street, p.ward, p.province, p.address_text,
+    p.contact, p.hours, p.quality_score, p.status, p.updated_at,
+    c.code AS cat_code, c.group_code AS cat_group, c.name_vi AS cat_vi, c.name_en AS cat_en`;
+}
+
+export function toPlace(row: PlaceRow): Place {
+  return {
+    id: row.id,
+    name: row.name,
+    category: row.cat_code
+      ? {
+          code: row.cat_code,
+          group: row.cat_group ?? '',
+          name_vi: row.cat_vi ?? '',
+          name_en: row.cat_en ?? '',
+        }
+      : null,
+    lat: row.lat,
+    lng: row.lng,
+    address: {
+      ...(row.housenumber ? { housenumber: row.housenumber } : {}),
+      ...(row.street ? { street: row.street } : {}),
+      ...(row.ward ? { ward: row.ward } : {}),
+      ...(row.province ? { province: row.province } : {}),
+      ...(row.address_text ? { text: row.address_text } : {}),
+    },
+    contact: row.contact,
+    hours: row.hours,
+    quality_score: row.quality_score,
+    status: row.status,
+    updated_at: row.updated_at instanceof Date ? row.updated_at.toISOString() : row.updated_at,
+  };
+}

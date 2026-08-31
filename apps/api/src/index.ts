@@ -5,7 +5,10 @@ import { getSql } from './db';
 import type { AppEnv } from './env';
 import { ApiError, errorResponse } from './errors';
 import { autocomplete } from './routes/autocomplete';
+import { nearby } from './routes/nearby';
+import { places } from './routes/places';
 import { r2 } from './routes/r2';
+import { search } from './routes/search';
 import { styles } from './routes/styles';
 import { tiles } from './routes/tiles';
 
@@ -46,6 +49,9 @@ app.get('/v1/attribution', (c) =>
   }),
 );
 app.route('/', autocomplete);
+app.route('/', search);
+app.route('/', nearby);
+app.route('/', places);
 app.route('/', styles);
 app.route('/', tiles);
 app.route('/', r2);

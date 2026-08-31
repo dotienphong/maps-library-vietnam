@@ -1,6 +1,7 @@
 import { createExecutionContext, waitOnExecutionContext } from 'cloudflare:test';
 import { describe, expect, it } from 'vitest';
 import { cachedJson } from '../src/cache';
+import { ApiError } from '../src/errors';
 
 const url = (suffix: string) => `https://cache.mapslibvn/test-${suffix}?k=1`;
 
@@ -34,5 +35,18 @@ describe('cachedJson', () => {
     await expect(cachedJson(createExecutionContext(), url('none'), 0, 3600, boom)).rejects.toThrow(
       'db down',
     );
+  });
+
+  it('không dùng stale để che lỗi nghiệp vụ 4xx', async () => {
+    const ctx = createExecutionContext();
+    await cachedJson(ctx, url('not-found'), 0, 3600, async () => ({ ok: true }));
+    await waitOnExecutionContext(ctx);
+
+    const notFound = new ApiError(404, 'not_found', 'Không có POI này');
+    await expect(
+      cachedJson(createExecutionContext(), url('not-found'), 0, 3600, async () => {
+        throw notFound;
+      }),
+    ).rejects.toBe(notFound);
   });
 });
