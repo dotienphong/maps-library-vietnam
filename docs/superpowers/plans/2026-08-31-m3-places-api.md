@@ -1289,8 +1289,9 @@ viết helper `apps/api/src/geocode.ts` cho thang phân giải 5 bước spec 6.
 **Files:**
 - Create: `apps/api/src/geocode.ts`, `apps/api/src/routes/geocode.ts`, `apps/api/src/routes/reverse.ts`
 - Modify: `apps/api/src/index.ts`
+- Test: `apps/api/test/geocode.test.ts`, `apps/api/test/geocode-routes.test.ts`
 
-- [ ] **Step 1: Viết `apps/api/src/geocode.ts`**
+- [x] **Step 1: Viết `apps/api/src/geocode.ts`**
 
 ```ts
 import { type GeocodeItem, type ParsedAddress, normalizeVi, parseAddress } from '@mapslibvn/core';
@@ -1416,15 +1417,20 @@ async function stepInterpolate({ sql, parsed, near }: Ctx): Promise<GeocodeItem[
         lo_lat: number; lo_lng: number; hi_lat: number; hi_lng: number;
         ward_norm: string | null; province_norm: string | null;
       }[]
-  >`WITH sn AS (
-      SELECT geom, housenumber::int AS hn, ward_norm, province_norm
+  >`WITH numeric_candidates AS (
+      SELECT geom,
+        CASE WHEN housenumber ~ '^[0-9]{1,9}$' THEN housenumber::int END AS hn,
+        ward_norm, province_norm
       FROM address_anchor
       WHERE street_norm = ${parsed.streetNorm as string}
-        AND housenumber ~ '^[0-9]+$' AND housenumber::int % 2 = ${((n % 2) + 2) % 2}
         ${wardNorm ? sql`AND (ward_norm = ${wardNorm} OR ward_norm IS NULL)` : sql``}
     ),
-    lo AS (SELECT * FROM sn WHERE hn < ${n} ORDER BY hn DESC LIMIT 1),
-    hi AS (SELECT * FROM sn WHERE hn > ${n} ORDER BY hn ASC LIMIT 1)
+    candidates AS (
+      SELECT * FROM numeric_candidates
+      WHERE hn IS NOT NULL AND hn % 2 = ${((n % 2) + 2) % 2}
+    ),
+    lo AS (SELECT * FROM candidates WHERE hn < ${n} ORDER BY hn DESC LIMIT 1),
+    hi AS (SELECT * FROM candidates WHERE hn > ${n} ORDER BY hn ASC LIMIT 1)
     SELECT lo.hn AS lo_hn, hi.hn AS hi_hn,
       ST_DistanceSphere(lo.geom, hi.geom) AS gap,
       ST_Y(lo.geom) AS lo_lat, ST_X(lo.geom) AS lo_lng,
@@ -1541,7 +1547,7 @@ async function stepAdmin({ sql, parsed, limit }: Ctx, q: string): Promise<Geocod
 }
 ```
 
-- [ ] **Step 2: Viết `apps/api/src/routes/geocode.ts`**
+- [x] **Step 2: Viết `apps/api/src/routes/geocode.ts`**
 
 ```ts
 import { Hono } from 'hono';
@@ -1572,7 +1578,7 @@ geocodeRoute.get('/v1/geocode', requireAuth(), async (c) => {
 });
 ```
 
-- [ ] **Step 3: Viết `apps/api/src/routes/reverse.ts`**
+- [x] **Step 3: Viết `apps/api/src/routes/reverse.ts`**
 
 ```ts
 import { Hono } from 'hono';
@@ -1585,8 +1591,10 @@ import { type PlaceRow, placeColumns, toPlace } from '../place';
 export const reverse = new Hono<AppEnv>();
 
 reverse.get('/v1/reverse', requireAuth(), async (c) => {
-  const lat = Number(c.req.query('lat'));
-  const lng = Number(c.req.query('lng'));
+  const latRaw = c.req.query('lat')?.trim();
+  const lngRaw = c.req.query('lng')?.trim();
+  const lat = latRaw ? Number(latRaw) : Number.NaN;
+  const lng = lngRaw ? Number(lngRaw) : Number.NaN;
   if (!Number.isFinite(lat) || !Number.isFinite(lng) || Math.abs(lat) > 90 || Math.abs(lng) > 180)
     throw new ApiError(400, 'invalid_request', 'lat, lng bắt buộc và phải hợp lệ');
   const sql = getSql(c.env);
@@ -1601,8 +1609,9 @@ reverse.get('/v1/reverse', requireAuth(), async (c) => {
     let approx: string | undefined;
     if (street) {
       const anchors = await sql<{ hn: number }[]>`
-        SELECT housenumber::int AS hn FROM address_anchor
-        WHERE street_norm = ${street.name_norm} AND housenumber ~ '^[0-9]+$'
+        SELECT CASE WHEN housenumber ~ '^[0-9]{1,9}$' THEN housenumber::int END AS hn
+        FROM address_anchor
+        WHERE street_norm = ${street.name_norm} AND housenumber ~ '^[0-9]{1,9}$'
           AND ST_DWithin(geom::geography, ${pt}::geography, 300)
         ORDER BY ST_DistanceSphere(geom, ${pt}) ASC LIMIT 2`;
       // noUncheckedIndexedAccess: lấy phần tử qua destructure + guard, không index thẳng
@@ -1657,7 +1666,7 @@ reverse.get('/v1/reverse', requireAuth(), async (c) => {
 });
 ```
 
-- [ ] **Step 4: Mount trong `apps/api/src/index.ts`**
+- [x] **Step 4: Mount trong `apps/api/src/index.ts`**
 
 ```ts
 import { geocodeRoute } from './routes/geocode';
@@ -1667,17 +1676,26 @@ app.route('/', geocodeRoute);
 app.route('/', reverse);
 ```
 
-- [ ] **Step 5: Chạy test + typecheck**
+- [x] **Step 5: Chạy test + typecheck**
 
 Run: `pnpm --filter @mapslibvn/api test && pnpm --filter @mapslibvn/api typecheck`
-Expected: PASS (không test mới ở tầng này — validation của geocode/reverse giống mẫu Task 5; hành vi thật nghiệm ở Task 7. Nếu muốn, thêm 2 case 400/401 tương tự vào `places-routes.test.ts`).
+Expected: PASS. Thực tế Task 6 thêm test auth/validation/error-path cho hai route và regression helper;
+hành vi DB cô lập đầy đủ tiếp tục được khóa ở Task 7.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add apps/api/src/geocode.ts apps/api/src/routes/{geocode,reverse}.ts apps/api/src/index.ts
 git commit -m "feat(api): thang geocode 5 bước 6.3 + /v1/geocode, /v1/reverse"
 ```
+
+**✅ Task 6 ĐÃ XONG (31/08/2026).** TDD RED đạt 5/5 case route trả 404; GREEN đạt 13 file /
+52 test API, typecheck và lint sạch. Smoke PostgreSQL quốc gia (923.567 anchor, 61.154 street,
+3.288 admin area) trả HTTP 200 cho đủ rooftop 0.9, alley 0.7, interpolated 0.6, street 0.4,
+ward 0.2 và reverse có địa chỉ + POI gần nhất. Dữ liệu thật lộ 41 giá trị số nhà dài 10–25 chữ
+số gây overflow khi ép `int`; cả geocode/reverse đã giới hạn 1–9 chữ số và có regression guard.
+**Điểm bắt đầu phiên sau: Task 7 Step 1 — tạo `apps/api/test-db/setup.sql` cho DB integration cô
+lập và hai fixture nghiệm thu bắt buộc.**
 
 ---
 
