@@ -6015,7 +6015,7 @@ git push
 - Create: `scripts/lib/sources.mjs`, `scripts/lib/sources.test.mjs`, `scripts/db-restore.mjs`, `pipelines/poi/tests/pipeline-fixture.dbtest.mjs`
 - Modify: `scripts/lib/update-plan.mjs`, `scripts/lib/update-plan.test.mjs` (viết lại cho 3 nguồn), `scripts/data-update.mjs` (viết lại), `.github/workflows/data-update.yml` (thêm biến DB qua Tunnel), `infra/server/README.md`, `pipelines/poi/README.md`, `docs/DEVLOG.md`
 
-- [ ] **Step 1: Test dò phiên bản Overture/FSQ và kế hoạch 3 nguồn (thất bại)**
+- [x] **Step 1: Test dò phiên bản Overture/FSQ và kế hoạch 3 nguồn (thất bại)**
 
 `scripts/lib/sources.test.mjs`:
 ```js
@@ -6105,7 +6105,7 @@ describe('nextState', () => {
 Run: `pnpm test`
 Expected: FAIL — `sources.mjs` chưa có; test update-plan đỏ (chưa có overture/fsq).
 
-- [ ] **Step 2: `sources.mjs` và `update-plan.mjs`**
+- [x] **Step 2: `sources.mjs` và `update-plan.mjs`**
 
 `scripts/lib/sources.mjs`:
 ```js
@@ -6207,7 +6207,7 @@ export function missingLiveEnv(env, flags) {
 Run: `pnpm test`
 Expected: xanh.
 
-- [ ] **Step 3: `scripts/data-update.mjs` — viết lại với nhánh POI và nối DB qua Tunnel**
+- [x] **Step 3: `scripts/data-update.mjs` — viết lại với nhánh POI và nối DB qua Tunnel**
 
 ```js
 #!/usr/bin/env node
@@ -6334,7 +6334,7 @@ Cập nhật `.github/workflows/data-update.yml` (M1c): thêm vào `env` **`RCLO
 Run: `pnpm data:update --dry-run`
 Expected: `Phiên bản: OSM md5 … · Overture 2026-… · FSQ 2026-…`, `Kế hoạch: {"tiles":false,"poi":true,"reasons":["Overture đổi (∅ → …)","FSQ đổi (∅ → …)"]}` (state cũ chưa có Overture/FSQ), `(dry-run) dừng.`
 
-- [ ] **Step 4: `scripts/db-restore.mjs`**
+- [x] **Step 4: `scripts/db-restore.mjs`**
 
 ```js
 #!/usr/bin/env node
@@ -6405,7 +6405,7 @@ Expected: `Tải mapslibvn-YYYYMMDD-HHMM.dump.zst …`, pg_restore chạy 5–15
 
 Lưu ý: phục hồi qua DB tạm `<db>_restore` rồi `ALTER DATABASE … RENAME` — DB đang chạy không bị đụng nếu restore lỗi; mọi kết nối đang mở bị ngắt đúng lúc đổi tên (trên máy dev không sao; trên máy chủ dừng `pipeline`/`backup` trước). Role `api`/`pipeline` phải tồn tại trước (migration 0002 hoặc `init-roles.sh`). Cách này đã được thử ở Task 1 Step 8.
 
-- [ ] **Step 5: Test tích hợp toàn pipeline trên fixture (spec 10 "Tích hợp pipeline")**
+- [x] **Step 5: Test tích hợp toàn pipeline trên fixture (spec 10 "Tích hợp pipeline")**
 
 `pipelines/poi/tests/pipeline-fixture.dbtest.mjs`:
 ```js
@@ -6466,7 +6466,7 @@ describe('pipeline POI trọn vòng trên fixture', () => {
 Run: `PIPE pipeline pnpm test:db`
 Expected: toàn bộ dbtest xanh (10–15 phút).
 
-- [ ] **Step 5b: `pnpm db:fixture` — nạp kho POI Quận 1 vào DB dev một lệnh (spec 3.4 "nạp fixture Quận 1", nền cho test API ở M3)**
+- [x] **Step 5b: `pnpm db:fixture` — nạp kho POI Quận 1 vào DB dev một lệnh (spec 3.4 "nạp fixture Quận 1", nền cho test API ở M3)**
 
 `scripts/db-fixture.mjs`:
 ```js
@@ -6506,7 +6506,7 @@ Thêm vào `package.json` scripts: `"db:fixture": "node scripts/db-fixture.mjs"`
 Run: `pnpm db:fixture`
 Expected: 15 bước chạy lần lượt, `✔ Fixture Quận 1 đã nạp sau N s` với N ≤ 300 (spec 3.4: ~3 phút).
 
-- [ ] **Step 6: Chạy `data:update` thật trên máy chủ (nghiệm thu "chạy trọn trên máy nội bộ")**
+- [x] **Step 6: Chạy `data:update` thật trên máy chủ (nghiệm thu "chạy trọn trên máy nội bộ")**
 
 Trên máy chủ (hoặc từ máy dev qua Tunnel khi đã điền `DB_TUNNEL_HOSTNAME`/`PIPELINE_DATABASE_URL`):
 Run: `docker compose --env-file infra/server/.env -f infra/server/compose.yml exec pipeline node scripts/data-update.mjs --poi --force`

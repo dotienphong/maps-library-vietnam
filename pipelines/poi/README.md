@@ -2,13 +2,24 @@
 
 Chạy trong image (`PIPE pipeline …`, xem plan M2). Mọi bước idempotent: tạo `<bảng>_new` → nạp → hoán đổi trong một transaction.
 
+## Chạy trọn vòng
+
+- `pnpm data:update --dry-run`: dò release OSM/Overture/FSQ và chỉ in kế hoạch.
+- `pnpm data:update --poi [--force]`: ingest 3 nguồn → taxonomy → gộp → geocode →
+  PMTiles/QA/upload/smoke/manifest/report. Ngoài máy chủ, lệnh mở Cloudflare Access
+  Tunnel khi có `DB_TUNNEL_HOSTNAME` và `PIPELINE_DATABASE_URL`.
+- `pnpm db:fixture`: nạp toàn pipeline fixture Quận 1 vào DB dev.
+- `pnpm test:db`: tự tạo lại DB local cô lập `mapslibvn_task8_test`; không sửa DB dev
+  `mapslibvn`. Cần image pipeline vì test dùng osmium/tippecanoe.
+
 | Bước | Lệnh | Đầu vào → đầu ra |
 |---|---|---|
 | Ingest OSM | `node pipelines/poi/src/ingest/osm.mjs [--fixture]` | `work/vietnam-patched.osm.pbf` → `src_osm_place` |
 | Ingest Overture | `node pipelines/poi/src/ingest/overture.mjs --release <ver>` | S3 parquet → `src_overture_place` |
 | Ingest FSQ | `node pipelines/poi/src/ingest/fsq.mjs --release <dt>` | Hugging Face parquet (cần `HF_TOKEN`) → `src_fsq_place` |
 
-Số liệu ingest thật toàn VN (27–28/08/2026, DB dev): `src_osm_place` 228.144 (10,5 giây), `src_overture_place`
+Số liệu ingest thật toàn VN (Task 10, 31/08/2026): `src_osm_place` 228.255 raw,
+124.476 record sau lọc; `src_overture_place`
 1.501.161 (COPY 2.011.973 trong bbox, loại 510.812 ngoài ranh giới VN đệm 2 km; 3 phút 18 giây), `src_fsq_place`
 272.349 (73 giây). File trung gian JSONL **nén gzip** — bản không nén (3–4 GB) đã làm đầy đĩa dev một lần.
 
@@ -32,11 +43,11 @@ con số này sẽ giảm ở bảng `poi` sau gộp vì OSM phân loại chi ti
 
 Bảng phụ do pipeline tạo: `vn_boundary` (ranh giới VN đệm 2 km), `poi_work_*` (Task 7–8).
 
-Số liệu gộp toàn VN (28/08/2026, final Task 7): 1.897.933 records → 402.210 cặp → 1.522.371 cụm,
-1.515.938 POI active; 3,3 % POI đa nguồn. Hai lần dựng lại toàn phần cho cùng
-1.583.562 source links cùng hash `1434f2acaaa69fd3eee74a9dbdda47a2`. `category = 'other'` là chưa ánh xạ và có ngưỡng
+Số liệu gộp live Task 10: 1.897.986 records → 402.242 cặp → 1.522.416 cụm,
+1.515.983 POI active; 50.868 POI đa nguồn (3,3 %), 1.583.616 source links.
+`category = 'other'` là chưa ánh xạ và có ngưỡng
 fixture <10 %; `*_other` là nhánh cha chủ đích, được báo cáo riêng và không phải cổng fail.
-Tỷ lệ combined là 19,6 % (`other OR *_other`; bare 8,4 %, mapped `*_other` 11,1 %).
+Tỷ lệ combined là 19,6 % (`other OR *_other`; 297.823 POI).
 
 Fixture Quận 1: `pipelines/poi/fixtures/` (tạo lại bằng `scripts/make-fixture.mjs`). Ranh giới: `data/vn-boundary.geojson` (Natural Earth, public domain).
 
@@ -60,8 +71,8 @@ Việt Nam hiện hành; `admin_area` cuối có L8=3.255 và `admin_alias`
 có 33 khóa distinct từ seed 2025. Alias phường/xã mới chỉ có ví dụ spec Diên Hồng; cần
 biên soạn đầy đủ từ các nghị quyết UBTVQH 2025.
 
-Số liệu geocode toàn VN: 215.360 way đường có tên → **61.031 street**; **58.388 alley**,
-52.408 (89,76 %) có đường mẹ và entrance, 0 entrance xa đường mẹ quá 1 m; **923.541
+Số liệu geocode live Task 10: 215.872 way đường có tên → **61.154 street**; **58.479 alley**,
+52.499 có đường mẹ và entrance; **923.567
 address_anchor**, trong đó Nguyễn Lâm 174. Parent theo tên/chạm dùng geometry GiST prefilter
 rồi geography exact ≤300/15 m. Anchor gộp connected-components theo geography exact ≤30 m
 đến khi hội tụ, ưu tiên source theo confidence; không còn cặp trùng, street mang tên hẻm số,

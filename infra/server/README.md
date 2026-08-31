@@ -51,6 +51,11 @@ pnpm server:setup
 ## Vận hành
 
 - Cập nhật mã/image: `pnpm server:update`.
-- Chuyển máy: trên máy mới `pnpm server:setup` → `PIPE pipeline node scripts/db-restore.mjs --latest` (Task 10) → dán lại `TUNNEL_TOKEN` (hoặc tạo tunnel mới rồi trỏ hostname) → xong < 1 giờ.
+- Chuyển máy: trên máy mới `pnpm server:setup` → `pnpm db:restore --latest` → dán lại
+  `TUNNEL_TOKEN` (hoặc tạo tunnel mới rồi trỏ hostname) → xong < 1 giờ. Restore nạp vào
+  DB tạm, đổi tên nguyên tử, chạy migration còn thiếu và reconcile lại owner/grant
+  `api`/`pipeline` vì archive portable cố ý dùng `--no-owner --no-privileges`.
+- Kiểm restore: `SELECT count(*) FROM poi;` và xác nhận `poi.tableowner = pipeline`,
+  role `api` chỉ có `SELECT` trên `poi` cùng `INSERT, SELECT` trên `poi_edit`.
 - Log: `docker compose … logs -f postgres|cloudflared|backup|pipeline`.
 - Không bao giờ thêm `ports:` cho `postgres`. Mọi truy cập đi qua Tunnel + Access.

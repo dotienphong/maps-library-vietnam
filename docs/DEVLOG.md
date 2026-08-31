@@ -8,7 +8,7 @@ commit với code).
 - Mốc: M2 — Kho POI + máy chủ nội bộ
 - Plan: `docs/superpowers/plans/2026-08-27-m2-kho-poi-may-chu.md` (11 task, 6.535 dòng sau review lần 3)
 - Task đang làm: Task 10 — `data:update` đầy đủ + `db:restore` + nghiệm thu M2 (thứ tự thực thi: 0 → 2 → 3 → 4 → 5 → 6 → 7 → 8 → 9 → 1 → 10)
-- Commit cuối: M2 T1 hoàn tất (commit hiện tại)
+- Commit cuối: M2 T10 implementation + live acceptance (nhánh `feature/m2-task10`)
 - Môi trường đã dựng: máy dev macOS; remote GitHub cá nhân; Postgres/PostGIS dev,
   migration `0001_extensions.sql`; `pnpm run setup` sạch đạt 6,51 giây; image
   pipeline local đã build/smoke trên arm64 và chạy được qua Compose; Dev Container
@@ -27,20 +27,19 @@ commit với code).
   `mapslibvn-db` (policy Service Auth, token `hyperdrive`) + Hyperdrive
   `71d7a62b89e9462e91bb0094af1f750f` đã hoạt động — Worker `/healthz/db` qua
   `wrangler dev --remote` trả `{"ok":true,"user":"api","version":"PostgreSQL 16.4"}`;
+  POI live `poi-20260830` đã publish vào manifest production;
   **PENDING Windows** (chờ PHONG có máy để kiểm)
 
 ## 2. Bước kế tiếp
 
-M2 Task 10 — `pnpm data:update` đầy đủ 3 nguồn + nhánh `--poi`, `pnpm db:restore`
-và nghiệm thu M2. Task 1 đã đóng hoàn toàn; không còn gì chặn.
+Chốt M2 Task 10: code/live/local acceptance đã xong. Còn thêm 5 Actions secret và
+xác nhận CI `test` + `dbtest` + `image` sau push; GitHub CLI trên máy hiện có token hết hạn,
+cần `gh auth login -h github.com` bằng tài khoản `dotienphong` trước khi đóng Step 7–8.
 
 **Lưu ý vận hành máy dev:** đĩa đã đầy 97 % ngày 27/08 (`~/.cache/uv` 124 GB + JSONL Overture không nén);
 đã dọn còn 44 GiB trống. Trước các bước nặng (Task 7 gộp, Task 10 `data:update`), kiểm `df -h /`.
 
-**Việc tay PHONG còn lại trước Task 10 (không chặn Task 1):** tạo token Cloudflare riêng
-`mapslibvn-pipeline` (Workers KV Edit + Workers R2 Edit) → `CLOUDFLARE_API_TOKEN` trong
-`infra/server/.env` (đang trống có chủ đích; không dùng token deploy cho máy chạy 24/7).
-Ngoài ra nên chốt hẳn việc không ngủ máy: `caffeinate` đang giữ máy thức nhưng cài đặt gốc
+**Việc tay vận hành:** nên chốt hẳn việc không ngủ máy: `caffeinate` đang giữ máy thức nhưng cài đặt gốc
 vẫn là `sleep 1` phút — `sudo pmset -a sleep 0 disksleep 0`.
 
 **Việc tay còn lại của M2 Task 8:** biên soạn bảng alias phường/xã trước→sau sắp xếp
@@ -55,8 +54,6 @@ vẫn là `sleep 1` phút — `sudo pmset -a sleep 0 disksleep 0`.
   nguồn extract OSM bổ sung rồi bật lại.
 - Tiles còn dùng `tiles.ai-solutions.io.vn`; khi có domain riêng, **nhớ mang theo cặp
   Cache Rule** ở SC-1.
-- `.github/workflows/data-update.yml` thiếu `RCLONE_CONFIG_R2_NO_CHECK_BUCKET` (M1c để
-  lọt, dry-run không lộ) — sửa ở M2 Task 10 cùng lúc thêm biến Tunnel/HF.
 
 ## 3. Quyết định phát sinh
 
@@ -133,6 +130,9 @@ vẫn là `sleep 1` phút — `sudo pmset -a sleep 0 disksleep 0`.
 | 2026-08-30 | Lệnh wrangler cho Hyperdrive phải chạy từ `apps/api`, không từ gốc repo | Wrangler 4 đọc `.env` của thư mục hiện tại; ở gốc repo nó nhặt `CLOUDFLARE_API_TOKEN` (token deploy, không có quyền Hyperdrive) và ghi đè OAuth → `Authentication error [code: 10000]` | (M2 T1) |
 | 2026-08-30 | Access application phải tắt hết identity provider và đặt Session Duration “expires immediately” | Tài liệu Cloudflare nêu, plan bỏ sót; để IdP bật thì Access đòi đăng nhập người dùng thay vì chấp nhận service token và Hyperdrive không qua được cửa | (M2 T1) |
 | 2026-08-30 | Test tầng `apps/api` trỏ binding Hyperdrive vào cổng đóng và chỉ kiểm nhánh lỗi 503 của `/healthz/db` | Bản đầu kiểm happy-path qua `localConnectionString` → xanh trên máy dev nhưng đỏ trên runner Deploy API (không có Postgres), chặn luôn bước `wrangler deploy`. Tầng api phải không cần DB — đó là lý do `dbtest` là workflow riêng. Đường đi thật tới Postgres nghiệm thu bằng `wrangler dev --remote` | (M2 T1) |
+| 2026-08-31 | `detectSources` không phụ thuộc Geofabrik HEAD; tải OSM dùng GET có retry + checksum và có thể nhận PBF local | Geofabrik HEAD trả 502 trong lần chạy live dù GET/checksum vẫn tốt; không được biến lỗi CDN nhất thời thành rebuild thất bại | (M2 T10) |
+| 2026-08-31 | `pnpm test:db` luôn reset DB cô lập `mapslibvn_task8_test`; hook 300 giây | Bộ test trước đây có thể sửa DB dev đã restore và conflate fixture vượt hook 120 giây | (M2 T10) |
+| 2026-08-31 | Restore portable xong phải reconcile owner/grant `api`/`pipeline` | Backup dùng `--no-owner --no-privileges`; chỉ chạy migration pending không khôi phục ACL của schema đã đủ migration | (M2 T10) |
 | 2026-08-27 | `apps/docs/tsconfig.json` phải `exclude: ["dist", "public"]` | `astro check` với `include: ["**/*"]` kéo cả `public/sdk/mapslibvn.umd.js` (1 MB) và sourcemap (2,4 MB) vào TypeScript → hết heap 4 GB, exit 137 | (Task M1c T3) |
 | 2026-08-27 | `biome.json` bỏ qua `apps/docs/public/sdk/**` | Thư mục là artefact copy từ bản build web; biome báo vượt giới hạn 1 MiB và lỗi CSS của maplibre | (Task M1c T3) |
 
@@ -377,3 +377,27 @@ rõ ở mục 2 và không chặn M2: kiểm trên Windows, và bật lại `req
   `{"ok":true,"user":"api","version":"PostgreSQL 16.4"}`** — Worker → Hyperdrive → Access →
   Tunnel → máy nội bộ thông suốt. lint sạch, typecheck 10/10, **463/463 test**
   (450 root + 13 api) · (commit hiện tại)
+- 2026-08-31 · M2 T10 · dò release 3 nguồn + kế hoạch/state R2; `data:update` đủ nhánh
+  `--tiles`/`--poi`/`--force`; workflow Tunnel/HF; restore nguyên tử + reconcile quyền;
+  fixture full-pipeline và DB test cô lập. Live national hoàn tất theo thứ tự pipeline qua
+  các lần resume có kiểm soát sau lỗi mạng: 1.897.986 record → 402.242 cặp → 1.522.416 POI
+  (1.515.983 active), 1.583.616 link; 3,3 % đa nguồn; 923.567 anchor; Nguyễn Lâm 174.
+  `poi-20260830.pmtiles` 244,623 MiB đã QA/upload/smoke và active trong manifest; dry-run
+  sau đó trả `tiles:false, poi:false`. Restore backup mới nhất trả đúng 1.522.416 POI và
+  owner/grant; DB test **32/32** trong 595 giây; unit/API **476/476**, E2E docs **2/2**,
+  lint/typecheck/build/image smoke sạch. Production playground z14 render 653 POI và click
+  thật hiện `Museum of Ho Chi Minh City · museum (culture_tourism)`. Còn remote CI + 5
+  Actions secrets chờ đăng nhập lại GitHub CLI · (nhánh `feature/m2-task10`)
+
+## 7. Nghiệm thu M2 (đang chờ remote CI)
+
+| # | Hạng mục | Kết quả |
+|---|---|---|
+| 1 | Worker → Hyperdrive → Access → Tunnel → Postgres TLS | **ĐẠT:** `/healthz/db` trả `ok:true`, user `api`, PostgreSQL 16.4 sau khi recreate server |
+| 2 | Pipeline POI national + cron máy nội bộ | **ĐẠT theo chuỗi resumable:** mọi stage live hoàn tất; không ghi duration one-shot vì có lỗi mạng và resume. Cron kế tiếp `2026-09-06T19:00:00Z` (02:00 thứ Hai VN) |
+| 3 | POI active ≥ 1,5 triệu | **ĐẠT:** 1.515.983 / tổng 1.522.416 |
+| 4 | PMTiles/playground/click POI | **ĐẠT:** 244,623 MiB; z14 có 653 feature; click hiện tên/loại/nhóm |
+| 5 | Báo cáo gộp/geocode | **ĐẠT:** multi-source 50.868 (3,3 %), combined other 297.823 (19,6 %), 923.567 anchor, Nguyễn Lâm 174 |
+| 6 | Backup/restore | **ĐẠT:** restore mới nhất vào DB tạm rồi rename; 1.522.416 POI; owner/grant đúng |
+| 7 | Test/CI | Local **ĐẠT:** lint, typecheck, build, 476 unit/API, 32 DB, 2 E2E, image smoke. Remote CI **PENDING** do GitHub CLI hết hạn đăng nhập |
+| 8 | Việc tay còn lại | Alias phường/xã 2025 + relation Khánh Hòa; Windows setup; QA Hoàng Sa; đăng nhập GitHub để thêm 5 Actions secret và xác nhận CI. Production còn warning glyph Unicode hiếm (MapLibre fallback vẫn render) |
