@@ -101,5 +101,6 @@ psql(`ALTER DATABASE ${dbName} RENAME TO ${oldName}`);
 psql(`ALTER DATABASE ${restoreName} RENAME TO ${dbName}`);
 psql(`DROP DATABASE ${oldName}`);
 run(process.execPath, ['scripts/db-migrate.mjs']);
+run(process.execPath, ['scripts/db-permissions.mjs']);
 rmSync(work, { recursive: true, force: true });
 console.log(`✓ đã phục hồi ${name} vào ${host}`);

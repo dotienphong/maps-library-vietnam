@@ -23,7 +23,7 @@
     "data:update": "node scripts/data-update.mjs",
     "data:rollback": "node scripts/data-rollback.mjs",
     "check:git": "node scripts/check-git-identity.mjs",
-    "test:db": "vitest run --config vitest.db.config.ts --passWithNoTests",
+    "test:db": "node scripts/db-test.mjs",
     "server:setup": "node scripts/server-setup.mjs",
     "server:update": "node scripts/server-update.mjs",
     "db:restore": "node scripts/db-restore.mjs",

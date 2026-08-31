@@ -1,0 +1,39 @@
+// pg_dump/pg_restore dùng --no-owner --no-privileges để backup có thể phục hồi
+// giữa các máy. Reconcile lại đúng boundary api/pipeline sau restore.
+export const PERMISSIONS_SQL = `
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'api') THEN CREATE ROLE api NOLOGIN; END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'pipeline') THEN CREATE ROLE pipeline NOLOGIN; END IF;
+END $$;
+
+GRANT USAGE ON SCHEMA public TO api, pipeline;
+GRANT CREATE ON SCHEMA public TO pipeline;
+
+ALTER TABLE src_osm_place OWNER TO pipeline;
+ALTER TABLE src_overture_place OWNER TO pipeline;
+ALTER TABLE src_fsq_place OWNER TO pipeline;
+ALTER TABLE category OWNER TO pipeline;
+ALTER TABLE category_map OWNER TO pipeline;
+ALTER TABLE poi OWNER TO pipeline;
+ALTER TABLE poi_source_link OWNER TO pipeline;
+ALTER TABLE admin_area OWNER TO pipeline;
+ALTER TABLE admin_alias OWNER TO pipeline;
+ALTER TABLE street OWNER TO pipeline;
+ALTER TABLE alley OWNER TO pipeline;
+ALTER TABLE address_anchor OWNER TO pipeline;
+ALTER TABLE vn_boundary OWNER TO pipeline;
+
+ALTER SEQUENCE admin_area_id_seq OWNER TO pipeline;
+ALTER SEQUENCE street_id_seq OWNER TO pipeline;
+ALTER SEQUENCE alley_id_seq OWNER TO pipeline;
+ALTER SEQUENCE address_anchor_id_seq OWNER TO pipeline;
+ALTER SEQUENCE vn_boundary_id_seq OWNER TO pipeline;
+
+GRANT SELECT ON src_osm_place, src_overture_place, src_fsq_place TO api;
+GRANT SELECT ON category, category_map, poi, poi_source_link, poi_edit TO api;
+GRANT INSERT ON poi_edit TO api;
+GRANT USAGE, SELECT ON SEQUENCE poi_edit_id_seq TO api;
+GRANT SELECT, UPDATE ON poi_edit TO pipeline;
+GRANT SELECT ON admin_area, admin_alias, street, alley, address_anchor TO api;
+GRANT SELECT ON tenant, api_key TO api, pipeline;
+`;

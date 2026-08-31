@@ -1,6 +1,17 @@
 import { execFileSync, spawnSync } from 'node:child_process';
 
 /**
+ * @param {string} cmd @param {string[]} args
+ * @param {{ status: number | null, signal: NodeJS.Signals | null }} result
+ */
+export function runFailure(cmd, args, result) {
+  const command = `${cmd} ${args.join(' ')}`;
+  return result.signal
+    ? `${command} bị kết thúc bởi ${result.signal}`
+    : `${command} thoát mã ${result.status}`;
+}
+
+/**
  * Chạy lệnh, in output ra màn hình, ném lỗi nếu exit != 0.
  * @param {string} cmd
  * @param {string[]} args
@@ -9,7 +20,7 @@ import { execFileSync, spawnSync } from 'node:child_process';
 export function run(cmd, args, opts = {}) {
   const result = spawnSync(cmd, args, { stdio: 'inherit', ...opts });
   if (result.error) throw result.error;
-  if (result.status !== 0) throw new Error(`${cmd} ${args.join(' ')} thoát mã ${result.status}`);
+  if (result.status !== 0) throw new Error(runFailure(cmd, args, result));
 }
 
 /**

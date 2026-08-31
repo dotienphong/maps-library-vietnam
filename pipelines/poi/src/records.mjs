@@ -264,6 +264,7 @@ if (process.argv[1]?.endsWith('records.mjs')) {
       `✓ poi_work_record: ${await countRows(sql, 'poi_work_record')} dòng (COPY ${n}) — ${by.map((b) => `${b.source}=${b.n}`).join(', ')}`,
     );
   } finally {
-    await sql.end();
+    // Không để một COPY/cursor lỗi qua Tunnel giữ teardown vô hạn và che mất lỗi gốc.
+    await sql.end({ timeout: 5 });
   }
 }
