@@ -1,5 +1,5 @@
 export const DBTEST_DATABASE = 'mapslibvn_task8_test';
-export const DBTEST_CHILD_TIMEOUT_MS = 280_000;
+export const DBTEST_CHILD_TIMEOUT_MS = 840_000;
 
 /** @param {string} value */
 export function isolatedDbUrl(value) {

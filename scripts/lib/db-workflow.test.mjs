@@ -10,4 +10,9 @@ describe('DB test workflow prerequisites', () => {
     expect(styleBuild).toBeGreaterThan(-1);
     expect(dbtest).toBeGreaterThan(styleBuild);
   });
+
+  it('caps the expensive DB job instead of relying on child timeouts', () => {
+    const workflow = readFileSync('.github/workflows/dbtest.yml', 'utf8');
+    expect(workflow).toMatch(/jobs:\s*\n\s+dbtest:\s*\n\s+timeout-minutes: 45/);
+  });
 });

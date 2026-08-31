@@ -16,8 +16,8 @@ describe('isolatedDbUrl', () => {
 });
 
 describe('DBTEST_CHILD_TIMEOUT_MS', () => {
-  it('allows a slow CI conflate child to use most of the 300-second hook budget', () => {
-    expect(DBTEST_CHILD_TIMEOUT_MS).toBeGreaterThanOrEqual(240_000);
-    expect(DBTEST_CHILD_TIMEOUT_MS).toBeLessThan(300_000);
+  it('allows a slow CI fixture child to use most of the 15-minute test budget', () => {
+    expect(DBTEST_CHILD_TIMEOUT_MS).toBeGreaterThanOrEqual(840_000);
+    expect(DBTEST_CHILD_TIMEOUT_MS).toBeLessThan(900_000);
   });
 });

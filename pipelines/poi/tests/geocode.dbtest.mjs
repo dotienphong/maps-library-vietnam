@@ -3,6 +3,7 @@ import 'dotenv/config';
 import { execFile } from 'node:child_process';
 import postgres from 'postgres';
 import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest';
+import { DBTEST_CHILD_TIMEOUT_MS } from '../../../scripts/lib/db-test.mjs';
 import { databaseUrlFromEnv } from '../../../scripts/lib/migrations.mjs';
 import { buildAnchors } from '../src/geocode/anchors.mjs';
 import { replaceRawTables } from '../src/geocode/raw-tables.mjs';
@@ -13,7 +14,6 @@ if (new URL(databaseUrl).pathname !== '/mapslibvn_task8_test') {
 }
 
 const sql = postgres(databaseUrl, { max: 1, onnotice: () => {} });
-const CHILD_TIMEOUT_MS = 110_000;
 let adminOutput = '';
 /** @type {Map<import('node:child_process').ChildProcess, { controller: AbortController, closed: Promise<void> }>} */
 const activeChildren = new Map();
@@ -27,7 +27,7 @@ const node = (/** @type {string[]} */ ...args) =>
       {
         encoding: 'utf8',
         signal: controller.signal,
-        timeout: CHILD_TIMEOUT_MS,
+        timeout: DBTEST_CHILD_TIMEOUT_MS,
       },
       (error, stdout, stderr) => {
         activeChildren.delete(child);

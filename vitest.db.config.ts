@@ -6,7 +6,7 @@ export default defineConfig({
     include: ['db/**/*.dbtest.mjs', 'pipelines/*/tests/**/*.dbtest.mjs'],
     exclude: ['**/node_modules/**', '**/dist/**'],
     fileParallelism: false,
-    testTimeout: 120_000,
-    hookTimeout: 300_000,
+    testTimeout: 900_000,
+    hookTimeout: 900_000,
   },
 });

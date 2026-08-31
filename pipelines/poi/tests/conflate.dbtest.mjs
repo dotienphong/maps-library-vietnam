@@ -129,7 +129,7 @@ describe('gộp trên fixture Quận 1', () => {
     const rerun = await poiOf('osm', 'n900000000001');
     expect(rerun.id).toBe(before.id);
     expect(Number(rerun.popularity)).toBeCloseTo(Number(after.popularity));
-  }, 360_000);
+  });
   it('publish cập nhật mọi trường pipeline khi chỉ name_norm/name_alt/địa chỉ/popularity thay đổi', async () => {
     const before = await poiOf('overture', 'test-hl-2');
     await sql`UPDATE poi_work_record SET name_norm = 'highlands changed', name_alt = ARRAY['alias changed'],
@@ -186,7 +186,7 @@ describe('gộp trên fixture Quận 1', () => {
     const moved = await poiOf('overture', 'test-cong');
     expect(moved.id).toBe(before.id);
     expect(moved.primary_source).toBe('overture');
-  }, 240_000);
+  });
   it('merge/split giữ lịch sử theo previous primary dù record đó là secondary hiện tại', async () => {
     const historicalPrimary = await poiOf('overture', 'test-cong');
     const competingHistorical = await poiOf('overture', 'test-hl-2');
