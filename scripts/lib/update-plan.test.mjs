@@ -60,6 +60,19 @@ describe('nextState', () => {
       releases: { vn: 'vn-20260819', poi: 'poi-20260826' },
     });
   });
+
+  it('--poi khi OSM đổi giữ pending tiles cho lần chạy sau', () => {
+    const afterPoi = nextState(state, osmNew, { poi: 'poi-20260826' });
+    expect(afterPoi.pending).toEqual({ tiles: true, poi: false });
+    expect(decideWork(afterPoi, osmNew, {})).toMatchObject({ tiles: true, poi: false });
+  });
+
+  it('--tiles không nuốt pending POI do OSM/Overture đổi', () => {
+    const versions = { ...osmNew, overture: overtureNew.overture };
+    const afterTiles = nextState(state, versions, { vn: 'vn-20260826' });
+    expect(afterTiles.pending).toEqual({ tiles: false, poi: true });
+    expect(decideWork(afterTiles, versions, {})).toMatchObject({ tiles: false, poi: true });
+  });
 });
 
 describe('missingLiveEnv', () => {

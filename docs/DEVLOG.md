@@ -133,6 +133,7 @@ vẫn là `sleep 1` phút — `sudo pmset -a sleep 0 disksleep 0`.
 | 2026-08-31 | `detectSources` không phụ thuộc Geofabrik HEAD; tải OSM dùng GET có retry + checksum và có thể nhận PBF local | Geofabrik HEAD trả 502 trong lần chạy live dù GET/checksum vẫn tốt; không được biến lỗi CDN nhất thời thành rebuild thất bại | (M2 T10) |
 | 2026-08-31 | `pnpm test:db` luôn reset DB cô lập `mapslibvn_task8_test`; hook 300 giây | Bộ test trước đây có thể sửa DB dev đã restore và conflate fixture vượt hook 120 giây | (M2 T10) |
 | 2026-08-31 | Restore portable xong phải reconcile owner/grant `api`/`pipeline` | Backup dùng `--no-owner --no-privileges`; chỉ chạy migration pending không khôi phục ACL của schema đã đủ migration | (M2 T10) |
+| 2026-08-31 | Partial run lưu `pending.tiles`/`pending.poi`; Tunnel chỉ mở trong nhánh POI, nhận service token qua env và luôn cleanup | `--poi` khi OSM đổi trước đây có thể cập nhật source state rồi làm lần sau bỏ sót tiles; secret trên argv lộ qua process list; dry-run không cần DB | (M2 T10 review) |
 | 2026-08-27 | `apps/docs/tsconfig.json` phải `exclude: ["dist", "public"]` | `astro check` với `include: ["**/*"]` kéo cả `public/sdk/mapslibvn.umd.js` (1 MB) và sourcemap (2,4 MB) vào TypeScript → hết heap 4 GB, exit 137 | (Task M1c T3) |
 | 2026-08-27 | `biome.json` bỏ qua `apps/docs/public/sdk/**` | Thư mục là artefact copy từ bản build web; biome báo vượt giới hạn 1 MiB và lỗi CSS của maplibre | (Task M1c T3) |
 
@@ -383,8 +384,10 @@ rõ ở mục 2 và không chặn M2: kiểm trên Windows, và bật lại `req
   các lần resume có kiểm soát sau lỗi mạng: 1.897.986 record → 402.242 cặp → 1.522.416 POI
   (1.515.983 active), 1.583.616 link; 3,3 % đa nguồn; 923.567 anchor; Nguyễn Lâm 174.
   `poi-20260830.pmtiles` 244,623 MiB đã QA/upload/smoke và active trong manifest; dry-run
-  sau đó trả `tiles:false, poi:false`. Restore backup mới nhất trả đúng 1.522.416 POI và
-  owner/grant; DB test **32/32** trong 595 giây; unit/API **476/476**, E2E docs **2/2**,
+  ngay sau live trả `tiles:false, poi:false`. Đến 09:55 ngày 31/08, Geofabrik đổi OSM
+  `b0b8… → c256…`; dry-run đúng khi lên kế hoạch `tiles:true, poi:true` cho cron kế tiếp.
+  Restore backup mới nhất trả đúng 1.522.416 POI và owner/grant; DB test **32/32** trong
+  595 giây; unit/API **480/480**, E2E docs **2/2**,
   lint/typecheck/build/image smoke sạch. Production playground z14 render 653 POI và click
   thật hiện `Museum of Ho Chi Minh City · museum (culture_tourism)`. Còn remote CI + 5
   Actions secrets chờ đăng nhập lại GitHub CLI · (nhánh `feature/m2-task10`)
@@ -399,5 +402,5 @@ rõ ở mục 2 và không chặn M2: kiểm trên Windows, và bật lại `req
 | 4 | PMTiles/playground/click POI | **ĐẠT:** 244,623 MiB; z14 có 653 feature; click hiện tên/loại/nhóm |
 | 5 | Báo cáo gộp/geocode | **ĐẠT:** multi-source 50.868 (3,3 %), combined other 297.823 (19,6 %), 923.567 anchor, Nguyễn Lâm 174 |
 | 6 | Backup/restore | **ĐẠT:** restore mới nhất vào DB tạm rồi rename; 1.522.416 POI; owner/grant đúng |
-| 7 | Test/CI | Local **ĐẠT:** lint, typecheck, build, 476 unit/API, 32 DB, 2 E2E, image smoke. Remote CI **PENDING** do GitHub CLI hết hạn đăng nhập |
+| 7 | Test/CI | Local **ĐẠT:** lint, typecheck, build, 480 unit/API, 32 DB, 2 E2E, image smoke. Remote CI **PENDING** do GitHub CLI hết hạn đăng nhập |
 | 8 | Việc tay còn lại | Alias phường/xã 2025 + relation Khánh Hòa; Windows setup; QA Hoàng Sa; đăng nhập GitHub để thêm 5 Actions secret và xác nhận CI. Production còn warning glyph Unicode hiếm (MapLibre fallback vẫn render) |

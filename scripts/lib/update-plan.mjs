@@ -1,6 +1,6 @@
 /**
  * @typedef {{ osm?: { lastModified: string, md5: string }, overture?: { release: string }, fsq?: { release: string },
- *   releases?: { vn: string | null, poi: string | null } }} State
+ *   releases?: { vn: string | null, poi: string | null }, pending?: { tiles?: boolean, poi?: boolean } }} State
  * @typedef {{ osm: { lastModified: string, md5: string }, overture: { release: string }, fsq: { release: string } }} Versions
  * @typedef {{ force?: boolean, onlyTiles?: boolean, onlyPoi?: boolean }} Flags
  */
@@ -25,10 +25,19 @@ export function decideWork(state, versions, flags) {
   if (fsqChanged) {
     reasons.push(`FSQ đổi (${state.fsq?.release ?? '∅'} → ${versions.fsq.release})`);
   }
+  if (state.pending?.tiles && !osmChanged) reasons.push('tiles còn pending từ lần chạy giới hạn');
+  if (state.pending?.poi && !osmChanged && !overtureChanged && !fsqChanged) {
+    reasons.push('POI còn pending từ lần chạy giới hạn');
+  }
   if (flags.force) reasons.push('--force');
 
-  let tiles = osmChanged || Boolean(flags.force);
-  let poi = osmChanged || overtureChanged || fsqChanged || Boolean(flags.force);
+  let tiles = osmChanged || Boolean(state.pending?.tiles) || Boolean(flags.force);
+  let poi =
+    osmChanged ||
+    overtureChanged ||
+    fsqChanged ||
+    Boolean(state.pending?.poi) ||
+    Boolean(flags.force);
   if (flags.onlyTiles) poi = false;
   if (flags.onlyPoi) tiles = false;
   return { tiles, poi, reasons };
@@ -38,9 +47,20 @@ export function decideWork(state, versions, flags) {
  * @param {State} state
  * @param {Versions} versions
  * @param {{ vn?: string, poi?: string }} built
+ * @returns {State}
  */
 export function nextState(state, versions, built) {
-  return {
+  const osmChanged = !state.osm || state.osm.md5 !== versions.osm.md5;
+  const overtureChanged = !state.overture || state.overture.release !== versions.overture.release;
+  const fsqChanged = !state.fsq || state.fsq.release !== versions.fsq.release;
+  const pending = {
+    tiles: built.vn ? false : Boolean(state.pending?.tiles || osmChanged),
+    poi: built.poi
+      ? false
+      : Boolean(state.pending?.poi || osmChanged || overtureChanged || fsqChanged),
+  };
+  /** @type {State} */
+  const next = {
     osm: versions.osm,
     overture: versions.overture,
     fsq: versions.fsq,
@@ -49,6 +69,7 @@ export function nextState(state, versions, built) {
       poi: built.poi ?? state.releases?.poi ?? null,
     },
   };
+  return pending.tiles || pending.poi ? { ...next, pending } : next;
 }
 
 const LIVE_ENV = [

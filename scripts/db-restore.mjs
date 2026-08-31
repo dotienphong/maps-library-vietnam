@@ -92,6 +92,11 @@ const tables = execFileSync(
 ).trim();
 if (Number(tables) < 16) throw new Error(`Restore thiếu bảng (${tables} < 16) — không đổi DB`);
 
+// Hoàn thiện DB tạm trước khi swap: migration/quyền lỗi thì DB đang phục vụ vẫn nguyên vẹn.
+const restoreEnv = { ...process.env, DATABASE_URL: restoreUrl.href };
+run(process.execPath, ['scripts/db-migrate.mjs'], { env: restoreEnv });
+run(process.execPath, ['scripts/db-permissions.mjs'], { env: restoreEnv });
+
 console.log(`Đổi ${restoreName} → ${dbName} (ngắt kết nối đang mở) …`);
 psql(
   `SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname IN ('${dbName}', '${restoreName}') AND pid <> pg_backend_pid()`,
@@ -100,7 +105,5 @@ psql(`DROP DATABASE IF EXISTS ${oldName}`);
 psql(`ALTER DATABASE ${dbName} RENAME TO ${oldName}`);
 psql(`ALTER DATABASE ${restoreName} RENAME TO ${dbName}`);
 psql(`DROP DATABASE ${oldName}`);
-run(process.execPath, ['scripts/db-migrate.mjs']);
-run(process.execPath, ['scripts/db-permissions.mjs']);
 rmSync(work, { recursive: true, force: true });
 console.log(`✓ đã phục hồi ${name} vào ${host}`);
