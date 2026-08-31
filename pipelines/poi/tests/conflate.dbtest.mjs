@@ -5,6 +5,7 @@ import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import postgres from 'postgres';
 import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest';
+import { DBTEST_CHILD_TIMEOUT_MS } from '../../../scripts/lib/db-test.mjs';
 import { databaseUrlFromEnv } from '../../../scripts/lib/migrations.mjs';
 import { OUT, vnDate } from '../src/lib/env.mjs';
 import {
@@ -16,7 +17,6 @@ import {
 
 const sql = postgres(databaseUrlFromEnv(process.env), { max: 1, onnotice: () => {} });
 const EDIT_NOTE = 'task7-popularity-cap-test';
-const CHILD_TIMEOUT_MS = 110_000;
 /** @type {Map<import('node:child_process').ChildProcess, { controller: AbortController, closed: Promise<void> }>} */
 const activeChildren = new Map();
 const node = (/** @type {string[]} */ ...args) =>
@@ -25,7 +25,7 @@ const node = (/** @type {string[]} */ ...args) =>
     const child = execFile(
       process.execPath,
       args,
-      { encoding: 'utf8', signal: controller.signal, timeout: CHILD_TIMEOUT_MS },
+      { encoding: 'utf8', signal: controller.signal, timeout: DBTEST_CHILD_TIMEOUT_MS },
       (error, stdout, stderr) => {
         activeChildren.delete(child);
         if (error) {

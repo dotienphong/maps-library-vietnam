@@ -33,5 +33,5 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - run: pnpm install --frozen-lockfile
-      - run: pnpm --filter @mapslibvn/core build
+      - run: pnpm --filter @mapslibvn/core build && pnpm --filter @mapslibvn/style build
       - run: pnpm test:db
