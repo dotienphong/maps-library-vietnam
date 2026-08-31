@@ -3,7 +3,7 @@
  * ghi mốc thời gian vào header; đọc ra tự phân biệt "tươi" (≤ freshSec) và "stale".
  */
 export async function cachedJson(
-  ctx: ExecutionContext,
+  ctx: { waitUntil(promise: Promise<unknown>): void },
   cacheUrl: string,
   freshSec: number,
   staleSec: number,

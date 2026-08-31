@@ -2,13 +2,14 @@ import { ATTRIBUTION_LINKS, attributionHtml, attributionText } from '@mapslibvn/
 import { Hono } from 'hono';
 import { cors } from 'hono/cors';
 import { getSql } from './db';
-import type { Env } from './env';
+import type { AppEnv } from './env';
 import { ApiError, errorResponse } from './errors';
+import { autocomplete } from './routes/autocomplete';
 import { r2 } from './routes/r2';
 import { styles } from './routes/styles';
 import { tiles } from './routes/tiles';
 
-const app = new Hono<{ Bindings: Env }>();
+const app = new Hono<AppEnv>();
 app.use(
   '*',
   cors({
@@ -44,6 +45,7 @@ app.get('/v1/attribution', (c) =>
     'cache-control': 'public, max-age=86400',
   }),
 );
+app.route('/', autocomplete);
 app.route('/', styles);
 app.route('/', tiles);
 app.route('/', r2);

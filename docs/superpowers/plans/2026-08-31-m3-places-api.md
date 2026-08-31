@@ -418,7 +418,7 @@ Công thức 6.2 và cache 10 phút tách khỏi route để test bằng unit. `
 - Create: `apps/api/src/ranking.ts`, `apps/api/src/cache.ts`, `apps/api/src/params.ts`
 - Test: `apps/api/test/ranking.test.ts`, `apps/api/test/cache.test.ts`, `apps/api/test/params.test.ts`
 
-- [ ] **Step 1: Viết test ranking — `apps/api/test/ranking.test.ts`**
+- [x] **Step 1: Viết test ranking — `apps/api/test/ranking.test.ts`**
 
 ```ts
 import { describe, expect, it } from 'vitest';
@@ -458,7 +458,7 @@ describe('ranking spec 6.2', () => {
 });
 ```
 
-- [ ] **Step 2: Viết test params — `apps/api/test/params.test.ts`**
+- [x] **Step 2: Viết test params — `apps/api/test/params.test.ts`**
 
 ```ts
 import { describe, expect, it } from 'vitest';
@@ -489,12 +489,12 @@ describe('params', () => {
 });
 ```
 
-- [ ] **Step 3: Chạy để thấy fail**
+- [x] **Step 3: Chạy để thấy fail**
 
 Run: `pnpm --filter @mapslibvn/api test`
 Expected: FAIL — thiếu module `../src/ranking`, `../src/params`.
 
-- [ ] **Step 4: Viết `apps/api/src/ranking.ts`**
+- [x] **Step 4: Viết `apps/api/src/ranking.ts`**
 
 ```ts
 /** Hệ số xếp hạng autocomplete (spec 6.2) — đặt ở đây để chỉnh bằng test. */
@@ -535,12 +535,13 @@ export function rankScore(x: {
 }
 
 export function gridKey(lat: number, lng: number): string {
-  const r = (v: number) => (Math.round(v / CACHE_GRID_DEG) * CACHE_GRID_DEG).toFixed(2);
-  return `${r(lat)},${r(lng)}`;
+  const scale = 1 / CACHE_GRID_DEG;
+  const bucket = (value: number) => Math.floor(value * scale + 1e-9) / scale;
+  return `${bucket(lat).toFixed(2)},${bucket(lng).toFixed(2)}`;
 }
 ```
 
-- [ ] **Step 5: Viết `apps/api/src/params.ts`**
+- [x] **Step 5: Viết `apps/api/src/params.ts`**
 
 ```ts
 import { ApiError } from './errors';
@@ -596,7 +597,7 @@ export function parseBbox(raw: string | undefined): [number, number, number, num
 }
 ```
 
-- [ ] **Step 6: Viết test cache — `apps/api/test/cache.test.ts`**
+- [x] **Step 6: Viết test cache — `apps/api/test/cache.test.ts`**
 
 ```ts
 import { createExecutionContext, waitOnExecutionContext } from 'cloudflare:test';
@@ -636,13 +637,13 @@ describe('cachedJson', () => {
 });
 ```
 
-- [ ] **Step 7: Viết `apps/api/src/cache.ts`**
+- [x] **Step 7: Viết `apps/api/src/cache.ts`**
 
 ```ts
 /** Cache API với stale-if-error thủ công (spec 6.6): lưu với max-age = staleSec,
  *  ghi mốc thời gian vào header; đọc ra tự phân biệt "tươi" (≤ freshSec) và "stale". */
 export async function cachedJson(
-  ctx: ExecutionContext,
+  ctx: { waitUntil(promise: Promise<unknown>): void },
   cacheUrl: string,
   freshSec: number,
   staleSec: number,
@@ -654,7 +655,7 @@ export async function cachedJson(
   const ageSec = hit
     ? (Date.now() - Number(hit.headers.get('x-stored-at') ?? 0)) / 1000
     : Number.POSITIVE_INFINITY;
-  if (hit && ageSec <= freshSec) return withCacheHeader(hit, 'hit');
+  if (hit && freshSec > 0 && ageSec <= freshSec) return withCacheHeader(hit, 'hit');
   try {
     const data = await compute();
     const res = new Response(JSON.stringify(data), {
@@ -679,7 +680,7 @@ function withCacheHeader(res: Response, value: 'hit' | 'stale'): Response {
 }
 ```
 
-- [ ] **Step 8: Chạy test + typecheck, rồi commit**
+- [x] **Step 8: Chạy test + typecheck, rồi commit**
 
 Run: `pnpm --filter @mapslibvn/api test && pnpm --filter @mapslibvn/api typecheck`
 Expected: PASS toàn bộ.
@@ -688,6 +689,12 @@ Expected: PASS toàn bộ.
 git add apps/api/src/ranking.ts apps/api/src/cache.ts apps/api/src/params.ts apps/api/test/ranking.test.ts apps/api/test/cache.test.ts apps/api/test/params.test.ts
 git commit -m "feat(api): ranking 6.2 + cache stale-if-error + validate params"
 ```
+
+**✅ Task 3 ĐÃ XONG (31/08/2026), commit `ab218f1`.** TDD RED xác nhận thiếu cả ba module;
+GREEN đạt 8 file / 30 test API, typecheck và lint sạch. `gridKey` dùng floor-bucket 0,05° thay vì
+`Math.round` vì hai điểm mẫu 10.77/10.78 nằm khác phía ngưỡng làm tròn 10.775; test có cả toạ độ âm.
+`freshSec=0` được định nghĩa stale ngay để test/cache không phụ thuộc hai lần `Date.now()` cùng millisecond.
+Contract context của `cachedJson` chỉ yêu cầu `waitUntil`, tương thích cả Hono và Workers runtime types.
 
 ---
 
@@ -700,7 +707,7 @@ Hợp nhất POI + đường + địa chỉ bằng trigram trên `name_norm`/`st
 - Modify: `apps/api/src/index.ts`
 - Test: `apps/api/test/autocomplete.test.ts`
 
-- [ ] **Step 1: Viết test — `apps/api/test/autocomplete.test.ts`**
+- [x] **Step 1: Viết test — `apps/api/test/autocomplete.test.ts`**
 
 ```ts
 import { SELF, env } from 'cloudflare:test';
@@ -772,12 +779,12 @@ describe('GET /v1/autocomplete — auth + validation (không DB)', () => {
 });
 ```
 
-- [ ] **Step 2: Chạy để thấy fail**
+- [x] **Step 2: Chạy để thấy fail**
 
 Run: `pnpm --filter @mapslibvn/api test`
 Expected: FAIL — 404 not_found (route chưa tồn tại) thay vì 401/400/503.
 
-- [ ] **Step 3: Viết `apps/api/src/routes/autocomplete.ts`**
+- [x] **Step 3: Viết `apps/api/src/routes/autocomplete.ts`**
 
 ```ts
 import { nameCore, normalizeVi, parseAddress } from '@mapslibvn/core';
@@ -813,7 +820,7 @@ autocomplete.get('/v1/autocomplete', requireAuth(), async (c) => {
   const limit = clampInt(c.req.query('limit'), 1, 10, 10, 'limit');
   const types = parseTypes(c.req.query('types'));
   const qn = normalizeVi(q);
-  const qc = nameCore(q);
+  const qc = nameCore(q) || qn;
   const qDigit = /^\d/.test(qn);
   if (!qn) throw new ApiError(400, 'invalid_request', 'q không có ký tự tra cứu được');
 
@@ -920,7 +927,7 @@ autocomplete.get('/v1/autocomplete', requireAuth(), async (c) => {
 });
 ```
 
-- [ ] **Step 4: Mount route trong `apps/api/src/index.ts`**
+- [x] **Step 4: Mount route trong `apps/api/src/index.ts`**
 
 **Quan trọng:** đổi generic của app chính sang `AppEnv` (route mới dùng `Variables.auth`; nếu giữ `{ Bindings: Env }` thì middleware `Context<AppEnv>` sẽ lỗi type):
 
@@ -938,12 +945,12 @@ import { autocomplete } from './routes/autocomplete';
 app.route('/', autocomplete);
 ```
 
-- [ ] **Step 5: Chạy test + typecheck**
+- [x] **Step 5: Chạy test + typecheck**
 
 Run: `pnpm --filter @mapslibvn/api test && pnpm --filter @mapslibvn/api typecheck`
 Expected: PASS toàn bộ. Lưu ý test `503` cuối: compute ném ApiError 503 và cache không có bản stale → errorResponse trả 503 chuẩn.
 
-- [ ] **Step 6: Smoke thử với DB local (tay, không bắt buộc CI)**
+- [x] **Step 6: Smoke thử với DB local (tay, không bắt buộc CI)**
 
 ```bash
 pnpm db:up && pnpm db:seed-tenant
@@ -956,12 +963,19 @@ kill %1
 
 Expected: JSON `{"items":[…]}` (rỗng nếu DB local chưa chạy `pnpm db:fixture`; có kết quả Highlands nếu đã nạp fixture Quận 1).
 
-- [ ] **Step 7: Commit** (deploy-api.yml sẽ tự deploy — test đã xanh)
+- [x] **Step 7: Commit** (deploy-api.yml sẽ tự deploy — test đã xanh)
 
 ```bash
 git add apps/api/src/routes/autocomplete.ts apps/api/src/index.ts apps/api/test/autocomplete.test.ts
 git commit -m "feat(api): GET /v1/autocomplete — trigram 3 nguồn, xếp hạng 6.2, cache 10'"
 ```
+
+**✅ Task 4 ĐÃ XONG (31/08/2026).** TDD RED trả 404 cho cả 6 case; GREEN đạt 9 file / 36 test API,
+typecheck và lint sạch. Route đã gắn `requireAuth`, validate `q/near/types/limit`, hợp nhất POI/đường/địa
+chỉ, xếp hạng 6.2 và cache 10 phút + stale-if-error 1 giờ. Smoke thật với Postgres local trả HTTP 200
+trong 2,69 giây, 10 item; “Highlands” đầu tiên tại `(10.7884848, 106.6997872)`, score 0.971.
+**Điểm bắt đầu phiên sau: Task 5 Step 1 — tạo helper `apps/api/src/place.ts`, sau đó RED test ba route
+search/nearby/place-details trong `apps/api/test/places-routes.test.ts`.**
 
 ---
 
