@@ -15,6 +15,17 @@ export interface AuthInfo {
 
 const KV_TTL_S = 300;
 
+/** Hyperdrive dùng `fetch_types: false`, vì vậy PostgreSQL text[] có thể về dạng `{a,b}`. */
+export function normalizeTextArray(value: string[] | string): string[] {
+  if (Array.isArray(value)) return value;
+  if (value === '{}') return [];
+  if (!value.startsWith('{') || !value.endsWith('}')) return [value];
+  return value
+    .slice(1, -1)
+    .split(',')
+    .map((item) => item.replace(/^"|"$/g, '').replace(/\\([\\"])/g, '$1'));
+}
+
 /**
  * Khớp Origin/Referer với allowed_origins: so protocol + hostname (mọi port),
  * hỗ trợ wildcard subdomain `https://*.example.com` (khớp cả example.com).
@@ -48,7 +59,12 @@ export function originAllowed(origin: string, allowed: string[]): boolean {
 async function loadAuth(c: Context<AppEnv>, key: string): Promise<AuthInfo | null> {
   const kvKey = `apikey:${key}`;
   const cached = await c.env.META.get<AuthInfo>(kvKey, 'json');
-  if (cached) return cached;
+  if (cached)
+    return {
+      ...cached,
+      scopes: normalizeTextArray(cached.scopes as string[] | string),
+      allowedOrigins: normalizeTextArray(cached.allowedOrigins as string[] | string),
+    };
 
   const sql = getSql(c.env);
   try {
@@ -56,8 +72,8 @@ async function loadAuth(c: Context<AppEnv>, key: string): Promise<AuthInfo | nul
       {
         key: string;
         kind: AuthInfo['kind'];
-        scopes: string[];
-        allowed_origins: string[];
+        scopes: string[] | string;
+        allowed_origins: string[] | string;
         quota_places_per_day: number | null;
         tenant_id: string;
         plan: AuthInfo['plan'];
@@ -73,8 +89,8 @@ async function loadAuth(c: Context<AppEnv>, key: string): Promise<AuthInfo | nul
       tenantId: row.tenant_id,
       plan: row.plan,
       kind: row.kind,
-      scopes: row.scopes,
-      allowedOrigins: row.allowed_origins,
+      scopes: normalizeTextArray(row.scopes),
+      allowedOrigins: normalizeTextArray(row.allowed_origins),
       quotaPlacesPerDay: row.quota_places_per_day,
     };
     c.executionCtx.waitUntil(

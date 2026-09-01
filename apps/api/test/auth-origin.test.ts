@@ -1,5 +1,21 @@
 import { describe, expect, it } from 'vitest';
-import { originAllowed } from '../src/auth';
+import { normalizeTextArray, originAllowed } from '../src/auth';
+
+describe('normalizeTextArray', () => {
+  it('chuẩn hoá PostgreSQL array khi Hyperdrive trả về dạng text', () => {
+    expect(normalizeTextArray('{places:read,edits:write}')).toEqual(['places:read', 'edits:write']);
+    expect(
+      normalizeTextArray(
+        '{http://localhost,https://mapslibvn-docs.pages.dev,https://*.mapslibvn-docs.pages.dev}',
+      ),
+    ).toContain('http://localhost');
+    expect(normalizeTextArray('{}')).toEqual([]);
+  });
+
+  it('giữ nguyên array đã được driver parse', () => {
+    expect(normalizeTextArray(['places:read'])).toEqual(['places:read']);
+  });
+});
 
 describe('originAllowed', () => {
   const allowed = ['http://localhost', 'https://docs.example.com', 'https://*.pages.dev'];
