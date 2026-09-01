@@ -10,7 +10,8 @@ commit với code).
   đã tự review 1 lượt: sửa test consensus, REVOKE PUBLIC cho hàm SECURITY DEFINER,
   ép `id::int` cho bigserial qua porsager, cwd Playwright). 10 quyết định thiết kế ghi
   trong plan — chốt vào mục 3 khi nghiệm thu Task 11
-- Task đang làm: **chưa bắt đầu — kế tiếp là M4 Task 1** (migration 0006 + hàm áp dụng edit)
+- Task đang làm: **Task 1 XONG 01/09/2026** (migration `0006_edits.sql` + 3 hàm SECURITY DEFINER
+  + `db/apply-edit.dbtest.mjs` 6/6) → kế tiếp **Task 2** (`apps/api/src/edits/{validate,rules,hash,ulid}.ts`)
 - Mốc trước: **M2 — Kho POI + máy chủ nội bộ đã nghiệm thu 31/08/2026**, 11/11 task; plan
   `docs/superpowers/plans/2026-08-27-m2-kho-poi-may-chu.md` đã tick trọn, kết quả ở mục 7
 - Commit code cuối: M3 Task 11 `6eb4ade`; Task 10 `ece8d1e`; Task 9 `9c61812`.
@@ -38,10 +39,26 @@ commit với code).
 
 ## 2. Bước kế tiếp
 
-**BẮT ĐẦU TỪ ĐÂY: `docs/superpowers/plans/2026-09-01-m4-dong-gop.md` → Task 1 Step 1
-(dbtest `db/apply-edit.dbtest.mjs` RED trước, rồi migration `0006_edits.sql`).** Plan M4
-đã viết + tự review 01/09/2026. Việc tay của PHONG (Access application, custom domain
-API) chỉ chặn từ Task 11 — Task 1–10 làm được ngay.
+**BẮT ĐẦU TỪ ĐÂY: `docs/superpowers/plans/2026-09-01-m4-dong-gop.md` → Task 2 Step 1**
+(viết `apps/api/test/edits-validate.test.ts` + `edits-rules.test.ts` cho RED, rồi
+`apps/api/src/edits/{hash,ulid,rules,validate}.ts` và `vnDayStartUtc` trong `quota.ts`).
+Task 1 đã xong và trên `main`. Việc tay của PHONG (Access application, custom domain API)
+chỉ chặn từ Task 11 — Task 2–10 làm được ngay.
+
+**Trước khi làm Task 3/4 (cần DB thật):** nếu vừa chạy `pnpm test:db` thì dev DB đã bị
+`schema.dbtest.mjs` down/up làm sạch — chạy lại `pnpm db:migrate && pnpm db:seed-tenant`
+(và `pnpm db:fixture` nếu cần POI) trước.
+
+**M4 Task 1 xong 01/09/2026.** `db/migrations/0006_edits.sql`: cột `api_key` + `new_poi_id`
+cho `poi_edit`, 3 index đếm theo ngày, và 3 hàm `SECURITY DEFINER` owner `pipeline` —
+`stage_poi_create` (tạo POI `pending` cho `kind='create'`), `apply_poi_edit` (cập nhật `poi`
+theo `changes`, khoá trường vào `locked_fields`, tạo `address_anchor` `source='user'`
+confidence 0,95, duyệt kèm phiếu trùng với reviewer `auto:consensus`), `reject_poi_edit`.
+User `api` **không** có UPDATE/INSERT trên `poi` — chỉ EXECUTE 3 hàm (spec mục 9).
+Ba điều khác plan đã xử lý và ghi ở cuối Task 1 trong plan: (1) `poi_edit.tenant_id` có FK
+tới `tenant` nên test phải seed tenant trước; (2) `scripts/lib/db-permissions.mjs` phải giữ
+owner/grant của 3 hàm, nếu không thì sau `db:restore` hàm rơi về superuser; (3)
+`db/schema.dbtest.mjs` hardcode 4 lần `--down`, sửa thành 5.
 
 **M3 Task 12 xong 01/09/2026 — M3 nghiệm thu ĐẠT.** Kết quả đầy đủ ở mục 8. Perf
 production có ba lần cache-hit liên tiếp p95 177/192/168 ms từ máy dev tại Việt Nam;
@@ -115,6 +132,9 @@ vẫn là `sleep 1` phút — `sudo pmset -a sleep 0 disksleep 0`.
 
 | Ngày | Quyết định | Lý do | Commit |
 |---|---|---|---|
+| 2026-09-01 | M4: ghi `poi` qua 3 hàm SQL `SECURITY DEFINER` owner `pipeline`, `api` chỉ EXECUTE | Giữ đúng spec 9 "Worker chỉ đọc + ghi `poi_edit`" ở tầng GRANT thay vì tin vào code Worker | (commit này) |
+| 2026-09-01 | M4: `db-permissions.mjs` giữ owner/grant của 3 hàm 0006 | `pg_restore --no-owner --no-privileges` làm hàm rơi về superuser → Worker sẽ ghi `poi` với quyền superuser | (commit này) |
+| 2026-09-01 | M4: `poi_edit` thêm cột `api_key` + `new_poi_id`; giới hạn edit đếm bằng SQL, không KV | `api_key` cần cho hạn 500/ngày/key và audit; `new_poi_id` vì `poi_id` có FK nên chỉ gán được sau khi stage POI. Đếm SQL chính xác và không tốn write KV (Workers Free 1.000 ghi/ngày) | (commit này) |
 | 2026-08-26 | Lint/format dùng Biome thay ESLint+Prettier | Một công cụ, nhanh, không cấu hình rườm rà | `9cff9a8` |
 | 2026-08-26 | Typecheck gốc kiểm thêm `vitest.config.ts` | TypeScript 5.9 trả TS18003 khi `scripts/` chưa tồn tại | `9cff9a8` |
 | 2026-08-26 | Spec bản 2 đã được PHONG review | Trạng thái thiết kế đã được chủ dự án xác nhận | `cb98a09` |
@@ -468,6 +488,10 @@ rõ ở mục 2 và không chặn M2: kiểm trên Windows, và bật lại `req
   bị bind mount vào worktree tạm; M3 đóng · (commit hiện tại)
 - 2026-09-01 · M3 hậu nghiệm thu · playground tự chọn Worker production khi mở URL không
   có `?api=`; localhost và query override vẫn giữ; thêm unit regression + E2E URL ngắn · (commit này)
+- 2026-09-01 · M4 T1 · migration `0006_edits.sql` (cột `api_key`/`new_poi_id`, 3 index, 3 hàm
+  SECURITY DEFINER owner `pipeline`); `db/apply-edit.dbtest.mjs` 6/6; `db-permissions.mjs` giữ
+  owner/grant hàm sau restore; sửa `schema.dbtest.mjs` down 4→5. Local: 486 root + 59 api +
+  12 dbtest `db/`, typecheck 12/12, lint sạch · (commit này)
 - 2026-09-01 · M4 plan · viết + tự review plan cấp bước `2026-09-01-m4-dong-gop.md`
   (11 task: migration 0006 SECURITY DEFINER, POST /v1/edits, admin SPA sau Access,
   Access giả lập cho test, pipeline tôn trọng locked_fields, suggestEdit + docs) · (commit này)

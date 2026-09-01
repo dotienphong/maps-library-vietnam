@@ -36,4 +36,14 @@ GRANT USAGE, SELECT ON SEQUENCE poi_edit_id_seq TO api;
 GRANT SELECT, UPDATE ON poi_edit TO pipeline;
 GRANT SELECT ON admin_area, admin_alias, street, alley, address_anchor TO api;
 GRANT SELECT ON tenant, api_key TO api, pipeline;
+
+-- M4 (0006): hàm SECURITY DEFINER phải thuộc pipeline — nếu rơi về superuser sau restore thì
+-- Worker ghi poi với quyền superuser. PUBLIC bị thu hồi, chỉ api được EXECUTE.
+ALTER FUNCTION stage_poi_create(bigint) OWNER TO pipeline;
+ALTER FUNCTION apply_poi_edit(bigint, text, text) OWNER TO pipeline;
+ALTER FUNCTION reject_poi_edit(bigint, text) OWNER TO pipeline;
+REVOKE ALL ON FUNCTION stage_poi_create(bigint), apply_poi_edit(bigint, text, text),
+  reject_poi_edit(bigint, text) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION stage_poi_create(bigint), apply_poi_edit(bigint, text, text),
+  reject_poi_edit(bigint, text) TO api;
 `;

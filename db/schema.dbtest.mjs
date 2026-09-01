@@ -122,7 +122,8 @@ describe('lược đồ spec 5.2', () => {
   });
 
   it('--down revert từng migration rồi migrate lại về đủ bảng', async () => {
-    for (let i = 0; i < 4; i++) migrate('--down');
+    // 0002…0006: năm migration sau 0001 (0006 chỉ thêm cột/hàm, không thêm bảng).
+    for (let i = 0; i < 5; i++) migrate('--down');
     expect(await tables()).toEqual(['schema_migrations']);
     expect((await sql`SELECT name FROM schema_migrations`).map((r) => r.name)).toEqual([
       '0001_extensions.sql',

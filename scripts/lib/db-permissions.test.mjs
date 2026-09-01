@@ -11,4 +11,16 @@ describe('PERMISSIONS_SQL', () => {
     expect(PERMISSIONS_SQL).toContain('GRANT SELECT, UPDATE ON poi_edit TO pipeline');
     expect(PERMISSIONS_SQL).toContain('GRANT SELECT ON tenant, api_key TO api, pipeline');
   });
+
+  it('giữ hàm áp dụng edit (0006) thuộc pipeline và chỉ api được EXECUTE', () => {
+    expect(PERMISSIONS_SQL).toContain(
+      'ALTER FUNCTION apply_poi_edit(bigint, text, text) OWNER TO pipeline',
+    );
+    expect(PERMISSIONS_SQL).toContain('ALTER FUNCTION stage_poi_create(bigint) OWNER TO pipeline');
+    expect(PERMISSIONS_SQL).toContain(
+      'ALTER FUNCTION reject_poi_edit(bigint, text) OWNER TO pipeline',
+    );
+    expect(PERMISSIONS_SQL).toContain('FROM PUBLIC');
+    expect(PERMISSIONS_SQL).toMatch(/GRANT EXECUTE ON FUNCTION[\s\S]*TO api;/);
+  });
 });
