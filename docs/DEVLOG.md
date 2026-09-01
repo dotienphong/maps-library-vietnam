@@ -465,6 +465,8 @@ rõ ở mục 2 và không chặn M2: kiểm trên Windows, và bật lại `req
   51 trả 429 đúng; production giữ quota off · `6eb4ade`
 - 2026-09-01 · M3 T12 · production fixture/p95/React demo đạt; khôi phục server Postgres
   bị bind mount vào worktree tạm; M3 đóng · (commit hiện tại)
+- 2026-09-01 · M3 hậu nghiệm thu · playground tự chọn Worker production khi mở URL không
+  có `?api=`; localhost và query override vẫn giữ; thêm unit regression + E2E URL ngắn · (commit này)
 
 ## 7. Nghiệm thu M2 (spec mục 13, hàng M2) — **ĐẠT 31/08/2026**
 

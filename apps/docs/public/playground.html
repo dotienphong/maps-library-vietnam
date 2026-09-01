@@ -16,9 +16,11 @@
   <mapslibvn-autocomplete id="ac" placeholder="Tìm địa điểm…"></mapslibvn-autocomplete>
   <div id="map"></div>
   <script src="/sdk/mapslibvn.umd.js"></script>
-  <script>
+  <script type="module">
+    import { resolveApiBase } from '/playground-config.js';
+
     const params = new URLSearchParams(location.search);
-    const apiBase = params.get('api') || 'http://localhost:8787';
+    const apiBase = resolveApiBase();
     const status = document.getElementById('status');
     try {
       const map = MapsLibVN.createMap({

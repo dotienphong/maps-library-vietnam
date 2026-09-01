@@ -5,7 +5,7 @@ test('playground tải bản đồ từ fixture, tiles 206/200, attribution hi�
   page.on('response', (r) => {
     if (r.url().includes('/r2/tiles/')) tileResponses.push(r.status());
   });
-  await page.goto('/playground.html?api=http://localhost:8787');
+  await page.goto('/playground.html');
   await expect(page.locator('#status')).toHaveAttribute('data-state', 'loaded', {
     timeout: 30_000,
   });
