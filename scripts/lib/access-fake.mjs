@@ -4,10 +4,16 @@
 import { createSign, generateKeyPairSync } from 'node:crypto';
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { createServer } from 'node:http';
+import { dirname } from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 export const CERTS_PORT = 8790;
 export const FAKE_AUD = 'itest-aud';
-const CACHE_FILE = '.cache/access-fake.json';
+// Tuyệt đối theo vị trí file này (<repo>/scripts/lib/) — KHÔNG theo cwd: Playwright chạy spec
+// với cwd = apps/admin, nếu dùng đường dẫn tương đối sẽ sinh cặp khoá thứ hai và JWT không khớp
+// JWKS mà harness đang phục vụ ("Chữ ký JWT không hợp lệ").
+const CACHE_DIR = fileURLToPath(new URL('../../.cache/', import.meta.url));
+const CACHE_FILE = `${CACHE_DIR}access-fake.json`;
 
 /** @returns {{ jwk: Record<string, string>, privatePem: string }} */
 export function ensureKeys() {
@@ -23,7 +29,7 @@ export function ensureKeys() {
     jwk,
     privatePem: privateKey.export({ type: 'pkcs8', format: 'pem' }).toString(),
   };
-  mkdirSync('.cache', { recursive: true });
+  mkdirSync(dirname(CACHE_FILE), { recursive: true });
   writeFileSync(CACHE_FILE, JSON.stringify(data));
   return data;
 }

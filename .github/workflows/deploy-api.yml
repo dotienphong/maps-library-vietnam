@@ -2,7 +2,7 @@ name: Deploy API
 on:
   push:
     branches: [main]
-    paths: ['apps/api/**', 'packages/core/**', 'packages/style/**', 'pnpm-lock.yaml']
+    paths: ['apps/api/**', 'apps/admin/**', 'packages/core/**', 'packages/style/**', 'pnpm-lock.yaml']
   workflow_dispatch:
 jobs:
   deploy:
@@ -15,6 +15,8 @@ jobs:
         with: { node-version: 22, cache: pnpm }
       - run: pnpm install --frozen-lockfile
       - run: pnpm --filter @mapslibvn/core build && pnpm --filter @mapslibvn/style build
+      # Trang admin phải build trước: wrangler.toml khai báo [assets] directory = ../admin/dist
+      - run: pnpm --filter @mapslibvn/admin build
       - run: pnpm --filter @mapslibvn/api test
       - run: pnpm --filter @mapslibvn/api exec wrangler deploy --env production
         env:

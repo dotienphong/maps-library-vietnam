@@ -5,6 +5,7 @@ on:
     branches: [main]
     paths:
       - 'apps/api/**'
+      - 'apps/admin/**'
       - 'packages/core/**'
       - 'db/migrations/**'
       - 'scripts/api-db-test.mjs'
@@ -42,6 +43,13 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: pnpm --filter @mapslibvn/core build && pnpm --filter @mapslibvn/style build
+      # Trang admin phải build trước: wrangler.toml khai báo [assets] trỏ apps/admin/dist.
+      - run: pnpm --filter @mapslibvn/admin build
       - run: pnpm test:api-db
         env:
+          DATABASE_URL: postgres://mapslibvn:mapslibvn@localhost:5432/mapslibvn
+      - run: pnpm --filter @mapslibvn/admin exec playwright install --with-deps chromium
+      - run: pnpm test:admin-e2e
+        env:
+          CI: '1'
           DATABASE_URL: postgres://mapslibvn:mapslibvn@localhost:5432/mapslibvn

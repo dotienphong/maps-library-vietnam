@@ -8,6 +8,11 @@ TILES_BASE = "https://tiles.ai-solutions.io.vn"
 ENVIRONMENT = "dev"
 QUOTA_ENABLED = "0"
 
+# Trang duyệt đóng góp (M4): SPA tĩnh build từ apps/admin, phục vụ tại /admin.
+# Cùng origin với /v1/admin/* nên chỉ cần một Cloudflare Access application.
+[assets]
+directory = "../admin/dist"
+
 [[analytics_engine_datasets]]
 binding = "ANALYTICS"
 dataset = "mapslibvn_api"
@@ -34,3 +39,4 @@ kv_namespaces = [{ binding = "META", id = "a50e778ff63a4ad7956f783eba456ed5" }]
 r2_buckets = [{ binding = "TILES", bucket_name = "mapslibvn-tiles" }]
 hyperdrive = [{ binding = "DB", id = "71d7a62b89e9462e91bb0094af1f750f" }]
 analytics_engine_datasets = [{ binding = "ANALYTICS", dataset = "mapslibvn_api" }]
+assets = { directory = "../admin/dist" }

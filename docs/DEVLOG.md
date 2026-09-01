@@ -10,10 +10,10 @@ commit với code).
   đã tự review 1 lượt: sửa test consensus, REVOKE PUBLIC cho hàm SECURITY DEFINER,
   ép `id::int` cho bigserial qua porsager, cwd Playwright). 10 quyết định thiết kế ghi
   trong plan — chốt vào mục 3 khi nghiệm thu Task 11
-- Task đang làm: **Task 1–6 XONG 01/09/2026** (migration `0006` + 3 hàm SECURITY DEFINER;
+- Task đang làm: **Task 1–8 XONG 01/09/2026** (migration `0006` + 3 hàm SECURITY DEFINER;
   `apps/api/src/edits/*`; `POST /v1/edits`; POI pending cho tenant tạo; Access JWT +
-  `/v1/admin/*`; Access giả lập + itest duyệt end-to-end 22/22) → kế tiếp **Task 7**
-  (`apps/admin` SPA React do Worker phục vụ tại `/admin`)
+  `/v1/admin/*`; Access giả lập + itest 22/22; `apps/admin` SPA tại `/admin` + E2E 3/3)
+  → kế tiếp **Task 9** (pipeline tôn trọng `locked_fields` + anchor người dùng)
 - Mốc trước: **M2 — Kho POI + máy chủ nội bộ đã nghiệm thu 31/08/2026**, 11/11 task; plan
   `docs/superpowers/plans/2026-08-27-m2-kho-poi-may-chu.md` đã tick trọn, kết quả ở mục 7
 - Commit code cuối: M3 Task 11 `6eb4ade`; Task 10 `ece8d1e`; Task 9 `9c61812`.
@@ -41,17 +41,31 @@ commit với code).
 
 ## 2. Bước kế tiếp
 
-**BẮT ĐẦU TỪ ĐÂY: `docs/superpowers/plans/2026-09-01-m4-dong-gop.md` → Task 7 Step 1**
-(tạo `apps/admin`: `package.json` + `tsconfig.json` + `vite.config.ts` với `base: '/admin/'` và
-`outDir: dist/admin`, rồi `index.html` + `src/{main.tsx,app.tsx,api.ts}`; sau đó `[assets]
-directory = "../admin/dist"` trong `apps/api/wrangler.toml` và build admin trong
-`deploy-api.yml`/`ci.yml` + script `test` gốc). Task 1–6 đã xong, đều trên `main`.
-Việc tay của PHONG (Access application, custom domain API) chỉ chặn từ Task 11 — Task 7–10 làm
+**BẮT ĐẦU TỪ ĐÂY: `docs/superpowers/plans/2026-09-01-m4-dong-gop.md` → Task 9 Step 1**
+(viết `pipelines/poi/tests/edit-lock.dbtest.mjs` cho RED — dựng `poi_work_*` tối thiểu rồi chạy
+`publish.mjs --force`; sau đó sửa `publish.mjs` thêm `CASE WHEN '<cột>' = ANY(p.locked_fields)`
+cho từng cột và chặn đóng POI có `status` bị khoá, và thêm câu chép anchor `source='user'` sang
+`address_anchor_new` trong `geocode/anchors.mjs`). **Cần `pnpm db:up` + `pnpm db:migrate`;**
+sau khi chạy `pnpm test:db` nhớ `pnpm db:seed-tenant` lại. Task 1–8 đã xong, đều trên `main`.
+Việc tay của PHONG (Access application, custom domain API) chỉ chặn từ Task 11 — Task 9–10 làm
 được ngay.
 
 **Trước khi làm Task 3/4 (cần DB thật):** nếu vừa chạy `pnpm test:db` thì dev DB đã bị
 `schema.dbtest.mjs` down/up làm sạch — chạy lại `pnpm db:migrate && pnpm db:seed-tenant`
 (và `pnpm db:fixture` nếu cần POI) trước.
+
+**M4 Task 7 + 8 xong 01/09/2026.** `apps/admin` là SPA Vite + React 18 (`base:'/admin/'`,
+`outDir dist/admin`, 146 kB / 47 kB gzip): danh sách edit theo `status`, nút Duyệt/Từ chối, báo
+lỗi HTTP ra UI. Worker phục vụ nó qua `[assets] directory = "../admin/dist"` trong `wrangler.toml`
+(cả `[env.production]`) — đã kiểm thật là assets **không che** `/healthz`, `/v1/*` hay 404-JSON.
+`deploy-api.yml` + script `test` gốc + `api-db-test.mjs` đều build admin trước; `apitest.yml` chạy
+thêm `pnpm test:admin-e2e`. E2E Playwright 3/3 với Access giả lập: bấm Duyệt trên trang thật →
+POI `active` qua API; bấm Từ chối → POI 404; không JWT → 401. **Ba lỗi thật đã sửa:**
+`test.use({extraHTTPHeaders})` không áp cho `fetch()` của trang (phải `page.setExtraHTTPHeaders`);
+`access-fake.mjs` đọc `.cache/` theo cwd nên Playwright sinh cặp khoá thứ hai và JWT sai chữ ký
+(sửa: đường dẫn tuyệt đối từ `import.meta.url`); `webServer` thiếu `gracefulShutdown` nên
+Playwright treo sau khi test đã xanh. Gate: root 486/486, api 87/87, api-db 22/22, E2E 3/3,
+typecheck 13 task, lint 223 file.
 
 **M4 Task 5 + 6 xong 01/09/2026.** `apps/api/src/access.ts` verify JWT Cloudflare Access
 (RS256 bằng WebCrypto, JWKS từ `${ACCESS_TEAM_DOMAIN}/cdn-cgi/access/certs` cache KV 1 giờ, kiểm
@@ -542,6 +556,8 @@ rõ ở mục 2 và không chặn M2: kiểm trên Windows, và bật lại `req
   bị bind mount vào worktree tạm; M3 đóng · (commit hiện tại)
 - 2026-09-01 · M3 hậu nghiệm thu · playground tự chọn Worker production khi mở URL không
   có `?api=`; localhost và query override vẫn giữ; thêm unit regression + E2E URL ngắn · (commit này)
+- 2026-09-01 · M4 T7+T8 · `apps/admin` SPA React + `[assets]` trong wrangler.toml + E2E Playwright
+  với Access giả lập (3/3); sửa lỗi cwd của access-fake và gracefulShutdown webServer · (commit này)
 - 2026-09-01 · M4 T5+T6 · `access.ts` (verify Access JWT RS256, JWKS cache KV) + `routes/admin.ts`
   (list/approve/reject) + `access-fake.mjs` tiến trình riêng + `admin.itest.mjs`; api 87/87,
   api-db 22/22 · (commit này)

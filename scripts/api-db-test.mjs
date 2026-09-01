@@ -56,6 +56,11 @@ async function seedDatabase() {
 
 const detached = process.platform !== 'win32';
 
+// wrangler.toml khai báo [assets] trỏ apps/admin/dist — thiếu thì wrangler dev không lên.
+if (!existsSync('apps/admin/dist/admin/index.html')) {
+  run('pnpm', ['--filter', '@mapslibvn/admin', 'build']);
+}
+
 await recreateDatabase();
 console.log(`API itest DB: ${target.hostname}/${DBTEST_DATABASE}`);
 await seedDatabase();

@@ -18,3 +18,7 @@ AGENTS.md
 
 # Khoá RSA của Access giả lập cho itest/E2E (scripts/lib/access-fake.mjs)
 .cache/
+
+# Output Playwright
+test-results/
+playwright-report/
