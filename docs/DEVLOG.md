@@ -10,11 +10,11 @@ commit với code).
   đã tự review 1 lượt: sửa test consensus, REVOKE PUBLIC cho hàm SECURITY DEFINER,
   ép `id::int` cho bigserial qua porsager, cwd Playwright). 10 quyết định thiết kế ghi
   trong plan — chốt vào mục 3 khi nghiệm thu Task 11
-- Task đang làm: **Task 1–9 XONG 01/09/2026** (migration `0006` + 3 hàm SECURITY DEFINER;
+- Task đang làm: **Task 1–10 XONG 01/09/2026** (migration `0006` + 3 hàm SECURITY DEFINER;
   `apps/api/src/edits/*`; `POST /v1/edits`; POI pending cho tenant tạo; Access JWT +
   `/v1/admin/*`; Access giả lập + itest 22/22; `apps/admin` SPA tại `/admin` + E2E 3/3;
-  pipeline tôn trọng `locked_fields` + giữ anchor người dùng) → kế tiếp **Task 10**
-  (`suggestEdit` trong core + trang docs "Đóng góp"), rồi **Task 11** nghiệm thu
+  pipeline tôn trọng `locked_fields` + giữ anchor người dùng; `suggestEdit` + docs "Đóng góp")
+  → còn **Task 11 — nghiệm thu**, CHẶN bởi việc tay của PHONG trên Cloudflare
 - Mốc trước: **M2 — Kho POI + máy chủ nội bộ đã nghiệm thu 31/08/2026**, 11/11 task; plan
   `docs/superpowers/plans/2026-08-27-m2-kho-poi-may-chu.md` đã tick trọn, kết quả ở mục 7
 - Commit code cuối: M3 Task 11 `6eb4ade`; Task 10 `ece8d1e`; Task 9 `9c61812`.
@@ -42,19 +42,31 @@ commit với code).
 
 ## 2. Bước kế tiếp
 
-**BẮT ĐẦU TỪ ĐÂY: `docs/superpowers/plans/2026-09-01-m4-dong-gop.md` → Task 10 Step 1**
-(viết `packages/core/src/client.edits.test.ts` cho RED — pattern `client.places.test.ts` với fetch
-tiêm; rồi thêm `EditKind`/`EditChanges`/`SuggestEditRequest`/`SuggestEditResponse` vào
-`packages/core/src/types.ts`, tách `parseOrThrow` + thêm `post()` và `suggestEdit` vào
-`client.ts`, viết `apps/docs/src/content/docs/dong-gop.md` và thêm vào sidebar
-`apps/docs/astro.config.mjs`). Task 1–9 đã xong, đều trên `main`.
-**Task 11 (nghiệm thu) cần việc tay của PHONG:** custom domain cho Worker production + tạo
-Cloudflare Access application (path `admin` và `v1/admin`, policy chỉ email PHONG), rồi điền
-`ACCESS_TEAM_DOMAIN`/`ACCESS_AUD` vào `[env.production]` của `apps/api/wrangler.toml`.
+**BẮT ĐẦU TỪ ĐÂY: chỉ còn Task 11 — nghiệm thu M4. ĐANG CHỜ VIỆC TAY CỦA PHONG:**
+
+1. Gắn **custom domain** cho Worker `mapslibvn-api` production (vd `api.ai-solutions.io.vn`) —
+   Cloudflare Access không bảo vệ được `*.workers.dev`. Nếu thêm mới thì cập nhật hằng API
+   production trong `apps/docs/public/playground.html`.
+2. Zero Trust → Access → Applications → **Add self-hosted**: domain `api.<zone>`, path `admin`,
+   thêm đường dẫn thứ hai `v1/admin` trong cùng application. Policy Allow → email PHONG, session 24 h.
+3. Đưa lại **AUD tag** + **team domain** (`<team>.cloudflareaccess.com`).
+
+Có 2 giá trị đó thì chạy Task 11 (`docs/superpowers/plans/2026-09-01-m4-dong-gop.md`, 5 step):
+điền vars `ACCESS_*` vào `[env.production]` của `apps/api/wrangler.toml` → chạy toàn bộ gate local
+→ `pnpm db:seed-tenant` trên DB production + smoke `POST /v1/edits` sửa giờ mở cửa → mở
+`https://api.<zone>/admin/` duyệt một POI thật → chốt DEVLOG mục 1–4 + tick roadmap mục 7.
 
 **Trước khi làm Task 3/4 (cần DB thật):** nếu vừa chạy `pnpm test:db` thì dev DB đã bị
 `schema.dbtest.mjs` down/up làm sạch — chạy lại `pnpm db:migrate && pnpm db:seed-tenant`
 (và `pnpm db:fixture` nếu cần POI) trước.
+
+**M4 Task 10 xong 01/09/2026.** `packages/core`: thêm `suggestEdit` (client giờ có 9 phương thức)
+cùng types `EditKind`/`EditChanges`/`SuggestEditRequest`/`SuggestEditResponse`; tách `parseOrThrow`
+dùng chung cho `get`/`post` nên bỏ được khối đọc lỗi trùng lặp. Bundle core 6,54 kB gzip (budget 8).
+Trang docs `dong-gop.md` (bảng 5 `kind`, danh sách trường `changes` hợp lệ, luật duyệt, giới hạn
+20/ngày/end-user + 500/ngày/key, ví dụ bắt `MapsLibVNError`) và thêm vào sidebar. 4 test mới —
+có ca `create` và ca body lỗi không phải JSON mà trước đây chưa test nhánh `catch` của `parseOrThrow`.
+Gate: core 327 test, root 490/490, api 87/87, docs build 5 trang, lint 225 file.
 
 **M4 Task 9 xong 01/09/2026.** `publish.mjs` giờ dùng `CASE WHEN '<cột>' = ANY(p.locked_fields)`
 cho 11 cột của `poi` nên pipeline không ghi đè trường người dùng đã sửa, và không đóng POI có
@@ -568,6 +580,8 @@ rõ ở mục 2 và không chặn M2: kiểm trên Windows, và bật lại `req
   bị bind mount vào worktree tạm; M3 đóng · (commit hiện tại)
 - 2026-09-01 · M3 hậu nghiệm thu · playground tự chọn Worker production khi mở URL không
   có `?api=`; localhost và query override vẫn giữ; thêm unit regression + E2E URL ngắn · (commit này)
+- 2026-09-01 · M4 T10 · `suggestEdit` + types Edit trong core (9 phương thức, 6,54 kB gzip) +
+  trang docs "Đóng góp & sửa POI"; core 327 test, root 490/490 · (commit này)
 - 2026-09-01 · M4 T9 · `publish.mjs` tôn trọng `locked_fields` (11 cột + nhánh status) và
   `anchors.mjs` giữ mốc `source='user'`; `edit-lock.dbtest.mjs` 3/3, test:db 38 passed · (commit này)
 - 2026-09-01 · M4 T7+T8 · `apps/admin` SPA React + `[assets]` trong wrangler.toml + E2E Playwright

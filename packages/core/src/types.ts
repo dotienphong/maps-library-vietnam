@@ -89,3 +89,39 @@ export interface ReverseResponse {
   address: ReverseAddress;
   nearest_poi: Place | null;
 }
+
+export type EditKind = 'create' | 'update' | 'close' | 'reopen' | 'report';
+
+/** Trường được phép sửa/khai khi đóng góp (spec 6.1 + 6.5). */
+export interface EditChanges {
+  name?: string;
+  lat?: number;
+  lng?: number;
+  category?: string;
+  housenumber?: string;
+  street?: string;
+  ward?: string;
+  province?: string;
+  address_text?: string;
+  contact?: { phone?: string[]; website?: string[]; facebook?: string };
+  /** Chuỗi opening_hours OSM hoặc {osm: chuỗi}. */
+  hours?: string | { osm: string };
+}
+
+export interface SuggestEditRequest {
+  /** Bắt buộc trừ kind='create'. */
+  poi_id?: string;
+  kind: EditKind;
+  changes?: EditChanges;
+  photo_url?: string;
+  note?: string;
+  /** Chuỗi ổn định theo người dùng cuối do app nhúng cấp — server chỉ lưu bản băm. */
+  end_user_token: string;
+}
+
+export interface SuggestEditResponse {
+  edit_id: number;
+  status: 'pending' | 'auto_approved';
+  /** POI đích; với kind='create' là id POI mới (pending cho tới khi được duyệt). */
+  poi_id: string | null;
+}

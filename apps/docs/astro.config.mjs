@@ -11,6 +11,7 @@ export default defineConfig({
       locales: { root: { label: 'Tiếng Việt', lang: 'vi' } },
       sidebar: [
         { label: 'Bắt đầu 5 phút', slug: 'bat-dau' },
+        { label: 'Đóng góp & sửa POI', slug: 'dong-gop' },
         { label: 'Playground', link: '/playground.html' },
       ],
     }),

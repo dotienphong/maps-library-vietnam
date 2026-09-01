@@ -6,6 +6,8 @@ import type {
   Place,
   PlaceDetails,
   ReverseResponse,
+  SuggestEditRequest,
+  SuggestEditResponse,
 } from './types';
 
 export type Theme = 'light' | 'dark';
@@ -33,18 +35,7 @@ export function createClient(options: ClientOptions) {
   const baseUrl = options.baseUrl.replace(/\/+$/, '');
   const doFetch = options.fetch ?? globalThis.fetch.bind(globalThis);
 
-  async function get<T>(
-    path: string,
-    params: Record<string, string | number | undefined> = {},
-  ): Promise<T> {
-    const url = new URL(baseUrl + path);
-    for (const [key, value] of Object.entries(params)) {
-      if (value !== undefined) url.searchParams.set(key, String(value));
-    }
-
-    const response = await doFetch(url, {
-      headers: { 'X-Api-Key': options.apiKey },
-    });
+  async function parseOrThrow<T>(response: Response): Promise<T> {
     if (!response.ok) {
       let body: ErrorBody = {};
       try {
@@ -60,6 +51,30 @@ export function createClient(options: ClientOptions) {
       );
     }
     return (await response.json()) as T;
+  }
+
+  async function get<T>(
+    path: string,
+    params: Record<string, string | number | undefined> = {},
+  ): Promise<T> {
+    const url = new URL(baseUrl + path);
+    for (const [key, value] of Object.entries(params)) {
+      if (value !== undefined) url.searchParams.set(key, String(value));
+    }
+
+    const response = await doFetch(url, {
+      headers: { 'X-Api-Key': options.apiKey },
+    });
+    return parseOrThrow<T>(response);
+  }
+
+  async function post<T>(path: string, body: unknown): Promise<T> {
+    const response = await doFetch(new URL(baseUrl + path), {
+      method: 'POST',
+      headers: { 'X-Api-Key': options.apiKey, 'content-type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+    return parseOrThrow<T>(response);
   }
 
   return {
@@ -119,6 +134,8 @@ export function createClient(options: ClientOptions) {
         limit: opts.limit,
       }),
     reverse: (lat: number, lng: number) => get<ReverseResponse>('/v1/reverse', { lat, lng }),
+    /** Gửi đóng góp/sửa POI (spec 6.1). Khoá phải có scope edits:write. */
+    suggestEdit: (edit: SuggestEditRequest) => post<SuggestEditResponse>('/v1/edits', edit),
   };
 }
 
