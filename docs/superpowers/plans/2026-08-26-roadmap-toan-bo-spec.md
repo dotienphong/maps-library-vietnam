@@ -155,8 +155,8 @@ Sau M5: brainstorming + spec riêng cho `@mapslibvn/react-native`.
 - [x] M1 (M1a + M1b + M1c) nghiệm thu 27/08/2026 — bản đồ câm chạy thật trên
       production, môi trường một lệnh đạt trên macOS. **Windows còn PENDING** (chờ
       PHONG có máy); xem DEVLOG mục 6 để biết bảng kết quả đầy đủ.
-- [ ] M2 nghiệm thu (máy chủ nội bộ, ≥ 1,5 triệu POI, `data:update` trọn vòng, `db:restore`).
-- [ ] M3 nghiệm thu (2 fixture bắt buộc, p95 < 300 ms).
+- [x] M2 nghiệm thu (máy chủ nội bộ, ≥ 1,5 triệu POI, `data:update` trọn vòng, `db:restore`) — 31/08/2026.
+- [x] M3 nghiệm thu (2 fixture bắt buộc, p95 < 300 ms) — 01/09/2026.
 - [ ] M4 nghiệm thu (đóng góp end-to-end).
 - [ ] M5 nghiệm thu (app kết bạn nhúng, docs, báo cáo tuần, việc tay pháp lý ghi rõ).
 - [ ] `docs/DEVLOG.md` mục "Trạng thái hiện tại" ghi "Spec bản 2 hoàn tất; bước kế tiếp: spec React Native".

@@ -3233,7 +3233,7 @@ Analytics Engine binding chạy được trong Wrangler local; production giữ
 - Create: `scripts/perf-autocomplete.mjs`
 - Modify: `docs/DEVLOG.md`, `docs/superpowers/plans/2026-08-26-roadmap-toan-bo-spec.md`
 
-- [ ] **Step 1: Viết `scripts/perf-autocomplete.mjs`**
+- [x] **Step 1: Viết `scripts/perf-autocomplete.mjs`**
 
 ```js
 #!/usr/bin/env node
@@ -3264,7 +3264,7 @@ console.log(`n=${times.length} p50=${pct(50)}ms p95=${pct(95)}ms p99=${pct(99)}m
 console.log('Lưu ý: từ vòng lặp thứ 2 các query trùng sẽ hit cache 10 phút — giống hành vi client thật.');
 ```
 
-- [ ] **Step 2: Việc tay trên production (làm cùng PHONG, ghi kết quả)**
+- [x] **Step 2: Việc tay trên production (làm cùng PHONG, ghi kết quả)**
 
 1. Seed tenant trên DB máy chủ: mở tunnel như M2 (`cloudflared access tcp` — xem `infra/server/README.md`), rồi `DATABASE_URL=<qua tunnel> pnpm db:seed-tenant && DATABASE_URL=<qua tunnel> pnpm db:seed-tenant db/seed/tenant_free_test.sql`.
 2. Kiểm production (deploy đã tự chạy qua `deploy-api.yml`):
@@ -3274,15 +3274,15 @@ console.log('Lưu ý: từ vòng lặp thứ 2 các query trùng sẽ hit cache 
 4. Nghiệm 429 production (tuỳ chọn — cần bật `QUOTA_ENABLED=1` tạm bằng `wrangler deploy --var` hoặc để nguyên kết quả local từ Task 11 Step 6).
 5. Cập nhật `allowed_origins` khoá demo bằng domain docs thật khi docs deploy.
 
-- [ ] **Step 3: Cập nhật `docs/DEVLOG.md`**
+- [x] **Step 3: Cập nhật `docs/DEVLOG.md`**
 
 Thêm mục "M3 — Places API" ghi: ngày, 8 quyết định thiết kế (chép từ đầu plan này), kết quả 2 fixture bắt buộc (link run `apitest.yml` xanh), số đo p95 (kèm nơi đo), kết quả 429 free tenant, screenshot React demo, và mục "Việc tay còn lại" (origin docs thật, bật QUOTA_ENABLED khi có tenant free thật, Analytics Engine nếu bị bỏ).
 
-- [ ] **Step 4: Tick roadmap**
+- [x] **Step 4: Tick roadmap**
 
 `docs/superpowers/plans/2026-08-26-roadmap-toan-bo-spec.md` mục 7: đổi `- [ ] M3 nghiệm thu…` thành `- [x] M3 nghiệm thu (2 fixture bắt buộc, p95 < 300 ms) — <ngày>.`
 
-- [ ] **Step 5: Commit cuối + push**
+- [x] **Step 5: Commit cuối + push**
 
 ```bash
 git add scripts/perf-autocomplete.mjs docs/DEVLOG.md docs/superpowers/plans/2026-08-26-roadmap-toan-bo-spec.md
@@ -3291,6 +3291,11 @@ git push
 ```
 
 Expected: CI `ci`, `deploy-api`, `apitest` đều xanh trên commit cuối.
+
+**✅ Task 12 ĐÃ XONG — M3 NGHIỆM THU ĐẠT (01/09/2026).** Production trả dữ liệu POI
+quốc gia và geocode Nguyễn Lâm đúng; ba lần đo cache-hit liên tiếp có p95 177/192/168 ms.
+Quota 429 được nghiệm local, React demo được thao tác bằng browser thật và lưu screenshot.
+Chi tiết, cả cold-cache outlier và sự cố bind mount Postgres, nằm ở DEVLOG mục 8.
 
 ---
 

@@ -5,15 +5,15 @@ commit với code).
 
 ## 1. Trạng thái hiện tại
 
-- Mốc: M3 — Places API
+- Mốc: **M3 — Places API đã nghiệm thu 01/09/2026**; kế tiếp M4 — Đóng góp
 - Plan: `docs/superpowers/plans/2026-08-31-m3-places-api.md` — **12 task, 82 step** (viết 31/08,
   đã review kỹ 1 lượt và sửa 9 lỗi: 4 lỗi typecheck do `exactOptionalPropertyTypes` +
   `noUncheckedIndexedAccess`, 3 lỗi CI, 2 lỗi kiểu runtime của porsager)
-- Task đang làm: **Task 11 ĐÃ XONG** → việc kế tiếp là **Task 12 (nghiệm thu M3)**
+- Task đang làm: **Task 12 ĐÃ XONG — M3 ĐẠT** → việc kế tiếp là viết/review plan M4
 - Mốc trước: **M2 — Kho POI + máy chủ nội bộ đã nghiệm thu 31/08/2026**, 11/11 task; plan
   `docs/superpowers/plans/2026-08-27-m2-kho-poi-may-chu.md` đã tick trọn, kết quả ở mục 7
-- Commit code cuối: M3 Task 10 `ece8d1e`; Task 9 `9c61812`; sửa auth Hyperdrive
-  `3aed3ab`. Remote trên `ece8d1e`: CI, Deploy Docs, Deploy API và API DB test đều xanh
+- Commit code cuối: M3 Task 11 `6eb4ade`; Task 10 `ece8d1e`; Task 9 `9c61812`.
+  Remote trên `6eb4ade`: CI, Deploy API và API DB test xanh; DB tests chạy riêng
 - Môi trường đã dựng: máy dev macOS; remote GitHub cá nhân; Postgres/PostGIS dev,
   migration `0001_extensions.sql`; `pnpm run setup` sạch đạt 6,51 giây; image
   pipeline local đã build/smoke trên arm64 và chạy được qua Compose; Dev Container
@@ -37,8 +37,17 @@ commit với code).
 
 ## 2. Bước kế tiếp
 
-**BẮT ĐẦU TỪ ĐÂY: M3 Task 12 Step 1 — viết `scripts/perf-autocomplete.mjs`,** sau đó
-push Task 11 để production tự deploy và thực hiện checklist nghiệm thu ở Task 12 Step 2.
+**BẮT ĐẦU TỪ ĐÂY: tạo plan chi tiết M4 — Đóng góp, review plan rồi thực hiện Task 1
+`POST /v1/edits` bằng TDD.** Nguồn cấp milestone là mục 5 trong
+`docs/superpowers/plans/2026-08-26-roadmap-toan-bo-spec.md`; không bắt đầu code M4 trước
+khi plan cấp bước được viết và review.
+
+**M3 Task 12 xong 01/09/2026 — M3 nghiệm thu ĐẠT.** Kết quả đầy đủ ở mục 8. Perf
+production có ba lần cache-hit liên tiếp p95 177/192/168 ms từ máy dev tại Việt Nam;
+fixture API DB, production Places API, quota 429 local và React demo production đều đạt.
+Lưu ý thật: cold/cache warm-up từng tạo p95 2,5–3,2 giây; lần cuối vẫn có một cold miss
+3.317 ms nhưng p95 168 ms. Theo dõi p99/cold miss ở M4, không xem đây là số p95 ổn định
+cho traffic hoàn toàn lạnh.
 
 **M3 Task 11 xong 01/09/2026.** Thêm quota KV cho cả 6 Places route, chặn ở 2× quota,
 bỏ qua hoàn toàn tenant `internal`; Analytics Engine ghi tenant/key/path/status/ms và là
@@ -452,6 +461,10 @@ rõ ở mục 2 và không chặn M2: kiểm trên Windows, và bật lại `req
   Hyperdrive/KV trong auth; browser và E2E 3/3 xanh · `3aed3ab`, `9c61812`
 - 2026-09-01 · M3 T10 · `@mapslibvn/react` + demo docs responsive; 5 test hook, desktop/mobile
   browser xanh; CI + Deploy Docs + Deploy API + API DB test remote đều xanh · `ece8d1e`
+- 2026-09-01 · M3 T11 · quota KV 2× + Analytics Engine cho 6 Places route; local request
+  51 trả 429 đúng; production giữ quota off · `6eb4ade`
+- 2026-09-01 · M3 T12 · production fixture/p95/React demo đạt; khôi phục server Postgres
+  bị bind mount vào worktree tạm; M3 đóng · (commit hiện tại)
 
 ## 7. Nghiệm thu M2 (spec mục 13, hàng M2) — **ĐẠT 31/08/2026**
 
@@ -465,3 +478,42 @@ rõ ở mục 2 và không chặn M2: kiểm trên Windows, và bật lại `req
 | 6 | Backup/restore | **ĐẠT:** restore mới nhất vào DB tạm rồi rename; 1.522.416 POI; owner/grant đúng |
 | 7 | Test/CI | **ĐẠT:** local lint, typecheck, build, 480 unit/API, 32 DB, 2 E2E, image smoke. Remote CI xanh cả 3 job trên `30f0274` — `test` + `image` (run `33358342667`, 2 phút 11 giây), `dbtest` (run `33358342671`, 24 phút 37 giây) |
 | 8 | Việc tay còn lại | Alias phường/xã 2025 + relation level 4 Khánh Hòa (M2 T8); nghiệm thu `pnpm run setup` trên Windows (từ M1); bật lại QA `requireIslands` cho Hoàng Sa khi chốt nguồn extract OSM (từ M1); 5 Actions secret cho workflow `Data update` **đã thêm 31/08** (repo 13 secret), `--dry-run` từ Actions xanh 2/2 và `HF_TOKEN` đã chứng minh dùng được; 4 biến DB/Tunnel mới chỉ có mặt, chỉ một lần `--poi` thật trên Actions mới kiểm được — không chặn nghiệm thu vì cron máy nội bộ vẫn chạy. Production còn warning glyph Unicode hiếm (MapLibre fallback vẫn render) |
+
+## 8. Nghiệm thu M3 — Places API — **ĐẠT 01/09/2026**
+
+### Quyết định thiết kế đã áp dụng
+
+1. Cache autocomplete dùng lưới 0,05° thay H3 res 6 để tránh thêm `h3-js` nặng.
+2. Hai fixture bắt buộc dùng seed tổng hợp trong workflow API DB riêng.
+3. Auth chỉ áp cho 6 Places route; các route style/tile/attribution cũ không đổi.
+4. Bốn API key seed tuân CHECK 24 ký tự sau prefix và tách demo/server/itest/free-test.
+5. `suggestEdit` để M4; client M3 có 6 Places method cộng 2 method map có sẵn.
+6. Quota chỉ đếm khi `QUOTA_ENABLED=1`, bỏ qua hoàn toàn tenant `internal`.
+7. Web component nhận `near` qua attribute hoặc property `.map`, không dùng registry toàn cục.
+8. Analytics Engine là binding optional trong code; deploy production hiện có binding thật.
+
+### Bằng chứng nghiệm thu
+
+| # | Hạng mục | Kết quả |
+|---|---|---|
+| 1 | Hai fixture bắt buộc | **ĐẠT:** API DB workflow `33478585218` xanh trên `6eb4ade`; fixture trường Linh Xuân đứng đầu và `88/9 Nguyễn Lâm` đạt `interpolated` trong bán kính yêu cầu |
+| 2 | Production Places API | **ĐẠT:** `highlands&near=10.776,106.700` trả 10 POI thật; `88/9 Nguyễn Lâm` trả `interpolated` tại `10.7624337,106.6622200`; `/healthz/db` trả user `api`, PostgreSQL 16.4 |
+| 3 | p95 autocomplete từ Việt Nam | **ĐẠT trên cache-hit production:** ba lần liên tiếp `p50/p95 = 93/177 ms` (SIN), `107/192 ms` (HKG), `95/168 ms` (SIN), n=100/lần. Tool ghi 5 sample chậm nhất cùng cache/colo và fail ngay nếu HTTP lỗi |
+| 4 | Quota tenant free | **ĐẠT local runtime:** quota 25, 50 request đầu HTTP 200; request 51 HTTP 429 `quota_exceeded`, `Retry-After: 3600`. Production cố ý giữ `QUOTA_ENABLED=0` đến khi có tenant free thật |
+| 5 | Analytics Engine | **ĐẠT:** unit contract ghi tenant/key/path/status/ms; Wrangler local nhận dataset; Deploy API production `33478585196` xanh với binding `mapslibvn_api` |
+| 6 | React demo production | **ĐẠT:** browser thật gọi autocomplete HTTP 200/10 items, chọn Highlands tạo đúng 1 marker và status `Đã chọn Highlands`. Ảnh: [React demo production](evidence/m3-react-demo-production.png) |
+| 7 | Local gates | **ĐẠT:** lint 200 file; typecheck 12/12 task; root 42 file/482 test (gồm perf tool 2 test); API 15 file/59 test |
+| 8 | Remote gates trên Task 11 | **ĐẠT:** CI `33478585207`, Deploy API `33478585196`, API DB `33478585218` đều xanh; DB tests `33478585185` chạy riêng |
+
+### Sự cố và việc theo dõi
+
+- Production Postgres từng dừng sau Docker restart vì container cũ bind ba file config vào
+  worktree tạm `/private/tmp/mapslibvn-m2-task10` đã bị xoá. Recreate **riêng** service
+  `postgres` từ checkout hiện tại giữ nguyên named volume `mapslibvn-server_pgdata`; health,
+  1,5 triệu POI và đường Worker → Hyperdrive → Tunnel đã hoạt động lại. Khi dựng server từ
+  worktree tạm, phải recreate compose từ checkout bền trước khi xoá worktree.
+- Các lần đo ngay sau khôi phục DB/cache lạnh có p95 2,5–3,2 giây; lần nghiệm thu cuối vẫn
+  có một cold miss 3.317 ms nhưng p95 168 ms. M3 đạt mục tiêu p95 cho hành vi client cache-hit;
+  theo dõi p99/cold miss và cân nhắc Meilisearch theo spec 8.3 nếu traffic thật vẫn chậm.
+- Browser console còn 404 glyph Unicode hiếm và WebGL readback warning; MapLibre fallback
+  vẫn render. Đây là hạn chế production đã biết từ M2, không phát sinh từ React demo.
