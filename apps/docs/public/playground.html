@@ -8,10 +8,12 @@
   <style>
     html, body, #map { height: 100%; margin: 0; }
     #status { position: fixed; top: 8px; left: 8px; background: #fff; padding: 6px 10px; font: 13px system-ui; border-radius: 6px; z-index: 10; }
+    mapslibvn-autocomplete { position: fixed; top: 8px; right: 8px; width: min(320px, calc(100vw - 16px)); z-index: 20; }
   </style>
 </head>
 <body>
   <div id="status" data-state="loading">Đang tải…</div>
+  <mapslibvn-autocomplete id="ac" placeholder="Tìm địa điểm…"></mapslibvn-autocomplete>
   <div id="map"></div>
   <script src="/sdk/mapslibvn.umd.js"></script>
   <script>
@@ -21,7 +23,7 @@
     try {
       const map = MapsLibVN.createMap({
         container: 'map',
-        apiKey: params.get('key') || 'mlv_live_demo',
+        apiKey: params.get('key') || 'mlv_live_demo00000000000000000000',
         apiBase,
         style: params.get('style') || 'light',
         center: [106.700, 10.776],
@@ -32,6 +34,15 @@
       map.addMarker({ lng: 106.6981, lat: 10.7725, popupHtml: '<b>Chợ Bến Thành</b>' });
       map.on('poiClick', (poi) => { status.textContent = `${poi.name} · ${poi.category} (${poi.group})`; });
       window.__map = map;
+      const ac = document.getElementById('ac');
+      ac.setAttribute('api-key', params.get('key') || 'mlv_live_demo00000000000000000000');
+      ac.setAttribute('api-base', apiBase);
+      ac.map = map;
+      ac.addEventListener('select', (e) => {
+        const item = e.detail;
+        map.flyTo([item.lng, item.lat], 16);
+        status.textContent = `Đã chọn: ${item.name}`;
+      });
     } catch (e) {
       status.textContent = 'Lỗi: ' + e.message; status.dataset.state = 'error';
     }

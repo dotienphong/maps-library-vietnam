@@ -1,0 +1,221 @@
+import { type AutocompleteItem, type MapsLibVNClient, createClient } from '@mapslibvn/core';
+
+/** Đối tượng tối thiểu để lấy tâm bản đồ làm tham số near. */
+interface NearSource {
+  gl: { getCenter(): { lat: number; lng: number } };
+}
+
+const STYLE = `
+:host { display: block; position: relative; color: #172033; font: 14px system-ui, sans-serif; }
+input { width: 100%; box-sizing: border-box; padding: 10px 12px; border: 1px solid #9ca8ba;
+  border-radius: 8px; color: inherit; background: #fff; font: inherit; outline: none; }
+input:focus { border-color: #2458a6; box-shadow: 0 0 0 3px rgba(36,88,166,.18); }
+ul { position: absolute; left: 0; right: 0; margin: 4px 0 0; padding: 4px; list-style: none;
+  background: #fff; border: 1px solid #c7cfda; border-radius: 8px; z-index: 30;
+  max-height: 280px; overflow-y: auto; box-shadow: 0 8px 24px rgba(23,32,51,.16); }
+li { padding: 8px 10px; border-radius: 5px; cursor: pointer; }
+li:hover, li[aria-selected="true"] { background: #e9f1fc; }
+.secondary { color: #667085; font-size: 12px; display: block; margin-top: 2px; }
+.status { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+  overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
+`;
+
+let instanceId = 0;
+
+/** Autocomplete Places không phụ thuộc framework, tự debounce và phát event `select`. */
+export class MapsLibVNAutocomplete extends HTMLElement {
+  static observedAttributes = ['api-key', 'api-base', 'placeholder', 'near'];
+
+  /** Gán map trả về từ createMap để dùng tâm bản đồ làm near. */
+  map: NearSource | null = null;
+
+  #client: MapsLibVNClient | null = null;
+  #input: HTMLInputElement | null = null;
+  #list: HTMLUListElement | null = null;
+  #status: HTMLDivElement | null = null;
+  #items: AutocompleteItem[] = [];
+  #timer: ReturnType<typeof setTimeout> | undefined;
+  #seq = 0;
+  #activeIndex = -1;
+  #listId = `mapslibvn-autocomplete-${++instanceId}`;
+
+  connectedCallback() {
+    if (this.#input) return;
+    const root = this.shadowRoot ?? this.attachShadow({ mode: 'open' });
+    root.innerHTML = `<style>${STYLE}</style><input type="search" role="combobox" autocomplete="off" aria-autocomplete="list" aria-expanded="false" aria-controls="${this.#listId}" /><ul id="${this.#listId}" role="listbox" hidden></ul><div class="status" role="status" aria-live="polite"></div>`;
+    this.#input = root.querySelector('input');
+    this.#list = root.querySelector('ul');
+    this.#status = root.querySelector('.status');
+    if (!this.#input || !this.#list || !this.#status) return;
+    this.#input.placeholder = this.getAttribute('placeholder') ?? 'Tìm địa điểm…';
+    this.#input.addEventListener('input', this.#onInput);
+    this.#input.addEventListener('keydown', this.#onKeydown);
+    this.#input.addEventListener('blur', this.#onBlur);
+    this.#list.addEventListener('pointerdown', this.#onPointerDown);
+  }
+
+  disconnectedCallback() {
+    clearTimeout(this.#timer);
+    this.#seq++;
+    this.#input?.removeEventListener('input', this.#onInput);
+    this.#input?.removeEventListener('keydown', this.#onKeydown);
+    this.#input?.removeEventListener('blur', this.#onBlur);
+    this.#list?.removeEventListener('pointerdown', this.#onPointerDown);
+    this.#input = null;
+    this.#list = null;
+    this.#status = null;
+  }
+
+  attributeChangedCallback(name: string) {
+    if (name === 'api-key' || name === 'api-base') {
+      this.#client = null;
+      this.#seq++;
+    }
+    if (name === 'placeholder' && this.#input)
+      this.#input.placeholder = this.getAttribute('placeholder') ?? 'Tìm địa điểm…';
+  }
+
+  #onInput = () => {
+    clearTimeout(this.#timer);
+    this.#seq++;
+    const value = this.#input?.value ?? '';
+    if (value.trim().length < 2) {
+      this.#seq++;
+      this.#render([]);
+      this.#announce('');
+      return;
+    }
+    this.#announce('Đang tìm…');
+    this.#timer = setTimeout(() => void this.#query(value), 200);
+  };
+
+  #onBlur = () => {
+    this.#seq++;
+    this.#timer = setTimeout(() => this.#render([]), 150);
+  };
+
+  #onKeydown = (event: KeyboardEvent) => {
+    if (event.key === 'Escape') {
+      clearTimeout(this.#timer);
+      this.#seq++;
+      this.#render([]);
+      return;
+    }
+    if (this.#items.length === 0) return;
+    if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+      event.preventDefault();
+      const delta = event.key === 'ArrowDown' ? 1 : -1;
+      const start = this.#activeIndex < 0 ? (delta > 0 ? -1 : 0) : this.#activeIndex;
+      this.#setActive((start + delta + this.#items.length) % this.#items.length);
+    } else if (event.key === 'Enter' && this.#activeIndex >= 0) {
+      event.preventDefault();
+      this.#select(this.#activeIndex);
+    }
+  };
+
+  #onPointerDown = (event: PointerEvent) => {
+    event.preventDefault();
+    const option = (event.target as Element).closest<HTMLElement>('[role="option"]');
+    if (option) this.#select(Number(option.dataset.index));
+  };
+
+  #getClient(): MapsLibVNClient | null {
+    if (this.#client) return this.#client;
+    const apiKey = this.getAttribute('api-key');
+    const baseUrl = this.getAttribute('api-base');
+    if (!apiKey || !baseUrl) return null;
+    this.#client = createClient({ apiKey, baseUrl });
+    return this.#client;
+  }
+
+  #near(): [number, number] | undefined {
+    if (this.map) {
+      const center = this.map.gl.getCenter();
+      return [center.lat, center.lng];
+    }
+    const parts = this.getAttribute('near')?.split(',').map(Number);
+    const lat = parts?.[0];
+    const lng = parts?.[1];
+    return lat !== undefined && lng !== undefined && Number.isFinite(lat) && Number.isFinite(lng)
+      ? [lat, lng]
+      : undefined;
+  }
+
+  async #query(raw: string) {
+    const query = raw.trim();
+    const client = this.#getClient();
+    if (!client || query.length < 2) {
+      this.#render([]);
+      this.#announce(client ? '' : 'Thiếu cấu hình API.');
+      return;
+    }
+    const seq = ++this.#seq;
+    try {
+      const near = this.#near();
+      const { items } = await client.autocomplete(query, near ? { near } : {});
+      if (seq !== this.#seq) return;
+      this.#render(items);
+      this.#announce(items.length > 0 ? `Có ${items.length} kết quả.` : 'Không tìm thấy kết quả.');
+    } catch {
+      if (seq !== this.#seq) return;
+      this.#render([]);
+      this.#announce('Không thể tải gợi ý. Vui lòng thử lại.');
+    }
+  }
+
+  #render(items: AutocompleteItem[]) {
+    if (!this.#list || !this.#input) return;
+    this.#items = items;
+    this.#activeIndex = -1;
+    this.#input.removeAttribute('aria-activedescendant');
+    this.#input.setAttribute('aria-expanded', String(items.length > 0));
+    this.#list.hidden = items.length === 0;
+    this.#list.replaceChildren(
+      ...items.map((item, index) => {
+        const option = document.createElement('li');
+        option.id = `${this.#listId}-option-${index}`;
+        option.dataset.index = String(index);
+        option.role = 'option';
+        option.ariaSelected = 'false';
+        const name = document.createElement('span');
+        name.textContent = item.name;
+        const secondary = document.createElement('span');
+        secondary.className = 'secondary';
+        secondary.textContent = item.secondary;
+        option.append(name, secondary);
+        return option;
+      }),
+    );
+  }
+
+  #setActive(index: number) {
+    if (!this.#input || !this.#list) return;
+    this.#activeIndex = index;
+    for (const [optionIndex, option] of Array.from(this.#list.children).entries()) {
+      option.setAttribute('aria-selected', String(optionIndex === index));
+    }
+    const active = this.#list.children.item(index) as HTMLElement | null;
+    if (active) {
+      this.#input.setAttribute('aria-activedescendant', active.id);
+      active.scrollIntoView({ block: 'nearest' });
+    }
+  }
+
+  #select(index: number) {
+    const item = this.#items[index];
+    if (!item || !this.#input) return;
+    this.#input.value = item.name;
+    this.#render([]);
+    this.#announce(`Đã chọn ${item.name}.`);
+    this.dispatchEvent(new CustomEvent('select', { detail: item, bubbles: true, composed: true }));
+  }
+
+  #announce(message: string) {
+    if (this.#status) this.#status.textContent = message;
+  }
+}
+
+export function defineAutocomplete(): void {
+  if (!customElements.get('mapslibvn-autocomplete'))
+    customElements.define('mapslibvn-autocomplete', MapsLibVNAutocomplete);
+}
