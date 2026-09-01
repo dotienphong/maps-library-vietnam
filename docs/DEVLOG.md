@@ -10,9 +10,10 @@ commit với code).
   đã tự review 1 lượt: sửa test consensus, REVOKE PUBLIC cho hàm SECURITY DEFINER,
   ép `id::int` cho bigserial qua porsager, cwd Playwright). 10 quyết định thiết kế ghi
   trong plan — chốt vào mục 3 khi nghiệm thu Task 11
-- Task đang làm: **Task 1–4 XONG 01/09/2026** (migration `0006_edits.sql` + 3 hàm SECURITY
-  DEFINER; `apps/api/src/edits/*`; route `POST /v1/edits` + `requireAuth(scope)`; POI pending cho
-  tenant tạo + itest `edits.itest.mjs` 18/18) → kế tiếp **Task 5** (Access JWT + `/v1/admin/*`)
+- Task đang làm: **Task 1–6 XONG 01/09/2026** (migration `0006` + 3 hàm SECURITY DEFINER;
+  `apps/api/src/edits/*`; `POST /v1/edits`; POI pending cho tenant tạo; Access JWT +
+  `/v1/admin/*`; Access giả lập + itest duyệt end-to-end 22/22) → kế tiếp **Task 7**
+  (`apps/admin` SPA React do Worker phục vụ tại `/admin`)
 - Mốc trước: **M2 — Kho POI + máy chủ nội bộ đã nghiệm thu 31/08/2026**, 11/11 task; plan
   `docs/superpowers/plans/2026-08-27-m2-kho-poi-may-chu.md` đã tick trọn, kết quả ở mục 7
 - Commit code cuối: M3 Task 11 `6eb4ade`; Task 10 `ece8d1e`; Task 9 `9c61812`.
@@ -40,18 +41,29 @@ commit với code).
 
 ## 2. Bước kế tiếp
 
-**BẮT ĐẦU TỪ ĐÂY: `docs/superpowers/plans/2026-09-01-m4-dong-gop.md` → Task 5 Step 1**
-(khai báo `ACCESS_TEAM_DOMAIN`/`ACCESS_AUD`/`ACCESS_CERTS_URL` + `Variables.reviewer` trong
-`apps/api/src/env.ts` và bindings trong `vitest.config.ts`; viết `apps/api/test/access.test.ts`
-cho RED — ký JWT bằng WebCrypto, mock JWKS bằng `fetchMock` của vitest-pool-workers; rồi
-`apps/api/src/access.ts` (verify RS256, cache JWKS trong KV 1 giờ) và
-`apps/api/src/routes/admin.ts`). Task 1–4 đã xong, đều trên `main`, remote xanh.
-Việc tay của PHONG (Access application, custom domain API) chỉ chặn từ Task 11 — Task 5–10 làm
+**BẮT ĐẦU TỪ ĐÂY: `docs/superpowers/plans/2026-09-01-m4-dong-gop.md` → Task 7 Step 1**
+(tạo `apps/admin`: `package.json` + `tsconfig.json` + `vite.config.ts` với `base: '/admin/'` và
+`outDir: dist/admin`, rồi `index.html` + `src/{main.tsx,app.tsx,api.ts}`; sau đó `[assets]
+directory = "../admin/dist"` trong `apps/api/wrangler.toml` và build admin trong
+`deploy-api.yml`/`ci.yml` + script `test` gốc). Task 1–6 đã xong, đều trên `main`.
+Việc tay của PHONG (Access application, custom domain API) chỉ chặn từ Task 11 — Task 7–10 làm
 được ngay.
 
 **Trước khi làm Task 3/4 (cần DB thật):** nếu vừa chạy `pnpm test:db` thì dev DB đã bị
 `schema.dbtest.mjs` down/up làm sạch — chạy lại `pnpm db:migrate && pnpm db:seed-tenant`
 (và `pnpm db:fixture` nếu cần POI) trước.
+
+**M4 Task 5 + 6 xong 01/09/2026.** `apps/api/src/access.ts` verify JWT Cloudflare Access
+(RS256 bằng WebCrypto, JWKS từ `${ACCESS_TEAM_DOMAIN}/cdn-cgi/access/certs` cache KV 1 giờ, kiểm
+`aud` + `exp` + `email`), mã lỗi mới `missing_access_jwt`/`invalid_access_jwt`.
+`apps/api/src/routes/admin.ts`: `GET /v1/admin/edits?status=`, `POST /v1/admin/edits/{id}/approve`
+và `/reject` — reviewer lấy từ email trong JWT. Vars mới `ACCESS_TEAM_DOMAIN`/`ACCESS_AUD`
+(+`ACCESS_CERTS_URL` chỉ để test). `scripts/lib/access-fake.mjs` sinh cặp RSA lưu `.cache/`
+(gitignored), phục vụ JWKS và ký JWT cho itest/E2E; `api-db-test.mjs` chạy nó và thêm mode
+`--serve` cho Playwright ở Task 8. **Lỗi kiến trúc test đã sửa:** JWKS server ban đầu nằm cùng
+tiến trình harness, mà harness gọi vitest bằng `spawnSync` (chặn event loop) → 4 test admin
+timeout 30 s dù Worker đúng (curl trả 401 trong 3 ms). Phải cho access-fake chạy **tiến trình
+riêng**. Gate: api 19 file/87 test, `pnpm test:api-db` 3 file/22 test, root 486/486, lint 217 file.
 
 **M4 Task 4 xong 01/09/2026.** `GET /v1/places/{id}` thêm nhánh POI `status='pending'`: chỉ hiện
 cho tenant đã gửi edit `kind=create` (spec 6.5), truy vấn thẳng không cache vì phụ thuộc tenant;
@@ -173,6 +185,8 @@ vẫn là `sleep 1` phút — `sudo pmset -a sleep 0 disksleep 0`.
 |---|---|---|---|
 | 2026-09-01 | M4: ghi `poi` qua 3 hàm SQL `SECURITY DEFINER` owner `pipeline`, `api` chỉ EXECUTE | Giữ đúng spec 9 "Worker chỉ đọc + ghi `poi_edit`" ở tầng GRANT thay vì tin vào code Worker | (commit này) |
 | 2026-09-01 | M4: `db-permissions.mjs` giữ owner/grant của 3 hàm 0006 | `pg_restore --no-owner --no-privileges` làm hàm rơi về superuser → Worker sẽ ghi `poi` với quyền superuser | (commit này) |
+| 2026-09-01 | M4: `apps/admin` là Vite+React SPA do Worker phục vụ tại `/admin` (không phải Next.js trên Pages như spec 3.1) | Cùng origin với `/v1/admin/*` nên chỉ cần một Access application, JWT tự chảy, không CORS credentials, không thêm Pages project | (commit này) |
+| 2026-09-01 | M4: xác thực admin bằng verify JWT `Cf-Access-Jwt-Assertion` (RS256, JWKS cache KV 1 giờ) | Không tin header do proxy chèn mà kiểm chữ ký + `aud` + `exp`; giả lập được trong itest/E2E bằng JWKS server riêng | (commit này) |
 | 2026-09-01 | M4: mọi jsonb gửi từ Worker phải qua `sql.json()`, không `JSON.stringify` + `::jsonb` | porsager stringify lần nữa khi thấy cast → ghi jsonb *string*, hàm SQL vỡ ở `jsonb_object_keys`; tầng test workers không có DB nên không bắt được | (commit này) |
 | 2026-09-01 | M4: `poi_edit` thêm cột `api_key` + `new_poi_id`; giới hạn edit đếm bằng SQL, không KV | `api_key` cần cho hạn 500/ngày/key và audit; `new_poi_id` vì `poi_id` có FK nên chỉ gán được sau khi stage POI. Đếm SQL chính xác và không tốn write KV (Workers Free 1.000 ghi/ngày) | (commit này) |
 | 2026-08-26 | Lint/format dùng Biome thay ESLint+Prettier | Một công cụ, nhanh, không cấu hình rườm rà | `9cff9a8` |
@@ -528,6 +542,9 @@ rõ ở mục 2 và không chặn M2: kiểm trên Windows, và bật lại `req
   bị bind mount vào worktree tạm; M3 đóng · (commit hiện tại)
 - 2026-09-01 · M3 hậu nghiệm thu · playground tự chọn Worker production khi mở URL không
   có `?api=`; localhost và query override vẫn giữ; thêm unit regression + E2E URL ngắn · (commit này)
+- 2026-09-01 · M4 T5+T6 · `access.ts` (verify Access JWT RS256, JWKS cache KV) + `routes/admin.ts`
+  (list/approve/reject) + `access-fake.mjs` tiến trình riêng + `admin.itest.mjs`; api 87/87,
+  api-db 22/22 · (commit này)
 - 2026-09-01 · M4 T4 · POI pending cho tenant tạo trong `routes/places.ts` + `edits.itest.mjs`
   (6 test DB thật) + seed itest M4; api-db 18/18, api 79/79, root 486/486 · (commit này)
 - 2026-09-01 · M4 T3 · `POST /v1/edits` + `requireAuth(scope)` + seed `edits:write`; sửa lỗi

@@ -10,7 +10,12 @@ export interface Env {
   QUOTA_ENABLED?: string;
   /** Workers Analytics Engine — optional, code phải hoạt động khi vắng binding. */
   ANALYTICS?: AnalyticsEngineDataset;
+  /** Cloudflare Access cho /admin + /v1/admin (M4). Không phải secret. */
+  ACCESS_TEAM_DOMAIN?: string; // vd: myteam.cloudflareaccess.com
+  ACCESS_AUD?: string; // AUD tag của Access application
+  /** Override URL JWKS cho test/E2E (Access giả lập). */
+  ACCESS_CERTS_URL?: string;
 }
 
-/** Kiểu Hono chung cho app: Variables.auth do requireAuth() gán. */
-export type AppEnv = { Bindings: Env; Variables: { auth?: AuthInfo } };
+/** Kiểu Hono chung cho app: Variables.auth do requireAuth() gán, reviewer do requireAccess(). */
+export type AppEnv = { Bindings: Env; Variables: { auth?: AuthInfo; reviewer?: string } };

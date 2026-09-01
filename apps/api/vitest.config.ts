@@ -11,6 +11,8 @@ export default defineWorkersConfig({
             TILES_BASE: 'https://tiles.test',
             ENVIRONMENT: 'test',
             QUOTA_ENABLED: '1',
+            ACCESS_TEAM_DOMAIN: 'test.cloudflareaccess.com',
+            ACCESS_AUD: 'test-aud',
           },
           // Tầng test này KHÔNG được cần Postgres (dbtest là workflow riêng). Trỏ binding
           // Hyperdrive vào cổng đóng để nhánh lỗi của /healthz/db xác định ở mọi máy và CI.

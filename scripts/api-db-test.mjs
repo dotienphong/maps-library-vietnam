@@ -2,8 +2,10 @@
 // DB cô lập → migrate → seed → Wrangler/Hyperdrive local → integration tests.
 import 'dotenv/config';
 import { spawn, spawnSync } from 'node:child_process';
+import { existsSync } from 'node:fs';
 import { readFile } from 'node:fs/promises';
 import postgres from 'postgres';
+import { CERTS_PORT, FAKE_AUD } from './lib/access-fake.mjs';
 import { DBTEST_DATABASE, isolatedDbUrl } from './lib/db-test.mjs';
 import { databaseUrlFromEnv } from './lib/migrations.mjs';
 
@@ -52,14 +54,49 @@ async function seedDatabase() {
   }
 }
 
+const detached = process.platform !== 'win32';
+
 await recreateDatabase();
 console.log(`API itest DB: ${target.hostname}/${DBTEST_DATABASE}`);
 await seedDatabase();
 
-const detached = process.platform !== 'win32';
+// Access giả lập (M4): JWKS local cho route /v1/admin — KHÔNG dùng ở production.
+// Tiến trình RIÊNG vì run() dưới đây là spawnSync, chặn event loop của tiến trình này.
+const certsProc = spawn(process.execPath, ['scripts/lib/access-fake.mjs'], {
+  stdio: 'inherit',
+  detached,
+});
+await new Promise((resolve, reject) => {
+  const deadline = Date.now() + 15_000;
+  const tick = async () => {
+    if (certsProc.exitCode !== null) return reject(new Error('access-fake thoát sớm'));
+    try {
+      if ((await fetch(`http://127.0.0.1:${CERTS_PORT}/certs`)).ok) return resolve(undefined);
+    } catch {
+      // chưa listen
+    }
+    if (Date.now() > deadline) return reject(new Error('access-fake không lên trong 15 giây'));
+    setTimeout(tick, 300);
+  };
+  void tick();
+});
+console.log(`Access giả lập: JWKS http://127.0.0.1:${CERTS_PORT}, aud ${FAKE_AUD}`);
+
 const wrangler = spawn(
   'pnpm',
-  ['--filter', '@mapslibvn/api', 'exec', 'wrangler', 'dev', '--port', String(PORT)],
+  [
+    '--filter',
+    '@mapslibvn/api',
+    'exec',
+    'wrangler',
+    'dev',
+    '--port',
+    String(PORT),
+    '--var',
+    `ACCESS_AUD:${FAKE_AUD}`,
+    '--var',
+    `ACCESS_CERTS_URL:http://127.0.0.1:${CERTS_PORT}/certs`,
+  ],
   {
     stdio: 'inherit',
     detached,
@@ -74,11 +111,13 @@ let stopped = false;
 function stopWrangler() {
   if (stopped) return;
   stopped = true;
-  try {
-    if (detached && wrangler.pid) process.kill(-wrangler.pid, 'SIGTERM');
-    else wrangler.kill('SIGTERM');
-  } catch (error) {
-    if (!(error instanceof Error) || !('code' in error) || error.code !== 'ESRCH') throw error;
+  for (const child of [wrangler, certsProc]) {
+    try {
+      if (detached && child.pid) process.kill(-child.pid, 'SIGTERM');
+      else child.kill('SIGTERM');
+    } catch (error) {
+      if (!(error instanceof Error) || !('code' in error) || error.code !== 'ESRCH') throw error;
+    }
   }
 }
 process.once('exit', stopWrangler);
@@ -105,6 +144,12 @@ try {
     }
   }
   if (!up) throw new Error('wrangler dev không lên trong 90 giây');
+
+  if (process.argv.includes('--serve')) {
+    // Chế độ phục vụ cho Playwright (webServer): giữ tiến trình sống, không chạy vitest.
+    console.log(`API itest đang phục vụ tại http://127.0.0.1:${PORT} (Ctrl+C để dừng)`);
+    await new Promise(() => {});
+  }
 
   run('pnpm', ['exec', 'vitest', 'run', '--config', 'apps/api/vitest.itest.config.ts'], {
     PLACES_API_BASE: `http://127.0.0.1:${PORT}`,
