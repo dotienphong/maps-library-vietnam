@@ -1,0 +1,47 @@
+name: API tests (Places, real DB)
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'apps/api/**'
+      - 'packages/core/**'
+      - 'db/migrations/**'
+      - 'scripts/api-db-test.mjs'
+      - 'scripts/lib/**'
+      - '.github/workflows/apitest.yml'
+  workflow_dispatch:
+
+concurrency:
+  group: apitest-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  apitest:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    services:
+      postgres:
+        image: postgis/postgis:16-3.4
+        env:
+          POSTGRES_USER: mapslibvn
+          POSTGRES_PASSWORD: mapslibvn
+          POSTGRES_DB: mapslibvn
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U mapslibvn"
+          --health-interval 5s --health-timeout 5s --health-retries 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter @mapslibvn/core build && pnpm --filter @mapslibvn/style build
+      - run: pnpm test:api-db
+        env:
+          DATABASE_URL: postgres://mapslibvn:mapslibvn@localhost:5432/mapslibvn

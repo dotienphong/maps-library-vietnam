@@ -1707,7 +1707,7 @@ Chuỗi: DB cô lập → migrate → seed `setup.sql` (dữ liệu tổng hợp
 - Create: `apps/api/test-db/setup.sql`, `apps/api/test-db/places.itest.mjs`, `apps/api/vitest.itest.config.ts`, `scripts/api-db-test.mjs`, `.github/workflows/apitest.yml`
 - Modify: `package.json` (root — script `test:api-db`)
 
-- [ ] **Step 1: Viết `apps/api/test-db/setup.sql`**
+- [x] **Step 1: Viết `apps/api/test-db/setup.sql`**
 
 ```sql
 -- Dữ liệu tổng hợp cho integration test Places API. Cả hai fixture nghiệm thu M3
@@ -1793,7 +1793,7 @@ ON CONFLICT (key) DO NOTHING;
 
 Đã đối chiếu `0003_core.sql`: cột NOT NULL không default của `poi` là `name`, `name_norm`, `geom`, `status`, `created_by` — INSERT trên đủ hết; các cột khác nullable hoặc có default (`locked_fields`, `created_at`, `updated_at`).
 
-- [ ] **Step 2: Viết `apps/api/vitest.itest.config.ts`**
+- [x] **Step 2: Viết `apps/api/vitest.itest.config.ts`**
 
 ```ts
 import { defineConfig } from 'vitest/config';
@@ -1809,7 +1809,7 @@ export default defineConfig({
 });
 ```
 
-- [ ] **Step 3: Viết `apps/api/test-db/places.itest.mjs`**
+- [x] **Step 3: Viết `apps/api/test-db/places.itest.mjs`**
 
 ```js
 // Chạy qua `pnpm test:api-db` — script dựng DB cô lập + seed setup.sql + wrangler dev
@@ -1919,7 +1919,7 @@ describe('thang geocode và các route còn lại', () => {
 });
 ```
 
-- [ ] **Step 4: Viết `scripts/api-db-test.mjs`**
+- [x] **Step 4: Viết `scripts/api-db-test.mjs`**
 
 ```js
 #!/usr/bin/env node
@@ -2016,7 +2016,7 @@ stop();
 process.exit(result.status ?? 1);
 ```
 
-- [ ] **Step 5: Thêm script gốc + chạy local**
+- [x] **Step 5: Thêm script gốc + chạy local**
 
 `package.json` gốc, khối scripts: `"test:api-db": "node scripts/api-db-test.mjs",`
 
@@ -2028,7 +2028,7 @@ Expected: toàn bộ itest PASS, đặc biệt 2 fixture bắt buộc. Debug nha
 - `interpolated` sai toạ độ → kiểm `stepInterpolate` (t = (88−86)/(90−86) = 0.5, kỳ vọng đúng (10.7647, 106.6631)).
 - Linh Xuân không đứng đầu → in `body.items` và đối chiếu điểm từng thành phần với `ranking.test.ts` kịch bản fixture.
 
-- [ ] **Step 6: Viết `.github/workflows/apitest.yml`**
+- [x] **Step 6: Viết `.github/workflows/apitest.yml`**
 
 (Version pnpm/node đã đối chiếu khớp `.github/workflows/ci.yml`: pnpm 9.15.0, node 22.)
 
