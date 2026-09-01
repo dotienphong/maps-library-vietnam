@@ -16,6 +16,7 @@ export function errorResponse(c: Context, err: unknown) {
     err instanceof ApiError ? err : new ApiError(503, 'upstream_unavailable', 'Lỗi không xác định');
   if (!(err instanceof ApiError)) console.error(requestId, err);
   const headers: Record<string, string> = { 'content-type': 'application/json; charset=utf-8' };
+  if (e.status === 429) headers['retry-after'] = '3600';
   if (e.status === 503) headers['retry-after'] = '30';
   return c.body(
     JSON.stringify({ error: { code: e.code, message: e.message, request_id: requestId } }),

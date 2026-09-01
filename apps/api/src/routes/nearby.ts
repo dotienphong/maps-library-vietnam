@@ -5,10 +5,11 @@ import type { AppEnv } from '../env';
 import { ApiError } from '../errors';
 import { clampInt } from '../params';
 import { type PlaceRow, placeColumns, toPlace } from '../place';
+import { quotaMiddleware } from '../quota';
 
 export const nearby = new Hono<AppEnv>();
 
-nearby.get('/v1/nearby', requireAuth(), async (c) => {
+nearby.get('/v1/nearby', requireAuth(), quotaMiddleware('places'), async (c) => {
   const latRaw = c.req.query('lat')?.trim();
   const lngRaw = c.req.query('lng')?.trim();
   const lat = latRaw ? Number(latRaw) : Number.NaN;

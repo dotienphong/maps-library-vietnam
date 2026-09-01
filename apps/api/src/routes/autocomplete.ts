@@ -6,6 +6,7 @@ import { getSql } from '../db';
 import type { AppEnv } from '../env';
 import { ApiError } from '../errors';
 import { clampInt, parseLatLngPair, parseTypes } from '../params';
+import { quotaMiddleware } from '../quota';
 import { type ItemType, gridKey, rankScore } from '../ranking';
 
 interface CandidateRow {
@@ -24,7 +25,7 @@ interface CandidateRow {
 
 export const autocomplete = new Hono<AppEnv>();
 
-autocomplete.get('/v1/autocomplete', requireAuth(), async (c) => {
+autocomplete.get('/v1/autocomplete', requireAuth(), quotaMiddleware('places'), async (c) => {
   const query = (c.req.query('q') ?? '').trim();
   if (query.length < 2) {
     throw new ApiError(400, 'invalid_request', 'q phải có ít nhất 2 ký tự');

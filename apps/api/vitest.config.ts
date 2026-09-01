@@ -7,7 +7,11 @@ export default defineWorkersConfig({
       workers: {
         wrangler: { configPath: './wrangler.toml' },
         miniflare: {
-          bindings: { TILES_BASE: 'https://tiles.test', ENVIRONMENT: 'test' },
+          bindings: {
+            TILES_BASE: 'https://tiles.test',
+            ENVIRONMENT: 'test',
+            QUOTA_ENABLED: '1',
+          },
           // Tầng test này KHÔNG được cần Postgres (dbtest là workflow riêng). Trỏ binding
           // Hyperdrive vào cổng đóng để nhánh lỗi của /healthz/db xác định ở mọi máy và CI.
           hyperdrives: { DB: 'postgres://nobody:nobody@127.0.0.1:59999/nowhere' },

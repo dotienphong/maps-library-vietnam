@@ -6,10 +6,11 @@ import { getSql } from '../db';
 import type { AppEnv } from '../env';
 import { ApiError } from '../errors';
 import { type PlaceRow, placeColumns, toPlace } from '../place';
+import { quotaMiddleware } from '../quota';
 
 export const places = new Hono<AppEnv>();
 
-places.get('/v1/places/:id', requireAuth(), async (c) => {
+places.get('/v1/places/:id', requireAuth(), quotaMiddleware('places'), async (c) => {
   const id = c.req.param('id');
   if (!id) throw new ApiError(400, 'invalid_request', 'id POI bắt buộc');
   const cacheUrl = `https://cache.mapslibvn/place?id=${encodeURIComponent(id)}`;

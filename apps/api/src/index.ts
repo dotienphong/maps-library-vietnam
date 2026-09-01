@@ -1,6 +1,7 @@
 import { ATTRIBUTION_LINKS, attributionHtml, attributionText } from '@mapslibvn/core';
 import { Hono } from 'hono';
 import { cors } from 'hono/cors';
+import { analyticsMiddleware } from './analytics';
 import { getSql } from './db';
 import type { AppEnv } from './env';
 import { ApiError, errorResponse } from './errors';
@@ -23,6 +24,7 @@ app.use(
     allowHeaders: ['X-Api-Key', 'Range', 'Content-Type'],
   }),
 );
+app.use('/v1/*', analyticsMiddleware());
 app.onError((err, c) => errorResponse(c, err));
 app.notFound((c) => errorResponse(c, new ApiError(404, 'not_found', 'Không có route này')));
 

@@ -9,7 +9,7 @@ commit với code).
 - Plan: `docs/superpowers/plans/2026-08-31-m3-places-api.md` — **12 task, 82 step** (viết 31/08,
   đã review kỹ 1 lượt và sửa 9 lỗi: 4 lỗi typecheck do `exactOptionalPropertyTypes` +
   `noUncheckedIndexedAccess`, 3 lỗi CI, 2 lỗi kiểu runtime của porsager)
-- Task đang làm: **Task 10 ĐÃ XONG** → việc kế tiếp là **Task 11 (quota + Analytics Engine)**
+- Task đang làm: **Task 11 ĐÃ XONG** → việc kế tiếp là **Task 12 (nghiệm thu M3)**
 - Mốc trước: **M2 — Kho POI + máy chủ nội bộ đã nghiệm thu 31/08/2026**, 11/11 task; plan
   `docs/superpowers/plans/2026-08-27-m2-kho-poi-may-chu.md` đã tick trọn, kết quả ở mục 7
 - Commit code cuối: M3 Task 10 `ece8d1e`; Task 9 `9c61812`; sửa auth Hyperdrive
@@ -37,9 +37,14 @@ commit với code).
 
 ## 2. Bước kế tiếp
 
-**BẮT ĐẦU TỪ ĐÂY: M3 Task 11 Step 1 — viết `apps/api/test/quota.test.ts`** theo
-`docs/superpowers/plans/2026-08-31-m3-places-api.md`, chạy RED trước rồi mới tạo
-`apps/api/src/quota.ts`. Sau Task 11 làm Task 12 để nghiệm thu toàn M3.
+**BẮT ĐẦU TỪ ĐÂY: M3 Task 12 Step 1 — viết `scripts/perf-autocomplete.mjs`,** sau đó
+push Task 11 để production tự deploy và thực hiện checklist nghiệm thu ở Task 12 Step 2.
+
+**M3 Task 11 xong 01/09/2026.** Thêm quota KV cho cả 6 Places route, chặn ở 2× quota,
+bỏ qua hoàn toàn tenant `internal`; Analytics Engine ghi tenant/key/path/status/ms và là
+binding optional. TDD RED→GREEN; API 15 file/59 test, typecheck và Biome sạch. Nghiệm
+runtime local với tenant free quota 25: 50 request đầu trả 200, request thứ 51 trả 429
+`quota_exceeded`, `Retry-After: 3600`. Production vẫn để `QUOTA_ENABLED="0"`.
 
 **M3 Task 9–10 xong 01/09/2026.** Task 9 thêm custom element
 `<mapslibvn-autocomplete>` có debounce 200 ms, ARIA combobox/listbox/status, điều hướng bàn

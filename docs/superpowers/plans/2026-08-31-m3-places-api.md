@@ -3017,7 +3017,7 @@ Spec 6.4: đếm KV theo `(key, ngày VN, nhóm)`, chặn 429 ở **2×** quota,
 - Modify: `apps/api/src/index.ts` (mount), `apps/api/src/errors.ts` (Retry-After 429), `apps/api/wrangler.toml` (vars + binding), `apps/api/vitest.config.ts` (binding test)
 - Test: `apps/api/test/quota.test.ts`
 
-- [ ] **Step 1: Viết test — `apps/api/test/quota.test.ts`**
+- [x] **Step 1: Viết test — `apps/api/test/quota.test.ts`**
 
 ```ts
 import { SELF, env } from 'cloudflare:test';
@@ -3082,7 +3082,7 @@ describe('quota (QUOTA_ENABLED=1 trong vitest.config)', () => {
 });
 ```
 
-- [ ] **Step 2: Chạy fail, rồi viết `apps/api/src/quota.ts`**
+- [x] **Step 2: Chạy fail, rồi viết `apps/api/src/quota.ts`**
 
 ```ts
 import type { Context, Next } from 'hono';
@@ -3116,7 +3116,7 @@ export function quotaMiddleware(group: 'places') {
 }
 ```
 
-- [ ] **Step 3: Viết `apps/api/src/analytics.ts`**
+- [x] **Step 3: Viết `apps/api/src/analytics.ts`**
 
 ```ts
 import type { Context, Next } from 'hono';
@@ -3141,7 +3141,7 @@ export function analyticsMiddleware() {
 }
 ```
 
-- [ ] **Step 4: Nối vào app + config**
+- [x] **Step 4: Nối vào app + config**
 
 `apps/api/src/index.ts`:
 
@@ -3192,7 +3192,7 @@ analytics_engine_datasets = [{ binding = "ANALYTICS", dataset = "mapslibvn_api" 
 bindings: { TILES_BASE: 'https://tiles.test', ENVIRONMENT: 'test', QUOTA_ENABLED: '1' },
 ```
 
-- [ ] **Step 5: Seed tenant free thử nghiệm — `db/seed/tenant_free_test.sql`**
+- [x] **Step 5: Seed tenant free thử nghiệm — `db/seed/tenant_free_test.sql`**
 
 ```sql
 -- Tenant free thử nghiệm cho nghiệm thu 429 (spec 13/M3). Quota nhỏ để test nhanh.
@@ -3205,19 +3205,25 @@ VALUES ('mlv_live_freetest0000000000000000', '00000000-0000-4000-8000-0000000000
 ON CONFLICT (key) DO NOTHING;
 ```
 
-- [ ] **Step 6: Test + typecheck + nghiệm thử 429 local**
+- [x] **Step 6: Test + typecheck + nghiệm thử 429 local**
 
 Run: `pnpm --filter @mapslibvn/api test && pnpm --filter @mapslibvn/api typecheck`
 Expected: PASS toàn bộ (test cũ vẫn xanh vì khoá internal bỏ qua quota).
 
 Nghiệm tay (DB local): `pnpm db:seed-tenant db/seed/tenant_free_test.sql`, chạy `wrangler dev --var QUOTA_ENABLED:1`, lặp `curl` 51 lần với khoá freetest → lần vượt 50 (2×25) trả 429. Ghi kết quả cho Task 12.
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add apps/api/src/{quota,analytics}.ts apps/api/src/errors.ts apps/api/src/index.ts apps/api/src/routes apps/api/wrangler.toml apps/api/vitest.config.ts apps/api/test/quota.test.ts db/seed/tenant_free_test.sql
 git commit -m "feat(api): quota KV 429 tai 2x + Analytics Engine (tenant,key,endpoint,status,ms)"
 ```
+
+**✅ Task 11 ĐÃ XONG (01/09/2026).** TDD RED xác nhận thiếu `src/quota.ts`; GREEN có
+15 file/59 API test và API typecheck sạch. Runtime local với tenant free quota 25 trả 200
+cho 50 request đầu, request thứ 51 trả 429 `quota_exceeded` kèm `Retry-After: 3600`.
+Analytics Engine binding chạy được trong Wrangler local; production giữ
+`QUOTA_ENABLED="0"` cho tới khi có tenant free thật.
 
 ---
 

@@ -6,10 +6,11 @@ import type { AppEnv } from '../env';
 import { ApiError } from '../errors';
 import { geocode } from '../geocode';
 import { clampInt, parseLatLngPair } from '../params';
+import { quotaMiddleware } from '../quota';
 
 export const geocodeRoute = new Hono<AppEnv>();
 
-geocodeRoute.get('/v1/geocode', requireAuth(), async (c) => {
+geocodeRoute.get('/v1/geocode', requireAuth(), quotaMiddleware('places'), async (c) => {
   const query = (c.req.query('q') ?? '').trim();
   if (query.length < 2 || !normalizeVi(query)) {
     throw new ApiError(400, 'invalid_request', 'q phải có ít nhất 2 ký tự tra cứu được');

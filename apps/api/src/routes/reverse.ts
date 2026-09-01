@@ -5,10 +5,11 @@ import type { AppEnv } from '../env';
 import { ApiError } from '../errors';
 import { INTEGER_HOUSE_NUMBER_PATTERN } from '../geocode';
 import { type PlaceRow, placeColumns, toPlace } from '../place';
+import { quotaMiddleware } from '../quota';
 
 export const reverse = new Hono<AppEnv>();
 
-reverse.get('/v1/reverse', requireAuth(), async (c) => {
+reverse.get('/v1/reverse', requireAuth(), quotaMiddleware('places'), async (c) => {
   const latRaw = c.req.query('lat')?.trim();
   const lngRaw = c.req.query('lng')?.trim();
   const lat = latRaw ? Number(latRaw) : Number.NaN;

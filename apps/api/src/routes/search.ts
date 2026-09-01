@@ -6,10 +6,11 @@ import type { AppEnv } from '../env';
 import { ApiError } from '../errors';
 import { clampInt, parseBbox, parseLatLngPair } from '../params';
 import { type PlaceRow, placeColumns, toPlace } from '../place';
+import { quotaMiddleware } from '../quota';
 
 export const search = new Hono<AppEnv>();
 
-search.get('/v1/search', requireAuth(), async (c) => {
+search.get('/v1/search', requireAuth(), quotaMiddleware('places'), async (c) => {
   const query = (c.req.query('q') ?? '').trim();
   const category = c.req.query('category');
   const near = parseLatLngPair(c.req.query('near'), 'near');
