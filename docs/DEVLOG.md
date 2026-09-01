@@ -5,11 +5,12 @@ commit với code).
 
 ## 1. Trạng thái hiện tại
 
-- Mốc: **M3 — Places API đã nghiệm thu 01/09/2026**; kế tiếp M4 — Đóng góp
-- Plan: `docs/superpowers/plans/2026-08-31-m3-places-api.md` — **12 task, 82 step** (viết 31/08,
-  đã review kỹ 1 lượt và sửa 9 lỗi: 4 lỗi typecheck do `exactOptionalPropertyTypes` +
-  `noUncheckedIndexedAccess`, 3 lỗi CI, 2 lỗi kiểu runtime của porsager)
-- Task đang làm: **Task 12 ĐÃ XONG — M3 ĐẠT** → việc kế tiếp là viết/review plan M4
+- Mốc: **M4 — Đóng góp (bắt đầu 01/09/2026)**; M3 — Places API đã nghiệm thu 01/09/2026
+- Plan: `docs/superpowers/plans/2026-09-01-m4-dong-gop.md` — **11 task** (viết 01/09/2026,
+  đã tự review 1 lượt: sửa test consensus, REVOKE PUBLIC cho hàm SECURITY DEFINER,
+  ép `id::int` cho bigserial qua porsager, cwd Playwright). 10 quyết định thiết kế ghi
+  trong plan — chốt vào mục 3 khi nghiệm thu Task 11
+- Task đang làm: **chưa bắt đầu — kế tiếp là M4 Task 1** (migration 0006 + hàm áp dụng edit)
 - Mốc trước: **M2 — Kho POI + máy chủ nội bộ đã nghiệm thu 31/08/2026**, 11/11 task; plan
   `docs/superpowers/plans/2026-08-27-m2-kho-poi-may-chu.md` đã tick trọn, kết quả ở mục 7
 - Commit code cuối: M3 Task 11 `6eb4ade`; Task 10 `ece8d1e`; Task 9 `9c61812`.
@@ -37,10 +38,10 @@ commit với code).
 
 ## 2. Bước kế tiếp
 
-**BẮT ĐẦU TỪ ĐÂY: tạo plan chi tiết M4 — Đóng góp, review plan rồi thực hiện Task 1
-`POST /v1/edits` bằng TDD.** Nguồn cấp milestone là mục 5 trong
-`docs/superpowers/plans/2026-08-26-roadmap-toan-bo-spec.md`; không bắt đầu code M4 trước
-khi plan cấp bước được viết và review.
+**BẮT ĐẦU TỪ ĐÂY: `docs/superpowers/plans/2026-09-01-m4-dong-gop.md` → Task 1 Step 1
+(dbtest `db/apply-edit.dbtest.mjs` RED trước, rồi migration `0006_edits.sql`).** Plan M4
+đã viết + tự review 01/09/2026. Việc tay của PHONG (Access application, custom domain
+API) chỉ chặn từ Task 11 — Task 1–10 làm được ngay.
 
 **M3 Task 12 xong 01/09/2026 — M3 nghiệm thu ĐẠT.** Kết quả đầy đủ ở mục 8. Perf
 production có ba lần cache-hit liên tiếp p95 177/192/168 ms từ máy dev tại Việt Nam;
@@ -467,6 +468,9 @@ rõ ở mục 2 và không chặn M2: kiểm trên Windows, và bật lại `req
   bị bind mount vào worktree tạm; M3 đóng · (commit hiện tại)
 - 2026-09-01 · M3 hậu nghiệm thu · playground tự chọn Worker production khi mở URL không
   có `?api=`; localhost và query override vẫn giữ; thêm unit regression + E2E URL ngắn · (commit này)
+- 2026-09-01 · M4 plan · viết + tự review plan cấp bước `2026-09-01-m4-dong-gop.md`
+  (11 task: migration 0006 SECURITY DEFINER, POST /v1/edits, admin SPA sau Access,
+  Access giả lập cho test, pipeline tôn trọng locked_fields, suggestEdit + docs) · (commit này)
 
 ## 7. Nghiệm thu M2 (spec mục 13, hàng M2) — **ĐẠT 31/08/2026**
 
