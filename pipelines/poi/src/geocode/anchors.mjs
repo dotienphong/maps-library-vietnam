@@ -174,6 +174,15 @@ export async function buildAnchors({ afterRaw = () => {} } = {}) {
     await sql.unsafe(`UPDATE address_anchor_new anchor SET province_norm = province.name_norm
     FROM admin_area province
     WHERE province.level = 4 AND ST_Contains(province.geom, anchor.geom)`);
+    // M4 (spec 5.7): mốc từ đóng góp đã duyệt (source='user', confidence 0,95) không tái sinh
+    // từ nguồn — chép sang bảng mới trước khi hoán đổi, nếu không sẽ mất sau mỗi lần chạy.
+    // Chạy sau bước gán ward/province để giữ nguyên giá trị người dùng đã cung cấp.
+    await sql.unsafe(`INSERT INTO address_anchor_new
+        (housenumber, alley_chain, house_in_alley, street_norm, ward_norm, province_norm,
+         geom, source, source_id, confidence, release)
+      SELECT housenumber, alley_chain, house_in_alley, street_norm, ward_norm, province_norm,
+             geom, source, source_id, confidence, release
+      FROM address_anchor WHERE source = 'user'`);
     await publishNew(sql, ['address_anchor']);
     await sql.unsafe('ANALYZE address_anchor');
     const [nguyenLam] =

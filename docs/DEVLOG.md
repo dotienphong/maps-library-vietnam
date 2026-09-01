@@ -10,10 +10,11 @@ commit với code).
   đã tự review 1 lượt: sửa test consensus, REVOKE PUBLIC cho hàm SECURITY DEFINER,
   ép `id::int` cho bigserial qua porsager, cwd Playwright). 10 quyết định thiết kế ghi
   trong plan — chốt vào mục 3 khi nghiệm thu Task 11
-- Task đang làm: **Task 1–8 XONG 01/09/2026** (migration `0006` + 3 hàm SECURITY DEFINER;
+- Task đang làm: **Task 1–9 XONG 01/09/2026** (migration `0006` + 3 hàm SECURITY DEFINER;
   `apps/api/src/edits/*`; `POST /v1/edits`; POI pending cho tenant tạo; Access JWT +
-  `/v1/admin/*`; Access giả lập + itest 22/22; `apps/admin` SPA tại `/admin` + E2E 3/3)
-  → kế tiếp **Task 9** (pipeline tôn trọng `locked_fields` + anchor người dùng)
+  `/v1/admin/*`; Access giả lập + itest 22/22; `apps/admin` SPA tại `/admin` + E2E 3/3;
+  pipeline tôn trọng `locked_fields` + giữ anchor người dùng) → kế tiếp **Task 10**
+  (`suggestEdit` trong core + trang docs "Đóng góp"), rồi **Task 11** nghiệm thu
 - Mốc trước: **M2 — Kho POI + máy chủ nội bộ đã nghiệm thu 31/08/2026**, 11/11 task; plan
   `docs/superpowers/plans/2026-08-27-m2-kho-poi-may-chu.md` đã tick trọn, kết quả ở mục 7
 - Commit code cuối: M3 Task 11 `6eb4ade`; Task 10 `ece8d1e`; Task 9 `9c61812`.
@@ -41,18 +42,29 @@ commit với code).
 
 ## 2. Bước kế tiếp
 
-**BẮT ĐẦU TỪ ĐÂY: `docs/superpowers/plans/2026-09-01-m4-dong-gop.md` → Task 9 Step 1**
-(viết `pipelines/poi/tests/edit-lock.dbtest.mjs` cho RED — dựng `poi_work_*` tối thiểu rồi chạy
-`publish.mjs --force`; sau đó sửa `publish.mjs` thêm `CASE WHEN '<cột>' = ANY(p.locked_fields)`
-cho từng cột và chặn đóng POI có `status` bị khoá, và thêm câu chép anchor `source='user'` sang
-`address_anchor_new` trong `geocode/anchors.mjs`). **Cần `pnpm db:up` + `pnpm db:migrate`;**
-sau khi chạy `pnpm test:db` nhớ `pnpm db:seed-tenant` lại. Task 1–8 đã xong, đều trên `main`.
-Việc tay của PHONG (Access application, custom domain API) chỉ chặn từ Task 11 — Task 9–10 làm
-được ngay.
+**BẮT ĐẦU TỪ ĐÂY: `docs/superpowers/plans/2026-09-01-m4-dong-gop.md` → Task 10 Step 1**
+(viết `packages/core/src/client.edits.test.ts` cho RED — pattern `client.places.test.ts` với fetch
+tiêm; rồi thêm `EditKind`/`EditChanges`/`SuggestEditRequest`/`SuggestEditResponse` vào
+`packages/core/src/types.ts`, tách `parseOrThrow` + thêm `post()` và `suggestEdit` vào
+`client.ts`, viết `apps/docs/src/content/docs/dong-gop.md` và thêm vào sidebar
+`apps/docs/astro.config.mjs`). Task 1–9 đã xong, đều trên `main`.
+**Task 11 (nghiệm thu) cần việc tay của PHONG:** custom domain cho Worker production + tạo
+Cloudflare Access application (path `admin` và `v1/admin`, policy chỉ email PHONG), rồi điền
+`ACCESS_TEAM_DOMAIN`/`ACCESS_AUD` vào `[env.production]` của `apps/api/wrangler.toml`.
 
 **Trước khi làm Task 3/4 (cần DB thật):** nếu vừa chạy `pnpm test:db` thì dev DB đã bị
 `schema.dbtest.mjs` down/up làm sạch — chạy lại `pnpm db:migrate && pnpm db:seed-tenant`
 (và `pnpm db:fixture` nếu cần POI) trước.
+
+**M4 Task 9 xong 01/09/2026.** `publish.mjs` giờ dùng `CASE WHEN '<cột>' = ANY(p.locked_fields)`
+cho 11 cột của `poi` nên pipeline không ghi đè trường người dùng đã sửa, và không đóng POI có
+`'status'` trong `locked_fields` khi POI vắng mặt ở nguồn. `anchors.mjs` chép mốc `source='user'`
+(confidence 0,95) sang `address_anchor_new` trước khi hoán đổi bảng — đặt sau bước gán
+ward/province để giữ giá trị người dùng. `pipelines/poi/tests/edit-lock.dbtest.mjs` 3/3.
+Hai điều khác plan: fixture `poi_work_record` phải có thêm cột `confidence` (publish.mjs dùng khi
+dựng lại `poi_source_link`), và tôi thêm một test cho nhánh `status` bị khoá mà plan chưa có.
+`pnpm test:db`: 38 passed / 3 skipped; `pipeline-fixture` vẫn đỏ trên máy dev vì thiếu
+`tippecanoe` (chạy trong image GHCR trên CI).
 
 **M4 Task 7 + 8 xong 01/09/2026.** `apps/admin` là SPA Vite + React 18 (`base:'/admin/'`,
 `outDir dist/admin`, 146 kB / 47 kB gzip): danh sách edit theo `status`, nút Duyệt/Từ chối, báo
@@ -556,6 +568,8 @@ rõ ở mục 2 và không chặn M2: kiểm trên Windows, và bật lại `req
   bị bind mount vào worktree tạm; M3 đóng · (commit hiện tại)
 - 2026-09-01 · M3 hậu nghiệm thu · playground tự chọn Worker production khi mở URL không
   có `?api=`; localhost và query override vẫn giữ; thêm unit regression + E2E URL ngắn · (commit này)
+- 2026-09-01 · M4 T9 · `publish.mjs` tôn trọng `locked_fields` (11 cột + nhánh status) và
+  `anchors.mjs` giữ mốc `source='user'`; `edit-lock.dbtest.mjs` 3/3, test:db 38 passed · (commit này)
 - 2026-09-01 · M4 T7+T8 · `apps/admin` SPA React + `[assets]` trong wrangler.toml + E2E Playwright
   với Access giả lập (3/3); sửa lỗi cwd của access-fake và gracefulShutdown webServer · (commit này)
 - 2026-09-01 · M4 T5+T6 · `access.ts` (verify Access JWT RS256, JWKS cache KV) + `routes/admin.ts`

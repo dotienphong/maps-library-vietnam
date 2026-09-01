@@ -40,12 +40,28 @@ try {
   await sql.begin(async (tx) => {
     await tx.unsafe(`DELETE FROM poi p WHERE p.created_by = 'pipeline' AND NOT EXISTS (SELECT 1 FROM poi_new n WHERE n.id = p.id)
                       AND NOT EXISTS (SELECT 1 FROM poi_edit e WHERE e.poi_id = p.id)`);
+    // M4: 'status' trong locked_fields = người dùng đã đóng/mở lại POI → pipeline không đè.
     await tx.unsafe(`UPDATE poi p SET status = 'closed', updated_at = now() WHERE p.created_by = 'pipeline' AND p.status <> 'closed'
+                      AND NOT ('status' = ANY(p.locked_fields))
                       AND NOT EXISTS (SELECT 1 FROM poi_new n WHERE n.id = p.id)`);
-    await tx.unsafe(`UPDATE poi p SET name = n.name, name_norm = n.name_norm, name_alt = n.name_alt, category = n.category, geom = n.geom,
-        housenumber = n.housenumber, street = n.street, ward = n.ward, province = n.province, address_text = n.address_text,
-        contact = n.contact, hours = n.hours, primary_source = n.primary_source, primary_source_id = n.primary_source_id,
-        quality_score = n.quality_score, popularity = n.popularity, status = n.status, updated_at = now()
+    // M4 (spec 6.5): trường trong locked_fields do người dùng sửa — pipeline giữ nguyên giá trị cũ.
+    await tx.unsafe(`UPDATE poi p SET
+        name          = CASE WHEN 'name'         = ANY(p.locked_fields) THEN p.name         ELSE n.name END,
+        name_norm     = CASE WHEN 'name_norm'    = ANY(p.locked_fields) THEN p.name_norm    ELSE n.name_norm END,
+        name_alt      = n.name_alt,
+        category      = CASE WHEN 'category'     = ANY(p.locked_fields) THEN p.category     ELSE n.category END,
+        geom          = CASE WHEN 'geom'         = ANY(p.locked_fields) THEN p.geom         ELSE n.geom END,
+        housenumber   = CASE WHEN 'housenumber'  = ANY(p.locked_fields) THEN p.housenumber  ELSE n.housenumber END,
+        street        = CASE WHEN 'street'       = ANY(p.locked_fields) THEN p.street       ELSE n.street END,
+        ward          = CASE WHEN 'ward'         = ANY(p.locked_fields) THEN p.ward         ELSE n.ward END,
+        province      = CASE WHEN 'province'     = ANY(p.locked_fields) THEN p.province     ELSE n.province END,
+        address_text  = CASE WHEN 'address_text' = ANY(p.locked_fields) THEN p.address_text ELSE n.address_text END,
+        contact       = CASE WHEN 'contact'      = ANY(p.locked_fields) THEN p.contact      ELSE n.contact END,
+        hours         = CASE WHEN 'hours'        = ANY(p.locked_fields) THEN p.hours        ELSE n.hours END,
+        primary_source = n.primary_source, primary_source_id = n.primary_source_id,
+        quality_score = n.quality_score, popularity = n.popularity,
+        status        = CASE WHEN 'status'       = ANY(p.locked_fields) THEN p.status       ELSE n.status END,
+        updated_at = now()
       FROM poi_new n WHERE n.id = p.id AND p.created_by = 'pipeline'
         AND (p.name, p.name_norm, p.name_alt, p.category, p.housenumber, p.street, p.ward, p.province,
              p.address_text, p.contact::text, p.hours::text, p.primary_source, p.primary_source_id,
