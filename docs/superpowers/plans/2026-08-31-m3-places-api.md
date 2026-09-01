@@ -2079,7 +2079,7 @@ jobs:
           DATABASE_URL: postgres://mapslibvn:mapslibvn@localhost:5432/mapslibvn
 ```
 
-- [ ] **Step 7: Commit + xem CI**
+- [x] **Step 7: Commit + xem CI**
 
 ```bash
 git add apps/api/test-db apps/api/vitest.itest.config.ts scripts/api-db-test.mjs .github/workflows/apitest.yml package.json
@@ -2089,6 +2089,12 @@ gh run watch $(gh run list --workflow=apitest.yml --limit 1 --json databaseId -q
 ```
 
 Expected: workflow `apitest` xanh (~5 phút). Nếu `wrangler dev` không chạy được trên runner, xem log workerd; phương án dự phòng: đổi bước cuối sang chạy trong container node:22-bookworm.
+
+**✅ Task 7 ĐÃ XONG (01/09/2026).** Commit `2e2be16` tạo DB test cô lập, seed tổng hợp và runner
+Wrangler/Hyperdrive local có cleanup process group. Cả 12/12 integration tests xanh, gồm đúng hai fixture
+nghiệm thu bắt buộc; workflow mới `API tests (Places, real DB)` run `33459071642` xanh. So với bản
+phác thảo, config Vitest dùng path từ repo root và runner dùng biến Hyperdrive mới
+`CLOUDFLARE_HYPERDRIVE_LOCAL_CONNECTION_STRING_DB` để tránh deprecated warning.
 
 ---
 
@@ -2332,12 +2338,19 @@ Expected: PASS; dòng size-limit của core in kích cỡ **≤ 8 kB** gzip (typ
 
 Đồng thời Task 5 `place.ts` giờ import `Place` từ core: nếu trước đó khai kiểu cục bộ thì thay bằng `import type { Place } from '@mapslibvn/core';` rồi `pnpm --filter @mapslibvn/api typecheck`.
 
-- [ ] **Step 6: Commit** (đụng `packages/core` → CI `dbtest.yml` + `deploy-api.yml` sẽ chạy — phải xanh)
+- [x] **Step 6: Commit** (đụng `packages/core` → CI `dbtest.yml` + `deploy-api.yml` sẽ chạy — phải xanh)
 
 ```bash
 git add packages/core/src/types.ts packages/core/src/client.ts packages/core/src/index.ts packages/core/src/client.places.test.ts apps/api/src/place.ts
 git commit -m "feat(core): kiểu Places API + 6 phương thức client (đủ 8 theo spec 7.1)"
 ```
+
+**✅ Task 8 ĐÃ XONG (01/09/2026).** Commit `361992d` thêm shared Places/geocode types và đủ sáu
+client methods; Worker đã bỏ type cục bộ ở cả `place.ts` lẫn `geocode.ts`. Kết quả: core 323/323 test,
+toàn repo 475/475 test, API 52/52 test, integration 12/12 test; lint/typecheck sạch; core 6,34 kB gzip
+trên budget 8 kB. Năm workflow cho `361992d` đều xanh: CI `33459071615`, API integration
+`33459071642`, DB tests `33459071547`, Deploy API `33459071612`, Deploy Docs `33459071600`.
+**Điểm bắt đầu phiên sau: Task 9 Step 1 — viết `packages/web/src/autocomplete-element.ts`.**
 
 ---
 
