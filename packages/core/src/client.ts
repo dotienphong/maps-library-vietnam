@@ -1,4 +1,12 @@
 import { MapsLibVNError } from './errors';
+import type {
+  AutocompleteItem,
+  AutocompleteType,
+  GeocodeItem,
+  Place,
+  PlaceDetails,
+  ReverseResponse,
+} from './types';
 
 export type Theme = 'light' | 'dark';
 
@@ -59,6 +67,58 @@ export function createClient(options: ClientOptions) {
     attribution: () => get<AttributionResponse>('/v1/attribution'),
     styleUrl: (theme: Theme) =>
       `${baseUrl}/v1/styles/${theme}.json?key=${encodeURIComponent(options.apiKey)}`,
+    autocomplete: (
+      q: string,
+      opts: { near?: [number, number]; limit?: number; types?: AutocompleteType[] } = {},
+    ) =>
+      get<{ items: AutocompleteItem[] }>('/v1/autocomplete', {
+        q,
+        near: opts.near?.join(','),
+        limit: opts.limit,
+        types: opts.types?.join(','),
+      }),
+    search: (
+      q: string,
+      opts: {
+        category?: string;
+        near?: [number, number];
+        radius?: number;
+        bbox?: [number, number, number, number];
+        limit?: number;
+        offset?: number;
+      } = {},
+    ) =>
+      get<{ items: Place[]; total: number }>('/v1/search', {
+        q,
+        category: opts.category,
+        near: opts.near?.join(','),
+        radius: opts.radius,
+        bbox: opts.bbox?.join(','),
+        limit: opts.limit,
+        offset: opts.offset,
+      }),
+    nearby: (opts: {
+      lat: number;
+      lng: number;
+      radius?: number;
+      category?: string;
+      limit?: number;
+    }) =>
+      get<{ items: Place[] }>('/v1/nearby', {
+        lat: opts.lat,
+        lng: opts.lng,
+        radius: opts.radius,
+        category: opts.category,
+        limit: opts.limit,
+      }),
+    getPlace: (id: string) => get<PlaceDetails>(`/v1/places/${encodeURIComponent(id)}`),
+    geocode: (q: string, opts: { near?: [number, number]; limit?: number } = {}) =>
+      get<{ items: GeocodeItem[] }>('/v1/geocode', {
+        q,
+        near: opts.near?.join(','),
+        limit: opts.limit,
+      }),
+    reverse: (lat: number, lng: number) => get<ReverseResponse>('/v1/reverse', { lat, lng }),
   };
 }
 

@@ -2100,7 +2100,7 @@ Expected: workflow `apitest` xanh (~5 phút). Nếu `wrangler dev` không chạy
 - Create: `packages/core/src/types.ts`, `packages/core/src/client.places.test.ts`
 - Modify: `packages/core/src/client.ts`, `packages/core/src/index.ts`
 
-- [ ] **Step 1: Viết test — `packages/core/src/client.places.test.ts`**
+- [x] **Step 1: Viết test — `packages/core/src/client.places.test.ts`**
 
 ```ts
 import { describe, expect, it, vi } from 'vitest';
@@ -2155,7 +2155,7 @@ describe('client places methods', () => {
 });
 ```
 
-- [ ] **Step 2: Chạy fail, rồi viết `packages/core/src/types.ts`**
+- [x] **Step 2: Chạy fail, rồi viết `packages/core/src/types.ts`**
 
 Run: `pnpm exec vitest run packages/core` → FAIL (chưa có method).
 
@@ -2247,7 +2247,7 @@ export interface ReverseResponse {
 }
 ```
 
-- [ ] **Step 3: Thêm 6 phương thức vào `packages/core/src/client.ts`**
+- [x] **Step 3: Thêm 6 phương thức vào `packages/core/src/client.ts`**
 
 Thêm import đầu file:
 
@@ -2314,7 +2314,7 @@ Trong object trả về của `createClient` (sau `styleUrl`), thêm:
       get<ReverseResponse>('/v1/reverse', { lat, lng }),
 ```
 
-- [ ] **Step 4: Export types — `packages/core/src/index.ts`**
+- [x] **Step 4: Export types — `packages/core/src/index.ts`**
 
 ```ts
 export * from './attribution';
@@ -2325,7 +2325,7 @@ export * from './address';
 export * from './types';
 ```
 
-- [ ] **Step 5: Test + build (size-limit) + typecheck toàn repo**
+- [x] **Step 5: Test + build (size-limit) + typecheck toàn repo**
 
 Run: `pnpm --filter @mapslibvn/core build && pnpm exec vitest run packages/core && pnpm -r typecheck`
 Expected: PASS; dòng size-limit của core in kích cỡ **≤ 8 kB** gzip (types chỉ tăng .d.ts, 6 method dùng chung `get()` chỉ thêm ~1–2 kB). Nếu vượt: rút gọn message lỗi/chuỗi trước, không đổi API.

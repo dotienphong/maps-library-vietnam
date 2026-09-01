@@ -1,36 +1,7 @@
+import type { Place } from '@mapslibvn/core';
 import type { getSql } from './db';
 
 type Sql = ReturnType<typeof getSql>;
-
-/** Kiểu cục bộ theo spec 6.1; Task 8 sẽ thay bằng import từ @mapslibvn/core. */
-export interface PlaceCategory {
-  code: string;
-  group: string;
-  name_vi: string;
-  name_en: string;
-}
-
-export interface PlaceAddress {
-  housenumber?: string;
-  street?: string;
-  ward?: string;
-  province?: string;
-  text?: string;
-}
-
-export interface Place {
-  id: string;
-  name: string;
-  category: PlaceCategory | null;
-  lat: number;
-  lng: number;
-  address: PlaceAddress;
-  contact?: Record<string, unknown> | null;
-  hours?: unknown;
-  quality_score: number | null;
-  status: 'active' | 'closed' | 'pending' | 'rejected';
-  updated_at: string;
-}
 
 export interface PlaceRow {
   id: string;

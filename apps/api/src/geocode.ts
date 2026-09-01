@@ -1,4 +1,4 @@
-import { type ParsedAddress, normalizeVi, parseAddress } from '@mapslibvn/core';
+import { type GeocodeItem, type ParsedAddress, normalizeVi, parseAddress } from '@mapslibvn/core';
 import type { getSql } from './db';
 import type { LatLng } from './params';
 
@@ -6,24 +6,6 @@ type Sql = ReturnType<typeof getSql>;
 
 /** Giới hạn trước khi ép `housenumber::int`; dữ liệu nguồn có thể chứa SĐT/ID dài. */
 export const INTEGER_HOUSE_NUMBER_PATTERN = '^[0-9]{1,9}$';
-
-export type GeocodePrecision =
-  | 'rooftop'
-  | 'alley'
-  | 'interpolated'
-  | 'street'
-  | 'ward'
-  | 'province';
-
-export interface GeocodeItem {
-  lat: number;
-  lng: number;
-  precision: GeocodePrecision;
-  confidence: number;
-  matched: { housenumber?: string; street?: string; ward?: string; province?: string };
-  display_name: string;
-  bbox?: [number, number, number, number];
-}
 
 interface GeocodeContext {
   sql: Sql;
