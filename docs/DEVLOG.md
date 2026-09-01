@@ -10,10 +10,9 @@ commit với code).
   đã tự review 1 lượt: sửa test consensus, REVOKE PUBLIC cho hàm SECURITY DEFINER,
   ép `id::int` cho bigserial qua porsager, cwd Playwright). 10 quyết định thiết kế ghi
   trong plan — chốt vào mục 3 khi nghiệm thu Task 11
-- Task đang làm: **Task 1, 2, 3 XONG 01/09/2026** (migration `0006_edits.sql` + 3 hàm
-  SECURITY DEFINER; `apps/api/src/edits/{hash,ulid,rules,validate}.ts` + `vnDayStartUtc`;
-  route `POST /v1/edits` + `requireAuth(scope)`) → kế tiếp **Task 4** (POI pending cho tenant
-  tạo + itest `apps/api/test-db/edits.itest.mjs`)
+- Task đang làm: **Task 1–4 XONG 01/09/2026** (migration `0006_edits.sql` + 3 hàm SECURITY
+  DEFINER; `apps/api/src/edits/*`; route `POST /v1/edits` + `requireAuth(scope)`; POI pending cho
+  tenant tạo + itest `edits.itest.mjs` 18/18) → kế tiếp **Task 5** (Access JWT + `/v1/admin/*`)
 - Mốc trước: **M2 — Kho POI + máy chủ nội bộ đã nghiệm thu 31/08/2026**, 11/11 task; plan
   `docs/superpowers/plans/2026-08-27-m2-kho-poi-may-chu.md` đã tick trọn, kết quả ở mục 7
 - Commit code cuối: M3 Task 11 `6eb4ade`; Task 10 `ece8d1e`; Task 9 `9c61812`.
@@ -41,17 +40,30 @@ commit với code).
 
 ## 2. Bước kế tiếp
 
-**BẮT ĐẦU TỪ ĐÂY: `docs/superpowers/plans/2026-09-01-m4-dong-gop.md` → Task 4 Step 1**
-(cập nhật `apps/api/test-db/setup.sql`: cấp `edits:write` cho khoá itest, thêm tenant free
-`…0000cc` + khoá `mlv_live_edit0000000000000000000` và POI `01M4TEST0000000000000CON01`
-quality 40 cho test đồng thuận; rồi viết `apps/api/test-db/edits.itest.mjs` cho RED, sau đó thêm
-nhánh POI `pending` vào `apps/api/src/routes/places.ts`). Task 1–3 đã xong, đều trên `main`.
-Việc tay của PHONG (Access application, custom domain API) chỉ chặn từ Task 11 — Task 4–10 làm
+**BẮT ĐẦU TỪ ĐÂY: `docs/superpowers/plans/2026-09-01-m4-dong-gop.md` → Task 5 Step 1**
+(khai báo `ACCESS_TEAM_DOMAIN`/`ACCESS_AUD`/`ACCESS_CERTS_URL` + `Variables.reviewer` trong
+`apps/api/src/env.ts` và bindings trong `vitest.config.ts`; viết `apps/api/test/access.test.ts`
+cho RED — ký JWT bằng WebCrypto, mock JWKS bằng `fetchMock` của vitest-pool-workers; rồi
+`apps/api/src/access.ts` (verify RS256, cache JWKS trong KV 1 giờ) và
+`apps/api/src/routes/admin.ts`). Task 1–4 đã xong, đều trên `main`, remote xanh.
+Việc tay của PHONG (Access application, custom domain API) chỉ chặn từ Task 11 — Task 5–10 làm
 được ngay.
 
 **Trước khi làm Task 3/4 (cần DB thật):** nếu vừa chạy `pnpm test:db` thì dev DB đã bị
 `schema.dbtest.mjs` down/up làm sạch — chạy lại `pnpm db:migrate && pnpm db:seed-tenant`
 (và `pnpm db:fixture` nếu cần POI) trước.
+
+**M4 Task 4 xong 01/09/2026.** `GET /v1/places/{id}` thêm nhánh POI `status='pending'`: chỉ hiện
+cho tenant đã gửi edit `kind=create` (spec 6.5), truy vấn thẳng không cache vì phụ thuộc tenant;
+nhánh này chỉ chạy khi nhánh cache trả 404 và `cachedJson` không cache lỗi < 500 nên cache không
+bị đầu độc. `apps/api/test-db/edits.itest.mjs` (6 test, DB thật): internal sửa hours →
+`auto_approved` và thấy ngay qua API; tenant free tạo POI → `pending`, chỉ tenant tạo thấy, không
+lộ qua `/v1/search`, duyệt bằng `apply_poi_edit` → `active`; free sửa name → `pending`; đồng thuận
+2 end-user → phiếu thứ hai `auto_approved` kéo phiếu đầu thành `auto:consensus`; 21 edit/ngày →
+429; POI closed thì `update` → 400 còn `reopen` → `active`. Hai điều khác plan: khoá seed
+`mlv_live_edit0…` trong plan thiếu 1 ký tự (CHECK đòi đúng 24 sau prefix) và test scope 403 trong
+itest bị bỏ vì KV cache auth 5 phút làm nó không dứt khoát (đã phủ ở tầng workers).
+Gate: `pnpm test:api-db` 18/18, api 79/79, root 486/486, typecheck sạch, lint 212 file.
 
 **M4 Task 3 xong 01/09/2026.** `POST /v1/edits` (`apps/api/src/routes/edits.ts`):
 `requireAuth('edits:write')` — `requireAuth` giờ nhận tham số scope, mặc định `places:read` nên
@@ -516,6 +528,8 @@ rõ ở mục 2 và không chặn M2: kiểm trên Windows, và bật lại `req
   bị bind mount vào worktree tạm; M3 đóng · (commit hiện tại)
 - 2026-09-01 · M3 hậu nghiệm thu · playground tự chọn Worker production khi mở URL không
   có `?api=`; localhost và query override vẫn giữ; thêm unit regression + E2E URL ngắn · (commit này)
+- 2026-09-01 · M4 T4 · POI pending cho tenant tạo trong `routes/places.ts` + `edits.itest.mjs`
+  (6 test DB thật) + seed itest M4; api-db 18/18, api 79/79, root 486/486 · (commit này)
 - 2026-09-01 · M4 T3 · `POST /v1/edits` + `requireAuth(scope)` + seed `edits:write`; sửa lỗi
   double-encode jsonb (phải dùng `sql.json`) phát hiện bằng smoke test wrangler dev; api 79/79,
   root 486/486, lint 211 file sạch · (commit này)

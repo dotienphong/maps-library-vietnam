@@ -68,3 +68,23 @@ INSERT INTO api_key (key, tenant_id, label, kind, scopes)
 VALUES ('mlv_live_test00000000000000000000', '00000000-0000-4000-8000-0000000000aa',
         'itest server', 'server', '{places:read}')
 ON CONFLICT (key) DO NOTHING;
+
+-- M4: khoá itest nội bộ thêm edits:write; tenant free để test luồng pending/duyệt.
+UPDATE api_key SET scopes = '{places:read,edits:write}'
+WHERE key = 'mlv_live_test00000000000000000000';
+
+INSERT INTO tenant (id, name, plan)
+VALUES ('00000000-0000-4000-8000-0000000000cc', 'M4 itest free', 'free')
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO api_key (key, tenant_id, label, kind, scopes)
+VALUES ('mlv_live_edit00000000000000000000', '00000000-0000-4000-8000-0000000000cc',
+        'itest edits free', 'server', '{places:read,edits:write}')
+ON CONFLICT (key) DO NOTHING;
+
+-- POI quality thấp (< 60) cho test luật đồng thuận: update hours KHÔNG auto theo luật quality.
+INSERT INTO poi (id, name, name_norm, category, geom, ward, province,
+                 quality_score, popularity, status, primary_source, primary_source_id, created_by) VALUES
+  ('01M4TEST0000000000000CON01', 'Quán Consensus', 'quan consensus', 'cafe',
+    ST_SetSRID(ST_MakePoint(106.695, 10.775), 4326), 'Bến Thành', 'Thành phố Hồ Chí Minh',
+    40, 0.1, 'active', 'osm', 'm4test-con1', 'pipeline')
+ON CONFLICT (id) DO NOTHING;
