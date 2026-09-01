@@ -2362,7 +2362,7 @@ Custom element không phụ thuộc framework, debounce 200 ms, phát event `sel
 - Create: `packages/web/src/autocomplete-element.ts`
 - Modify: `packages/web/src/index.ts`, `packages/web/src/umd.ts`, `apps/docs/public/playground.html`, `apps/docs/e2e/playground.spec.ts`
 
-- [ ] **Step 1: Viết `packages/web/src/autocomplete-element.ts`**
+- [x] **Step 1: Viết `packages/web/src/autocomplete-element.ts`**
 
 ```ts
 import {
@@ -2488,7 +2488,7 @@ export function defineAutocomplete(): void {
 }
 ```
 
-- [ ] **Step 2: Export ESM + tự đăng ký trong UMD**
+- [x] **Step 2: Export ESM + tự đăng ký trong UMD**
 
 `packages/web/src/index.ts` — thêm:
 
@@ -2504,12 +2504,12 @@ defineAutocomplete();
 export { MapsLibVNAutocomplete, defineAutocomplete } from './autocomplete-element';
 ```
 
-- [ ] **Step 3: Build web + kiểm size-limit**
+- [x] **Step 3: Build web + kiểm size-limit**
 
 Run: `pnpm --filter @mapslibvn/core build && pnpm --filter @mapslibvn/web build`
 Expected: PASS, ESM ≤ 15 kB gzip, UMD ≤ 350 kB gzip.
 
-- [ ] **Step 4: Cập nhật `apps/docs/public/playground.html`**
+- [x] **Step 4: Cập nhật `apps/docs/public/playground.html`**
 
 Thay khoá mặc định và thêm ô autocomplete. Trong `<style>` thêm:
 
@@ -2540,7 +2540,7 @@ Trong `<script>`: đổi `params.get('key') || 'mlv_live_demo'` thành
 
 Không cần copy SDK tay: `apps/docs/scripts/copy-sdk.mjs` đã chạy tự động qua hook `predev`/`prebuild` của `@mapslibvn/docs` — chỉ cần `pnpm --filter @mapslibvn/web build` trước khi chạy docs.
 
-- [ ] **Step 5: Thêm E2E test — `apps/docs/e2e/playground.spec.ts`**
+- [x] **Step 5: Thêm E2E test — `apps/docs/e2e/playground.spec.ts`**
 
 Thêm vào cuối file:
 
@@ -2566,7 +2566,7 @@ test('gõ "highlands" có gợi ý ≤ 1 s, chọn thì hiện tên', async ({ p
 });
 ```
 
-- [ ] **Step 6: Chạy E2E local (điều kiện: DB fixture + tenant)**
+- [x] **Step 6: Chạy E2E local (điều kiện: DB fixture + tenant)**
 
 ```bash
 pnpm db:up && pnpm db:fixture        # ~vài phút, nạp POI Quận 1 (có Highlands thật)
@@ -2580,7 +2580,7 @@ Expected: 3 test E2E PASS (2 cũ + highlands mới). Nếu autocomplete rỗng: 
 
 Lưu ý: E2E **không chạy trong CI** (ci.yml không có Playwright, và cần DB fixture) — đây là bước chạy tay, bắt buộc trước nghiệm thu Task 12.
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add packages/web/src/autocomplete-element.ts packages/web/src/index.ts packages/web/src/umd.ts apps/docs/public/playground.html apps/docs/e2e/playground.spec.ts
@@ -2598,7 +2598,7 @@ git commit -m "feat(web): <mapslibvn-autocomplete> + playground autocomplete + E
 - Modify: `package.json` (root devDeps test React), `apps/docs/astro.config.mjs`, `apps/docs/package.json`
 - Create: `apps/docs/src/components/ReactDemo.tsx`, `apps/docs/src/pages/react-demo.astro`
 
-- [ ] **Step 1: Scaffold package**
+- [x] **Step 1: Scaffold package**
 
 `packages/react/package.json`:
 
@@ -2656,7 +2656,7 @@ Root `package.json` devDependencies thêm (cho vitest chạy test hook ở root)
 
 Rồi `pnpm install`.
 
-- [ ] **Step 2: Viết `packages/react/src/context.ts` và `packages/react/src/map.tsx`**
+- [x] **Step 2: Viết `packages/react/src/context.ts` và `packages/react/src/map.tsx`**
 
 `context.ts` tách riêng có chủ đích: `use-places.ts` (và test của nó, chạy trong vitest gốc — ci.yml `pnpm test` **không** build `@mapslibvn/web`) chỉ import `MapContext` từ đây; import từ `@mapslibvn/web` là type-only nên bị xoá lúc biên dịch, runtime không cần dist của web/maplibre:
 
@@ -2740,7 +2740,7 @@ export function useMap(): WebMap {
 }
 ```
 
-- [ ] **Step 3: Viết `packages/react/src/marker.tsx`**
+- [x] **Step 3: Viết `packages/react/src/marker.tsx`**
 
 ```tsx
 import type { MarkerOptions } from '@mapslibvn/web';
@@ -2757,7 +2757,7 @@ export function Marker(props: MarkerOptions) {
 }
 ```
 
-- [ ] **Step 4: Viết `packages/react/src/use-places.ts`**
+- [x] **Step 4: Viết `packages/react/src/use-places.ts`**
 
 ```ts
 import type { AutocompleteItem, MapsLibVNClient } from '@mapslibvn/core';
@@ -2820,7 +2820,7 @@ export function usePlaces(query: string, opts: UsePlacesOptions = {}): UsePlaces
 }
 ```
 
-- [ ] **Step 5: `packages/react/src/index.ts`**
+- [x] **Step 5: `packages/react/src/index.ts`**
 
 ```ts
 export { MapsLibVNMap, useMap } from './map';
@@ -2831,7 +2831,7 @@ export type { UsePlacesOptions, UsePlacesResult } from './use-places';
 export type { AutocompleteItem, MapsLibVNClient, Place } from '@mapslibvn/core';
 ```
 
-- [ ] **Step 6: Viết test — `packages/react/src/use-places.test.ts`**
+- [x] **Step 6: Viết test — `packages/react/src/use-places.test.ts`**
 
 ```ts
 // @vitest-environment jsdom
@@ -2882,12 +2882,12 @@ describe('usePlaces', () => {
 });
 ```
 
-- [ ] **Step 7: Chạy test + build + typecheck**
+- [x] **Step 7: Chạy test + build + typecheck**
 
 Run: `pnpm install && pnpm --filter @mapslibvn/core build && pnpm --filter @mapslibvn/web build && pnpm --filter @mapslibvn/react build && pnpm --filter @mapslibvn/react typecheck && pnpm exec vitest run packages/react`
 Expected: PASS. (Root vitest tự nhặt `packages/react/src/**/*.test.ts` — pragma jsdom trên đầu file lo phần môi trường.)
 
-- [ ] **Step 8: React demo trong docs**
+- [x] **Step 8: React demo trong docs**
 
 `apps/docs/package.json` — thêm dependencies:
 
@@ -2979,7 +2979,7 @@ import ReactDemo from '../components/ReactDemo';
 </html>
 ```
 
-- [ ] **Step 9: Chạy demo tay**
+- [x] **Step 9: Chạy demo tay**
 
 ```bash
 pnpm install
@@ -2990,12 +2990,21 @@ Trên docs production (deploy-docs.yml tự deploy): trang mở với `?api=http
 
 Expected: map hiện, gõ "highlands" ra danh sách, bấm kết quả thấy marker. Chụp lại một screenshot cho DEVLOG (nghiệm thu "React demo").
 
-- [ ] **Step 10: Commit**
+- [x] **Step 10: Commit**
 
 ```bash
 git add packages/react apps/docs/astro.config.mjs apps/docs/package.json apps/docs/src/components/ReactDemo.tsx apps/docs/src/pages/react-demo.astro .github/workflows/deploy-docs.yml package.json pnpm-lock.yaml
 git commit -m "feat(react): @mapslibvn/react (<MapsLibVNMap>, Marker, useMap, usePlaces) + demo docs"
 ```
+
+**✅ Task 9–10 ĐÃ XONG (01/09/2026).** Task 9 ở `9c61812` thêm autocomplete custom element,
+playground và E2E 3/3; bản sửa auth `3aed3ab` chuẩn hoá mảng Postgres từ Hyperdrive/KV.
+Task 10 ở `ece8d1e` thêm `@mapslibvn/react`, 5 test hook và React demo đã kiểm browser ở
+desktop/mobile. Local xanh: typecheck 12/12 package, root 480/480 test, API 54/54, lint
+194 file. Remote trên `ece8d1e` đều success: CI `33463393201`, Deploy Docs `33463393179`,
+Deploy API `33463393248`, API DB test `33463393195`.
+
+**Điểm bắt đầu phiên sau: Task 11 Step 1 — viết `apps/api/test/quota.test.ts`.**
 
 ---
 

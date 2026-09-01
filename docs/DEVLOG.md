@@ -9,11 +9,11 @@ commit với code).
 - Plan: `docs/superpowers/plans/2026-08-31-m3-places-api.md` — **12 task, 82 step** (viết 31/08,
   đã review kỹ 1 lượt và sửa 9 lỗi: 4 lỗi typecheck do `exactOptionalPropertyTypes` +
   `noUncheckedIndexedAccess`, 3 lỗi CI, 2 lỗi kiểu runtime của porsager)
-- Task đang làm: **Task 1 ĐÃ XONG** → việc kế tiếp là **Task 2 (middleware auth `X-Api-Key`)**
+- Task đang làm: **Task 10 ĐÃ XONG** → việc kế tiếp là **Task 11 (quota + Analytics Engine)**
 - Mốc trước: **M2 — Kho POI + máy chủ nội bộ đã nghiệm thu 31/08/2026**, 11/11 task; plan
   `docs/superpowers/plans/2026-08-27-m2-kho-poi-may-chu.md` đã tick trọn, kết quả ở mục 7
-- Commit cuối: M3 Task 1 (`feat(db): seed tenant nội bộ…`) fast-forward vào `main`; trước đó
-  M2 T10 + 3 bản sửa CI tới `30f0274`; CI `test` + `image` + `dbtest` đều xanh
+- Commit code cuối: M3 Task 10 `ece8d1e`; Task 9 `9c61812`; sửa auth Hyperdrive
+  `3aed3ab`. Remote trên `ece8d1e`: CI, Deploy Docs, Deploy API và API DB test đều xanh
 - Môi trường đã dựng: máy dev macOS; remote GitHub cá nhân; Postgres/PostGIS dev,
   migration `0001_extensions.sql`; `pnpm run setup` sạch đạt 6,51 giây; image
   pipeline local đã build/smoke trên arm64 và chạy được qua Compose; Dev Container
@@ -37,13 +37,20 @@ commit với code).
 
 ## 2. Bước kế tiếp
 
-**BẮT ĐẦU TỪ ĐÂY: M3 Task 2 — middleware auth `X-Api-Key`** trong
-`docs/superpowers/plans/2026-08-31-m3-places-api.md`. Tạo `apps/api/src/auth.ts` (+ `AppEnv`
-trong `env.ts`, test `apps/api/test/auth-origin.test.ts`) theo plan; dữ liệu khoá để tra đã có
-sẵn trong DB dev nhờ Task 1. Thứ tự còn lại của plan: 2 → 3 → 4 → 8 (Step 1–4) → 5 → 6 → 7 →
-8 (Step 5–6) → 9 → 10 → 11 → 12 (Task 5/6 import kiểu `Place`/`GeocodeItem` do Task 8 tạo).
-Hai fixture bắt buộc phải xanh: **"Trường Tiểu học Hoàng Diệu"** (autocomplete) và
-**"88/9 Nguyễn Lâm"** (geocode `interpolated`, ≤ 60 m); p95 autocomplete < 300 ms từ VN.
+**BẮT ĐẦU TỪ ĐÂY: M3 Task 11 Step 1 — viết `apps/api/test/quota.test.ts`** theo
+`docs/superpowers/plans/2026-08-31-m3-places-api.md`, chạy RED trước rồi mới tạo
+`apps/api/src/quota.ts`. Sau Task 11 làm Task 12 để nghiệm thu toàn M3.
+
+**M3 Task 9–10 xong 01/09/2026.** Task 9 thêm custom element
+`<mapslibvn-autocomplete>` có debounce 200 ms, ARIA combobox/listbox/status, điều hướng bàn
+phím, chống response cũ và playground/E2E thật. Sửa luôn lỗi runtime Hyperdrive trả mảng
+Postgres dạng chuỗi (kể cả KV cache), nên auth origin production hoạt động đúng. Build web:
+ESM 4,07 kB gzip, UMD 298,69 kB gzip; E2E playground 3/3. Task 10 thêm
+`@mapslibvn/react` (`MapsLibVNMap`, `Marker`, `useMap`, `usePlaces`), 5 test hook và demo docs
+responsive. Đã kiểm trên browser desktop/mobile: tìm được 10 Highlands, chọn kết quả tạo đúng
+1 marker và fly-to; mobile 390×844 không tràn ngang. Local: typecheck 12/12 package, root
+480/480 test, API 54/54, lint 194 file. Remote tại `ece8d1e`: CI `33463393201`, Deploy Docs
+`33463393179`, Deploy API `33463393248`, API DB test `33463393195` — tất cả success.
 
 **M3 Task 1 xong 31/08/2026** — `db/seed/tenant_internal.sql` + `scripts/db-seed-tenant.mjs` +
 script gốc `pnpm db:seed-tenant`. Chạy 2 lần đều `api_key active: 2` (idempotent qua
@@ -436,6 +443,10 @@ rõ ở mục 2 và không chặn M2: kiểm trên Windows, và bật lại `req
   remote CI cần 3 bản sửa (build `@mapslibvn/style` trước fixture QA, giữ pending work khi
   chạy partial, nới `DBTEST_CHILD_TIMEOUT_MS` 840 giây + `timeout-minutes: 45`) rồi xanh cả
   3 job trên `30f0274`. Còn 5 Actions secret là việc tay của PHONG (mục 2) · `30f0274`
+- 2026-09-01 · M3 T9 · `<mapslibvn-autocomplete>` + playground/E2E; sửa normalization mảng
+  Hyperdrive/KV trong auth; browser và E2E 3/3 xanh · `3aed3ab`, `9c61812`
+- 2026-09-01 · M3 T10 · `@mapslibvn/react` + demo docs responsive; 5 test hook, desktop/mobile
+  browser xanh; CI + Deploy Docs + Deploy API + API DB test remote đều xanh · `ece8d1e`
 
 ## 7. Nghiệm thu M2 (spec mục 13, hàng M2) — **ĐẠT 31/08/2026**
 
