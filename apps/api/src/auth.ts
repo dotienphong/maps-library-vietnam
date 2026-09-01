@@ -102,8 +102,8 @@ async function loadAuth(c: Context<AppEnv>, key: string): Promise<AuthInfo | nul
   }
 }
 
-/** Middleware cho các route places: 401 thiếu/sai khoá, 403 sai origin/scope. */
-export function requireAuth() {
+/** Middleware cho các route places/edits: 401 thiếu/sai khoá, 403 sai origin/scope. */
+export function requireAuth(scope = 'places:read') {
   return async (c: Context<AppEnv>, next: Next) => {
     const key = c.req.header('X-Api-Key') ?? c.req.query('key');
     if (!key) {
@@ -120,8 +120,8 @@ export function requireAuth() {
     if (!info) {
       throw new ApiError(401, 'invalid_key', 'Khoá API không hợp lệ hoặc đã thu hồi');
     }
-    if (!info.scopes.includes('places:read')) {
-      throw new ApiError(403, 'scope', 'Khoá không có scope places:read');
+    if (!info.scopes.includes(scope)) {
+      throw new ApiError(403, 'scope', `Khoá không có scope ${scope}`);
     }
     if (info.kind === 'web') {
       const origin = c.req.header('Origin') ?? c.req.header('Referer') ?? '';

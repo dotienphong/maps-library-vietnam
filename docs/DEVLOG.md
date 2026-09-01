@@ -10,9 +10,10 @@ commit với code).
   đã tự review 1 lượt: sửa test consensus, REVOKE PUBLIC cho hàm SECURITY DEFINER,
   ép `id::int` cho bigserial qua porsager, cwd Playwright). 10 quyết định thiết kế ghi
   trong plan — chốt vào mục 3 khi nghiệm thu Task 11
-- Task đang làm: **Task 1 + Task 2 XONG 01/09/2026** (migration `0006_edits.sql` + 3 hàm
-  SECURITY DEFINER; `apps/api/src/edits/{hash,ulid,rules,validate}.ts` + `vnDayStartUtc`)
-  → kế tiếp **Task 3** (`requireAuth(scope)` + route `POST /v1/edits`)
+- Task đang làm: **Task 1, 2, 3 XONG 01/09/2026** (migration `0006_edits.sql` + 3 hàm
+  SECURITY DEFINER; `apps/api/src/edits/{hash,ulid,rules,validate}.ts` + `vnDayStartUtc`;
+  route `POST /v1/edits` + `requireAuth(scope)`) → kế tiếp **Task 4** (POI pending cho tenant
+  tạo + itest `apps/api/test-db/edits.itest.mjs`)
 - Mốc trước: **M2 — Kho POI + máy chủ nội bộ đã nghiệm thu 31/08/2026**, 11/11 task; plan
   `docs/superpowers/plans/2026-08-27-m2-kho-poi-may-chu.md` đã tick trọn, kết quả ở mục 7
 - Commit code cuối: M3 Task 11 `6eb4ade`; Task 10 `ece8d1e`; Task 9 `9c61812`.
@@ -40,16 +41,31 @@ commit với code).
 
 ## 2. Bước kế tiếp
 
-**BẮT ĐẦU TỪ ĐÂY: `docs/superpowers/plans/2026-09-01-m4-dong-gop.md` → Task 3 Step 1**
-(viết `apps/api/test/edits-route.test.ts` cho RED — seed KV như `autocomplete.test.ts`, không
-cần Postgres — rồi tham số hoá `requireAuth(scope = 'places:read')`, viết
-`apps/api/src/routes/edits.ts`, mount vào `index.ts`, và cấp `edits:write` trong
-`db/seed/tenant_internal.sql`). Task 1 và Task 2 đã xong, đều trên `main`. Việc tay của PHONG
-(Access application, custom domain API) chỉ chặn từ Task 11 — Task 3–10 làm được ngay.
+**BẮT ĐẦU TỪ ĐÂY: `docs/superpowers/plans/2026-09-01-m4-dong-gop.md` → Task 4 Step 1**
+(cập nhật `apps/api/test-db/setup.sql`: cấp `edits:write` cho khoá itest, thêm tenant free
+`…0000cc` + khoá `mlv_live_edit0000000000000000000` và POI `01M4TEST0000000000000CON01`
+quality 40 cho test đồng thuận; rồi viết `apps/api/test-db/edits.itest.mjs` cho RED, sau đó thêm
+nhánh POI `pending` vào `apps/api/src/routes/places.ts`). Task 1–3 đã xong, đều trên `main`.
+Việc tay của PHONG (Access application, custom domain API) chỉ chặn từ Task 11 — Task 4–10 làm
+được ngay.
 
 **Trước khi làm Task 3/4 (cần DB thật):** nếu vừa chạy `pnpm test:db` thì dev DB đã bị
 `schema.dbtest.mjs` down/up làm sạch — chạy lại `pnpm db:migrate && pnpm db:seed-tenant`
 (và `pnpm db:fixture` nếu cần POI) trước.
+
+**M4 Task 3 xong 01/09/2026.** `POST /v1/edits` (`apps/api/src/routes/edits.ts`):
+`requireAuth('edits:write')` — `requireAuth` giờ nhận tham số scope, mặc định `places:read` nên
+6 route M3 không đổi; kiểm POI đích tồn tại/đúng trạng thái, `category` phải có thật, đếm giới
+hạn 20/ngày/end-user + 500/ngày/key bằng SQL theo ngày VN, đếm phiếu trùng 30 ngày, INSERT
+`poi_edit`, `stage_poi_create` cho `kind=create`, và gọi `apply_poi_edit` ngay khi
+`decideStatus` ra `auto_approved` (reviewer `auto:internal`/`auto:consensus`/`auto:rule`).
+Khoá seed nội bộ được cấp `edits:write` (kèm UPDATE cho hàng cũ vì INSERT có DO NOTHING).
+**Một lỗi thật chỉ smoke test bắt được:** `JSON.stringify(changes)` + cast `::jsonb` khiến
+porsager stringify lần nữa → DB nhận jsonb *string*, `apply_poi_edit` vỡ ở `jsonb_object_keys`
+(503). Phải dùng `sql.json(changes)` cho cả INSERT lẫn so sánh phiếu trùng; `ValidatedEdit.changes`
+đổi sang kiểu JSON-safe `EditChanges`. Đã smoke test thật qua `wrangler dev` + dev DB: update
+hours → `auto_approved` và POI đổi ngay; create → POI `active`, `created_by=user`, anchor `user`
+confidence 0,95; POI lạ 404; category lạ 400. API test 18 file/79 test.
 
 **M4 Task 2 xong 01/09/2026.** `apps/api/src/edits/`: `hash.ts` (`endUserHash` =
 sha256(tenant+token), `ipHash` = sha256(ip+ngày VN) — không lưu token/IP thô), `ulid.ts` (ULID
@@ -145,6 +161,7 @@ vẫn là `sleep 1` phút — `sudo pmset -a sleep 0 disksleep 0`.
 |---|---|---|---|
 | 2026-09-01 | M4: ghi `poi` qua 3 hàm SQL `SECURITY DEFINER` owner `pipeline`, `api` chỉ EXECUTE | Giữ đúng spec 9 "Worker chỉ đọc + ghi `poi_edit`" ở tầng GRANT thay vì tin vào code Worker | (commit này) |
 | 2026-09-01 | M4: `db-permissions.mjs` giữ owner/grant của 3 hàm 0006 | `pg_restore --no-owner --no-privileges` làm hàm rơi về superuser → Worker sẽ ghi `poi` với quyền superuser | (commit này) |
+| 2026-09-01 | M4: mọi jsonb gửi từ Worker phải qua `sql.json()`, không `JSON.stringify` + `::jsonb` | porsager stringify lần nữa khi thấy cast → ghi jsonb *string*, hàm SQL vỡ ở `jsonb_object_keys`; tầng test workers không có DB nên không bắt được | (commit này) |
 | 2026-09-01 | M4: `poi_edit` thêm cột `api_key` + `new_poi_id`; giới hạn edit đếm bằng SQL, không KV | `api_key` cần cho hạn 500/ngày/key và audit; `new_poi_id` vì `poi_id` có FK nên chỉ gán được sau khi stage POI. Đếm SQL chính xác và không tốn write KV (Workers Free 1.000 ghi/ngày) | (commit này) |
 | 2026-08-26 | Lint/format dùng Biome thay ESLint+Prettier | Một công cụ, nhanh, không cấu hình rườm rà | `9cff9a8` |
 | 2026-08-26 | Typecheck gốc kiểm thêm `vitest.config.ts` | TypeScript 5.9 trả TS18003 khi `scripts/` chưa tồn tại | `9cff9a8` |
@@ -499,6 +516,9 @@ rõ ở mục 2 và không chặn M2: kiểm trên Windows, và bật lại `req
   bị bind mount vào worktree tạm; M3 đóng · (commit hiện tại)
 - 2026-09-01 · M3 hậu nghiệm thu · playground tự chọn Worker production khi mở URL không
   có `?api=`; localhost và query override vẫn giữ; thêm unit regression + E2E URL ngắn · (commit này)
+- 2026-09-01 · M4 T3 · `POST /v1/edits` + `requireAuth(scope)` + seed `edits:write`; sửa lỗi
+  double-encode jsonb (phải dùng `sql.json`) phát hiện bằng smoke test wrangler dev; api 79/79,
+  root 486/486, lint 211 file sạch · (commit này)
 - 2026-09-01 · M4 T2 · `edits/{hash,ulid,rules,validate}.ts` + `vnDayStartUtc`; 14 test mới,
   api 73/73, root 486/486, typecheck 12/12, lint 209 file sạch · (commit này)
 - 2026-09-01 · M4 T1 · migration `0006_edits.sql` (cột `api_key`/`new_poi_id`, 3 index, 3 hàm

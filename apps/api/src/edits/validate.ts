@@ -19,11 +19,21 @@ const TEXT_FIELDS = [
   'address_text',
 ] as const;
 
+/** Giá trị JSON hợp lệ trong changes — khớp JSONValue của porsager để `sql.json()` nhận được. */
+export type EditChangeValue =
+  | string
+  | number
+  | boolean
+  | null
+  | EditChangeValue[]
+  | { [key: string]: EditChangeValue };
+export type EditChanges = { [key: string]: EditChangeValue };
+
 export interface ValidatedEdit {
   kind: EditKind;
   poiId: string | null;
   /** Đã whitelist + thêm dẫn xuất name_norm/street_norm/ward_norm/province_norm (quyết định 4). */
-  changes: Record<string, unknown>;
+  changes: EditChanges;
   photoUrl: string | null;
   note: string | null;
   endUserToken: string;
@@ -56,8 +66,8 @@ const stringArray = (value: unknown, name: string): string[] | undefined => {
   return value as string[];
 };
 
-function validateChanges(kind: EditKind, raw: Record<string, unknown>): Record<string, unknown> {
-  const out: Record<string, unknown> = {};
+function validateChanges(kind: EditKind, raw: Record<string, unknown>): EditChanges {
+  const out: EditChanges = {};
   for (const field of TEXT_FIELDS) {
     const v = optionalString(raw[field], `changes.${field}`, 500);
     if (v !== undefined) out[field] = v;
@@ -74,7 +84,7 @@ function validateChanges(kind: EditKind, raw: Record<string, unknown>): Record<s
   }
   if (raw.contact !== undefined) {
     const contact = asRecord(raw.contact, 'changes.contact');
-    const clean: Record<string, unknown> = {};
+    const clean: EditChanges = {};
     const phone = stringArray(contact.phone, 'contact.phone');
     const website = stringArray(contact.website, 'contact.website');
     const facebook = optionalString(contact.facebook, 'contact.facebook', 200);
@@ -86,7 +96,9 @@ function validateChanges(kind: EditKind, raw: Record<string, unknown>): Record<s
   }
   if (raw.hours !== undefined) {
     if (typeof raw.hours === 'string') {
-      out.hours = { osm: optionalString(raw.hours, 'changes.hours', 200) };
+      out.hours = {
+        osm: optionalString(raw.hours, 'changes.hours', 200) ?? bad('changes.hours rỗng'),
+      };
     } else {
       const hours = asRecord(raw.hours, 'changes.hours');
       out.hours = {
