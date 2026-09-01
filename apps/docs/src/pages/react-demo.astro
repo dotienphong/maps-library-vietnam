@@ -1,0 +1,38 @@
+---
+import ReactDemo from '../components/ReactDemo';
+---
+
+<html lang="vi">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content="Demo React SDK của MapsLibVN" />
+    <title>MapsLibVN — React demo</title>
+    <style>
+      :root { font-family: Inter, ui-sans-serif, system-ui, sans-serif; color: #172033; background: #f4f6f9; }
+      body { margin: 0; }
+      header { padding: 18px clamp(16px, 4vw, 48px); background: #fff; border-bottom: 1px solid #dce1e8; }
+      h1 { margin: 0; font-size: clamp(20px, 3vw, 30px); }
+      :global(.react-demo) { display: grid; grid-template-columns: minmax(260px, 340px) minmax(0, 1fr); height: calc(100vh - 73px); gap: 12px; padding: 12px; box-sizing: border-box; }
+      :global(.react-demo__search) { overflow: auto; padding: 18px; background: #fff; border: 1px solid #dce1e8; border-radius: 10px; }
+      :global(.react-demo__search label) { display: block; margin-bottom: 7px; font-weight: 650; }
+      :global(.react-demo__search input) { width: 100%; box-sizing: border-box; padding: 10px 12px; border: 1px solid #9ca8ba; border-radius: 7px; font: inherit; }
+      :global(.react-demo__search input:focus) { outline: 3px solid rgba(36,88,166,.2); border-color: #2458a6; }
+      :global(.react-demo__status) { min-height: 20px; color: #596579; font-size: 14px; }
+      :global(.react-demo__results) { display: grid; gap: 6px; margin: 0; padding: 0; list-style: none; }
+      :global(.react-demo__results button) { width: 100%; padding: 9px 10px; border: 0; border-radius: 6px; background: #eef3fa; color: inherit; text-align: left; cursor: pointer; }
+      :global(.react-demo__results button:hover), :global(.react-demo__results button:focus-visible) { background: #dce9fa; outline: 2px solid #2458a6; }
+      :global(.react-demo__results span), :global(.react-demo__results small) { display: block; }
+      :global(.react-demo__results small) { margin-top: 3px; color: #667085; }
+      :global(.react-demo__map) { min-height: 360px; overflow: hidden; border: 1px solid #dce1e8; border-radius: 10px; background: #dce5ef; }
+      @media (max-width: 720px) {
+        :global(.react-demo) { grid-template-columns: 1fr; height: auto; }
+        :global(.react-demo__map) { height: 60vh; }
+      }
+    </style>
+  </head>
+  <body>
+    <header><h1>React demo — @mapslibvn/react</h1></header>
+    <ReactDemo client:only="react" />
+  </body>
+</html>
