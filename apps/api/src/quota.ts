@@ -10,6 +10,14 @@ export function vnDay(now: Date = new Date()): string {
   return new Date(now.getTime() + 7 * 3600 * 1000).toISOString().slice(0, 10);
 }
 
+/** Mốc UTC bắt đầu ngày VN hiện tại (00:00 UTC+7) — dùng cho đếm edit theo ngày bằng SQL. */
+export function vnDayStartUtc(now: Date = new Date()): Date {
+  const vn = new Date(now.getTime() + 7 * 3600 * 1000);
+  return new Date(
+    Date.UTC(vn.getUTCFullYear(), vn.getUTCMonth(), vn.getUTCDate()) - 7 * 3600 * 1000,
+  );
+}
+
 /** Đếm xấp xỉ trong KV, chặn 429 khi vượt 2× quota (tránh chặn nhầm vì đếm trễ).
  * Tenant internal: không đọc/ghi KV (Workers Free chỉ cho 1.000 ghi KV/ngày). */
 export function quotaMiddleware(group: 'places') {

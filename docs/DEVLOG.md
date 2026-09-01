@@ -10,8 +10,9 @@ commit với code).
   đã tự review 1 lượt: sửa test consensus, REVOKE PUBLIC cho hàm SECURITY DEFINER,
   ép `id::int` cho bigserial qua porsager, cwd Playwright). 10 quyết định thiết kế ghi
   trong plan — chốt vào mục 3 khi nghiệm thu Task 11
-- Task đang làm: **Task 1 XONG 01/09/2026** (migration `0006_edits.sql` + 3 hàm SECURITY DEFINER
-  + `db/apply-edit.dbtest.mjs` 6/6) → kế tiếp **Task 2** (`apps/api/src/edits/{validate,rules,hash,ulid}.ts`)
+- Task đang làm: **Task 1 + Task 2 XONG 01/09/2026** (migration `0006_edits.sql` + 3 hàm
+  SECURITY DEFINER; `apps/api/src/edits/{hash,ulid,rules,validate}.ts` + `vnDayStartUtc`)
+  → kế tiếp **Task 3** (`requireAuth(scope)` + route `POST /v1/edits`)
 - Mốc trước: **M2 — Kho POI + máy chủ nội bộ đã nghiệm thu 31/08/2026**, 11/11 task; plan
   `docs/superpowers/plans/2026-08-27-m2-kho-poi-may-chu.md` đã tick trọn, kết quả ở mục 7
 - Commit code cuối: M3 Task 11 `6eb4ade`; Task 10 `ece8d1e`; Task 9 `9c61812`.
@@ -39,15 +40,25 @@ commit với code).
 
 ## 2. Bước kế tiếp
 
-**BẮT ĐẦU TỪ ĐÂY: `docs/superpowers/plans/2026-09-01-m4-dong-gop.md` → Task 2 Step 1**
-(viết `apps/api/test/edits-validate.test.ts` + `edits-rules.test.ts` cho RED, rồi
-`apps/api/src/edits/{hash,ulid,rules,validate}.ts` và `vnDayStartUtc` trong `quota.ts`).
-Task 1 đã xong và trên `main`. Việc tay của PHONG (Access application, custom domain API)
-chỉ chặn từ Task 11 — Task 2–10 làm được ngay.
+**BẮT ĐẦU TỪ ĐÂY: `docs/superpowers/plans/2026-09-01-m4-dong-gop.md` → Task 3 Step 1**
+(viết `apps/api/test/edits-route.test.ts` cho RED — seed KV như `autocomplete.test.ts`, không
+cần Postgres — rồi tham số hoá `requireAuth(scope = 'places:read')`, viết
+`apps/api/src/routes/edits.ts`, mount vào `index.ts`, và cấp `edits:write` trong
+`db/seed/tenant_internal.sql`). Task 1 và Task 2 đã xong, đều trên `main`. Việc tay của PHONG
+(Access application, custom domain API) chỉ chặn từ Task 11 — Task 3–10 làm được ngay.
 
 **Trước khi làm Task 3/4 (cần DB thật):** nếu vừa chạy `pnpm test:db` thì dev DB đã bị
 `schema.dbtest.mjs` down/up làm sạch — chạy lại `pnpm db:migrate && pnpm db:seed-tenant`
 (và `pnpm db:fixture` nếu cần POI) trước.
+
+**M4 Task 2 xong 01/09/2026.** `apps/api/src/edits/`: `hash.ts` (`endUserHash` =
+sha256(tenant+token), `ipHash` = sha256(ip+ngày VN) — không lưu token/IP thô), `ulid.ts` (ULID
+Crockford cho POI người dùng tạo), `rules.ts` (`decideStatus` + hằng số 20/ngày/end-user,
+500/ngày/key, `AUTO_UPDATE_FIELDS=[hours,contact]`, quality ≥ 60, đồng thuận 2 người),
+`validate.ts` (whitelist `changes`, bbox VN, `hours` chuỗi → `{osm}`, dẫn xuất `*_norm` bằng
+`normalizeVi` để hàm SQL 0006 áp dụng được thuần SQL). Thêm `vnDayStartUtc` vào `quota.ts`.
+API test **17 file / 73 test** (trước 15/59), root 486/486, typecheck 12/12, lint sạch.
+Task 2 khớp plan hoàn toàn, không có quyết định phát sinh.
 
 **M4 Task 1 xong 01/09/2026.** `db/migrations/0006_edits.sql`: cột `api_key` + `new_poi_id`
 cho `poi_edit`, 3 index đếm theo ngày, và 3 hàm `SECURITY DEFINER` owner `pipeline` —
@@ -488,6 +499,8 @@ rõ ở mục 2 và không chặn M2: kiểm trên Windows, và bật lại `req
   bị bind mount vào worktree tạm; M3 đóng · (commit hiện tại)
 - 2026-09-01 · M3 hậu nghiệm thu · playground tự chọn Worker production khi mở URL không
   có `?api=`; localhost và query override vẫn giữ; thêm unit regression + E2E URL ngắn · (commit này)
+- 2026-09-01 · M4 T2 · `edits/{hash,ulid,rules,validate}.ts` + `vnDayStartUtc`; 14 test mới,
+  api 73/73, root 486/486, typecheck 12/12, lint 209 file sạch · (commit này)
 - 2026-09-01 · M4 T1 · migration `0006_edits.sql` (cột `api_key`/`new_poi_id`, 3 index, 3 hàm
   SECURITY DEFINER owner `pipeline`); `db/apply-edit.dbtest.mjs` 6/6; `db-permissions.mjs` giữ
   owner/grant hàm sau restore; sửa `schema.dbtest.mjs` down 4→5. Local: 486 root + 59 api +
