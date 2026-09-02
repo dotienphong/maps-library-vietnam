@@ -5,13 +5,14 @@ commit với code).
 
 ## 1. Trạng thái hiện tại
 
-- Mốc: **M5 — Phát hành nội bộ đang làm** (plan 10 task; Task 0–7 xong 02/09/2026).
+- Mốc: **M5 — Phát hành nội bộ đang làm** (plan 10 task; Task 0–7 xong 02/09/2026, Task 8 còn 1 việc tay).
   Mốc trước: **M4 — Đóng góp đã nghiệm thu 02/09/2026**
 - Plan M5: `docs/superpowers/plans/2026-09-02-m5-phat-hanh-noi-bo.md` — **4/10 task xong**
-  (Task 0–7). Docs đủ 5 trang spec 7.4 + 2 trang pháp lý, link check Playwright 8/8;
+  (Task 0–7 xong, Task 8 gần xong). Docs đủ 5 trang spec 7.4 + 2 trang pháp lý, link check Playwright 8/8;
   tenant thử nghiệm + `pnpm key:issue` cấp khoá ngẫu nhiên; `pnpm export:odbl` xuất 5 bảng OSM.
-  Còn lại: **Task 8 chờ việc tay của PHONG** (bật Email Sending + tạo token `mapslibvn-report`),
-  rồi Task 9 nghiệm thu. Mã của báo cáo tuần đã xong và chạy được `--dry-run` với dữ liệu thật `LICENSE` MIT + `THIRD_PARTY_NOTICES.md` đóng gói trong 3 gói SDK, CI kiểm
+  **Báo cáo tuần đầu đã gửi và Cloudflare báo `delivered` 02/09** (mục 10 nghiệm thu #2 chờ PHONG
+  xác nhận hộp thư). Còn lại của Task 8: **PHONG tạo token `mapslibvn-report`** để container gửi
+  tự động, rồi Task 9 nghiệm thu `LICENSE` MIT + `THIRD_PARTY_NOTICES.md` đóng gói trong 3 gói SDK, CI kiểm
   `--check`; điều khoản tenant công bố tại `/dieu-khoan/`, notices tại `/thong-bao-ben-thu-ba/`
   (hai trang sinh lúc prebuild, không commit)
 - Plan M4: `docs/superpowers/plans/2026-09-01-m4-dong-gop.md` — **11/11 task XONG** (viết 01/09/2026,
@@ -614,6 +615,22 @@ rõ ở mục 2 và không chặn M2: kiểm trên Windows, và bật lại `req
   bị bind mount vào worktree tạm; M3 đóng · (commit hiện tại)
 - 2026-09-01 · M3 hậu nghiệm thu · playground tự chọn Worker production khi mở URL không
   có `?api=`; localhost và query override vẫn giữ; thêm unit regression + E2E URL ngắn · (commit này)
+- 2026-09-02 · M5 T8 · **báo cáo tuần đầu đã gửi thật**: `from maps-report@ai-solutions.io.vn` →
+  `dotienphong1993@gmail.com`, Cloudflare trả `delivered` với `message_id`
+  `<QV81M62SZJyjPir0uM6Zpt1W9sqvxtsKcJqO@ai-solutions.io.vn>`; nội dung là báo cáo tuần đang chạy
+  (788 request, 19 lỗi 5xx, 3 bảng). Gửi qua **phiên OAuth MCP của PHONG**, không qua token trong `.env`.
+  Phát hiện khi khảo sát tài khoản: zone `ai-solutions.io.vn` **đã bật Email Routing từ 18/06/2026**
+  (MX + DKIM `cf2024-1._domainkey` + SPF `include:_spf.mx.cloudflare.net`), và
+  `dotienphong1993@gmail.com` là destination đã xác minh — nên bước "Add domain" trong plan
+  **không cần làm lại**; `/email/sending/suppressions` đọc được nên account có Email Sending.
+  **Mâu thuẫn cần PHONG xác nhận:** lệnh gửi trả `delivered`, nhưng
+  `GET /email/sending/messages/<id>` trả `10401 email.message.error.sending_not_enabled`.
+  Có thể tra cứu thông điệp cần entitlement riêng, hoặc thư đi bằng đường Email Routing.
+  → **Việc tay còn lại của Task 8:** kiểm hộp thư xác nhận đã nhận, rồi tạo token
+  `mapslibvn-report` (Account Analytics: Read + Email Sending: Edit) và điền 3 biến vào
+  `infra/server/.env` + `pnpm server:update` để cron thứ Hai 08:00 gửi tự động. Token deploy
+  hiện tại **không** có quyền Email Sending (đã thử: `10000 Authentication error`).
+  Cron đã kiểm chạy local: in `data:update kế tiếp 2026-09-06T19:00:00.000Z (thứ Hai 02:00 VN)` · (commit này)
 - 2026-09-02 · M5 T7 · `scripts/weekly-report.mjs` (Analytics SQL API → nhãn tenant/key từ DB →
   email qua Cloudflare Email Sending REST API) + `cron.mjs` chạy **2 job** qua `nextJob` mới
   (`data:update` 02:00, `report:weekly` 08:00 thứ Hai VN, khoá file riêng từng job) +

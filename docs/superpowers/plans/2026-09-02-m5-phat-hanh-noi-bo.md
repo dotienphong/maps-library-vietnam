@@ -1906,17 +1906,23 @@ Sau push: `ci.yml` xanh; image pipeline được build lại (`image` job) — m
 
 Phần này **chỉ PHONG làm được** (dashboard Cloudflare, máy chủ). Agent chuẩn bị lệnh, PHONG dán kết quả.
 
+
+> **Trạng thái 02/09/2026:** Step 3 đã đạt — báo cáo đầu tiên gửi thật qua phiên OAuth của PHONG,
+> Cloudflare trả `delivered`. Domain đã có sẵn Email Routing + SPF/DKIM nên **không cần Add domain**.
+> Step 1 còn treo đúng một việc: tạo token `mapslibvn-report` rồi điền `infra/server/.env` để cron
+> gửi tự động (Cloudflare không cho tạo token thay chủ tài khoản).
+
 - [ ] **Step 1: PHONG — bật Email Sending + token** (theo `infra/server/README.md` bước 6):
   1. Dashboard → **Email Service → Email Sending → Add domain** → `ai-solutions.io.vn` → chờ trạng thái Active (DNS tự thêm).
   2. **API Tokens → Create Custom Token** `mapslibvn-report`: permissions *Account · Account Analytics · Read* và *Account · Email Sending · Edit*; Account Resources = account này. Copy token.
   3. Trên máy chủ: thêm 3 biến vào `infra/server/.env` (`CF_REPORT_API_TOKEN`, `REPORT_EMAIL_TO=<email PHONG>`, `REPORT_EMAIL_FROM=maps-report@ai-solutions.io.vn`), rồi `pnpm server:update` (kéo image mới có cron 2 job) và `docker compose --env-file infra/server/.env -f infra/server/compose.yml up -d pipeline`.
 
-- [ ] **Step 2: Kiểm cron nhận 2 job**
+- [x] **Step 2: Kiểm cron nhận 2 job**
 
 Run (máy chủ): `docker compose --env-file infra/server/.env -f infra/server/compose.yml logs pipeline | tail -3`
 Expected: dòng `[cron] report:weekly kế tiếp …T01:00:00.000Z (thứ Hai 08:00 VN)` hoặc `data:update kế tiếp …` (job nào gần hơn).
 
-- [ ] **Step 3: Gửi báo cáo tuần đầu thật (không đợi thứ Hai)**
+- [x] **Step 3: Gửi báo cáo tuần đầu thật (không đợi thứ Hai)**
 
 Run (máy chủ):
 ```bash
@@ -1926,7 +1932,7 @@ $C exec pipeline node scripts/weekly-report.mjs
 ```
 Expected: dry-run in bảng có tenant `MapsLibVN nội bộ` (và `Free thử nghiệm` từ smoke M4); lần hai in `[report] đã gửi tới <email>: {"result":{"delivered":[…]…` và **email tới hộp thư PHONG** với 3 bảng.
 
-- [ ] **Step 4: Ghi DEVLOG**
+- [x] **Step 4: Ghi DEVLOG**
 
 Mục 4: `- <ngày> · M5 T8 · báo cáo tuần đầu gửi thành công tới <email>, N request tuần <label> · (không commit mã)`. Mục 2: đánh dấu việc tay Email Sending/token đã xong; nếu PHONG chưa làm được, ghi rõ "CHỜ PHONG: …" và **tiếp tục Task 9 phần không phụ thuộc** (checklist, docs) — nghiệm thu mục 2 để ngỏ cho tới khi email đến.
 
