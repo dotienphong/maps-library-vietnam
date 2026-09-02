@@ -5,12 +5,12 @@ commit với code).
 
 ## 1. Trạng thái hiện tại
 
-- Mốc: **M5 — Phát hành nội bộ đang làm** (plan 10 task; Task 0–5 xong 02/09/2026).
+- Mốc: **M5 — Phát hành nội bộ đang làm** (plan 10 task; Task 0–6 xong 02/09/2026).
   Mốc trước: **M4 — Đóng góp đã nghiệm thu 02/09/2026**
 - Plan M5: `docs/superpowers/plans/2026-09-02-m5-phat-hanh-noi-bo.md` — **4/10 task xong**
-  (Task 0–5). Docs đủ 5 trang spec 7.4 + 2 trang pháp lý, link check Playwright 8/8;
+  (Task 0–6). Docs đủ 5 trang spec 7.4 + 2 trang pháp lý, link check Playwright 8/8;
   tenant thử nghiệm + `pnpm key:issue` cấp khoá ngẫu nhiên; `pnpm export:odbl` xuất 5 bảng OSM.
-  Còn lại: Task 6–7 báo cáo tuần, Task 8 việc tay Email Sending của PHONG, Task 9 nghiệm thu `LICENSE` MIT + `THIRD_PARTY_NOTICES.md` đóng gói trong 3 gói SDK, CI kiểm
+  Còn lại: Task 7 script báo cáo + cron, Task 8 việc tay Email Sending của PHONG, Task 9 nghiệm thu `LICENSE` MIT + `THIRD_PARTY_NOTICES.md` đóng gói trong 3 gói SDK, CI kiểm
   `--check`; điều khoản tenant công bố tại `/dieu-khoan/`, notices tại `/thong-bao-ben-thu-ba/`
   (hai trang sinh lúc prebuild, không commit)
 - Plan M4: `docs/superpowers/plans/2026-09-01-m4-dong-gop.md` — **11/11 task XONG** (viết 01/09/2026,
@@ -613,6 +613,14 @@ rõ ở mục 2 và không chặn M2: kiểm trên Windows, và bật lại `req
   bị bind mount vào worktree tạm; M3 đóng · (commit hiện tại)
 - 2026-09-01 · M3 hậu nghiệm thu · playground tự chọn Worker production khi mở URL không
   có `?api=`; localhost và query override vẫn giữ; thêm unit regression + E2E URL ngắn · (commit này)
+- 2026-09-02 · M5 T6 · `scripts/lib/weekly-report.mjs`: `weekRange` (tuần trước trọn vẹn theo giờ VN),
+  `analyticsSql`, `maskKey`, `summarize` (gộp theo tenant/key/path, gộp `/v1/places/:id`, top 15),
+  `renderText` + `renderHtml` (3 bảng, escape HTML). 13 test, xanh ngay lần đầu.
+  **Đã thử câu SQL trên Analytics Engine thật trước khi cố định vào test** (token deploy đủ quyền):
+  `quantileWeighted(0.95)(double2, _sample_interval)` chạy, còn `quantile(...)` trả
+  `unknown function call: QUANTILE`; `sumIf` + `toDateTime` chạy. Câu truy vấn gộp đầy đủ trả 11 nhóm.
+  Phát hiện quan trọng: **SUM/sumIf trả chuỗi** (UInt64) còn `quantileWeighted` trả số, nên
+  `summarize` phải `Number()` mọi ô — đã có test riêng cho dữ liệu dạng chuỗi · (commit này)
 - 2026-09-02 · M5 T5 · `pnpm export:odbl` xuất 5 bảng dẫn xuất OSM (`src_osm_place`, `admin_area`,
   `admin_alias`, `street`, `alley`) thành CSV gzip geometry WKT + `manifest.json` (số dòng,
   SHA-256, release OSM) + `README.md` ghi ODbL 1.0 và attribution + file `LATEST`.

@@ -1354,7 +1354,7 @@ Sau push, workflow `dbtest.yml` (paths `db/**`) phải xanh — kiểm bằng `g
 **Files:**
 - Create: `scripts/lib/weekly-report.mjs`, `scripts/lib/weekly-report.test.mjs`
 
-- [ ] **Step 1: Test thất bại trước (RED)**
+- [x] **Step 1: Test thất bại trước (RED)**
 
 Tạo `scripts/lib/weekly-report.test.mjs`:
 
@@ -1461,12 +1461,12 @@ describe('render', () => {
 });
 ```
 
-- [ ] **Step 2: Chạy, xác nhận đỏ**
+- [x] **Step 2: Chạy, xác nhận đỏ**
 
 Run: `pnpm exec vitest run scripts/lib/weekly-report.test.mjs`
 Expected: FAIL — không load được `./weekly-report.mjs`.
 
-- [ ] **Step 3: Viết `scripts/lib/weekly-report.mjs`**
+- [x] **Step 3: Viết `scripts/lib/weekly-report.mjs`**
 
 ```js
 // Báo cáo tuần từ Workers Analytics Engine (spec 6.4, 11.3). Hàm thuần — I/O ở scripts/weekly-report.mjs.
@@ -1637,12 +1637,12 @@ export function renderHtml(s, range) {
 }
 ```
 
-- [ ] **Step 4: Chạy test xanh**
+- [x] **Step 4: Chạy test xanh**
 
 Run: `pnpm exec vitest run scripts/lib/weekly-report.test.mjs`
 Expected: PASS 10 test. Nếu `weekRange` lệch 1 ngày, kiểm lại phép `(getUTCDay() + 6) % 7` trên ngày **VN** (không phải UTC).
 
-- [ ] **Step 5: Gate + commit**
+- [x] **Step 5: Gate + commit**
 
 Run: `pnpm exec tsc -p tsconfig.scripts.json && pnpm exec biome check --write scripts/lib/weekly-report.mjs scripts/lib/weekly-report.test.mjs`
 Expected: sạch.
