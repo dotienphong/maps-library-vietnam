@@ -611,7 +611,7 @@ git commit -m "docs(legal): điều khoản tenant + sinh trang Pháp lý trên 
 - Create: `apps/docs/e2e/docs.spec.ts`
 - Modify: `apps/docs/src/content/docs/bat-dau.md`, `index.mdx`, `apps/docs/astro.config.mjs`
 
-- [ ] **Step 1: Viết test link check thất bại trước (RED)**
+- [x] **Step 1: Viết test link check thất bại trước (RED)**
 
 Tạo `apps/docs/e2e/docs.spec.ts`:
 
@@ -649,12 +649,12 @@ for (const path of PAGES) {
 }
 ```
 
-- [ ] **Step 2: Chạy, xác nhận đỏ ở 3 trang chưa có**
+- [x] **Step 2: Chạy, xác nhận đỏ ở 3 trang chưa có**
 
 Run: `pnpm --filter @mapslibvn/docs build && pnpm --filter @mapslibvn/docs e2e -- docs.spec.ts`
 Expected: FAIL cho `/tu-host/`, `/giay-phep/`, `/do-chinh-xac/` (status 404); các trang khác PASS.
 
-- [ ] **Step 3: Viết `apps/docs/src/content/docs/giay-phep.md`**
+- [x] **Step 3: Viết `apps/docs/src/content/docs/giay-phep.md`**
 
 ```markdown
 ---
@@ -710,7 +710,7 @@ Noto Sans (SIL OFL 1.1), Maki và Temaki (CC0), style gốc osm-liberty (BSD-3-C
 - Về dữ liệu cá nhân (Nghị định 13/2023): MapsLibVN không nhận định danh người dùng cuối; nghĩa vụ xin phép vị trí thuộc ứng dụng nhúng.
 ```
 
-- [ ] **Step 4: Viết `apps/docs/src/content/docs/do-chinh-xac.md`**
+- [x] **Step 4: Viết `apps/docs/src/content/docs/do-chinh-xac.md`**
 
 ```markdown
 ---
@@ -771,7 +771,7 @@ curl "https://api.ai-solutions.io.vn/v1/geocode?q=88/9%20Nguy%E1%BB%85n%20L%C3%A
 - Dữ liệu ngoài đô thị thưa hơn TP.HCM/Hà Nội.
 ```
 
-- [ ] **Step 5: Viết `apps/docs/src/content/docs/tu-host.md`**
+- [x] **Step 5: Viết `apps/docs/src/content/docs/tu-host.md`**
 
 ```markdown
 ---
@@ -840,7 +840,7 @@ Biến Worker cần có (`[env.production]`): `TILES_BASE`, `ENVIRONMENT`, `QUOT
 Cloudflare Tunnel health (email khi tunnel down), Workers metrics (5xx, p95) trên dashboard, báo cáo tuần tự động từ Analytics Engine gửi email (`scripts/weekly-report.mjs`, chạy trong container `pipeline` thứ Hai 08:00).
 ```
 
-- [ ] **Step 6: Sửa URL thật trong `bat-dau.md`, thêm card ở `index.mdx`, thêm sidebar**
+- [x] **Step 6: Sửa URL thật trong `bat-dau.md`, thêm card ở `index.mdx`, thêm sidebar**
 
 Run: `grep -rn "example.com" apps/docs/src`
 Thay **mọi** `https://maps-docs.example.com` → `https://mapslibvn-docs.pages.dev` và `https://maps-api.example.com` → `https://api.ai-solutions.io.vn` (dùng `sed -i '' 's#https://maps-docs.example.com#https://mapslibvn-docs.pages.dev#g; s#https://maps-api.example.com#https://api.ai-solutions.io.vn#g' <file>` cho từng file grep ra). Chạy grep lại → không còn kết quả.
@@ -861,12 +861,12 @@ Thay **mọi** `https://maps-docs.example.com` → `https://mapslibvn-docs.pages
 ```
 và nhóm "Pháp lý" thêm dòng đầu `{ label: 'Giấy phép & ghi nguồn', slug: 'giay-phep' },`.
 
-- [ ] **Step 7: Build + link check xanh**
+- [x] **Step 7: Build + link check xanh**
 
 Run: `pnpm --filter @mapslibvn/docs build && pnpm --filter @mapslibvn/docs typecheck && pnpm --filter @mapslibvn/docs e2e`
 Expected: build liệt kê đủ trang; `astro check` 0 lỗi; Playwright PASS 8 test docs + 3 test playground cũ.
 
-- [ ] **Step 8: Commit**
+- [x] **Step 8: Commit**
 
 DEVLOG mục 1/2/4.
 

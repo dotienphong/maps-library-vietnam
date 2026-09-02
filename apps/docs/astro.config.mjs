@@ -14,12 +14,15 @@ export default defineConfig({
           label: 'Hướng dẫn',
           items: [
             { label: 'Bắt đầu 5 phút', slug: 'bat-dau' },
+            { label: 'Độ chính xác geocode', slug: 'do-chinh-xac' },
             { label: 'Đóng góp & sửa POI', slug: 'dong-gop' },
+            { label: 'Tự host', slug: 'tu-host' },
           ],
         },
         {
           label: 'Pháp lý',
           items: [
+            { label: 'Giấy phép & ghi nguồn', slug: 'giay-phep' },
             { label: 'Điều khoản tenant', slug: 'dieu-khoan' },
             { label: 'Thông báo bên thứ ba', slug: 'thong-bao-ben-thu-ba' },
           ],

@@ -6,14 +6,14 @@ description: Nhúng bản đồ MapsLibVN bằng script tag, npm hoặc React.
 ## 1. Một dòng `<script>`
 
 ```html
-<link rel="stylesheet" href="https://maps-docs.example.com/sdk/mapslibvn.css" />
-<script src="https://maps-docs.example.com/sdk/mapslibvn.umd.js"></script>
+<link rel="stylesheet" href="https://mapslibvn-docs.pages.dev/sdk/mapslibvn.css" />
+<script src="https://mapslibvn-docs.pages.dev/sdk/mapslibvn.umd.js"></script>
 <div id="map" style="height:400px"></div>
 <script>
   MapsLibVN.createMap({
     container: 'map',
     apiKey: 'mlv_live_…',
-    apiBase: 'https://maps-api.example.com',
+    apiBase: 'https://api.ai-solutions.io.vn',
     center: [106.70, 10.776],
     zoom: 13,
   });
@@ -32,7 +32,7 @@ import maplibregl from 'maplibre-gl';
 import { createMap } from '@mapslibvn/web';
 
 const map = createMap(
-  { container: 'map', apiKey: 'mlv_live_…', apiBase: 'https://maps-api.example.com' },
+  { container: 'map', apiKey: 'mlv_live_…', apiBase: 'https://api.ai-solutions.io.vn' },
   { maplibre: maplibregl },
 );
 map.addMarker({ lng: 106.7, lat: 10.776, popupHtml: '<b>Chợ Bến Thành</b>' });
@@ -50,4 +50,8 @@ map.on('poiClick', (poi) => console.log(poi.name));
 | `poiLayer` | `true` | ẩn lớp POI nếu `false` |
 | `compactAttribution` | `false` | attribution gọn. Không có tuỳ chọn tắt — đây là nghĩa vụ giấy phép |
 
-Thay `maps-api.example.com` / `maps-docs.example.com` bằng tên miền thật của bạn.
+Các ví dụ trên dùng endpoint nội bộ hiện tại: API tại `api.ai-solutions.io.vn` và SDK phục vụ từ `mapslibvn-docs.pages.dev`. Cả hai là **tạm thời** trong giai đoạn nội bộ và sẽ đổi khi MapsLibVN có tên miền riêng. Nếu bạn tự host, hãy thay bằng tên miền của mình, xem [Tự host](/tu-host/).
+
+Khoá API phải khớp origin của trang nhúng. Nếu bị trả về lỗi `origin_not_allowed`, nghĩa là origin của bạn chưa nằm trong danh sách của khoá.
+
+Đọc thêm: [Độ chính xác geocode](/do-chinh-xac/) để dùng đúng `precision` và `confidence`, [Giấy phép & ghi nguồn](/giay-phep/) cho nghĩa vụ attribution.
