@@ -5,20 +5,22 @@ commit với code).
 
 ## 1. Trạng thái hiện tại
 
-- Mốc: **M4 — Đóng góp (bắt đầu 01/09/2026)**; M3 — Places API đã nghiệm thu 01/09/2026
-- Plan: `docs/superpowers/plans/2026-09-01-m4-dong-gop.md` — **11 task** (viết 01/09/2026,
+- Mốc: **M4 — Đóng góp đã nghiệm thu 02/09/2026**; bước tiếp theo: lập plan cấp bước M5
+- Plan M4: `docs/superpowers/plans/2026-09-01-m4-dong-gop.md` — **11/11 task XONG** (viết 01/09/2026,
   đã tự review 1 lượt: sửa test consensus, REVOKE PUBLIC cho hàm SECURITY DEFINER,
-  ép `id::int` cho bigserial qua porsager, cwd Playwright). 10 quyết định thiết kế ghi
-  trong plan — chốt vào mục 3 khi nghiệm thu Task 11
-- Task đang làm: **Task 1–10 XONG 01/09/2026** (migration `0006` + 3 hàm SECURITY DEFINER;
+  ép `id::int` cho bigserial qua porsager, cwd Playwright). 10 quyết định thiết kế đã ghi
+  vào mục 3; bằng chứng nghiệm thu ở mục 9
+- Task vừa xong: **Task 11 — nghiệm thu M4 XONG 02/09/2026**: custom domain
+  `api.ai-solutions.io.vn`; Cloudflare Access bảo vệ `/admin` + `/v1/admin`; production DB
+  đã áp dụng `0006_edits.sql` và seed `edits:write`; edit #1 auto-approved; edit #2 được
+  PHONG duyệt thành POI active với reviewer đúng email. Toàn M4 gồm: migration `0006` + 3 hàm SECURITY DEFINER;
   `apps/api/src/edits/*`; `POST /v1/edits`; POI pending cho tenant tạo; Access JWT +
   `/v1/admin/*`; Access giả lập + itest 22/22; `apps/admin` SPA tại `/admin` + E2E 3/3;
   pipeline tôn trọng `locked_fields` + giữ anchor người dùng; `suggestEdit` + docs "Đóng góp")
-  → còn **Task 11 — nghiệm thu**, CHẶN bởi việc tay của PHONG trên Cloudflare
 - Mốc trước: **M2 — Kho POI + máy chủ nội bộ đã nghiệm thu 31/08/2026**, 11/11 task; plan
   `docs/superpowers/plans/2026-08-27-m2-kho-poi-may-chu.md` đã tick trọn, kết quả ở mục 7
-- Commit code cuối: M3 Task 11 `6eb4ade`; Task 10 `ece8d1e`; Task 9 `9c61812`.
-  Remote trên `6eb4ade`: CI, Deploy API và API DB test xanh; DB tests chạy riêng
+- Commit cấu hình production M4: `5cbf1a0`; commit chốt nghiệm thu: (commit này).
+  Remote trên `5cbf1a0`: CI, Deploy API, Deploy Docs, API DB và DB tests đều xanh
 - Môi trường đã dựng: máy dev macOS; remote GitHub cá nhân; Postgres/PostGIS dev,
   migration `0001_extensions.sql`; `pnpm run setup` sạch đạt 6,51 giây; image
   pipeline local đã build/smoke trên arm64 và chạy được qua Compose; Dev Container
@@ -27,7 +29,8 @@ commit với code).
   custom domain `tiles.ai-solutions.io.vn` (SSL active), CORS, KV
   `mapslibvn-META` và Cache Rule đã cấu hình; tiles `vn-20260827` đã publish,
   smoke 20/20 qua custom domain và manifest KV đã active; M1a/M1b đã nghiệm thu
-  trên macOS arm64; Worker `mapslibvn-api-production.dotienphong1993.workers.dev`
+  trên macOS arm64; Worker `api.ai-solutions.io.vn`
+  (`mapslibvn-api-production.dotienphong1993.workers.dev` vẫn là route gốc)
   và docs `mapslibvn-docs.pages.dev` đã chạy production; repo GitHub chuyển **private**
   với 8 secret Actions; **M1 (M1a+M1b+M1c) đã nghiệm thu 27/08/2026**;
   **máy chủ nội bộ (compose `mapslibvn-server`) đã chạy đủ 4 dịch vụ trên chính máy dev
@@ -42,23 +45,20 @@ commit với code).
 
 ## 2. Bước kế tiếp
 
-**BẮT ĐẦU TỪ ĐÂY: chỉ còn Task 11 — nghiệm thu M4. ĐANG CHỜ VIỆC TAY CỦA PHONG:**
+**BẮT ĐẦU TỪ ĐÂY: lập plan cấp bước M5 — Phát hành nội bộ.**
 
-1. Gắn **custom domain** cho Worker `mapslibvn-api` production (vd `api.ai-solutions.io.vn`) —
-   Cloudflare Access không bảo vệ được `*.workers.dev`. Nếu thêm mới thì cập nhật hằng API
-   production trong `apps/docs/public/playground.html`.
-2. Zero Trust → Access → Applications → **Add self-hosted**: domain `api.<zone>`, path `admin`,
-   thêm đường dẫn thứ hai `v1/admin` trong cùng application. Policy Allow → email PHONG, session 24 h.
-3. Đưa lại **AUD tag** + **team domain** (`<team>.cloudflareaccess.com`).
+1. Đọc roadmap `docs/superpowers/plans/2026-08-26-roadmap-toan-bo-spec.md` mục 6 và spec mục 13/M5.
+2. Kiểm tra lại trạng thái Git/CI/runtime hiện tại; không lấy số liệu lịch sử làm nguồn sự thật.
+3. Viết và review plan M5 trước khi code: docs/notices/điều khoản, key app kết bạn, báo cáo tuần,
+   `export:odbl`, checklist pháp lý và nghiệm thu nhúng app thật.
 
-Có 2 giá trị đó thì chạy Task 11 (`docs/superpowers/plans/2026-09-01-m4-dong-gop.md`, 5 step):
-điền vars `ACCESS_*` vào `[env.production]` của `apps/api/wrangler.toml` → chạy toàn bộ gate local
-→ `pnpm db:seed-tenant` trên DB production + smoke `POST /v1/edits` sửa giờ mở cửa → mở
-`https://api.<zone>/admin/` duyệt một POI thật → chốt DEVLOG mục 1–4 + tick roadmap mục 7.
-
-**Trước khi làm Task 3/4 (cần DB thật):** nếu vừa chạy `pnpm test:db` thì dev DB đã bị
-`schema.dbtest.mjs` down/up làm sạch — chạy lại `pnpm db:migrate && pnpm db:seed-tenant`
-(và `pnpm db:fixture` nếu cần POI) trước.
+**M4 Task 11 xong 02/09/2026.** Tạo custom domain `api.ai-solutions.io.vn`; một Cloudflare
+Access application bảo vệ hai path `/admin` và `/v1/admin`, policy email PHONG 24 giờ; Worker
+production nhận `ACCESS_TEAM_DOMAIN` + `ACCESS_AUD`. Production DB ban đầu mới ở migration
+`0005`, khiến smoke đầu tiên trả 503; đã xác định bằng schema/GRANT, áp dụng transactional
+`0006_edits.sql` bằng DB owner rồi seed scope. Edit #1 sửa giờ POI quality 87 →
+`auto_approved`, API đọc ngay `Mo-Su 07:00-22:00`; edit #2 tạo POI bằng tenant free → pending,
+thu hồi scope tạm → PHONG duyệt qua Access → POI active, reviewer đúng email. Chi tiết mục 9.
 
 **M4 Task 10 xong 01/09/2026.** `packages/core`: thêm `suggestEdit` (client giờ có 9 phương thức)
 cùng types `EditKind`/`EditChanges`/`SuggestEditRequest`/`SuggestEditResponse`; tách `parseOrThrow`
@@ -227,6 +227,12 @@ vẫn là `sleep 1` phút — `sudo pmset -a sleep 0 disksleep 0`.
 | 2026-09-01 | M4: xác thực admin bằng verify JWT `Cf-Access-Jwt-Assertion` (RS256, JWKS cache KV 1 giờ) | Không tin header do proxy chèn mà kiểm chữ ký + `aud` + `exp`; giả lập được trong itest/E2E bằng JWKS server riêng | (commit này) |
 | 2026-09-01 | M4: mọi jsonb gửi từ Worker phải qua `sql.json()`, không `JSON.stringify` + `::jsonb` | porsager stringify lần nữa khi thấy cast → ghi jsonb *string*, hàm SQL vỡ ở `jsonb_object_keys`; tầng test workers không có DB nên không bắt được | (commit này) |
 | 2026-09-01 | M4: `poi_edit` thêm cột `api_key` + `new_poi_id`; giới hạn edit đếm bằng SQL, không KV | `api_key` cần cho hạn 500/ngày/key và audit; `new_poi_id` vì `poi_id` có FK nên chỉ gán được sau khi stage POI. Đếm SQL chính xác và không tốn write KV (Workers Free 1.000 ghi/ngày) | (commit này) |
+| 2026-09-01 | M4: `kind=create` stage POI `pending` ngay; chỉ tenant tạo đọc được bằng place ID và không cache | Đúng vòng đời spec, không lộ đóng góp chưa duyệt qua search/cache cho tenant khác | (commit này) |
+| 2026-09-01 | M4: Worker dẫn xuất các trường `*_norm` bằng `normalizeVi` ngay trong `changes` | Hàm SQL áp dụng edit không cần tự triển khai chuẩn hoá tiếng Việt; jsonb đủ thông tin và so đồng thuận ổn định | (commit này) |
+| 2026-09-01 | M4: Access giả lập dùng RSA/JWKS ở tiến trình riêng, khoá test nằm trong `.cache/` gitignored | `spawnSync` của test harness chặn event loop nếu JWKS cùng tiến trình; cặp khoá ổn định tránh lệch KV cert cache | (commit này) |
+| 2026-09-01 | M4: đồng thuận đếm end-user riêng biệt trên phiếu pending giống hệt trong 30 ngày; apply kéo các phiếu trùng cùng duyệt | Ngăn một người tự nhân phiếu và bảo đảm toàn bộ consensus có audit status/reviewer nhất quán | (commit này) |
+| 2026-09-01 | M4: POI user mặc định quality 60, popularity 0,2; `report` chỉ tạo phiếu | 60 là ngưỡng POI hiện ở tiles z12–14; report không được tự thay đổi dữ liệu bản đồ | (commit này) |
+| 2026-09-01 | M4: Admin UI mỏng không có unit test riêng; API có workers test và luồng UI có Playwright E2E | Root vitest loại `apps/**`; E2E kiểm được JWT, click và state DB/API thật nên có giá trị hơn unit test UI trùng lặp | (commit này) |
 | 2026-08-26 | Lint/format dùng Biome thay ESLint+Prettier | Một công cụ, nhanh, không cấu hình rườm rà | `9cff9a8` |
 | 2026-08-26 | Typecheck gốc kiểm thêm `vitest.config.ts` | TypeScript 5.9 trả TS18003 khi `scripts/` chưa tồn tại | `9cff9a8` |
 | 2026-08-26 | Spec bản 2 đã được PHONG review | Trạng thái thiết kế đã được chủ dự án xác nhận | `cb98a09` |
@@ -580,6 +586,11 @@ rõ ở mục 2 và không chặn M2: kiểm trên Windows, và bật lại `req
   bị bind mount vào worktree tạm; M3 đóng · (commit hiện tại)
 - 2026-09-01 · M3 hậu nghiệm thu · playground tự chọn Worker production khi mở URL không
   có `?api=`; localhost và query override vẫn giữ; thêm unit regression + E2E URL ngắn · (commit này)
+- 2026-09-02 · M4 T11 · cấu hình custom domain + Cloudflare Access production bằng MCP;
+  thêm vars Access và đổi playground production API (`5cbf1a0`); toàn bộ local gates xanh
+  (lint 225 file, typecheck, root 490, API 87, API DB 22, admin E2E 3, DB 41 trong image).
+  Áp dụng migration 0006 + seed production; edit #1 auto-approved; edit #2 được PHONG duyệt
+  qua Admin thành POI active, reviewer đúng email; 5 workflow remote xanh · (commit này)
 - 2026-09-01 · M4 T10 · `suggestEdit` + types Edit trong core (9 phương thức, 6,54 kB gzip) +
   trang docs "Đóng góp & sửa POI"; core 327 test, root 490/490 · (commit này)
 - 2026-09-01 · M4 T9 · `publish.mjs` tôn trọng `locked_fields` (11 cột + nhánh status) và
@@ -655,3 +666,26 @@ rõ ở mục 2 và không chặn M2: kiểm trên Windows, và bật lại `req
   theo dõi p99/cold miss và cân nhắc Meilisearch theo spec 8.3 nếu traffic thật vẫn chậm.
 - Browser console còn 404 glyph Unicode hiếm và WebGL readback warning; MapLibre fallback
   vẫn render. Đây là hạn chế production đã biết từ M2, không phát sinh từ React demo.
+
+## 9. Nghiệm thu M4 — Đóng góp — **ĐẠT 02/09/2026**
+
+| # | Hạng mục | Kết quả |
+|---|---|---|
+| 1 | Auto-approve sửa giờ POI quality ≥ 60 | **ĐẠT production:** edit #1 trên POI `0DJ9X0A4SGHJ2A3P2690PEPX98` (quality 87) trả `auto_approved`; `GET /v1/places/{id}` đọc ngay `hours.osm = Mo-Su 07:00-22:00`, status `active` |
+| 2 | Tenant ngoài internal tạo pending → Admin duyệt → active | **ĐẠT production:** tenant free tạo edit #2 / POI `01M1GMZ90J65C1V4SHB00D5BJ7`; scope tạm đã thu hồi về `places:read`; PHONG duyệt qua trang Admin, DB ghi reviewer `dotienphong1993@gmail.com`, API trả POI `active`, `created_by=user` |
+| 3 | Pipeline giữ edit và POI người dùng | **ĐẠT bằng DB test + chờ cron thật:** `edit-lock.dbtest.mjs` phủ 11 `locked_fields`, nhánh status, POI/anchor user; full DB gate 41/41 trong pipeline image. Edit production sẽ được kiểm lại sau cron/data update kế tiếp; chưa tới lịch nên không chặn nghiệm thu theo plan |
+| 4 | Admin chỉ qua Cloudflare Access | **ĐẠT production:** `api.ai-solutions.io.vn/admin/` + `/v1/admin` nằm trong một Access app, session 24 giờ, allow email PHONG; curl không cookie bị 302 ở edge, còn phiên đăng nhập thật duyệt được và Worker ghi reviewer từ JWT |
+
+Local gate cuối: lint 225 file; typecheck sạch; root 44 file/490 test; API 19 file/87 test;
+API DB 3 file/22 test; Admin E2E 3/3; DB 7 file/41 test. Remote trên `5cbf1a0`:
+[CI run 33603090334](https://github.com/dotienphong/maps-library-vietnam/actions/runs/33603090334),
+[Deploy API 33603090311](https://github.com/dotienphong/maps-library-vietnam/actions/runs/33603090311),
+[Deploy Docs 33603090312](https://github.com/dotienphong/maps-library-vietnam/actions/runs/33603090312),
+[API DB 33603090321](https://github.com/dotienphong/maps-library-vietnam/actions/runs/33603090321),
+[DB tests 33603090297](https://github.com/dotienphong/maps-library-vietnam/actions/runs/33603090297) — tất cả xanh.
+
+Sự cố nghiệm thu: production DB mới ở `0005` nên POST đầu tiên trả 503 request
+`f446105f-f7d6-46bc-a254-043cccdb587f`; kiểm schema xác nhận thiếu cột/hàm M4. Chạy
+`0006_edits.sql` bằng DB owner (không mở rộng quyền lâu dài của role `pipeline`) rồi kiểm lại
+ba hàm đều chỉ cấp EXECUTE cho `api`; smoke sau đó đạt. Lần pipeline production kế tiếp vẫn
+cần ghi thêm bằng chứng edit #1/#2 còn nguyên vào DEVLOG.
