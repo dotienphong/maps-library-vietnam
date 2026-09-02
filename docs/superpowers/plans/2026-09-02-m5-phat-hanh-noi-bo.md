@@ -886,7 +886,7 @@ Sau push, kiểm `Deploy Docs` xanh và `curl -s -o /dev/null -w '%{http_code}' 
 - Create: `scripts/lib/api-key.mjs`, `scripts/lib/api-key.test.mjs`, `scripts/api-key-issue.mjs`
 - Modify: `package.json` (script `key:issue`)
 
-- [ ] **Step 1: Test thất bại trước (RED)**
+- [x] **Step 1: Test thất bại trước (RED)**
 
 Tạo `scripts/lib/api-key.test.mjs`:
 
@@ -945,12 +945,12 @@ describe('parseIssueArgs', () => {
 });
 ```
 
-- [ ] **Step 2: Chạy, xác nhận đỏ**
+- [x] **Step 2: Chạy, xác nhận đỏ**
 
 Run: `pnpm exec vitest run scripts/lib/api-key.test.mjs`
 Expected: FAIL — không load được `./api-key.mjs`.
 
-- [ ] **Step 3: Viết `scripts/lib/api-key.mjs`**
+- [x] **Step 3: Viết `scripts/lib/api-key.mjs`**
 
 ```js
 import { randomBytes } from 'node:crypto';
@@ -1008,12 +1008,12 @@ export function parseIssueArgs(argv) {
 }
 ```
 
-- [ ] **Step 4: Chạy test xanh**
+- [x] **Step 4: Chạy test xanh**
 
 Run: `pnpm exec vitest run scripts/lib/api-key.test.mjs`
 Expected: PASS 5 test.
 
-- [ ] **Step 5: Viết `db/seed/tenant_nhung_thu.sql` và `scripts/api-key-issue.mjs`**
+- [x] **Step 5: Viết `db/seed/tenant_nhung_thu.sql` và `scripts/api-key-issue.mjs`**
 
 `db/seed/tenant_nhung_thu.sql`:
 ```sql
@@ -1060,7 +1060,7 @@ Thêm vào `package.json` gốc sau `"db:seed-tenant"`:
     "key:issue": "node scripts/api-key-issue.mjs",
 ```
 
-- [ ] **Step 6: Thử trên DB dev**
+- [x] **Step 6: Thử trên DB dev**
 
 Run:
 ```bash
@@ -1069,7 +1069,7 @@ pnpm key:issue --tenant 00000000-0000-4000-8000-000000000002 --label "thử dev"
 ```
 Expected: `đã nạp db/seed/tenant_nhung_thu.sql`; script in `KEY : mlv_live_` + 24 ký tự. Kiểm: `curl -s "http://localhost:8787/v1/autocomplete?q=cafe" -H "X-Api-Key: <key>" -H "Origin: http://localhost:4321"` sau `pnpm --filter @mapslibvn/api dev` trả JSON (không 401/403). Dọn: `psql … -c "DELETE FROM api_key WHERE label='thử dev'"` hoặc để yên (DB dev).
 
-- [ ] **Step 7: Gate + commit**
+- [x] **Step 7: Gate + commit**
 
 Run: `pnpm exec tsc -p tsconfig.scripts.json && pnpm exec biome check --write scripts/lib/api-key.mjs scripts/lib/api-key.test.mjs scripts/api-key-issue.mjs && pnpm exec vitest run scripts/lib`
 Expected: sạch, xanh.

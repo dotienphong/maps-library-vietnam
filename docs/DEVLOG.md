@@ -5,10 +5,11 @@ commit với code).
 
 ## 1. Trạng thái hiện tại
 
-- Mốc: **M5 — Phát hành nội bộ đang làm** (plan 10 task; Task 0–3 xong 02/09/2026).
+- Mốc: **M5 — Phát hành nội bộ đang làm** (plan 10 task; Task 0–4 xong 02/09/2026).
   Mốc trước: **M4 — Đóng góp đã nghiệm thu 02/09/2026**
 - Plan M5: `docs/superpowers/plans/2026-09-02-m5-phat-hanh-noi-bo.md` — **4/10 task xong**
-  (Task 0–3). Docs đủ 5 trang spec 7.4 + 2 trang pháp lý, link check Playwright 8/8. `LICENSE` MIT + `THIRD_PARTY_NOTICES.md` đóng gói trong 3 gói SDK, CI kiểm
+  (Task 0–4). Docs đủ 5 trang spec 7.4 + 2 trang pháp lý, link check Playwright 8/8;
+  tenant thử nghiệm + `pnpm key:issue` cấp khoá ngẫu nhiên. `LICENSE` MIT + `THIRD_PARTY_NOTICES.md` đóng gói trong 3 gói SDK, CI kiểm
   `--check`; điều khoản tenant công bố tại `/dieu-khoan/`, notices tại `/thong-bao-ben-thu-ba/`
   (hai trang sinh lúc prebuild, không commit)
 - Plan M4: `docs/superpowers/plans/2026-09-01-m4-dong-gop.md` — **11/11 task XONG** (viết 01/09/2026,
@@ -611,6 +612,12 @@ rõ ở mục 2 và không chặn M2: kiểm trên Windows, và bật lại `req
   bị bind mount vào worktree tạm; M3 đóng · (commit hiện tại)
 - 2026-09-01 · M3 hậu nghiệm thu · playground tự chọn Worker production khi mở URL không
   có `?api=`; localhost và query override vẫn giữ; thêm unit regression + E2E URL ngắn · (commit này)
+- 2026-09-02 · M5 T4 · `db/seed/tenant_nhung_thu.sql` (tenant `…000002`, plan internal, **không**
+  seed khoá) + `pnpm key:issue` sinh khoá ngẫu nhiên bằng rejection sampling (bỏ byte ≥ 248 để
+  62 ký tự đều xác suất), validate `--kind`, `--origins`, in khoá đúng một lần. Kiểm thật trên
+  DB dev: cấp khoá `web` origin `http://localhost` → autocomplete 200; origin lạ → 403
+  `origin_not_allowed`; POST `/v1/edits` → 403 `scope` vì khoá chỉ có `places:read`. Khoá thử
+  đã xoá khỏi DB dev. scripts/lib 73/73, typecheck sạch · (commit này)
 - 2026-09-02 · M5 T3 · ba trang docs còn thiếu: `giay-phep` (MIT + 4 nguồn dữ liệu + ODbL Collective
   Database + chủ quyền), `do-chinh-xac` (bảng 5 mức `precision`, cách dùng đúng, giới hạn đã biết),
   `tu-host` (kiến trúc, máy dev 2 thứ, máy chủ 24/7, tiles, deploy, giám sát). Sidebar tách nhóm
