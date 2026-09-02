@@ -25,6 +25,7 @@
     "image:smoke": "node scripts/image.mjs smoke",
     "data:update": "node scripts/data-update.mjs",
     "data:rollback": "node scripts/data-rollback.mjs",
+    "export:odbl": "node scripts/export-odbl.mjs",
     "check:git": "node scripts/check-git-identity.mjs",
     "test:db": "node scripts/db-test.mjs",
     "test:api-db": "node scripts/api-db-test.mjs",

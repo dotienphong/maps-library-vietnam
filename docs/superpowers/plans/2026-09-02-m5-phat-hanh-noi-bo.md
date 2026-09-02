@@ -1089,7 +1089,7 @@ git commit -m "feat(db): tenant ứng dụng nhúng thử nghiệm + pnpm key:is
 - Create: `scripts/lib/odbl.mjs`, `scripts/lib/odbl.test.mjs`, `scripts/export-odbl.mjs`, `db/export-odbl.dbtest.mjs`
 - Modify: `package.json` (script `export:odbl`)
 
-- [ ] **Step 1: Unit test thất bại trước (RED)**
+- [x] **Step 1: Unit test thất bại trước (RED)**
 
 Tạo `scripts/lib/odbl.test.mjs`:
 
@@ -1130,12 +1130,12 @@ describe('readmeFor', () => {
 });
 ```
 
-- [ ] **Step 2: Chạy, xác nhận đỏ**
+- [x] **Step 2: Chạy, xác nhận đỏ**
 
 Run: `pnpm exec vitest run scripts/lib/odbl.test.mjs`
 Expected: FAIL — không load được `./odbl.mjs`.
 
-- [ ] **Step 3: Viết `scripts/lib/odbl.mjs`**
+- [x] **Step 3: Viết `scripts/lib/odbl.mjs`**
 
 ```js
 // Bảng Derivative Database của OSM (spec 12.2) và cách xuất chúng theo ODbL.
@@ -1187,12 +1187,12 @@ Không nằm trong bản xuất này (không phải dẫn xuất OSM hoặc là 
 }
 ```
 
-- [ ] **Step 4: Chạy unit test xanh**
+- [x] **Step 4: Chạy unit test xanh**
 
 Run: `pnpm exec vitest run scripts/lib/odbl.test.mjs`
 Expected: PASS 3 test.
 
-- [ ] **Step 5: Viết dbtest thất bại (RED) — `db/export-odbl.dbtest.mjs`**
+- [x] **Step 5: Viết dbtest thất bại (RED) — `db/export-odbl.dbtest.mjs`**
 
 ```js
 // Chạy: pnpm exec vitest run --config vitest.db.config.ts db/export-odbl.dbtest.mjs (cần pnpm db:up && pnpm db:migrate).
@@ -1259,7 +1259,7 @@ describe('export-odbl', () => {
 Run: `pnpm exec vitest run --config vitest.db.config.ts db/export-odbl.dbtest.mjs`
 Expected: FAIL — `scripts/export-odbl.mjs` không tồn tại (`Cannot find module`).
 
-- [ ] **Step 6: Viết `scripts/export-odbl.mjs`**
+- [x] **Step 6: Viết `scripts/export-odbl.mjs`**
 
 ```js
 #!/usr/bin/env node
@@ -1325,7 +1325,7 @@ Thêm vào `package.json` gốc sau `"data:rollback"`:
     "export:odbl": "node scripts/export-odbl.mjs",
 ```
 
-- [ ] **Step 7: dbtest xanh, thử tay**
+- [x] **Step 7: dbtest xanh, thử tay**
 
 Run: `pnpm exec vitest run --config vitest.db.config.ts db/export-odbl.dbtest.mjs`
 Expected: PASS 1 test.
@@ -1333,7 +1333,7 @@ Expected: PASS 1 test.
 Run: `pnpm export:odbl && cat out/odbl/LATEST && ls -la out/odbl/$(cat out/odbl/LATEST)`
 Expected: 5 `.csv.gz` + `manifest.json` + `README.md`; trên fixture Quận 1 `src_osm_place` vài nghìn dòng.
 
-- [ ] **Step 8: Gate + commit**
+- [x] **Step 8: Gate + commit**
 
 Run: `pnpm exec tsc -p tsconfig.scripts.json && pnpm exec biome check --write scripts/lib/odbl.mjs scripts/lib/odbl.test.mjs scripts/export-odbl.mjs db/export-odbl.dbtest.mjs && pnpm exec vitest run scripts/lib`
 Expected: sạch, xanh. (Bẫy: `sql.unsafe(...).readable()` trả `Promise<Readable>` — đã `await`; `cnt?.n` là `any` từ `unsafe` — bọc `Number()`.)
