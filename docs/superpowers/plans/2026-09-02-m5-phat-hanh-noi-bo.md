@@ -1662,7 +1662,7 @@ git commit -m "feat(scripts): thư viện báo cáo tuần — SQL Analytics Eng
 - Create: `scripts/weekly-report.mjs`
 - Modify: `scripts/lib/schedule.mjs`, `scripts/lib/schedule.test.mjs`, `scripts/cron.mjs`, `package.json` (`report:weekly`), `.env.example`, `infra/server/README.md`
 
-- [ ] **Step 1: Test `nextJob` thất bại trước (RED)** — thêm vào cuối `scripts/lib/schedule.test.mjs`:
+- [x] **Step 1: Test `nextJob` thất bại trước (RED)** — thêm vào cuối `scripts/lib/schedule.test.mjs`:
 
 ```js
 import { nextJob } from './schedule.mjs';
@@ -1693,7 +1693,7 @@ describe('nextJob', () => {
 Run: `pnpm exec vitest run scripts/lib/schedule.test.mjs`
 Expected: FAIL — `nextJob` không phải hàm.
 
-- [ ] **Step 2: Thêm `nextJob` vào `scripts/lib/schedule.mjs`**
+- [x] **Step 2: Thêm `nextJob` vào `scripts/lib/schedule.mjs`**
 
 ```js
 /**
@@ -1717,7 +1717,7 @@ export function nextJob(now, jobs) {
 
 Run: `pnpm exec vitest run scripts/lib/schedule.test.mjs` → PASS.
 
-- [ ] **Step 3: Viết lại `scripts/cron.mjs` cho nhiều job**
+- [x] **Step 3: Viết lại `scripts/cron.mjs` cho nhiều job**
 
 ```js
 #!/usr/bin/env node
@@ -1759,7 +1759,7 @@ for (;;) {
 
 Lưu ý: `infra/server/README.md` mục "Kiểm tra → Cron" đang kỳ vọng log `data:update kế tiếp <ISO> (thứ Hai 02:00 VN)` — định dạng mới vẫn khớp chuỗi đó cho job data:update.
 
-- [ ] **Step 4: Viết `scripts/weekly-report.mjs`**
+- [x] **Step 4: Viết `scripts/weekly-report.mjs`**
 
 ```js
 #!/usr/bin/env node
@@ -1849,7 +1849,7 @@ Thêm vào `package.json` gốc sau `"export:odbl"`:
     "report:weekly": "node scripts/weekly-report.mjs",
 ```
 
-- [ ] **Step 5: `.env.example` + README máy chủ**
+- [x] **Step 5: `.env.example` + README máy chủ**
 
 Thêm vào cuối `.env.example`:
 ```
@@ -1875,7 +1875,7 @@ REPORT_EMAIL_FROM=
   in bảng theo tenant/key/endpoint; bỏ `--dry-run` để gửi email thật. Log cron phải có dòng `report:weekly kế tiếp <ISO> (thứ Hai 08:00 VN)`.
 ```
 
-- [ ] **Step 6: Thử `--dry-run` trên máy dev**
+- [x] **Step 6: Thử `--dry-run` trên máy dev**
 
 Nếu đã có token (Task 8 có thể làm trước bước này — token là việc tay của PHONG): điền `CF_REPORT_API_TOKEN` vào `.env` rồi
 Run: `pnpm report:weekly --dry-run`
@@ -1883,7 +1883,7 @@ Expected: `[report] <tuần>: N nhóm từ Analytics Engine` rồi bảng text c
 
 Nếu **chưa** có token: chạy `CLOUDFLARE_ACCOUNT_ID=x CF_REPORT_API_TOKEN=x pnpm report:weekly --dry-run --no-db` → phải thất bại rõ ràng `Analytics SQL API 400/403: …` (không crash kiểu khác). Ghi vào DEVLOG mục 2 là chờ Task 8.
 
-- [ ] **Step 7: Gate + commit**
+- [x] **Step 7: Gate + commit**
 
 Run: `pnpm exec tsc -p tsconfig.scripts.json && pnpm exec biome check --write scripts/weekly-report.mjs scripts/cron.mjs scripts/lib/schedule.mjs scripts/lib/schedule.test.mjs && pnpm test`
 Expected: typecheck sạch (chú ý `ae.data` cast qua JSDoc; `t.id`/`k.key` từ template tag là `any` — OK); root test xanh.

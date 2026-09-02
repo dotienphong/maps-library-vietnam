@@ -22,18 +22,28 @@ const ddmmyyyy = (d) => {
 };
 
 /**
- * Tuần trước trọn vẹn theo giờ VN: [thứ Hai 00:00 VN tuần trước, thứ Hai 00:00 VN tuần này).
+ * Mặc định: tuần trước trọn vẹn theo giờ VN — [thứ Hai 00:00 VN tuần trước, thứ Hai 00:00 VN tuần này).
+ * `current: true`: tuần đang chạy — [thứ Hai 00:00 VN tuần này, bây giờ), dùng cho `--this-week`
+ * khi cần xem ngay mà không đợi hết tuần.
  * @param {Date} now
+ * @param {{ current?: boolean }} [options]
  */
-export function weekRange(now) {
+export function weekRange(now, options = {}) {
   const vn = new Date(now.getTime() + VN_OFFSET_MS);
   const monday = new Date(Date.UTC(vn.getUTCFullYear(), vn.getUTCMonth(), vn.getUTCDate()));
   const back = (monday.getUTCDay() + 6) % 7; // thứ Hai → 0, Chủ nhật → 6
   monday.setUTCDate(monday.getUTCDate() - back);
-  const to = new Date(monday.getTime() - VN_OFFSET_MS);
-  const from = new Date(to.getTime() - 7 * 86400_000);
-  const last = new Date(to.getTime() - 1);
-  return { from, to, label: `${ddmmyyyy(from)} → ${ddmmyyyy(last)}` };
+  const thisMonday = new Date(monday.getTime() - VN_OFFSET_MS);
+  if (options.current) {
+    return {
+      from: thisMonday,
+      to: now,
+      label: `${ddmmyyyy(thisMonday)} → ${ddmmyyyy(now)} (tuần đang chạy)`,
+    };
+  }
+  const from = new Date(thisMonday.getTime() - 7 * 86400_000);
+  const last = new Date(thisMonday.getTime() - 1);
+  return { from, to: thisMonday, label: `${ddmmyyyy(from)} → ${ddmmyyyy(last)}` };
 }
 
 /** @param {Date} d */
@@ -70,9 +80,15 @@ export function maskKey(key) {
   return `mlv_live_${body.slice(0, 4)}…${body.slice(-4)}`;
 }
 
-/** Gộp `/v1/places/<id>` thành `/v1/places/:id` để top path không vỡ theo từng id. */
-/** @param {string} path */
-const normalizePath = (path) => path.replace(/^\/v1\/places\/[^/]+$/, '/v1/places/:id');
+/**
+ * Gộp các route có id trong đường dẫn để bảng top path không vỡ thành từng dòng một id:
+ * `/v1/places/<id>` và `/v1/admin/edits/<id>/{approve,reject}`.
+ * @param {string} path
+ */
+const normalizePath = (path) =>
+  path
+    .replace(/^\/v1\/places\/[^/]+$/, '/v1/places/:id')
+    .replace(/^\/v1\/admin\/edits\/[^/]+\/(approve|reject)$/, '/v1/admin/edits/:id/$1');
 
 /**
  * @param {Row[]} rows

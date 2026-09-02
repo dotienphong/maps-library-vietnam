@@ -20,6 +20,20 @@ pnpm server:setup
 3. **Access application**: Access → Applications → Add → Self-hosted → tên `mapslibvn-db`, domain `maps-db.<domain>` → Policy: action **Service Auth**, include "Service Token" = `hyperdrive`.
 4. **Hyperdrive**: Workers & Pages → Hyperdrive → Create configuration → tên `mapslibvn-db`; host `maps-db.<domain>`, port `5432`, database `mapslibvn`, user `api`, password `API_PASSWORD` (trong `infra/server/.env`); mở "Connect via Cloudflare Access" → dán Client ID/Secret; SSL mode `require`. Copy **Hyperdrive ID** → `apps/api/wrangler.toml` (`[[hyperdrive]] id` và `env.production.hyperdrive`).
 5. Tuỳ chọn cảnh báo: Zero Trust → Networks → Tunnels → `mapslibvn-db` → Notifications → email khi tunnel down (spec 11.3).
+6. **Báo cáo tuần (M5, spec 11.3)** — bật một lần để cron thứ Hai 08:00 VN gửi được email:
+   1. Dashboard → **Email Service → Email Sending → Add domain** → `<domain>`; Cloudflare tự thêm bản
+      ghi SPF/DKIM vào zone. Chờ trạng thái **Active** trước khi gửi thật.
+   2. My Profile → **API Tokens → Create Custom Token** tên `mapslibvn-report`, chỉ hai quyền:
+      *Account · Account Analytics · Read* và *Account · Email Sending · Edit*; Account Resources
+      giới hạn đúng account này. **Không dùng lại token deploy** (token đó có quyền ghi Workers/R2/KV).
+   3. Thêm vào `infra/server/.env`:
+      ```
+      CF_REPORT_API_TOKEN=<token vừa tạo>
+      REPORT_EMAIL_TO=<email nhận báo cáo>
+      REPORT_EMAIL_FROM=maps-report@<domain>
+      ```
+   4. Nạp biến mới cho container: `pnpm server:update` (kéo image mới có cron 2 job) rồi
+      `docker compose --env-file infra/server/.env -f infra/server/compose.yml up -d pipeline`.
 
 ## Kiểm tra
 
@@ -33,7 +47,11 @@ pnpm server:setup
   Kỳ vọng: `api | t`. Với `sslmode=disable` phải bị từ chối (`no pg_hba.conf entry … SSL off`).
 - Worker: `cd apps/api && pnpm exec wrangler dev --remote` → `curl localhost:8787/healthz/db` → `{"ok":true,"user":"api",…}`.
 - Backup tay: `docker compose --env-file infra/server/.env -f infra/server/compose.yml exec backup node infra/server/backup/backup.mjs --once` → `rclone ls r2:mapslibvn-tiles/backups/daily` có file.
-- Cron: `docker compose … logs pipeline | tail -2` → `data:update kế tiếp <ISO> (thứ Hai 02:00 VN)`.
+- Cron: `docker compose … logs pipeline | tail -2` → dòng `[cron] <job> kế tiếp <ISO> (thứ Hai HH:MM VN)`
+  cho job gần nhất trong hai job: `data:update` 02:00 và `report:weekly` 08:00 (giờ VN).
+- Báo cáo tuần: `docker compose --env-file infra/server/.env -f infra/server/compose.yml exec pipeline
+  node scripts/weekly-report.mjs --dry-run` in bảng theo tenant/key/endpoint ra stdout mà không gửi mail.
+  Thêm `--this-week` để xem tuần đang chạy (tuần trước có thể chưa có traffic). Bỏ `--dry-run` để gửi thật.
 - Thử phục hồi (chứng minh lời hứa "chuyển máy < 1 giờ") — phục hồi vào **DB mới**, không `--clean` lên DB đang chạy
   (`spatial_ref_sys` là bảng cấu hình của extension, restore trùng khoá). Container `backup` **không** có sẵn
   `DATABASE_URL`; dựng URL từ các biến `POSTGRES_*` của chính container:

@@ -23,6 +23,15 @@ describe('weekRange', () => {
     expect(r.to.toISOString()).toBe('2026-09-06T17:00:00.000Z');
   });
 
+  it('current: true lấy tuần đang chạy, từ thứ Hai 00:00 VN đến hiện tại', () => {
+    // 09/09/2026 là thứ Tư; tuần đang chạy bắt đầu thứ Hai 07/09 00:00 VN = 06/09 17:00Z
+    const now = new Date('2026-09-09T10:00:00Z');
+    const r = weekRange(now, { current: true });
+    expect(r.from.toISOString()).toBe('2026-09-06T17:00:00.000Z');
+    expect(r.to).toBe(now);
+    expect(r.label).toBe('07/09/2026 → 09/09/2026 (tuần đang chạy)');
+  });
+
   it('chạy Chủ nhật (giờ VN) không nhảy sang tuần sau', () => {
     // 2026-09-06 là Chủ nhật; 20:00Z = 03:00 VN thứ Hai 07/09 → tuần trước vẫn là 31/08–06/09
     const r = weekRange(new Date('2026-09-06T20:00:00Z'));
@@ -134,6 +143,54 @@ describe('summarize', () => {
       p95_ms: 300,
     });
     expect(s.paths.find((p) => p.path === '/v1/places/:id')?.requests).toBe(100);
+  });
+
+  it('gộp cả route duyệt đóng góp theo id', () => {
+    // Thấy trên báo cáo thật 02/09: `/v1/admin/edits/2/approve` tách riêng theo từng id.
+    const s = summarize(
+      [
+        {
+          tenant_id: 't1',
+          api_key: 'k',
+          path: '/v1/admin/edits/2/approve',
+          requests: 1,
+          errors_5xx: 0,
+          quota_429: 0,
+          p95_ms: 1,
+        },
+        {
+          tenant_id: 't1',
+          api_key: 'k',
+          path: '/v1/admin/edits/7/approve',
+          requests: 1,
+          errors_5xx: 0,
+          quota_429: 0,
+          p95_ms: 1,
+        },
+        {
+          tenant_id: 't1',
+          api_key: 'k',
+          path: '/v1/admin/edits/9/reject',
+          requests: 1,
+          errors_5xx: 0,
+          quota_429: 0,
+          p95_ms: 1,
+        },
+        {
+          tenant_id: 't1',
+          api_key: 'k',
+          path: '/v1/admin/edits',
+          requests: 5,
+          errors_5xx: 0,
+          quota_429: 0,
+          p95_ms: 1,
+        },
+      ],
+      labels,
+    );
+    expect(s.paths.find((p) => p.path === '/v1/admin/edits/:id/approve')?.requests).toBe(2);
+    expect(s.paths.find((p) => p.path === '/v1/admin/edits/:id/reject')?.requests).toBe(1);
+    expect(s.paths.find((p) => p.path === '/v1/admin/edits')?.requests).toBe(5);
   });
 
   it('cộng đúng khi API trả số dạng chuỗi (UInt64 của Analytics Engine)', () => {

@@ -5,12 +5,13 @@ commit với code).
 
 ## 1. Trạng thái hiện tại
 
-- Mốc: **M5 — Phát hành nội bộ đang làm** (plan 10 task; Task 0–6 xong 02/09/2026).
+- Mốc: **M5 — Phát hành nội bộ đang làm** (plan 10 task; Task 0–7 xong 02/09/2026).
   Mốc trước: **M4 — Đóng góp đã nghiệm thu 02/09/2026**
 - Plan M5: `docs/superpowers/plans/2026-09-02-m5-phat-hanh-noi-bo.md` — **4/10 task xong**
-  (Task 0–6). Docs đủ 5 trang spec 7.4 + 2 trang pháp lý, link check Playwright 8/8;
+  (Task 0–7). Docs đủ 5 trang spec 7.4 + 2 trang pháp lý, link check Playwright 8/8;
   tenant thử nghiệm + `pnpm key:issue` cấp khoá ngẫu nhiên; `pnpm export:odbl` xuất 5 bảng OSM.
-  Còn lại: Task 7 script báo cáo + cron, Task 8 việc tay Email Sending của PHONG, Task 9 nghiệm thu `LICENSE` MIT + `THIRD_PARTY_NOTICES.md` đóng gói trong 3 gói SDK, CI kiểm
+  Còn lại: **Task 8 chờ việc tay của PHONG** (bật Email Sending + tạo token `mapslibvn-report`),
+  rồi Task 9 nghiệm thu. Mã của báo cáo tuần đã xong và chạy được `--dry-run` với dữ liệu thật `LICENSE` MIT + `THIRD_PARTY_NOTICES.md` đóng gói trong 3 gói SDK, CI kiểm
   `--check`; điều khoản tenant công bố tại `/dieu-khoan/`, notices tại `/thong-bao-ben-thu-ba/`
   (hai trang sinh lúc prebuild, không commit)
 - Plan M4: `docs/superpowers/plans/2026-09-01-m4-dong-gop.md` — **11/11 task XONG** (viết 01/09/2026,
@@ -613,6 +614,18 @@ rõ ở mục 2 và không chặn M2: kiểm trên Windows, và bật lại `req
   bị bind mount vào worktree tạm; M3 đóng · (commit hiện tại)
 - 2026-09-01 · M3 hậu nghiệm thu · playground tự chọn Worker production khi mở URL không
   có `?api=`; localhost và query override vẫn giữ; thêm unit regression + E2E URL ngắn · (commit này)
+- 2026-09-02 · M5 T7 · `scripts/weekly-report.mjs` (Analytics SQL API → nhãn tenant/key từ DB →
+  email qua Cloudflare Email Sending REST API) + `cron.mjs` chạy **2 job** qua `nextJob` mới
+  (`data:update` 02:00, `report:weekly` 08:00 thứ Hai VN, khoá file riêng từng job) +
+  `.env.example` và `infra/server/README.md` bước 6 hướng dẫn bật Email Sending và token 2 quyền.
+  **Chạy thật `--dry-run` trên dữ liệu production:** 11 nhóm, 788 request, 19 lỗi 5xx, p95 9.096 ms;
+  bảng theo tenant/key/endpoint hiện đúng nhãn từ DB.
+  Hai điều chỉnh phát sinh khi thấy báo cáo thật: (1) thêm cờ `--this-week` vì tuần trước
+  (24–30/08) chưa có traffic nên báo cáo rỗng — Task 8 cần xem ngay được; (2) `summarize` gộp
+  thêm `/v1/admin/edits/:id/{approve,reject}` vì mỗi id trước đó thành một dòng riêng.
+  Lưu ý khi chạy trên máy dev: nhãn tenant lấy từ **DB dev** nên tenant chỉ có trên production
+  (ví dụ `…0000bb` free test) hiện dưới dạng UUID thô; chạy trong container `pipeline` thì đúng tên.
+  root 521 test, api 87, lint 240 file · (commit này)
 - 2026-09-02 · M5 T6 · `scripts/lib/weekly-report.mjs`: `weekRange` (tuần trước trọn vẹn theo giờ VN),
   `analyticsSql`, `maskKey`, `summarize` (gộp theo tenant/key/path, gộp `/v1/places/:id`, top 15),
   `renderText` + `renderHtml` (3 bảng, escape HTML). 13 test, xanh ngay lần đầu.
