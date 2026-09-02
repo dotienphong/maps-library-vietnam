@@ -433,7 +433,7 @@ git commit -m "feat(legal): LICENSE MIT + THIRD_PARTY_NOTICES đóng gói trong 
 - Create: `apps/docs/scripts/copy-legal.mjs`
 - Modify: `apps/docs/package.json` (`prebuild`, `predev`), `.gitignore`, `apps/docs/astro.config.mjs`
 
-- [ ] **Step 1: Viết `docs/legal/dieu-khoan-tenant.md`**
+- [x] **Step 1: Viết `docs/legal/dieu-khoan-tenant.md`**
 
 ```markdown
 # Điều khoản sử dụng MapsLibVN dành cho tenant
@@ -501,7 +501,7 @@ Tenant có thể ngừng sử dụng bất kỳ lúc nào. MapsLibVN thu hồi k
 Email: dotienphong1993@gmail.com — ghi tiêu đề `[MapsLibVN]`. Yêu cầu bản xuất ODbL, báo lộ khoá, báo sai dữ liệu chủ quyền: gửi cùng địa chỉ này.
 ```
 
-- [ ] **Step 2: Viết `apps/docs/scripts/copy-legal.mjs`**
+- [x] **Step 2: Viết `apps/docs/scripts/copy-legal.mjs`**
 
 ```js
 #!/usr/bin/env node
@@ -544,7 +544,7 @@ for (const page of PAGES) {
 console.log(`✓ sinh ${PAGES.length} trang pháp lý vào src/content/docs`);
 ```
 
-- [ ] **Step 3: Nối vào prebuild/predev, gitignore, sidebar**
+- [x] **Step 3: Nối vào prebuild/predev, gitignore, sidebar**
 
 `apps/docs/package.json`:
 ```json
@@ -585,7 +585,7 @@ apps/docs/src/content/docs/thong-bao-ben-thu-ba.md
       ],
 ```
 
-- [ ] **Step 4: Build docs, kiểm 2 trang có**
+- [x] **Step 4: Build docs, kiểm 2 trang có**
 
 Run: `pnpm --filter @mapslibvn/web build && pnpm --filter @mapslibvn/docs build && ls apps/docs/dist/dieu-khoan apps/docs/dist/thong-bao-ben-thu-ba && git status --short apps/docs/src/content`
 Expected: prebuild in `✓ sinh 2 trang pháp lý`; hai thư mục có `index.html`; `git status` **không** liệt kê 2 file sinh.
@@ -593,7 +593,7 @@ Expected: prebuild in `✓ sinh 2 trang pháp lý`; hai thư mục có `index.ht
 Run: `pnpm --filter @mapslibvn/docs typecheck`
 Expected: `astro check` 0 lỗi.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 DEVLOG mục 1/2/4 như Task 1.
 

@@ -22,3 +22,7 @@ AGENTS.md
 # Output Playwright
 test-results/
 playwright-report/
+
+# Trang docs sinh lúc prebuild từ docs/legal + THIRD_PARTY_NOTICES.md (apps/docs/scripts/copy-legal.mjs)
+apps/docs/src/content/docs/dieu-khoan.md
+apps/docs/src/content/docs/thong-bao-ben-thu-ba.md

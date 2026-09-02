@@ -10,8 +10,20 @@ export default defineConfig({
       defaultLocale: 'root',
       locales: { root: { label: 'Tiếng Việt', lang: 'vi' } },
       sidebar: [
-        { label: 'Bắt đầu 5 phút', slug: 'bat-dau' },
-        { label: 'Đóng góp & sửa POI', slug: 'dong-gop' },
+        {
+          label: 'Hướng dẫn',
+          items: [
+            { label: 'Bắt đầu 5 phút', slug: 'bat-dau' },
+            { label: 'Đóng góp & sửa POI', slug: 'dong-gop' },
+          ],
+        },
+        {
+          label: 'Pháp lý',
+          items: [
+            { label: 'Điều khoản tenant', slug: 'dieu-khoan' },
+            { label: 'Thông báo bên thứ ba', slug: 'thong-bao-ben-thu-ba' },
+          ],
+        },
         { label: 'Playground', link: '/playground.html' },
       ],
     }),

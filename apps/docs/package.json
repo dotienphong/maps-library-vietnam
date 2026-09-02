@@ -4,8 +4,8 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "prebuild": "node scripts/copy-sdk.mjs",
-    "predev": "node scripts/copy-sdk.mjs",
+    "prebuild": "node scripts/copy-sdk.mjs && node scripts/copy-legal.mjs",
+    "predev": "node scripts/copy-sdk.mjs && node scripts/copy-legal.mjs",
     "dev": "astro dev --port 4321",
     "build": "astro build",
     "preview": "astro preview --port 4321",

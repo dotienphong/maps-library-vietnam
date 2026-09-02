@@ -5,10 +5,12 @@ commit với code).
 
 ## 1. Trạng thái hiện tại
 
-- Mốc: **M5 — Phát hành nội bộ đang làm** (plan 10 task; Task 0, 1 xong 02/09/2026).
+- Mốc: **M5 — Phát hành nội bộ đang làm** (plan 10 task; Task 0, 1, 2 xong 02/09/2026).
   Mốc trước: **M4 — Đóng góp đã nghiệm thu 02/09/2026**
-- Plan M5: `docs/superpowers/plans/2026-09-02-m5-phat-hanh-noi-bo.md` — **2/10 task xong**;
-  `LICENSE` MIT + `THIRD_PARTY_NOTICES.md` đã đóng gói trong 3 gói SDK, CI kiểm `--check`
+- Plan M5: `docs/superpowers/plans/2026-09-02-m5-phat-hanh-noi-bo.md` — **3/10 task xong**
+  (Task 0, 1, 2). `LICENSE` MIT + `THIRD_PARTY_NOTICES.md` đóng gói trong 3 gói SDK, CI kiểm
+  `--check`; điều khoản tenant công bố tại `/dieu-khoan/`, notices tại `/thong-bao-ben-thu-ba/`
+  (hai trang sinh lúc prebuild, không commit)
 - Plan M4: `docs/superpowers/plans/2026-09-01-m4-dong-gop.md` — **11/11 task XONG** (viết 01/09/2026,
   đã tự review 1 lượt: sửa test consensus, REVOKE PUBLIC cho hàm SECURITY DEFINER,
   ép `id::int` cho bigserial qua porsager, cwd Playwright). 10 quyết định thiết kế đã ghi
@@ -64,6 +66,11 @@ nghiệm thu "nhúng bằng key riêng" dùng trang thử `examples/embed-web` �
   `cloudflared` không chạy → Hyperdrive không có đích. Không phải lỗi mã. **Việc tay: bật Docker
   Desktop rồi `docker compose --env-file infra/server/.env -f infra/server/compose.yml up -d`
   trước Task 4** (Task 1–3 không cần DB).
+**Việc theo dõi phát sinh (M5 T2):** `ip_hash` trong `poi_edit` dùng muối là **ngày VN**, không có
+bí mật phía máy chủ, nên về lý thuyết dò ngược được không gian IPv4. Chỉ dùng chống spam nên
+không chặn M5; nếu sau này lưu lâu hơn 30 ngày hoặc mở thương mại thì thêm pepper bí mật
+(`EDIT_SALT` đã có chỗ trong spec 3.4 nhưng chưa dùng trong `apps/api/src/edits/hash.ts`).
+
 - Analytics Engine SQL API **có dữ liệu thật** và token `CLOUDFLARE_API_TOKEN` hiện tại đã đủ quyền
   Analytics Read: 7 ngày qua `/v1/autocomplete` 760 request, `/v1/styles/light.json` 11,
   `/v1/admin/edits` 10, `/v1/edits` 3, `/v1/places/<id>` 1 (8 nhóm). Xác nhận hình dạng dữ liệu
@@ -604,6 +611,15 @@ rõ ở mục 2 và không chặn M2: kiểm trên Windows, và bật lại `req
   bị bind mount vào worktree tạm; M3 đóng · (commit hiện tại)
 - 2026-09-01 · M3 hậu nghiệm thu · playground tự chọn Worker production khi mở URL không
   có `?api=`; localhost và query override vẫn giữ; thêm unit regression + E2E URL ngắn · (commit này)
+- 2026-09-02 · M5 T2 · `docs/legal/dieu-khoan-tenant.md` (10 mục: khoá API, ghi nguồn, cấm cào,
+  dữ liệu cá nhân theo Nghị định 13/2023, ODbL, giới hạn trách nhiệm) + `copy-legal.mjs` sinh
+  hai trang docs `dieu-khoan` và `thong-bao-ben-thu-ba` lúc prebuild từ file canonical, có
+  gitignore để không lệch nguồn; sidebar tách nhóm Hướng dẫn / Pháp lý; `deploy-docs.yml` thêm
+  `docs/legal/**` và `THIRD_PARTY_NOTICES.md` vào paths để đổi văn bản là deploy lại.
+  Trước khi viết đã đối chiếu lược đồ thật: `end_user_hash = sha256(tenant_id + token do app cấp)`,
+  `ip_hash = sha256(IP + ngày VN)` — điều khoản mục 5 ghi đúng theo mã, kèm câu trung thực rằng
+  mã băm IP chỉ chống liên kết chéo ngày, không nhằm chống dò ngược (muối là ngày, không phải
+  bí mật — xem việc theo dõi ở mục 2). Docs build 7 trang, astro check 0 lỗi, lint 229 file · (commit này)
 - 2026-09-02 · M5 T1 · `LICENSE` MIT ở gốc repo + `THIRD_PARTY_NOTICES.md` (5 mục, nguyên văn
   BSD-3 của maplibre-gl 5.24.0 / pmtiles 4.5.0 / osm-liberty / dark-matter, MIT của React 18.3.1,
   ghi chú OFL 1.1 cho Noto Sans và CC0 cho Maki); `scripts/notices-sync.mjs` đồng bộ 6 file vào
