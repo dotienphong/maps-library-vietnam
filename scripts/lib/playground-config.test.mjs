@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import { resolveApiBase } from '../../apps/docs/public/playground-config.js';
 
-const PRODUCTION_API = 'https://mapslibvn-api-production.dotienphong1993.workers.dev';
+const PRODUCTION_API = 'https://api.ai-solutions.io.vn';
 
 describe('resolveApiBase', () => {
   it('dùng API production khi mở playground Pages không có query', () => {
