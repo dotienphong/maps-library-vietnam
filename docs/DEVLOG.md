@@ -45,12 +45,27 @@ commit với code).
 
 ## 2. Bước kế tiếp
 
-**BẮT ĐẦU TỪ ĐÂY: lập plan cấp bước M5 — Phát hành nội bộ.**
+**BẮT ĐẦU TỪ ĐÂY: thực thi plan M5 `docs/superpowers/plans/2026-09-02-m5-phat-hanh-noi-bo.md`
+— Task 0/1/2 đã xong, tiếp Task 3 (ba trang docs mới).**
 
-1. Đọc roadmap `docs/superpowers/plans/2026-08-26-roadmap-toan-bo-spec.md` mục 6 và spec mục 13/M5.
-2. Kiểm tra lại trạng thái Git/CI/runtime hiện tại; không lấy số liệu lịch sử làm nguồn sự thật.
-3. Viết và review plan M5 trước khi code: docs/notices/điều khoản, key app kết bạn, báo cáo tuần,
-   `export:odbl`, checklist pháp lý và nghiệm thu nhúng app thật.
+Plan M5 viết 02/09/2026: 10 task (Task 0–9), 67 step, 10 quyết định thiết kế ở đầu plan.
+Định vị đã chốt lại theo PHONG: **MapsLibVN là thư viện độc lập**, không gắn với app nào khác;
+nghiệm thu "nhúng bằng key riêng" dùng trang thử `examples/embed-web` ở origin riêng
+(spec 13/M5 + roadmap mục 6 đã sửa từ "app kết bạn" sang trung lập; spec 1.4 giữ nguyên làm bối cảnh).
+
+**Kết quả kiểm tra trước M5 (Task 0, 02/09/2026):**
+- Git sạch trên `main`, identity cá nhân đúng; CI remote xanh (CI run `33622930717` trên `f95cb2d`).
+- Docs production `mapslibvn-docs.pages.dev/bat-dau/` trả 200.
+- `/healthz/db` trả **503 `upstream_unavailable`** (request `89873608-6fa1-480a-a11e-12bc91bd40db`)
+  vì **Docker Desktop trên máy dev đang tắt** — máy dev cũng là máy chủ tạm (G3) nên Postgres và
+  `cloudflared` không chạy → Hyperdrive không có đích. Không phải lỗi mã. **Việc tay: bật Docker
+  Desktop rồi `docker compose --env-file infra/server/.env -f infra/server/compose.yml up -d`
+  trước Task 4** (Task 1–3 không cần DB).
+- Analytics Engine SQL API **có dữ liệu thật** và token `CLOUDFLARE_API_TOKEN` hiện tại đã đủ quyền
+  Analytics Read: 7 ngày qua `/v1/autocomplete` 760 request, `/v1/styles/light.json` 11,
+  `/v1/admin/edits` 10, `/v1/edits` 3, `/v1/places/<id>` 1 (8 nhóm). Xác nhận hình dạng dữ liệu
+  `blob3`=path + `_sample_interval` mà Task 6 dựa vào, và xác nhận cần gộp `/v1/places/:id`.
+  Token riêng `CF_REPORT_API_TOKEN` vẫn cần cho quyền *Email Sending: Edit* (Task 8).
 
 **M4 Task 11 xong 02/09/2026.** Tạo custom domain `api.ai-solutions.io.vn`; một Cloudflare
 Access application bảo vệ hai path `/admin` và `/v1/admin`, policy email PHONG 24 giờ; Worker

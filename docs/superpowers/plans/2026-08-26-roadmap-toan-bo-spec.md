@@ -47,7 +47,7 @@ Quy tắc: **bước cuối của mọi task** là (a) tick checkbox trong plan,
 | 3 | `2026-08-27-m2-kho-poi-may-chu.md` | M2 — máy chủ nội bộ, migration kho POI, chuẩn hoá VI, parser địa chỉ, ingest 3 nguồn, gộp, anchors, poi.pmtiles, `data:update` đầy đủ | Đã viết (27/08/2026, trước khi M1 nghiệm thu — Task 0 xác nhận giả định G1–G7) |
 | 4 | `YYYY-MM-DD-m3-places-api.md` | M3 — auth/quota, Hyperdrive, 7 endpoint đọc, geocode ladder, core client đầy đủ, web component, React | Viết khi bắt đầu M3 (mục 4) |
 | 5 | `YYYY-MM-DD-m4-dong-gop.md` | M4 — `POST /v1/edits`, auto-approve, áp dụng edit, `apps/admin` | Viết khi bắt đầu M4 (mục 5) |
-| 6 | `YYYY-MM-DD-m5-phat-hanh-noi-bo.md` | M5 — docs, notices, điều khoản, key app kết bạn, báo cáo tuần, `export:odbl` | Viết khi bắt đầu M5 (mục 6) |
+| 6 | `YYYY-MM-DD-m5-phat-hanh-noi-bo.md` | M5 — docs, notices, điều khoản, key tenant thử nghiệm (ứng dụng nhúng độc lập), báo cáo tuần, `export:odbl` | Viết khi bắt đầu M5 (mục 6) |
 
 Lý do M2–M5 viết cấp bước sau: chúng phụ thuộc kết quả M1 (Planetiler `--bounds` có cho lớp thế giới đẹp không; `admin_level` thực tế trong OSM VN; phiên bản tool pin được; máy chủ nội bộ đã có). Mục 3–6 dưới đây đã khoá **task, file, giao diện, test, nghiệm thu** của từng mốc — plan cấp bước chỉ triển khai chi tiết, không thay đổi phạm vi.
 
@@ -143,8 +143,8 @@ Plan cấp bước: Task 1–6 trong `docs/superpowers/plans/2026-08-26-m1b-tile
 | Task | Files | Kết quả | Nghiệm thu |
 |---|---|---|---|
 | 1 Tài liệu | `apps/docs/src/content/docs/{bat-dau,tu-host,giay-phep,do-chinh-xac,dong-gop}.md`, `THIRD_PARTY_NOTICES.md`, `docs/legal/dieu-khoan-tenant.md` | đủ 5 trang + notices đóng gói trong SDK | docs deploy, link kiểm tra không vỡ |
-| 2 Key + báo cáo | `db/seed/tenant_ketban.sql`, `scripts/weekly-report.mjs` (Analytics Engine SQL API → email qua Cloudflare Email Routing), `scripts/export-odbl.mjs` | key cho app kết bạn; báo cáo tuần; xuất bảng ODbL | báo cáo tuần đầu nhận được |
-| 3 Nghiệm thu & pháp lý | `docs/DEVLOG.md` mục "Việc tay còn lại", checklist spec 13/M5 | app kết bạn nhúng bằng key riêng | checklist ký bởi PHONG |
+| 2 Key + báo cáo | `db/seed/tenant_nhung_thu.sql` (tenant thử nghiệm; roadmap cũ gọi `tenant_ketban.sql`), `scripts/weekly-report.mjs` (Analytics Engine SQL API → email qua Cloudflare Email Routing), `scripts/export-odbl.mjs` | key cho ứng dụng nhúng độc lập; báo cáo tuần; xuất bảng ODbL | báo cáo tuần đầu nhận được |
+| 3 Nghiệm thu & pháp lý | `docs/DEVLOG.md` mục "Việc tay còn lại", checklist spec 13/M5 | ứng dụng nhúng độc lập (trang thử ngoài docs) nhúng bằng key riêng | checklist ký bởi PHONG |
 
 Sau M5: brainstorming + spec riêng cho `@mapslibvn/react-native`.
 
@@ -158,5 +158,5 @@ Sau M5: brainstorming + spec riêng cho `@mapslibvn/react-native`.
 - [x] M2 nghiệm thu (máy chủ nội bộ, ≥ 1,5 triệu POI, `data:update` trọn vòng, `db:restore`) — 31/08/2026.
 - [x] M3 nghiệm thu (2 fixture bắt buộc, p95 < 300 ms) — 01/09/2026.
 - [x] M4 nghiệm thu (đóng góp end-to-end) — 02/09/2026.
-- [ ] M5 nghiệm thu (app kết bạn nhúng, docs, báo cáo tuần, việc tay pháp lý ghi rõ).
+- [ ] M5 nghiệm thu (ứng dụng nhúng độc lập bằng key riêng, docs, báo cáo tuần, việc tay pháp lý ghi rõ).
 - [ ] `docs/DEVLOG.md` mục "Trạng thái hiện tại" ghi "Spec bản 2 hoàn tất; bước kế tiếp: spec React Native".
