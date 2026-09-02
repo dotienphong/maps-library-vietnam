@@ -175,7 +175,7 @@ git commit -m "docs: plan M5 phát hành nội bộ + kiểm tra trạng thái t
 - Modify: `packages/core/package.json`, `packages/web/package.json`, `packages/react/package.json` (`files`)
 - Modify: `package.json` (script `notices:sync`), `.github/workflows/ci.yml`
 
-- [ ] **Step 1: Viết test thất bại cho helper đồng bộ (RED)**
+- [x] **Step 1: Viết test thất bại cho helper đồng bộ (RED)**
 
 Tạo `scripts/lib/notices.test.mjs`:
 
@@ -225,12 +225,12 @@ describe('staleCopies', () => {
 });
 ```
 
-- [ ] **Step 2: Chạy test, xác nhận đỏ**
+- [x] **Step 2: Chạy test, xác nhận đỏ**
 
 Run: `pnpm exec vitest run scripts/lib/notices.test.mjs`
 Expected: FAIL — `Failed to load url ./notices.mjs`.
 
-- [ ] **Step 3: Viết `scripts/lib/notices.mjs`**
+- [x] **Step 3: Viết `scripts/lib/notices.mjs`**
 
 ```js
 // Đồng bộ LICENSE + THIRD_PARTY_NOTICES.md từ gốc repo vào các gói SDK publish npm (spec 12.1).
@@ -254,12 +254,12 @@ export function staleCopies(plan, read) {
 }
 ```
 
-- [ ] **Step 4: Chạy test, xác nhận xanh**
+- [x] **Step 4: Chạy test, xác nhận xanh**
 
 Run: `pnpm exec vitest run scripts/lib/notices.test.mjs`
 Expected: PASS 3 test.
 
-- [ ] **Step 5: Viết `LICENSE` (MIT, gốc repo)**
+- [x] **Step 5: Viết `LICENSE` (MIT, gốc repo)**
 
 ```
 MIT License
@@ -287,7 +287,7 @@ SOFTWARE.
 
 Phạm vi MIT chỉ áp cho `packages/*` (spec 3.3); `apps/*`, `pipelines/*`, `infra/*`, `db/*` private — ghi rõ trong `THIRD_PARTY_NOTICES.md` mục 0.
 
-- [ ] **Step 6: Viết `THIRD_PARTY_NOTICES.md` — khung + nguyên văn giấy phép lấy từ `node_modules`**
+- [x] **Step 6: Viết `THIRD_PARTY_NOTICES.md` — khung + nguyên văn giấy phép lấy từ `node_modules`**
 
 Khung (viết tay):
 
@@ -356,7 +356,7 @@ cat packages/react/node_modules/react/LICENSE
 ```
 Nếu đường dẫn khác, tìm bằng `find node_modules/.pnpm -maxdepth 3 -path '*maplibre-gl@*' -name 'LICENSE*' | head -1`. Dán nguyên văn vào 3 mục 4.1–4.3.
 
-- [ ] **Step 7: Viết `scripts/notices-sync.mjs`**
+- [x] **Step 7: Viết `scripts/notices-sync.mjs`**
 
 ```js
 #!/usr/bin/env node
@@ -390,7 +390,7 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
 }
 ```
 
-- [ ] **Step 8: Chạy đồng bộ, thêm `files` vào 3 package.json, script root, bước CI**
+- [x] **Step 8: Chạy đồng bộ, thêm `files` vào 3 package.json, script root, bước CI**
 
 Run: `node scripts/notices-sync.mjs && node scripts/notices-sync.mjs --check`
 Expected: `đã đồng bộ 6 file (6 thay đổi)` rồi `✓ notices trong 3 gói SDK khớp gốc`.
@@ -407,12 +407,12 @@ Thêm vào `.github/workflows/ci.yml` job `test`, ngay sau dòng `- run: pnpm li
       - run: node scripts/notices-sync.mjs --check
 ```
 
-- [ ] **Step 9: Kiểm gói npm chứa notices**
+- [x] **Step 9: Kiểm gói npm chứa notices**
 
 Run: `pnpm --filter @mapslibvn/core pack --pack-destination /tmp && tar -tzf /tmp/mapslibvn-core-0.1.0.tgz | grep -E 'LICENSE|THIRD_PARTY'`
 Expected: `package/LICENSE` và `package/THIRD_PARTY_NOTICES.md`. Xoá tgz sau khi xem.
 
-- [ ] **Step 10: Gate + commit**
+- [x] **Step 10: Gate + commit**
 
 Run: `pnpm exec tsc -p tsconfig.scripts.json && pnpm exec biome check --write scripts/lib/notices.mjs scripts/lib/notices.test.mjs scripts/notices-sync.mjs && pnpm exec vitest run scripts/lib`
 Expected: typecheck sạch; biome không lỗi; toàn bộ test `scripts/lib` xanh.

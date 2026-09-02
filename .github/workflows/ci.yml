@@ -23,6 +23,7 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: pnpm lint
+      - run: node scripts/notices-sync.mjs --check
       - run: pnpm typecheck
       - run: pnpm test
 

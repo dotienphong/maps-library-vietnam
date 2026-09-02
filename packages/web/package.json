@@ -11,7 +11,7 @@
     "./umd": "./dist/mapslibvn.umd.js",
     "./style.css": "./dist/mapslibvn.css"
   },
-  "files": ["dist"],
+  "files": ["dist", "LICENSE", "THIRD_PARTY_NOTICES.md"],
   "sideEffects": false,
   "scripts": {
     "build": "tsup src/index.ts --format esm --dts --clean --target es2022 --external maplibre-gl --external pmtiles && vite build -c vite.umd.config.ts && size-limit",

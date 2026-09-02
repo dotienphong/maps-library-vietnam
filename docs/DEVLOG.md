@@ -5,7 +5,10 @@ commit với code).
 
 ## 1. Trạng thái hiện tại
 
-- Mốc: **M4 — Đóng góp đã nghiệm thu 02/09/2026**; bước tiếp theo: lập plan cấp bước M5
+- Mốc: **M5 — Phát hành nội bộ đang làm** (plan 10 task; Task 0, 1 xong 02/09/2026).
+  Mốc trước: **M4 — Đóng góp đã nghiệm thu 02/09/2026**
+- Plan M5: `docs/superpowers/plans/2026-09-02-m5-phat-hanh-noi-bo.md` — **2/10 task xong**;
+  `LICENSE` MIT + `THIRD_PARTY_NOTICES.md` đã đóng gói trong 3 gói SDK, CI kiểm `--check`
 - Plan M4: `docs/superpowers/plans/2026-09-01-m4-dong-gop.md` — **11/11 task XONG** (viết 01/09/2026,
   đã tự review 1 lượt: sửa test consensus, REVOKE PUBLIC cho hàm SECURITY DEFINER,
   ép `id::int` cho bigserial qua porsager, cwd Playwright). 10 quyết định thiết kế đã ghi
@@ -601,6 +604,17 @@ rõ ở mục 2 và không chặn M2: kiểm trên Windows, và bật lại `req
   bị bind mount vào worktree tạm; M3 đóng · (commit hiện tại)
 - 2026-09-01 · M3 hậu nghiệm thu · playground tự chọn Worker production khi mở URL không
   có `?api=`; localhost và query override vẫn giữ; thêm unit regression + E2E URL ngắn · (commit này)
+- 2026-09-02 · M5 T1 · `LICENSE` MIT ở gốc repo + `THIRD_PARTY_NOTICES.md` (5 mục, nguyên văn
+  BSD-3 của maplibre-gl 5.24.0 / pmtiles 4.5.0 / osm-liberty / dark-matter, MIT của React 18.3.1,
+  ghi chú OFL 1.1 cho Noto Sans và CC0 cho Maki); `scripts/notices-sync.mjs` đồng bộ 6 file vào
+  `packages/{core,web,react}` + `files` trong 3 package.json + bước CI `notices-sync --check`.
+  Kiểm `pnpm pack` gói core: tarball có `package/LICENSE` và `package/THIRD_PARTY_NOTICES.md`.
+  Phát hiện: gói npm `pmtiles` không kèm file giấy phép (chỉ field trong package.json) nên lấy
+  nguyên văn từ repo gốc; **Temaki trong spec 3.2 thực tế không dùng** — chỉ có Maki qua sprite
+  osm-liberty, notices ghi theo thực tế. lint 228 file, typecheck sạch, scripts/lib 68/68 · (commit này)
+- 2026-09-02 · M5 T0 · kiểm trạng thái trước M5: CI remote xanh, docs 200, Analytics Engine có
+  dữ liệu thật (760 request `/v1/autocomplete` 7 ngày). `/healthz/db` 503 vì Docker Desktop trên
+  máy dev đang tắt (máy dev = máy chủ tạm) — việc tay, không phải lỗi mã · `1a51c44`
 - 2026-09-02 · M4 T11 · cấu hình custom domain + Cloudflare Access production bằng MCP;
   thêm vars Access và đổi playground production API (`5cbf1a0`); toàn bộ local gates xanh
   (lint 225 file, typecheck, root 490, API 87, API DB 22, admin E2E 3, DB 41 trong image).
