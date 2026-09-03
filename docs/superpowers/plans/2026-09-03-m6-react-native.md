@@ -1197,7 +1197,7 @@ git commit -m "feat(react-native): useResolvedStyle — URL native mặc định
 **Files:**
 - Create: `packages/react-native/src/map.tsx`, `src/map.test.tsx`
 
-- [ ] **Step 1: Test thất bại (RED)**
+- [x] **Step 1: Test thất bại (RED)**
 
 `packages/react-native/src/map.test.tsx`:
 
@@ -1349,7 +1349,7 @@ describe('MapsLibVNMap', () => {
 
 Run: `pnpm exec vitest run packages/react-native/src/map.test.tsx` → FAIL (module không có).
 
-- [ ] **Step 2: Viết `map.tsx`**
+- [x] **Step 2: Viết `map.tsx`**
 
 ```tsx
 import {
@@ -1520,12 +1520,12 @@ const styles = StyleSheet.create({
 
 Lưu ý typecheck: wrapper khai báo `onPress` nhận `NativeSyntheticEvent<PressEvent> | NativeSyntheticEvent<PressEventWithFeatures>`; kiểu tham số của ta hẹp hơn nhưng vẫn gán được vì `PressEventWithFeatures extends PressEvent`. `POI_LAYER_ID` đến từ core Task 3.
 
-- [ ] **Step 3: Xanh + typecheck**
+- [x] **Step 3: Xanh + typecheck**
 
 Run: `pnpm exec vitest run packages/react-native/src/map.test.tsx && pnpm --filter @mapslibvn/react-native typecheck`
 Expected: PASS 9 test; tsc OK. Nếu test `lang=en` báo `act` warning: bọc `render` trong `await act(async () => …)`.
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add packages/react-native/src/map.tsx packages/react-native/src/map.test.tsx

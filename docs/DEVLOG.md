@@ -62,12 +62,12 @@ commit với code).
 ## 2. Bước kế tiếp
 
 **BẮT ĐẦU TỪ ĐÂY: Đang làm M6** — plan `docs/superpowers/plans/2026-09-03-m6-react-native.md`
-(16 task, spec + plan đều đã duyệt). Task 0–8 XONG 03/09/2026. Task 0: git sạch trên `main`, identity cá
+(16 task, spec + plan đều đã duyệt). Task 0–9 XONG 03/09/2026. Task 0: git sạch trên `main`, identity cá
 nhân OK; CI remote của `471bd92` xanh; gate local xanh (lint 243 file, typecheck 13 task, vitest
 root 49 file / 529 test, API 19 file / 87 test); Xcode 26.6 + 6 simulator iOS có, Android SDK có
 với AVD `Pixel_7`, Node v22.23.2. Task 1: `ClientOptions.headers` trong `@mapslibvn/core`.
 Task 2: `PoiFeature` chuyển vào core, web re-export. Task 3: `localizeStyle`/`hidePoiLayer`
-trong core, web dùng lại `isNameLabelLayer`. Task 4: khung gói `packages/react-native` + notices 4 gói. Task 5: `toPoiFeature`. Task 6: `MapHandle`/`MapContext` + `usePlaces`. Task 7: mock + `Attribution`. Task 8: `useResolvedStyle`. Tiếp tục từ Task 9 (`<MapsLibVNMap>` + `useMap`).
+trong core, web dùng lại `isNameLabelLayer`. Task 4: khung gói `packages/react-native` + notices 4 gói. Task 5: `toPoiFeature`. Task 6: `MapHandle`/`MapContext` + `usePlaces`. Task 7: mock + `Attribution`. Task 8: `useResolvedStyle`. Task 9: `<MapsLibVNMap>` + `useMap`. Tiếp tục từ Task 10 (`<Marker>`).
 
 Việc tay của PHONG còn treo trong M6: cấp khoá `mobile` cho tenant thử nghiệm
 (`pnpm key:issue --tenant 00000000-0000-4000-8000-000000000002 --label "embed-rn thử độc lập"
@@ -615,6 +615,13 @@ rõ ở mục 2 và không chặn M2: kiểm trên Windows, và bật lại `req
   bị bind mount vào worktree tạm; M3 đóng · (commit hiện tại)
 - 2026-09-01 · M3 hậu nghiệm thu · playground tự chọn Worker production khi mở URL không
   có `?api=`; localhost và query override vẫn giữ; thêm unit regression + E2E URL ngắn · (commit này)
+- 2026-09-03 · M6 T9 · `<MapsLibVNMap>` bọc `Map` + `Camera` của wrapper: mặc định
+  `[106.7, 10.776]` zoom 12 như SDK web, `logo={false}` nhưng `attribution` native vẫn bật
+  cộng dòng MapsLibVN chồng lên (bấm mở hộp thoại native). `onPoiClick` đi qua
+  `queryRenderedFeatures(point, {layers:['poi']})` → `toPoiFeature`; không query khi
+  `poiLayer=false` hoặc không có handler. `onLoad` chỉ gọi một lần cho mỗi `mapKey`
+  (`apiKey|apiBase|style|lang|poiLayer`) nhờ ref `loadedFor`. `bundleId` → `X-Bundle-Id`.
+  `useMap()` ngoài map ném lỗi tiếng Việt. 9 test, gói 25 test · (commit này)
 - 2026-09-03 · M6 T8 · `useResolvedStyle`: mặc định (`lang=vi`, POI bật) trả thẳng URL style cho
   native — không fetch; chỉ khi đổi ngôn ngữ hoặc ẩn POI mới tải JSON rồi biến đổi thuần bằng
   `localizeStyle`/`hidePoiLayer` của core. Lỗi HTTP → `Không tải được style (HTTP n)`. 6 test.
