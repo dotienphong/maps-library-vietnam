@@ -2088,7 +2088,7 @@ Trước đó đọc `docs/legal/checklist-phap-ly.md` mục B/C — các việc
 ```
 Giữ nguyên các đoạn "Việc tay còn lại" cũ nhưng trỏ sang checklist mục C thay vì lặp lại.
 
-- [ ] **Step 6: Roadmap mục 7 tick + plan tick trọn**
+- [x] **Step 6: Roadmap mục 7 tick + plan tick trọn**
 
 `docs/superpowers/plans/2026-08-26-roadmap-toan-bo-spec.md`:
 ```
@@ -2099,7 +2099,7 @@ Mục 0.4 bảng plan: dòng 6 cột "Khi nào" → `Viết 02/09/2026: docs/sup
 
 Kiểm plan này không còn `- [ ]`: `grep -c '^- \[ \]' docs/superpowers/plans/2026-09-02-m5-phat-hanh-noi-bo.md` → `0`.
 
-- [ ] **Step 7: Gate cuối + commit + kiểm remote**
+- [x] **Step 7: Gate cuối + commit + kiểm remote**
 
 Run: `pnpm lint && pnpm typecheck && pnpm test && pnpm --filter @mapslibvn/docs build && pnpm --filter @mapslibvn/docs e2e`
 Expected: tất cả xanh.

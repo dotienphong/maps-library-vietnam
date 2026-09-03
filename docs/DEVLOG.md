@@ -5,12 +5,13 @@ commit với code).
 
 ## 1. Trạng thái hiện tại
 
-- Mốc: **M5 — Phát hành nội bộ đang làm** (plan 10 task; Task 0–8 xong, Task 9 chờ chữ ký).
+- Mốc: **M5 — Phát hành nội bộ đã nghiệm thu 03/09/2026 → SPEC BẢN 2 HOÀN TẤT.**
+  Bước kế tiếp: brainstorming + spec riêng cho `@mapslibvn/react-native` (spec 8.1).
   Mốc trước: **M4 — Đóng góp đã nghiệm thu 02/09/2026**
 - Plan M5: `docs/superpowers/plans/2026-09-02-m5-phat-hanh-noi-bo.md` — **4/10 task xong**
-  (Task 0–8 xong, Task 9 chờ chữ ký checklist). Docs đủ 5 trang spec 7.4 + 2 trang pháp lý, link check Playwright 8/8;
+  **10/10 task XONG**. Docs đủ 5 trang spec 7.4 + 2 trang pháp lý, link check Playwright 8/8;
   tenant thử nghiệm + `pnpm key:issue` cấp khoá ngẫu nhiên; `pnpm export:odbl` xuất 5 bảng OSM.
-  **Task 8 XONG, Task 9 4/5 hạng mục ĐẠT 03/09/2026** (chi tiết mục 10): PHONG đã tạo 2 token; đường tự động chạy trọn vẹn trong container
+  **Task 8 và Task 9 XONG 03/09/2026** (bảng nghiệm thu ở mục 10): PHONG đã tạo 2 token; đường tự động chạy trọn vẹn trong container
   (Analytics + gửi mail bằng `CF_REPORT_API_TOKEN`, manifest KV bằng `CLOUDFLARE_API_TOKEN`).
   PHONG xác nhận **đã nhận** thư báo cáo. Còn lại: Task 9 nghiệm thu `LICENSE` MIT + `THIRD_PARTY_NOTICES.md` đóng gói trong 3 gói SDK, CI kiểm
   `--check`; điều khoản tenant công bố tại `/dieu-khoan/`, notices tại `/thong-bao-ben-thu-ba/`
@@ -54,32 +55,16 @@ commit với code).
 
 ## 2. Bước kế tiếp
 
-**BẮT ĐẦU TỪ ĐÂY: thực thi plan M5 `docs/superpowers/plans/2026-09-02-m5-phat-hanh-noi-bo.md`
-— Task 0/1/2 đã xong, tiếp Task 3 (ba trang docs mới).**
+**BẮT ĐẦU TỪ ĐÂY: brainstorming + spec riêng cho `@mapslibvn/react-native`** (spec 8.1): bọc
+`@maplibre/maplibre-react-native` (đã hỗ trợ `pmtiles://`), dùng cùng `/v1/styles/*.json` và
+`@mapslibvn/core`, loại khoá `mobile`. Viết spec trước, không code trước.
 
-Plan M5 viết 02/09/2026: 10 task (Task 0–9), 67 step, 10 quyết định thiết kế ở đầu plan.
-Định vị đã chốt lại theo PHONG: **MapsLibVN là thư viện độc lập**, không gắn với app nào khác;
-nghiệm thu "nhúng bằng key riêng" dùng trang thử `examples/embed-web` ở origin riêng
-(spec 13/M5 + roadmap mục 6 đã sửa từ "app kết bạn" sang trung lập; spec 1.4 giữ nguyên làm bối cảnh).
+**Spec bản 2 đã hoàn tất 03/09/2026** — M1 đến M5 đều nghiệm thu; roadmap
+`docs/superpowers/plans/2026-08-26-roadmap-toan-bo-spec.md` mục 7 đã tick trọn.
 
-**Kết quả kiểm tra trước M5 (Task 0, 02/09/2026):**
-- Git sạch trên `main`, identity cá nhân đúng; CI remote xanh (CI run `33622930717` trên `f95cb2d`).
-- Docs production `mapslibvn-docs.pages.dev/bat-dau/` trả 200.
-- `/healthz/db` trả **503 `upstream_unavailable`** (request `89873608-6fa1-480a-a11e-12bc91bd40db`)
-  vì **Docker Desktop trên máy dev đang tắt** — máy dev cũng là máy chủ tạm (G3) nên Postgres và
-  `cloudflared` không chạy → Hyperdrive không có đích. Không phải lỗi mã. **Việc tay: bật Docker
-  Desktop rồi `docker compose --env-file infra/server/.env -f infra/server/compose.yml up -d`
-  trước Task 4** (Task 1–3 không cần DB).
-**Việc theo dõi phát sinh (M5 T2):** `ip_hash` trong `poi_edit` dùng muối là **ngày VN**, không có
-bí mật phía máy chủ, nên về lý thuyết dò ngược được không gian IPv4. Chỉ dùng chống spam nên
-không chặn M5; nếu sau này lưu lâu hơn 30 ngày hoặc mở thương mại thì thêm pepper bí mật
-(`EDIT_SALT` đã có chỗ trong spec 3.4 nhưng chưa dùng trong `apps/api/src/edits/hash.ts`).
-
-- Analytics Engine SQL API **có dữ liệu thật** và token `CLOUDFLARE_API_TOKEN` hiện tại đã đủ quyền
-  Analytics Read: 7 ngày qua `/v1/autocomplete` 760 request, `/v1/styles/light.json` 11,
-  `/v1/admin/edits` 10, `/v1/edits` 3, `/v1/places/<id>` 1 (8 nhóm). Xác nhận hình dạng dữ liệu
-  `blob3`=path + `_sample_interval` mà Task 6 dựa vào, và xác nhận cần gộp `/v1/places/:id`.
-  Token riêng `CF_REPORT_API_TOKEN` vẫn cần cho quyền *Email Sending: Edit* (Task 8).
+Trước khi bắt đầu, đọc `docs/legal/checklist-phap-ly.md`: mục B là 6 việc cần luật sư trước khi
+thương mại hoá, mục C là 5 việc kỹ thuật còn treo (Windows, QA Hoàng Sa, alias phường xã 2025,
+pepper cho `ip_hash`, kiểm đóng góp M4 sau `data:update` kế tiếp).
 
 **M4 Task 11 xong 02/09/2026.** Tạo custom domain `api.ai-solutions.io.vn`; một Cloudflare
 Access application bảo vệ hai path `/admin` và `/v1/admin`, policy email PHONG 24 giờ; Worker
@@ -615,7 +600,11 @@ rõ ở mục 2 và không chặn M2: kiểm trên Windows, và bật lại `req
   bị bind mount vào worktree tạm; M3 đóng · (commit hiện tại)
 - 2026-09-01 · M3 hậu nghiệm thu · playground tự chọn Worker production khi mở URL không
   có `?api=`; localhost và query override vẫn giữ; thêm unit regression + E2E URL ngắn · (commit này)
-- 2026-09-03 · M5 T9 (4/5) · trang thử độc lập `examples/embed-web/index.html` (khoá lấy từ query
+- 2026-09-03 · M5 hậu nghiệm thu · `pnpm example:embed --key mlv_live_…` mở trang thử bằng một lệnh:
+  máy chủ tĩnh Node (không phụ thuộc python), chặn thoát thư mục, tự mở trình duyệt theo hệ điều
+  hành; khoá lấy từ `--key` hoặc `MAPSLIBVN_DEMO_KEY`, **không** nằm trong repo. 7 test cho
+  `scripts/lib/example-serve.mjs`; kiểm thật: trang 200, `/../.env` trả 404 · (commit này)
+- 2026-09-03 · **M5 T9 XONG — M5 NGHIỆM THU, SPEC BẢN 2 HOÀN TẤT** · trang thử độc lập `examples/embed-web/index.html` (khoá lấy từ query
   string nên không nằm trong repo); seed tenant `…000002` lên **production** và cấp khoá `web`
   đuôi `…x6YN` cho origin `http://localhost:5500` bằng `pnpm key:issue` chạy trong container.
   Kiểm production: trang 200, SDK UMD/CSS 200, `/v1/styles/light.json` 200, autocomplete trả POI
@@ -839,7 +828,7 @@ Sự cố nghiệm thu: production DB mới ở `0005` nên POST đầu tiên tr
 ba hàm đều chỉ cấp EXECUTE cho `api`; smoke sau đó đạt. Lần pipeline production kế tiếp vẫn
 cần ghi thêm bằng chứng edit #1/#2 còn nguyên vào DEVLOG.
 
-## 10. Nghiệm thu M5 — Phát hành nội bộ — **4/5 ĐẠT 03/09/2026, chờ chữ ký checklist**
+## 10. Nghiệm thu M5 — Phát hành nội bộ — **ĐẠT 03/09/2026**
 
 | # | Hạng mục | Kết quả |
 |---|---|---|
@@ -847,7 +836,7 @@ cần ghi thêm bằng chứng edit #1/#2 còn nguyên vào DEVLOG.
 | 2 | Báo cáo sử dụng tuần đầu nhận được | **ĐẠT.** Thư 02/09 PHONG xác nhận đã nhận. 03/09 gửi lại **qua đúng đường tự động** (token trong `infra/server/.env`, chạy trong container `pipeline`): `delivered`, message_id `<nl32fdOc4f4oXiH0TOqMF52BMErpY8iUQlvz@ai-solutions.io.vn>`. Báo cáo hiện đủ 4 tenant kèm tên, và khoá `mlv_live_6UU1…x6YN` của tenant mới xuất hiện với 5 request |
 | 3 | Docs đủ trang, link không vỡ | **ĐẠT.** 7 trang sống trên `mapslibvn-docs.pages.dev`: `bat-dau`, `tu-host`, `giay-phep`, `do-chinh-xac`, `dong-gop`, `dieu-khoan`, `thong-bao-ben-thu-ba`. `docs.spec.ts` kiểm 8 trang tải được và mọi link nội bộ, E2E 11/11 |
 | 4 | `pnpm export:odbl` | **ĐẠT.** 5 bảng CSV gzip + `manifest.json` (số dòng, SHA-256, release OSM) + `README.md` ghi ODbL 1.0. SHA-256 khớp `shasum` độc lập; dbtest xanh trên CI |
-| 5 | Checklist pháp lý ký bởi PHONG | **CHỜ CHỮ KÝ.** `docs/legal/checklist-phap-ly.md` đã viết: mục A 10 hạng mục đã làm kèm bằng chứng, mục B 6 việc tay cần luật sư trước khi thương mại hoá, mục C 5 việc kỹ thuật còn treo |
+| 5 | Checklist pháp lý ký bởi PHONG | **ĐẠT.** PHONG duyệt 03/09/2026 (ghi trong file, không phải chữ ký tay); 10 hạng mục mục A đã đối chiếu lại với mã trước khi đánh dấu, 6 việc mục B để trống vì chưa làm. `docs/legal/checklist-phap-ly.md` đã viết: mục A 10 hạng mục đã làm kèm bằng chứng, mục B 6 việc tay cần luật sư trước khi thương mại hoá, mục C 5 việc kỹ thuật còn treo |
 
 Lịch tự động đã bật: container `pipeline` chạy image có cron 2 job — `data:update` thứ Hai 02:00 và
 `report:weekly` thứ Hai 08:00 giờ VN. Kiểm lại bằng một lệnh: `sh scripts/report-setup-check.sh`.

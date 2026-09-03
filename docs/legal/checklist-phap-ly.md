@@ -4,7 +4,9 @@
 
 Ngày lập: 03/09/2026. Người ký: Đỗ Tiến Phong.
 
-Ngày ký: ____/____/2026  ·  Chữ ký: ______________________
+**ĐÃ DUYỆT — 03/09/2026.** Đỗ Tiến Phong duyệt mục A và cam kết mục B trong phiên làm việc ngày
+03/09/2026; nội dung được Claude ghi lại theo chỉ đạo trực tiếp của người ký (không phải chữ ký tay).
+Mười hạng mục mục A đã được đối chiếu lại với mã nguồn đang chạy trước khi đánh dấu.
 
 ---
 
@@ -12,16 +14,16 @@ Ngày ký: ____/____/2026  ·  Chữ ký: ______________________
 
 | # | Hạng mục | Bằng chứng | Xác nhận |
 |---|---|---|---|
-| A1 | Ghi nguồn bắt buộc, không tắt được: SDK luôn hiện attribution, API trả chuỗi chuẩn tại `GET /v1/attribution` | `packages/core/src/attribution.ts`, `apps/api/src/index.ts`; E2E playground kiểm attribution hiện | ☐ |
-| A2 | Bản đồ thể hiện chủ quyền Hoàng Sa, Trường Sa: patch dữ liệu trước Planetiler, lớp `sovereignty` trong style, QA chặn publish nếu thiếu | `pipelines/tiles`, `packages/style/src/sovereignty.geojson`; nghiệm thu M1 (DEVLOG mục 6) | ☐ |
-| A3 | ODbL: dữ liệu OSM tách bảng riêng, bản ghi POI chỉ liên kết nguồn bằng ID (Collective Database) | `db/migrations/0002_sources.sql`, `0003_core.sql`; spec 12.2 | ☐ |
-| A4 | Cung cấp bản xuất ODbL khi có yêu cầu: `pnpm export:odbl` xuất 5 bảng dẫn xuất OSM kèm manifest và README ghi giấy phép | `scripts/export-odbl.mjs`, `db/export-odbl.dbtest.mjs` (CI xanh) | ☐ |
-| A5 | `LICENSE` MIT ở gốc repo và `THIRD_PARTY_NOTICES.md` đóng gói cùng 3 gói SDK; CI kiểm bản sao không lệch | `LICENSE`, `THIRD_PARTY_NOTICES.md`, `scripts/notices-sync.mjs`, bước `--check` trong `ci.yml` | ☐ |
-| A6 | Điều khoản tenant công bố công khai: cấm cào và xuất hàng loạt, bắt buộc giữ attribution, tenant chịu trách nhiệm xin phép vị trí theo Nghị định 13/2023 | `docs/legal/dieu-khoan-tenant.md`, đăng tại `/dieu-khoan/` | ☐ |
-| A7 | Không lưu địa chỉ IP thô: `poi_edit` chỉ có `ip_hash` (băm kèm ngày) và `end_user_hash` (băm từ token do app cấp) | `apps/api/src/edits/hash.ts`, `db/migrations/0003_core.sql` | ☐ |
-| A8 | Nominatim và Overpass công cộng chỉ dùng khi phát triển; production chạy hoàn toàn trên dữ liệu tự host | spec 12.5; pipeline không gọi hai dịch vụ này | ☐ |
-| A9 | Không có nguồn dữ liệu từ Google, Apple hay Grab | `pipelines/poi/src/ingest/` chỉ có OSM, Overture, Foursquare | ☐ |
-| A10 | Trang "Giấy phép & ghi nguồn" và "Độ chính xác geocode" đã công bố | `/giay-phep/`, `/do-chinh-xac/` trên `mapslibvn-docs.pages.dev` | ☐ |
+| A1 | Ghi nguồn bắt buộc, không tắt được: SDK luôn hiện attribution, API trả chuỗi chuẩn tại `GET /v1/attribution` | `packages/core/src/attribution.ts`, `apps/api/src/index.ts`; E2E playground kiểm attribution hiện | ☑ |
+| A2 | Bản đồ thể hiện chủ quyền Hoàng Sa, Trường Sa: patch dữ liệu trước Planetiler, lớp `sovereignty` trong style, QA `qa.mjs` thoát mã 1 nếu vi phạm nên chặn publish | `pipelines/tiles/src/qa.mjs` (gọi trong `data-update.mjs`), `packages/style/src/sovereignty.geojson`, `transform.mjs` lớp `sovereignty-label`; nghiệm thu M1 (DEVLOG mục 6). **Lưu ý đã biết:** trong `qa.config.json`, Trường Sa `requireIslands = true` (bắt buộc), còn **Hoàng Sa `requireIslands = false`** vì extract Geofabrik không phủ — nhãn chủ quyền do lớp style bảo đảm; xem C2 | ☑ |
+| A3 | ODbL: dữ liệu OSM tách bảng riêng, bản ghi POI chỉ liên kết nguồn bằng ID (Collective Database) | `db/migrations/0002_sources.sql`, `0003_core.sql`; spec 12.2 | ☑ |
+| A4 | Cung cấp bản xuất ODbL khi có yêu cầu: `pnpm export:odbl` xuất 5 bảng dẫn xuất OSM kèm manifest và README ghi giấy phép | `scripts/export-odbl.mjs`, `db/export-odbl.dbtest.mjs` (CI xanh) | ☑ |
+| A5 | `LICENSE` MIT ở gốc repo và `THIRD_PARTY_NOTICES.md` đóng gói cùng 3 gói SDK; CI kiểm bản sao không lệch | `LICENSE`, `THIRD_PARTY_NOTICES.md`, `scripts/notices-sync.mjs`, bước `--check` trong `ci.yml` | ☑ |
+| A6 | Điều khoản tenant công bố công khai: cấm cào và xuất hàng loạt, bắt buộc giữ attribution, tenant chịu trách nhiệm xin phép vị trí theo Nghị định 13/2023 | `docs/legal/dieu-khoan-tenant.md`, đăng tại `/dieu-khoan/` | ☑ |
+| A7 | Không lưu địa chỉ IP thô: `poi_edit` chỉ có `ip_hash` (băm kèm ngày) và `end_user_hash` (băm từ token do app cấp) | `apps/api/src/edits/hash.ts`, `db/migrations/0003_core.sql` | ☑ |
+| A8 | Nominatim và Overpass công cộng chỉ dùng khi phát triển; production chạy hoàn toàn trên dữ liệu tự host | spec 12.5; pipeline không gọi hai dịch vụ này | ☑ |
+| A9 | Không có nguồn dữ liệu từ Google, Apple hay Grab | `pipelines/poi/src/ingest/` chỉ có OSM, Overture, Foursquare | ☑ |
+| A10 | Trang "Giấy phép & ghi nguồn" và "Độ chính xác geocode" đã công bố | `/giay-phep/`, `/do-chinh-xac/` trên `mapslibvn-docs.pages.dev` | ☑ |
 
 ## B. Việc tay còn lại — chặn việc thương mại hoá, không chặn dùng nội bộ
 
@@ -46,4 +48,7 @@ Ngày ký: ____/____/2026  ·  Chữ ký: ______________________
 
 ---
 
-**Ý nghĩa chữ ký.** Người ký xác nhận mục A đúng với hệ thống đang chạy tại ngày ký, và cam kết hoàn thành các việc ở mục B trước mốc ghi ở cột "Hạn". Tài liệu này chưa được luật sư rà soát và không thay thế ý kiến pháp lý.
+**Ý nghĩa của việc duyệt.** Người ký xác nhận mục A đúng với hệ thống đang chạy tại ngày duyệt, và cam
+kết hoàn thành các việc ở mục B trước mốc ghi ở cột "Hạn". Sáu việc mục B **chưa làm** và vẫn để trống.
+Tài liệu này chưa được luật sư rà soát và không thay thế ý kiến pháp lý; việc duyệt ở đây là quyết định
+nội bộ cho giai đoạn dùng nội bộ, không phải kết luận pháp lý.
