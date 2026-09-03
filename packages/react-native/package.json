@@ -24,8 +24,8 @@
     "react": ">=19.1.0",
     "react-native": ">=0.80.0"
   },
-  "dependencies": { "@mapslibvn/core": "workspace:*" },
   "devDependencies": {
+    "@mapslibvn/core": "workspace:*",
     "@maplibre/maplibre-react-native": "^11.3.8",
     "@testing-library/react": "^16.3.0",
     "@types/geojson": "^7946.0.16",

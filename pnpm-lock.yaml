@@ -200,14 +200,13 @@ importers:
         version: 5.9.3
 
   packages/react-native:
-    dependencies:
-      '@mapslibvn/core':
-        specifier: workspace:*
-        version: link:../core
     devDependencies:
       '@maplibre/maplibre-react-native':
         specifier: ^11.3.8
         version: 11.3.8(@types/geojson@7946.0.16)(@types/react@19.2.18)(react-native@0.81.6(@babel/core@7.29.7)(@types/react@19.2.18)(react@19.2.8))(react@19.2.8)
+      '@mapslibvn/core':
+        specifier: workspace:*
+        version: link:../core
       '@testing-library/react':
         specifier: ^16.3.0
         version: 16.3.3(@testing-library/dom@10.4.1)(@types/react-dom@18.3.7(@types/react@19.2.18))(@types/react@19.2.18)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)

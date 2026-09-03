@@ -4,7 +4,10 @@ import { defineConfig } from 'tsup';
 export default defineConfig({
   entry: ['src/index.ts'],
   format: ['esm'],
-  dts: true,
+  // `noExternal` chỉ gộp JS; `dts.resolve` gộp luôn .d.ts của core để tarball tự chứa cả type.
+  // `noExternal` gộp JS; `dts.resolve` gộp luôn .d.ts của core (core nằm ở devDependencies
+  // để tarball KHÔNG đòi cài @mapslibvn/core chưa publish) — dist tự chứa cả code lẫn type.
+  dts: { resolve: ['@mapslibvn/core'] },
   clean: true,
   target: 'es2020',
   external: ['react', 'react/jsx-runtime', 'react-native', '@maplibre/maplibre-react-native'],
