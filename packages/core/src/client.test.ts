@@ -56,4 +56,39 @@ describe('createClient', () => {
       requestId: 'r1',
     } satisfies Partial<MapsLibVNError>);
   });
+
+  it('gộp headers tuỳ chọn vào mọi request (X-Bundle-Id cho khoá mobile)', async () => {
+    const fetch = okFetch({ items: [] });
+    const client = createClient({
+      apiKey: 'mlv_live_abc',
+      baseUrl: 'https://api.example.test',
+      headers: { 'X-Bundle-Id': 'vn.mapslibvn.demo' },
+      fetch,
+    });
+    await client.autocomplete('cafe');
+    const [, init] = fetch.mock.calls[0] as unknown as [URL, RequestInit];
+    const headers = init.headers as Record<string, string>;
+    expect(headers['X-Bundle-Id']).toBe('vn.mapslibvn.demo');
+    expect(headers['X-Api-Key']).toBe('mlv_live_abc');
+  });
+
+  it('headers tuỳ chọn không ghi đè được X-Api-Key', async () => {
+    const fetch = okFetch({ edit_id: 'e1', status: 'pending' });
+    const client = createClient({
+      apiKey: 'mlv_live_abc',
+      baseUrl: 'https://api.example.test',
+      headers: { 'X-Api-Key': 'gia-mao' },
+      fetch,
+    });
+    await client.suggestEdit({
+      kind: 'update',
+      poi_id: 'p1',
+      changes: {},
+      end_user_token: 'u1',
+    } as never);
+    const [, init] = fetch.mock.calls[0] as unknown as [URL, RequestInit];
+    const headers = init.headers as Record<string, string>;
+    expect(headers['X-Api-Key']).toBe('mlv_live_abc');
+    expect(headers['content-type']).toBe('application/json');
+  });
 });

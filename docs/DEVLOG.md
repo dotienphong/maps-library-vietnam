@@ -62,10 +62,11 @@ commit với code).
 ## 2. Bước kế tiếp
 
 **BẮT ĐẦU TỪ ĐÂY: Đang làm M6** — plan `docs/superpowers/plans/2026-09-03-m6-react-native.md`
-(16 task, spec + plan đều đã duyệt). Task 0 XONG 03/09/2026: git sạch trên `main`, identity cá
+(16 task, spec + plan đều đã duyệt). Task 0–1 XONG 03/09/2026. Task 0: git sạch trên `main`, identity cá
 nhân OK; CI remote của `471bd92` xanh; gate local xanh (lint 243 file, typecheck 13 task, vitest
 root 49 file / 529 test, API 19 file / 87 test); Xcode 26.6 + 6 simulator iOS có, Android SDK có
-với AVD `Pixel_7`, Node v22.23.2. Tiếp tục từ Task 1.
+với AVD `Pixel_7`, Node v22.23.2. Task 1: `ClientOptions.headers` trong `@mapslibvn/core`.
+Tiếp tục từ Task 2.
 
 Việc tay của PHONG còn treo trong M6: cấp khoá `mobile` cho tenant thử nghiệm
 (`pnpm key:issue --tenant 00000000-0000-4000-8000-000000000002 --label "embed-rn thử độc lập"
@@ -613,6 +614,9 @@ rõ ở mục 2 và không chặn M2: kiểm trên Windows, và bật lại `req
   bị bind mount vào worktree tạm; M3 đóng · (commit hiện tại)
 - 2026-09-01 · M3 hậu nghiệm thu · playground tự chọn Worker production khi mở URL không
   có `?api=`; localhost và query override vẫn giữ; thêm unit regression + E2E URL ngắn · (commit này)
+- 2026-09-03 · M6 T1 · `ClientOptions.headers` gộp vào cả `get` và `post` qua `baseHeaders()`;
+  `X-Api-Key` đặt sau nên header tuỳ chọn không giả mạo được khoá. 2 test mới (client 5/5);
+  core build 6,58 kB gzip (budget 8) · (commit này)
 - 2026-09-03 · M6 T0 · kiểm trạng thái trước M6: git sạch trên `main`, `pnpm check:git` OK;
   CI remote `471bd92` xanh; gate local xanh (lint 243 file, typecheck 13 task cache hit,
   vitest root 49 file / 529 test, API 19 file / 87 test); công cụ mobile đủ — Xcode 26.6

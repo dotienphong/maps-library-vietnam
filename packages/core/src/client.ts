@@ -19,6 +19,11 @@ export interface ClientOptions {
   baseUrl: string;
   /** Cho phép tiêm fetch cho test hoặc môi trường không có global fetch. */
   fetch?: typeof globalThis.fetch;
+  /**
+   * Header thêm cho mọi request, ví dụ `X-Bundle-Id` cho khoá `mobile` (spec 6.4).
+   * Không ghi đè được `X-Api-Key`.
+   */
+  headers?: Record<string, string>;
 }
 
 export interface AttributionResponse {
@@ -34,6 +39,10 @@ interface ErrorBody {
 export function createClient(options: ClientOptions) {
   const baseUrl = options.baseUrl.replace(/\/+$/, '');
   const doFetch = options.fetch ?? globalThis.fetch.bind(globalThis);
+  const baseHeaders = (): Record<string, string> => ({
+    ...(options.headers ?? {}),
+    'X-Api-Key': options.apiKey,
+  });
 
   async function parseOrThrow<T>(response: Response): Promise<T> {
     if (!response.ok) {
@@ -63,7 +72,7 @@ export function createClient(options: ClientOptions) {
     }
 
     const response = await doFetch(url, {
-      headers: { 'X-Api-Key': options.apiKey },
+      headers: baseHeaders(),
     });
     return parseOrThrow<T>(response);
   }
@@ -71,7 +80,7 @@ export function createClient(options: ClientOptions) {
   async function post<T>(path: string, body: unknown): Promise<T> {
     const response = await doFetch(new URL(baseUrl + path), {
       method: 'POST',
-      headers: { 'X-Api-Key': options.apiKey, 'content-type': 'application/json' },
+      headers: { ...baseHeaders(), 'content-type': 'application/json' },
       body: JSON.stringify(body),
     });
     return parseOrThrow<T>(response);

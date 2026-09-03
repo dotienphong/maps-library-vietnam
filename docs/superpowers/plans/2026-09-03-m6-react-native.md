@@ -140,7 +140,7 @@ git commit -m "docs: plan M6 react-native + kiểm tra trạng thái trước M6
 - Modify: `packages/core/src/client.ts`
 - Test: `packages/core/src/client.test.ts`
 
-- [ ] **Step 1: Viết test thất bại (RED)**
+- [x] **Step 1: Viết test thất bại (RED)**
 
 Thêm vào cuối `describe('createClient', …)` trong `packages/core/src/client.test.ts`:
 
@@ -181,12 +181,12 @@ Thêm vào cuối `describe('createClient', …)` trong `packages/core/src/clien
   });
 ```
 
-- [ ] **Step 2: Chạy test, xác nhận đỏ**
+- [x] **Step 2: Chạy test, xác nhận đỏ**
 
 Run: `pnpm exec vitest run packages/core/src/client.test.ts`
 Expected: FAIL — `headers['X-Bundle-Id']` là `undefined` (TypeScript cũng báo `headers` không có trong `ClientOptions`).
 
-- [ ] **Step 3: Sửa `client.ts`**
+- [x] **Step 3: Sửa `client.ts`**
 
 Trong `packages/core/src/client.ts`, thêm vào `ClientOptions`:
 
@@ -210,12 +210,12 @@ Trong `createClient`, ngay sau `const doFetch = …`:
 Đổi `get`: `headers: { 'X-Api-Key': options.apiKey }` → `headers: baseHeaders()`.
 Đổi `post`: `headers: { 'X-Api-Key': options.apiKey, 'content-type': 'application/json' }` → `headers: { ...baseHeaders(), 'content-type': 'application/json' }`.
 
-- [ ] **Step 4: Chạy test, xác nhận xanh + size-limit**
+- [x] **Step 4: Chạy test, xác nhận xanh + size-limit**
 
 Run: `pnpm exec vitest run packages/core/src/client.test.ts && pnpm --filter @mapslibvn/core build`
 Expected: PASS toàn file; `size-limit` in `dist/index.js` dưới 8 kB.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add packages/core/src/client.ts packages/core/src/client.test.ts
