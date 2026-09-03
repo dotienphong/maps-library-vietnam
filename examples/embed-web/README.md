@@ -5,10 +5,11 @@ SDK MapsLibVN nhúng được vào một trang bất kỳ ở origin riêng bằ
 đúng origin đó (nghiệm thu M5, spec mục 13 hàng M5).
 
 ```bash
-pnpm example:embed --key mlv_live_…      # phục vụ ở http://localhost:5500 và mở trình duyệt
+pnpm example:embed        # phục vụ ở http://localhost:5500 và mở trình duyệt
 ```
 
-Hoặc đặt `MAPSLIBVN_DEMO_KEY=mlv_live_…` trong `.env` rồi chạy `pnpm example:embed`.
+Khoá đọc từ `KEY_EXAMPLE_EMBED` trong `.env` ở gốc repo, nên không cần gõ tay. Muốn thử khoá khác
+mà không sửa `.env` thì thêm `--key mlv_live_…`.
 
 Khoá **không** nằm trong repo: truyền qua tham số hoặc biến môi trường, và trang đọc nó từ query
 string. Khoá phải có `http://localhost:5500` trong `allowed_origins`; cấp bằng:

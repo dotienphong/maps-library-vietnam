@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // Mở trang nhúng thử độc lập bằng một lệnh (nghiệm thu M5, spec 13 hàng M5):
-//   pnpm example:embed --key mlv_live_…
-//   pnpm example:embed                  (lấy khoá từ MAPSLIBVN_DEMO_KEY trong .env)
+//   pnpm example:embed                  (khoá lấy từ KEY_EXAMPLE_EMBED trong .env)
+//   pnpm example:embed --key mlv_live_… (ghi đè tạm, không cần sửa .env)
 // Phục vụ examples/embed-web trên http://localhost:5500 rồi mở trình duyệt kèm ?key=…
 // Khoá KHÔNG nằm trong repo: truyền qua tham số hoặc biến môi trường. Ctrl+C để dừng.
 import { spawn } from 'node:child_process';

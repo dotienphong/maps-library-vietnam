@@ -1,5 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import { contentType, exampleUrl, openCommand, resolveKey, safeFile } from './example-serve.mjs';
+import {
+  KEY_ENV_NAME,
+  contentType,
+  exampleUrl,
+  openCommand,
+  resolveKey,
+  safeFile,
+} from './example-serve.mjs';
 
 describe('contentType', () => {
   it('đoán theo đuôi file, mặc định là nhị phân', () => {
@@ -28,14 +35,18 @@ describe('safeFile', () => {
 describe('resolveKey', () => {
   const good = `mlv_live_${'a'.repeat(24)}`;
 
-  it('ưu tiên --key, sau đó tới biến môi trường', () => {
+  it('mặc định lấy KEY_EXAMPLE_EMBED trong .env, không cần gõ --key', () => {
+    expect(KEY_ENV_NAME).toBe('KEY_EXAMPLE_EMBED');
+    expect(resolveKey([], { KEY_EXAMPLE_EMBED: good })).toBe(good);
+  });
+
+  it('--key ghi đè biến môi trường', () => {
     expect(resolveKey(['--key', good], {})).toBe(good);
-    expect(resolveKey([], { MAPSLIBVN_DEMO_KEY: good })).toBe(good);
-    expect(resolveKey(['--key', good], { MAPSLIBVN_DEMO_KEY: 'khac' })).toBe(good);
+    expect(resolveKey(['--key', good], { KEY_EXAMPLE_EMBED: 'khac' })).toBe(good);
   });
 
   it('báo lỗi rõ khi thiếu hoặc sai định dạng', () => {
-    expect(() => resolveKey([], {})).toThrow(/Thiếu khoá/);
+    expect(() => resolveKey([], {})).toThrow(/KEY_EXAMPLE_EMBED/);
     expect(() => resolveKey(['--key', 'abc'], {})).toThrow(/định dạng/);
   });
 });

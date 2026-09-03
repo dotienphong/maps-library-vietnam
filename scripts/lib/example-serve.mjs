@@ -32,18 +32,22 @@ export function safeFile(url) {
   return rel;
 }
 
+/** Tên biến trong `.env` chứa khoá của trang thử. */
+export const KEY_ENV_NAME = 'KEY_EXAMPLE_EMBED';
+
 /**
- * Khoá lấy từ `--key`, rồi tới biến môi trường. Không đọc từ file trong repo.
+ * Khoá lấy từ `KEY_EXAMPLE_EMBED` trong `.env`; `--key` chỉ để ghi đè tạm.
+ * Không đọc khoá từ file nào trong repo.
  * @param {string[]} argv
  * @param {Record<string, string | undefined>} env
  */
 export function resolveKey(argv, env) {
   const i = argv.indexOf('--key');
   const fromArg = i >= 0 ? argv[i + 1] : undefined;
-  const key = fromArg ?? env.MAPSLIBVN_DEMO_KEY ?? '';
+  const key = fromArg ?? env[KEY_ENV_NAME] ?? '';
   if (!key) {
     throw new Error(
-      'Thiếu khoá. Dùng: pnpm example:embed --key mlv_live_… (hoặc đặt MAPSLIBVN_DEMO_KEY trong .env)',
+      `Thiếu khoá. Đặt ${KEY_ENV_NAME}=mlv_live_… trong .env ở gốc repo, hoặc chạy pnpm example:embed --key mlv_live_…`,
     );
   }
   if (!/^mlv_live_[0-9A-Za-z]{24}$/.test(key)) {
