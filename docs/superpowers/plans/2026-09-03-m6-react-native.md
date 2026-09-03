@@ -2219,7 +2219,7 @@ git commit -m "feat(examples): app Expo thử độc lập embed-rn — tìm ki�
 - Create: `docs/evidence/m6/ios-light-vi.png`, `ios-dark-en.png`, `ios-search-marker.png`, `ios-poi-alert.png`, `ios-attribution-dialog.png`, `android-light-vi.png`, `android-search-marker.png`, `android-poi-alert.png`
 - Modify: `docs/DEVLOG.md` (mục 11 khởi tạo)
 
-- [ ] **Step 1: Cấp khoá `mobile` (việc tay PHONG hoặc chạy với `DATABASE_URL` production qua Tunnel như M5)**
+- [x] **Step 1: Cấp khoá `mobile` (việc tay PHONG hoặc chạy với `DATABASE_URL` production qua Tunnel như M5)**
 
 Run:
 ```bash
@@ -2227,12 +2227,12 @@ pnpm key:issue --tenant 00000000-0000-4000-8000-000000000002 --label "embed-rn t
 ```
 Expected: in `kind : mobile scopes: places:read origins: (không kiểm)` và `KEY : mlv_live_…`. Dán vào `.env` gốc: `KEY_EXAMPLE_RN=mlv_live_…` (không nháy). Kiểm nhanh: `curl -s -H "X-Api-Key: $(grep KEY_EXAMPLE_RN .env | cut -d= -f2)" -H "X-Bundle-Id: vn.mapslibvn.demo" "https://api.ai-solutions.io.vn/v1/autocomplete?q=highlands" | head -c 200` → JSON `items`.
 
-- [ ] **Step 2: Chạy iOS**
+- [x] **Step 2: Chạy iOS**
 
 Run: `pnpm example:rn --ios`
 Expected: 5 bước in ra; simulator mở app "MapsLibVN Demo"; bản đồ HCM nhãn tiếng Việt; dòng attribution góc dưới trái; nút "i" native góc dưới phải. Chụp `docs/evidence/m6/ios-light-vi.png` (`xcrun simctl io booted screenshot docs/evidence/m6/ios-light-vi.png`).
 
-- [ ] **Step 3: Kịch bản nghiệm thu trên iOS**
+- [x] **Step 3: Kịch bản nghiệm thu trên iOS**
 
 1. Bấm "Tối" → theme dark; bấm "EN" → nhãn tiếng Anh; kéo tới Biển Đông (zoom ~5) xác nhận nhãn "Quần đảo Hoàng Sa (Việt Nam)"/"Quần đảo Trường Sa (Việt Nam)" **vẫn tiếng Việt** → chụp `ios-dark-en.png`.
 2. Về "VI"/"Sáng"; gõ "highlands" → gợi ý hiện dưới 1 giây; chọn một dòng → camera bay tới, ghim đỏ hiện → chụp `ios-search-marker.png`.
@@ -2240,17 +2240,17 @@ Expected: 5 bước in ra; simulator mở app "MapsLibVN Demo"; bản đồ HCM 
 4. Bấm dòng attribution → hộp thoại native liệt kê OSM/OpenMapTiles/Overture/Foursquare → chụp `ios-attribution-dialog.png`.
 5. Kiểm không có tiles qua Worker: trong lúc thao tác, chạy `GH_TOKEN=… ` không cần — dùng Cloudflare Observability: truy vấn log Worker 10 phút gần nhất lọc `X-Bundle-Id` hoặc key mobile; xác nhận có `/v1/autocomplete`, có log dòng `X-Bundle-Id vn.mapslibvn.demo`, và **không có** `/v1/tiles/`. Ghi kết quả (số request, có/không) vào DEVLOG mục 11.
 
-- [ ] **Step 4: Chạy Android**
+- [x] **Step 4: Chạy Android**
 
 Run: mở một AVD (Android Studio → Device Manager → Play) rồi `pnpm example:rn --android`
 Expected: app cài lên emulator, bản đồ hiện. Lặp mục 2 và 3 của kịch bản → chụp `android-light-vi.png`, `android-search-marker.png`, `android-poi-alert.png` (`adb exec-out screencap -p > docs/evidence/m6/android-light-vi.png`).
 
-- [ ] **Step 5: Analytics có khoá mobile**
+- [x] **Step 5: Analytics có khoá mobile**
 
 Run: `pnpm report:weekly --dry-run` (hoặc truy vấn SQL API như `scripts/weekly-report.mjs` với khoảng thời gian hôm nay)
 Expected: có dòng của khoá `embed-rn thử độc lập` (tenant `nhung_thu`) với số request > 0. Ghi số vào DEVLOG mục 11.
 
-- [ ] **Step 6: Khởi tạo DEVLOG mục 11 + commit bằng chứng**
+- [x] **Step 6: Khởi tạo DEVLOG mục 11 + commit bằng chứng**
 
 Thêm cuối `docs/DEVLOG.md`:
 
