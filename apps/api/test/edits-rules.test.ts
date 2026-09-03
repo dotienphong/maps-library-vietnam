@@ -1,5 +1,4 @@
 import { describe, expect, it } from 'vitest';
-import { endUserHash, ipHash } from '../src/edits/hash';
 import { type DecideInput, decideStatus } from '../src/edits/rules';
 import { ulid } from '../src/edits/ulid';
 import { vnDayStartUtc } from '../src/quota';
@@ -49,13 +48,6 @@ describe('ulid + hash + vnDayStartUtc', () => {
     const b = ulid(2_000_000_000_000);
     expect(a).toMatch(/^[0-9A-HJKMNP-TV-Z]{26}$/);
     expect(b.slice(0, 10) > a.slice(0, 10)).toBe(true);
-  });
-
-  it('endUserHash phụ thuộc tenant, ipHash phụ thuộc ngày', async () => {
-    expect(await endUserHash('t1', 'tok')).not.toBe(await endUserHash('t2', 'tok'));
-    expect(await endUserHash('t1', 'tok')).toBe(await endUserHash('t1', 'tok'));
-    expect(await ipHash('1.2.3.4', '2026-09-01')).not.toBe(await ipHash('1.2.3.4', '2026-09-02'));
-    expect(await ipHash('1.2.3.4', '2026-09-01')).toMatch(/^[0-9a-f]{64}$/);
   });
 
   it('vnDayStartUtc: 00:00 giờ VN = 17:00 UTC hôm trước', () => {

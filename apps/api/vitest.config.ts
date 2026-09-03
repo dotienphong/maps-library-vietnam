@@ -13,6 +13,7 @@ export default defineWorkersConfig({
             QUOTA_ENABLED: '1',
             ACCESS_TEAM_DOMAIN: 'test.cloudflareaccess.com',
             ACCESS_AUD: 'test-aud',
+            IP_HASH_PEPPER: 'test-pepper',
           },
           // Tầng test này KHÔNG được cần Postgres (dbtest là workflow riêng). Trỏ binding
           // Hyperdrive vào cổng đóng để nhánh lỗi của /healthz/db xác định ở mọi máy và CI.

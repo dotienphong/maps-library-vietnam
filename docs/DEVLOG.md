@@ -68,10 +68,16 @@ commit với code).
 ## 2. Bước kế tiếp
 
 **BẮT ĐẦU TỪ ĐÂY: không còn mốc định nghĩa sẵn.** M1–M6 đều đã nghiệm thu. Việc còn lại là việc
-tay trong `docs/legal/checklist-phap-ly.md` mục B (6 việc cần luật sư) và mục C (5 việc kỹ thuật).
-Khi **B3** xong (rà soát nhãn hiệu "MapsLibVN" với chính sách nhãn hiệu MapLibre) → publish 4 gói
-npm, gồm cả `@mapslibvn/react-native` (hiện chỉ cài được từ tarball). Mốc mới phải brainstorm +
-viết spec trước khi viết plan.
+tay trong `docs/legal/checklist-phap-ly.md`. Mốc mới phải brainstorm + viết spec trước khi viết plan.
+
+**Trạng thái checklist tại 04/09/2026:**
+- **C4 XONG** — pepper bí mật cho `ip_hash`/`end_user_hash`.
+- **B3 đã chuẩn bị hồ sơ** (`docs/legal/b3-ra-soat-nhan-hieu.md`), **chưa xong**: còn hai việc chỉ
+  người làm được — tra WIPO Global Brand Database + Cục SHTT, và gửi thư hỏi `team@maplibre.org`
+  (mẫu thư có sẵn trong hồ sơ). Xong B3 mới publish 4 gói npm (`@mapslibvn/*` hiện còn trống chỗ
+  trên registry, kiểm 04/09); `@mapslibvn/react-native` hiện chỉ cài được từ tarball.
+- Còn treo: B1, B2, B4 (cần luật sư), B5, B6 (cần tiền/quyết định), C1 (cần máy Windows), C2, C3
+  (cần nguồn dữ liệu mới + chạy lại pipeline), C5 (chờ cron `data:update` thứ Hai 02:00 giờ VN).
 
 **Lịch sử M6 (đã xong 03/09/2026)** — plan `docs/superpowers/plans/2026-09-03-m6-react-native.md`
 (16 task, spec + plan đều đã duyệt). Task 0: git sạch trên `main`, identity cá
@@ -262,6 +268,7 @@ vẫn là `sleep 1` phút — `sudo pmset -a sleep 0 disksleep 0`.
 
 | Ngày | Quyết định | Lý do | Commit |
 |---|---|---|---|
+| 2026-09-04 | C4: `ip_hash`/`end_user_hash` băm kèm secret `IP_HASH_PEPPER`; thiếu secret thì `POST /v1/edits` trả **503 `server_misconfigured`** chứ không tự hạ xuống băm không pepper. Dev/test dùng giá trị không bí mật trong `wrangler.toml` và `vitest.config.ts`; production dùng `wrangler secret put` (đã đặt 04/09). Harness dbtest phải truyền `--var IP_HASH_PEPPER` | Không có pepper thì dải IPv4 chỉ ~4 tỉ giá trị — ai lấy được bảng `poi_edit` là dò ngược ra IP; mặc định im lặng sẽ khiến sự cố cấu hình không bao giờ bị phát hiện | (commit này) |
 | 2026-09-03 | M6 chốt 8 quyết định khi viết plan, đã áp dụng nguyên: (1) `tsup.config.ts` với `noExternal: ['@mapslibvn/core']` — external `react`, `react/jsx-runtime`, `react-native`, wrapper; (2) test component RN chạy jsdom bằng `@testing-library/react` với `vi.mock` hai module native trong `src/test/` (không `react-test-renderer`, không Jest preset RN); (3) vitest root include thêm `packages/*/src/**/*.test.tsx`; (4) `resolveKey` nhận tham số thứ ba `{envName, hint}` để `example-rn` dùng lại thay vì copy; (5) app thử tạo bằng `create-expo-app --template blank-typescript`, không ghim tay RN/React; (6) `npm install ./vendor/*.tgz` chạy lại **mỗi lần** `example:rn` để npm không giữ tarball cũ trùng tên; (7) `<Marker>` mặc định View tròn 22 pt, `anchor` `center`; (8) `onLoad` gọi một lần mỗi lần tạo map, guard bằng `useRef`. Kèm: style JSON tải về phải cast `as StyleSpecification` trong `use-style.ts` vì `res.json()` trả `unknown` | Gói RN phải cài được khi core chưa lên npm; React 19 + New Architecture loại bỏ hạ tầng test RN cũ; app thử phải nằm ngoài workspace để chứng minh tarball tự chứa | (commit này) |
 | 2026-09-03 | Spec gốc mục 8.1 sửa một dòng: wrapper RN không có `addProtocol`, `pmtiles://` do MapLibre Native (Android ≥ 11.8 / iOS ≥ 6.10, wrapper 11.3.8 kèm Android 13.2 / iOS 6.26) đọc trực tiếp; trỏ về spec M6 riêng. Spec M6 chốt: không biến thể style mobile, không tiles fallback; app Expo thử độc lập ngoài workspace cài bằng tarball (cách A); `PoiFeature` + hàm biến đổi style thuần chuyển vào core; gói RN đóng gói core, không kéo web | Xác minh 03/09 bằng docs MapLibre và changelog wrapper; monorepo React 18 không tương thích peer React 19 của wrapper nên gói và app thử phải tách | (commit này) |
 | 2026-09-01 | M4: ghi `poi` qua 3 hàm SQL `SECURITY DEFINER` owner `pipeline`, `api` chỉ EXECUTE | Giữ đúng spec 9 "Worker chỉ đọc + ghi `poi_edit`" ở tầng GRANT thay vì tin vào code Worker | (commit này) |
@@ -450,6 +457,13 @@ vẫn là `sleep 1` phút — `sudo pmset -a sleep 0 disksleep 0`.
   app Expo thử `examples/embed-rn` + `pnpm example:rn`, khoá `mobile` với `X-Bundle-Id`,
   trang docs `/react-native/`. Chạy thật iOS 26.1 + Android Pixel 7, 8 ảnh trong
   `docs/evidence/m6/`, 0 request `/v1/tiles/` (tiles đi thẳng R2 qua `pmtiles://`)
+
+- 2026-09-04 · checklist **C4 XONG** + hồ sơ **B3** · pepper bí mật cho `ip_hash`/`end_user_hash`
+  (secret `IP_HASH_PEPPER` đã đặt trên `mapslibvn-api-production`), `docs/legal/b3-ra-soat-nhan-hieu.md`
+  (MapLibre không có chính sách nhãn hiệu công khai; tên npm `@mapslibvn/*` còn trống; còn lại là
+  tra WIPO/Cục SHTT và gửi thư `team@maplibre.org`). Sửa kèm: `THIRD_PARTY_NOTICES.md` trước đó
+  chưa nhắc `@mapslibvn/react-native` lẫn peer `@maplibre/maplibre-react-native` (MIT) — đã bổ sung
+  cùng dòng miễn trừ liên kết với MapLibre
 
 ## 5. Sự cố
 

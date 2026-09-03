@@ -101,6 +101,8 @@ const wrangler = spawn(
     `ACCESS_AUD:${FAKE_AUD}`,
     '--var',
     `ACCESS_CERTS_URL:http://127.0.0.1:${CERTS_PORT}/certs`,
+    '--var',
+    'IP_HASH_PEPPER:dbtest-pepper',
   ],
   {
     stdio: 'inherit',

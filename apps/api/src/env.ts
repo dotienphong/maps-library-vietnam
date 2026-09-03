@@ -15,6 +15,8 @@ export interface Env {
   ACCESS_AUD?: string; // AUD tag của Access application
   /** Override URL JWKS cho test/E2E (Access giả lập). */
   ACCESS_CERTS_URL?: string;
+  /** Secret băm `ip_hash`/`end_user_hash` (checklist C4). Đặt bằng `wrangler secret put`. */
+  IP_HASH_PEPPER?: string;
 }
 
 /** Kiểu Hono chung cho app: Variables.auth do requireAuth() gán, reviewer do requireAccess(). */

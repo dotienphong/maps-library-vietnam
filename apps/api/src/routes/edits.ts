@@ -1,7 +1,7 @@
 import { Hono } from 'hono';
 import { requireAuth } from '../auth';
 import { getSql } from '../db';
-import { endUserHash, ipHash } from '../edits/hash';
+import { endUserHash, ipHash, requirePepper } from '../edits/hash';
 import { EDITS_PER_KEY_PER_DAY, EDITS_PER_USER_PER_DAY, decideStatus } from '../edits/rules';
 import { ulid } from '../edits/ulid';
 import { validateEditBody } from '../edits/validate';
@@ -21,8 +21,9 @@ edits.post('/v1/edits', requireAuth('edits:write'), async (c) => {
   const edit = validateEditBody(raw);
   const auth = c.get('auth');
   if (!auth) throw new ApiError(401, 'missing_key', 'Thiếu auth'); // không xảy ra sau requireAuth
-  const userHash = await endUserHash(auth.tenantId, edit.endUserToken);
-  const ipH = await ipHash(c.req.header('CF-Connecting-IP') ?? '', vnDay());
+  const pepper = requirePepper(c.env);
+  const userHash = await endUserHash(auth.tenantId, edit.endUserToken, pepper);
+  const ipH = await ipHash(c.req.header('CF-Connecting-IP') ?? '', vnDay(), pepper);
 
   const sql = getSql(c.env);
   // Phải dùng sql.json(): truyền chuỗi đã JSON.stringify kèm cast ::jsonb khiến porsager

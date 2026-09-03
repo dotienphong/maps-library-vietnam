@@ -7,6 +7,9 @@ compatibility_flags = ["nodejs_compat"]
 TILES_BASE = "https://tiles.ai-solutions.io.vn"
 ENVIRONMENT = "dev"
 QUOTA_ENABLED = "0"
+# Chỉ cho dev/test. Production KHÔNG lấy giá trị này (khối [env.production] ghi đè toàn bộ vars)
+# mà đọc secret đặt bằng `wrangler secret put IP_HASH_PEPPER --env production`.
+IP_HASH_PEPPER = "dev-pepper-khong-bi-mat"
 
 # Trang duyệt đóng góp (M4): SPA tĩnh build từ apps/admin, phục vụ tại /admin.
 # Cùng origin với /v1/admin/* nên chỉ cần một Cloudflare Access application.

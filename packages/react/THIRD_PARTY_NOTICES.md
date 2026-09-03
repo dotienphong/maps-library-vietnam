@@ -1,18 +1,25 @@
 # Thông báo bên thứ ba — MapsLibVN SDK
 
-Tài liệu này đi kèm các gói `@mapslibvn/core`, `@mapslibvn/web`, `@mapslibvn/react`
-(giấy phép MIT, xem `LICENSE`). Phần mã máy chủ của MapsLibVN (`apps/*`, `pipelines/*`,
-`infra/*`, `db/*`) không được phân phối và không nằm trong phạm vi tài liệu này.
+Tài liệu này đi kèm các gói `@mapslibvn/core`, `@mapslibvn/web`, `@mapslibvn/react`,
+`@mapslibvn/react-native` (giấy phép MIT, xem `LICENSE`). Phần mã máy chủ của MapsLibVN
+(`apps/*`, `pipelines/*`, `infra/*`, `db/*`) không được phân phối và không nằm trong phạm vi
+tài liệu này.
 
-Cập nhật: 02/09/2026.
+MapsLibVN **không liên kết với, không được tài trợ hay chứng thực bởi** MapLibre. "MapLibre" là
+nhãn hiệu của bên thứ ba; tên đó xuất hiện ở đây và trong tài liệu chỉ để mô tả nguồn gốc kỹ
+thuật của thư viện mà MapsLibVN sử dụng.
+
+Cập nhật: 04/09/2026.
 
 ## 1. Thư viện được đóng gói hoặc là peer dependency của SDK
 
 | Thành phần | Phiên bản đã kiểm | Giấy phép | Vai trò |
 |---|---|---|---|
-| maplibre-gl | 5.24.0 (peer) | BSD-3-Clause | bộ vẽ bản đồ |
+| maplibre-gl | 5.24.0 (peer, các gói web) | BSD-3-Clause | bộ vẽ bản đồ |
 | pmtiles | 4.5.0 (dependency) | BSD-3-Clause | đọc tiles PMTiles qua HTTP Range |
 | react, react-dom | 18.3.1 (peer, chỉ `@mapslibvn/react`) | MIT | |
+| @maplibre/maplibre-react-native | 11.3.8 (peer, chỉ `@mapslibvn/react-native`) | MIT | bộ vẽ bản đồ native iOS/Android |
+| react, react-native | react ≥ 19.1, react-native ≥ 0.80 (peer, chỉ `@mapslibvn/react-native`) | MIT | |
 
 Nguyên văn giấy phép ở mục 4.
 
@@ -351,6 +358,32 @@ Nguyên văn: https://openfontlicense.org/open-font-license-official-text/
 
 Icon Maki (Mapbox) ở phạm vi công cộng theo CC0 1.0 Universal:
 https://creativecommons.org/publicdomain/zero/1.0/ — không yêu cầu ghi nguồn.
+
+### 4.8 @maplibre/maplibre-react-native — MIT
+
+```
+Copyright (c) 2022 MapLibre contributors
+
+Copyright (c) 2015-2020 Mapbox
+
+Permission is hereby granted, free of charge, to any person obtaining a copy of this software
+and associated documentation files (the "Software"), to deal in the Software without
+restriction, including without limitation the rights to use, copy, modify, merge, publish,
+distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the
+Software is furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all copies or
+substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING
+BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,
+DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+```
+
+Gói này nhúng MapLibre Native (Android, iOS) khi build app — xem thông báo giấy phép trong
+chính gói đó cho các thành phần native.
 
 ## 5. Công cụ phía máy chủ (không phân phối, liệt kê để minh bạch)
 
