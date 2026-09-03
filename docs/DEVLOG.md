@@ -9,7 +9,7 @@ commit với code).
   **Đang làm M6 — `@mapslibvn/react-native`**: spec
   (`docs/superpowers/specs/2026-09-03-react-native-sdk-design.md`) và plan
   (`docs/superpowers/plans/2026-09-03-m6-react-native.md`, 16 task) đều đã duyệt 03/09/2026;
-  Task 0–12/16 xong (đã push, CI xanh), đang thực thi từ Task 13.
+  Task 0–13/16 xong (đã push, CI xanh), đang thực thi từ Task 14 — cần khoá `mobile`.
   Mốc trước: **M4 — Đóng góp đã nghiệm thu 02/09/2026**
 - Plan M5: `docs/superpowers/plans/2026-09-02-m5-phat-hanh-noi-bo.md` — **10/10 task XONG**,
   nghiệm thu 5/5 hạng mục ĐẠT 03/09/2026 (bảng bằng chứng ở mục 10). Gồm: docs đủ 5 trang
@@ -62,12 +62,12 @@ commit với code).
 ## 2. Bước kế tiếp
 
 **BẮT ĐẦU TỪ ĐÂY: Đang làm M6** — plan `docs/superpowers/plans/2026-09-03-m6-react-native.md`
-(16 task, spec + plan đều đã duyệt). Task 0–12 XONG 03/09/2026. Task 0: git sạch trên `main`, identity cá
+(16 task, spec + plan đều đã duyệt). Task 0–13 XONG 03/09/2026. Task 0: git sạch trên `main`, identity cá
 nhân OK; CI remote của `471bd92` xanh; gate local xanh (lint 243 file, typecheck 13 task, vitest
 root 49 file / 529 test, API 19 file / 87 test); Xcode 26.6 + 6 simulator iOS có, Android SDK có
 với AVD `Pixel_7`, Node v22.23.2. Task 1: `ClientOptions.headers` trong `@mapslibvn/core`.
 Task 2: `PoiFeature` chuyển vào core, web re-export. Task 3: `localizeStyle`/`hidePoiLayer`
-trong core, web dùng lại `isNameLabelLayer`. Task 4: khung gói `packages/react-native` + notices 4 gói. Task 5: `toPoiFeature`. Task 6: `MapHandle`/`MapContext` + `usePlaces`. Task 7: mock + `Attribution`. Task 8: `useResolvedStyle`. Task 9: `<MapsLibVNMap>` + `useMap`. Task 10: `<Marker>`. Task 11: `src/index.ts` xuất khẩu công khai; `dist` tự chứa cả JS lẫn `.d.ts` (`@mapslibvn/core` chuyển sang `devDependencies` + `dts: { resolve: ['@mapslibvn/core'] }` — nếu để ở `dependencies` như plan viết thì tarball sẽ đòi npm cài `@mapslibvn/core@0.1.0` chưa publish). Task 12: `pnpm example:rn` (`resolveKey` nhận `envName`/`hint` và bỏ nháy bao quanh; `scripts/lib/example-rn.mjs` + `scripts/example-rn.mjs` build → `pnpm pack` → ghi `.env` app → `npm install` tarball → `npx expo run:<platform>`). Gate: lint 265 file, typecheck 14 task, vitest root 56 file / 573 test, API 19 file / 87 test. Tiếp tục từ Task 13 (app Expo `examples/embed-rn`).
+trong core, web dùng lại `isNameLabelLayer`. Task 4: khung gói `packages/react-native` + notices 4 gói. Task 5: `toPoiFeature`. Task 6: `MapHandle`/`MapContext` + `usePlaces`. Task 7: mock + `Attribution`. Task 8: `useResolvedStyle`. Task 9: `<MapsLibVNMap>` + `useMap`. Task 10: `<Marker>`. Task 11: `src/index.ts` xuất khẩu công khai; `dist` tự chứa cả JS lẫn `.d.ts` (`@mapslibvn/core` chuyển sang `devDependencies` + `dts: { resolve: ['@mapslibvn/core'] }` — nếu để ở `dependencies` như plan viết thì tarball sẽ đòi npm cài `@mapslibvn/core@0.1.0` chưa publish). Task 12: `pnpm example:rn` (`resolveKey` nhận `envName`/`hint` và bỏ nháy bao quanh; `scripts/lib/example-rn.mjs` + `scripts/example-rn.mjs` build → `pnpm pack` → ghi `.env` app → `npm install` tarball → `npx expo run:<platform>`). Task 13: `examples/embed-rn` — Expo SDK 57 (React 19.2.3, RN 0.86.3) ngoài workspace, bundle id `vn.mapslibvn.demo`, `App.tsx` có tìm kiếm + `<Marker>` + nút theme/lang, cài SDK từ tarball bằng `npm` (chứng minh dist tự chứa); `npx expo-doctor` 21/21 xanh sau khi gỡ `newArchEnabled` (SDK 57 đã bỏ khoá này) và `npx tsc --noEmit` của app sạch; `pnpm pack` phải chạy trong thư mục gói vì pnpm không nhận `--filter` cho `pack`. Gate: lint 267 file, typecheck 14 task, vitest root 57 file / 575 test, API 19 file / 87 test. Tiếp tục từ Task 14 (chạy thật iOS/Android + bằng chứng) — **chặn ở việc PHONG cấp khoá `mobile`**.
 
 Việc tay của PHONG còn treo trong M6: cấp khoá `mobile` cho tenant thử nghiệm
 (`pnpm key:issue --tenant 00000000-0000-4000-8000-000000000002 --label "embed-rn thử độc lập"

@@ -1974,7 +1974,7 @@ git commit -m "feat(scripts): pnpm example:rn — build, pack tarball, cài vào
 **Files:**
 - Create: `examples/embed-rn/` (template `blank-typescript` + `App.tsx`, `app.json`, `.gitignore`, `README.md`)
 
-- [ ] **Step 1: Tạo dự án từ template (ngoài workspace, dùng npm)**
+- [x] **Step 1: Tạo dự án từ template (ngoài workspace, dùng npm)**
 
 Run:
 ```bash
@@ -1983,7 +1983,7 @@ cd examples/embed-rn && npm install --no-audit --no-fund && npx expo install @ma
 ```
 Expected: thư mục có `App.tsx`, `index.ts`, `app.json`, `package.json`, `tsconfig.json`, `assets/`; `package.json` có `expo` (SDK 57), `react`, `react-native`, `@maplibre/maplibre-react-native`, `expo-application`. Kiểm: `grep -n '"@maplibre/maplibre-react-native"\|"expo":' examples/embed-rn/package.json`.
 
-- [ ] **Step 2: `app.json`**
+- [x] **Step 2: `app.json`**
 
 Thay nội dung `examples/embed-rn/app.json`:
 
@@ -2010,7 +2010,7 @@ Thay nội dung `examples/embed-rn/app.json`:
 
 (Giữ đúng tên file ảnh mà template sinh trong `assets/`; nếu template đặt tên khác, sửa 3 đường dẫn cho khớp `ls examples/embed-rn/assets`.)
 
-- [ ] **Step 3: `App.tsx`**
+- [x] **Step 3: `App.tsx`**
 
 ```tsx
 import * as Application from 'expo-application';
@@ -2157,7 +2157,7 @@ const styles = StyleSheet.create({
 });
 ```
 
-- [ ] **Step 4: `.gitignore` và `README.md` của app**
+- [x] **Step 4: `.gitignore` và `README.md` của app**
 
 `examples/embed-rn/.gitignore` (ghi đè file template):
 
@@ -2193,17 +2193,17 @@ Khoá đọc từ `KEY_EXAMPLE_RN` trong `.env` gốc repo (cấp: xem `.env.exa
 Yêu cầu máy: Xcode + simulator, hoặc Android Studio + một AVD API ≥ 23; `npx expo doctor` xanh.
 ```
 
-- [ ] **Step 5: Lint/format theo Biome và kiểm typecheck app**
+- [x] **Step 5: Lint/format theo Biome và kiểm typecheck app**
 
 Run: `pnpm exec biome check --write examples/embed-rn/App.tsx examples/embed-rn/index.ts && cd examples/embed-rn && npx tsc --noEmit && cd ../..`
 Expected: biome format xong; `tsc` của app OK **sau khi** đã cài tarball (nếu chưa: chạy `pnpm example:rn --pack-only` trước — cần `KEY_EXAMPLE_RN` trong `.env`; nếu PHONG chưa cấp khoá, tạm `--key mlv_live_<24 chữ>` bất kỳ chỉ để pack/typecheck, không chạy app).
 
-- [ ] **Step 6: Kiểm `pnpm lint` root không quét app**
+- [x] **Step 6: Kiểm `pnpm lint` root không quét app**
 
 Run: `pnpm lint`
 Expected: exit 0. Nếu Biome báo lỗi trong `examples/embed-rn/**` (ví dụ `assets` hay file template): thêm `"examples/embed-rn/ios/**"`, `"examples/embed-rn/android/**"`, `"examples/embed-rn/.expo/**"` vào `files.ignore` của `biome.json` — `node_modules` đã bị ignore sẵn.
 
-- [ ] **Step 7: Commit (không commit `.env`, `vendor/`, `ios/`, `android/`)**
+- [x] **Step 7: Commit (không commit `.env`, `vendor/`, `ios/`, `android/`)**
 
 ```bash
 git status --short examples/embed-rn   # xác nhận không có .env/vendor/ios/android
