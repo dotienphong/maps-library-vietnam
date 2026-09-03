@@ -1002,7 +1002,7 @@ git commit -m "feat(react-native): Attribution bắt buộc + mock react-native/
 **Files:**
 - Create: `packages/react-native/src/use-style.ts`, `src/use-style.test.ts`
 
-- [ ] **Step 1: Test thất bại (RED)**
+- [x] **Step 1: Test thất bại (RED)**
 
 `packages/react-native/src/use-style.test.ts`:
 
@@ -1083,7 +1083,7 @@ describe('useResolvedStyle', () => {
 
 Run: `pnpm exec vitest run packages/react-native/src/use-style.test.ts` → FAIL.
 
-- [ ] **Step 2: Viết `use-style.ts`**
+- [x] **Step 2: Viết `use-style.ts`**
 
 ```ts
 import type { StyleSpecification } from '@maplibre/maplibre-react-native';
@@ -1180,7 +1180,7 @@ export function useResolvedStyle(
 
 Nếu tsc báo `StyleSpecification` không khớp `StyleLike` (layout của LayerSpecification là union hẹp): đổi hai dòng trong `transformStyle` thành `const localized = localizeStyle(json as unknown as StyleLike, o.lang)` … `return (…) as unknown as T` và import `StyleLike` từ core — ghi lại trong DEVLOG mục 3 nếu phải làm.
 
-- [ ] **Step 3: Xanh + commit**
+- [x] **Step 3: Xanh + commit**
 
 Run: `pnpm exec vitest run packages/react-native/src/use-style.test.ts && pnpm --filter @mapslibvn/react-native typecheck`
 Expected: PASS 6 test.
