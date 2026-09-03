@@ -6,21 +6,25 @@ commit với code).
 ## 1. Trạng thái hiện tại
 
 - Mốc: **M5 — Phát hành nội bộ đã nghiệm thu 03/09/2026 → SPEC BẢN 2 HOÀN TẤT.**
-  Bước kế tiếp: brainstorming + spec riêng cho `@mapslibvn/react-native` (spec 8.1).
+  Bước kế tiếp: **M6 — `@mapslibvn/react-native`**, spec đã viết 03/09/2026
+  (`docs/superpowers/specs/2026-09-03-react-native-sdk-design.md`), chờ PHONG duyệt file rồi viết plan.
   Mốc trước: **M4 — Đóng góp đã nghiệm thu 02/09/2026**
-- Plan M5: `docs/superpowers/plans/2026-09-02-m5-phat-hanh-noi-bo.md` — **4/10 task xong**
-  **10/10 task XONG**. Docs đủ 5 trang spec 7.4 + 2 trang pháp lý, link check Playwright 8/8;
-  tenant thử nghiệm + `pnpm key:issue` cấp khoá ngẫu nhiên; `pnpm export:odbl` xuất 5 bảng OSM.
-  **Task 8 và Task 9 XONG 03/09/2026** (bảng nghiệm thu ở mục 10): PHONG đã tạo 2 token; đường tự động chạy trọn vẹn trong container
-  (Analytics + gửi mail bằng `CF_REPORT_API_TOKEN`, manifest KV bằng `CLOUDFLARE_API_TOKEN`).
-  PHONG xác nhận **đã nhận** thư báo cáo. Còn lại: Task 9 nghiệm thu `LICENSE` MIT + `THIRD_PARTY_NOTICES.md` đóng gói trong 3 gói SDK, CI kiểm
-  `--check`; điều khoản tenant công bố tại `/dieu-khoan/`, notices tại `/thong-bao-ben-thu-ba/`
-  (hai trang sinh lúc prebuild, không commit)
+- Plan M5: `docs/superpowers/plans/2026-09-02-m5-phat-hanh-noi-bo.md` — **10/10 task XONG**,
+  nghiệm thu 5/5 hạng mục ĐẠT 03/09/2026 (bảng bằng chứng ở mục 10). Gồm: docs đủ 5 trang
+  spec 7.4 + 2 trang pháp lý sinh lúc prebuild (`/dieu-khoan/`, `/thong-bao-ben-thu-ba/`,
+  không commit), link check Playwright 8/8; `LICENSE` MIT + `THIRD_PARTY_NOTICES.md` đóng gói
+  trong 3 gói SDK với bước CI `--check`; tenant thử nghiệm + `pnpm key:issue` cấp khoá ngẫu
+  nhiên; trang nhúng độc lập `examples/embed-web` mở bằng `pnpm example:embed`;
+  `pnpm export:odbl` xuất 5 bảng OSM; báo cáo tuần chạy tự động trong container `pipeline`
+  (Analytics + gửi mail bằng `CF_REPORT_API_TOKEN`, manifest KV bằng `CLOUDFLARE_API_TOKEN`),
+  PHONG xác nhận **đã nhận** thư
+- Việc tay còn lại **không thuộc M5**: `docs/legal/checklist-phap-ly.md` mục B (6 việc cần
+  luật sư, chặn thương mại hoá) và mục C (5 việc kỹ thuật còn treo)
 - Plan M4: `docs/superpowers/plans/2026-09-01-m4-dong-gop.md` — **11/11 task XONG** (viết 01/09/2026,
   đã tự review 1 lượt: sửa test consensus, REVOKE PUBLIC cho hàm SECURITY DEFINER,
   ép `id::int` cho bigserial qua porsager, cwd Playwright). 10 quyết định thiết kế đã ghi
   vào mục 3; bằng chứng nghiệm thu ở mục 9
-- Task vừa xong: **Task 11 — nghiệm thu M4 XONG 02/09/2026**: custom domain
+- Task cuối của M4: **Task 11 — nghiệm thu M4 XONG 02/09/2026**: custom domain
   `api.ai-solutions.io.vn`; Cloudflare Access bảo vệ `/admin` + `/v1/admin`; production DB
   đã áp dụng `0006_edits.sql` và seed `edits:write`; edit #1 auto-approved; edit #2 được
   PHONG duyệt thành POI active với reviewer đúng email. Toàn M4 gồm: migration `0006` + 3 hàm SECURITY DEFINER;
@@ -55,9 +59,11 @@ commit với code).
 
 ## 2. Bước kế tiếp
 
-**BẮT ĐẦU TỪ ĐÂY: brainstorming + spec riêng cho `@mapslibvn/react-native`** (spec 8.1): bọc
-`@maplibre/maplibre-react-native` (đã hỗ trợ `pmtiles://`), dùng cùng `/v1/styles/*.json` và
-`@mapslibvn/core`, loại khoá `mobile`. Viết spec trước, không code trước.
+**BẮT ĐẦU TỪ ĐÂY: PHONG review spec M6
+`docs/superpowers/specs/2026-09-03-react-native-sdk-design.md`** (viết 03/09/2026 sau
+brainstorming; phạm vi và cách A đã duyệt miệng). Khi PHONG duyệt file → viết plan
+`docs/superpowers/plans/<ngày>-m6-react-native.md` bằng skill writing-plans → Task 1. Không code
+trước khi có plan.
 
 **Spec bản 2 đã hoàn tất 03/09/2026** — M1 đến M5 đều nghiệm thu; roadmap
 `docs/superpowers/plans/2026-08-26-roadmap-toan-bo-spec.md` mục 7 đã tick trọn.
@@ -235,6 +241,7 @@ vẫn là `sleep 1` phút — `sudo pmset -a sleep 0 disksleep 0`.
 
 | Ngày | Quyết định | Lý do | Commit |
 |---|---|---|---|
+| 2026-09-03 | Spec gốc mục 8.1 sửa một dòng: wrapper RN không có `addProtocol`, `pmtiles://` do MapLibre Native (Android ≥ 11.8 / iOS ≥ 6.10, wrapper 11.3.8 kèm Android 13.2 / iOS 6.26) đọc trực tiếp; trỏ về spec M6 riêng. Spec M6 chốt: không biến thể style mobile, không tiles fallback; app Expo thử độc lập ngoài workspace cài bằng tarball (cách A); `PoiFeature` + hàm biến đổi style thuần chuyển vào core; gói RN đóng gói core, không kéo web | Xác minh 03/09 bằng docs MapLibre và changelog wrapper; monorepo React 18 không tương thích peer React 19 của wrapper nên gói và app thử phải tách | (commit này) |
 | 2026-09-01 | M4: ghi `poi` qua 3 hàm SQL `SECURITY DEFINER` owner `pipeline`, `api` chỉ EXECUTE | Giữ đúng spec 9 "Worker chỉ đọc + ghi `poi_edit`" ở tầng GRANT thay vì tin vào code Worker | (commit này) |
 | 2026-09-01 | M4: `db-permissions.mjs` giữ owner/grant của 3 hàm 0006 | `pg_restore --no-owner --no-privileges` làm hàm rơi về superuser → Worker sẽ ghi `poi` với quyền superuser | (commit này) |
 | 2026-09-01 | M4: `apps/admin` là Vite+React SPA do Worker phục vụ tại `/admin` (không phải Next.js trên Pages như spec 3.1) | Cùng origin với `/v1/admin/*` nên chỉ cần một Access application, JWT tự chảy, không CORS credentials, không thêm Pages project | (commit này) |
@@ -600,6 +607,10 @@ rõ ở mục 2 và không chặn M2: kiểm trên Windows, và bật lại `req
   bị bind mount vào worktree tạm; M3 đóng · (commit hiện tại)
 - 2026-09-01 · M3 hậu nghiệm thu · playground tự chọn Worker production khi mở URL không
   có `?api=`; localhost và query override vẫn giữ; thêm unit regression + E2E URL ngắn · (commit này)
+- 2026-09-03 · **M6 spec** · brainstorming với PHONG rồi viết
+  `docs/superpowers/specs/2026-09-03-react-native-sdk-design.md` (gói `@mapslibvn/react-native`,
+  app Expo thử `examples/embed-rn` + `pnpm example:rn`, trang docs, khoá `mobile`); sửa spec gốc 8.1
+  (pmtiles do native đọc), roadmap 0.4 thêm hàng 7; DEVLOG mục 1 dọn văn bản cũ · (commit này)
 - 2026-09-03 · M5 hậu nghiệm thu · `pnpm example:embed --key mlv_live_…` mở trang thử bằng một lệnh:
   máy chủ tĩnh Node (không phụ thuộc python), chặn thoát thư mục, tự mở trình duyệt theo hệ điều
   hành; khoá lấy từ `--key` hoặc `MAPSLIBVN_DEMO_KEY`, **không** nằm trong repo. 7 test cho

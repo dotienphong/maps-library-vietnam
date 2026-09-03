@@ -494,7 +494,7 @@ Bắt đầu 5 phút (script tag / npm / React), tham chiếu API, ví dụ số
 
 ### 8.1 React Native SDK
 
-`@mapslibvn/react-native` bọc `@maplibre/maplibre-react-native` (đã hỗ trợ `pmtiles://`), dùng cùng `/v1/styles/*.json` và `@mapslibvn/core`; key `mobile`. Sẽ có spec riêng sau M5.
+`@mapslibvn/react-native` bọc `@maplibre/maplibre-react-native` 11.3+, dùng nguyên `/v1/styles/*.json` (MapLibre Native đọc `pmtiles://` ở tầng native, không cần `addProtocol`) và `@mapslibvn/core`; key `mobile`. **Spec riêng (mốc M6): `docs/superpowers/specs/2026-09-03-react-native-sdk-design.md`** (03/09/2026).
 
 ### 8.2 Cổng nhà phát triển, thanh toán
 
