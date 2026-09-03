@@ -1539,7 +1539,7 @@ git commit -m "feat(react-native): <MapsLibVNMap> bọc Map+Camera, poiClick qua
 **Files:**
 - Create: `packages/react-native/src/marker.tsx`, `src/marker.test.tsx`
 
-- [ ] **Step 1: Test thất bại (RED)**
+- [x] **Step 1: Test thất bại (RED)**
 
 `packages/react-native/src/marker.test.tsx`:
 
@@ -1593,7 +1593,7 @@ describe('Marker', () => {
 
 Run: `pnpm exec vitest run packages/react-native/src/marker.test.tsx` → FAIL.
 
-- [ ] **Step 2: Viết `marker.tsx`**
+- [x] **Step 2: Viết `marker.tsx`**
 
 ```tsx
 import { type Anchor, Marker as NativeMarker } from '@maplibre/maplibre-react-native';
@@ -1653,7 +1653,7 @@ const styles = StyleSheet.create({
 });
 ```
 
-- [ ] **Step 3: Xanh + commit**
+- [x] **Step 3: Xanh + commit**
 
 Run: `pnpm exec vitest run packages/react-native/src/marker.test.tsx && pnpm --filter @mapslibvn/react-native typecheck`
 Expected: PASS 3 test.
