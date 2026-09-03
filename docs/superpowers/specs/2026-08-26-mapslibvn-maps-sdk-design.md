@@ -596,8 +596,9 @@ Nominatim công cộng và Overpass API chỉ dùng cho kiểm tra phát triển
 | **M3** Places API | 7 endpoint đọc, ranking, geocode ladder, cache, key/quota cơ bản, `@mapslibvn/core` đầy đủ, `<mapslibvn-autocomplete>`, `@mapslibvn/react` | 2 fixture bắt buộc xanh; p95 autocomplete < 300 ms từ VN; quota 429 hoạt động với tenant `free` thử nghiệm; React demo | 2 tuần |
 | **M4** Đóng góp | `POST /v1/edits`, luật auto-approve, `apps/admin` sau Access, áp dụng edit vào `poi`/anchor, pipeline tôn trọng `locked_fields` | Gửi sửa giờ mở cửa → auto-approve → thấy ngay qua API; tạo POI mới → pending → duyệt → có trong build kế tiếp | 1 tuần |
 | **M5** Phát hành nội bộ | docs 5 phút + trang tự host, trang giấy phép/độ chính xác, seed key cho một ứng dụng nhúng độc lập (thư viện không gắn với dự án nào), báo cáo tuần, `THIRD_PARTY_NOTICES.md`, điều khoản tenant | Ứng dụng nhúng độc lập dùng được bằng key riêng; báo cáo sử dụng tuần đầu; checklist pháp lý ghi rõ việc tay còn lại | 1 tuần |
+| **M6** React Native | `@mapslibvn/react-native` bọc `@maplibre/maplibre-react-native` 11.3+; core thêm `headers`, `PoiFeature`, biến đổi style thuần; app Expo thử `examples/embed-rn` + `pnpm example:rn`; trang docs; khoá `mobile` thử nghiệm (spec riêng 2026-09-03) | App thử chạy trên iOS và Android bằng khoá `mobile`, tiles thẳng từ R2, poiClick, attribution không tắt được; Analytics có khoá mobile; CI 4 gói xanh; trang docs deploy | 1–1,5 tuần |
 
-Tổng ≈ 8 tuần làm việc. Sau M5: spec React Native SDK.
+Tổng ≈ 8 tuần cho M1–M5; M6 React Native thêm 1–1,5 tuần (spec riêng `docs/superpowers/specs/2026-09-03-react-native-sdk-design.md`).
 
 ## 14. Rủi ro và giảm thiểu
 

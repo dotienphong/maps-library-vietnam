@@ -2282,14 +2282,14 @@ git commit -m "docs(m6): bằng chứng chạy thật iOS/Android app Expo thử
 - Modify: `apps/docs/astro.config.mjs`, `apps/docs/src/content/docs/bat-dau.md`, `apps/docs/src/content/docs/index.mdx`, `apps/docs/e2e/docs.spec.ts`
 - Modify: `docs/superpowers/specs/2026-08-26-mapslibvn-maps-sdk-design.md` (bảng mục 13), `docs/superpowers/plans/2026-08-26-roadmap-toan-bo-spec.md` (mục 7), `docs/DEVLOG.md`
 
-- [ ] **Step 1: Link check thất bại trước (RED)**
+- [x] **Step 1: Link check thất bại trước (RED)**
 
 Trong `apps/docs/e2e/docs.spec.ts`, thêm `'/react-native/',` vào mảng `PAGES` sau `'/bat-dau/',`.
 
 Run: `pnpm --filter @mapslibvn/docs build && pnpm --filter @mapslibvn/docs e2e -- docs.spec.ts`
 Expected: FAIL — `/react-native/` trả 404.
 
-- [ ] **Step 2: Trang `react-native.md`**
+- [x] **Step 2: Trang `react-native.md`**
 
 ```markdown
 ---
@@ -2382,7 +2382,7 @@ báo cáo (chưa chặn — xem [Điều khoản tenant](/dieu-khoan/)). Khoá v
 Đọc thêm: [Bắt đầu 5 phút](/bat-dau/) (web), [Giấy phép & ghi nguồn](/giay-phep/).
 ```
 
-- [ ] **Step 3: Sidebar, `bat-dau.md`, `index.mdx`**
+- [x] **Step 3: Sidebar, `bat-dau.md`, `index.mdx`**
 
 `apps/docs/astro.config.mjs`: trong nhóm "Hướng dẫn", sau `{ label: 'Bắt đầu 5 phút', slug: 'bat-dau' },` thêm `{ label: 'React Native', slug: 'react-native' },`.
 
@@ -2401,12 +2401,12 @@ App iOS/Android dùng `@mapslibvn/react-native` với cùng props (`style`, `lan
   <Card title="Web và React Native" icon="laptop">`@mapslibvn/web`, `@mapslibvn/react` cho web; `@mapslibvn/react-native` cho iOS/Android — cùng API, cùng tiles. Xem [React Native](/react-native/).</Card>
 ```
 
-- [ ] **Step 4: Build docs + link check xanh**
+- [x] **Step 4: Build docs + link check xanh**
 
 Run: `pnpm --filter @mapslibvn/docs build && pnpm --filter @mapslibvn/docs e2e -- docs.spec.ts`
 Expected: 9 trang PASS (kể cả `/react-native/`).
 
-- [ ] **Step 5: Spec gốc bảng 13 + roadmap mục 7**
+- [x] **Step 5: Spec gốc bảng 13 + roadmap mục 7**
 
 Trong `docs/superpowers/specs/2026-08-26-mapslibvn-maps-sdk-design.md`, sau hàng `| **M5** Phát hành nội bộ | … |` của bảng mục 13 thêm:
 
@@ -2418,7 +2418,7 @@ và đổi dòng `Tổng ≈ 8 tuần làm việc. Sau M5: spec React Native SDK
 
 Trong `docs/superpowers/plans/2026-08-26-roadmap-toan-bo-spec.md`: bảng mục 0.4 hàng 7 đổi tên file thành `2026-09-03-m6-react-native.md` và trạng thái `**Đã xong <ngày>**`; cuối mục 7 thêm dòng `- [x] M6 nghiệm thu <ngày> — DEVLOG mục 11`.
 
-- [ ] **Step 6: DEVLOG đóng mốc**
+- [x] **Step 6: DEVLOG đóng mốc**
 
 - Mục 11: đổi tiêu đề thành `## 11. Nghiệm thu M6 — \`@mapslibvn/react-native\` — **ĐẠT <ngày>**`; điền hàng 6 (`CI <sha> xanh: lint, notices 8 bản sao, typecheck, <N> test`) và hàng 7 (`https://mapslibvn-docs.pages.dev/react-native/`).
 - Mục 1: `Mốc: **M6 — React Native đã nghiệm thu <ngày>**`, tóm tắt 4 dòng (gói, app thử, docs, khoá).

@@ -48,7 +48,7 @@ Quy tắc: **bước cuối của mọi task** là (a) tick checkbox trong plan,
 | 4 | `YYYY-MM-DD-m3-places-api.md` | M3 — auth/quota, Hyperdrive, 7 endpoint đọc, geocode ladder, core client đầy đủ, web component, React | Viết khi bắt đầu M3 (mục 4) |
 | 5 | `YYYY-MM-DD-m4-dong-gop.md` | M4 — `POST /v1/edits`, auto-approve, áp dụng edit, `apps/admin` | Viết khi bắt đầu M4 (mục 5) |
 | 6 | `YYYY-MM-DD-m5-phat-hanh-noi-bo.md` | M5 — docs, notices, điều khoản, key tenant thử nghiệm (ứng dụng nhúng độc lập), báo cáo tuần, `export:odbl` | Viết khi bắt đầu M5 (mục 6) |
-| 7 | `YYYY-MM-DD-m6-react-native.md` | M6 — `@mapslibvn/react-native` (bọc `@maplibre/maplibre-react-native` 11.3+), app Expo thử `examples/embed-rn` + `pnpm example:rn`, trang docs React Native, khoá `mobile` thử nghiệm; spec riêng `docs/superpowers/specs/2026-09-03-react-native-sdk-design.md` | Spec viết 03/09/2026; plan viết sau khi PHONG duyệt spec |
+| 7 | `2026-09-03-m6-react-native.md` | M6 — `@mapslibvn/react-native` (bọc `@maplibre/maplibre-react-native` 11.3+), app Expo thử `examples/embed-rn` + `pnpm example:rn`, trang docs React Native, khoá `mobile` thử nghiệm; spec riêng `docs/superpowers/specs/2026-09-03-react-native-sdk-design.md` | **Đã xong 03/09/2026** |
 
 Lý do M2–M5 viết cấp bước sau: chúng phụ thuộc kết quả M1 (Planetiler `--bounds` có cho lớp thế giới đẹp không; `admin_level` thực tế trong OSM VN; phiên bản tool pin được; máy chủ nội bộ đã có). Mục 3–6 dưới đây đã khoá **task, file, giao diện, test, nghiệm thu** của từng mốc — plan cấp bước chỉ triển khai chi tiết, không thay đổi phạm vi.
 
@@ -161,3 +161,4 @@ Sau M5: brainstorming + spec riêng cho `@mapslibvn/react-native`.
 - [x] M4 nghiệm thu (đóng góp end-to-end) — 02/09/2026.
 - [x] M5 nghiệm thu (ứng dụng nhúng độc lập bằng key riêng, docs, báo cáo tuần, việc tay pháp lý ghi rõ) — 03/09/2026.
 - [x] `docs/DEVLOG.md` mục "Trạng thái hiện tại" ghi "Spec bản 2 hoàn tất; bước kế tiếp: spec React Native" — 03/09/2026.
+- [x] M6 nghiệm thu 03/09/2026 — DEVLOG mục 11.

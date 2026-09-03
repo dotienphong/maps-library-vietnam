@@ -5,6 +5,7 @@ import { expect, test } from '@playwright/test';
 const PAGES = [
   '/',
   '/bat-dau/',
+  '/react-native/',
   '/tu-host/',
   '/giay-phep/',
   '/do-chinh-xac/',

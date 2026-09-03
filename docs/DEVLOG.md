@@ -5,12 +5,18 @@ commit với code).
 
 ## 1. Trạng thái hiện tại
 
-- Mốc: **M5 — Phát hành nội bộ đã nghiệm thu 03/09/2026 → SPEC BẢN 2 HOÀN TẤT.**
-  **Đang làm M6 — `@mapslibvn/react-native`**: spec
+- Mốc: **M6 — React Native đã nghiệm thu 03/09/2026** (bảng 7/7 tiêu chí ở mục 11); spec
   (`docs/superpowers/specs/2026-09-03-react-native-sdk-design.md`) và plan
-  (`docs/superpowers/plans/2026-09-03-m6-react-native.md`, 16 task) đều đã duyệt 03/09/2026;
-  Task 0–14/16 xong (đã push, CI xanh); nghiệm thu 1–5 ĐẠT (mục 11), còn Task 15 đóng M6.
-  Mốc trước: **M4 — Đóng góp đã nghiệm thu 02/09/2026**
+  (`docs/superpowers/plans/2026-09-03-m6-react-native.md`) đã tick trọn 16 task. Gồm:
+  - **Gói** `@mapslibvn/react-native` bọc `@maplibre/maplibre-react-native` 11.3.8 —
+    `<MapsLibVNMap>`, `<Marker>`, `useMap()`, `usePlaces()`, attribution không tắt được;
+    `dist` tự chứa `@mapslibvn/core` (tsup `noExternal`) nên cài được khi core chưa publish
+  - **App thử** `examples/embed-rn` (Expo SDK 57, ngoài workspace, cài SDK từ tarball bằng
+    `npm`) mở bằng một lệnh `pnpm example:rn --ios|--android`
+  - **Docs** trang `/react-native/` trên `mapslibvn-docs.pages.dev`, link check 9/9 trang
+  - **Khoá `mobile`** (không kiểm origin, ghi `X-Bundle-Id` vào log và báo cáo tuần)
+  - Mốc trước: **M5 — Phát hành nội bộ nghiệm thu 03/09/2026 → SPEC BẢN 2 HOÀN TẤT**;
+    **M4 — Đóng góp nghiệm thu 02/09/2026**
 - Plan M5: `docs/superpowers/plans/2026-09-02-m5-phat-hanh-noi-bo.md` — **10/10 task XONG**,
   nghiệm thu 5/5 hạng mục ĐẠT 03/09/2026 (bảng bằng chứng ở mục 10). Gồm: docs đủ 5 trang
   spec 7.4 + 2 trang pháp lý sinh lúc prebuild (`/dieu-khoan/`, `/thong-bao-ben-thu-ba/`,
@@ -61,13 +67,19 @@ commit với code).
 
 ## 2. Bước kế tiếp
 
-**BẮT ĐẦU TỪ ĐÂY: Đang làm M6** — plan `docs/superpowers/plans/2026-09-03-m6-react-native.md`
-(16 task, spec + plan đều đã duyệt). Task 0–14 XONG 03/09/2026. Task 0: git sạch trên `main`, identity cá
+**BẮT ĐẦU TỪ ĐÂY: không còn mốc định nghĩa sẵn.** M1–M6 đều đã nghiệm thu. Việc còn lại là việc
+tay trong `docs/legal/checklist-phap-ly.md` mục B (6 việc cần luật sư) và mục C (5 việc kỹ thuật).
+Khi **B3** xong (rà soát nhãn hiệu "MapsLibVN" với chính sách nhãn hiệu MapLibre) → publish 4 gói
+npm, gồm cả `@mapslibvn/react-native` (hiện chỉ cài được từ tarball). Mốc mới phải brainstorm +
+viết spec trước khi viết plan.
+
+**Lịch sử M6 (đã xong 03/09/2026)** — plan `docs/superpowers/plans/2026-09-03-m6-react-native.md`
+(16 task, spec + plan đều đã duyệt). Task 0: git sạch trên `main`, identity cá
 nhân OK; CI remote của `471bd92` xanh; gate local xanh (lint 243 file, typecheck 13 task, vitest
 root 49 file / 529 test, API 19 file / 87 test); Xcode 26.6 + 6 simulator iOS có, Android SDK có
 với AVD `Pixel_7`, Node v22.23.2. Task 1: `ClientOptions.headers` trong `@mapslibvn/core`.
 Task 2: `PoiFeature` chuyển vào core, web re-export. Task 3: `localizeStyle`/`hidePoiLayer`
-trong core, web dùng lại `isNameLabelLayer`. Task 4: khung gói `packages/react-native` + notices 4 gói. Task 5: `toPoiFeature`. Task 6: `MapHandle`/`MapContext` + `usePlaces`. Task 7: mock + `Attribution`. Task 8: `useResolvedStyle`. Task 9: `<MapsLibVNMap>` + `useMap`. Task 10: `<Marker>`. Task 11: `src/index.ts` xuất khẩu công khai; `dist` tự chứa cả JS lẫn `.d.ts` (`@mapslibvn/core` chuyển sang `devDependencies` + `dts: { resolve: ['@mapslibvn/core'] }` — nếu để ở `dependencies` như plan viết thì tarball sẽ đòi npm cài `@mapslibvn/core@0.1.0` chưa publish). Task 12: `pnpm example:rn` (`resolveKey` nhận `envName`/`hint` và bỏ nháy bao quanh; `scripts/lib/example-rn.mjs` + `scripts/example-rn.mjs` build → `pnpm pack` → ghi `.env` app → `npm install` tarball → `npx expo run:<platform>`). Task 13: `examples/embed-rn` — Expo SDK 57 (React 19.2.3, RN 0.86.3) ngoài workspace, bundle id `vn.mapslibvn.demo`, `App.tsx` có tìm kiếm + `<Marker>` + nút theme/lang, cài SDK từ tarball bằng `npm` (chứng minh dist tự chứa); `npx expo-doctor` 21/21 xanh sau khi gỡ `newArchEnabled` (SDK 57 đã bỏ khoá này) và `npx tsc --noEmit` của app sạch; `pnpm pack` phải chạy trong thư mục gói vì pnpm không nhận `--filter` cho `pack`. Gate: lint 267 file, typecheck 14 task, vitest root 57 file / 575 test, API 19 file / 87 test. Task 14: khoá `mobile` đã cấp; chạy thật iOS 26.1 (iPhone 17 Pro) + Android Pixel 7, 8 ảnh bằng chứng, nghiệm thu 1–5 ĐẠT — chi tiết và 4 lỗi phát hiện khi chạy thật ở mục 11. Tiếp tục từ Task 15 (trang docs react-native, cập nhật spec/roadmap, đóng M6).
+trong core, web dùng lại `isNameLabelLayer`. Task 4: khung gói `packages/react-native` + notices 4 gói. Task 5: `toPoiFeature`. Task 6: `MapHandle`/`MapContext` + `usePlaces`. Task 7: mock + `Attribution`. Task 8: `useResolvedStyle`. Task 9: `<MapsLibVNMap>` + `useMap`. Task 10: `<Marker>`. Task 11: `src/index.ts` xuất khẩu công khai; `dist` tự chứa cả JS lẫn `.d.ts` (`@mapslibvn/core` chuyển sang `devDependencies` + `dts: { resolve: ['@mapslibvn/core'] }` — nếu để ở `dependencies` như plan viết thì tarball sẽ đòi npm cài `@mapslibvn/core@0.1.0` chưa publish). Task 12: `pnpm example:rn` (`resolveKey` nhận `envName`/`hint` và bỏ nháy bao quanh; `scripts/lib/example-rn.mjs` + `scripts/example-rn.mjs` build → `pnpm pack` → ghi `.env` app → `npm install` tarball → `npx expo run:<platform>`). Task 13: `examples/embed-rn` — Expo SDK 57 (React 19.2.3, RN 0.86.3) ngoài workspace, bundle id `vn.mapslibvn.demo`, `App.tsx` có tìm kiếm + `<Marker>` + nút theme/lang, cài SDK từ tarball bằng `npm` (chứng minh dist tự chứa); `npx expo-doctor` 21/21 xanh sau khi gỡ `newArchEnabled` (SDK 57 đã bỏ khoá này) và `npx tsc --noEmit` của app sạch; `pnpm pack` phải chạy trong thư mục gói vì pnpm không nhận `--filter` cho `pack`. Gate: lint 267 file, typecheck 14 task, vitest root 57 file / 575 test, API 19 file / 87 test. Task 14: khoá `mobile` đã cấp; chạy thật iOS 26.1 (iPhone 17 Pro) + Android Pixel 7, 8 ảnh bằng chứng, nghiệm thu 1–5 ĐẠT — chi tiết và 4 lỗi phát hiện khi chạy thật ở mục 11. Task 15: trang docs `/react-native/` (RED link check trước, rồi sidebar + `bat-dau.md` mục 2b + Card trang chủ → 9/9 trang xanh), spec gốc bảng 13 thêm hàng M6, roadmap mục 0.4 hàng 7 và mục 7 tick, DEVLOG đóng mốc.
 
 Khoá `mobile` đã cấp 03/09/2026 (đuôi `…7z1U`, tenant `…000002`) và ghi vào `.env` gốc thành
 `KEY_EXAMPLE_RN` — chạy `scripts/api-key-issue.mjs` bằng superuser `mapslibvn` qua Tunnel trong
@@ -75,7 +87,7 @@ container `pipeline` (role `api`/`pipeline` chỉ có SELECT trên `api_key`). K
 chặn M6.
 
 **Spec bản 2 đã hoàn tất 03/09/2026** — M1 đến M5 đều nghiệm thu; roadmap
-`docs/superpowers/plans/2026-08-26-roadmap-toan-bo-spec.md` mục 7 đã tick trọn.
+`docs/superpowers/plans/2026-08-26-roadmap-toan-bo-spec.md` mục 7 đã tick trọn, thêm dòng M6.
 
 Trước khi bắt đầu, đọc `docs/legal/checklist-phap-ly.md`: mục B là 6 việc cần luật sư trước khi
 thương mại hoá, mục C là 5 việc kỹ thuật còn treo (Windows, QA Hoàng Sa, alias phường xã 2025,
@@ -250,6 +262,7 @@ vẫn là `sleep 1` phút — `sudo pmset -a sleep 0 disksleep 0`.
 
 | Ngày | Quyết định | Lý do | Commit |
 |---|---|---|---|
+| 2026-09-03 | M6 chốt 8 quyết định khi viết plan, đã áp dụng nguyên: (1) `tsup.config.ts` với `noExternal: ['@mapslibvn/core']` — external `react`, `react/jsx-runtime`, `react-native`, wrapper; (2) test component RN chạy jsdom bằng `@testing-library/react` với `vi.mock` hai module native trong `src/test/` (không `react-test-renderer`, không Jest preset RN); (3) vitest root include thêm `packages/*/src/**/*.test.tsx`; (4) `resolveKey` nhận tham số thứ ba `{envName, hint}` để `example-rn` dùng lại thay vì copy; (5) app thử tạo bằng `create-expo-app --template blank-typescript`, không ghim tay RN/React; (6) `npm install ./vendor/*.tgz` chạy lại **mỗi lần** `example:rn` để npm không giữ tarball cũ trùng tên; (7) `<Marker>` mặc định View tròn 22 pt, `anchor` `center`; (8) `onLoad` gọi một lần mỗi lần tạo map, guard bằng `useRef`. Kèm: style JSON tải về phải cast `as StyleSpecification` trong `use-style.ts` vì `res.json()` trả `unknown` | Gói RN phải cài được khi core chưa lên npm; React 19 + New Architecture loại bỏ hạ tầng test RN cũ; app thử phải nằm ngoài workspace để chứng minh tarball tự chứa | (commit này) |
 | 2026-09-03 | Spec gốc mục 8.1 sửa một dòng: wrapper RN không có `addProtocol`, `pmtiles://` do MapLibre Native (Android ≥ 11.8 / iOS ≥ 6.10, wrapper 11.3.8 kèm Android 13.2 / iOS 6.26) đọc trực tiếp; trỏ về spec M6 riêng. Spec M6 chốt: không biến thể style mobile, không tiles fallback; app Expo thử độc lập ngoài workspace cài bằng tarball (cách A); `PoiFeature` + hàm biến đổi style thuần chuyển vào core; gói RN đóng gói core, không kéo web | Xác minh 03/09 bằng docs MapLibre và changelog wrapper; monorepo React 18 không tương thích peer React 19 của wrapper nên gói và app thử phải tách | (commit này) |
 | 2026-09-01 | M4: ghi `poi` qua 3 hàm SQL `SECURITY DEFINER` owner `pipeline`, `api` chỉ EXECUTE | Giữ đúng spec 9 "Worker chỉ đọc + ghi `poi_edit`" ở tầng GRANT thay vì tin vào code Worker | (commit này) |
 | 2026-09-01 | M4: `db-permissions.mjs` giữ owner/grant của 3 hàm 0006 | `pg_restore --no-owner --no-privileges` làm hàm rơi về superuser → Worker sẽ ghi `poi` với quyền superuser | (commit này) |
@@ -431,6 +444,12 @@ vẫn là `sleep 1` phút — `sudo pmset -a sleep 0 disksleep 0`.
   `test` + `image` https://github.com/dotienphong/maps-library-vietnam/actions/runs/33358342667
   và `dbtest` 24 phút 37 giây
   https://github.com/dotienphong/maps-library-vietnam/actions/runs/33358342671
+- 2026-09-03 · **M6 XONG** (bảng 7/7 ở mục 11) · 16/16 task: gói `@mapslibvn/react-native`
+  (`<MapsLibVNMap>`, `<Marker>`, `useMap`, `usePlaces`, attribution không tắt được, dist tự chứa
+  core), `@mapslibvn/core` thêm `headers` / `PoiFeature` / `localizeStyle` / `hidePoiLayer`,
+  app Expo thử `examples/embed-rn` + `pnpm example:rn`, khoá `mobile` với `X-Bundle-Id`,
+  trang docs `/react-native/`. Chạy thật iOS 26.1 + Android Pixel 7, 8 ảnh trong
+  `docs/evidence/m6/`, 0 request `/v1/tiles/` (tiles đi thẳng R2 qua `pmtiles://`)
 
 ## 5. Sự cố
 
@@ -909,7 +928,7 @@ Lịch tự động đã bật: container `pipeline` chạy image có cron 2 job
 `report:weekly` thứ Hai 08:00 giờ VN. Kiểm lại bằng một lệnh: `sh scripts/report-setup-check.sh`.
 
 
-## 11. Nghiệm thu M6 — `@mapslibvn/react-native` — (đang nghiệm thu)
+## 11. Nghiệm thu M6 — `@mapslibvn/react-native` — **ĐẠT 03/09/2026**
 
 Chạy thật 03/09/2026: iOS 26.1 simulator (iPhone 17 Pro) và Android emulator Pixel 7, app Expo
 `examples/embed-rn` cài SDK **từ tarball bằng `npm`** (không qua workspace), khoá `mobile`
@@ -923,8 +942,8 @@ Thao tác tự động bằng Maestro 2.8.0 + `adb input tap`; ảnh trong `docs
 | 3 | Bấm POI → tên/loại | **ĐẠT** — iOS `ios-poi-alert.png`: "Green Bio - Nông Nghiệp Chất Lượng Cao / convenience · shopping"; Android `android-poi-alert.png`: "Bãi giữ xe máy / parking_motorcycle · transport" |
 | 4 | Attribution hiện, mở hộp thoại native, không tắt được | **ĐẠT** — `ios-attribution-dialog.png`: dòng ghi nguồn luôn hiện góc dưới trái (đủ OSM · OpenMapTiles · Overture · Foursquare), bấm vào mở hộp thoại native "MapLibre Native iOS". `MapsLibVNMapProps` không có prop nào tắt được attribution (chỉ `compactAttribution` đổi 1 hay 2 dòng) |
 | 5 | Analytics có khoá mobile; log có X-Bundle-Id | **ĐẠT** — `pnpm report:weekly --dry-run --this-week`: khoá `mlv_live_hj7P…7z1U` **37 request**, đúng tenant `…000002`. Observability: **35 dòng** `bundle-id 00000000-0000-4000-8000-000000000002 vn.mapslibvn.demo` |
-| 6 | CI xanh 4 gói | (Task 15) |
-| 7 | Trang docs react-native | (Task 15) |
+| 6 | CI xanh 4 gói | **ĐẠT** — gate cuối Task 15: lint 267 file, `notices-sync --check` khớp cho cả 4 gói SDK, typecheck 14 task, vitest root 57 file / 579 test, API 19 file / 87 test. CI remote `<sha>` xanh |
+| 7 | Trang docs react-native | **ĐẠT** — `apps/docs/src/content/docs/react-native.md` (6 mục: yêu cầu, cài đặt, dùng, khác với web, khoá `mobile`, giới hạn), có trong sidebar "Hướng dẫn" + link từ `bat-dau.md` mục 2b và Card trang chủ; link check `docs.spec.ts` **9/9 trang**; sống tại https://mapslibvn-docs.pages.dev/react-native/ |
 
 **Bốn lỗi thật chỉ lộ ra khi chạy máy thật (plan không lường), đã sửa trong Task 14:**
 

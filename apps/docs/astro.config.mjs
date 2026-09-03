@@ -14,6 +14,7 @@ export default defineConfig({
           label: 'Hướng dẫn',
           items: [
             { label: 'Bắt đầu 5 phút', slug: 'bat-dau' },
+            { label: 'React Native', slug: 'react-native' },
             { label: 'Độ chính xác geocode', slug: 'do-chinh-xac' },
             { label: 'Đóng góp & sửa POI', slug: 'dong-gop' },
             { label: 'Tự host', slug: 'tu-host' },

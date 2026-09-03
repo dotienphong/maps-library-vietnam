@@ -1,6 +1,6 @@
 ---
 title: Bắt đầu 5 phút
-description: Nhúng bản đồ MapsLibVN bằng script tag, npm hoặc React.
+description: Nhúng bản đồ MapsLibVN bằng script tag, npm, React hoặc React Native.
 ---
 
 ## 1. Một dòng `<script>`
@@ -40,6 +40,11 @@ map.on('poiClick', (poi) => console.log(poi.name));
 ```
 
 `map.gl` là đối tượng `maplibregl.Map` — mọi API của MapLibre đều dùng được.
+
+## 2b. React Native
+
+App iOS/Android dùng `@mapslibvn/react-native` với cùng props (`style`, `lang`, `poiLayer`,
+`onPoiClick`) và khoá kind `mobile`. Xem [React Native](/react-native/).
 
 ## 3. Tuỳ chọn
 
