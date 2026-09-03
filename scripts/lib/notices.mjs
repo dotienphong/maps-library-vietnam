@@ -1,6 +1,11 @@
 // Đồng bộ LICENSE + THIRD_PARTY_NOTICES.md từ gốc repo vào các gói SDK publish npm (spec 12.1).
 export const NOTICE_FILES = ['LICENSE', 'THIRD_PARTY_NOTICES.md'];
-export const SDK_PACKAGES = ['packages/core', 'packages/web', 'packages/react'];
+export const SDK_PACKAGES = [
+  'packages/core',
+  'packages/web',
+  'packages/react',
+  'packages/react-native',
+];
 
 /** @returns {{ src: string, dst: string }[]} */
 export function noticePlan() {

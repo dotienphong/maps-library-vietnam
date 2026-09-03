@@ -493,7 +493,7 @@ git commit -m "feat(core): localizeStyle/hidePoiLayer biến đổi style JSON t
 - Create: `packages/react-native/package.json`, `tsconfig.json`, `tsup.config.ts`, `src/index.ts`, `README.md`
 - Modify: `scripts/lib/notices.mjs`, `scripts/lib/notices.test.mjs`, `vitest.config.ts`
 
-- [ ] **Step 1: Test notices thất bại (RED)**
+- [x] **Step 1: Test notices thất bại (RED)**
 
 Trong `scripts/lib/notices.test.mjs`, đổi test đầu:
 
@@ -532,13 +532,13 @@ Test "trả mảng rỗng khi mọi bản sao khớp": thêm `'packages/react-na
 
 Run: `pnpm exec vitest run scripts/lib/notices.test.mjs` → Expected: FAIL (3 gói).
 
-- [ ] **Step 2: Sửa `SDK_PACKAGES`**
+- [x] **Step 2: Sửa `SDK_PACKAGES`**
 
 `scripts/lib/notices.mjs`: `export const SDK_PACKAGES = ['packages/core', 'packages/web', 'packages/react', 'packages/react-native'];`
 
 Run: `pnpm exec vitest run scripts/lib/notices.test.mjs` → PASS.
 
-- [ ] **Step 3: `package.json` của gói**
+- [x] **Step 3: `package.json` của gói**
 
 `packages/react-native/package.json`:
 
@@ -584,7 +584,7 @@ Run: `pnpm exec vitest run scripts/lib/notices.test.mjs` → PASS.
 }
 ```
 
-- [ ] **Step 4: `tsconfig.json` và `tsup.config.ts`**
+- [x] **Step 4: `tsconfig.json` và `tsup.config.ts`**
 
 `packages/react-native/tsconfig.json`:
 
@@ -621,7 +621,7 @@ export default defineConfig({
 });
 ```
 
-- [ ] **Step 5: `src/index.ts` tối thiểu + README**
+- [x] **Step 5: `src/index.ts` tối thiểu + README**
 
 `packages/react-native/src/index.ts` (tạm, Task 11 hoàn thiện):
 
@@ -641,16 +641,16 @@ API bám `@mapslibvn/react`. Yêu cầu React ≥ 19.1, React Native ≥ 0.80, N
 Chưa publish npm (checklist pháp lý B3). Cài bằng tarball: `pnpm --filter @mapslibvn/react-native pack`.
 ```
 
-- [ ] **Step 6: Vitest include `.tsx`**
+- [x] **Step 6: Vitest include `.tsx`**
 
 `vitest.config.ts`: đổi dòng `'packages/*/src/**/*.test.{ts,mjs}',` thành `'packages/*/src/**/*.test.{ts,tsx,mjs}',`.
 
-- [ ] **Step 7: Cài, đồng bộ notices, typecheck, build**
+- [x] **Step 7: Cài, đồng bộ notices, typecheck, build**
 
 Run: `pnpm install && pnpm notices:sync && pnpm --filter @mapslibvn/react-native typecheck && pnpm --filter @mapslibvn/react-native build && node scripts/notices-sync.mjs --check`
 Expected: lockfile cập nhật (react 19 chỉ trong `packages/react-native`); `packages/react-native/LICENSE` và `THIRD_PARTY_NOTICES.md` xuất hiện; `dist/index.js` + `index.d.ts`; `--check` in OK 8 bản sao. Kiểm root vẫn React 18: `node -e "console.log(require('./node_modules/react/package.json').version)"` → `18.x`.
 
-- [ ] **Step 8: Gate root + commit**
+- [x] **Step 8: Gate root + commit**
 
 Run: `pnpm lint && pnpm typecheck && pnpm exec vitest run scripts/lib/notices.test.mjs`
 Expected: exit 0.
