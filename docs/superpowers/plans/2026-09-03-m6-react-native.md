@@ -667,7 +667,7 @@ git commit -m "feat(react-native): khung gói @mapslibvn/react-native (React 19 
 **Files:**
 - Create: `packages/react-native/src/to-poi-feature.ts`, `packages/react-native/src/to-poi-feature.test.ts`
 
-- [ ] **Step 1: Test thất bại (RED)**
+- [x] **Step 1: Test thất bại (RED)**
 
 `packages/react-native/src/to-poi-feature.test.ts`:
 
@@ -718,7 +718,7 @@ describe('toPoiFeature', () => {
 
 Run: `pnpm exec vitest run packages/react-native/src/to-poi-feature.test.ts` → FAIL (module không có).
 
-- [ ] **Step 2: Viết hàm**
+- [x] **Step 2: Viết hàm**
 
 `packages/react-native/src/to-poi-feature.ts`:
 
@@ -742,7 +742,7 @@ export function toPoiFeature(feature: Feature | undefined): PoiFeature | null {
 }
 ```
 
-- [ ] **Step 3: Xanh + commit**
+- [x] **Step 3: Xanh + commit**
 
 Run: `pnpm exec vitest run packages/react-native/src/to-poi-feature.test.ts && pnpm --filter @mapslibvn/react-native typecheck`
 Expected: PASS 3 test.

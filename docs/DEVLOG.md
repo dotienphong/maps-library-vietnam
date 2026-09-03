@@ -62,12 +62,12 @@ commit với code).
 ## 2. Bước kế tiếp
 
 **BẮT ĐẦU TỪ ĐÂY: Đang làm M6** — plan `docs/superpowers/plans/2026-09-03-m6-react-native.md`
-(16 task, spec + plan đều đã duyệt). Task 0–4 XONG 03/09/2026. Task 0: git sạch trên `main`, identity cá
+(16 task, spec + plan đều đã duyệt). Task 0–5 XONG 03/09/2026. Task 0: git sạch trên `main`, identity cá
 nhân OK; CI remote của `471bd92` xanh; gate local xanh (lint 243 file, typecheck 13 task, vitest
 root 49 file / 529 test, API 19 file / 87 test); Xcode 26.6 + 6 simulator iOS có, Android SDK có
 với AVD `Pixel_7`, Node v22.23.2. Task 1: `ClientOptions.headers` trong `@mapslibvn/core`.
 Task 2: `PoiFeature` chuyển vào core, web re-export. Task 3: `localizeStyle`/`hidePoiLayer`
-trong core, web dùng lại `isNameLabelLayer`. Task 4: khung gói `packages/react-native` + notices 4 gói. Tiếp tục từ Task 5 (`toPoiFeature`).
+trong core, web dùng lại `isNameLabelLayer`. Task 4: khung gói `packages/react-native` + notices 4 gói. Task 5: `toPoiFeature`. Tiếp tục từ Task 6 (`MapHandle`/`MapContext` + `usePlaces`).
 
 Việc tay của PHONG còn treo trong M6: cấp khoá `mobile` cho tenant thử nghiệm
 (`pnpm key:issue --tenant 00000000-0000-4000-8000-000000000002 --label "embed-rn thử độc lập"
@@ -615,6 +615,8 @@ rõ ở mục 2 và không chặn M2: kiểm trên Windows, và bật lại `req
   bị bind mount vào worktree tạm; M3 đóng · (commit hiện tại)
 - 2026-09-01 · M3 hậu nghiệm thu · playground tự chọn Worker production khi mở URL không
   có `?api=`; localhost và query override vẫn giữ; thêm unit regression + E2E URL ngắn · (commit này)
+- 2026-09-03 · M6 T5 · `toPoiFeature` ánh xạ feature lớp `poi` (`id/name/cat/grp` → `PoiFeature`),
+  trả `null` khi không phải Point; thiếu `properties` thì lấy `feature.id`. 3 test · (commit này)
 - 2026-09-03 · M6 T4 · khung `packages/react-native`: `package.json` (peer React ≥ 19.1 / RN ≥ 0.80 /
   wrapper ^11.3, devDeps React 19 riêng nên **root vẫn React 18.3.1**), `tsconfig.json`
   (`jsx: react-jsx`, `lib` có DOM cho test jsdom), `tsup.config.ts` `noExternal: ['@mapslibvn/core']`.
