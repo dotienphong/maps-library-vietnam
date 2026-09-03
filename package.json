@@ -22,6 +22,7 @@
     "db:seed-tenant": "node scripts/db-seed-tenant.mjs",
     "key:issue": "node scripts/api-key-issue.mjs",
     "example:embed": "node scripts/example-embed.mjs",
+    "example:rn": "node scripts/example-rn.mjs",
     "image:build": "node scripts/image.mjs build",
     "image:smoke": "node scripts/image.mjs smoke",
     "data:update": "node scripts/data-update.mjs",

@@ -36,18 +36,22 @@ export function safeFile(url) {
 export const KEY_ENV_NAME = 'KEY_EXAMPLE_EMBED';
 
 /**
- * Khoá lấy từ `KEY_EXAMPLE_EMBED` trong `.env`; `--key` chỉ để ghi đè tạm.
- * Không đọc khoá từ file nào trong repo.
+ * Khoá lấy từ biến `.env` (`KEY_EXAMPLE_EMBED` mặc định); `--key` chỉ để ghi đè tạm.
+ * Không đọc khoá từ file nào trong repo. Bỏ dấu nháy bao quanh nếu .env có.
  * @param {string[]} argv
  * @param {Record<string, string | undefined>} env
+ * @param {{ envName?: string, hint?: string }} [opts]
  */
-export function resolveKey(argv, env) {
+export function resolveKey(argv, env, opts = {}) {
+  const envName = opts.envName ?? KEY_ENV_NAME;
+  const hint = opts.hint ?? 'pnpm example:embed';
   const i = argv.indexOf('--key');
   const fromArg = i >= 0 ? argv[i + 1] : undefined;
-  const key = fromArg ?? env[KEY_ENV_NAME] ?? '';
+  const raw = fromArg ?? env[envName] ?? '';
+  const key = raw.replace(/^['"]|['"]$/g, '');
   if (!key) {
     throw new Error(
-      `Thiếu khoá. Đặt ${KEY_ENV_NAME}=mlv_live_… trong .env ở gốc repo, hoặc chạy pnpm example:embed --key mlv_live_…`,
+      `Thiếu khoá. Đặt ${envName}=mlv_live_… trong .env ở gốc repo, hoặc chạy ${hint} --key mlv_live_…`,
     );
   }
   if (!/^mlv_live_[0-9A-Za-z]{24}$/.test(key)) {

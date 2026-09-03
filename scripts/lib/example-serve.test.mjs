@@ -49,6 +49,17 @@ describe('resolveKey', () => {
     expect(() => resolveKey([], {})).toThrow(/KEY_EXAMPLE_EMBED/);
     expect(() => resolveKey(['--key', 'abc'], {})).toThrow(/định dạng/);
   });
+
+  it('tham số thứ ba đổi tên biến env và gợi ý lệnh', () => {
+    const opts = { envName: 'KEY_EXAMPLE_RN', hint: 'pnpm example:rn' };
+    expect(resolveKey([], { KEY_EXAMPLE_RN: good }, opts)).toBe(good);
+    expect(() => resolveKey([], {}, opts)).toThrow(/KEY_EXAMPLE_RN.*pnpm example:rn/s);
+  });
+
+  it('bỏ dấu nháy đơn/kép bao quanh giá trị trong .env', () => {
+    expect(resolveKey([], { KEY_EXAMPLE_EMBED: `'${good}'` })).toBe(good);
+    expect(resolveKey([], { KEY_EXAMPLE_EMBED: `"${good}"` })).toBe(good);
+  });
 });
 
 describe('exampleUrl', () => {
