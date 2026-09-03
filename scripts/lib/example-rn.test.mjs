@@ -4,6 +4,9 @@ import {
   EXAMPLE_RN_DIR,
   KEY_ENV_NAME_RN,
   TARBALL,
+  androidEnv,
+  androidStudioJdk,
+  defaultAndroidSdk,
   envFileContent,
   expoRunArgs,
   packedTarballName,
@@ -50,5 +53,34 @@ describe('hằng số và chuỗi sinh', () => {
   it('expoRunArgs', () => {
     expect(expoRunArgs('ios')).toEqual(['expo', 'run:ios']);
     expect(expoRunArgs('android')).toEqual(['expo', 'run:android']);
+  });
+});
+
+describe('SDK Android', () => {
+  it('defaultAndroidSdk theo hệ điều hành', () => {
+    expect(defaultAndroidSdk('darwin', '/Users/x')).toBe('/Users/x/Library/Android/sdk');
+    expect(defaultAndroidSdk('linux', '/home/x')).toBe('/home/x/Android/Sdk');
+    expect(defaultAndroidSdk('win32', 'C:\\Users\\x')).toBe(
+      'C:\\Users\\x\\AppData\\Local\\Android\\Sdk',
+    );
+  });
+
+  it('androidEnv chỉ bù ANDROID_HOME khi env chưa có biến nào', () => {
+    expect(androidEnv({}, '/sdk')).toEqual({ ANDROID_HOME: '/sdk' });
+    expect(androidEnv({ ANDROID_HOME: '/co-san' }, '/sdk')).toEqual({});
+    expect(androidEnv({ ANDROID_SDK_ROOT: '/co-san' }, '/sdk')).toEqual({});
+  });
+
+  it('androidStudioJdk theo hệ điều hành', () => {
+    expect(androidStudioJdk('darwin')).toBe(
+      '/Applications/Android Studio.app/Contents/jbr/Contents/Home',
+    );
+    expect(androidStudioJdk('linux')).toBe('/opt/android-studio/jbr');
+    expect(androidStudioJdk('win32')).toBe('C:\\Program Files\\Android\\Android Studio\\jbr');
+  });
+
+  it('androidEnv bù JAVA_HOME khi có JDK và env chưa đặt', () => {
+    expect(androidEnv({}, '/sdk', '/jbr')).toEqual({ ANDROID_HOME: '/sdk', JAVA_HOME: '/jbr' });
+    expect(androidEnv({ JAVA_HOME: '/co-san' }, '/sdk', '/jbr')).toEqual({ ANDROID_HOME: '/sdk' });
   });
 });

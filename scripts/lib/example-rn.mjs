@@ -42,3 +42,41 @@ export function envFileContent(key, api) {
 export function expoRunArgs(platform) {
   return ['expo', `run:${platform}`];
 }
+
+/**
+ * Thư mục SDK Android mặc định của mỗi hệ điều hành — dùng khi `ANDROID_HOME` chưa đặt.
+ * @param {string} platform process.platform
+ * @param {string} home thư mục người dùng
+ */
+export function defaultAndroidSdk(platform, home) {
+  if (platform === 'darwin') return `${home}/Library/Android/sdk`;
+  if (platform === 'win32') return `${home}\\AppData\\Local\\Android\\Sdk`;
+  return `${home}/Android/Sdk`;
+}
+
+/**
+ * JDK kèm theo Android Studio — AGP/Gradle chưa chạy được trên JDK mới nhất (JDK 26 làm
+ * `configureCMakeDebug` của expo-modules-core chết), nên đây là bản Java "đúng" cho build Android.
+ * @param {string} platform process.platform
+ */
+export function androidStudioJdk(platform) {
+  if (platform === 'darwin') return '/Applications/Android Studio.app/Contents/jbr/Contents/Home';
+  if (platform === 'win32') return 'C:\\Program Files\\Android\\Android Studio\\jbr';
+  return '/opt/android-studio/jbr';
+}
+
+/**
+ * Biến môi trường bù cho `expo run:android`: Gradle đòi `ANDROID_HOME` (hoặc `sdk.dir`) và một
+ * JDK được AGP hỗ trợ, mà Android Studio không thêm biến nào vào shell. Đã có biến thì tôn
+ * trọng, không ghi đè.
+ * @param {Record<string, string | undefined>} env
+ * @param {string} sdkDir
+ * @param {string} [jdkDir] bỏ trống nếu không tìm thấy JDK của Android Studio
+ */
+export function androidEnv(env, sdkDir, jdkDir) {
+  /** @type {Record<string, string>} */
+  const extra = {};
+  if (!env.ANDROID_HOME && !env.ANDROID_SDK_ROOT) extra.ANDROID_HOME = sdkDir;
+  if (!env.JAVA_HOME && jdkDir) extra.JAVA_HOME = jdkDir;
+  return extra;
+}

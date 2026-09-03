@@ -2,6 +2,7 @@ import {
   type AutocompleteItem,
   type Lang,
   type MapHandle,
+  type MapsLibVNClient,
   MapsLibVNMap,
   Marker,
   type Theme,
@@ -13,8 +14,8 @@ import { useState } from 'react';
 import {
   Alert,
   FlatList,
+  LogBox,
   Pressable,
-  SafeAreaView,
   StyleSheet,
   Text,
   TextInput,
@@ -24,10 +25,24 @@ import {
 const API_KEY = process.env.EXPO_PUBLIC_MAPSLIBVN_KEY ?? '';
 const API_BASE = process.env.EXPO_PUBLIC_MAPSLIBVN_API ?? 'https://api.ai-solutions.io.vn';
 
-/** Ô tìm kiếm + danh sách gợi ý — dùng usePlaces với client của map qua context. */
-function Search({ onPick }: { onPick: (item: AutocompleteItem) => void }) {
+// Cảnh báo của MapLibre Native về vài đoạn line trong tile (dữ liệu, không phải code app) —
+// chỉ ảnh hưởng toast LogBox lúc dev, build release không có LogBox.
+LogBox.ignoreLogs(['Invalid geometry in line layer']);
+
+/** Ô tìm kiếm + danh sách gợi ý — nằm ngoài <MapsLibVNMap> nên phải truyền client tường minh. */
+function Search({
+  client,
+  onPick,
+}: {
+  client: MapsLibVNClient | undefined;
+  onPick: (item: AutocompleteItem) => void;
+}) {
   const [q, setQ] = useState('');
-  const { items, loading } = usePlaces(q, { near: [10.776, 106.7], limit: 6 });
+  const { items, loading } = usePlaces(q, {
+    near: [10.776, 106.7],
+    limit: 6,
+    ...(client ? { client } : {}),
+  });
   return (
     <View style={styles.search}>
       <TextInput
@@ -73,14 +88,14 @@ export default function App() {
 
   if (!API_KEY) {
     return (
-      <SafeAreaView style={styles.center}>
+      <View style={styles.center}>
         <Text>Thiếu EXPO_PUBLIC_MAPSLIBVN_KEY — chạy `pnpm example:rn` từ gốc repo.</Text>
-      </SafeAreaView>
+      </View>
     );
   }
 
   return (
-    <SafeAreaView style={styles.root}>
+    <View style={styles.root}>
       <StatusBar style="auto" />
       <MapsLibVNMap
         apiKey={API_KEY}
@@ -97,6 +112,7 @@ export default function App() {
       </MapsLibVNMap>
 
       <Search
+        client={map?.places}
         onPick={(item) => {
           setPicked(item);
           map?.flyTo([item.lng, item.lat], 16);
@@ -114,7 +130,7 @@ export default function App() {
           <Text style={styles.btnText}>{lang === 'vi' ? 'EN' : 'VI'}</Text>
         </Pressable>
       </View>
-    </SafeAreaView>
+    </View>
   );
 }
 

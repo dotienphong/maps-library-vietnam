@@ -7,6 +7,7 @@
 // Các bước: build core + react-native → pnpm pack vào examples/embed-rn/vendor → ghi .env của app
 // → npm install tarball → npx expo run:<platform>. Khoá KHÔNG nằm trong repo. Ctrl+C để dừng.
 import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from 'node:fs';
+import { homedir } from 'node:os';
 import { join, resolve } from 'node:path';
 import 'dotenv/config';
 import {
@@ -15,6 +16,9 @@ import {
   KEY_ENV_NAME_RN,
   RN_PACKAGE_DIR,
   TARBALL,
+  androidEnv,
+  androidStudioJdk,
+  defaultAndroidSdk,
   envFileContent,
   expoRunArgs,
   packedTarballName,
@@ -54,5 +58,19 @@ if (packOnly) {
   console.log('✓ --pack-only: xong. Chạy tay: cd examples/embed-rn && npx expo run:ios');
 } else {
   console.log(`▶ 5/5 npx expo run:${platform} (lần đầu prebuild + CocoaPods/Gradle, vài phút)`);
-  run('npx', expoRunArgs(platform), { cwd: appDir });
+  /** @type {Record<string, string>} */
+  let extraEnv = {};
+  if (platform === 'android') {
+    const sdk = defaultAndroidSdk(process.platform, homedir());
+    const jdk = androidStudioJdk(process.platform);
+    extraEnv = existsSync(jdk) ? androidEnv(process.env, sdk, jdk) : androidEnv(process.env, sdk);
+    if (extraEnv.ANDROID_HOME && !existsSync(sdk)) {
+      throw new Error(
+        `Không thấy SDK Android ở ${sdk}. Cài Android Studio hoặc đặt ANDROID_HOME trỏ tới SDK.`,
+      );
+    }
+    if (extraEnv.ANDROID_HOME) console.log(`  ANDROID_HOME chưa đặt → dùng ${sdk}`);
+    if (extraEnv.JAVA_HOME) console.log('  JAVA_HOME chưa đặt → dùng JDK của Android Studio');
+  }
+  run('npx', expoRunArgs(platform), { cwd: appDir, env: { ...process.env, ...extraEnv } });
 }

@@ -907,3 +907,47 @@ cần ghi thêm bằng chứng edit #1/#2 còn nguyên vào DEVLOG.
 Lịch tự động đã bật: container `pipeline` chạy image có cron 2 job — `data:update` thứ Hai 02:00 và
 `report:weekly` thứ Hai 08:00 giờ VN. Kiểm lại bằng một lệnh: `sh scripts/report-setup-check.sh`.
 
+
+## 11. Nghiệm thu M6 — `@mapslibvn/react-native` — (đang nghiệm thu)
+
+Chạy thật 03/09/2026: iOS 26.1 simulator (iPhone 17 Pro) và Android emulator Pixel 7, app Expo
+`examples/embed-rn` cài SDK **từ tarball bằng `npm`** (không qua workspace), khoá `mobile`
+`mlv_live_hj7P…7z1U` (tenant `…000002`, label "embed-rn thử độc lập", scopes `places:read`).
+Thao tác tự động bằng Maestro 2.8.0 + `adb input tap`; ảnh trong `docs/evidence/m6/`.
+
+| # | Tiêu chí (spec M6 mục 7) | Kết quả |
+|---|---|---|
+| 1 | iOS + Android chạy trọn, tiles thẳng từ R2, theme, lang=en giữ nhãn chủ quyền | **ĐẠT** — `ios-light-vi.png`, `ios-dark-en.png`, `android-light-vi.png`. Ở `ios-dark-en.png` (theme tối + `lang=en`) nhãn thường đã sang tiếng Anh ("NHA TRANG", "…CHÍ MINH CITY") nhưng **"Quần đảo Hoàng Sa (Việt Nam)" / "Quần đảo Trường Sa (Việt Nam)" vẫn tiếng Việt**. Observability 13:20–15:55 UTC: `/v1/autocomplete` 80, `/v1/styles/light.json` 6, `/v1/styles/dark.json` 2, `/v1/admin/edits` 1 — **0 request `/v1/tiles/`**, tiles đi thẳng R2/CDN qua `pmtiles://` |
+| 2 | "highlands" gợi ý ≤ 1 s, chọn → flyTo + marker | **ĐẠT** — `ios-search-marker.png`, `android-search-marker.png`: 5 gợi ý hiện ngay khi gõ xong, chọn một dòng → camera bay tới zoom 16, ghim đỏ đúng vị trí |
+| 3 | Bấm POI → tên/loại | **ĐẠT** — iOS `ios-poi-alert.png`: "Green Bio - Nông Nghiệp Chất Lượng Cao / convenience · shopping"; Android `android-poi-alert.png`: "Bãi giữ xe máy / parking_motorcycle · transport" |
+| 4 | Attribution hiện, mở hộp thoại native, không tắt được | **ĐẠT** — `ios-attribution-dialog.png`: dòng ghi nguồn luôn hiện góc dưới trái (đủ OSM · OpenMapTiles · Overture · Foursquare), bấm vào mở hộp thoại native "MapLibre Native iOS". `MapsLibVNMapProps` không có prop nào tắt được attribution (chỉ `compactAttribution` đổi 1 hay 2 dòng) |
+| 5 | Analytics có khoá mobile; log có X-Bundle-Id | **ĐẠT** — `pnpm report:weekly --dry-run --this-week`: khoá `mlv_live_hj7P…7z1U` **37 request**, đúng tenant `…000002`. Observability: **35 dòng** `bundle-id 00000000-0000-4000-8000-000000000002 vn.mapslibvn.demo` |
+| 6 | CI xanh 4 gói | (Task 15) |
+| 7 | Trang docs react-native | (Task 15) |
+
+**Bốn lỗi thật chỉ lộ ra khi chạy máy thật (plan không lường), đã sửa trong Task 14:**
+
+1. `usePlaces` trong `App.tsx` không có client — `<Search>` là anh em của `<MapsLibVNMap>` nên
+   nằm **ngoài** `MapContext.Provider`, `useContext(MapContext)` trả `null` và ô tìm kiếm luôn
+   in "Không có gợi ý". Sửa: truyền `client={map?.places}` (chính là lý do `UsePlacesOptions.client`
+   tồn tại). Bài học: mọi hook `usePlaces` đặt ngoài `<MapsLibVNMap>` đều phải truyền `client`.
+2. `pnpm example:rn --android` chết ở Gradle với `SDK location not found` — máy dev không hề có
+   `ANDROID_HOME` (Android Studio không thêm biến này vào shell). Sửa: `defaultAndroidSdk()` +
+   `androidEnv()` trong `scripts/lib/example-rn.mjs` tự dò `~/Library/Android/sdk`.
+3. Ngay sau đó Gradle chết ở `:expo-modules-core:configureCMakeDebug[arm64-v8a]` — JDK mặc định
+   của máy là **26**, quá mới cho AGP. Sửa: `androidStudioJdk()` tự dùng JBR 21 kèm Android Studio
+   khi `JAVA_HOME` chưa đặt. Sau hai sửa này `BUILD SUCCESSFUL in 56s`.
+4. `SafeAreaView` của `react-native` đã deprecated ở RN 0.86 (toast LogBox che màn hình mỗi lần
+   mở app). Thay bằng `View` — layout vốn đã tự định vị tuyệt đối nên không đổi giao diện.
+
+**Ghi chú kỹ thuật (không phải lỗi):**
+- Hộp thoại attribution native chỉ liệt kê "© OpenMapTiles" và "© OpenStreetMap Contributors":
+  MapLibre Native chỉ đưa vào hộp thoại các nguồn có liên kết, còn `attribution` của source `poi`
+  ("Places: Overture Maps Foundation…, Foursquare OS Places…") là văn bản thuần nên bị bỏ qua.
+  Nghĩa vụ ghi nguồn vẫn đủ nhờ dòng `Attribution` luôn hiện của SDK — đây chính là lý do dòng đó
+  bắt buộc và không tắt được.
+- Ở zoom 12 lớp `poi` chỉ vẽ biểu tượng, không vẽ chữ (`text-field` của style là
+  `["step", ["zoom"], "", 13, ["get","name"]]`) — đúng thiết kế, không phải thiếu font.
+- `onPoiClick` dùng `queryRenderedFeatures` tại **đúng một điểm**, không có bán kính bao dung:
+  chạm lệch ~10 px là trượt. Với ngón tay thật nên cân nhắc truy vấn theo khung nhỏ quanh điểm —
+  ghi lại làm việc cần xem xét, chưa sửa trong M6.
