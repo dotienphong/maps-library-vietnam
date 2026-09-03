@@ -98,27 +98,27 @@ Quy tắc bất biến: kết thúc mỗi task = tick checkbox plan + cập nh�
 
 **Files:** không sửa mã.
 
-- [ ] **Step 1: Git sạch, đúng nhánh, đúng identity**
+- [x] **Step 1: Git sạch, đúng nhánh, đúng identity**
 
 Run: `git status --short && git branch --show-current && pnpm check:git`
 Expected: không có dòng thay đổi; `main`; check:git OK.
 
-- [ ] **Step 2: CI remote của commit đầu `main` xanh**
+- [x] **Step 2: CI remote của commit đầu `main` xanh**
 
 Run: `GH_TOKEN="$(cat ~/.config/gh-dotienphong.token)" gh run list --repo dotienphong/maps-library-vietnam --limit 6`
 Expected: CI / Deploy Docs của commit `4689249` (hoặc mới hơn) `completed success`.
 
-- [ ] **Step 3: Gate local xanh trước khi đụng core**
+- [x] **Step 3: Gate local xanh trước khi đụng core**
 
 Run: `pnpm lint && pnpm typecheck && pnpm test`
 Expected: exit 0. Ghi số test hiện có (để Task 15 so sánh).
 
-- [ ] **Step 4: Công cụ mobile trên máy dev (việc tay PHONG, spec M6 mục 9)**
+- [x] **Step 4: Công cụ mobile trên máy dev (việc tay PHONG, spec M6 mục 9)**
 
 Run: `xcodebuild -version && xcrun simctl list devices available | head -5 && ls "$HOME/Library/Android/sdk" && node -e "console.log(process.version)"`
 Expected: Xcode có; ≥ 1 simulator iOS; thư mục Android SDK có; Node 22. Nếu thiếu → dừng, báo PHONG cài (Xcode từ App Store; Android Studio + một AVD API ≥ 23). Task 1–12 không phụ thuộc bước này; Task 13–14 cần.
 
-- [ ] **Step 5: Ghi DEVLOG mục 2 và commit**
+- [x] **Step 5: Ghi DEVLOG mục 2 và commit**
 
 Thêm vào đầu mục 2 `docs/DEVLOG.md`:
 

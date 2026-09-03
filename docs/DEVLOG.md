@@ -6,8 +6,10 @@ commit với code).
 ## 1. Trạng thái hiện tại
 
 - Mốc: **M5 — Phát hành nội bộ đã nghiệm thu 03/09/2026 → SPEC BẢN 2 HOÀN TẤT.**
-  Bước kế tiếp: **M6 — `@mapslibvn/react-native`**, spec đã viết 03/09/2026
-  (`docs/superpowers/specs/2026-09-03-react-native-sdk-design.md`), chờ PHONG duyệt file rồi viết plan.
+  **Đang làm M6 — `@mapslibvn/react-native`**: spec
+  (`docs/superpowers/specs/2026-09-03-react-native-sdk-design.md`) và plan
+  (`docs/superpowers/plans/2026-09-03-m6-react-native.md`, 16 task) đều đã duyệt 03/09/2026;
+  Task 0 xong, đang thực thi từ Task 1.
   Mốc trước: **M4 — Đóng góp đã nghiệm thu 02/09/2026**
 - Plan M5: `docs/superpowers/plans/2026-09-02-m5-phat-hanh-noi-bo.md` — **10/10 task XONG**,
   nghiệm thu 5/5 hạng mục ĐẠT 03/09/2026 (bảng bằng chứng ở mục 10). Gồm: docs đủ 5 trang
@@ -59,11 +61,15 @@ commit với code).
 
 ## 2. Bước kế tiếp
 
-**BẮT ĐẦU TỪ ĐÂY: PHONG review spec M6
-`docs/superpowers/specs/2026-09-03-react-native-sdk-design.md`** (viết 03/09/2026 sau
-brainstorming; phạm vi và cách A đã duyệt miệng). Khi PHONG duyệt file → viết plan
-`docs/superpowers/plans/<ngày>-m6-react-native.md` bằng skill writing-plans → Task 1. Không code
-trước khi có plan.
+**BẮT ĐẦU TỪ ĐÂY: Đang làm M6** — plan `docs/superpowers/plans/2026-09-03-m6-react-native.md`
+(16 task, spec + plan đều đã duyệt). Task 0 XONG 03/09/2026: git sạch trên `main`, identity cá
+nhân OK; CI remote của `471bd92` xanh; gate local xanh (lint 243 file, typecheck 13 task, vitest
+root 49 file / 529 test, API 19 file / 87 test); Xcode 26.6 + 6 simulator iOS có, Android SDK có
+với AVD `Pixel_7`, Node v22.23.2. Tiếp tục từ Task 1.
+
+Việc tay của PHONG còn treo trong M6: cấp khoá `mobile` cho tenant thử nghiệm
+(`pnpm key:issue --tenant 00000000-0000-4000-8000-000000000002 --label "embed-rn thử độc lập"
+--kind mobile`) rồi ghi vào `.env` thành `KEY_EXAMPLE_RN` — cần trước Task 13.
 
 **Spec bản 2 đã hoàn tất 03/09/2026** — M1 đến M5 đều nghiệm thu; roadmap
 `docs/superpowers/plans/2026-08-26-roadmap-toan-bo-spec.md` mục 7 đã tick trọn.
@@ -607,6 +613,10 @@ rõ ở mục 2 và không chặn M2: kiểm trên Windows, và bật lại `req
   bị bind mount vào worktree tạm; M3 đóng · (commit hiện tại)
 - 2026-09-01 · M3 hậu nghiệm thu · playground tự chọn Worker production khi mở URL không
   có `?api=`; localhost và query override vẫn giữ; thêm unit regression + E2E URL ngắn · (commit này)
+- 2026-09-03 · M6 T0 · kiểm trạng thái trước M6: git sạch trên `main`, `pnpm check:git` OK;
+  CI remote `471bd92` xanh; gate local xanh (lint 243 file, typecheck 13 task cache hit,
+  vitest root 49 file / 529 test, API 19 file / 87 test); công cụ mobile đủ — Xcode 26.6
+  (6 simulator iOS 26.0), Android SDK có AVD `Pixel_7`, Node v22.23.2 · (commit này)
 - 2026-09-03 · **M6 spec** · brainstorming với PHONG rồi viết
   `docs/superpowers/specs/2026-09-03-react-native-sdk-design.md` (gói `@mapslibvn/react-native`,
   app Expo thử `examples/embed-rn` + `pnpm example:rn`, trang docs, khoá `mobile`); sửa spec gốc 8.1
