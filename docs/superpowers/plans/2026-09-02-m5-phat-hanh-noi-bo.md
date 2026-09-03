@@ -1907,12 +1907,13 @@ Sau push: `ci.yml` xanh; image pipeline được build lại (`image` job) — m
 Phần này **chỉ PHONG làm được** (dashboard Cloudflare, máy chủ). Agent chuẩn bị lệnh, PHONG dán kết quả.
 
 
-> **Trạng thái 02/09/2026:** Step 3 đã đạt — báo cáo đầu tiên gửi thật qua phiên OAuth của PHONG,
+> **Trạng thái 03/09/2026 — XONG:** PHONG đã tạo 2 token; đường tự động đã chạy thật trong container.
+> Ghi chú lịch sử 02/09: Step 3 đã đạt — báo cáo đầu tiên gửi thật qua phiên OAuth của PHONG,
 > Cloudflare trả `delivered`. Domain đã có sẵn Email Routing + SPF/DKIM nên **không cần Add domain**.
 > Step 1 còn treo đúng một việc: tạo token `mapslibvn-report` rồi điền `infra/server/.env` để cron
 > gửi tự động (Cloudflare không cho tạo token thay chủ tài khoản).
 
-- [ ] **Step 1: PHONG — bật Email Sending + token** (theo `infra/server/README.md` bước 6):
+- [x] **Step 1: PHONG — bật Email Sending + token** (theo `infra/server/README.md` bước 6):
   1. Dashboard → **Email Service → Email Sending → Add domain** → `ai-solutions.io.vn` → chờ trạng thái Active (DNS tự thêm).
   2. **API Tokens → Create Custom Token** `mapslibvn-report`: permissions *Account · Account Analytics · Read* và *Account · Email Sending · Edit*; Account Resources = account này. Copy token.
   3. Trên máy chủ: thêm 3 biến vào `infra/server/.env` (`CF_REPORT_API_TOKEN`, `REPORT_EMAIL_TO=<email PHONG>`, `REPORT_EMAIL_FROM=maps-report@ai-solutions.io.vn`), rồi `pnpm server:update` (kéo image mới có cron 2 job) và `docker compose --env-file infra/server/.env -f infra/server/compose.yml up -d pipeline`.

@@ -10,10 +10,9 @@ commit với code).
 - Plan M5: `docs/superpowers/plans/2026-09-02-m5-phat-hanh-noi-bo.md` — **4/10 task xong**
   (Task 0–7 xong, Task 8 gần xong). Docs đủ 5 trang spec 7.4 + 2 trang pháp lý, link check Playwright 8/8;
   tenant thử nghiệm + `pnpm key:issue` cấp khoá ngẫu nhiên; `pnpm export:odbl` xuất 5 bảng OSM.
-  **Báo cáo tuần đầu đã gửi và Cloudflare báo `delivered` 02/09** (mục 10 nghiệm thu #2 chờ PHONG
-  xác nhận hộp thư). Container `pipeline` đã chạy image mới có cron 2 job và nhận đủ
-  `REPORT_EMAIL_TO`/`REPORT_EMAIL_FROM`. Còn lại của Task 8: **PHONG tạo 2 token trên dashboard**
-  (xem "Việc tay" dưới) — Cloudflare **không cho tạo token qua API/OAuth**. Rồi Task 9 nghiệm thu `LICENSE` MIT + `THIRD_PARTY_NOTICES.md` đóng gói trong 3 gói SDK, CI kiểm
+  **Task 8 XONG 03/09/2026**: PHONG đã tạo 2 token; đường tự động chạy trọn vẹn trong container
+  (Analytics + gửi mail bằng `CF_REPORT_API_TOKEN`, manifest KV bằng `CLOUDFLARE_API_TOKEN`).
+  PHONG xác nhận **đã nhận** thư báo cáo. Còn lại: Task 9 nghiệm thu `LICENSE` MIT + `THIRD_PARTY_NOTICES.md` đóng gói trong 3 gói SDK, CI kiểm
   `--check`; điều khoản tenant công bố tại `/dieu-khoan/`, notices tại `/thong-bao-ben-thu-ba/`
   (hai trang sinh lúc prebuild, không commit)
 - Plan M4: `docs/superpowers/plans/2026-09-01-m4-dong-gop.md` — **11/11 task XONG** (viết 01/09/2026,
@@ -71,16 +70,6 @@ nghiệm thu "nhúng bằng key riêng" dùng trang thử `examples/embed-web` �
   `cloudflared` không chạy → Hyperdrive không có đích. Không phải lỗi mã. **Việc tay: bật Docker
   Desktop rồi `docker compose --env-file infra/server/.env -f infra/server/compose.yml up -d`
   trước Task 4** (Task 1–3 không cần DB).
-**Việc tay của PHONG đang chặn (03/09/2026) — làm trên dashboard, 5 phút:**
-1. My Profile → API Tokens → Create Custom Token, tên `mapslibvn-report`, đúng 2 quyền:
-   *Account · Account Analytics · Read* + *Account · Email Sending · Edit*, Account Resources =
-   account này. Dán vào `CF_REPORT_API_TOKEN=` trong `infra/server/.env` rồi
-   `docker compose --env-file infra/server/.env -f infra/server/compose.yml up -d pipeline`.
-   Kiểm: `… exec pipeline node scripts/weekly-report.mjs --dry-run --this-week` phải in bảng.
-2. Cùng lúc tạo token pipeline (*Workers KV Edit* + *Workers R2 Edit*) cho `CLOUDFLARE_API_TOKEN=`
-   trong cùng file — hiện rỗng nên `data:update` của cron sẽ lỗi ở bước manifest.
-3. Kiểm hộp thư `dotienphong1993@gmail.com` xem báo cáo gửi 02/09 có tới thật không.
-
 **Việc theo dõi phát sinh (M5 T2):** `ip_hash` trong `poi_edit` dùng muối là **ngày VN**, không có
 bí mật phía máy chủ, nên về lý thuyết dò ngược được không gian IPv4. Chỉ dùng chống spam nên
 không chặn M5; nếu sau này lưu lâu hơn 30 ngày hoặc mở thương mại thì thêm pepper bí mật
@@ -626,6 +615,20 @@ rõ ở mục 2 và không chặn M2: kiểm trên Windows, và bật lại `req
   bị bind mount vào worktree tạm; M3 đóng · (commit hiện tại)
 - 2026-09-01 · M3 hậu nghiệm thu · playground tự chọn Worker production khi mở URL không
   có `?api=`; localhost và query override vẫn giữ; thêm unit regression + E2E URL ngắn · (commit này)
+- 2026-09-03 · **M5 T8 XONG** · PHONG tạo 2 token trên dashboard (`mapslibvn-report`:
+  Account Analytics Read + Email Sending Edit; token pipeline: Workers KV Edit + Workers R2 Edit)
+  và xác nhận **đã nhận** thư báo cáo gửi 02/09. Kiểm đường tự động **trong container `pipeline`**:
+  (1) `weekly-report.mjs --dry-run --this-week` đọc Analytics bằng `CF_REPORT_API_TOKEN` → 11 nhóm,
+  788 request; nhãn tenant/key giờ **đúng tên** (`Free thử nghiệm`, `free test 429`) vì container
+  đọc DB production, khác lần chạy trên máy dev trước đó chỉ có UUID thô;
+  (2) gửi thật không cờ `--dry-run` → `delivered`, message_id
+  `<nl32fdOc4f4oXiH0TOqMF52BMErpY8iUQlvz@ai-solutions.io.vn>` — lần này **qua token trong
+  `infra/server/.env`**, không qua OAuth, tức đúng đường mà cron sẽ đi;
+  (3) `manifest.mjs get` đọc được KV bằng token pipeline mới (`vn-20260827` / `poi-20260830`) →
+  sự cố tiềm ẩn "data:update lỗi ở bước manifest" đã được vá.
+  Cron in `[cron] data:update kế tiếp 2026-09-06T19:00:00.000Z (thứ Hai 02:00 VN)`;
+  báo cáo tuần sẽ tự chạy lúc 08:00 cùng ngày. Thêm `scripts/report-setup-check.sh` để lần sau
+  kiểm lại bằng một lệnh · (commit này)
 - 2026-09-03 · M5 T8 (tiếp) · thử tạo token `mapslibvn-report` giúp PHONG: **không làm được** —
   `GET/POST /accounts/{id}/tokens`, `/user/tokens` và `/user/tokens/permission_groups` đều trả
   `9109 Unauthorized to access requested resource` với **cả** token deploy **và** phiên OAuth MCP.
