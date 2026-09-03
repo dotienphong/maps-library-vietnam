@@ -125,3 +125,12 @@ export interface SuggestEditResponse {
   /** POI đích; với kind='create' là id POI mới (pending cho tới khi được duyệt). */
   poi_id: string | null;
 }
+
+/** POI đọc từ tile lớp `poi` khi người dùng bấm — SDK web và React Native dùng chung. */
+export interface PoiFeature {
+  id: string;
+  name: string;
+  category: string;
+  group: string;
+  lngLat: [number, number];
+}

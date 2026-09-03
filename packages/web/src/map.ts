@@ -1,7 +1,15 @@
-import { type MapsLibVNClient, type Theme, attributionHtml, createClient } from '@mapslibvn/core';
+import {
+  type MapsLibVNClient,
+  type PoiFeature,
+  type Theme,
+  attributionHtml,
+  createClient,
+} from '@mapslibvn/core';
 import type maplibregl from 'maplibre-gl';
 import { type Lang, applyLanguage } from './language';
 import { type ProtocolHost, ensurePmtilesProtocol } from './protocol';
+
+export type { PoiFeature };
 
 export interface CreateMapOptions {
   container: string | HTMLElement;
@@ -17,14 +25,6 @@ export interface CreateMapOptions {
   poiLayer?: boolean;
   /** Attribution gọn (không có tuỳ chọn tắt) */
   compactAttribution?: boolean;
-}
-
-export interface PoiFeature {
-  id: string;
-  name: string;
-  category: string;
-  group: string;
-  lngLat: [number, number];
 }
 
 export interface MarkerOptions {

@@ -230,7 +230,7 @@ git commit -m "feat(core): ClientOptions.headers — gửi X-Bundle-Id cho khoá
 - Modify: `packages/core/src/types.ts`
 - Modify: `packages/web/src/map.ts`
 
-- [ ] **Step 1: Thêm kiểu vào core**
+- [x] **Step 1: Thêm kiểu vào core**
 
 Cuối `packages/core/src/types.ts`:
 
@@ -245,7 +245,7 @@ export interface PoiFeature {
 }
 ```
 
-- [ ] **Step 2: Web dùng kiểu từ core**
+- [x] **Step 2: Web dùng kiểu từ core**
 
 Trong `packages/web/src/map.ts`: xoá khối `export interface PoiFeature { … }` (5 trường); đổi dòng import đầu file thành:
 
@@ -262,12 +262,12 @@ export type { PoiFeature };
 
 (`index.ts` và `umd.ts` vẫn `export type { PoiFeature } from './map'` — không đổi.)
 
-- [ ] **Step 3: Typecheck + test web**
+- [x] **Step 3: Typecheck + test web**
 
 Run: `pnpm --filter @mapslibvn/core build && pnpm --filter @mapslibvn/web typecheck && pnpm exec vitest run packages/web`
 Expected: exit 0, test web xanh như trước.
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add packages/core/src/types.ts packages/web/src/map.ts
