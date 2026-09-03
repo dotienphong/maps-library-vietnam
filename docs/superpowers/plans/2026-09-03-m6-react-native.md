@@ -811,7 +811,7 @@ git commit -m "feat(react-native): MapHandle/MapContext + usePlaces (copy từ @
 - Create: `packages/react-native/src/test/react-native-mock.tsx`, `src/test/mlrn-mock.tsx`
 - Create: `packages/react-native/src/attribution.tsx`, `src/attribution.test.tsx`
 
-- [ ] **Step 1: Mock `react-native`**
+- [x] **Step 1: Mock `react-native`**
 
 `packages/react-native/src/test/react-native-mock.tsx` — View/Text/Pressable thành phần tử DOM để `@testing-library/react` truy vấn:
 
@@ -842,7 +842,7 @@ export const StyleSheet = { create: <T,>(s: T): T => s };
 export const Platform = { OS: 'ios', select: <T,>(o: { ios?: T; default?: T }) => o.ios ?? o.default };
 ```
 
-- [ ] **Step 2: Mock wrapper**
+- [x] **Step 2: Mock wrapper**
 
 `packages/react-native/src/test/mlrn-mock.tsx`:
 
@@ -905,7 +905,7 @@ export function Marker(props: {
 }
 ```
 
-- [ ] **Step 3: Test `Attribution` thất bại (RED)**
+- [x] **Step 3: Test `Attribution` thất bại (RED)**
 
 `packages/react-native/src/attribution.test.tsx`:
 
@@ -938,7 +938,7 @@ describe('Attribution', () => {
 
 Run: `pnpm exec vitest run packages/react-native/src/attribution.test.tsx` → FAIL.
 
-- [ ] **Step 4: Viết `attribution.tsx`**
+- [x] **Step 4: Viết `attribution.tsx`**
 
 ```tsx
 import { attributionText } from '@mapslibvn/core';
@@ -985,7 +985,7 @@ const styles = StyleSheet.create({
 });
 ```
 
-- [ ] **Step 5: Xanh + typecheck + commit**
+- [x] **Step 5: Xanh + typecheck + commit**
 
 Run: `pnpm exec vitest run packages/react-native/src/attribution.test.tsx && pnpm --filter @mapslibvn/react-native typecheck`
 Expected: PASS 2 test; tsc OK (file mock cũng được kiểm vì nằm trong `src`).
