@@ -2426,7 +2426,7 @@ Trong `docs/superpowers/plans/2026-08-26-roadmap-toan-bo-spec.md`: bảng mục 
 - Mục 3: một dòng cho 8 quyết định thiết kế của plan này (mục "Quyết định thiết kế" ở đầu file) — kèm dòng về `StyleSpecification` cast nếu Task 8 phải làm.
 - Mục 4: dòng nhật ký `<ngày> · **M6 XONG** · …`.
 
-- [ ] **Step 7: Gate cuối, commit, push, CI**
+- [x] **Step 7: Gate cuối, commit, push, CI**
 
 Run: `pnpm lint && node scripts/notices-sync.mjs --check && pnpm typecheck && pnpm test`
 Expected: exit 0.
@@ -2440,6 +2440,6 @@ GH_TOKEN="$(cat ~/.config/gh-dotienphong.token)" gh run watch --repo dotienphong
 
 Expected: CI + Deploy Docs `success`; `curl -sI https://mapslibvn-docs.pages.dev/react-native/ | head -1` → `HTTP/2 200`. Điền sha CI vào DEVLOG mục 11 hàng 6 nếu còn placeholder, amend commit rồi push lại.
 
-- [ ] **Step 8: Cập nhật memory dự án**
+- [x] **Step 8: Cập nhật memory dự án**
 
 Cập nhật `~/.claude/projects/-Users-dtphong-Desktop-software-business-mapsLibVN/memory/trang-thai-moc-hien-tai.md`: M6 nghiệm thu <ngày>; bước kế tiếp = việc tay checklist B/C; lệnh hữu ích `pnpm example:rn`. Cập nhật dòng chỉ mục trong `MEMORY.md`.
