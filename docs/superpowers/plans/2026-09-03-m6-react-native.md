@@ -759,7 +759,7 @@ git commit -m "feat(react-native): toPoiFeature ánh xạ feature lớp poi"
 **Files:**
 - Create: `packages/react-native/src/context.ts`, `src/use-places.ts`, `src/use-places.test.ts`
 
-- [ ] **Step 1: `context.ts`**
+- [x] **Step 1: `context.ts`**
 
 ```ts
 import type { CameraRef, MapRef } from '@maplibre/maplibre-react-native';
@@ -782,7 +782,7 @@ export interface MapHandle {
 export const MapContext = createContext<MapHandle | null>(null);
 ```
 
-- [ ] **Step 2: Copy `usePlaces` và test từ `@mapslibvn/react`**
+- [x] **Step 2: Copy `usePlaces` và test từ `@mapslibvn/react`**
 
 ```bash
 cp packages/react/src/use-places.ts packages/react-native/src/use-places.ts
@@ -791,12 +791,12 @@ cp packages/react/src/use-places.test.ts packages/react-native/src/use-places.te
 
 Trong `packages/react-native/src/use-places.ts` không cần đổi gì: dòng `useContext(MapContext)?.places ?? null` vẫn đúng vì `MapHandle.places` cùng tên. Kiểm bằng `grep -n MapContext packages/react-native/src/use-places.ts`.
 
-- [ ] **Step 3: Chạy test hook với React 19 của gói**
+- [x] **Step 3: Chạy test hook với React 19 của gói**
 
 Run: `pnpm exec vitest run packages/react-native/src/use-places.test.ts`
 Expected: PASS 5 test (như gói react). Nếu lỗi "Invalid hook call"/hai bản React: kiểm `ls packages/react-native/node_modules/react` là 19.x và `@testing-library/react` nằm trong `packages/react-native/node_modules` (không phải root).
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add packages/react-native/src/context.ts packages/react-native/src/use-places.ts packages/react-native/src/use-places.test.ts
