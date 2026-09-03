@@ -95,8 +95,10 @@ Ba luồng dữ liệu:
   `scripts/lib/notices.mjs` và test tương ứng).
 - `peerDependencies`: `@maplibre/maplibre-react-native ^11.3.0`, `react >=19.1.0`,
   `react-native >=0.80.0`.
-- `dependencies`: `@mapslibvn/core workspace:*` (đóng gói vào dist bằng tsup `noExternal`,
-  giống cách `@mapslibvn/react` đang đóng gói core + web). Không phụ thuộc `@mapslibvn/web`.
+- `dependencies`: `@mapslibvn/core workspace:*`, **đóng gói vào dist** bằng `tsup.config.ts` với
+  `noExternal: ['@mapslibvn/core']` (tsup mặc định external mọi `dependencies`; `@mapslibvn/react`
+  hiện để core/web external vì cài từ workspace — gói RN thì phải tự chứa để cài được bằng một
+  tarball). Không phụ thuộc `@mapslibvn/web`.
 - `devDependencies`: `react ^19.1`, `react-dom ^19.1`, `@types/react ^19.1`, `react-native ^0.80`,
   `@maplibre/maplibre-react-native ^11.3`, `@testing-library/react ^16`, `tsup`, `typescript`.
   pnpm cô lập theo gói nên React 19 ở đây không đụng React 18 của root và `packages/react`.
@@ -132,7 +134,7 @@ import { MapsLibVNMap, Marker, useMap, usePlaces } from '@mapslibvn/react-native
 | Xuất khẩu | Mô tả |
 |---|---|
 | `MapsLibVNMap` | component chính; props ở trên. `style` là **theme** như `@mapslibvn/react`; khung ngoài dùng `containerStyle`. |
-| `Marker` | bọc `Marker` của wrapper. Không có children → vẽ ghim mặc định (View tròn 24 pt, màu `color`, mặc định `#3FB1CE` như MapLibre). `anchor` mặc định `bottom` khi dùng ghim mặc định, `center` khi app tự vẽ. Không có `popupHtml` (không phải HTML); app tự hiện chi tiết qua `onPress`. |
+| `Marker` | bọc `Marker` của wrapper. Không có children → vẽ ghim mặc định (View tròn 22 pt viền trắng, màu `color`, mặc định `#3FB1CE` như MapLibre). `anchor` mặc định `center` (ghim tròn), app tự vẽ thì truyền `anchor` phù hợp. Không có `popupHtml` (không phải HTML); app tự hiện chi tiết qua `onPress`. |
 | `useMap()` | trả `MapHandle`; ném lỗi nếu gọi ngoài `<MapsLibVNMap>`, thông điệp tiếng Việt như web. |
 | `usePlaces(query, {near, limit, debounceMs, client})` | copy nguyên `packages/react/src/use-places.ts` và test của nó (đổi import context). Chấp nhận trùng ~60 dòng vì hai gói có peer React khác nhau. |
 | kiểu | `MapsLibVNMapProps`, `MarkerProps`, `MapHandle`, `PoiFeature`, `Lang`, `Theme`, `AutocompleteItem`, `MapsLibVNClient`, `Place` (tái xuất từ core). |
