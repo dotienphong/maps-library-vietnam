@@ -5,12 +5,12 @@ commit với code).
 
 ## 1. Trạng thái hiện tại
 
-- Mốc: **M5 — Phát hành nội bộ đang làm** (plan 10 task; Task 0–7 xong 02/09/2026, Task 8 còn 1 việc tay).
+- Mốc: **M5 — Phát hành nội bộ đang làm** (plan 10 task; Task 0–8 xong, Task 9 chờ chữ ký).
   Mốc trước: **M4 — Đóng góp đã nghiệm thu 02/09/2026**
 - Plan M5: `docs/superpowers/plans/2026-09-02-m5-phat-hanh-noi-bo.md` — **4/10 task xong**
-  (Task 0–7 xong, Task 8 gần xong). Docs đủ 5 trang spec 7.4 + 2 trang pháp lý, link check Playwright 8/8;
+  (Task 0–8 xong, Task 9 chờ chữ ký checklist). Docs đủ 5 trang spec 7.4 + 2 trang pháp lý, link check Playwright 8/8;
   tenant thử nghiệm + `pnpm key:issue` cấp khoá ngẫu nhiên; `pnpm export:odbl` xuất 5 bảng OSM.
-  **Task 8 XONG 03/09/2026**: PHONG đã tạo 2 token; đường tự động chạy trọn vẹn trong container
+  **Task 8 XONG, Task 9 4/5 hạng mục ĐẠT 03/09/2026** (chi tiết mục 10): PHONG đã tạo 2 token; đường tự động chạy trọn vẹn trong container
   (Analytics + gửi mail bằng `CF_REPORT_API_TOKEN`, manifest KV bằng `CLOUDFLARE_API_TOKEN`).
   PHONG xác nhận **đã nhận** thư báo cáo. Còn lại: Task 9 nghiệm thu `LICENSE` MIT + `THIRD_PARTY_NOTICES.md` đóng gói trong 3 gói SDK, CI kiểm
   `--check`; điều khoản tenant công bố tại `/dieu-khoan/`, notices tại `/thong-bao-ben-thu-ba/`
@@ -615,6 +615,14 @@ rõ ở mục 2 và không chặn M2: kiểm trên Windows, và bật lại `req
   bị bind mount vào worktree tạm; M3 đóng · (commit hiện tại)
 - 2026-09-01 · M3 hậu nghiệm thu · playground tự chọn Worker production khi mở URL không
   có `?api=`; localhost và query override vẫn giữ; thêm unit regression + E2E URL ngắn · (commit này)
+- 2026-09-03 · M5 T9 (4/5) · trang thử độc lập `examples/embed-web/index.html` (khoá lấy từ query
+  string nên không nằm trong repo); seed tenant `…000002` lên **production** và cấp khoá `web`
+  đuôi `…x6YN` cho origin `http://localhost:5500` bằng `pnpm key:issue` chạy trong container.
+  Kiểm production: trang 200, SDK UMD/CSS 200, `/v1/styles/light.json` 200, autocomplete trả POI
+  thật, tiles `vn-20260827` 206 với Range, origin lạ 403 `origin_not_allowed`. Sau ~2 phút khoá mới
+  xuất hiện trong báo cáo tuần (5 request, đúng tên tenant). `docs/legal/checklist-phap-ly.md`
+  đã viết (A 10 mục có bằng chứng, B 6 việc luật sư, C 5 việc kỹ thuật) — **chỉ còn chờ PHONG ký**.
+  Bảng nghiệm thu đầy đủ ở mục 10 · (commit này)
 - 2026-09-03 · **M5 T8 XONG** · PHONG tạo 2 token trên dashboard (`mapslibvn-report`:
   Account Analytics Read + Email Sending Edit; token pipeline: Workers KV Edit + Workers R2 Edit)
   và xác nhận **đã nhận** thư báo cáo gửi 02/09. Kiểm đường tự động **trong container `pipeline`**:
@@ -830,3 +838,17 @@ Sự cố nghiệm thu: production DB mới ở `0005` nên POST đầu tiên tr
 `0006_edits.sql` bằng DB owner (không mở rộng quyền lâu dài của role `pipeline`) rồi kiểm lại
 ba hàm đều chỉ cấp EXECUTE cho `api`; smoke sau đó đạt. Lần pipeline production kế tiếp vẫn
 cần ghi thêm bằng chứng edit #1/#2 còn nguyên vào DEVLOG.
+
+## 10. Nghiệm thu M5 — Phát hành nội bộ — **4/5 ĐẠT 03/09/2026, chờ chữ ký checklist**
+
+| # | Hạng mục | Kết quả |
+|---|---|---|
+| 1 | Ứng dụng nhúng độc lập dùng được bằng khoá riêng | **ĐẠT production.** Trang thử `examples/embed-web/index.html` chạy ở origin riêng `http://localhost:5500` (không thuộc docs, không thuộc dự án nào khác). Tenant `…000002` "Ứng dụng nhúng thử nghiệm (nội bộ)" seed lên production; khoá `web` đuôi `…x6YN` cấp bằng `pnpm key:issue`, `allowed_origins = {http://localhost:5500}`. Trang trả 200, SDK UMD + CSS từ docs 200, `/v1/styles/light.json` 200, autocomplete trả POI thật, tiles `vn-20260827` trả 206 với Range. Origin lạ → 403 `origin_not_allowed` (request `50c35e72-83ae-43cb-bae1-35bfb8e59345`) |
+| 2 | Báo cáo sử dụng tuần đầu nhận được | **ĐẠT.** Thư 02/09 PHONG xác nhận đã nhận. 03/09 gửi lại **qua đúng đường tự động** (token trong `infra/server/.env`, chạy trong container `pipeline`): `delivered`, message_id `<nl32fdOc4f4oXiH0TOqMF52BMErpY8iUQlvz@ai-solutions.io.vn>`. Báo cáo hiện đủ 4 tenant kèm tên, và khoá `mlv_live_6UU1…x6YN` của tenant mới xuất hiện với 5 request |
+| 3 | Docs đủ trang, link không vỡ | **ĐẠT.** 7 trang sống trên `mapslibvn-docs.pages.dev`: `bat-dau`, `tu-host`, `giay-phep`, `do-chinh-xac`, `dong-gop`, `dieu-khoan`, `thong-bao-ben-thu-ba`. `docs.spec.ts` kiểm 8 trang tải được và mọi link nội bộ, E2E 11/11 |
+| 4 | `pnpm export:odbl` | **ĐẠT.** 5 bảng CSV gzip + `manifest.json` (số dòng, SHA-256, release OSM) + `README.md` ghi ODbL 1.0. SHA-256 khớp `shasum` độc lập; dbtest xanh trên CI |
+| 5 | Checklist pháp lý ký bởi PHONG | **CHỜ CHỮ KÝ.** `docs/legal/checklist-phap-ly.md` đã viết: mục A 10 hạng mục đã làm kèm bằng chứng, mục B 6 việc tay cần luật sư trước khi thương mại hoá, mục C 5 việc kỹ thuật còn treo |
+
+Lịch tự động đã bật: container `pipeline` chạy image có cron 2 job — `data:update` thứ Hai 02:00 và
+`report:weekly` thứ Hai 08:00 giờ VN. Kiểm lại bằng một lệnh: `sh scripts/report-setup-check.sh`.
+

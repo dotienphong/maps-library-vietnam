@@ -1952,7 +1952,7 @@ git commit -m "docs: M5 T8 — báo cáo tuần đầu gửi thành công"
 
 MapsLibVN là thư viện độc lập; nghiệm thu "nhúng bằng key riêng" dùng một trang HTML tĩnh **ngoài** repo docs và ngoài mọi dự án khác, chạy ở origin riêng (`http://localhost:5500`) để chứng minh luồng key `web` + `allowed_origins` hoạt động với bất kỳ host nào. Nếu PHONG muốn thử thêm trên một web/mobile app thật thì cấp key khác cho origin đó — không bắt buộc.
 
-- [ ] **Step 1: Tạo `examples/embed-web/index.html`** (trang trắng, chỉ dùng UMD từ docs — đúng đoạn nhúng của `bat-dau.md` sau Task 3)
+- [x] **Step 1: Tạo `examples/embed-web/index.html`** (trang trắng, chỉ dùng UMD từ docs — đúng đoạn nhúng của `bat-dau.md` sau Task 3)
 
 ```html
 <!doctype html>
@@ -1985,7 +1985,7 @@ MapsLibVN là thư viện độc lập; nghiệm thu "nhúng bằng key riêng" 
 </html>
 ```
 
-- [ ] **Step 2: Seed tenant thử nghiệm + cấp key production cho origin `http://localhost:5500`**
+- [x] **Step 2: Seed tenant thử nghiệm + cấp key production cho origin `http://localhost:5500`**
 
 Từ máy dev qua Tunnel (giống cách seed M4 — `DATABASE_URL` trỏ `127.0.0.1:5433` sau `cloudflared access tcp`, user DB owner hoặc `pipeline`; xem `infra/server/README.md` mục Kiểm tra):
 ```bash
@@ -2006,7 +2006,7 @@ curl -s "https://api.ai-solutions.io.vn/v1/autocomplete?q=cafe" -H "X-Api-Key: <
 ```
 Expected: lần 1 `403 {"error":{"code":"origin_not_allowed"…`; lần 2 JSON gợi ý.
 
-- [ ] **Step 3: Xác nhận key ứng dụng nhúng độc lập xuất hiện trong Analytics**
+- [x] **Step 3: Xác nhận key ứng dụng nhúng độc lập xuất hiện trong Analytics**
 
 Run: `pnpm report:weekly --dry-run` (máy dev với `CF_REPORT_API_TOKEN` trong `.env`, hoặc trên máy chủ) — nếu tuần trước chưa có request của app, chạy truy vấn 1 ngày để thấy ngay:
 ```bash
@@ -2016,7 +2016,7 @@ curl -s "https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/an
 ```
 Expected: có dòng `tenant_id = 00000000-0000-4000-8000-000000000002`.
 
-- [ ] **Step 4: Viết `docs/legal/checklist-phap-ly.md`**
+- [x] **Step 4: Viết `docs/legal/checklist-phap-ly.md`**
 
 ```markdown
 # Checklist pháp lý MapsLibVN — nghiệm thu M5 (spec mục 12, 15; roadmap 0.5)
@@ -2057,7 +2057,7 @@ Ký xác nhận: mục A đúng với hệ thống đang chạy; mục B là cá
 
 PHONG tick mục A (agent kiểm từng dòng bằng repo/production và đề xuất), điền ngày và ký (gõ tên + ngày là đủ trong giai đoạn nội bộ).
 
-- [ ] **Step 5: DEVLOG mục 10 — Nghiệm thu M5**
+- [x] **Step 5: DEVLOG mục 10 — Nghiệm thu M5**
 
 Thêm sau mục 9:
 

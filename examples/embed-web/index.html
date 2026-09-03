@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Nhúng MapsLibVN — trang thử độc lập</title>
+  <link rel="stylesheet" href="https://mapslibvn-docs.pages.dev/sdk/mapslibvn.css" />
+  <style>
+    body { margin: 0; font-family: system-ui, sans-serif; }
+    header { padding: 10px 14px; border-bottom: 1px solid #ddd; }
+    h1 { font-size: 15px; margin: 0 0 4px; }
+    #map { height: 70vh; }
+    #log { padding: 10px 14px; font: 12px ui-monospace, monospace; white-space: pre-wrap; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Nhúng MapsLibVN bằng một khoá riêng</h1>
+    <div id="log">key: <span id="k">(chưa có)</span></div>
+  </header>
+  <div id="map"></div>
+
+  <script src="https://mapslibvn-docs.pages.dev/sdk/mapslibvn.umd.js"></script>
+  <script>
+    // Trang thử ĐỘC LẬP: không thuộc apps/docs, không thuộc dự án nào khác. Mục đích duy nhất là
+    // chứng minh SDK nhúng được vào một trang HTML bất kỳ ở origin riêng, bằng khoá `web` có
+    // allowed_origins đúng origin đó (nghiệm thu M5, spec 13 hàng M5).
+    //
+    // Chạy:  python3 -m http.server 5500 --directory examples/embed-web
+    // Mở:    http://localhost:5500/?key=mlv_live_…
+    //
+    // Khoá lấy từ query string để KHÔNG nằm trong repo.
+    const log = document.getElementById('log');
+    const key = new URLSearchParams(location.search).get('key') || '';
+    document.getElementById('k').textContent = key
+      ? key.slice(0, 13) + '…' + key.slice(-4)
+      : '(thiếu ?key=… trên URL)';
+
+    if (key) {
+      const map = MapsLibVN.createMap({
+        container: 'map',
+        apiKey: key,
+        apiBase: 'https://api.ai-solutions.io.vn',
+        center: [106.70, 10.776],
+        zoom: 13,
+      });
+      map.addMarker({ lng: 106.6981, lat: 10.7725, popupHtml: '<b>Chợ Bến Thành</b>' });
+      map.on('poiClick', (poi) => {
+        log.textContent = 'POI: ' + poi.name + ' · ' + poi.category;
+      });
+      map.gl.on('load', () => {
+        log.textContent += '\nbản đồ đã tải · origin ' + location.origin;
+      });
+      map.gl.on('error', (e) => {
+        log.textContent += '\nLỖI: ' + (e && e.error ? e.error.message : 'không rõ');
+      });
+    }
+  </script>
+</body>
+</html>
