@@ -39,7 +39,8 @@ run('pnpm', ['--filter', '@mapslibvn/core', '--filter', '@mapslibvn/react-native
 console.log('▶ 2/5 pnpm pack → vendor/');
 const vendor = join(appDir, 'vendor');
 mkdirSync(vendor, { recursive: true });
-run('pnpm', ['--filter', '@mapslibvn/react-native', 'pack', '--pack-destination', vendor]);
+// `pnpm pack` không nhận `--filter` (pnpm hiểu thành `--recursive`) → chạy trong thư mục gói.
+run('pnpm', ['pack', '--pack-destination', vendor], { cwd: resolve(RN_PACKAGE_DIR) });
 const pkg = JSON.parse(readFileSync(join(RN_PACKAGE_DIR, 'package.json'), 'utf8'));
 renameSync(join(vendor, packedTarballName(pkg.name, pkg.version)), join(vendor, TARBALL));
 
