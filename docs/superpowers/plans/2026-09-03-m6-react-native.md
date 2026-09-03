@@ -1670,7 +1670,7 @@ git commit -m "feat(react-native): <Marker> bọc Marker native, ghim mặc đ�
 **Files:**
 - Modify: `packages/react-native/src/index.ts`
 
-- [ ] **Step 1: `index.ts` đầy đủ**
+- [x] **Step 1: `index.ts` đầy đủ**
 
 ```ts
 export { DEFAULT_CENTER, DEFAULT_ZOOM, MapsLibVNMap, useMap } from './map';
@@ -1691,17 +1691,17 @@ export type {
 } from '@mapslibvn/core';
 ```
 
-- [ ] **Step 2: Build và kiểm dist tự chứa**
+- [x] **Step 2: Build và kiểm dist tự chứa**
 
 Run: `pnpm --filter @mapslibvn/react-native build && grep -c "@mapslibvn/core" packages/react-native/dist/index.js; grep -o "from \"[^\"]*\"" packages/react-native/dist/index.js | sort -u`
 Expected: `grep -c` in `0` (core đã đóng gói); danh sách import chỉ gồm `react`, `react/jsx-runtime`, `react-native`, `@maplibre/maplibre-react-native`. `dist/index.d.ts` có `interface PoiFeature` (kiểm `grep -c PoiFeature packages/react-native/dist/index.d.ts` ≥ 1).
 
-- [ ] **Step 3: Gate toàn repo**
+- [x] **Step 3: Gate toàn repo**
 
 Run: `pnpm lint && node scripts/notices-sync.mjs --check && pnpm typecheck && pnpm test`
 Expected: exit 0; vitest root chạy thêm 6 file test của gói RN (to-poi-feature 3, use-places 5, attribution 2, use-style 6, map 9, marker 3 = 28 test). Nếu `pnpm lint` phàn nàn trong `src/test/*.tsx`: `Map` che tên global → thêm `// biome-ignore lint/suspicious/noShadowRestrictedNames: tên phải khớp export của wrapper` ngay trên `export function Map`; luật a11y trên `<div onClick>` của `Marker` mock → `// biome-ignore lint/a11y/<tên luật Biome in ra>: mock cho test, không phải UI`. Không tắt luật toàn repo.
 
-- [ ] **Step 4: Push và xem CI**
+- [x] **Step 4: Push và xem CI**
 
 ```bash
 git add packages/react-native/src/index.ts packages/react-native/src/test/mlrn-mock.tsx
@@ -1721,7 +1721,7 @@ Expected: CI `success` (job `test` với 4 gói).
 - Create: `scripts/lib/example-rn.mjs`, `scripts/lib/example-rn.test.mjs`, `scripts/example-rn.mjs`
 - Modify: `package.json`, `.env.example`
 
-- [ ] **Step 1: Test `resolveKey` tổng quát (RED)**
+- [x] **Step 1: Test `resolveKey` tổng quát (RED)**
 
 Thêm vào `describe('resolveKey')` trong `scripts/lib/example-serve.test.mjs`:
 
@@ -1740,7 +1740,7 @@ Thêm vào `describe('resolveKey')` trong `scripts/lib/example-serve.test.mjs`:
 
 Run: `pnpm exec vitest run scripts/lib/example-serve.test.mjs` → FAIL.
 
-- [ ] **Step 2: Sửa `resolveKey`**
+- [x] **Step 2: Sửa `resolveKey`**
 
 Thay hàm trong `scripts/lib/example-serve.mjs`:
 
@@ -1773,7 +1773,7 @@ export function resolveKey(argv, env, opts = {}) {
 
 Run: `pnpm exec vitest run scripts/lib/example-serve.test.mjs` → PASS (test cũ vẫn xanh vì mặc định giữ nguyên).
 
-- [ ] **Step 3: Test helper `example-rn` (RED)**
+- [x] **Step 3: Test helper `example-rn` (RED)**
 
 `scripts/lib/example-rn.test.mjs`:
 
@@ -1836,7 +1836,7 @@ describe('hằng số và chuỗi sinh', () => {
 
 Run: `pnpm exec vitest run scripts/lib/example-rn.test.mjs` → FAIL.
 
-- [ ] **Step 4: Viết `scripts/lib/example-rn.mjs`**
+- [x] **Step 4: Viết `scripts/lib/example-rn.mjs`**
 
 ```js
 // Hàm thuần cho `pnpm example:rn` (scripts/example-rn.mjs) — app Expo thử độc lập cài SDK bằng tarball.
@@ -1883,7 +1883,7 @@ export function expoRunArgs(platform) {
 
 Run: `pnpm exec vitest run scripts/lib/example-rn.test.mjs` → PASS.
 
-- [ ] **Step 5: Script chính `scripts/example-rn.mjs`**
+- [x] **Step 5: Script chính `scripts/example-rn.mjs`**
 
 ```js
 #!/usr/bin/env node
@@ -1945,7 +1945,7 @@ if (packOnly) {
 }
 ```
 
-- [ ] **Step 6: `package.json` root và `.env.example`**
+- [x] **Step 6: `package.json` root và `.env.example`**
 
 Trong `package.json` root, sau dòng `"example:embed": "node scripts/example-embed.mjs",` thêm `"example:rn": "node scripts/example-rn.mjs",`.
 
@@ -1957,7 +1957,7 @@ Trong `.env.example`, sau `KEY_EXAMPLE_EMBED=` thêm:
 KEY_EXAMPLE_RN=
 ```
 
-- [ ] **Step 7: Typecheck scripts + test + commit**
+- [x] **Step 7: Typecheck scripts + test + commit**
 
 Run: `pnpm typecheck && pnpm exec vitest run scripts/lib/example-rn.test.mjs scripts/lib/example-serve.test.mjs && pnpm lint`
 Expected: exit 0 (checkJs không phàn nàn JSDoc).
