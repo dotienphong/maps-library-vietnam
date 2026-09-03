@@ -282,7 +282,7 @@ git commit -m "refactor(core): PoiFeature chuyển vào @mapslibvn/core, web re-
 - Create: `packages/core/src/style-transform.ts`, `packages/core/src/style-transform.test.ts`
 - Modify: `packages/core/src/index.ts`, `packages/web/src/language.ts`
 
-- [ ] **Step 1: Viết test thất bại (RED)**
+- [x] **Step 1: Viết test thất bại (RED)**
 
 `packages/core/src/style-transform.test.ts`:
 
@@ -373,12 +373,12 @@ describe('hidePoiLayer', () => {
 });
 ```
 
-- [ ] **Step 2: Chạy test, xác nhận đỏ**
+- [x] **Step 2: Chạy test, xác nhận đỏ**
 
 Run: `pnpm exec vitest run packages/core/src/style-transform.test.ts`
 Expected: FAIL — không resolve được `./style-transform`.
 
-- [ ] **Step 3: Viết `style-transform.ts`**
+- [x] **Step 3: Viết `style-transform.ts`**
 
 `packages/core/src/style-transform.ts`:
 
@@ -443,12 +443,12 @@ export function hidePoiLayer<T extends StyleLike>(style: T): T {
 
 Thêm vào `packages/core/src/index.ts`: `export * from './style-transform';`
 
-- [ ] **Step 4: Chạy test core, xác nhận xanh**
+- [x] **Step 4: Chạy test core, xác nhận xanh**
 
 Run: `pnpm exec vitest run packages/core`
 Expected: PASS (kể cả test cũ).
 
-- [ ] **Step 5: Web dùng lại từ core**
+- [x] **Step 5: Web dùng lại từ core**
 
 Thay toàn bộ `packages/web/src/language.ts` bằng:
 
@@ -473,12 +473,12 @@ export function applyLanguage(gl: StyleLike, lang: Lang): void {
 }
 ```
 
-- [ ] **Step 6: Build core, test web, size-limit**
+- [x] **Step 6: Build core, test web, size-limit**
 
 Run: `pnpm --filter @mapslibvn/core build && pnpm exec vitest run packages/web && pnpm --filter @mapslibvn/web typecheck && pnpm --filter @mapslibvn/web build`
 Expected: exit 0; `language.test.ts` của web vẫn xanh; size-limit core < 8 kB, web < 15 kB.
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add packages/core/src/style-transform.ts packages/core/src/style-transform.test.ts packages/core/src/index.ts packages/web/src/language.ts

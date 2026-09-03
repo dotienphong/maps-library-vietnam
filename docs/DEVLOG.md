@@ -62,12 +62,12 @@ commit với code).
 ## 2. Bước kế tiếp
 
 **BẮT ĐẦU TỪ ĐÂY: Đang làm M6** — plan `docs/superpowers/plans/2026-09-03-m6-react-native.md`
-(16 task, spec + plan đều đã duyệt). Task 0–2 XONG 03/09/2026. Task 0: git sạch trên `main`, identity cá
+(16 task, spec + plan đều đã duyệt). Task 0–3 XONG 03/09/2026. Task 0: git sạch trên `main`, identity cá
 nhân OK; CI remote của `471bd92` xanh; gate local xanh (lint 243 file, typecheck 13 task, vitest
 root 49 file / 529 test, API 19 file / 87 test); Xcode 26.6 + 6 simulator iOS có, Android SDK có
 với AVD `Pixel_7`, Node v22.23.2. Task 1: `ClientOptions.headers` trong `@mapslibvn/core`.
-Task 2: `PoiFeature` chuyển vào core, web re-export. Tiếp tục từ Task 3
-(hàm biến đổi style JSON thuần `localizeStyle`/`hidePoiLayer` trong core).
+Task 2: `PoiFeature` chuyển vào core, web re-export. Task 3: `localizeStyle`/`hidePoiLayer`
+trong core, web dùng lại `isNameLabelLayer`. Tiếp tục từ Task 4 (khung gói `packages/react-native`).
 
 Việc tay của PHONG còn treo trong M6: cấp khoá `mobile` cho tenant thử nghiệm
 (`pnpm key:issue --tenant 00000000-0000-4000-8000-000000000002 --label "embed-rn thử độc lập"
@@ -615,6 +615,11 @@ rõ ở mục 2 và không chặn M2: kiểm trên Windows, và bật lại `req
   bị bind mount vào worktree tạm; M3 đóng · (commit hiện tại)
 - 2026-09-01 · M3 hậu nghiệm thu · playground tự chọn Worker production khi mở URL không
   có `?api=`; localhost và query override vẫn giữ; thêm unit regression + E2E URL ngắn · (commit này)
+- 2026-09-03 · M6 T3 · `packages/core/src/style-transform.ts`: `Lang`, `nameExpression`,
+  `isNameLabelLayer`, `localizeStyle`, `hidePoiLayer` — biến đổi style JSON thuần cho RN
+  (wrapper không đổi được layout property của lớp có sẵn). `language.ts` của web rút còn
+  `applyLanguage` dùng `isNameLabelLayer` từ core. Core 336 test, web 8/8; core 6,96 kB gzip,
+  web 3,97 kB · (commit này)
 - 2026-09-03 · M6 T2 · `PoiFeature` chuyển vào `packages/core/src/types.ts`, `map.ts` của web
   import rồi re-export nên `index.ts`/`umd.ts` và `@mapslibvn/react` không phải đổi dòng nào.
   Web typecheck + 8/8 test xanh; lint 243 file, typecheck 13 task xanh · (commit này)

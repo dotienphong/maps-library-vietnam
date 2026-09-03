@@ -4,3 +4,4 @@ export * from './errors';
 export * from './normalize';
 export * from './address';
 export * from './types';
+export * from './style-transform';
