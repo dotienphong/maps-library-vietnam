@@ -1,40 +1,34 @@
 #!/usr/bin/env node
 // poi active → GeoJSONSeq → tippecanoe → out/<release>.pmtiles (spec 5.8). Dùng: node export-tiles.mjs [--release poi-YYYYMMDD]
-import { createWriteStream, mkdirSync, statSync, writeFileSync } from 'node:fs';
+import { createWriteStream, mkdirSync, statSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { Readable } from 'node:stream';
 import { pipeline } from 'node:stream/promises';
 import { run } from '../../../scripts/lib/run.mjs';
 import { releaseName } from '../../tiles/src/lib/dates.mjs';
+import { displayFields, priorityOrderSql } from './display-priority.mjs';
+import { createDisplaySelector } from './display-selector.mjs';
 import { OUT, POI_WORK, arg } from './lib/env.mjs';
 import { connect } from './pg.mjs';
 
-export const LOW_ZOOM_GROUPS = [
-  'education',
-  'health',
-  'transport',
-  'public_admin',
-  'culture_tourism',
-];
-
-/** Bộ lọc tippecanoe theo zoom: z10–11 nhóm công cộng q ≥ 7; z12–14 mọi nhóm q ≥ 6; z15–16 tất cả (spec 5.8). */
-export function tippecanoeFilter() {
-  return {
-    poi: [
-      'any',
-      ['>=', '$zoom', 15],
-      ['all', ['>=', '$zoom', 12], ['<=', '$zoom', 14], ['>=', 'q', 6]],
-      ['all', ['<=', '$zoom', 11], ['>=', 'q', 7], ['in', 'grp', ...LOW_ZOOM_GROUPS]],
-    ],
-  };
-}
-
-/** @param {{ id: string, name: string, cat: string, grp: string, quality_score: number | null, lon: number, lat: number }} r */
-export function featureLine(r) {
-  const q = Math.max(0, Math.min(9, Math.floor((r.quality_score ?? 0) / 10)));
+/**
+ * @param {{ id: string, name: string, cat: string, grp: string, lon: number, lat: number }} r
+ * @param {{ q: number, r: number, d: number }} display
+ * @param {number} minZoom
+ */
+export function featureLine(r, display, minZoom) {
   return `${JSON.stringify({
     type: 'Feature',
-    properties: { id: r.id, name: r.name, cat: r.cat, grp: r.grp, q },
+    tippecanoe: { minzoom: minZoom },
+    properties: {
+      id: r.id,
+      name: r.name,
+      cat: r.cat,
+      grp: r.grp,
+      q: display.q,
+      r: display.r,
+      d: display.d,
+    },
     geometry: { type: 'Point', coordinates: [r.lon, r.lat] },
   })}\n`;
 }
@@ -44,19 +38,45 @@ if (process.argv[1]?.endsWith('export-tiles.mjs')) {
   mkdirSync(POI_WORK, { recursive: true });
   mkdirSync(OUT, { recursive: true });
   const seq = resolve(POI_WORK, 'poi.geojsonseq');
-  const filterFile = resolve(POI_WORK, 'poi-filter.json');
   const output = resolve(OUT, `${release}.pmtiles`);
   const sql = connect();
-  let n = 0;
+  const selector = createDisplaySelector();
+  let activeRead = 0;
+  let rankFallback = 0;
+  let invalidCoordinates = 0;
   try {
     async function* lines() {
-      for await (const rows of sql`SELECT p.id, p.name, p.category AS cat, c.group_code AS grp, p.quality_score, ST_X(p.geom) AS lon, ST_Y(p.geom) AS lat
-          FROM poi p JOIN category c ON c.code = p.category WHERE p.status = 'active'`.cursor(
-        5000,
-      )) {
+      const query = `SELECT p.id, p.name, p.category AS cat, c.group_code AS grp,
+          c.rank, p.popularity, p.quality_score,
+          ST_X(p.geom) AS lon, ST_Y(p.geom) AS lat
+        FROM poi p
+        JOIN category c ON c.code = p.category
+        WHERE p.status = 'active'
+        ORDER BY ${priorityOrderSql}`;
+      for await (const rows of sql.unsafe(query).cursor(5000)) {
         for (const r of rows) {
-          n++;
-          yield featureLine(/** @type {any} */ (r));
+          activeRead++;
+          const row = /** @type {any} */ (r);
+          const display = displayFields({
+            id: row.id,
+            rank: row.rank,
+            popularity: row.popularity,
+            qualityScore: row.quality_score,
+          });
+          if (display.rankFallback) rankFallback++;
+          let minZoom;
+          const lon = Number(row.lon);
+          const lat = Number(row.lat);
+          try {
+            minZoom = selector.select({ lon, lat, earliestZoom: display.earliestZoom });
+          } catch (error) {
+            invalidCoordinates++;
+            console.error(
+              `POI ${row.id}: ${error instanceof Error ? error.message : String(error)}`,
+            );
+            continue;
+          }
+          if (minZoom !== null) yield featureLine({ ...row, lon, lat }, display, minZoom);
         }
       }
     }
@@ -64,7 +84,20 @@ if (process.argv[1]?.endsWith('export-tiles.mjs')) {
   } finally {
     await sql.end();
   }
-  writeFileSync(filterFile, JSON.stringify(tippecanoeFilter()));
+  const selection = selector.snapshot();
+  console.log(
+    JSON.stringify({
+      activeRead,
+      selected: selection.selected,
+      thinned: selection.thinned,
+      byMinZoom: selection.byMinZoom,
+      rankFallback,
+      invalidCoordinates,
+    }),
+  );
+  if (invalidCoordinates > 0) {
+    throw new Error(`${invalidCoordinates} POI có toạ độ không hợp lệ; không tạo archive`);
+  }
   // Không dùng --extend-zooms-if-still-dropping: nó có thể đẩy maxzoom > 16 làm smoke/inspect lệch với spec 5.8.
   run('tippecanoe', [
     '-o',
@@ -76,8 +109,6 @@ if (process.argv[1]?.endsWith('export-tiles.mjs')) {
     '-z16',
     '-r1',
     '--drop-densest-as-needed',
-    '-J',
-    filterFile,
     '-P',
     '-y',
     'id',
@@ -89,10 +120,14 @@ if (process.argv[1]?.endsWith('export-tiles.mjs')) {
     'grp',
     '-y',
     'q',
+    '-y',
+    'r',
+    '-y',
+    'd',
     seq,
   ]);
   const mb = statSync(output).size / 2 ** 20;
-  console.log(`✓ ${output}: ${n} POI, ${mb.toFixed(1)} MB`);
+  console.log(`✓ ${output}: ${selection.selected} POI, ${mb.toFixed(1)} MB`);
   if (mb > 400) {
     console.error(
       'Vượt 400 MB — thêm --maximum-tile-bytes=300000 hoặc nâng ngưỡng q ở z12–14; xem spec 5.8 (mục tiêu ≤ 300 MB)',

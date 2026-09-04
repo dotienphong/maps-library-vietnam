@@ -15,7 +15,10 @@ const clampInt = (value, min, max) => Math.max(min, Math.min(max, Math.floor(val
 
 /** @param {string} id */
 export function idTie(id) {
-  return Number.parseInt(createHash('md5').update(String(id), 'utf8').digest('hex').slice(0, 3), 16);
+  return Number.parseInt(
+    createHash('md5').update(String(id), 'utf8').digest('hex').slice(0, 3),
+    16,
+  );
 }
 
 /** @param {{ id: string, rank: unknown, popularity: unknown, qualityScore: unknown }} input */

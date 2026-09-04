@@ -299,7 +299,7 @@ git commit -m "feat(poi): chọn POI theo lưới Web Mercator"
 - Consumes: `displayFields()` và `createDisplaySelector()` từ Tasks 1–2.
 - Produces: `featureLine(row, display, minZoom)` với properties `q/r/d` và top-level `tippecanoe.minzoom`.
 
-- [ ] **Step 1: Thay test filter cũ bằng contract feature mới**
+- [x] **Step 1: Thay test filter cũ bằng contract feature mới**
 
 ```js
 it('ghi q/r/d và tippecanoe.minzoom, không lộ popularity', () => {
@@ -317,13 +317,13 @@ it('ghi q/r/d và tippecanoe.minzoom, không lộ popularity', () => {
 
 Xoá tests/imports cho `LOW_ZOOM_GROUPS` và `tippecanoeFilter`.
 
-- [ ] **Step 2: Chạy test và xác nhận RED đúng contract**
+- [x] **Step 2: Chạy test và xác nhận RED đúng contract**
 
 Run: `pnpm vitest run pipelines/poi/tests/export-tiles.test.mjs`
 
 Expected: FAIL vì `featureLine` chưa nhận display/minzoom và filter cũ còn tồn tại.
 
-- [ ] **Step 3: Đổi cursor và streaming loop**
+- [x] **Step 3: Đổi cursor và streaming loop**
 
 Cursor phải SELECT `c.rank`, `p.popularity`, `p.quality_score`, lon/lat và dùng
 `ORDER BY ${sql.unsafe(priorityOrderSql)}`. Trong loop:
@@ -345,7 +345,7 @@ if (minZoom !== null) yield featureLine(r, display, minZoom);
 
 Không nối raw user value vào SQL; `priorityOrderSql` là hằng nội bộ không nhận input.
 
-- [ ] **Step 4: Đổi GeoJSON và Tippecanoe args**
+- [x] **Step 4: Đổi GeoJSON và Tippecanoe args**
 
 `featureLine()` thêm top-level `tippecanoe:{minzoom:minZoom}` và `r/d`; bỏ tạo `poi-filter.json`,
 bỏ `-J filterFile`, thêm `-y r -y d`, giữ nguyên `-y q` và các thuộc tính cũ.
@@ -362,19 +362,19 @@ export function featureLine(r, display, minZoom) {
 }
 ```
 
-- [ ] **Step 5: Thêm log và fail-closed cho toạ độ lỗi**
+- [x] **Step 5: Thêm log và fail-closed cho toạ độ lỗi**
 
 Sau pipeline ghi GeoJSON, log một dòng JSON có `activeRead`, `selected`, `thinned`, `byMinZoom`,
 `rankFallback`, `invalidCoordinates`. Nếu `invalidCoordinates > 0`, `throw new Error(...)` trước khi
 gọi Tippecanoe; không tạo/ghi đè archive đích.
 
-- [ ] **Step 6: Chạy focused tests và lint file**
+- [x] **Step 6: Chạy focused tests và lint file**
 
 Run: `pnpm vitest run pipelines/poi/tests/display-priority.test.mjs pipelines/poi/tests/display-selector.test.mjs pipelines/poi/tests/export-tiles.test.mjs && pnpm exec biome check pipelines/poi/src/display-priority.mjs pipelines/poi/src/display-selector.mjs pipelines/poi/src/export-tiles.mjs pipelines/poi/tests/display-priority.test.mjs pipelines/poi/tests/display-selector.test.mjs pipelines/poi/tests/export-tiles.test.mjs`
 
 Expected: PASS, không warning/error.
 
-- [ ] **Step 7: Commit Task 3**
+- [x] **Step 7: Commit Task 3**
 
 ```bash
 git add pipelines/poi/src/export-tiles.mjs pipelines/poi/tests/export-tiles.test.mjs

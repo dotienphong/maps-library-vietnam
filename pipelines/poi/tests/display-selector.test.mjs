@@ -4,9 +4,7 @@ import { CELL_PX_BY_ZOOM, createDisplaySelector, globalCellKey } from '../src/di
 describe('globalCellKey', () => {
   it('ổn định, phân biệt zoom và clamp latitude', () => {
     expect(globalCellKey(106.7, 10.77, 14, 112)).toBe(globalCellKey(106.7, 10.77, 14, 112));
-    expect(globalCellKey(106.7, 10.77, 14, 112)).not.toBe(
-      globalCellKey(106.7, 10.77, 15, 96),
-    );
+    expect(globalCellKey(106.7, 10.77, 14, 112)).not.toBe(globalCellKey(106.7, 10.77, 15, 96));
     expect(globalCellKey(0, 90, 10, 160)).toBe(globalCellKey(0, 85.05112878, 10, 160));
     expect(() => globalCellKey(181, 0, 10, 160)).toThrow(/longitude/);
     expect(() => globalCellKey(0, Number.NaN, 10, 160)).toThrow(/latitude/);
