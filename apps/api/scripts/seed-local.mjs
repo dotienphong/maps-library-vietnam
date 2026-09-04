@@ -3,6 +3,7 @@
 import { execFileSync } from 'node:child_process';
 import { existsSync } from 'node:fs';
 import { resolve } from 'node:path';
+import { LOCAL_STYLE_OBJECTS } from './seed-local-assets.mjs';
 
 const fixture = resolve('../../pipelines/tiles/fixtures/q1.pmtiles');
 const release = 'q1-fixture';
@@ -22,6 +23,17 @@ if (!process.env.MAPSLIBVN_VN_RELEASE) {
     `mapslibvn-tiles/tiles/${release}.pmtiles`,
     '--file',
     fixture,
+    '--local',
+  ]);
+}
+for (const key of LOCAL_STYLE_OBJECTS) {
+  w([
+    'r2',
+    'object',
+    'put',
+    `mapslibvn-tiles/${key}`,
+    '--file',
+    resolve(`../../packages/style/${key}`),
     '--local',
   ]);
 }
