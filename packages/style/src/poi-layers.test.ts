@@ -29,15 +29,26 @@ describe('addPoiLayers', () => {
     attribution,
   });
   const poi = out.layers.find((l: { id: string }) => l.id === 'poi');
+  const major = out.layers.find((l: { id: string }) => l.id === 'poi-label-major');
+  const local = out.layers.find((l: { id: string }) => l.id === 'poi-label-local');
+  const poiLayers = out.layers.filter((l: { source?: string }) => l.source === 'poi');
 
-  it('thêm nguồn poi (template POI_FILE) và lớp symbol poi minzoom 10 trước lớp chủ quyền', () => {
+  it('thêm nguồn POI và ba lớp symbol liền nhau trước lớp chủ quyền', () => {
     expect(out.sources.poi.url).toBe('pmtiles://{TILES_BASE}/tiles/{POI_FILE}.pmtiles');
-    expect(poi).toBeDefined();
-    expect(poi.type).toBe('symbol');
-    expect(poi['source-layer']).toBe('poi');
+    expect(poiLayers.map((layer: { id: string }) => layer.id)).toEqual([
+      'poi',
+      'poi-label-major',
+      'poi-label-local',
+    ]);
+    expect(poiLayers.every((layer: { type: string }) => layer.type === 'symbol')).toBe(true);
+    expect(
+      poiLayers.every((layer: { 'source-layer': string }) => layer['source-layer'] === 'poi'),
+    ).toBe(true);
     expect(poi.minzoom).toBe(10);
-    expect(out.layers.at(-1).id).toBe('sovereignty-label');
-    expect(out.layers.indexOf(poi)).toBe(out.layers.length - 2);
+    const sovereigntyIndex = out.layers.findIndex(
+      (layer: { id: string }) => layer.id === 'sovereignty-label',
+    );
+    expect(out.layers.slice(sovereigntyIndex - 3, sovereigntyIndex)).toEqual(poiLayers);
   });
 
   it('nguồn poi mang trọn chuỗi ghi nguồn của core, trùng khít source openmaptiles', () => {
@@ -56,13 +67,31 @@ describe('addPoiLayers', () => {
     ).toBe(false);
   });
 
-  it('icon theo 12 nhóm + other, mọi icon có trong sprite osm-liberty; nhãn dùng font Noto; sắp theo q', () => {
+  it('icon theo 12 nhóm + other, không ghép text và ưu tiên d với fallback q', () => {
     expect(Object.keys(POI_GROUP_ICONS)).toHaveLength(13);
     for (const icon of Object.values(POI_GROUP_ICONS)) {
       expect(sprite[icon], `sprite thiếu ${icon}`).toBeDefined();
     }
-    expect(poi.layout['text-font']).toEqual(['Noto Sans Regular']);
-    expect(poi.layout['symbol-sort-key']).toEqual(['-', 9, ['get', 'q']]);
+    expect(poi.layout['icon-padding']).toBe(8);
+    expect(poi.layout['text-field']).toBeUndefined();
+    expect(poi.layout['symbol-sort-key']).toEqual([
+      'coalesce',
+      ['get', 'd'],
+      ['-', 9, ['coalesce', ['get', 'q'], 0]],
+    ]);
+  });
+
+  it('nhãn major/local phân tầng theo rank, có fallback cho tile cũ', () => {
+    expect(major.minzoom).toBe(12);
+    expect(major.filter).toEqual(['<=', ['coalesce', ['get', 'r'], 5], 2]);
+    expect(major.layout['text-padding']).toBe(4);
+    expect(major.layout['text-font']).toEqual(['Noto Sans Regular']);
+    expect(local.minzoom).toBe(16);
+    expect(local.filter).toEqual(['>=', ['coalesce', ['get', 'r'], 5], 3]);
+    expect(local.layout['text-padding']).toBe(4);
+    expect(local.layout['text-font']).toEqual(['Noto Sans Regular']);
+    expect(major.layout['symbol-sort-key']).toEqual(poi.layout['symbol-sort-key']);
+    expect(local.layout['symbol-sort-key']).toEqual(poi.layout['symbol-sort-key']);
   });
 
   it('template điền xong hợp lệ theo style-spec', () => {

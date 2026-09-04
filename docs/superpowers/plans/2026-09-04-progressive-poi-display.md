@@ -393,7 +393,7 @@ git commit -m "feat(poi): xuất tile theo display priority và minzoom"
 - Consumes: tile properties `r/d/q` từ Task 3.
 - Produces: layer IDs `poi`, `poi-label-major`, `poi-label-local`, đều source `poi`.
 
-- [ ] **Step 1: Viết test đỏ cho ba layer và fallback**
+- [x] **Step 1: Viết test đỏ cho ba layer và fallback**
 
 ```ts
 const poiLayers = out.layers.filter((l: { source?: string }) => l.source === 'poi');
@@ -413,13 +413,13 @@ expect(local.minzoom).toBe(16);
 Test thêm rằng cả ba layer đứng liền nhau ngay trước `sovereignty-label`, filter dùng
 `['coalesce',['get','r'],5]`, và `validateStyleMin(filled(out))` trả `[]`.
 
-- [ ] **Step 2: Chạy style test và xác nhận RED**
+- [x] **Step 2: Chạy style test và xác nhận RED**
 
 Run: `pnpm vitest run packages/style/src/poi-layers.test.ts`
 
 Expected: FAIL vì hiện chỉ có layer `poi` ghép icon + text.
 
-- [ ] **Step 3: Tách style thành icon và hai label**
+- [x] **Step 3: Tách style thành icon và hai label**
 
 Tạo các expression dùng chung:
 
@@ -432,13 +432,13 @@ const sortKey = ['coalesce', ['get', 'd'], ['-', 9, ['coalesce', ['get', 'q'], 0
 `text-field:['get','name']`, font/size/offset/max-width và paint theme hiện có; major filter
 `['<=', rank, 2]`, local filter `['>=', rank, 3]`.
 
-- [ ] **Step 4: Chạy style test + build templates**
+- [x] **Step 4: Chạy style test + build templates**
 
 Run: `pnpm vitest run packages/style/src/poi-layers.test.ts && pnpm --filter @mapslibvn/core build && pnpm --filter @mapslibvn/style build`
 
 Expected: test PASS; hai template build hợp lệ.
 
-- [ ] **Step 5: Commit Task 4**
+- [x] **Step 5: Commit Task 4**
 
 ```bash
 git add packages/style/src/poi-layers.mjs packages/style/src/poi-layers.test.ts

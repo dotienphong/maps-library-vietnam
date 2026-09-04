@@ -26,6 +26,8 @@ export function addPoiLayers(style, opts) {
     (/** @type {Record<string, any>} */ l) =>
       !(l.source === 'openmaptiles' && l['source-layer'] === 'poi'),
   );
+  const rank = ['coalesce', ['get', 'r'], 5];
+  const sortKey = ['coalesce', ['get', 'd'], ['-', 9, ['coalesce', ['get', 'q'], 0]]];
   const poiLayer = {
     id: 'poi',
     type: 'symbol',
@@ -42,26 +44,58 @@ export function addPoiLayers(style, opts) {
         POI_GROUP_ICONS.other,
       ],
       'icon-size': ['interpolate', ['linear'], ['zoom'], 10, 0.7, 16, 1],
+      'icon-padding': 8,
       'icon-allow-overlap': false,
-      'text-field': ['step', ['zoom'], '', 13, ['get', 'name']],
-      'text-font': ['Noto Sans Regular'],
-      'text-size': ['interpolate', ['linear'], ['zoom'], 13, 10, 18, 13],
-      'text-offset': [0, 1.1],
-      'text-anchor': 'top',
-      'text-max-width': 8,
-      'text-optional': true,
-      'symbol-sort-key': ['-', 9, ['get', 'q']],
+      'symbol-sort-key': sortKey,
     },
-    paint: {
-      'text-color': dark ? '#e8e8e8' : '#333333',
-      'text-halo-color': dark ? '#111111' : '#ffffff',
-      'text-halo-width': 1.2,
+  };
+  const labelLayout = {
+    'text-field': ['get', 'name'],
+    'text-font': ['Noto Sans Regular'],
+    'text-size': ['interpolate', ['linear'], ['zoom'], 12, 10, 18, 13],
+    'text-offset': [0, 1.1],
+    'text-anchor': 'top',
+    'text-max-width': 8,
+    'text-padding': 4,
+    'symbol-sort-key': sortKey,
+  };
+  const labelPaint = {
+    'text-color': dark ? '#e8e8e8' : '#333333',
+    'text-halo-color': dark ? '#111111' : '#ffffff',
+    'text-halo-width': 1.2,
+  };
+  const majorLabelLayer = {
+    id: 'poi-label-major',
+    type: 'symbol',
+    source: 'poi',
+    'source-layer': 'poi',
+    minzoom: 12,
+    filter: ['<=', rank, 2],
+    layout: labelLayout,
+    paint: labelPaint,
+  };
+  const localLabelLayer = {
+    id: 'poi-label-local',
+    type: 'symbol',
+    source: 'poi',
+    'source-layer': 'poi',
+    minzoom: 16,
+    filter: ['>=', rank, 3],
+    layout: {
+      ...labelLayout,
     },
+    paint: { ...labelPaint },
   };
   const sovereigntyIdx = layers.findIndex(
     (/** @type {Record<string, any>} */ l) => l.id === 'sovereignty-label',
   );
-  layers.splice(sovereigntyIdx < 0 ? layers.length : sovereigntyIdx, 0, poiLayer);
+  layers.splice(
+    sovereigntyIdx < 0 ? layers.length : sovereigntyIdx,
+    0,
+    poiLayer,
+    majorLabelLayer,
+    localLabelLayer,
+  );
   return {
     ...style,
     sources: {
