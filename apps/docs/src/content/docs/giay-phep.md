@@ -28,6 +28,8 @@ SDK luôn hiển thị điều khiển attribution. Có tuỳ chọn `compact` n
 © MapsLibVN · © OpenStreetMap contributors (ODbL) · © OpenMapTiles · Places: Overture Maps Foundation (CDLA-Permissive 2.0), Foursquare OS Places (Apache-2.0)
 ```
 
+Trên bản đồ, chuỗi này được ghép từ hai chỗ: mỗi nguồn tiles trong file style tự khai phần ghi nguồn của nó, còn SDK thêm dòng `© MapsLibVN`. Vì vậy thứ tự hiển thị có thể khác đoạn trên, nhưng đủ mặt các bên. Cách chia này để bản đồ vẫn có ghi nguồn khi ai đó nạp thẳng file style vào MapLibre mà không qua SDK.
+
 Nếu bạn hiển thị kết quả API ngoài bản đồ (danh sách, trang chi tiết địa điểm), hãy lấy chuỗi này từ API và kèm ở cùng màn hình:
 
 ```js

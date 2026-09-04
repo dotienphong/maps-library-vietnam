@@ -26,7 +26,7 @@ Toàn bộ export của `packages/core/src/index.ts`:
 |---|---|
 | Client | `createClient`, kiểu `ClientOptions`, `MapsLibVNClient`, `AttributionResponse`, `Theme` |
 | Lỗi | `MapsLibVNError` |
-| Ghi nguồn | `attributionText()`, `attributionHtml()`, `ATTRIBUTION_LINKS`, kiểu `AttributionLink` |
+| Ghi nguồn | `attributionText()`, `attributionHtml()`, `mapsLibVNAttributionHtml()`, `ATTRIBUTION_LINKS`, kiểu `AttributionLink` |
 | Chuẩn hoá tiếng Việt | `normalizeVi`, `stripDiacritics`, `expandAbbrev`, `applyBrandAlias`, `nameCore`, `NAME_FILLERS` |
 | Phân tích địa chỉ | `parseAddress`, kiểu `ParsedAddress`, `AlleyKeyword` |
 | Biến đổi style | `localizeStyle`, `hidePoiLayer`, `nameExpression`, `isNameLabelLayer`, `POI_LAYER_ID`, kiểu `Lang`, `StyleLike`, `StyleLayerLike` |
@@ -106,6 +106,7 @@ try {
 ### Hàm tiện ích
 
 - `attributionText()` và `attributionHtml()` trả chuỗi ghi nguồn bắt buộc (bản chữ và bản có thẻ `<a>`), sinh từ `ATTRIBUTION_LINKS`. Dùng khi bạn hiển thị dữ liệu ngoài bản đồ và không muốn gọi mạng.
+- `mapsLibVNAttributionHtml()` trả riêng dòng `© MapsLibVN`, không kèm nguồn dữ liệu. Dùng khi bản đồ đã tự khai ghi nguồn ở tầng style — chính `createMap` dùng hàm này cho theme `light`/`dark` (mục 3).
 - `normalizeVi(s)` chuẩn hoá một chuỗi theo đúng cách máy chủ chuẩn hoá trước khi so khớp: bỏ dấu, bung viết tắt, bỏ dấu câu. Dùng để so sánh phía client, không dùng để hiển thị.
 - `nameCore(s)` bỏ các từ đệm ở đầu tên (`cong ty`, `quan`, `cafe`…) và áp alias thương hiệu.
 - `parseAddress(s)` tách một câu địa chỉ thành số nhà, chuỗi hẻm, đường, phường, quận, tỉnh kèm `confidence`.
@@ -142,7 +143,14 @@ const map = createMap(
 
 Tham số thứ hai là `deps`. Bản ESM cần `{ maplibre: maplibregl }`; nếu không truyền, `createMap` lấy `globalThis.maplibregl`, và không có thì ném `Error` thường (không phải `MapsLibVNError`) với thông điệp "Cần maplibre-gl…". Bản UMD đã đóng gói MapLibre nên `deps` không cần thiết. Giao thức `pmtiles://` được đăng ký đúng một lần cho cả trang.
 
-`createMap` **luôn** tự thêm `AttributionControl` với chuỗi ghi nguồn chuẩn và tắt attribution mặc định của MapLibre.
+`createMap` **luôn** tự thêm `AttributionControl` và tắt attribution mặc định của MapLibre. Chuỗi được thêm phụ thuộc `style`:
+
+| `style` | `customAttribution` được thêm |
+|---|---|
+| `'light'` hoặc `'dark'` | `mapsLibVNAttributionHtml()` — chỉ dòng `© MapsLibVN` |
+| URL style tuỳ biến | `attributionHtml()` — chuỗi ghi nguồn đầy đủ |
+
+Lý do: style `light`/`dark` do Worker phục vụ đã khai `attribution` ngay trong từng source, nên MapLibre tự gom đủ nguồn dữ liệu; thêm cả chuỗi đầy đủ nữa sẽ hiển thị OpenStreetMap, OpenMapTiles, Overture và Foursquare hai lần. Với style lạ thì SDK không biết style đó khai gì nên thêm đủ. Dù đi nhánh nào, phần hiển thị cuối cùng vẫn có mặt đủ các bên phải ghi nguồn.
 
 ### Bản đồ trả về
 

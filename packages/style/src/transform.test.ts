@@ -71,6 +71,13 @@ describe('transformStyle (tiny base)', () => {
     expect(out.sprite).toBe('{TILES_BASE}/assets/sprites/osm-liberty');
   });
 
+  it('nguồn openmaptiles tự mang ghi nguồn kèm nhãn ODbL', () => {
+    // Style là endpoint công khai: ai nạp thẳng vào maplibre thuần vẫn phải thấy ghi nguồn.
+    expect(out.sources.openmaptiles.attribution).toBe(
+      '© OpenStreetMap contributors (ODbL) · © OpenMapTiles',
+    );
+  });
+
   it('bỏ layer raster; nhãn tên dùng coalesce name:vi; housenumber giữ nguyên', () => {
     const ids = out.layers.map((layer: { id: string }) => layer.id);
     expect(ids).not.toContain('relief');

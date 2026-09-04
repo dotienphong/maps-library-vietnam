@@ -37,6 +37,14 @@ describe('addPoiLayers', () => {
     expect(out.layers.indexOf(poi)).toBe(out.layers.length - 2);
   });
 
+  it('nguồn poi tự mang ghi nguồn Overture + Foursquare', () => {
+    // SDK chỉ thêm dòng © MapsLibVN cho theme của mình, nên hai nguồn Places PHẢI nằm ở đây;
+    // gỡ dòng này là bản đồ mất ghi nguồn Places (spec 7.2).
+    expect(out.sources.poi.attribution).toBe(
+      'Places: Overture Maps Foundation (CDLA-Permissive 2.0), Foursquare OS Places (Apache-2.0)',
+    );
+  });
+
   it('bỏ các lớp POI của base (source-layer poi từ openmaptiles) để không trùng icon', () => {
     expect(
       out.layers.some(

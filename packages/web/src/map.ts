@@ -4,6 +4,7 @@ import {
   type Theme,
   attributionHtml,
   createClient,
+  mapsLibVNAttributionHtml,
 } from '@mapslibvn/core';
 import type maplibregl from 'maplibre-gl';
 import { type Lang, applyLanguage } from './language';
@@ -65,7 +66,8 @@ export function createMap(opts: CreateMapOptions, deps?: Deps): MapsLibVNMap {
 
   const places = createClient({ apiKey: opts.apiKey, baseUrl: opts.apiBase });
   const styleOpt = opts.style ?? 'light';
-  const style = isTheme(styleOpt) ? places.styleUrl(styleOpt) : styleOpt;
+  const ownTheme = isTheme(styleOpt);
+  const style = ownTheme ? places.styleUrl(styleOpt) : styleOpt;
 
   const gl = new ml.Map({
     container: opts.container,
@@ -74,10 +76,13 @@ export function createMap(opts: CreateMapOptions, deps?: Deps): MapsLibVNMap {
     zoom: opts.zoom ?? 12,
     attributionControl: false,
   });
+  // Style của MapsLibVN đã khai `attribution` ở từng source, nên chỉ thêm dòng bản quyền
+  // MapsLibVN; thêm cả chuỗi đầy đủ sẽ khiến MapLibre hiển thị nguồn hai lần. Style lạ thì
+  // không biết nó khai gì, phải thêm đủ.
   gl.addControl(
     new ml.AttributionControl({
       compact: opts.compactAttribution ?? false,
-      customAttribution: attributionHtml(),
+      customAttribution: ownTheme ? mapsLibVNAttributionHtml() : attributionHtml(),
     }),
   );
 

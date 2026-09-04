@@ -74,7 +74,7 @@ export function transformStyle(base, options) {
       openmaptiles: {
         type: 'vector',
         url: 'pmtiles://{TILES_BASE}/tiles/{VN_FILE}.pmtiles',
-        attribution: '© OpenStreetMap contributors · © OpenMapTiles',
+        attribution: '© OpenStreetMap contributors (ODbL) · © OpenMapTiles',
       },
       sovereignty: { type: 'geojson', data: options.sovereignty },
     },

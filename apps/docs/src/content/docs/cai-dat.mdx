@@ -202,9 +202,8 @@ map.gl.on('error', (e) => console.error('LỖI:', e.error?.message));
 Ba dấu hiệu cài đúng:
 
 1. Sự kiện `load` chạy — style đọc được từ `/v1/styles/light.json`.
-2. Điều khiển ghi nguồn hiện ở góc dưới phải, có chữ `OpenStreetMap`. SDK **luôn** thêm
-   attribution, chỉ có tuỳ chọn `compactAttribution` để thu gọn — xem
-   [Giấy phép & ghi nguồn](/giay-phep/).
+2. Điều khiển ghi nguồn hiện ở góc dưới phải, có chữ `OpenStreetMap`. Ghi nguồn **luôn** hiện và
+   chỉ có tuỳ chọn `compactAttribution` để thu gọn — xem [Giấy phép & ghi nguồn](/giay-phep/).
 3. Trên tab Network, các request tiles trả `206 Partial Content` (hoặc `200`): PMTiles đọc bằng
    HTTP Range trực tiếp từ R2.
 

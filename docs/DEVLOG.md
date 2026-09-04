@@ -67,6 +67,24 @@ commit với code).
 
 ## 2. Bước kế tiếp
 
+- **04/09/2026 — sửa ghi nguồn hiện hai lần trên bản đồ.** Trước đó `AttributionControl` hiển thị ba
+  khối: hai khối do từng source trong style tự khai, một khối do SDK thêm bằng `attributionHtml()`,
+  nên OpenStreetMap, OpenMapTiles, Overture và Foursquare mỗi bên hiện hai lần (MapLibre chỉ gộp
+  trùng khi hai chuỗi giống hệt nhau). Cách sửa: `@mapslibvn/core` thêm `mapsLibVNAttributionHtml()`
+  trả riêng dòng `© MapsLibVN`; `createMap` dùng hàm này khi `style` là theme `light`/`dark` của
+  MapsLibVN, và giữ `attributionHtml()` đầy đủ khi `style` là URL tuỳ biến. **Không gỡ ghi nguồn khỏi
+  style** vì style là endpoint công khai, ai nạp thẳng vào maplibre-gl thuần vẫn phải thấy nguồn;
+  ngược lại còn thêm nhãn `(ODbL)` vào source `openmaptiles` để không mất thông tin giấy phép. Kết quả
+  đo trên bản build: `© OpenStreetMap contributors (ODbL) · © OpenMapTiles | Places: Overture…,
+  Foursquare… | © MapsLibVN`, mỗi bên đúng một lần. Hệ quả có chủ đích: fixture e2e chưa có tiles POI
+  nên `renderStyle` bỏ source `poi` và bản đồ local không hiện hai nguồn Places — đúng, vì lúc đó bản
+  đồ không vẽ dữ liệu của chúng; hai test mới khoá chuỗi ghi nguồn của cả hai source để không ai gỡ
+  nhầm. Sửa kèm: spec mục 7.2, `sdk.md`, `tinh-nang.md`, `cai-dat.mdx`, `giay-phep.md`. Gate: lint 275
+  file, typecheck 14/14, vitest 59 file / 611 test, API 20 file / 95 test, build 20 trang, Playwright
+  26/26. **React Native không đổi** — bản đó vẽ overlay riêng cộng nút thông tin native, không chồng
+  nhau. Khuyến nghị còn treo: khoá `web` vẫn được cho qua khi không có Origin (chủ ý MVP).
+
+
 - **04/09/2026 — Website docs hoàn chỉnh (chưa commit, chờ PHONG duyệt).** Rà soát toàn hệ thống rồi
   viết spec `docs/superpowers/specs/2026-09-04-docs-site-hoan-chinh-design.md` và plan
   `docs/superpowers/plans/2026-09-04-docs-site-hoan-chinh.md` (Fable 5.1 lập, Opus 5 thực hiện 5 task).
