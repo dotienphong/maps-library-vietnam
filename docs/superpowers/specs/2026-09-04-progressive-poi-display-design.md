@@ -1,7 +1,7 @@
 # Spec — Hiển thị POI tăng dần theo mức zoom
 
-Ngày: 04/09/2026. Trạng thái: thiết kế đã được PHONG duyệt trong hội thoại, chờ duyệt tài liệu
-trước khi viết implementation plan.
+Ngày: 04/09/2026. Trạng thái: PHONG đã duyệt tài liệu; implementation plan:
+`docs/superpowers/plans/2026-09-04-progressive-poi-display.md`.
 
 ## 1. Vấn đề
 
