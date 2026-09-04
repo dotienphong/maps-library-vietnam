@@ -1,15 +1,26 @@
 import { expect, test } from '@playwright/test';
 
-// 5 trang spec 7.4 + 2 trang pháp lý sinh lúc prebuild (M5 Task 2).
+// Mọi trang trong sidebar (spec docs-site 04/09/2026 mục 4) + 2 trang pháp lý sinh lúc prebuild
+// (M5 Task 2) + trang Astro `/react-demo/` (không phải trang Starlight, nhưng có `h1` trong header).
 // Chỉ kiểm link nội bộ để CI không phụ thuộc Internet.
 const PAGES = [
   '/',
+  '/tinh-nang/',
+  '/cai-dat/',
+  '/khoa-api/',
   '/bat-dau/',
   '/react-native/',
-  '/tu-host/',
-  '/giay-phep/',
+  '/ban-do-web/',
+  '/tim-kiem/',
+  '/react/',
   '/do-chinh-xac/',
   '/dong-gop/',
+  '/tu-host/',
+  '/api/',
+  '/sdk/',
+  '/nhung-thu/',
+  '/react-demo/',
+  '/giay-phep/',
   '/dieu-khoan/',
   '/thong-bao-ben-thu-ba/',
 ];

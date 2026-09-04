@@ -8,7 +8,16 @@ export default defineConfig({
       'packages/*/tests/**/*.test.ts',
       'pipelines/*/src/**/*.test.{ts,mjs}',
       'pipelines/*/tests/**/*.test.mjs',
+      'apps/docs/scripts/**/*.test.mjs',
+      'apps/docs/src/**/*.test.ts',
     ],
-    exclude: ['**/node_modules/**', '**/dist/**', 'apps/**', '**/*.dbtest.mjs'],
+    exclude: [
+      '**/node_modules/**',
+      '**/dist/**',
+      'apps/**/node_modules/**',
+      'apps/**/dist/**',
+      'apps/**/e2e/**',
+      '**/*.dbtest.mjs',
+    ],
   },
 });

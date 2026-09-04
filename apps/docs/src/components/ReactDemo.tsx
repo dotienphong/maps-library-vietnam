@@ -2,6 +2,7 @@ import { type AutocompleteItem, createClient } from '@mapslibvn/core';
 import { MapsLibVNMap, Marker, useMap, usePlaces } from '@mapslibvn/react';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import { useEffect, useMemo, useState } from 'react';
+import { PRODUCTION_API_BASE, resolveApiBase } from '../lib/api-base';
 
 const API_KEY = 'mlv_live_demo00000000000000000000';
 const DEFAULT_CENTER: [number, number] = [106.7, 10.776];
@@ -14,8 +15,9 @@ function SelectedPlace({ item }: { item: AutocompleteItem }) {
 
 export default function ReactDemo() {
   const apiBase =
-    new URLSearchParams(typeof location === 'undefined' ? '' : location.search).get('api') ??
-    'http://localhost:8787';
+    typeof location === 'undefined'
+      ? PRODUCTION_API_BASE
+      : resolveApiBase(location.search, location.hostname);
   const client = useMemo(() => createClient({ apiKey: API_KEY, baseUrl: apiBase }), [apiBase]);
   const [query, setQuery] = useState('');
   const [selected, setSelected] = useState<AutocompleteItem | null>(null);

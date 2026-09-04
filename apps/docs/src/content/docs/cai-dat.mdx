@@ -1,0 +1,224 @@
+---
+title: Cài đặt
+description: Bốn cách nhúng MapsLibVN — script tag UMD, npm ESM, React, React Native — kèm yêu cầu và cách kiểm tra đã cài đúng.
+---
+
+import { Aside, Tabs, TabItem } from '@astrojs/starlight/components';
+
+MapsLibVN có bốn gói: `@mapslibvn/core` (client REST thuần), `@mapslibvn/web` (bản đồ MapLibre + web
+component), `@mapslibvn/react` và `@mapslibvn/react-native`. Trang này chỉ nói về **cài đặt**; cách
+dùng nằm ở [Bản đồ web](/ban-do-web/) và [Tìm kiếm & autocomplete](/tim-kiem/).
+
+<Aside type="caution" title="Bốn gói `@mapslibvn/*` chưa publish lên npm">
+Đang rà soát nhãn hiệu tên "MapsLibVN" trước khi publish (checklist pháp lý B3). Vì vậy hiện có
+**hai cách dùng**:
+
+1. **Bản UMD phục vụ sẵn** từ `https://mapslibvn-docs.pages.dev/sdk/` — không cần npm, chạy được
+   ngay (tab "Script tag" bên dưới). Đây là cách khuyến nghị lúc này.
+2. **Tarball `pnpm pack`** dựng từ repo — chỉ dành cho người đã có quyền truy cập repo (repo còn
+   private, xin quyền theo [Điều khoản tenant](/dieu-khoan/) mục 10).
+
+Các lệnh `pnpm add @mapslibvn/…` trong tab npm/React là dạng sẽ dùng **sau khi** publish; hôm nay
+chúng chưa chạy được.
+</Aside>
+
+## 1. Bốn cách nhúng
+
+<Tabs>
+<TabItem label="Script tag (UMD)">
+
+Không cần build, không cần npm. Bản UMD đã đóng gói sẵn `maplibre-gl` và `pmtiles`, phơi ra global
+`MapsLibVN`, và **tự đăng ký** web component `<mapslibvn-autocomplete>`.
+
+```html
+<link rel="stylesheet" href="https://mapslibvn-docs.pages.dev/sdk/mapslibvn.css" />
+<script src="https://mapslibvn-docs.pages.dev/sdk/mapslibvn.umd.js"></script>
+
+<div id="map" style="height:400px"></div>
+<mapslibvn-autocomplete
+  id="ac"
+  api-key="mlv_live_…"
+  api-base="https://api.ai-solutions.io.vn"
+></mapslibvn-autocomplete>
+
+<script>
+  const map = MapsLibVN.createMap({
+    container: 'map',
+    apiKey: 'mlv_live_…',
+    apiBase: 'https://api.ai-solutions.io.vn',
+    center: [106.70, 10.776],
+    zoom: 13,
+  });
+  // Gán map để autocomplete lấy tâm bản đồ làm tham số `near`.
+  document.getElementById('ac').map = map;
+</script>
+```
+
+Global `MapsLibVN` gồm: `createMap`, `maplibregl`, `createClient`, `MapsLibVNError`,
+`attributionHtml`, `attributionText`, `applyLanguage`, `nameExpression`, `MapsLibVNAutocomplete`,
+`defineAutocomplete`.
+
+`mapslibvn.css` là CSS của MapLibre đóng gói kèm — thiếu nó thì bản đồ hiện sai (điều khiển chồng
+lên nhau, popup không có khung).
+
+Nếu bạn tự host SDK, hãy thay tên miền: cả `mapslibvn-docs.pages.dev` lẫn `api.ai-solutions.io.vn`
+đều là endpoint **tạm thời** của giai đoạn nội bộ. Xem [Tự host](/tu-host/).
+
+</TabItem>
+<TabItem label="npm (ESM)">
+
+<Aside type="caution">
+`@mapslibvn/web` **chưa có trên npm**. Lệnh dưới đây chỉ chạy được sau khi publish (checklist B3).
+Muốn dùng ngay: chọn tab "Script tag (UMD)", hoặc dựng tarball từ repo — xem mục 3 bên dưới.
+</Aside>
+
+```bash
+pnpm add @mapslibvn/web maplibre-gl
+```
+
+`maplibre-gl@^5` là **peer dependency** — bạn phải tự cài. Bản ESM không gộp maplibre, nên phải
+truyền vào qua `deps`:
+
+```ts
+import 'maplibre-gl/dist/maplibre-gl.css';
+import maplibregl from 'maplibre-gl';
+import { createMap, defineAutocomplete } from '@mapslibvn/web';
+
+defineAutocomplete(); // bản ESM KHÔNG tự đăng ký <mapslibvn-autocomplete>
+
+const map = createMap(
+  {
+    container: 'map',
+    apiKey: 'mlv_live_…',
+    apiBase: 'https://api.ai-solutions.io.vn',
+  },
+  { maplibre: maplibregl },
+);
+```
+
+Bỏ tham số thứ hai thì `createMap` tìm `globalThis.maplibregl`; không thấy sẽ ném
+`Error: Cần maplibre-gl: import maplibre-gl hoặc dùng bản UMD @mapslibvn/web/umd`.
+
+Hai khác biệt so với bản UMD: bạn tự import CSS của MapLibre, và bạn tự gọi `defineAutocomplete()`.
+
+</TabItem>
+<TabItem label="React">
+
+<Aside type="caution">
+`@mapslibvn/react` cũng **chưa có trên npm** (checklist B3). Xem mục 3 để dựng tarball từ repo.
+</Aside>
+
+```bash
+pnpm add @mapslibvn/react maplibre-gl
+```
+
+Peer dependencies: `maplibre-gl@^5` và `react>=18`. Gói tự import `maplibre-gl` bên trong, bạn
+không cần truyền `deps`.
+
+```tsx
+import 'maplibre-gl/dist/maplibre-gl.css';
+import { MapsLibVNMap, Marker } from '@mapslibvn/react';
+
+export function BanDo() {
+  return (
+    <MapsLibVNMap
+      apiKey="mlv_live_…"
+      apiBase="https://api.ai-solutions.io.vn"
+      center={[106.7, 10.776]}
+      zoom={13}
+      containerStyle={{ height: 400 }}
+      onLoad={(map) => console.log('đã tải', map.gl.getZoom())}
+    >
+      <Marker lng={106.6981} lat={10.7725} popupHtml="<b>Chợ Bến Thành</b>" />
+    </MapsLibVNMap>
+  );
+}
+```
+
+Chi tiết props và hook: [React](/react/).
+
+</TabItem>
+<TabItem label="React Native">
+
+App iOS/Android dùng `@mapslibvn/react-native`, bọc
+[`@maplibre/maplibre-react-native`](https://maplibre.org/maplibre-react-native/) với cùng API như
+bản React.
+
+```bash
+npx expo install @maplibre/maplibre-react-native expo-application
+npm install <đường dẫn tarball @mapslibvn/react-native>
+```
+
+Khác với web ở bốn điểm: cần khoá kind **`mobile`** (không kiểm origin), cần New Architecture,
+**không chạy trên Expo Go**, và tarball của gói này **tự chứa** `@mapslibvn/core` nên chỉ cần cài
+một file. Lệnh `pnpm example:rn` trong repo dựng sẵn cả quy trình.
+
+Toàn bộ hướng dẫn: [React Native](/react-native/).
+
+</TabItem>
+</Tabs>
+
+## 2. Yêu cầu
+
+| Môi trường | Tối thiểu |
+|---|---|
+| Trình duyệt | 2 bản mới nhất của Chrome, Edge, Firefox, Safari; iOS Safari 16+ |
+| `maplibre-gl` (bản ESM và React) | `^5.0.0`, peer dependency — bản UMD đã gộp sẵn |
+| React (`@mapslibvn/react`) | `>=18` |
+| React Native (`@mapslibvn/react-native`) | RN `>=0.80` New Architecture, React `>=19.1`, `@maplibre/maplibre-react-native` `^11.3.0`, Android API 23, Expo SDK 54+ |
+| Node (chỉ khi dựng SDK từ repo) | 22+, pnpm 9.15 |
+| Khoá API | kind `web` cho trang web, kind `mobile` cho app — xem [Khoá API](/khoa-api/) |
+
+Bản đồ dùng WebGL. Máy không có WebGL thì MapLibre không khởi tạo được và `createMap` ném lỗi.
+
+## 3. Cài từ tarball khi có quyền repo
+
+Chưa publish npm nên cách duy nhất dùng bản ESM là đóng gói từ repo. `pnpm pack` không nhận
+`--filter`, phải chạy trong thư mục gói:
+
+```bash
+pnpm --filter @mapslibvn/core --filter @mapslibvn/web build
+cd packages/core && pnpm pack --pack-destination /tmp/mlv && cd -
+cd packages/web  && pnpm pack --pack-destination /tmp/mlv && cd -
+
+# trong dự án của bạn
+npm install /tmp/mlv/mapslibvn-core-0.1.0.tgz /tmp/mlv/mapslibvn-web-0.1.0.tgz maplibre-gl
+```
+
+Phải cài **cả hai** tarball: `@mapslibvn/web` để `@mapslibvn/core` ở dạng dependency ngoài
+(`dist/index.js` vẫn `import … from '@mapslibvn/core'`), chưa publish nên npm không tự tải được.
+Dùng React thì cần ba tarball: `core`, `web`, `react`. Riêng `@mapslibvn/react-native` gộp sẵn
+`core` vào `dist`, chỉ cần một tarball.
+
+## 4. Kiểm tra đã cài đúng
+
+```js
+const map = MapsLibVN.createMap({ container: 'map', apiKey: 'mlv_live_…', apiBase: '…' });
+
+map.on('load', () => console.log('OK — style và tiles đã tải'));
+map.gl.on('error', (e) => console.error('LỖI:', e.error?.message));
+```
+
+Ba dấu hiệu cài đúng:
+
+1. Sự kiện `load` chạy — style đọc được từ `/v1/styles/light.json`.
+2. Điều khiển ghi nguồn hiện ở góc dưới phải, có chữ `OpenStreetMap`. SDK **luôn** thêm
+   attribution, chỉ có tuỳ chọn `compactAttribution` để thu gọn — xem
+   [Giấy phép & ghi nguồn](/giay-phep/).
+3. Trên tab Network, các request tiles trả `206 Partial Content` (hoặc `200`): PMTiles đọc bằng
+   HTTP Range trực tiếp từ R2.
+
+## 5. Lỗi hay gặp
+
+| Hiện tượng | Nguyên nhân | Cách xử lý |
+|---|---|---|
+| Không có bản đồ, console báo `403` với `origin_not_allowed` | Khoá kind `web` nhưng origin của trang không nằm trong `allowed_origins` | Xin bổ sung origin, hoặc thử bằng khoá demo trên `localhost` — xem [Khoá API](/khoa-api/) |
+| `401 missing_key` / `401 invalid_key` | Chưa truyền khoá, hoặc khoá đã bị thu hồi | Truyền qua header `X-Api-Key` hoặc `?key=` |
+| Bản đồ hiện nhưng điều khiển vỡ, popup không có khung | Thiếu CSS | Bản UMD: thêm `mapslibvn.css`. Bản ESM: `import 'maplibre-gl/dist/maplibre-gl.css'` |
+| `Error: Cần maplibre-gl…` | Bản ESM thiếu peer `maplibre-gl`, hoặc quên truyền `{ maplibre: maplibregl }` | Cài `maplibre-gl@^5` và truyền vào `createMap` |
+| `<mapslibvn-autocomplete>` không hiện gì | Bản ESM chưa gọi `defineAutocomplete()` | Gọi một lần lúc khởi động ứng dụng |
+| Ô autocomplete có nhưng không gợi ý | Thiếu `api-key` hoặc `api-base`, hoặc gõ dưới 2 ký tự | Đặt đủ hai thuộc tính; component chỉ gọi API từ 2 ký tự trở lên |
+| Khung bản đồ cao 0px | Thẻ chứa map không có chiều cao | Đặt `height` cho `#map` (hoặc `containerStyle` ở React) |
+
+Đọc thêm: [Khoá API](/khoa-api/) để lấy khoá đúng loại, [Nhúng thử trang của bạn](/nhung-thu/) để
+chạy một trang HTML trắng trong 2 phút, [Bắt đầu 5 phút](/bat-dau/) cho đường nhanh nhất.

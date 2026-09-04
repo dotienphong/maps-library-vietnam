@@ -4,50 +4,277 @@
   <meta charset="utf-8" />
   <title>MapsLibVN Playground</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="description" content="Chạy thử bản đồ và Places API của MapsLibVN bằng khoá demo hoặc khoá riêng." />
   <link rel="stylesheet" href="/sdk/mapslibvn.css" />
-  <style>
-    html, body, #map { height: 100%; margin: 0; }
-    #status { position: fixed; top: 8px; left: 8px; background: #fff; padding: 6px 10px; font: 13px system-ui; border-radius: 6px; z-index: 10; }
-    mapslibvn-autocomplete { position: fixed; top: 8px; right: 8px; width: min(320px, calc(100vw - 16px)); z-index: 20; }
-  </style>
+  <link rel="stylesheet" href="/playground.css" />
 </head>
-<body>
-  <div id="status" data-state="loading">Đang tải…</div>
-  <mapslibvn-autocomplete id="ac" placeholder="Tìm địa điểm…"></mapslibvn-autocomplete>
-  <div id="map"></div>
-  <script src="/sdk/mapslibvn.umd.js"></script>
-  <script type="module">
-    import { resolveApiBase } from '/playground-config.js';
+<body data-panel="open">
+  <h1 class="pg-sr">MapsLibVN Playground</h1>
 
-    const params = new URLSearchParams(location.search);
-    const apiBase = resolveApiBase();
-    const status = document.getElementById('status');
-    try {
-      const map = MapsLibVN.createMap({
-        container: 'map',
-        apiKey: params.get('key') || 'mlv_live_demo00000000000000000000',
-        apiBase,
-        style: params.get('style') || 'light',
-        center: [106.700, 10.776],
-        zoom: 14,
-      });
-      map.on('load', () => { status.textContent = 'Bản đồ đã tải'; status.dataset.state = 'loaded'; });
-      map.gl.on('error', (e) => { console.warn('maplibre', e.error && e.error.message); });
-      map.addMarker({ lng: 106.6981, lat: 10.7725, popupHtml: '<b>Chợ Bến Thành</b>' });
-      map.on('poiClick', (poi) => { status.textContent = `${poi.name} · ${poi.category} (${poi.group})`; });
-      window.__map = map;
-      const ac = document.getElementById('ac');
-      ac.setAttribute('api-key', params.get('key') || 'mlv_live_demo00000000000000000000');
-      ac.setAttribute('api-base', apiBase);
-      ac.map = map;
-      ac.addEventListener('select', (e) => {
-        const item = e.detail;
-        map.flyTo([item.lng, item.lat], 16);
-        status.textContent = `Đã chọn: ${item.name}`;
-      });
-    } catch (e) {
-      status.textContent = 'Lỗi: ' + e.message; status.dataset.state = 'error';
-    }
-  </script>
+  <div id="map"></div>
+  <div id="status" data-state="loading" role="status" aria-live="polite">Đang tải…</div>
+
+  <aside id="panel" aria-label="Bảng điều khiển playground">
+    <header class="pg-head">
+      <a class="pg-back" href="/">← Tài liệu</a>
+      <strong class="pg-title">Playground</strong>
+      <button
+        id="panel-toggle"
+        type="button"
+        class="pg-icon"
+        aria-controls="panel"
+        aria-expanded="true"
+      >
+        <span id="panel-toggle-label">Thu gọn</span>
+      </button>
+    </header>
+
+    <div class="pg-quick">
+      <p class="pg-label" id="ac-label">Tìm nhanh địa điểm</p>
+      <mapslibvn-autocomplete id="ac" placeholder="Tìm địa điểm…"></mapslibvn-autocomplete>
+    </div>
+
+    <div class="pg-tabs" role="tablist" aria-label="Nhóm công cụ">
+      <button
+        type="button"
+        role="tab"
+        id="tab-ban-do"
+        data-tab="ban-do"
+        aria-controls="panel-ban-do"
+        aria-selected="true"
+      >Bản đồ</button>
+      <button
+        type="button"
+        role="tab"
+        id="tab-tim-kiem"
+        data-tab="tim-kiem"
+        aria-controls="panel-tim-kiem"
+        aria-selected="false"
+        tabindex="-1"
+      >Tìm kiếm</button>
+      <button
+        type="button"
+        role="tab"
+        id="tab-geocode"
+        data-tab="geocode"
+        aria-controls="panel-geocode"
+        aria-selected="false"
+        tabindex="-1"
+      >Geocode</button>
+      <button
+        type="button"
+        role="tab"
+        id="tab-ma-nhung"
+        data-tab="ma-nhung"
+        aria-controls="panel-ma-nhung"
+        aria-selected="false"
+        tabindex="-1"
+      >Mã nhúng</button>
+    </div>
+
+    <div class="pg-body">
+      <!-- Tab 1: Bản đồ -->
+      <section
+        class="pg-tabpanel"
+        role="tabpanel"
+        id="panel-ban-do"
+        aria-labelledby="tab-ban-do"
+        tabindex="0"
+      >
+        <p class="pg-hint">
+          Đổi tuỳ chọn rồi bấm “Áp dụng” để tạo lại bản đồ. Địa chỉ trang tự cập nhật nên chia sẻ
+          được nguyên trạng.
+        </p>
+
+        <div class="pg-field">
+          <label for="f-style">Chủ đề</label>
+          <select id="f-style">
+            <option value="light">Sáng — light</option>
+            <option value="dark">Tối — dark</option>
+          </select>
+        </div>
+
+        <div class="pg-field">
+          <label for="f-lang">Ngôn ngữ nhãn</label>
+          <select id="f-lang">
+            <option value="vi">Tiếng Việt — vi</option>
+            <option value="en">English — en</option>
+          </select>
+        </div>
+
+        <label class="pg-check"><input type="checkbox" id="f-poi" /> Hiện lớp POI</label>
+        <label class="pg-check">
+          <input type="checkbox" id="f-compact" /> Attribution gọn
+        </label>
+
+        <div class="pg-field">
+          <label for="f-key">Khoá API</label>
+          <input id="f-key" type="text" spellcheck="false" autocomplete="off" />
+        </div>
+        <p class="pg-hint">
+          Mặc định là khoá demo <code>mlv_live_demo00000000000000000000</code>, chỉ chạy trên
+          <code>mapslibvn-docs.pages.dev</code>, <code>localhost</code> và <code>127.0.0.1</code>.
+        </p>
+
+        <div class="pg-field">
+          <label for="f-api">Gốc API</label>
+          <input id="f-api" type="text" spellcheck="false" autocomplete="off" />
+        </div>
+
+        <div class="pg-row">
+          <button id="apply" type="button" class="pg-primary">Áp dụng</button>
+          <button id="reset" type="button">Về mặc định</button>
+        </div>
+
+        <dl class="pg-view">
+          <dt>Tâm</dt><dd id="v-center">—</dd>
+          <dt>Zoom</dt><dd id="v-zoom">—</dd>
+        </dl>
+
+        <div id="poi-box" hidden>
+          <h2>POI vừa bấm</h2>
+          <p id="poi-info"></p>
+          <button id="poi-detail" type="button">Xem chi tiết</button>
+          <p class="pg-req" id="poi-req"></p>
+          <pre id="poi-json" hidden></pre>
+        </div>
+        <p class="pg-hint">
+          Nhãn POI hiện từ zoom 13. Bấm vào biểu tượng POI để xem tên, loại, nhóm và id.
+        </p>
+      </section>
+
+      <!-- Tab 2: Tìm kiếm -->
+      <section
+        class="pg-tabpanel"
+        role="tabpanel"
+        id="panel-tim-kiem"
+        aria-labelledby="tab-tim-kiem"
+        tabindex="0"
+        hidden
+      >
+        <p class="pg-hint">
+          Ô “Tìm nhanh” ở đầu bảng gọi <code>GET /v1/autocomplete</code>; chọn một gợi ý sẽ bay tới
+          và ghim marker.
+        </p>
+
+        <h2>Tìm theo từ khoá</h2>
+        <div class="pg-field">
+          <label for="s-q">Từ khoá</label>
+          <input id="s-q" type="search" placeholder="Ví dụ: Highlands" autocomplete="off" />
+        </div>
+        <div class="pg-field">
+          <label for="s-cat">Mã loại — tuỳ chọn</label>
+          <input id="s-cat" type="text" placeholder="Ví dụ: cafe" autocomplete="off" />
+        </div>
+        <div class="pg-field">
+          <label for="s-radius">Bán kính quanh tâm bản đồ (m)</label>
+          <input id="s-radius" type="number" min="1" max="50000" step="100" value="5000" />
+        </div>
+        <button id="s-run" type="button" class="pg-primary">Tìm — /v1/search</button>
+
+        <h2>Quanh tâm bản đồ</h2>
+        <div class="pg-field">
+          <label for="n-radius">Bán kính (m)</label>
+          <input id="n-radius" type="number" min="1" max="5000" step="50" value="500" />
+        </div>
+        <div class="pg-field">
+          <label for="n-cat">Mã loại — tuỳ chọn</label>
+          <input id="n-cat" type="text" autocomplete="off" />
+        </div>
+        <button id="n-run" type="button" class="pg-primary">Quanh đây — /v1/nearby</button>
+
+        <h2>Kết quả</h2>
+        <p class="pg-out" id="s-msg">Chưa gọi API.</p>
+        <ul class="pg-results" id="s-results"></ul>
+        <p class="pg-req" id="s-req"></p>
+        <details class="pg-json">
+          <summary>Phản hồi JSON</summary>
+          <pre id="s-json">—</pre>
+        </details>
+      </section>
+
+      <!-- Tab 3: Geocode -->
+      <section
+        class="pg-tabpanel"
+        role="tabpanel"
+        id="panel-geocode"
+        aria-labelledby="tab-geocode"
+        tabindex="0"
+        hidden
+      >
+        <h2>Địa chỉ sang toạ độ</h2>
+        <div class="pg-field">
+          <label for="g-q">Địa chỉ</label>
+          <input id="g-q" type="search" autocomplete="off" placeholder="Số nhà, đường, phường…" />
+        </div>
+        <div class="pg-chips">
+          <button type="button" class="pg-chip" data-q="88/9 Nguyễn Lâm, Phường 6, Quận 10">
+            88/9 Nguyễn Lâm, Phường 6, Quận 10
+          </button>
+          <button type="button" class="pg-chip" data-q="Nguyễn Lâm, Quận 10">
+            Nguyễn Lâm, Quận 10
+          </button>
+          <button type="button" class="pg-chip" data-q="Thành phố Hồ Chí Minh">
+            Thành phố Hồ Chí Minh
+          </button>
+        </div>
+        <button id="g-run" type="button" class="pg-primary">Tra cứu — /v1/geocode</button>
+
+        <p class="pg-out" id="g-msg">Chưa gọi API.</p>
+        <ul class="pg-results" id="g-results"></ul>
+        <p class="pg-req" id="g-req"></p>
+
+        <h2>Toạ độ sang địa chỉ</h2>
+        <button id="rev-toggle" type="button" aria-pressed="false">
+          Bấm lên bản đồ để tra địa chỉ
+        </button>
+        <p class="pg-out" id="rev-msg">Chế độ tra ngược đang tắt.</p>
+        <dl class="pg-view" id="rev-out" hidden>
+          <dt>Địa chỉ</dt><dd id="rev-name">—</dd>
+          <dt>Số nhà ước lượng</dt><dd id="rev-hn">—</dd>
+          <dt>POI gần nhất</dt><dd id="rev-poi">—</dd>
+        </dl>
+        <p class="pg-req" id="rev-req"></p>
+
+        <p class="pg-hint">
+          Vòng tròn mờ là ước lượng theo <code>precision</code>: <code>alley</code> khoảng 40 m,
+          <code>interpolated</code> khoảng 80 m. Mức <code>rooftop</code> ghim chính xác nên không vẽ
+          vòng. Mức <code>street</code>, <code>ward</code>, <code>province</code> chỉ dùng để căn
+          khung nhìn — xem <a href="/do-chinh-xac/">Độ chính xác geocode</a>.
+        </p>
+      </section>
+
+      <!-- Tab 4: Mã nhúng -->
+      <section
+        class="pg-tabpanel"
+        role="tabpanel"
+        id="panel-ma-nhung"
+        aria-labelledby="tab-ma-nhung"
+        tabindex="0"
+        hidden
+      >
+        <p class="pg-hint">
+          Hai đoạn dưới đây phản ánh đúng tuỳ chọn đang chọn ở tab Bản đồ.
+        </p>
+
+        <h2>Script tag — UMD</h2>
+        <pre id="snippet-script">—</pre>
+        <button id="copy-script" type="button">Sao chép đoạn script tag</button>
+
+        <h2>npm ESM</h2>
+        <pre id="snippet-esm">—</pre>
+        <button id="copy-esm" type="button">Sao chép đoạn npm ESM</button>
+
+        <p class="pg-out" id="copy-msg" role="status" aria-live="polite"></p>
+        <p class="pg-hint">
+          Các gói <code>@mapslibvn/*</code> chưa phát hành lên npm, nên cách script tag chạy được
+          ngay còn cách npm ESM cần cài từ tarball trong repo. Xem <a href="/cai-dat/">Cài đặt</a>.
+        </p>
+      </section>
+    </div>
+  </aside>
+
+  <script src="/sdk/mapslibvn.umd.js"></script>
+  <script type="module" src="/playground.js"></script>
 </body>
 </html>

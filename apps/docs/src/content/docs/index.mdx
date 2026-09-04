@@ -13,12 +13,131 @@ hero:
       variant: minimal
 ---
 
-import { Card, CardGrid } from '@astrojs/starlight/components';
+import { Aside, Card, CardGrid, LinkCard, TabItem, Tabs } from '@astrojs/starlight/components';
+
+<div class="home-map">
+  <iframe
+    class="home-map__frame"
+    src="/playground.html?embed=1"
+    title="Bản đồ MapsLibVN"
+    loading="lazy"
+  ></iframe>
+  <p class="home-map__caption">
+    Bấm vào biểu tượng POI để xem tên · <a href="/playground.html">Mở playground đầy đủ →</a>
+  </p>
+</div>
+
+## Tính năng chính
 
 <CardGrid>
-  <Card title="Mã nguồn mở" icon="open-book">MapLibre GL + OpenStreetMap + Overture + Foursquare OS. Ghi nguồn đầy đủ.</Card>
-  <Card title="Tiếng Việt trước" icon="star">Nhãn tiếng Việt, địa chỉ kiểu hẻm, phường/xã sau sáp nhập 2025.</Card>
-  <Card title="Chi phí 0 đ" icon="rocket">Tiles tĩnh trên CDN, đọc thẳng, không tính theo lượt.</Card>
-  <Card title="Web và React Native" icon="laptop">`@mapslibvn/web`, `@mapslibvn/react` cho web; `@mapslibvn/react-native` cho iOS/Android — cùng API, cùng tiles. Xem [React Native](/react-native/).</Card>
-  <Card title="Trung thực về độ chính xác" icon="approve-check">Mỗi kết quả geocode kèm `precision` và `confidence`. Xem [Độ chính xác geocode](/do-chinh-xac/).</Card>
+  <Card title="Bản đồ nền Việt Nam" icon="star">
+    Tiles PMTiles đọc thẳng từ CDN, hai theme `light`/`dark`, nhãn `vi`/`en`, nhãn chủ quyền
+    Hoàng Sa – Trường Sa luôn tiếng Việt. [Bản đồ web →](/ban-do-web/)
+  </Card>
+  <Card title="Lớp POI 164 loại" icon="list-format">
+    164 mã loại địa điểm gom trong 13 nhóm, gộp từ OpenStreetMap, Overture và Foursquare OS.
+    [Tính năng →](/tinh-nang/)
+  </Card>
+  <Card title="Tìm kiếm & autocomplete" icon="magnifier">
+    Web component `<mapslibvn-autocomplete>` gõ tới đâu gợi ý tới đó, cùng `search` và `nearby`
+    trong SDK. [Tìm kiếm & autocomplete →](/tim-kiem/)
+  </Card>
+  <Card title="Geocode trung thực" icon="approve-check">
+    Mỗi kết quả kèm `precision` và `confidence`, nói rõ đang ở mức mái nhà, hẻm hay phường.
+    [Độ chính xác geocode →](/do-chinh-xac/)
+  </Card>
+  <Card title="Đóng góp cộng đồng" icon="pencil">
+    `POST /v1/edits` cho người dùng báo sai, sửa vị trí, thêm địa điểm mới, có luật duyệt.
+    [Đóng góp & sửa POI →](/dong-gop/)
+  </Card>
+  <Card title="Web, React, React Native" icon="laptop">
+    Bốn gói `@mapslibvn/*` cùng một API, cùng một nguồn tiles, dùng được cả trên iOS và Android.
+    [Cài đặt →](/cai-dat/)
+  </Card>
 </CardGrid>
+
+## Ba cách nhúng
+
+<Tabs>
+<TabItem label="Script tag">
+
+```html
+<link rel="stylesheet" href="https://mapslibvn-docs.pages.dev/sdk/mapslibvn.css" />
+<script src="https://mapslibvn-docs.pages.dev/sdk/mapslibvn.umd.js"></script>
+<div id="map" style="height:400px"></div>
+<script>
+  const map = MapsLibVN.createMap({
+    container: 'map',
+    apiKey: 'mlv_live_…',
+    apiBase: 'https://api.ai-solutions.io.vn',
+    center: [106.7, 10.776],
+    zoom: 13,
+  });
+</script>
+```
+
+</TabItem>
+<TabItem label="npm ESM">
+
+```ts
+import 'maplibre-gl/dist/maplibre-gl.css';
+import maplibregl from 'maplibre-gl';
+import { createMap } from '@mapslibvn/web';
+
+const map = createMap(
+  {
+    container: 'map',
+    apiKey: 'mlv_live_…',
+    apiBase: 'https://api.ai-solutions.io.vn',
+  },
+  { maplibre: maplibregl },
+);
+```
+
+</TabItem>
+<TabItem label="React">
+
+```tsx
+import 'maplibre-gl/dist/maplibre-gl.css';
+import { MapsLibVNMap, Marker } from '@mapslibvn/react';
+
+<MapsLibVNMap
+  apiKey="mlv_live_…"
+  apiBase="https://api.ai-solutions.io.vn"
+  center={[106.7, 10.776]}
+  zoom={13}
+  containerStyle={{ height: 400 }}
+>
+  <Marker lng={106.6981} lat={10.7725} popupHtml="<b>Chợ Bến Thành</b>" />
+</MapsLibVNMap>;
+```
+
+</TabItem>
+</Tabs>
+
+Bốn cách nhúng đầy đủ, kể cả React Native, nằm ở [Cài đặt](/cai-dat/).
+
+## Mở và tự host
+
+<LinkCard
+  title="Giấy phép & ghi nguồn"
+  description="Điều kiện dùng lại dữ liệu và mã nguồn, chuỗi ghi nguồn bắt buộc hiện trên bản đồ."
+  href="/giay-phep/"
+/>
+<LinkCard
+  title="Tự host"
+  description="Dựng lại tiles, API và SDK trên hạ tầng của bạn — kiến trúc và các bước."
+  href="/tu-host/"
+/>
+
+<Aside type="note" title="Trạng thái dự án">
+MapsLibVN đang ở **giai đoạn nội bộ**: đã có tiles nền phủ Việt Nam, lớp POI, Places API với
+autocomplete, search, nearby, geocode, reverse và đóng góp, cùng SDK cho web, React và React Native.
+Chưa thu phí, chưa mở đăng ký tự phục vụ.
+
+- Bốn gói `@mapslibvn/*` **chưa publish lên npm** (đang rà soát nhãn hiệu). Hôm nay nhúng bằng bản
+  UMD phục vụ sẵn, hoặc cài từ tarball nếu có quyền repo — xem [Cài đặt](/cai-dat/).
+- `https://api.ai-solutions.io.vn` và `https://mapslibvn-docs.pages.dev` là endpoint **tạm thời**,
+  sẽ đổi khi có tên miền riêng.
+- Cần khoá cho tên miền của bạn? Xem [Khoá API](/khoa-api/).
+</Aside>

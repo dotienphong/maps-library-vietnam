@@ -67,6 +67,21 @@ commit với code).
 
 ## 2. Bước kế tiếp
 
+- **04/09/2026 — Website docs hoàn chỉnh (chưa commit, chờ PHONG duyệt).** Rà soát toàn hệ thống rồi
+  viết spec `docs/superpowers/specs/2026-09-04-docs-site-hoan-chinh-design.md` và plan
+  `docs/superpowers/plans/2026-09-04-docs-site-hoan-chinh.md` (Fable 5.1 lập, Opus 5 thực hiện 5 task).
+  Kết quả: 9 trang mới (`/tinh-nang/`, `/cai-dat/`, `/khoa-api/`, `/ban-do-web/`, `/tim-kiem/`,
+  `/react/`, `/api/`, `/sdk/`, `/nhung-thu/`), sidebar 6 nhóm, trang chủ có bản đồ sống (iframe
+  `/playground.html?embed=1`) + 6 card + 3 tab nhúng + trạng thái dự án; playground viết lại
+  (`public/playground.{html,js,css}` + `playground-lib.js` thuần có 25 test Vitest) với 4 tab Bản đồ /
+  Tìm kiếm / Geocode / Mã nhúng, nhập khoá riêng, URL chia sẻ được, vòng tròn ước lượng theo
+  `precision`; sửa lỗi `/react-demo/` trỏ `localhost:8787` trên production (`src/lib/api-base.ts`);
+  `bat-dau.md` không còn viết `pnpm add` như đã publish. Gate: lint 275 file, typecheck 14/14, vitest
+  59 file / 607 test, build 20 trang, Playwright 26/26 (19 docs + 7 playground, API local `dev:e2e`).
+  Hai khuyến nghị **chưa thực hiện** chờ quyết định: attribution hiện hai lần trên bản đồ (style nguồn
+  + `customAttribution` — spec 7.2), và khoá `web` được cho qua khi không có Origin (chủ ý MVP).
+
+
 **BẮT ĐẦU TỪ ĐÂY: không còn mốc định nghĩa sẵn.** M1–M6 đều đã nghiệm thu. Việc còn lại là việc
 tay trong `docs/legal/checklist-phap-ly.md`. Mốc mới phải brainstorm + viết spec trước khi viết plan.
 
