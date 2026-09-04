@@ -158,7 +158,7 @@ git commit -m "feat(poi): tính độ ưu tiên hiển thị xác định"
 - Consumes: `select({ lon, lat, earliestZoom }): number | null`, gọi đúng thứ tự priority từ Task 1.
 - Produces: `globalCellKey(lon, lat, zoom, cellPx)`, `createDisplaySelector()` và `snapshot()`.
 
-- [ ] **Step 1: Viết test đỏ cho cell và selector**
+- [x] **Step 1: Viết test đỏ cho cell và selector**
 
 ```js
 import { describe, expect, it } from 'vitest';
@@ -193,13 +193,13 @@ describe('createDisplaySelector', () => {
 });
 ```
 
-- [ ] **Step 2: Chạy test và xác nhận RED**
+- [x] **Step 2: Chạy test và xác nhận RED**
 
 Run: `pnpm vitest run pipelines/poi/tests/display-selector.test.mjs`
 
 Expected: FAIL vì module chưa tồn tại.
 
-- [ ] **Step 3: Implement phép chiếu và selector**
+- [x] **Step 3: Implement phép chiếu và selector**
 
 ```js
 export const CELL_PX_BY_ZOOM = /** @type {Readonly<Record<number, number>>} */ (
@@ -250,7 +250,7 @@ export function createDisplaySelector({ cellPx = CELL_PX_BY_ZOOM } = {}) {
 }
 ```
 
-- [ ] **Step 4: Thêm test chunk-independence và biên ô**
+- [x] **Step 4: Thêm test chunk-independence và biên ô**
 
 ```js
 it('không phụ thuộc biên chunk của cursor', () => {
@@ -274,13 +274,13 @@ it('hai phía biên ô có key khác', () => {
 });
 ```
 
-- [ ] **Step 5: Chạy focused tests**
+- [x] **Step 5: Chạy focused tests**
 
 Run: `pnpm vitest run pipelines/poi/tests/display-selector.test.mjs pipelines/poi/tests/display-priority.test.mjs`
 
 Expected: PASS toàn bộ.
 
-- [ ] **Step 6: Commit Task 2**
+- [x] **Step 6: Commit Task 2**
 
 ```bash
 git add pipelines/poi/src/display-selector.mjs pipelines/poi/tests/display-selector.test.mjs
