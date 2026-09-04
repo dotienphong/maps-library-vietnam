@@ -20,6 +20,8 @@ liệu nhãn hiệu** và **gửi thư hỏi MapLibre** (mẫu ở mục 5).
 | Ràng buộc từ giấy phép mã nguồn | `maplibre-gl` là **BSD-3-Clause**, điều khoản 3: *"Neither the name of MapLibre GL JS nor the names of its contributors may be used to endorse or promote products derived from this software without specific prior written permission."* | `THIRD_PARTY_NOTICES.md` mục 4.1 |
 | Giấy phép wrapper React Native | `@maplibre/maplibre-react-native` 11.3.8 là **MIT** — không có điều khoản hạn chế tên | `LICENSE.md` của gói |
 | Tên gói npm còn trống không? | **Còn trống toàn bộ**: `@mapslibvn/core`, `/web`, `/react`, `/react-native`, `/style` và cả tên trần `mapslibvn` đều trả 404 trên registry | registry.npmjs.org, kiểm 04/09/2026 |
+| Tra cứu nhãn hiệu WIPO Global Brand Database — "MapsLibVN", "MapsLib", "MapLibre", nhóm Nice 09 và 42 | **Không có đơn trùng hoặc tương tự.** Chưa ai đăng ký nhãn hiệu "MapsLibVN" hay "MapsLib" | branddb.wipo.int, PHONG tự tra 04/09/2026 |
+| Tra cứu nhãn hiệu Cục Sở hữu trí tuệ Việt Nam — cùng từ khoá, nhóm 09 và 42 | **Không có đơn trùng hoặc tương tự** tại Việt Nam | wipopublish.ipvietnam.gov.vn, PHONG tự tra 04/09/2026 |
 
 ## 3. Đánh giá rủi ro
 
@@ -53,12 +55,10 @@ liệu nhãn hiệu** và **gửi thư hỏi MapLibre** (mẫu ở mục 5).
 
 ## 5. Việc tay còn lại — chỉ người làm được
 
-**5.1 Tra cứu nhãn hiệu** (không tự động hoá được, hai cơ sở dữ liệu đều là ứng dụng JS)
-
-- WIPO Global Brand Database — https://branddb.wipo.int — tra "MapsLibVN", "MapsLib", "MapLibre",
-  nhóm Nice 9 và 42.
-- Cục Sở hữu trí tuệ Việt Nam — http://wipopublish.ipvietnam.gov.vn — tra tương tự cho phần Việt Nam.
-- Ghi kết quả (có/không đơn trùng hoặc tương tự) vào bảng mục 2.
+**5.1 Tra cứu nhãn hiệu** ✅ **XONG 04/09/2026** — PHONG tự tra tại WIPO Global Brand Database và
+Cục Sở hữu trí tuệ Việt Nam, từ khoá "MapsLibVN", "MapsLib", "MapLibre", nhóm Nice 09 và 42.
+**Kết quả: không có đơn trùng hoặc tương tự ở cả hai nơi** — xem bảng mục 2. Đây là căn cứ tốt để
+gửi thư hỏi MapLibre ở bước 5.2, vì không có xung đột đăng ký nào cần xử lý trước.
 
 **5.2 Gửi thư hỏi MapLibre** — địa chỉ `team@maplibre.org`. Mẫu:
 
