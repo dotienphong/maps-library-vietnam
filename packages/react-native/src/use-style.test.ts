@@ -44,7 +44,11 @@ describe('styleUrlFor / needsTransform / transformStyle', () => {
   it('transformStyle áp cả ngôn ngữ và ẩn POI', () => {
     const out = transformStyle(styleJson, { lang: 'en', poiLayer: false });
     expect(out.layers[0]?.layout).toEqual({ 'text-field': nameExpression('en') });
-    const poiLayers = out.layers.filter((layer) => layer.source === 'poi');
+    const layers = out.layers as unknown as {
+      source?: string;
+      layout?: Record<string, unknown>;
+    }[];
+    const poiLayers = layers.filter((layer) => layer.source === 'poi');
     expect(poiLayers).toHaveLength(3);
     for (const layer of poiLayers) expect(layer.layout?.visibility).toBe('none');
     expect(poiLayers[1]?.layout?.['text-field']).toEqual(nameExpression('en'));
