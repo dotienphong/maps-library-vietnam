@@ -4,6 +4,7 @@ import {
   type Theme,
   attributionHtml,
   createClient,
+  isPoiStyleLayer,
 } from '@mapslibvn/core';
 import type maplibregl from 'maplibre-gl';
 import { type Lang, applyLanguage } from './language';
@@ -91,8 +92,13 @@ export function createMap(opts: CreateMapOptions, deps?: Deps): MapsLibVNMap {
 
   gl.on('load', () => {
     if (opts.lang && opts.lang !== 'vi') applyLanguage(gl, opts.lang);
-    if (opts.poiLayer === false && gl.getLayer('poi'))
-      gl.setLayoutProperty('poi', 'visibility', 'none');
+    if (opts.poiLayer === false) {
+      for (const layer of gl.getStyle().layers ?? []) {
+        if (isPoiStyleLayer(layer) && gl.getLayer(layer.id)) {
+          gl.setLayoutProperty(layer.id, 'visibility', 'none');
+        }
+      }
+    }
     emit('load', undefined);
   });
 

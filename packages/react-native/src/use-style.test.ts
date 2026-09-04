@@ -13,7 +13,19 @@ const styleJson = {
   sources: {},
   layers: [
     { id: 'city', type: 'symbol', source: 's', layout: { 'text-field': ['get', 'name'] } },
-    { id: 'poi', type: 'symbol', source: 's', layout: { 'text-field': ['get', 'name'] } },
+    { id: 'poi', type: 'symbol', source: 'poi', layout: { 'icon-image': 'marker' } },
+    {
+      id: 'poi-label-major',
+      type: 'symbol',
+      source: 'poi',
+      layout: { 'text-field': ['get', 'name'] },
+    },
+    {
+      id: 'poi-label-local',
+      type: 'symbol',
+      source: 'poi',
+      layout: { 'text-field': ['get', 'name'] },
+    },
   ],
 } as unknown as StyleSpecification;
 
@@ -32,10 +44,11 @@ describe('styleUrlFor / needsTransform / transformStyle', () => {
   it('transformStyle áp cả ngôn ngữ và ẩn POI', () => {
     const out = transformStyle(styleJson, { lang: 'en', poiLayer: false });
     expect(out.layers[0]?.layout).toEqual({ 'text-field': nameExpression('en') });
-    expect(out.layers[1]?.layout).toEqual({
-      'text-field': nameExpression('en'),
-      visibility: 'none',
-    });
+    const poiLayers = out.layers.filter((layer) => layer.source === 'poi');
+    expect(poiLayers).toHaveLength(3);
+    for (const layer of poiLayers) expect(layer.layout?.visibility).toBe('none');
+    expect(poiLayers[1]?.layout?.['text-field']).toEqual(nameExpression('en'));
+    expect(poiLayers[2]?.layout?.['text-field']).toEqual(nameExpression('en'));
   });
 });
 

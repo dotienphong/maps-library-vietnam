@@ -8,6 +8,7 @@ export type Lang = 'vi' | 'en';
 export interface StyleLayerLike {
   id: string;
   type: string;
+  source?: string | undefined;
   layout?: Record<string, unknown> | undefined;
 }
 
@@ -17,6 +18,10 @@ export interface StyleLike {
 
 export const POI_LAYER_ID = 'poi';
 const SOVEREIGNTY_LABEL_ID = 'sovereignty-label';
+
+export function isPoiStyleLayer(layer: StyleLayerLike): boolean {
+  return layer.id === POI_LAYER_ID || layer.source === 'poi';
+}
 
 export function nameExpression(lang: Lang): unknown[] {
   return ['coalesce', ['get', `name:${lang}`], ['get', 'name']];
@@ -49,8 +54,6 @@ export function localizeStyle<T extends StyleLike>(style: T, lang: Lang): T {
 /** Ẩn lớp POI bằng `layout.visibility = 'none'`; trả style mới. */
 export function hidePoiLayer<T extends StyleLike>(style: T): T {
   return mapLayers(style, (layer) =>
-    layer.id === POI_LAYER_ID
-      ? { ...layer, layout: { ...layer.layout, visibility: 'none' } }
-      : layer,
+    isPoiStyleLayer(layer) ? { ...layer, layout: { ...layer.layout, visibility: 'none' } } : layer,
   );
 }

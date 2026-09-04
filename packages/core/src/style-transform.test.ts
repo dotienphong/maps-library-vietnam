@@ -1,7 +1,13 @@
 import { describe, expect, it } from 'vitest';
-import { hidePoiLayer, isNameLabelLayer, localizeStyle, nameExpression } from './style-transform';
+import {
+  hidePoiLayer,
+  isNameLabelLayer,
+  isPoiStyleLayer,
+  localizeStyle,
+  nameExpression,
+} from './style-transform';
 
-type Layer = { id: string; type: string; layout?: Record<string, unknown> };
+type Layer = { id: string; type: string; source?: string; layout?: Record<string, unknown> };
 
 const city: Layer = {
   id: 'city',
@@ -65,20 +71,44 @@ describe('localizeStyle', () => {
 });
 
 describe('hidePoiLayer', () => {
-  it('đặt visibility none cho lớp poi, giữ layout còn lại, không đột biến', () => {
-    const before = JSON.stringify(style);
-    const out = hidePoiLayer(style);
-    expect(out.layers[4]?.layout).toEqual({
-      'text-field': ['get', 'name'],
-      'icon-image': 'x',
-      visibility: 'none',
-    });
-    expect(out.layers[0]).toEqual(style.layers[0]);
-    expect(JSON.stringify(style)).toBe(before);
+  it('ẩn mọi layer source poi, giữ layer khác và không đột biến', () => {
+    const poiLayers: Layer[] = [
+      { id: 'poi', type: 'symbol', source: 'poi', layout: {} },
+      {
+        id: 'poi-label-major',
+        type: 'symbol',
+        source: 'poi',
+        layout: { 'text-field': ['get', 'name'] },
+      },
+      {
+        id: 'poi-label-local',
+        type: 'symbol',
+        source: 'poi',
+        layout: { 'text-field': ['get', 'name'] },
+      },
+    ];
+    const input = { layers: [...poiLayers, { id: 'city', type: 'symbol', source: 'vn' }] };
+    const before = JSON.stringify(input);
+    const out = hidePoiLayer(input);
+    expect(out.layers.slice(0, 3).map((layer) => layer.layout?.visibility)).toEqual([
+      'none',
+      'none',
+      'none',
+    ]);
+    expect(out.layers[3]?.id).toBe('city');
+    expect(JSON.stringify(input)).toBe(before);
   });
 
   it('style không có lớp poi thì trả bản sao tương đương', () => {
     const noPoi = { ...style, layers: style.layers.slice(0, 4) };
     expect(hidePoiLayer(noPoi)).toEqual(noPoi);
+  });
+});
+
+describe('isPoiStyleLayer', () => {
+  it('nhận diện ID tương thích cũ hoặc source poi', () => {
+    expect(isPoiStyleLayer({ id: 'poi', type: 'symbol' })).toBe(true);
+    expect(isPoiStyleLayer({ id: 'poi-label-major', type: 'symbol', source: 'poi' })).toBe(true);
+    expect(isPoiStyleLayer({ id: 'city', type: 'symbol', source: 'vn' })).toBe(false);
   });
 });

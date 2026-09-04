@@ -139,6 +139,24 @@ describe('createMap', () => {
     ]);
   });
 
+  it('poiLayer=false ẩn mọi layer source poi sau khi style load', () => {
+    const { ml, fire } = fakeMaplibre();
+    const m = createMap({ ...base, poiLayer: false }, { maplibre: ml as never });
+    (m.gl.getStyle as ReturnType<typeof vi.fn>).mockReturnValue({
+      layers: [
+        { id: 'poi', type: 'symbol', source: 'poi' },
+        { id: 'poi-label-major', type: 'symbol', source: 'poi' },
+        { id: 'poi-label-local', type: 'symbol', source: 'poi' },
+        { id: 'city', type: 'symbol', source: 'vn' },
+      ],
+    });
+    fire('load');
+    expect(m.gl.setLayoutProperty).toHaveBeenCalledTimes(3);
+    for (const id of ['poi', 'poi-label-major', 'poi-label-local']) {
+      expect(m.gl.setLayoutProperty).toHaveBeenCalledWith(id, 'visibility', 'none');
+    }
+  });
+
   it('places là client core với cùng key', () => {
     const { ml } = fakeMaplibre();
     const m = createMap(base, { maplibre: ml as never });

@@ -460,7 +460,7 @@ git commit -m "feat(style): phân tầng icon và nhãn POI"
 - Consumes: ba layer source `poi` từ Task 4.
 - Produces: `isPoiStyleLayer(layer): boolean`; `hidePoiLayer()` ẩn mọi layer POI; click vẫn dùng `POI_LAYER_ID`.
 
-- [ ] **Step 1: Viết test Core đỏ cho ba layer**
+- [x] **Step 1: Viết test Core đỏ cho ba layer**
 
 Fixture Core phải có `poi`, `poi-label-major`, `poi-label-local` đều `source:'poi'`, cộng một layer
 khác. Assert ba layout nhận `visibility:'none'`, layer khác giữ nguyên và input không bị mutate.
@@ -478,13 +478,13 @@ expect(out.layers.slice(0, 3).map((layer) => layer.layout?.visibility)).toEqual(
 expect(out.layers[3]?.id).toBe('city');
 ```
 
-- [ ] **Step 2: Chạy Core test và xác nhận RED**
+- [x] **Step 2: Chạy Core test và xác nhận RED**
 
 Run: `pnpm vitest run packages/core/src/style-transform.test.ts`
 
 Expected: FAIL vì helper hiện chỉ so ID `poi`.
 
-- [ ] **Step 3: Implement nhận diện POI dùng chung**
+- [x] **Step 3: Implement nhận diện POI dùng chung**
 
 ```ts
 export interface StyleLayerLike {
@@ -501,7 +501,7 @@ export function isPoiStyleLayer(layer: StyleLayerLike): boolean {
 `hidePoiLayer()` gọi `isPoiStyleLayer`. `localizeStyle()` vẫn nhận ra hai text layer qua
 `text-field` và không đổi `sovereignty-label`.
 
-- [ ] **Step 4: Viết test Web đỏ cho `poiLayer=false`**
+- [x] **Step 4: Viết test Web đỏ cho `poiLayer=false`**
 
 Fake map trả `getStyle().layers` gồm ba layer POI. Sau event `load`, assert
 `setLayoutProperty(id,'visibility','none')` được gọi đúng ba ID. Test click vẫn assert
@@ -520,7 +520,7 @@ for (const id of ['poi', 'poi-label-major', 'poi-label-local']) {
 }
 ```
 
-- [ ] **Step 5: Implement Web ẩn theo source**
+- [x] **Step 5: Implement Web ẩn theo source**
 
 Trong load handler, khi `poiLayer===false`, đọc `gl.getStyle().layers ?? []`, lọc bằng
 `isPoiStyleLayer`, kiểm `gl.getLayer(layer.id)` rồi set visibility. Không đổi click handler.
@@ -535,7 +535,7 @@ if (opts.poiLayer === false) {
 }
 ```
 
-- [ ] **Step 6: Mở rộng fixture React Native**
+- [x] **Step 6: Mở rộng fixture React Native**
 
 Trong `use-style.test.ts`, đổi source của ba POI layer thành `'poi'`; assert `transformStyle` với
 `lang:'en', poiLayer:false` vừa đổi text-field hai label vừa ẩn cả ba. Test `map.test.tsx` hiện có
@@ -551,13 +551,13 @@ for (const layer of transformed.layers.filter((item) => item.source === 'poi')) 
 expect(mapRefMock.queryRenderedFeatures).toHaveBeenCalledWith([10, 20], { layers: ['poi'] });
 ```
 
-- [ ] **Step 7: Chạy SDK tests + build Core**
+- [x] **Step 7: Chạy SDK tests + build Core**
 
 Run: `pnpm vitest run packages/core/src/style-transform.test.ts packages/web/src/map.test.ts packages/react-native/src/use-style.test.ts packages/react-native/src/map.test.tsx && pnpm --filter @mapslibvn/core build`
 
 Expected: PASS; Core declaration export được `isPoiStyleLayer` qua `index.ts` hiện đã `export *`.
 
-- [ ] **Step 8: Commit Task 5**
+- [x] **Step 8: Commit Task 5**
 
 ```bash
 git add packages/core/src/style-transform.ts packages/core/src/style-transform.test.ts packages/web/src/map.ts packages/web/src/map.test.ts packages/react-native/src/use-style.test.ts
