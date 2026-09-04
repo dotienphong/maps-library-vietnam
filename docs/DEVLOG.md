@@ -463,7 +463,11 @@ vẫn là `sleep 1` phút — `sudo pmset -a sleep 0 disksleep 0`.
   (MapLibre không có chính sách nhãn hiệu công khai; tên npm `@mapslibvn/*` còn trống; còn lại là
   tra WIPO/Cục SHTT và gửi thư `team@maplibre.org`). Sửa kèm: `THIRD_PARTY_NOTICES.md` trước đó
   chưa nhắc `@mapslibvn/react-native` lẫn peer `@maplibre/maplibre-react-native` (MIT) — đã bổ sung
-  cùng dòng miễn trừ liên kết với MapLibre
+  cùng dòng miễn trừ liên kết với MapLibre. Job `API tests (Places, real DB)` đỏ một lượt
+  (`c2679fb`): `edits.itest.mjs` tự lặp lại công thức `sha256(tenant:token)` để chèn sẵn 20 hàng
+  `poi_edit` nên kiểm hạn mức 20 edit/ngày nhận 200 thay vì 429 — sửa ở `2f2b942` bằng cách cho
+  `scripts/api-db-test.mjs` giữ một hằng pepper duy nhất và truyền vào cả `wrangler dev` lẫn tiến
+  trình vitest. Sau đó CI, Deploy API, API tests và DB tests đều xanh
 
 ## 5. Sự cố
 
