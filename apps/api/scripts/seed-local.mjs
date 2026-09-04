@@ -3,7 +3,7 @@
 import { execFileSync } from 'node:child_process';
 import { existsSync } from 'node:fs';
 import { resolve } from 'node:path';
-import { LOCAL_STYLE_OBJECTS } from './seed-local-assets.mjs';
+import { selectExistingLocalStyleObjects } from './seed-local-assets.mjs';
 
 const fixture = resolve('../../pipelines/tiles/fixtures/q1.pmtiles');
 const release = 'q1-fixture';
@@ -26,7 +26,10 @@ if (!process.env.MAPSLIBVN_VN_RELEASE) {
     '--local',
   ]);
 }
-for (const key of LOCAL_STYLE_OBJECTS) {
+const styleObjects = selectExistingLocalStyleObjects((key) =>
+  existsSync(resolve(`../../packages/style/${key}`)),
+);
+for (const key of styleObjects) {
   w([
     'r2',
     'object',

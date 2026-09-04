@@ -1,7 +1,9 @@
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { LOCAL_STYLE_OBJECTS } from '../apps/api/scripts/seed-local-assets.mjs';
+import * as seedAssets from '../apps/api/scripts/seed-local-assets.mjs';
+
+const { LOCAL_STYLE_OBJECTS } = seedAssets;
 
 describe('seed-local', () => {
   it('nạp đủ sprite để preview POI hiển thị icon thật', () => {
@@ -15,8 +17,19 @@ describe('seed-local', () => {
       'assets/fonts/Noto Sans Regular/768-1023.pbf',
       'assets/fonts/Noto Sans Regular/7680-7935.pbf',
     ]);
-    for (const key of LOCAL_STYLE_OBJECTS) {
+    for (const key of LOCAL_STYLE_OBJECTS.filter((value) => value.includes('/sprites/'))) {
       expect(readFileSync(resolve('packages/style', key)).byteLength).toBeGreaterThan(0);
     }
+  });
+
+  it('bỏ qua font vendor chưa có trong checkout CI sạch', () => {
+    const selectExisting = seedAssets.selectExistingLocalStyleObjects;
+
+    expect(selectExisting?.((key) => key.includes('/sprites/'))).toEqual([
+      'assets/sprites/osm-liberty.json',
+      'assets/sprites/osm-liberty.png',
+      'assets/sprites/osm-liberty@2x.json',
+      'assets/sprites/osm-liberty@2x.png',
+    ]);
   });
 });
