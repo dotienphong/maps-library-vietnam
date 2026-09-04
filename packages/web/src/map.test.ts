@@ -1,4 +1,4 @@
-import { attributionHtml, mapsLibVNAttributionHtml } from '@mapslibvn/core';
+import { attributionHtml } from '@mapslibvn/core';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { createMap } from './map';
 import { resetProtocolForTests } from './protocol';
@@ -73,12 +73,13 @@ describe('createMap', () => {
     const ctl = (m1.gl.addControl as ReturnType<typeof vi.fn>).mock.calls[0]?.[0] as {
       options: { customAttribution: string };
     };
-    // Theme của MapsLibVN: style đã khai báo nguồn dữ liệu ở từng source, nên control
-    // chỉ thêm dòng bản quyền MapsLibVN để không ghi nguồn hai lần.
-    expect(ctl.options.customAttribution).toBe(mapsLibVNAttributionHtml());
+    // Luôn là chuỗi ĐẦY ĐỦ, kể cả với theme của MapsLibVN: style cũng khai đúng chuỗi này ở
+    // từng source nên MapLibre gộp làm một. Nhờ vậy ẩn lớp POI hay thiếu bản POI cũng không
+    // làm mất bên nào (spec 7.2).
+    expect(ctl.options.customAttribution).toBe(attributionHtml());
   });
 
-  it('style URL tuỳ biến thì customAttribution là chuỗi ghi nguồn đầy đủ', () => {
+  it('style URL tuỳ biến cũng nhận chuỗi ghi nguồn đầy đủ', () => {
     const { ml } = fakeMaplibre();
     const m = createMap({ ...base, style: 'https://x/style.json' }, { maplibre: ml as never });
     const ctl = (m.gl.addControl as ReturnType<typeof vi.fn>).mock.calls[0]?.[0] as {

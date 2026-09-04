@@ -24,7 +24,8 @@ function mapTextFont(textFont) {
 
 /**
  * @param {Record<string, any>} base Style nền.
- * @param {{ theme: 'light' | 'dark', sovereignty: Record<string, any> }} options
+ * @param {{ theme: 'light' | 'dark', sovereignty: Record<string, any>, attribution: string }} options
+ *   `attribution` phải là `attributionHtml()` của `@mapslibvn/core` — xem chú thích ở dưới.
  */
 export function transformStyle(base, options) {
   const sourceLayers = /** @type {Record<string, any>[]} */ (base.layers);
@@ -74,7 +75,11 @@ export function transformStyle(base, options) {
       openmaptiles: {
         type: 'vector',
         url: 'pmtiles://{TILES_BASE}/tiles/{VN_FILE}.pmtiles',
-        attribution: '© OpenStreetMap contributors (ODbL) · © OpenMapTiles',
+        // Chuỗi ghi nguồn ĐẦY ĐỦ, giống hệt chuỗi SDK truyền vào `customAttribution` và giống
+        // hệt chuỗi của source `poi`. MapLibre gộp các chuỗi trùng khít nhau nên người dùng chỉ
+        // thấy một lần, đồng thời mỗi bên đều tự đủ: nạp style thẳng vào maplibre-gl thuần vẫn có
+        // ghi nguồn, mà ẩn lớp POI hay thiếu bản POI cũng không làm mất nguồn nào (spec 7.2).
+        attribution: options.attribution,
       },
       sovereignty: { type: 'geojson', data: options.sovereignty },
     },

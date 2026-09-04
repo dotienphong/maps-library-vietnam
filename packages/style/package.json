@@ -24,6 +24,7 @@
   },
   "devDependencies": {
     "@maplibre/maplibre-gl-style-spec": "^23.0.0",
+    "@mapslibvn/core": "workspace:*",
     "typescript": "^5.6.0"
   },
   "types": "./src/transform.d.mts"

@@ -17,7 +17,8 @@ export const POI_GROUP_ICONS = {
 
 /**
  * @param {Record<string, any>} style template đã qua transformStyle (lớp cuối là sovereignty-label)
- * @param {{ theme: 'light' | 'dark' }} opts
+ * @param {{ theme: 'light' | 'dark', attribution: string }} opts
+ *   `attribution` phải là `attributionHtml()` của `@mapslibvn/core`.
  */
 export function addPoiLayers(style, opts) {
   const dark = opts.theme === 'dark';
@@ -68,8 +69,8 @@ export function addPoiLayers(style, opts) {
       poi: {
         type: 'vector',
         url: 'pmtiles://{TILES_BASE}/tiles/{POI_FILE}.pmtiles',
-        attribution:
-          'Places: Overture Maps Foundation (CDLA-Permissive 2.0), Foursquare OS Places (Apache-2.0)',
+        // Trùng khít chuỗi của source `openmaptiles` và của `customAttribution` — MapLibre gộp lại.
+        attribution: opts.attribution,
       },
     },
     layers,

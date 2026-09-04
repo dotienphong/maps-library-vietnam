@@ -69,20 +69,25 @@ commit với code).
 
 - **04/09/2026 — sửa ghi nguồn hiện hai lần trên bản đồ.** Trước đó `AttributionControl` hiển thị ba
   khối: hai khối do từng source trong style tự khai, một khối do SDK thêm bằng `attributionHtml()`,
-  nên OpenStreetMap, OpenMapTiles, Overture và Foursquare mỗi bên hiện hai lần (MapLibre chỉ gộp
-  trùng khi hai chuỗi giống hệt nhau). Cách sửa: `@mapslibvn/core` thêm `mapsLibVNAttributionHtml()`
-  trả riêng dòng `© MapsLibVN`; `createMap` dùng hàm này khi `style` là theme `light`/`dark` của
-  MapsLibVN, và giữ `attributionHtml()` đầy đủ khi `style` là URL tuỳ biến. **Không gỡ ghi nguồn khỏi
-  style** vì style là endpoint công khai, ai nạp thẳng vào maplibre-gl thuần vẫn phải thấy nguồn;
-  ngược lại còn thêm nhãn `(ODbL)` vào source `openmaptiles` để không mất thông tin giấy phép. Kết quả
-  đo trên bản build: `© OpenStreetMap contributors (ODbL) · © OpenMapTiles | Places: Overture…,
-  Foursquare… | © MapsLibVN`, mỗi bên đúng một lần. Hệ quả có chủ đích: fixture e2e chưa có tiles POI
-  nên `renderStyle` bỏ source `poi` và bản đồ local không hiện hai nguồn Places — đúng, vì lúc đó bản
-  đồ không vẽ dữ liệu của chúng; hai test mới khoá chuỗi ghi nguồn của cả hai source để không ai gỡ
-  nhầm. Sửa kèm: spec mục 7.2, `sdk.md`, `tinh-nang.md`, `cai-dat.mdx`, `giay-phep.md`. Gate: lint 275
-  file, typecheck 14/14, vitest 59 file / 611 test, API 20 file / 95 test, build 20 trang, Playwright
-  26/26. **React Native không đổi** — bản đó vẽ overlay riêng cộng nút thông tin native, không chồng
-  nhau. Khuyến nghị còn treo: khoá `web` vẫn được cho qua khi không có Origin (chủ ý MVP).
+  nên OpenStreetMap, OpenMapTiles, Overture và Foursquare mỗi bên hiện hai lần. **Cách sửa cuối cùng:
+  cả hai phía dùng CHUNG một chuỗi.** MapLibre gộp các chuỗi ghi nguồn trùng khít nhau (đã kiểm bằng
+  thí nghiệm riêng: 3 chuỗi giống hệt → hiển thị 1 lần), nên `transformStyle`/`addPoiLayers` nhận
+  `attribution` từ ngoài và `scripts/build.mjs` truyền `attributionHtml()` của `@mapslibvn/core` vào,
+  còn `createMap` giữ nguyên `attributionHtml()`. Kết quả: một nguồn sự thật duy nhất, hiển thị đúng
+  một lần, và **mỗi phía tự đủ** — nạp style thẳng vào maplibre-gl thuần vẫn có ghi nguồn, mà ẩn lớp
+  POI hay thiếu bản POI trong manifest cũng không mất bên nào.
+  **Đã thử hướng khác rồi bỏ:** ban đầu cho SDK chỉ thêm `© MapsLibVN` cho theme của mình và để style
+  lo phần dữ liệu (commit `bf4ee25`). Đo trên production thấy `?poi=0` (`poiLayer: false`) làm mất
+  ghi nguồn Overture và Foursquare, vì MapLibre bỏ attribution của source không có lớp nào hiển thị —
+  trong khi ứng dụng vẫn có thể đang hiện kết quả Places API của hai nguồn đó. Hướng dùng chung chuỗi
+  không có lỗ hổng này.
+  Ràng buộc phải giữ: chuỗi ở style và ở SDK **không được lệch một ký tự**, lệch là hiện hai lần —
+  hai test trong `packages/style` khoá điều này bằng cách so thẳng với `attributionHtml()`.
+  `packages/style` nay có devDependency `@mapslibvn/core` chỉ để build và test lấy chuỗi; template
+  vẫn là JSON tĩnh nên Worker không bundle thêm gì. Sửa kèm: spec mục 7.2, `sdk.md`, `tinh-nang.md`,
+  `cai-dat.mdx`, `giay-phep.md`. **React Native không đổi** — bản đó vẽ overlay riêng cộng nút thông
+  tin native, không chồng nhau. Khuyến nghị còn treo: khoá `web` vẫn được cho qua khi không có Origin
+  (chủ ý MVP).
 
 
 - **04/09/2026 — Website docs hoàn chỉnh (chưa commit, chờ PHONG duyệt).** Rà soát toàn hệ thống rồi

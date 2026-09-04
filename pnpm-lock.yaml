@@ -237,6 +237,9 @@ importers:
       '@maplibre/maplibre-gl-style-spec':
         specifier: ^23.0.0
         version: 23.3.0
+      '@mapslibvn/core':
+        specifier: workspace:*
+        version: link:../core
       typescript:
         specifier: ^5.6.0
         version: 5.9.3

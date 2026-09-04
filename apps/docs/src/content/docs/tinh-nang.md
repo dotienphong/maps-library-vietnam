@@ -88,8 +88,9 @@ tối đa 500. Trường do người dùng sửa được khoá lại (`locked_f
 
 ## 6. Ghi nguồn bắt buộc
 
-SDK luôn gắn `AttributionControl`, và file style cũng khai ghi nguồn ngay trong từng nguồn tiles,
-nên bản đồ có ghi nguồn kể cả khi nạp thẳng vào MapLibre không qua SDK. Có tuỳ chọn
+SDK luôn gắn `AttributionControl`, và file style cũng khai đúng chuỗi đó ngay trong từng nguồn
+tiles, nên bản đồ có ghi nguồn kể cả khi nạp thẳng vào MapLibre không qua SDK. MapLibre gộp hai
+chuỗi trùng nhau nên người xem chỉ thấy một lần. Có tuỳ chọn
 `compactAttribution` để hiển thị gọn, **không có tuỳ chọn tắt** — đây là nghĩa vụ giấy phép của
 ODbL, CDLA-Permissive 2.0 và Apache-2.0, không phải lựa chọn giao diện. Xem
 [Giấy phép & ghi nguồn](/giay-phep/).

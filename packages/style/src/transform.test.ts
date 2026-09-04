@@ -2,6 +2,7 @@ import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { validateStyleMin } from '@maplibre/maplibre-gl-style-spec';
+import { attributionHtml } from '@mapslibvn/core';
 import { describe, expect, it } from 'vitest';
 import { ALLOWED_FONTS, fillTemplate, mapFont, transformStyle } from './transform.mjs';
 
@@ -62,7 +63,11 @@ describe('mapFont', () => {
 });
 
 describe('transformStyle (tiny base)', () => {
-  const out = transformStyle(tinyBase, { theme: 'light', sovereignty });
+  const out = transformStyle(tinyBase, {
+    theme: 'light',
+    sovereignty,
+    attribution: attributionHtml(),
+  });
 
   it('chỉ còn nguồn openmaptiles (pmtiles template) và sovereignty', () => {
     expect(Object.keys(out.sources).sort()).toEqual(['openmaptiles', 'sovereignty']);
@@ -71,11 +76,10 @@ describe('transformStyle (tiny base)', () => {
     expect(out.sprite).toBe('{TILES_BASE}/assets/sprites/osm-liberty');
   });
 
-  it('nguồn openmaptiles tự mang ghi nguồn kèm nhãn ODbL', () => {
-    // Style là endpoint công khai: ai nạp thẳng vào maplibre thuần vẫn phải thấy ghi nguồn.
-    expect(out.sources.openmaptiles.attribution).toBe(
-      '© OpenStreetMap contributors (ODbL) · © OpenMapTiles',
-    );
+  it('nguồn openmaptiles mang trọn chuỗi ghi nguồn của core', () => {
+    // Style là endpoint công khai: ai nạp thẳng vào maplibre thuần vẫn phải thấy đủ ghi nguồn.
+    // Phải trùng KHÍT chuỗi SDK dùng thì MapLibre mới gộp làm một (spec 7.2).
+    expect(out.sources.openmaptiles.attribution).toBe(attributionHtml());
   });
 
   it('bỏ layer raster; nhãn tên dùng coalesce name:vi; housenumber giữ nguyên', () => {
@@ -115,7 +119,7 @@ describe('transformStyle (base thật đã vendor)', () => {
   ] as const) {
     it(`${file} → template hợp lệ, nhãn tiếng Việt, font Noto`, () => {
       const base = JSON.parse(readFileSync(resolve(here, file), 'utf8'));
-      const out = transformStyle(base, { theme, sovereignty });
+      const out = transformStyle(base, { theme, sovereignty, attribution: attributionHtml() });
       expect(validateStyleMin(filled(out))).toEqual([]);
       for (const layer of out.layers) {
         if (layer.type !== 'symbol' || layer.source !== 'openmaptiles' || !layer.layout) continue;

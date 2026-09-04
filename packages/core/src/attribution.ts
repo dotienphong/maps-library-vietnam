@@ -4,14 +4,11 @@ export interface AttributionLink {
   license?: string;
 }
 
-/** Dòng bản quyền của chính MapsLibVN — phần duy nhất không nguồn dữ liệu nào khai báo hộ. */
-const MAPSLIBVN_LINK: AttributionLink = {
-  text: '© MapsLibVN',
-  href: 'https://github.com/dotienphong/maps-library-vietnam',
-};
-
 export const ATTRIBUTION_LINKS: readonly AttributionLink[] = [
-  MAPSLIBVN_LINK,
+  {
+    text: '© MapsLibVN',
+    href: 'https://github.com/dotienphong/maps-library-vietnam',
+  },
   {
     text: '© OpenStreetMap contributors',
     href: 'https://www.openstreetmap.org/copyright',
@@ -57,23 +54,13 @@ export function attributionText(): string {
   return join(ATTRIBUTION_LINKS.map((link) => withLicense(link, link.text)));
 }
 
-const linkHtml = (link: AttributionLink) =>
-  withLicense(
-    link,
-    `<a href="${link.href}" target="_blank" rel="noopener">${escapeHtml(link.text)}</a>`,
-  );
-
 export function attributionHtml(): string {
-  return join(ATTRIBUTION_LINKS.map(linkHtml));
-}
-
-/**
- * Chỉ dòng bản quyền MapsLibVN, không kèm nguồn dữ liệu.
- *
- * Dùng khi bản đồ chạy trên style `light`/`dark` của MapsLibVN: mỗi source trong style đã tự khai
- * báo `attribution` của nó, nên nếu thêm cả chuỗi đầy đủ thì MapLibre hiển thị nguồn hai lần.
- * Với style URL tuỳ biến vẫn phải dùng {@link attributionHtml} vì không biết style đó khai gì.
- */
-export function mapsLibVNAttributionHtml(): string {
-  return linkHtml(MAPSLIBVN_LINK);
+  return join(
+    ATTRIBUTION_LINKS.map((link) =>
+      withLicense(
+        link,
+        `<a href="${link.href}" target="_blank" rel="noopener">${escapeHtml(link.text)}</a>`,
+      ),
+    ),
+  );
 }

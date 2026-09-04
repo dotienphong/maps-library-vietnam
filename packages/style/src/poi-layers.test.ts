@@ -2,6 +2,7 @@ import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { validateStyleMin } from '@maplibre/maplibre-gl-style-spec';
+import { attributionHtml } from '@mapslibvn/core';
 import { describe, expect, it } from 'vitest';
 import { POI_GROUP_ICONS, addPoiLayers } from './poi-layers.mjs';
 import { fillTemplate, transformStyle } from './transform.mjs';
@@ -22,8 +23,10 @@ const filled = (tpl: unknown) =>
   );
 
 describe('addPoiLayers', () => {
-  const out = addPoiLayers(transformStyle(base, { theme: 'light', sovereignty }), {
+  const attribution = attributionHtml();
+  const out = addPoiLayers(transformStyle(base, { theme: 'light', sovereignty, attribution }), {
     theme: 'light',
+    attribution,
   });
   const poi = out.layers.find((l: { id: string }) => l.id === 'poi');
 
@@ -37,12 +40,11 @@ describe('addPoiLayers', () => {
     expect(out.layers.indexOf(poi)).toBe(out.layers.length - 2);
   });
 
-  it('nguồn poi tự mang ghi nguồn Overture + Foursquare', () => {
-    // SDK chỉ thêm dòng © MapsLibVN cho theme của mình, nên hai nguồn Places PHẢI nằm ở đây;
-    // gỡ dòng này là bản đồ mất ghi nguồn Places (spec 7.2).
-    expect(out.sources.poi.attribution).toBe(
-      'Places: Overture Maps Foundation (CDLA-Permissive 2.0), Foursquare OS Places (Apache-2.0)',
-    );
+  it('nguồn poi mang trọn chuỗi ghi nguồn của core, trùng khít source openmaptiles', () => {
+    // Ba nơi cùng một chuỗi (openmaptiles, poi, customAttribution của SDK) thì MapLibre gộp làm
+    // một; lệch một ký tự là ghi nguồn hiện hai lần (spec 7.2).
+    expect(out.sources.poi.attribution).toBe(attributionHtml());
+    expect(out.sources.poi.attribution).toBe(out.sources.openmaptiles.attribution);
   });
 
   it('bỏ các lớp POI của base (source-layer poi từ openmaptiles) để không trùng icon', () => {
