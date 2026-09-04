@@ -159,7 +159,9 @@ Vài điều dễ vấp:
   hai điều kiện ở mỗi lần bấm; thiếu một trong hai thì không truy vấn gì cả.
 - Truy vấn dùng `queryRenderedFeatures` tại đúng điểm bấm, chỉ lấy đối tượng đầu tiên và chỉ nhận
   hình học `Point`. Bấm lệch khỏi biểu tượng vài pixel là không có kết quả.
-- Nhãn tên POI chỉ hiện từ zoom 13; biểu tượng hiện từ zoom 10.
+- Biểu tượng POI xuất hiện tăng dần từ zoom 10 theo độ quan trọng và mật độ. Nhãn địa danh lớn xuất
+  hiện từ zoom 12; nhãn địa điểm địa phương từ zoom 16. POI không hiện trên nền vẫn tìm được qua
+  Search/Nearby.
 - `off` gỡ listener: `map.off('poiClick', handler)`.
 
 Lấy chi tiết POI vừa bấm:

@@ -112,8 +112,12 @@ Có khoá riêng rồi thì không cần sửa file: mở `http://localhost:5500
 | Style | Dòng "bản đồ đã tải" hiện trong khung log | Không hiện → `/v1/styles/light.json` lỗi, xem console |
 | Ghi nguồn | Góc dưới phải có `© OpenStreetMap contributors` | Không có → thiếu `mapslibvn.css` hoặc SDK chưa khởi tạo |
 | Autocomplete | Gõ 2 ký tự trở lên, gợi ý hiện sau ~200 ms | Im lặng → thiếu `api-key`/`api-base` trên thẻ |
-| POI | Bấm vào biểu tượng POI: console in `poiClick` | Không có → phải bấm **đúng** biểu tượng; nhãn POI chỉ hiện từ zoom 13 |
+| POI | Bấm vào biểu tượng POI: console in `poiClick` | Không có → phải bấm **đúng** biểu tượng |
 | Khoá | Không có dòng đỏ 401/403 trong console | Xem hai dòng dưới bảng |
+
+Biểu tượng POI xuất hiện tăng dần từ zoom 10 theo độ quan trọng và mật độ. Nhãn địa danh lớn xuất
+hiện từ zoom 12; nhãn địa điểm địa phương từ zoom 16. POI không hiện trên nền vẫn tìm được qua
+Search/Nearby.
 
 Hai lỗi khoá hay gặp:
 

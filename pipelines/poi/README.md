@@ -34,6 +34,28 @@ Số liệu ingest thật toàn VN (Task 10, 31/08/2026): `src_osm_place` 228.25
 | Mốc địa chỉ | `node pipelines/poi/src/geocode/anchors.mjs` | `src_osm_place` + `poi_work_record` → `address_anchor` |
 | Report | `node pipelines/poi/src/report.mjs` | `out/poi-report-*.json` |
 
+## Hiển thị POI tăng dần theo zoom
+
+Exporter sắp POI theo `category.rank` trước, rồi `popularity`, `quality_score` và MD5 của ID để
+kết quả xác định giữa các lần build. Tile chỉ mang các thuộc tính công khai `id`, `name`, `cat`,
+`grp`, `q`, `r`, `d`; `popularity` chỉ dùng nội bộ để xếp hạng và không được xuất ra PMTiles.
+
+| `r` | Zoom sớm nhất |
+|---:|---:|
+| 1 | 10 |
+| 2 | 12 |
+| 3 | 13 |
+| 4 | 14 |
+| 5 hoặc rank lỗi | 15 |
+
+Mỗi ứng viên chỉ được nhận nếu ô Web Mercator của nó còn trống ở zoom nhận **và mọi zoom cao hơn**.
+Khoảng cách ô dùng cho z10→z16 lần lượt là `160, 160, 144, 128, 112, 96, 80` pixel. Nhờ vậy một
+POI đã xuất hiện không biến mất khi zoom vào và mật độ không tạo dải dày tại biên tile.
+
+Exporter in một dòng JSON gồm `activeRead`, `selected`, `thinned`, `byMinZoom`, `rankFallback` và
+`invalidCoordinates`. Có tọa độ lỗi thì job dừng trước Tippecanoe. POI bị `thinned` chỉ bị ẩn khỏi
+nền bản đồ; bản ghi `poi.status='active'` vẫn nguyên và vẫn tìm được qua Search/Nearby.
+
 Taxonomy (Task 6): 164 mã lá (12 nhóm + `other`), 955 dòng ánh xạ (OSM 296, Overture 380, FSQ 279).
 Độ phủ đo trên dữ liệu VN thật: **thiếu ánh xạ** OSM 0,4 %, Overture 0,8 %, FSQ 0 % (ngưỡng 2 %).
 Phần rơi vào `<nhóm>_other` **có chủ đích** (nhóm cha chung chung của nguồn, không thể chi tiết hơn):

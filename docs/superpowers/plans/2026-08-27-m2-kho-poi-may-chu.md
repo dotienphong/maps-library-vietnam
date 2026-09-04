@@ -5676,6 +5676,10 @@ git push
 
 ### Task 9: `poi-YYYYMMDD.pmtiles` (tippecanoe) + lớp POI trong style + Worker điền `{POI_FILE}`
 
+> **Ghi chú lịch sử (04/09/2026):** luật lọc theo `q` của spec 5.8 dưới đây là bằng chứng nghiệm
+> thu M2 tại thời điểm đó. Hành vi hiện hành đã được thay thế bởi thiết kế priority + mật độ trong
+> `docs/superpowers/specs/2026-09-04-progressive-poi-display-design.md`; giữ nguyên checkbox cũ.
+
 **Files:**
 - Create: `pipelines/poi/src/export-tiles.mjs`, `pipelines/poi/tests/export-tiles.test.mjs`, `packages/style/src/poi-layers.mjs`, `packages/style/src/poi-layers.test.ts`
 - Modify: `packages/style/scripts/build.mjs`, `packages/style/src/transform.d.mts`, `apps/api/src/style.ts`, `apps/api/test/styles.test.ts`, `pipelines/tiles/src/smoke.mjs` (`--set poi`), `apps/docs/public/playground.html` (hiện tên/loại khi bấm POI)

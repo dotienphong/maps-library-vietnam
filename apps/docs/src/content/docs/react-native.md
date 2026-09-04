@@ -91,6 +91,9 @@ báo cáo (chưa chặn — xem [Điều khoản tenant](/dieu-khoan/)). Khoá v
   sinh ra — app thử `examples/embed-rn` trong repo minh hoạ trọn quy trình bằng `pnpm example:rn`.
 - Chưa có tiles offline; MapLibre Native đọc được PMTiles `file://` nên có thể thêm sau.
 - `onPoiClick` truy vấn đúng một điểm chạm: lệch khỏi biểu tượng POI vài pixel là không có kết quả.
-  Nhãn POI chỉ hiện từ zoom 13 trở lên.
+
+Biểu tượng POI xuất hiện tăng dần từ zoom 10 theo độ quan trọng và mật độ. Nhãn địa danh lớn xuất
+hiện từ zoom 12; nhãn địa điểm địa phương từ zoom 16. POI không hiện trên nền vẫn tìm được qua
+Search/Nearby.
 
 Đọc thêm: [Bắt đầu 5 phút](/bat-dau/) (web), [Giấy phép & ghi nguồn](/giay-phep/).

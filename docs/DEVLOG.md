@@ -17,6 +17,10 @@ commit với code).
   - **Khoá `mobile`** (không kiểm origin, ghi `X-Bundle-Id` vào log và báo cáo tuần)
   - Mốc trước: **M5 — Phát hành nội bộ nghiệm thu 03/09/2026 → SPEC BẢN 2 HOÀN TẤT**;
     **M4 — Đóng góp nghiệm thu 02/09/2026**
+- Candidate **hiển thị POI tăng dần theo zoom** đã implement local theo
+  `docs/superpowers/plans/2026-09-04-progressive-poi-display.md`: priority xác định, lưới Web
+  Mercator xuyên zoom, ba tầng style và SDK ẩn đủ mọi layer POI. National build/release **chưa
+  chạy**; production manifest vẫn giữ release hiện tại.
 - Plan M5: `docs/superpowers/plans/2026-09-02-m5-phat-hanh-noi-bo.md` — **10/10 task XONG**,
   nghiệm thu 5/5 hạng mục ĐẠT 03/09/2026 (bảng bằng chứng ở mục 10). Gồm: docs đủ 5 trang
   spec 7.4 + 2 trang pháp lý sinh lúc prebuild (`/dieu-khoan/`, `/thong-bao-ben-thu-ba/`,
@@ -66,6 +70,43 @@ commit với code).
   **PENDING Windows** (chờ PHONG có máy để kiểm)
 
 ## 2. Bước kế tiếp
+
+- **04/09/2026 — Progressive POI candidate local.** Contract tile thêm `r` (rank 1–5), `d`
+  (display sort key) và `tippecanoe.minzoom`; `popularity` chỉ tham gia xếp hạng nội bộ, không xuất
+  vào tile. Style tách `poi` icon-only z10, `poi-label-major` z12 và `poi-label-local` z16;
+  `poiLayer:false` ẩn cả ba nhưng click vẫn query đúng layer icon `poi`. Fixture DB cô lập đọc
+  **78.122 active**, chọn **2.136**, thinning **75.986**, `invalidCoordinates=0`; phân bổ minzoom
+  z10→z16 là **5 / 2 / 8 / 9 / 21 / 981 / 1.110**; PMTiles **401.489 byte**. Test fixture còn
+  chứng minh POI bị thinning vẫn `active`, mỗi display cell chỉ có một feature ở mọi zoom và
+  archive thật giữ `r/d`. National archive/R2/KV **chưa build, chưa upload, chưa đổi manifest**;
+  chỉ được tiếp tục sau phê duyệt release riêng.
+
+  Full gate local: lint **281 file**, typecheck **14/14 task**, Vitest root **62 file / 621 test**,
+  API **20 file / 95 test**, build **8/8 task** và docs **20 trang**, Playwright mặc định **26/26**;
+  Playwright chạy lại với `poi-fixture.pmtiles` cũng **26/26**. Full DB run có **42 test qua** và
+  lộ đúng 1 lỗi đường dẫn fixture; sau khi sửa, riêng test fixture chạy lại đạt **4/4**. Visual
+  smoke dùng Chromium viewport 1000×800, tâm `106.709006,10.784050`:
+
+  | Theme | Zoom | Icon `poi` | Nhãn major | Nhãn local |
+  |---|---:|---:|---:|---:|
+  | light | 10 | 4 | 0 | 0 |
+  | light | 12 | 0 | 5 | 0 |
+  | light | 14 | 2 | 18 | 0 |
+  | light | 15 | 2 | 25 | 0 |
+  | light | 16 | 1 | 21 | 5 |
+  | dark | 10 | 4 | 0 | 0 |
+  | dark | 12 | 0 | 5 | 0 |
+  | dark | 14 | 2 | 18 | 0 |
+  | dark | 15 | 2 | 25 | 0 |
+  | dark | 16 | 1 | 21 | 5 |
+
+  Số symbol sau collision không phải golden count. Nhãn major quan sát chỉ có rank 1–2; nhãn
+  local chỉ xuất hiện ở z16 và có rank 3–5; không thấy dải icon ở biên tile trên light/dark.
+  Click icon `Trường Trưng Vương` trả đủ id `5XB2X3G9YZH8J70K4FGBQ2A7HK`, name, `park` và
+  `culture_tourism`; `poi=0` đặt `visibility:none` và rendered count 0 cho cả ba layer;
+  `lang=en` vẫn báo `loaded`. Visual QA còn bắt được seed local thiếu sprite/font: đã thêm bốn
+  sprite osm-liberty và bốn glyph range tiếng Việt tối thiểu để preview dùng asset thật như
+  production.
 
 - **04/09/2026 — sửa ghi nguồn hiện hai lần trên bản đồ.** Trước đó `AttributionControl` hiển thị ba
   khối: hai khối do từng source trong style tự khai, một khối do SDK thêm bằng `attributionHtml()`,
@@ -306,6 +347,7 @@ vẫn là `sleep 1` phút — `sudo pmset -a sleep 0 disksleep 0`.
 
 | Ngày | Quyết định | Lý do | Commit |
 |---|---|---|---|
+| 2026-09-04 | Display priority không dùng `quality_score` làm tín hiệu chính: thứ tự là `category.rank` → `popularity` → `quality_score` → MD5/ID; tile dùng lưới Web Mercator giữ chỗ từ `minzoom` tới z16 | Quality chủ yếu đo độ đầy đủ dữ liệu, không đồng nghĩa địa điểm quan trọng. Giữ chỗ xuyên zoom bảo đảm POI đã xuất hiện không biến mất khi zoom và loại phụ thuộc biên cursor/tile | (commit này) |
 | 2026-09-04 | C4: `ip_hash`/`end_user_hash` băm kèm secret `IP_HASH_PEPPER`; thiếu secret thì `POST /v1/edits` trả **503 `server_misconfigured`** chứ không tự hạ xuống băm không pepper. Dev/test dùng giá trị không bí mật trong `wrangler.toml` và `vitest.config.ts`; production dùng `wrangler secret put` (đã đặt 04/09). Harness dbtest phải truyền `--var IP_HASH_PEPPER` | Không có pepper thì dải IPv4 chỉ ~4 tỉ giá trị — ai lấy được bảng `poi_edit` là dò ngược ra IP; mặc định im lặng sẽ khiến sự cố cấu hình không bao giờ bị phát hiện | (commit này) |
 | 2026-09-03 | M6 chốt 8 quyết định khi viết plan, đã áp dụng nguyên: (1) `tsup.config.ts` với `noExternal: ['@mapslibvn/core']` — external `react`, `react/jsx-runtime`, `react-native`, wrapper; (2) test component RN chạy jsdom bằng `@testing-library/react` với `vi.mock` hai module native trong `src/test/` (không `react-test-renderer`, không Jest preset RN); (3) vitest root include thêm `packages/*/src/**/*.test.tsx`; (4) `resolveKey` nhận tham số thứ ba `{envName, hint}` để `example-rn` dùng lại thay vì copy; (5) app thử tạo bằng `create-expo-app --template blank-typescript`, không ghim tay RN/React; (6) `npm install ./vendor/*.tgz` chạy lại **mỗi lần** `example:rn` để npm không giữ tarball cũ trùng tên; (7) `<Marker>` mặc định View tròn 22 pt, `anchor` `center`; (8) `onLoad` gọi một lần mỗi lần tạo map, guard bằng `useRef`. Kèm: style JSON tải về phải cast `as StyleSpecification` trong `use-style.ts` vì `res.json()` trả `unknown` | Gói RN phải cài được khi core chưa lên npm; React 19 + New Architecture loại bỏ hạ tầng test RN cũ; app thử phải nằm ngoài workspace để chứng minh tarball tự chứa | (commit này) |
 | 2026-09-03 | Spec gốc mục 8.1 sửa một dòng: wrapper RN không có `addProtocol`, `pmtiles://` do MapLibre Native (Android ≥ 11.8 / iOS ≥ 6.10, wrapper 11.3.8 kèm Android 13.2 / iOS 6.26) đọc trực tiếp; trỏ về spec M6 riêng. Spec M6 chốt: không biến thể style mobile, không tiles fallback; app Expo thử độc lập ngoài workspace cài bằng tarball (cách A); `PoiFeature` + hàm biến đổi style thuần chuyển vào core; gói RN đóng gói core, không kéo web | Xác minh 03/09 bằng docs MapLibre và changelog wrapper; monorepo React 18 không tương thích peer React 19 của wrapper nên gói và app thử phải tách | (commit này) |

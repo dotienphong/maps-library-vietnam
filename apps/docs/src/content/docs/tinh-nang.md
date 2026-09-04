@@ -24,8 +24,9 @@ không đi qua máy chủ API — SDK tự đăng ký protocol `pmtiles://` trư
 
 ## 2. Lớp POI — 164 loại trong 13 nhóm
 
-Lớp `poi` là một file PMTiles riêng, hiện từ zoom 10; **nhãn tên POI chỉ hiện từ zoom 13** trở lên.
-Biểu tượng chọn theo nhóm.
+Biểu tượng POI xuất hiện tăng dần từ zoom 10 theo độ quan trọng và mật độ. Nhãn địa danh lớn xuất
+hiện từ zoom 12; nhãn địa điểm địa phương từ zoom 16. POI không hiện trên nền vẫn tìm được qua
+Search/Nearby. Biểu tượng chọn theo nhóm.
 
 | Nhóm | Số mã | Ví dụ mã |
 |---|---|---|

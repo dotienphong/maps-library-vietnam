@@ -681,7 +681,7 @@ git commit -m "test(poi): khóa contract tile và style tăng dần"
 - Consumes: behavior đã test ở Tasks 1–6.
 - Produces: hướng dẫn đúng hiện trạng và evidence matrix trước national release.
 
-- [ ] **Step 1: Cập nhật docs contract và hành vi zoom**
+- [x] **Step 1: Cập nhật docs contract và hành vi zoom**
 
 README ghi đủ `q/r/d`, bảng rank→earliest zoom, bảng cellPx, log counters và lý do POI bị ẩn vẫn có
 trong search. Bốn trang docs thay câu “nhãn POI từ zoom 13” bằng:
@@ -694,12 +694,12 @@ Trong plan M2 đã nghiệm thu, chỉ thêm một ghi chú ngay mục Task 9: l
 chứng lịch sử và đã được thay thế bởi
 `docs/superpowers/specs/2026-09-04-progressive-poi-display-design.md`; không đổi checkbox cũ.
 
-- [ ] **Step 2: Ghi DEVLOG implementation evidence**
+- [x] **Step 2: Ghi DEVLOG implementation evidence**
 
 Thêm mục ngày 04/09/2026 mô tả contract, công thức, tests, số fixture trước/sau và ghi rõ national
 release **chưa chạy**. Thêm quyết định “display priority không dùng quality làm tín hiệu chính”.
 
-- [ ] **Step 3: Chạy full CI-equivalent gate**
+- [x] **Step 3: Chạy full CI-equivalent gate**
 
 Run:
 
@@ -714,7 +714,7 @@ git diff --check
 
 Expected: tất cả exit 0; ghi số test/build pages thật vào DEVLOG trước commit.
 
-- [ ] **Step 4: Khởi động preview với POI fixture**
+- [x] **Step 4: Khởi động preview với POI fixture**
 
 Tạo fixture vào named volume, bật service pipeline đủ lâu để copy archive ra host, rồi chạy E2E:
 
@@ -727,21 +727,21 @@ MAPSLIBVN_POI_FIXTURE=../../out/poi-fixture.pmtiles pnpm --filter @mapslibvn/doc
 
 Sau đó chạy API/docs preview với cùng env và dùng browser thật mở playground ở light/dark.
 
-- [ ] **Step 5: Thu visual matrix**
+- [x] **Step 5: Thu visual matrix**
 
 Chụp viewport 1000×800 ở TP.HCM fixture tại z10, z12, z14, z15, z16 cho light và dark. Ghi vào
 DEVLOG: số icon/nhãn quan sát, POI rank 1–2 còn hiện khi zoom, local label chỉ ở z16, không có dải
 icon tại biên tile, click trả đúng `id/name/cat/grp`, `poi=0` ẩn cả icon/nhãn, `lang=en` không lỗi.
 Không biến số icon thành golden test vì collision còn phụ thuộc nhãn nền.
 
-- [ ] **Step 6: Commit docs và acceptance local**
+- [x] **Step 6: Commit docs và acceptance local**
 
 ```bash
 git add pipelines/poi/README.md apps/docs/src/content/docs/tinh-nang.md apps/docs/src/content/docs/ban-do-web.md apps/docs/src/content/docs/react-native.md apps/docs/src/content/docs/nhung-thu.md docs/superpowers/plans/2026-08-27-m2-kho-poi-may-chu.md docs/DEVLOG.md
 git commit -m "docs: ghi nhận hiển thị POI tăng dần"
 ```
 
-- [ ] **Step 7: Dừng ở cổng national release**
+- [x] **Step 7: Dừng ở cổng national release**
 
 Báo commit list, full gate, fixture tile size và visual matrix cho PHONG. Không upload R2, không sửa
 manifest và không push nếu người dùng chưa yêu cầu push/release trong turn thực thi.
