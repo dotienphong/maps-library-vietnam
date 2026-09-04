@@ -32,7 +32,7 @@
     "check:git": "node scripts/check-git-identity.mjs",
     "test:db": "node scripts/db-test.mjs",
     "test:api-db": "node scripts/api-db-test.mjs",
-  "test:admin-e2e": "pnpm --filter @mapslibvn/admin test:e2e",
+    "test:admin-e2e": "pnpm --filter @mapslibvn/admin test:e2e",
     "server:setup": "node scripts/server-setup.mjs",
     "server:update": "node scripts/server-update.mjs",
     "db:restore": "node scripts/db-restore.mjs",
