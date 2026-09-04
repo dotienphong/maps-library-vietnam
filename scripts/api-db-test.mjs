@@ -10,6 +10,9 @@ import { DBTEST_DATABASE, isolatedDbUrl } from './lib/db-test.mjs';
 import { databaseUrlFromEnv } from './lib/migrations.mjs';
 
 const PORT = 8799;
+// Wrangler và itest phải dùng chung một pepper, nếu không `end_user_hash` do route tính sẽ không
+// khớp hàng mà test tự chèn vào `poi_edit` và mọi kiểm hạn mức theo người dùng đều trượt.
+const IP_HASH_PEPPER = 'dbtest-pepper';
 const target = isolatedDbUrl(databaseUrlFromEnv(process.env));
 
 /**
@@ -102,7 +105,7 @@ const wrangler = spawn(
     '--var',
     `ACCESS_CERTS_URL:http://127.0.0.1:${CERTS_PORT}/certs`,
     '--var',
-    'IP_HASH_PEPPER:dbtest-pepper',
+    `IP_HASH_PEPPER:${IP_HASH_PEPPER}`,
   ],
   {
     stdio: 'inherit',
@@ -160,6 +163,7 @@ try {
 
   run('pnpm', ['exec', 'vitest', 'run', '--config', 'apps/api/vitest.itest.config.ts'], {
     PLACES_API_BASE: `http://127.0.0.1:${PORT}`,
+    IP_HASH_PEPPER,
   });
 } finally {
   stopWrangler();

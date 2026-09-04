@@ -112,7 +112,11 @@ describe('POST /v1/edits với DB thật', () => {
 
   it('vượt 20 edit/ngày/end-user → 429 quota_exceeded', async () => {
     const token = 'itest-heavy-user';
-    const hash = createHash('sha256').update(`${FREE_TENANT}:${token}`).digest('hex');
+    // Cùng công thức với endUserHash() của Worker; pepper do scripts/api-db-test.mjs truyền vào
+    // cả wrangler lẫn tiến trình test này.
+    const pepper = process.env.IP_HASH_PEPPER;
+    if (!pepper) throw new Error('Thiếu IP_HASH_PEPPER — chạy qua pnpm test:api-db');
+    const hash = createHash('sha256').update(`${pepper}:${FREE_TENANT}:${token}`).digest('hex');
     await sql`INSERT INTO poi_edit (poi_id, tenant_id, end_user_hash, kind, changes, status, api_key)
       SELECT '01M3TEST0000000000000CAF01', ${FREE_TENANT}, ${hash}, 'report', '{}'::jsonb, 'pending', ${FREE_KEY}
       FROM generate_series(1, 20)`;
