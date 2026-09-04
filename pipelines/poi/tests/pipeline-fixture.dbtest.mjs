@@ -1,13 +1,16 @@
 // Toàn chuỗi trên fixture Quận 1 → poi hợp lý, poi.pmtiles sinh ra và qua QA. Chạy trong image.
 import 'dotenv/config';
 import { execFileSync } from 'node:child_process';
-import { existsSync, statSync } from 'node:fs';
+import { existsSync, readFileSync, statSync } from 'node:fs';
 import { resolve } from 'node:path';
 import postgres from 'postgres';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { databaseUrlFromEnv } from '../../../scripts/lib/migrations.mjs';
+import { lonLatToTile } from '../../tiles/src/lib/qa-rules.mjs';
+import { CELL_PX_BY_ZOOM, globalCellKey } from '../src/display-selector.mjs';
 
 const OUT = process.env.MAPSLIBVN_OUT ?? resolve('out');
+const WORK = process.env.MAPSLIBVN_WORK ?? resolve('work');
 const sql = postgres(databaseUrlFromEnv(process.env), { max: 1, onnotice: () => {} });
 const node = (/** @type {string[]} */ ...args) =>
   execFileSync(process.execPath, args, {
@@ -58,6 +61,61 @@ describe('pipeline POI trọn vòng trên fixture', () => {
     expect(info.zoom).toEqual([10, 16]);
     expect(info.layers).toEqual(['poi']);
     expect(() => node('pipelines/tiles/src/qa.mjs', file, '--skip-islands')).not.toThrow();
+  });
+
+  it('GeoJSON và PMTiles giữ contract progressive display mà không sửa POI bị thinning', async () => {
+    const features = readFileSync(resolve(WORK, 'poi', 'poi.geojsonseq'), 'utf8')
+      .trim()
+      .split('\n')
+      .map((line) => JSON.parse(line));
+    expect(features.length).toBeGreaterThan(0);
+    const occupied = new Set();
+    for (const feature of features) {
+      const minZoom = feature.tippecanoe.minzoom;
+      expect(minZoom).toBeGreaterThanOrEqual(10);
+      expect(minZoom).toBeLessThanOrEqual(16);
+      expect(feature.properties.r).toBeGreaterThanOrEqual(1);
+      expect(feature.properties.r).toBeLessThanOrEqual(5);
+      expect(Number.isInteger(feature.properties.d)).toBe(true);
+      expect(feature.properties.popularity).toBeUndefined();
+      const [lon, lat] = feature.geometry.coordinates;
+      for (let zoom = minZoom; zoom <= 16; zoom++) {
+        const cell = globalCellKey(lon, lat, zoom, CELL_PX_BY_ZOOM[zoom]);
+        expect(occupied.has(cell), `trùng display cell ${cell}`).toBe(false);
+        occupied.add(cell);
+      }
+    }
+
+    const active = await sql`SELECT id, status FROM poi WHERE status = 'active' ORDER BY id`;
+    expect(features.length).toBeLessThan(active.length);
+    const exportedIds = new Set(features.map((feature) => feature.properties.id));
+    const omitted = active.find((row) => !exportedIds.has(row.id));
+    expect(omitted).toBeDefined();
+    const [unchanged] = await sql`SELECT status FROM poi WHERE id = ${omitted.id}`;
+    expect(unchanged.status).toBe('active');
+
+    const sample = features[0];
+    const zoom = sample.tippecanoe.minzoom;
+    const { x, y } = lonLatToTile(
+      sample.geometry.coordinates[0],
+      sample.geometry.coordinates[1],
+      zoom,
+    );
+    const decoded = JSON.parse(
+      execFileSync(
+        'tippecanoe-decode',
+        [resolve(OUT, 'poi-fixture.pmtiles'), String(zoom), String(x), String(y)],
+        { encoding: 'utf8' },
+      ),
+    );
+    const decodedFeatures = decoded.features.flatMap((item) =>
+      item.type === 'FeatureCollection' ? item.features : [item],
+    );
+    const actual = decodedFeatures.find((item) => item.properties?.id === sample.properties.id);
+    expect(actual?.properties).toMatchObject({
+      r: sample.properties.r,
+      d: sample.properties.d,
+    });
   });
 
   it('báo cáo ghi ra out/poi-report-*.json với các khối poi/links/geocode', () => {

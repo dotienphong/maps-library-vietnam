@@ -578,7 +578,7 @@ git commit -m "fix(sdk): ẩn đầy đủ các tầng POI"
 - Produces: contract Worker ba layer; `MAPSLIBVN_POI_FIXTURE`, `MAPSLIBVN_POI_RELEASE` và
   `MAPSLIBVN_VN_RELEASE` để preview candidate mà không đổi production.
 
-- [ ] **Step 1: Viết API test đỏ cho manifest có/không POI**
+- [x] **Step 1: Viết API test đỏ cho manifest có/không POI**
 
 Khi manifest có POI, assert IDs source `poi` đúng `['poi','poi-label-major','poi-label-local']` và
 layer `poi` minzoom 10. Khi manifest không có POI, assert không layer nào có `source==='poi'`.
@@ -591,14 +591,14 @@ expect(poiLayers.map((layer) => layer.id)).toEqual([
 expect(poiLayers.find((layer) => layer.id === 'poi')?.minzoom).toBe(10);
 ```
 
-- [ ] **Step 2: Build dependencies rồi chạy API test**
+- [x] **Step 2: Build dependencies rồi chạy API test**
 
 Run: `pnpm --filter @mapslibvn/core build && pnpm --filter @mapslibvn/style build && pnpm --filter @mapslibvn/api test -- styles.test.ts`
 
 Expected: PASS nếu API đã lọc theo source như hiện tại; nếu test lộ type fixture cũ thì chỉ sửa type
 trong test, không đổi `renderStyle()` trừ khi thực sự còn sót layer.
 
-- [ ] **Step 3: Mở rộng pipeline fixture test**
+- [x] **Step 3: Mở rộng pipeline fixture test**
 
 Sau exporter, đọc `MAPSLIBVN_WORK/poi.geojsonseq`, parse từng dòng và assert:
 
@@ -635,7 +635,7 @@ expect(actual.properties).toMatchObject({ r: sample.properties.r, d: sample.prop
 
 Giữ tests archive ≤20 MiB, zoom `[10,16]`, layer `poi`, QA.
 
-- [ ] **Step 4: Thêm seed local tùy chọn, không đổi CI mặc định**
+- [x] **Step 4: Thêm seed local tùy chọn, không đổi CI mặc định**
 
 ```js
 const poiFixture = process.env.MAPSLIBVN_POI_FIXTURE;
@@ -650,14 +650,14 @@ if (poiFixture) {
 
 Nếu env có giá trị nhưng file không tồn tại, script phải throw trước khi ghi KV.
 
-- [ ] **Step 5: Chạy fixture DB trong pipeline image**
+- [x] **Step 5: Chạy fixture DB trong pipeline image**
 
 Run: `pnpm --filter @mapslibvn/core build && pnpm --filter @mapslibvn/style build && pnpm test:db`
 
 Expected: toàn bộ DB tests PASS; fixture sinh PMTiles và grid assertions xanh. Không dùng DB dev làm
 oracle; harness phải dùng DB cô lập `mapslibvn_task8_test`.
 
-- [ ] **Step 6: Commit Task 6**
+- [x] **Step 6: Commit Task 6**
 
 ```bash
 git add apps/api/test/styles.test.ts apps/api/scripts/seed-local.mjs pipelines/poi/tests/pipeline-fixture.dbtest.mjs

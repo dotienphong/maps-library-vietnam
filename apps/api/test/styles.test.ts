@@ -35,13 +35,13 @@ describe('GET /v1/styles/:theme.json', () => {
     const res = await SELF.fetch('https://api/v1/styles/light.json');
     const style = (await res.json()) as {
       sources: Record<string, unknown>;
-      layers: { id: string }[];
+      layers: { id: string; source?: string }[];
     };
     expect(style.sources.poi).toBeUndefined();
-    expect(style.layers.some((l) => l.id === 'poi')).toBe(false);
+    expect(style.layers.some((layer) => layer.source === 'poi')).toBe(false);
   });
 
-  it('manifest có poi → nguồn poi trỏ đúng file, lớp poi minzoom 10', async () => {
+  it('manifest có poi → nguồn đúng file và đủ ba tầng POI', async () => {
     await env.META.put(
       'release:current',
       JSON.stringify({ vn: 'vn-20260826', poi: 'poi-20260901' }),
@@ -49,10 +49,16 @@ describe('GET /v1/styles/:theme.json', () => {
     const res = await SELF.fetch('https://api/v1/styles/dark.json');
     const style = (await res.json()) as {
       sources: Record<string, { url?: string }>;
-      layers: { id: string; minzoom?: number }[];
+      layers: { id: string; source?: string; minzoom?: number }[];
     };
     expect(style.sources.poi?.url).toBe('pmtiles://https://tiles.test/tiles/poi-20260901.pmtiles');
-    expect(style.layers.find((l) => l.id === 'poi')?.minzoom).toBe(10);
+    const poiLayers = style.layers.filter((layer) => layer.source === 'poi');
+    expect(poiLayers.map((layer) => layer.id)).toEqual([
+      'poi',
+      'poi-label-major',
+      'poi-label-local',
+    ]);
+    expect(poiLayers.find((layer) => layer.id === 'poi')?.minzoom).toBe(10);
   });
 
   it('chưa có manifest → 503 upstream_unavailable', async () => {
