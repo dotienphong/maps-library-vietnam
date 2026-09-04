@@ -53,7 +53,7 @@
 - Consumes: `{ id: string, rank: unknown, popularity: unknown, qualityScore: unknown }` từ cursor DB.
 - Produces: `displayFields(input): { r: number, p: number, q: number, tie: number, d: number, earliestZoom: number, rankFallback: boolean }` và `priorityOrderSql` dùng ở Task 3.
 
-- [ ] **Step 1: Viết test đỏ cho normalize, bucket và tie-break**
+- [x] **Step 1: Viết test đỏ cho normalize, bucket và tie-break**
 
 ```js
 import { describe, expect, it } from 'vitest';
@@ -84,13 +84,13 @@ describe('displayFields', () => {
 });
 ```
 
-- [ ] **Step 2: Chạy test và xác nhận RED**
+- [x] **Step 2: Chạy test và xác nhận RED**
 
 Run: `pnpm vitest run pipelines/poi/tests/display-priority.test.mjs`
 
 Expected: FAIL vì chưa có `display-priority.mjs`.
 
-- [ ] **Step 3: Implement module priority tối thiểu**
+- [x] **Step 3: Implement module priority tối thiểu**
 
 ```js
 import { createHash } from 'node:crypto';
@@ -133,13 +133,13 @@ export const priorityOrderSql = `
   p.id ASC`;
 ```
 
-- [ ] **Step 4: Chạy focused test + typecheck script**
+- [x] **Step 4: Chạy focused test + typecheck script**
 
 Run: `pnpm vitest run pipelines/poi/tests/display-priority.test.mjs && pnpm exec tsc -p pipelines/poi/tsconfig.json`
 
 Expected: PASS; TypeScript không báo lỗi JSDoc.
 
-- [ ] **Step 5: Commit Task 1**
+- [x] **Step 5: Commit Task 1**
 
 ```bash
 git add pipelines/poi/src/display-priority.mjs pipelines/poi/tests/display-priority.test.mjs
