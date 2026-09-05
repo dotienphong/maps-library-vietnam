@@ -99,6 +99,48 @@ commit với code).
   **Cứu được 4 ca cũ rơi ngoài `LIMIT 20`; làm hỏng 0 ca cũ đang đạt.** Ba ca tụt hạng (1→3, 1→3,
   4→5) vô hại vì hạng trong SQL chỉ là ngưỡng cắt ứng viên, thứ tự cuối do `rankScore` quyết định.
 
+- **05/09/2026 — Tìm mờ `word_similarity`: đã viết xong mã, CHỜ PHONG duyệt phát hành.** Plan
+  `docs/superpowers/plans/2026-09-05-tim-mo-word-similarity.md`, Task 0–7 xong tại chỗ,
+  **chưa `git push`** nên production chưa đổi. Bảy commit: `4c56cc2` (bộ đo), `62ecebc` (format),
+  `1f0cb8d` (migration 0007), `3efccd7` (healthz), `8c8e695` (fakeSql), `22eed9c` (module truy vấn),
+  `8ef0b05` (route autocomplete), `52f74db` (search + geocode), `fee9daf` (docs).
+
+  Thay `name_norm % q` bằng `q <% name_norm` ở `/v1/autocomplete`, `/v1/search` và bước khớp đường
+  của `/v1/geocode`; SQL ứng viên tách ra `apps/api/src/autocomplete-sql.ts` và ba loại
+  (poi/street/address) chạy **song song** thay vì tuần tự. `EXPLAIN ANALYZE` trên DB dev xác nhận
+  nhánh mới vẫn **dùng chỉ số `poi_name_norm_trgm_idx`** (`Index Cond: name_norm %> 'higland'`),
+  thời gian chạy 7 ms — không có nhánh nào quét bảng.
+
+  Kiểm thật qua API dev (79.775 POI): `skincode` → "Showroom Skincode - Swiss Derma Center" hạng 1
+  (trước không tìm thấy); `laptop nhap my` → "Saigon Lab - Chuyên Laptop Nhập Mỹ" hạng 1 (trước
+  hạng 30, ngoài `LIMIT 20`); `coffee highlands` → Highlands Coffee hạng 1; `higland` → Highland
+  Coffee hạng 2; `/v1/search?q=higlands` → Highlands Coffee, `total=118`.
+
+  Cổng local xanh: lint 285 file, typecheck 14/14, vitest gốc 62 file/**624 test**, API 21
+  file/**100 test**, docs build 20 trang.
+
+  **Hai quyết định lệch plan, có lý do:**
+  1. GUC đặt ở **cấp database** (`ALTER DATABASE … SET`) chứ không phải cấp role `api` — dev nối
+     bằng user `mapslibvn` và dbtest tạo DB cô lập, cấp role chỉ phủ production. Đã sửa lại spec.
+  2. `/healthz/db` dùng `current_setting('pg_trgm.word_similarity_threshold', true)` (hai tham số,
+     trả NULL thay vì ném). Bản plan dùng một tham số sẽ làm `/healthz/db` trả **503** trên
+     production trong khoảng thời gian giữa lúc Deploy API chạy tự động và lúc PHONG áp migration.
+
+  **Bẫy đã gặp và cách tránh:** chạy `pnpm exec vitest --config vitest.db.config.ts` thẳng vào DB
+  dev (thay vì `pnpm test:db`, vốn tạo DB cô lập `mapslibvn_task8_test`) khiến test `--down` revert
+  sạch schema và **xoá toàn bộ dữ liệu fixture dev**. Hồi phục đủ bằng `pnpm db:fixture` trong
+  119 giây, số liệu về đúng như cũ (79.775 POI, 1.094 street, 43.094 anchor). Luôn dùng
+  `pnpm test:db`.
+
+  Test `--down` trong `db/schema.dbtest.mjs` đếm số migration sau 0001, nên thêm 0007 phải sửa
+  `i < 5` thành `i < 6` — mọi migration sau này đều phải sửa chỗ này.
+
+  **Việc PHONG cần làm để phát hành** (theo thứ tự): `git push` (kích hoạt Deploy API + CI); rồi
+  `pnpm server:update` trên máy chủ nội bộ để áp migration 0007; rồi kiểm
+  `curl -s https://api.ai-solutions.io.vn/healthz/db` phải có `"word_similarity_threshold":0.5`.
+  Nếu deploy API xong mà chưa áp migration thì **không phải sự cố**: ngưỡng rơi về mặc định 0,6
+  (chặt hơn), API vẫn chạy đúng. Đo lại sau bằng lệnh ở mục baseline trên.
+
 - **05/09/2026 — Progressive POI production release `poi-20260904`.** User phê duyệt release
   riêng; code phát hành ở `f1adb213f9524c49bc62959cddb1359e455ecdf5`. Remote gate đúng SHA:
   CI + image smoke [33851729860](https://github.com/dotienphong/maps-library-vietnam/actions/runs/33851729860),
@@ -619,6 +661,9 @@ vẫn là `sleep 1` phút — `sudo pmset -a sleep 0 disksleep 0`.
   `poi_edit` nên kiểm hạn mức 20 edit/ngày nhận 200 thay vì 429 — sửa ở `2f2b942` bằng cách cho
   `scripts/api-db-test.mjs` giữ một hằng pepper duy nhất và truyền vào cả `wrangler dev` lẫn tiến
   trình vitest. Sau đó CI, Deploy API, API tests và DB tests đều xanh
+- 2026-09-05 · Tìm mờ T0–T7 · `word_similarity` (`<%`) thay `%` ở autocomplete/search/geocode,
+  ba loại truy vấn song song, migration 0007 đặt ngưỡng 0,5 cấp database · `fee9daf` ·
+  **chưa push, chờ PHONG duyệt phát hành**
 
 ## 5. Sự cố
 
