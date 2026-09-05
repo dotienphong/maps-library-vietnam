@@ -1,6 +1,7 @@
 import { normalizeVi } from '@mapslibvn/core';
 import { Hono } from 'hono';
 import { requireAuth } from '../auth';
+import { useSimilarityBranch } from '../autocomplete-sql';
 import { getSql } from '../db';
 import type { AppEnv } from '../env';
 import { ApiError } from '../errors';
@@ -27,6 +28,7 @@ search.get('/v1/search', requireAuth(), quotaMiddleware('places'), async (c) => 
   }
   // LIKE tận dụng gin_trgm_ops; starts_with trong OR buộc quét cả bảng (xem 72f78a2).
   const prefixPattern = `${queryNorm.replace(/[\\%_]/g, '\\$&')}%`;
+  const fuzzy = useSimilarityBranch(queryNorm);
 
   const sql = getSql(c.env);
   try {
@@ -36,7 +38,13 @@ search.get('/v1/search', requireAuth(), quotaMiddleware('places'), async (c) => 
         ${nearPoint ? sql`, ST_DistanceSphere(p.geom, ${nearPoint}) AS d` : sql``}
       FROM poi p LEFT JOIN category c ON c.code = p.category
       WHERE p.status = 'active'
-        ${queryNorm ? sql`AND (${queryNorm} <% p.name_norm OR p.name_norm % ${queryNorm} OR p.name_norm LIKE ${prefixPattern})` : sql``}
+        ${
+          queryNorm
+            ? sql`AND (${queryNorm} <% p.name_norm
+                ${fuzzy ? sql`OR p.name_norm % ${queryNorm}` : sql``}
+                OR p.name_norm LIKE ${prefixPattern})`
+            : sql``
+        }
         ${category ? sql`AND p.category = ${category}` : sql``}
         ${nearPoint ? sql`AND ST_DWithin(p.geom::geography, ${nearPoint}::geography, ${radius})` : sql``}
         ${bbox ? sql`AND p.geom && ST_MakeEnvelope(${bbox[0]}, ${bbox[1]}, ${bbox[2]}, ${bbox[3]}, 4326)` : sql``}

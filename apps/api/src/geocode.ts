@@ -1,4 +1,5 @@
 import { type GeocodeItem, type ParsedAddress, normalizeVi, parseAddress } from '@mapslibvn/core';
+import { useSimilarityBranch } from './autocomplete-sql';
 import type { getSql } from './db';
 import type { LatLng } from './params';
 
@@ -256,7 +257,8 @@ async function stepStreet({ sql, parsed, near, limit }: GeocodeContext): Promise
         WHERE ${
           exact
             ? sql`name_norm = ${parsed.streetNorm as string}`
-            : sql`(${parsed.streetNorm as string} <% name_norm OR name_norm % ${parsed.streetNorm as string})`
+            : sql`(${parsed.streetNorm as string} <% name_norm
+                ${useSimilarityBranch(parsed.streetNorm as string) ? sql`OR name_norm % ${parsed.streetNorm as string}` : sql``})`
         }
           ${wardNorm ? sql`AND ${wardNorm} = ANY(ward_norm)` : sql``}
           ${provinceNorm ? sql`AND province_norm = ${provinceNorm}` : sql``}

@@ -28,6 +28,30 @@ export interface CandidateQueryInput {
   parsed: ParsedAddress;
 }
 
+/**
+ * Truy vấn dài bao nhiêu thì THÔI dùng thêm toán tử `%`.
+ *
+ * `%` (similarity toàn chuỗi, ngưỡng 0,3) cần cho lỗi gõ trên từ ngắn, nhưng chi phí của nó tăng
+ * theo số trigram của truy vấn. Đo trên production 1,5 triệu POI ngày 05/09 (EXPLAIN ANALYZE,
+ * mệnh đề đủ ba nhánh):
+ *
+ * | truy vấn | độ dài | thời gian |
+ * |---|---:|---:|
+ * | `cirlce k` | 8 | 37 ms |
+ * | `higland` | 7 | 120 ms |
+ * | `phuc long coffee` | 16 | 1355 ms |
+ * | `nguyen tieu hoc truong` | 22 | 2381 ms |
+ *
+ * Truy vấn dài không cần `%`: `<%` vốn xử lý tốt cụm dài, đảo từ và thiếu từ đệm. Nên chặn ở 12
+ * ký tự — đủ phủ mọi ca lỗi gõ từ ngắn trong `scripts/fixtures/fuzzy-queries.txt`
+ * (`winmrt` 6, `higland` 7, `cho rya` 7, `cirlce k` 8, `phuc lonh` 9, `nguyne hue` 10).
+ */
+export const SIMILARITY_MAX_QUERY_LENGTH = 12;
+
+/** Truy vấn đủ ngắn để thêm nhánh `%` mà không trả giá độ trễ. */
+export const useSimilarityBranch = (queryNorm: string): boolean =>
+  queryNorm.length <= SIMILARITY_MAX_QUERY_LENGTH;
+
 const nearPoint = (sql: Sql, near: LatLng | null) =>
   near ? sql`ST_SetSRID(ST_MakePoint(${near.lng}, ${near.lat}), 4326)` : null;
 
@@ -52,9 +76,15 @@ const distance = (sql: Sql, near: LatLng | null, geometry: string) => {
  */
 export function poiCandidates(sql: Sql, input: CandidateQueryInput) {
   const { queryNorm, queryCore, prefixPattern, near } = input;
-  // Phần lớn truy vấn có nameCore trùng normalizeVi; khi đó hai nhánh core chỉ là việc thừa.
+  const fuzzy = useSimilarityBranch(queryNorm);
+  const simNorm = fuzzy ? sql`OR name_norm % ${queryNorm}` : sql``;
+  // Phần lớn truy vấn có nameCore trùng normalizeVi; khi đó nhánh core chỉ là việc thừa.
   const coreBranches =
-    queryCore === queryNorm ? sql`` : sql`OR ${queryCore} <% name_norm OR name_norm % ${queryCore}`;
+    queryCore === queryNorm
+      ? sql``
+      : fuzzy
+        ? sql`OR ${queryCore} <% name_norm OR name_norm % ${queryCore}`
+        : sql`OR ${queryCore} <% name_norm`;
   return sql<CandidateRow[]>`
     SELECT 'poi' AS type, id, name,
       concat_ws(', ', street, ward, province) AS secondary,
@@ -71,7 +101,7 @@ export function poiCandidates(sql: Sql, input: CandidateQueryInput) {
     WHERE status = 'active'
       AND (
         ${queryNorm} <% name_norm
-        OR name_norm % ${queryNorm}
+        ${simNorm}
         ${coreBranches}
         OR name_norm LIKE ${prefixPattern}
       )
@@ -81,6 +111,7 @@ export function poiCandidates(sql: Sql, input: CandidateQueryInput) {
 
 export function streetCandidates(sql: Sql, input: CandidateQueryInput) {
   const { queryNorm, prefixPattern, near } = input;
+  const simNorm = useSimilarityBranch(queryNorm) ? sql`OR name_norm % ${queryNorm}` : sql``;
   return sql<CandidateRow[]>`
     SELECT 'street' AS type, NULL AS id, name,
       coalesce(province_norm, '') AS secondary,
@@ -93,7 +124,7 @@ export function streetCandidates(sql: Sql, input: CandidateQueryInput) {
       ${distance(sql, near, 'geom')} AS d
     FROM street
     WHERE ${queryNorm} <% name_norm
-      OR name_norm % ${queryNorm}
+      ${simNorm}
       OR name_norm LIKE ${prefixPattern}
     ORDER BY sim DESC
     LIMIT 20`;
@@ -107,6 +138,7 @@ export function addressCandidates(
   streetNorm: string,
 ) {
   const { parsed, near } = input;
+  const simStreet = useSimilarityBranch(streetNorm) ? sql`OR street_norm % ${streetNorm}` : sql``;
   return sql<CandidateRow[]>`
     SELECT 'address' AS type, NULL AS id,
       ${`${housenumber} ${parsed.street ?? ''}`.trim()} AS name,
@@ -117,7 +149,7 @@ export function addressCandidates(
       ${distance(sql, near, 'geom')} AS d
     FROM address_anchor
     WHERE housenumber = ${housenumber}
-      AND (${streetNorm} <% street_norm OR street_norm % ${streetNorm})
+      AND (${streetNorm} <% street_norm ${simStreet})
     ORDER BY sim DESC
     LIMIT 10`;
 }

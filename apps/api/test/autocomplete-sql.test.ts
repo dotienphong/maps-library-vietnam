@@ -7,6 +7,7 @@ import {
 } from '../src/autocomplete-sql';
 import { fakeSql } from './helpers/fake-sql';
 
+/** 16 ký tự — dài hơn SIMILARITY_MAX_QUERY_LENGTH nên KHÔNG có nhánh `%`. */
 const input: CandidateQueryInput = {
   queryNorm: 'coffee highlands',
   queryCore: 'coffee highlands',
@@ -15,13 +16,21 @@ const input: CandidateQueryInput = {
   parsed: { alleyChain: [], confidence: 0 },
 };
 
+/** 7 ký tự — đủ ngắn để có thêm nhánh `%`. */
+const shortInput: CandidateQueryInput = {
+  ...input,
+  queryNorm: 'higland',
+  queryCore: 'higland',
+  prefixPattern: 'higland%',
+};
+
 describe('autocomplete-sql — bậc 1 dùng word_similarity (spec 05/09 mục 5.3)', () => {
   // Giữ CẢ HAI toán tử: `<%` bắt được cụm nằm giữa tên dài và đảo từ; `%` (ngưỡng 0,3) vẫn cần
   // cho lỗi gõ trên TỪ NGẮN, nơi word_similarity tụt dưới mọi ngưỡng hợp lý — đo 05/09 trên
   // production: higland↔highlands 0,455 và cirlce k↔circle k 0,385, trượt ở cả 0,5 lẫn 0,6.
-  it('poi: đủ ba nhánh <% , % và LIKE tiền tố', async () => {
+  it('poi truy vấn NGẮN: đủ ba nhánh <% , % và LIKE tiền tố', async () => {
     const { sql, calls } = fakeSql([]);
-    await poiCandidates(sql, input);
+    await poiCandidates(sql, shortInput);
     const [query] = calls.filter((call) => call.text.startsWith('SELECT'));
     // Tham số đầu ($1) nằm trong word_similarity() của SELECT; WHERE dùng $n sau đó.
     expect(query?.text).toMatch(/\$\d+ <% name_norm/);
@@ -30,20 +39,29 @@ describe('autocomplete-sql — bậc 1 dùng word_similarity (spec 05/09 mục 5
     expect(query?.text).toContain('word_similarity(');
     expect(query?.text).toContain('similarity(name_norm,');
     expect(query?.text).toContain('ORDER BY sim DESC, pop DESC');
-    expect(query?.params).toEqual(
-      expect.arrayContaining(['coffee highlands', 'coffee highlands%']),
-    );
+    expect(query?.params).toEqual(expect.arrayContaining(['higland', 'higland%']));
+  });
+
+  // Chi phí nhánh `%` tăng theo số trigram: đo production 05/09 cho 'phuc long coffee' (16 ký tự)
+  // là 1355 ms so với 196 ms khi không có nó. Truy vấn dài đã được `<%` phục vụ tốt.
+  it('poi truy vấn DÀI: bỏ nhánh % để không trả giá độ trễ', async () => {
+    const { sql, calls } = fakeSql([]);
+    await poiCandidates(sql, input); // 16 ký tự
+    const [query] = calls.filter((call) => call.text.startsWith('SELECT'));
+    expect(query?.text).toMatch(/\$\d+ <% name_norm/);
+    expect(query?.text).not.toMatch(/name_norm % \$\d+/);
+    expect(query?.text).toMatch(/name_norm LIKE \$\d+/);
   });
 
   it('poi: nameCore trùng normalizeVi thì KHÔNG sinh nhánh core thừa', async () => {
     const { sql, calls } = fakeSql([]);
-    await poiCandidates(sql, input); // queryCore === queryNorm
+    await poiCandidates(sql, shortInput); // queryCore === queryNorm
     const [query] = calls.filter((call) => call.text.startsWith('SELECT'));
     expect(query?.text.match(/<% name_norm/g)).toHaveLength(1);
     expect(query?.text.match(/name_norm % \$\d+/g)).toHaveLength(1);
   });
 
-  it('poi: nameCore khác normalizeVi thì thêm cả hai nhánh cho core', async () => {
+  it('poi: nameCore khác normalizeVi thì thêm nhánh cho core', async () => {
     const { sql, calls } = fakeSql([]);
     await poiCandidates(sql, {
       ...input,
@@ -57,13 +75,18 @@ describe('autocomplete-sql — bậc 1 dùng word_similarity (spec 05/09 mục 5
     expect(query?.params).toEqual(expect.arrayContaining(['ca phe cong', 'cong']));
   });
 
-  it('street: đủ ba nhánh <% , % và LIKE', async () => {
-    const { sql, calls } = fakeSql([]);
-    await streetCandidates(sql, input);
-    const [query] = calls.filter((call) => call.text.startsWith('SELECT'));
-    expect(query?.text).toMatch(/\$\d+ <% name_norm/);
-    expect(query?.text).toMatch(/name_norm % \$\d+/);
-    expect(query?.text).toMatch(/name_norm LIKE \$\d+/);
+  it('street: truy vấn ngắn có nhánh %, truy vấn dài thì không', async () => {
+    const { sql: sqlShort, calls: callsShort } = fakeSql([]);
+    await streetCandidates(sqlShort, shortInput);
+    const short = callsShort.filter((call) => call.text.startsWith('SELECT'))[0];
+    expect(short?.text).toMatch(/\$\d+ <% name_norm/);
+    expect(short?.text).toMatch(/name_norm % \$\d+/);
+    expect(short?.text).toMatch(/name_norm LIKE \$\d+/);
+
+    const { sql: sqlLong, calls: callsLong } = fakeSql([]);
+    await streetCandidates(sqlLong, input);
+    const long = callsLong.filter((call) => call.text.startsWith('SELECT'))[0];
+    expect(long?.text).not.toMatch(/name_norm % \$\d+/);
   });
 
   it('collectCandidates: chạy song song các loại được chọn, bỏ address khi không có số nhà', async () => {
