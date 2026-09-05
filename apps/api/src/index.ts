@@ -34,13 +34,17 @@ app.get('/healthz', (c) => c.json({ ok: true, environment: c.env.ENVIRONMENT }))
 app.get('/healthz/db', async (c) => {
   const sql = getSql(c.env);
   try {
+    // current_setting(…, true) trả NULL thay vì ném khi GUC chưa có: API deploy được trước khi
+    // migration 0007 áp lên máy chủ mà /healthz/db không rơi xuống 503.
     const [row] = await sql<
-      { ok: number; user: string; version: string }[]
-    >`SELECT 1 AS ok, current_user AS "user", version() AS version`;
+      { ok: number; user: string; version: string; wst: string | null }[]
+    >`SELECT 1 AS ok, current_user AS "user", version() AS version,
+        current_setting('pg_trgm.word_similarity_threshold', true) AS wst`;
     return c.json({
       ok: row?.ok === 1,
       user: row?.user,
       version: row?.version.split(' ').slice(0, 2).join(' '),
+      word_similarity_threshold: row?.wst == null ? null : Number(row.wst),
     });
   } catch (err) {
     console.error('healthz/db', err);
