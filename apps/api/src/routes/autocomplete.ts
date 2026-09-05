@@ -39,6 +39,9 @@ autocomplete.get('/v1/autocomplete', requireAuth(), quotaMiddleware('places'), a
   if (!queryNorm) {
     throw new ApiError(400, 'invalid_request', 'q không có ký tự tra cứu được');
   }
+  // LIKE tận dụng gin_trgm_ops; starts_with trong OR buộc quét cả bảng.
+  // Escape wildcard để giữ đúng nghĩa tiền tố kể cả khi normalizeVi thay đổi.
+  const prefixPattern = `${queryNorm.replace(/[\\%_]/g, '\\$&')}%`;
 
   // Cache 10 phút theo (q_norm, lưới near, types, limit); stale-if-error 1 giờ.
   const grid = near ? gridKey(near.lat, near.lng) : '-';
@@ -73,7 +76,7 @@ autocomplete.get('/v1/autocomplete', requireAuth(), quotaMiddleware('places'), a
               AND (
                 name_norm % ${queryNorm}
                 OR name_norm % ${queryCore}
-                OR starts_with(name_norm, ${queryNorm})
+                OR name_norm LIKE ${prefixPattern}
               )
             ORDER BY sim DESC
             LIMIT 20`),
@@ -93,7 +96,7 @@ autocomplete.get('/v1/autocomplete', requireAuth(), quotaMiddleware('places'), a
               0 AS pop,
               ${distance('geom')} AS d
             FROM street
-            WHERE name_norm % ${queryNorm} OR starts_with(name_norm, ${queryNorm})
+            WHERE name_norm % ${queryNorm} OR name_norm LIKE ${prefixPattern}
             ORDER BY sim DESC
             LIMIT 20`),
         );
