@@ -1,0 +1,45 @@
+# q|đích (đích là chuỗi không dấu phải nằm trong name của top-3, so sau khi bỏ dấu + lowercase)
+# --- 10 đúng chính tả (đối chứng, phải đạt cả trước và sau) ---
+highlands|highlands
+pharmacity|pharmacity
+circle k|circle k
+nguyen hue|nguyen hue
+ben thanh|ben thanh
+cho ray|cho ray
+truong tieu hoc|truong tieu hoc
+coop mart|coop
+bun bo|bun bo
+vincom|vincom
+# --- 10 lỗi gõ 1–2 ký tự ---
+higland|highlands
+higlands cofee|highlands
+pharmacy city|pharmacity
+cirlce k|circle k
+nguyne hue|nguyen hue
+ben than|ben thanh
+cho rya|cho ray
+vincon|vincom
+winmrt|winmart
+phuc lonh|phuc long
+# --- 10 đảo thứ tự từ ---
+coffee highlands|highlands
+cho ray benh vien|cho ray
+k circle|circle k
+hue nguyen duong|nguyen hue
+mart coop|coop
+thanh ben cho|ben thanh
+long phuc tra|phuc long
+xanh bach hoa|bach hoa xanh
+house coffee the|coffee house
+nguyen tieu hoc truong|truong tieu hoc
+# --- 10 truy vấn là một phần tên dài / dính từ ---
+highlands nguyen|highlands
+benh vien cho|cho ray
+tieu hoc nguyen|tieu hoc
+coopmart|coop
+winmart+|winmart
+bhx|bach hoa xanh
+tch|coffee house
+nhathuoc long chau|long chau
+sieu thi co op|coop
+phuc long coffee|phuc long

@@ -72,6 +72,33 @@ commit với code).
 
 ## 2. Bước kế tiếp
 
+- **05/09/2026 — Tìm mờ `word_similarity`: baseline trước khi đổi code.** Đo production
+  `api.ai-solutions.io.vn` bằng `scripts/perf-autocomplete.mjs --queries scripts/fixtures/fuzzy-queries.txt`
+  (40 truy vấn, khoá `mobile` của tenant …000002). Lần 1 cache lạnh: `p50=427ms p95=2156ms p99=2762ms`,
+  `hit@3=36/40`. Ba trong bốn trượt là **lỗi fixture của tôi**, không phải lỗi API: tên thật là
+  `Coopmart`/`Coop Mart` chứ không có dấu chấm, nên đích `co.op` không bao giờ khớp; đã sửa đích
+  thành `coop`. Lần 2 sau khi sửa (cache ấm): `p50=99ms p95=186ms p99=739ms`, **`hit@3=38/40`**,
+  chỉ còn trượt `cho rya` và `sieu thi co op`.
+
+  **Baseline 38/40 đã vượt tiêu chí ≥36/40 của plan**, nghĩa là bộ 40 truy vấn HTTP này quá dễ:
+  các thương hiệu ngắn và đặc trưng (`highlands`, `pharmacity`) vốn đã khớp bằng `similarity` với
+  ngưỡng 0,3. Bộ này giữ lại làm đối chứng không hồi quy, **không** dùng làm bằng chứng cải thiện.
+
+  Bằng chứng thật lấy bằng `scripts/fuzzy-ab.mjs` — so trực tiếp điều kiện cũ (`name_norm % q`) và
+  mới (`q <% name_norm`) trên DB dev 79.775 POI, tính hạng POI đích trong danh sách ứng viên với
+  ngưỡng cắt thật `LIMIT 20` của route:
+
+  | Truy vấn | Hạng cũ | Hạng mới | Kiểu lỗi |
+  |---|---:|---:|---|
+  | `cho rya` | không thấy | 2 | lỗi gõ đảo hai ký tự |
+  | `skincode` | không thấy | 1 | từ nằm giữa tên rất dài |
+  | `nguyen thi minh khai cienco` | 100 | 13 | đảo từ, tên dài |
+  | `laptop nhap my` | 30 | 1 | cụm giữa tên dài |
+  | `nong nghiep moi truong` | 1 | 3 | tụt hạng nhưng vẫn trong 20 |
+
+  **Cứu được 4 ca cũ rơi ngoài `LIMIT 20`; làm hỏng 0 ca cũ đang đạt.** Ba ca tụt hạng (1→3, 1→3,
+  4→5) vô hại vì hạng trong SQL chỉ là ngưỡng cắt ứng viên, thứ tự cuối do `rankScore` quyết định.
+
 - **05/09/2026 — Progressive POI production release `poi-20260904`.** User phê duyệt release
   riêng; code phát hành ở `f1adb213f9524c49bc62959cddb1359e455ecdf5`. Remote gate đúng SHA:
   CI + image smoke [33851729860](https://github.com/dotienphong/maps-library-vietnam/actions/runs/33851729860),

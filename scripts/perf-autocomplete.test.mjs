@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { measureAutocomplete } from './perf-autocomplete.mjs';
+import { measureAutocomplete, parseQueryFixture } from './perf-autocomplete.mjs';
 
 describe('measureAutocomplete', () => {
   it('đo percentile từ response thành công và gửi đúng auth/near', async () => {
@@ -45,5 +45,40 @@ describe('measureAutocomplete', () => {
         now: () => 0,
       }),
     ).rejects.toThrow('HTTP 503');
+  });
+});
+
+describe('measureAutocomplete với bộ truy vấn có đích', () => {
+  it('tính hit@3: đích khớp (không dấu, lowercase) trong 3 item đầu', async () => {
+    const queries = [
+      { q: 'higland', expect: 'highlands' },
+      { q: 'cho rya', expect: 'cho ray' },
+    ];
+    const result = await measureAutocomplete('https://api.test', 'k', {
+      count: 2,
+      queries,
+      fetchImpl: async (url) =>
+        new Response(
+          JSON.stringify({
+            items: String(url).includes('higland')
+              ? [{ name: 'Phở Hoà' }, { name: 'Highlands Coffee Nguyễn Huệ' }, { name: 'X' }]
+              : [{ name: 'A' }, { name: 'B' }, { name: 'C' }, { name: 'Bệnh viện Chợ Rẫy' }],
+          }),
+        ),
+      now: (() => {
+        let t = 0;
+        return () => (t += 5);
+      })(),
+    });
+    expect(result.hit3).toEqual({ hit: 1, total: 2, misses: ['cho rya'] });
+  });
+
+  it('đọc fixture q|đích, bỏ dòng # và dòng rỗng', () => {
+    expect(
+      parseQueryFixture('# chú thích\nhigland|highlands\n\ncoffee highlands|highlands\n'),
+    ).toEqual([
+      { q: 'higland', expect: 'highlands' },
+      { q: 'coffee highlands', expect: 'highlands' },
+    ]);
   });
 });
