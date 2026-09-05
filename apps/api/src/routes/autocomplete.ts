@@ -1,27 +1,14 @@
 import { nameCore, normalizeVi, parseAddress } from '@mapslibvn/core';
 import { Hono } from 'hono';
 import { requireAuth } from '../auth';
+import { collectCandidates } from '../autocomplete-sql';
 import { cachedJson } from '../cache';
 import { getSql } from '../db';
 import type { AppEnv } from '../env';
 import { ApiError } from '../errors';
 import { clampInt, parseLatLngPair, parseTypes } from '../params';
 import { quotaMiddleware } from '../quota';
-import { type ItemType, gridKey, rankScore } from '../ranking';
-
-interface CandidateRow {
-  type: ItemType;
-  id: string | null;
-  name: string;
-  secondary: string | null;
-  lat: number;
-  lng: number;
-  precision: string | null;
-  sim: number;
-  prefix: boolean;
-  pop: number;
-  d: number | null;
-}
+import { gridKey, rankScore } from '../ranking';
 
 export const autocomplete = new Hono<AppEnv>();
 
@@ -39,8 +26,7 @@ autocomplete.get('/v1/autocomplete', requireAuth(), quotaMiddleware('places'), a
   if (!queryNorm) {
     throw new ApiError(400, 'invalid_request', 'q không có ký tự tra cứu được');
   }
-  // LIKE tận dụng gin_trgm_ops; starts_with trong OR buộc quét cả bảng.
-  // Escape wildcard để giữ đúng nghĩa tiền tố kể cả khi normalizeVi thay đổi.
+  // LIKE tận dụng gin_trgm_ops; escape wildcard để giữ đúng nghĩa tiền tố.
   const prefixPattern = `${queryNorm.replace(/[\\%_]/g, '\\$&')}%`;
 
   // Cache 10 phút theo (q_norm, lưới near, types, limit); stale-if-error 1 giờ.
@@ -51,75 +37,11 @@ autocomplete.get('/v1/autocomplete', requireAuth(), quotaMiddleware('places'), a
   const response = await cachedJson(c.executionCtx, cacheUrl, 600, 3600, async () => {
     const sql = getSql(c.env);
     try {
-      const nearPoint = near ? sql`ST_SetSRID(ST_MakePoint(${near.lng}, ${near.lat}), 4326)` : null;
-      const distance = (geometry: string) =>
-        nearPoint
-          ? sql`ST_DistanceSphere(${sql.unsafe(geometry)}, ${nearPoint})`
-          : sql`NULL::float8`;
-      const rows: CandidateRow[] = [];
-
-      if (types.has('poi')) {
-        rows.push(
-          ...(await sql<CandidateRow[]>`
-            SELECT 'poi' AS type, id, name,
-              concat_ws(', ', street, ward, province) AS secondary,
-              ST_Y(geom) AS lat, ST_X(geom) AS lng, NULL AS precision,
-              greatest(
-                similarity(name_norm, ${queryNorm}),
-                similarity(name_norm, ${queryCore})
-              ) AS sim,
-              starts_with(name_norm, ${queryNorm}) AS prefix,
-              coalesce(popularity, 0) AS pop,
-              ${distance('geom')} AS d
-            FROM poi
-            WHERE status = 'active'
-              AND (
-                name_norm % ${queryNorm}
-                OR name_norm % ${queryCore}
-                OR name_norm LIKE ${prefixPattern}
-              )
-            ORDER BY sim DESC
-            LIMIT 20`),
-        );
-      }
-
-      if (types.has('street')) {
-        rows.push(
-          ...(await sql<CandidateRow[]>`
-            SELECT 'street' AS type, NULL AS id, name,
-              coalesce(province_norm, '') AS secondary,
-              ST_Y(ST_PointOnSurface(geom)) AS lat,
-              ST_X(ST_PointOnSurface(geom)) AS lng,
-              NULL AS precision,
-              similarity(name_norm, ${queryNorm}) AS sim,
-              starts_with(name_norm, ${queryNorm}) AS prefix,
-              0 AS pop,
-              ${distance('geom')} AS d
-            FROM street
-            WHERE name_norm % ${queryNorm} OR name_norm LIKE ${prefixPattern}
-            ORDER BY sim DESC
-            LIMIT 20`),
-        );
-      }
-
-      const parsed = parseAddress(query);
-      if (types.has('address') && parsed.housenumber && parsed.streetNorm) {
-        rows.push(
-          ...(await sql<CandidateRow[]>`
-            SELECT 'address' AS type, NULL AS id,
-              ${`${parsed.housenumber} ${parsed.street ?? ''}`.trim()} AS name,
-              concat_ws(', ', ward_norm, province_norm) AS secondary,
-              ST_Y(geom) AS lat, ST_X(geom) AS lng, 'rooftop' AS precision,
-              similarity(street_norm, ${parsed.streetNorm}) AS sim,
-              false AS prefix, 0 AS pop,
-              ${distance('geom')} AS d
-            FROM address_anchor
-            WHERE housenumber = ${parsed.housenumber} AND street_norm % ${parsed.streetNorm}
-            ORDER BY sim DESC
-            LIMIT 10`),
-        );
-      }
-
+      const rows = await collectCandidates(
+        sql,
+        { queryNorm, queryCore, prefixPattern, near, parsed: parseAddress(query) },
+        types,
+      );
       const items = rows
         .map((row) => ({
           type: row.type,

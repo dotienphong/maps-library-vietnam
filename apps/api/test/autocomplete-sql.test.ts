@@ -26,7 +26,9 @@ describe('autocomplete-sql — bậc 1 dùng word_similarity (spec 05/09 mục 5
     expect(query?.text).toContain('word_similarity(');
     expect(query?.text).toContain('similarity(name_norm,');
     expect(query?.text).toContain('ORDER BY sim DESC, pop DESC');
-    expect(query?.params).toEqual(expect.arrayContaining(['coffee highlands', 'coffee highlands%']));
+    expect(query?.params).toEqual(
+      expect.arrayContaining(['coffee highlands', 'coffee highlands%']),
+    );
   });
 
   it('street: cùng điều kiện <% + LIKE', async () => {
