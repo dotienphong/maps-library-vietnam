@@ -2,7 +2,9 @@
 
 Ngày: 05/09/2026. Trạng thái: **PHONG đã duyệt 05/09/2026**. Tài liệu do Fable 5.1 nghiên cứu và viết;
 implement bằng Opus. Plan hạng mục 2: `docs/superpowers/plans/2026-09-05-tim-mo-word-similarity.md`;
-plan hạng mục 1 và 3 viết sau khi plan 2 nghiệm thu.
+Plan hạng mục 1 đã viết: [Alias hành chính cũ–mới](../plans/2026-09-05-alias-hanh-chinh-cu-moi.md)
+(05/09/2026, chưa thực thi; xem phần quyết định triển khai để xử lý staging, tên trùng và cổng
+độ phủ). Plan hạng mục 3 chưa viết.
 
 Ba hạng mục trong tài liệu này độc lập về code nhưng dùng chung một khung: chuẩn hoá ở
 `@mapslibvn/core`, dữ liệu alias trong Postgres, và truy vấn **theo bậc** (staged) trong API.

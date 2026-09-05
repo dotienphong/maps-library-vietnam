@@ -5,6 +5,14 @@ commit với code).
 
 ## 1. Trạng thái hiện tại
 
+- **05/09/2026 — Đã viết plan hạng mục 1: Alias đầy đủ đơn vị hành chính cũ–mới**, theo yêu cầu
+  PHONG: [plan 10 task](superpowers/plans/2026-09-05-alias-hanh-chinh-cu-moi.md), dựa trên spec đã
+  duyệt và source tại `a7d34ef`. **Chưa triển khai**. Bao gồm migration 0008, nguồn/fixture có
+  kiểm chứng, overlay 1–n, publication nguyên tử, scope geocode, autocomplete area, SDK/docs và
+  nghiệm thu toàn quốc. Bước tiếp: **Task 0.1–0.6**, chốt snapshot/checksum và bộ ≥60 ca/≥6 tỉnh/
+  ≥5 ca tách; kiểm khoảng thiếu dữ liệu trước khi gọi là “đầy đủ”. Phiên viết plan chỉ sửa tài
+  liệu, chưa chạy migration/pipeline/deploy; đã rà đường dẫn, đối chiếu spec và `git diff --check`.
+
 - Mốc: **M6 — React Native đã nghiệm thu 03/09/2026** (bảng 7/7 tiêu chí ở mục 11); spec
   (`docs/superpowers/specs/2026-09-03-react-native-sdk-design.md`) và plan
   (`docs/superpowers/plans/2026-09-03-m6-react-native.md`) đã tick trọn 16 task. Gồm:
