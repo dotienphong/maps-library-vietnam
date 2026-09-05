@@ -36,7 +36,7 @@ search.get('/v1/search', requireAuth(), quotaMiddleware('places'), async (c) => 
         ${nearPoint ? sql`, ST_DistanceSphere(p.geom, ${nearPoint}) AS d` : sql``}
       FROM poi p LEFT JOIN category c ON c.code = p.category
       WHERE p.status = 'active'
-        ${queryNorm ? sql`AND (${queryNorm} <% p.name_norm OR p.name_norm LIKE ${prefixPattern})` : sql``}
+        ${queryNorm ? sql`AND (${queryNorm} <% p.name_norm OR p.name_norm % ${queryNorm} OR p.name_norm LIKE ${prefixPattern})` : sql``}
         ${category ? sql`AND p.category = ${category}` : sql``}
         ${nearPoint ? sql`AND ST_DWithin(p.geom::geography, ${nearPoint}::geography, ${radius})` : sql``}
         ${bbox ? sql`AND p.geom && ST_MakeEnvelope(${bbox[0]}, ${bbox[1]}, ${bbox[2]}, ${bbox[3]}, 4326)` : sql``}

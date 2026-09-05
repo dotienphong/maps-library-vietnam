@@ -253,7 +253,11 @@ async function stepStreet({ sql, parsed, near, limit }: GeocodeContext): Promise
             ELSE ST_PointOnSurface(geom)
           END AS mid
         FROM street
-        WHERE ${exact ? sql`name_norm = ${parsed.streetNorm as string}` : sql`${parsed.streetNorm as string} <% name_norm`}
+        WHERE ${
+          exact
+            ? sql`name_norm = ${parsed.streetNorm as string}`
+            : sql`(${parsed.streetNorm as string} <% name_norm OR name_norm % ${parsed.streetNorm as string})`
+        }
           ${wardNorm ? sql`AND ${wardNorm} = ANY(ward_norm)` : sql``}
           ${provinceNorm ? sql`AND province_norm = ${provinceNorm}` : sql``}
       ) candidates

@@ -37,13 +37,24 @@ const distance = (sql: Sql, near: LatLng | null, geometry: string) => {
 };
 
 /**
- * Spec 05/09 mục 5.3: `q <% name_norm` (word_similarity, GIN trgm hỗ trợ) thay `name_norm % q`.
- * word_similarity đo trên đoạn từ liên tục của tên nên truy vấn ngắn hơn tên, đảo từ và lỗi gõ
- * 1–2 ký tự vẫn qua ngưỡng (GUC pg_trgm.word_similarity_threshold, migration 0007).
- * ORDER BY thêm pop để 20 ứng viên đầu không ngẫu nhiên khi sim hoà (truy vấn 2–3 ký tự).
+ * Spec 05/09 mục 5.3, có sửa sau khi đo thật ngày 05/09: dùng **cả hai** toán tử trigram.
+ *
+ * - `q <% name_norm` (word_similarity, ngưỡng 0,5 từ migration 0007) đo trên đoạn từ liên tục của
+ *   tên, nên bắt được cụm nằm giữa tên rất dài và đảo thứ tự từ — hai thứ `%` bỏ sót
+ *   (`skincode` và `laptop nhap my` trước đây rơi ngoài LIMIT 20).
+ * - `name_norm % q` (similarity toàn chuỗi, ngưỡng 0,3) vẫn cần cho **lỗi gõ trên từ ngắn**, nơi
+ *   word_similarity tụt dưới mọi ngưỡng hợp lý: đo trên production 05/09 cho
+ *   `higland`↔`highlands` 0,455 và `cirlce k`↔`circle k` 0,385. Bỏ nhánh này làm hit@3 của bộ 40
+ *   truy vấn tụt từ 38 xuống 35.
+ *
+ * Cả hai nhánh đều chạy trên chỉ số GIN `poi_name_norm_trgm_idx` (BitmapOr), không nhánh nào quét
+ * bảng. ORDER BY thêm pop để 20 ứng viên đầu không ngẫu nhiên khi sim hoà (truy vấn 2–3 ký tự).
  */
 export function poiCandidates(sql: Sql, input: CandidateQueryInput) {
   const { queryNorm, queryCore, prefixPattern, near } = input;
+  // Phần lớn truy vấn có nameCore trùng normalizeVi; khi đó hai nhánh core chỉ là việc thừa.
+  const coreBranches =
+    queryCore === queryNorm ? sql`` : sql`OR ${queryCore} <% name_norm OR name_norm % ${queryCore}`;
   return sql<CandidateRow[]>`
     SELECT 'poi' AS type, id, name,
       concat_ws(', ', street, ward, province) AS secondary,
@@ -60,7 +71,8 @@ export function poiCandidates(sql: Sql, input: CandidateQueryInput) {
     WHERE status = 'active'
       AND (
         ${queryNorm} <% name_norm
-        OR ${queryCore} <% name_norm
+        OR name_norm % ${queryNorm}
+        ${coreBranches}
         OR name_norm LIKE ${prefixPattern}
       )
     ORDER BY sim DESC, pop DESC
@@ -80,7 +92,9 @@ export function streetCandidates(sql: Sql, input: CandidateQueryInput) {
       0 AS pop,
       ${distance(sql, near, 'geom')} AS d
     FROM street
-    WHERE ${queryNorm} <% name_norm OR name_norm LIKE ${prefixPattern}
+    WHERE ${queryNorm} <% name_norm
+      OR name_norm % ${queryNorm}
+      OR name_norm LIKE ${prefixPattern}
     ORDER BY sim DESC
     LIMIT 20`;
 }
@@ -102,7 +116,8 @@ export function addressCandidates(
       false AS prefix, 0 AS pop,
       ${distance(sql, near, 'geom')} AS d
     FROM address_anchor
-    WHERE housenumber = ${housenumber} AND ${streetNorm} <% street_norm
+    WHERE housenumber = ${housenumber}
+      AND (${streetNorm} <% street_norm OR street_norm % ${streetNorm})
     ORDER BY sim DESC
     LIMIT 10`;
 }

@@ -32,8 +32,9 @@ describe('geocode helpers', () => {
     const streetQueries = calls.filter((call) => call.text.includes('FROM street'));
     expect(streetQueries).toHaveLength(2);
     expect(streetQueries[0]?.text).toContain('name_norm = $1');
-    expect(streetQueries[1]?.text).toContain('$1 <% name_norm');
-    expect(streetQueries[1]?.text).not.toMatch(/name_norm % /);
+    // Fallback giữ cả hai toán tử: <% cho cụm/đảo từ, % cho lỗi gõ trên từ ngắn.
+    expect(streetQueries[1]?.text).toMatch(/\$\d+ <% name_norm/);
+    expect(streetQueries[1]?.text).toMatch(/name_norm % \$\d+/);
   });
 
   it('guard ép int nhận số nhà thực tế nhưng loại SĐT/ID quá dài từ nguồn', () => {

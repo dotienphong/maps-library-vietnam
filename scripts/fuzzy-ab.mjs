@@ -19,26 +19,41 @@ const CASES = [
   { q: 'sieu thi decor noi that', target: 'sieu thi decor', why: 'thừa từ mô tả' },
   { q: 'hoa tuoi quan 1', target: 'hoa tuoi', why: 'đối chứng — cũ đã tốt' },
   { q: 'green valley can ho', target: 'green valley', why: 'đối chứng — cũ đã tốt' },
+  // Lỗi gõ trên TỪ NGẮN: word_similarity tụt dưới mọi ngưỡng hợp lý nên "chỉ<%" trượt;
+  // chính bốn ca này buộc phải giữ lại toán tử % (đo production 05/09).
+  { q: 'higland', target: 'highland', why: 'thiếu 1 ký tự, từ ngắn' },
+  { q: 'cirlce k', target: 'circle k', why: 'đảo 2 ký tự, từ ngắn' },
+  { q: 'winmrt', target: 'winmart', why: 'thiếu 1 ký tự, từ ngắn' },
+  { q: 'nguyne hue', target: 'nguyen hue', why: 'đảo 2 ký tự' },
 ];
 
 const LIMIT = 20;
 const sql = postgres(databaseUrlFromEnv(process.env), { max: 1, onnotice: () => {} });
 
-/** @param {string} q @param {string} target @param {boolean} nuevo */
-async function rankOf(q, target, nuevo) {
-  const rows = nuevo
-    ? await sql`SELECT min(rn) AS rn FROM (
-        SELECT row_number() OVER (
-          ORDER BY greatest(word_similarity(${q}, name_norm), similarity(name_norm, ${q})) DESC
-        ) AS rn, name_norm
-        FROM poi WHERE status = 'active'
-          AND (${q} <% name_norm OR name_norm LIKE ${`${q}%`})
-      ) ranked WHERE name_norm LIKE ${`%${target}%`}`
-    : await sql`SELECT min(rn) AS rn FROM (
-        SELECT row_number() OVER (ORDER BY similarity(name_norm, ${q}) DESC) AS rn, name_norm
-        FROM poi WHERE status = 'active'
-          AND (name_norm % ${q} OR name_norm LIKE ${`${q}%`})
-      ) ranked WHERE name_norm LIKE ${`%${target}%`}`;
+/**
+ * Hạng của POI đích trong danh sách ứng viên.
+ * @param {string} q @param {string} target
+ * @param {'cu' | 'chi_moi' | 'ca_hai'} bien_the
+ *   cu      = mã trước 05/09: name_norm % q
+ *   chi_moi = chỉ word_similarity: q <% name_norm
+ *   ca_hai  = mã hiện tại: cả hai toán tử
+ */
+async function rankOf(q, target, bien_the) {
+  const like = `${q}%`;
+  const where =
+    bien_the === 'cu'
+      ? sql`(name_norm % ${q} OR name_norm LIKE ${like})`
+      : bien_the === 'chi_moi'
+        ? sql`(${q} <% name_norm OR name_norm LIKE ${like})`
+        : sql`(${q} <% name_norm OR name_norm % ${q} OR name_norm LIKE ${like})`;
+  const order =
+    bien_the === 'cu'
+      ? sql`similarity(name_norm, ${q}) DESC`
+      : sql`greatest(word_similarity(${q}, name_norm), similarity(name_norm, ${q})) DESC`;
+  const rows = await sql`SELECT min(rn) AS rn FROM (
+      SELECT row_number() OVER (ORDER BY ${order}) AS rn, name_norm
+      FROM poi WHERE status = 'active' AND ${where}
+    ) ranked WHERE name_norm LIKE ${`%${target}%`}`;
   const rank = rows[0]?.rn;
   return rank === null || rank === undefined ? null : Number(rank);
 }
@@ -53,16 +68,21 @@ try {
   let better = 0;
   let worse = 0;
   console.log(`hạng POI đích trong ứng viên (LIMIT ${LIMIT} là ngưỡng cắt thật)\n`);
-  console.log('  cũ  mới  truy vấn');
+  console.log('  cũ  chỉ<%  cả hai  truy vấn');
   for (const { q, target, why } of CASES) {
-    const [old, fresh] = [await rankOf(q, target, false), await rankOf(q, target, true)];
-    if (!inTop(old) && inTop(fresh)) better++;
-    if (inTop(old) && !inTop(fresh)) worse++;
-    const mark = !inTop(old) && inTop(fresh) ? '✓' : inTop(old) && !inTop(fresh) ? '✗' : ' ';
-    console.log(`${mark} ${show(old)} ${show(fresh)}  ${q}  — ${why}`);
+    const old = await rankOf(q, target, 'cu');
+    const onlyNew = await rankOf(q, target, 'chi_moi');
+    const both = await rankOf(q, target, 'ca_hai');
+    if (!inTop(old) && inTop(both)) better++;
+    if (inTop(old) && !inTop(both)) worse++;
+    const mark = !inTop(old) && inTop(both) ? '✓' : inTop(old) && !inTop(both) ? '✗' : ' ';
+    console.log(`${mark} ${show(old)}   ${show(onlyNew)}    ${show(both)}   ${q}  — ${why}`);
   }
   console.log(
-    `\nMới cứu được ${better} ca cũ trượt khỏi LIMIT ${LIMIT}; làm hỏng ${worse} ca cũ đang đạt.`,
+    `\nSo với mã cũ, bản đang dùng (cả hai toán tử) cứu ${better} ca, làm hỏng ${worse} ca.`,
+  );
+  console.log(
+    'Cột "chỉ<%" cho thấy vì sao phải giữ toán tử %: bỏ nó thì lỗi gõ trên từ ngắn trượt.',
   );
   if (worse > 0) process.exitCode = 1;
 } finally {
