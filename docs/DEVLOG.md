@@ -135,8 +135,10 @@ commit với code).
   Test `--down` trong `db/schema.dbtest.mjs` đếm số migration sau 0001, nên thêm 0007 phải sửa
   `i < 5` thành `i < 6` — mọi migration sau này đều phải sửa chỗ này.
 
-  **Đã phát hành `d5ba3f9` lúc 18:24.** CI, Deploy API, Deploy Docs, API tests (Places, real DB)
-  đều xanh (run `339632370xx`). Production chạy code mới; `skincode` nay trả đúng
+  **Đã phát hành `d5ba3f9` lúc 18:24.** Cả năm workflow xanh: CI `33963237070`, Deploy API
+  `33963237038`, Deploy Docs `33963237092`, API tests (Places, real DB) `33963237098`, và
+  DB tests `33963237109` (chạy trong image pipeline nên `pipeline-fixture` có tippecanoe và
+  không bị skip như trên máy dev). Production chạy code mới; `skincode` nay trả đúng
   "Showroom Skincode - Swiss Derma Center" trong khi trước đó trả Skin79/SKINJAM.
 
   **Migration 0007 CHƯA áp lên production** — `/healthz/db` trả `"word_similarity_threshold":null`,
