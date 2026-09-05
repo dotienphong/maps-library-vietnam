@@ -117,7 +117,7 @@ Lý do chọn chồng lớp không gian thay vì gõ tay từ nghị quyết: (a
 được; (b) có sẵn **geometry** quận/huyện cũ để trả bbox và lọc mốc theo vùng; (c) tự sinh được
 tỷ lệ diện tích khi một phường cũ bị tách; (d) cùng giấy phép nên vào được `export:odbl`.
 
-### 4.2 Mô hình dữ liệu (migration `0007_admin_old.sql` + `.down.sql`)
+### 4.2 Mô hình dữ liệu (migration `0008_admin_old.sql` + `.down.sql`)
 
 ```sql
 -- Đơn vị hành chính đã hết hiệu lực, giữ riêng để không ảnh hưởng mọi truy vấn hiện có trên admin_area
@@ -268,9 +268,11 @@ từ** của `name`. Với `q = 'coffee highlands'`, đoạn "highlands coffee" 
 được chỉ số GIN `gin_trgm_ops` hiện có hỗ trợ (cột chỉ số ở **vế phải**), ngưỡng lấy từ GUC
 `pg_trgm.word_similarity_threshold`.
 
-- Đặt ngưỡng ở cấp role để mọi kết nối qua Hyperdrive đều có:
-  `ALTER ROLE api SET pg_trgm.word_similarity_threshold = 0.5;` (thêm vào migration 0007 và
-  `scripts/lib/db-permissions.mjs`). `pg_trgm.similarity_threshold` giữ 0,3.
+- Đặt ngưỡng ở **cấp database** (`ALTER DATABASE <db hiện tại> SET pg_trgm.word_similarity_threshold
+  = 0.5`, qua `DO $$ … format(…, current_database()) $$` trong migration) để production (user
+  `api`), dev (user `mapslibvn`) và DB dbtest cô lập đều cùng giá trị; GUC áp cho phiên mới, kể cả
+  kết nối qua Hyperdrive. `pg_trgm.similarity_threshold` giữ 0,3. (Bản nháp đầu ghi cấp role
+  `api`; đổi khi viết plan vì dev không nối bằng role `api`.)
 - Ngưỡng 0,5 là điểm khởi đầu; đo bằng bộ truy vấn mục 5.7 và chỉnh trong plan, không đổi ở đây.
 
 ### 5.3 Bậc 1 (thay điều kiện hiện tại, cho `poi`, `street`, `area`)
@@ -437,10 +439,11 @@ Phiên bản SDK: bump minor cho 4 gói (thêm API, không phá).
 
 ## 8. Migration và triển khai
 
-- `0007_admin_old.sql`: bảng `admin_area_old`; đổi PK + cột mới `admin_alias`; cột `name_key`,
-  `name_alt_norm`, `name_tsv` và các chỉ số trên `poi`, `street`, `admin_area`; `ALTER ROLE api SET
-  pg_trgm.word_similarity_threshold`; GRANT SELECT bảng mới cho `api`, OWNER `pipeline`. Có
-  `.down.sql`. `scripts/lib/db-permissions.mjs` và `scripts/lib/odbl.mjs` (export ODbL) thêm bảng
+- Migration tách theo plan: `0007_word_similarity_threshold.sql` (GUC cấp database, plan hạng
+  mục 2); `0008_admin_old.sql` (bảng `admin_area_old`; đổi PK + cột mới `admin_alias`; plan hạng
+  mục 1); `0009_search_keys.sql` (cột `name_key`, `name_alt_norm`, `name_tsv` và chỉ số trên
+  `poi`, `street`, `admin_area`; plan hạng mục 3). Mỗi bản có `.down.sql`; GRANT SELECT bảng mới
+  cho `api`, OWNER `pipeline`. `scripts/lib/db-permissions.mjs` và `scripts/lib/odbl.mjs` (export ODbL) thêm bảng
   `admin_area_old` và cột mới của `admin_alias`.
 - Chỉ số trên `poi` 1,5–2,5 triệu dòng dựng vài phút; giai đoạn nội bộ chấp nhận chạy trong
   `server:update` như migration thường (không `CONCURRENTLY` để giữ migration trong transaction).
@@ -514,7 +517,7 @@ Phiên bản SDK: bump minor cho 4 gói (thêm API, không phá).
 
 1. **Hạng mục 2 trước** (nhỏ nhất, hiệu quả ngay, không cần pipeline): migration GUC + `<%` ở bậc 1
    + song song hoá + perf baseline. Một ngày.
-2. **Hạng mục 1**: migration 0007 phần admin, `adminAliasKeys`, `admin-old.mjs`, bước 0 geocode,
+2. **Hạng mục 1**: migration 0008 (admin), `adminAliasKeys`, `admin-old.mjs`, bước 0 geocode,
    loại `area`, SDK/docs. Ba đến bốn ngày, gồm một lần chạy pipeline đầy đủ trên máy chủ.
 3. **Hạng mục 3**: `viKey`, `toponym_alias.json`, `name_alt_norm` cho street, bậc 2–3. Hai ngày.
 
