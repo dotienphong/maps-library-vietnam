@@ -5,6 +5,11 @@ commit với code).
 
 ## 1. Trạng thái hiện tại
 
+- **05/09/2026 — Alias hành chính Task 2 hoàn tất:** core giữ `adminOriginal` trước khi
+  canonicalize tỉnh, export `adminAliasKeys()` theo thứ tự khóa cụ thể→rộng và mở rộng type bằng
+  `area`, `bbox`, `district`, `matched.former`. Focused core 57/57 và build/size-limit xanh;
+  fixture parser cũ vẫn 339/341. Bước tiếp: Task 3 import snapshot.
+
 - **05/09/2026 — Alias hành chính Task 1 hoàn tất:** migration `0008_admin_old` thêm bảng lịch
   sử, alias 1–n có share/source/provenance, index prefix/trigram, quyền API/pipeline và bảng xuất
   ODbL thứ sáu. Focused DB gate trong pipeline container: schema 7/7 và admin-old 4/4; down

@@ -45,9 +45,10 @@ export type GeocodePrecision =
   | 'interpolated'
   | 'street'
   | 'ward'
+  | 'district'
   | 'province';
 
-export type AutocompleteType = 'poi' | 'street' | 'address';
+export type AutocompleteType = 'poi' | 'street' | 'address' | 'area';
 
 export interface AutocompleteItem {
   type: AutocompleteType;
@@ -58,6 +59,7 @@ export interface AutocompleteItem {
   lng: number;
   precision?: GeocodePrecision;
   score: number;
+  bbox?: [number, number, number, number];
 }
 
 export interface GeocodeMatched {
@@ -65,6 +67,7 @@ export interface GeocodeMatched {
   street?: string;
   ward?: string;
   province?: string;
+  former?: { ward?: string; district?: string; province?: string };
 }
 
 export interface GeocodeItem {

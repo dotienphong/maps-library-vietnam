@@ -134,7 +134,7 @@ export function adminAliasKeys(input: AdminAliasKeyInput): string[];
 
 Hàm trả khóa từ cụ thể đến rộng, unique, đã normalize; không tự quyết định “duy nhất toàn quốc”. Pipeline chỉ phát hành khóa ngắn sau kiểm uniqueness; resolver kiểm ngữ cảnh. Input gốc chứa cả tiền tố đầy đủ; viết tắt parser nhận được sẽ canonicalize tiền tố khi tạo khóa.
 
-- [ ] **2.1** Viết test trước: P6/Q10, phường/xã/thị trấn, huyện/quận/thị xã/thành phố cấp huyện, tỉnh cũ, Unicode, thiếu tỉnh, số phường và dấu câu. Đọc `expectedKeys` từ fixture Task 0; khóa có tỉnh phải đứng trước khóa không tỉnh.
+- [x] **2.1** Viết test trước: P6/Q10, phường/xã/thị trấn, huyện/quận/thị xã/thành phố cấp huyện, tỉnh cũ, Unicode, thiếu tỉnh, số phường và dấu câu. Đọc `expectedKeys` từ fixture Task 0; khóa có tỉnh phải đứng trước khóa không tỉnh.
 
 ```ts
 const parsed = parseAddress('88/9 Nguyễn Lâm, Phường 6, Quận 10, TP.HCM');
@@ -146,10 +146,10 @@ expect(oldProvince.province).toBe('Thành phố Hồ Chí Minh');
 expect(adminAliasKeys(oldProvince)).toContain('binh duong');
 ```
 
-- [ ] **2.2** Chạy `pnpm exec vitest run packages/core/tests/admin-alias.test.ts packages/core/tests/address.test.ts`, xác nhận đỏ có nguyên nhân đúng.
-- [ ] **2.3** Ở mỗi nhánh parser nhận admin, lưu phần gốc **trước** strip/canonicalize; không thêm thuộc tính undefined vào kết quả cũ. Hàm chung dùng tiền tố nhận diện từ original, fallback các tổ hợp tiền tố hợp lệ khi caller cũ chỉ cung cấp tên trần; không thay tất cả district thành `quan`.
-- [ ] **2.4** Thêm `AutocompleteType` giá trị `area`, `AutocompleteItem.bbox?: [number,number,number,number]`, `GeocodePrecision` giá trị `district`, `GeocodeMatched.former?: {ward?:string; district?:string; province?:string}`. Export hàm/type từ core index. Chưa thêm API hạng mục 3.
-- [ ] **2.5** Chạy tests core và build core; rà các switch exhaustive với precision/type mới. Cập nhật DEVLOG, commit `feat(core): sinh khóa alias và giữ tên hành chính nguyên gốc`.
+- [x] **2.2** Chạy `pnpm exec vitest run packages/core/tests/admin-alias.test.ts packages/core/tests/address.test.ts`, xác nhận đỏ có nguyên nhân đúng.
+- [x] **2.3** Ở mỗi nhánh parser nhận admin, lưu phần gốc **trước** strip/canonicalize; không thêm thuộc tính undefined vào kết quả cũ. Hàm chung dùng tiền tố nhận diện từ original, fallback các tổ hợp tiền tố hợp lệ khi caller cũ chỉ cung cấp tên trần; không thay tất cả district thành `quan`.
+- [x] **2.4** Thêm `AutocompleteType` giá trị `area`, `AutocompleteItem.bbox?: [number,number,number,number]`, `GeocodePrecision` giá trị `district`, `GeocodeMatched.former?: {ward?:string; district?:string; province?:string}`. Export hàm/type từ core index. Chưa thêm API hạng mục 3.
+- [x] **2.5** Chạy tests core và build core; rà các switch exhaustive với precision/type mới. Cập nhật DEVLOG, commit `feat(core): sinh khóa alias và giữ tên hành chính nguyên gốc`.
 
 ## Task 3: Import snapshot và fixture ranh giới cũ
 

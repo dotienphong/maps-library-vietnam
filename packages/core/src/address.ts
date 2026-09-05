@@ -14,6 +14,7 @@ export interface ParsedAddress {
   ward?: string;
   district?: string;
   province?: string;
+  adminOriginal?: { ward?: string; district?: string; province?: string };
   confidence: number;
 }
 
@@ -140,6 +141,10 @@ function parseStreetPart(orig: string, key: string, out: ParsedAddress): void {
 
 export function parseAddress(input: string): ParsedAddress {
   const out: ParsedAddress = { alleyChain: [], confidence: 0 };
+  const rememberAdmin = (key: 'ward' | 'district' | 'province', value: string) => {
+    out.adminOriginal ??= {};
+    if (!out.adminOriginal[key]) out.adminOriginal[key] = value;
+  };
   const orig = input
     .normalize('NFC')
     .replace(/\([^)]*\)?/g, ' ') // chú thích trong ngoặc: "(nối dài)", "(P13 Q10 cũ)"
@@ -187,6 +192,7 @@ export function parseAddress(input: string): ParsedAddress {
     const tinh = RE_TINH.exec(key);
     if (tinh) {
       markAdmin();
+      rememberAdmin('province', part);
       out.province =
         lookupProvince(tinh[1] ?? '') ?? cleanTail(part.slice(key.length - (tinh[1] ?? '').length));
       return;
@@ -196,15 +202,23 @@ export function parseAddress(input: string): ParsedAddress {
       markAdmin();
       const rest = city[1] ?? '';
       const prov = lookupProvince(rest);
-      if (prov) out.province = prov;
-      else if (!out.district) out.district = cleanTail(part.slice(key.length - rest.length));
+      if (prov) {
+        rememberAdmin('province', part);
+        out.province = prov;
+      } else if (!out.district) {
+        rememberAdmin('district', part);
+        out.district = cleanTail(part.slice(key.length - rest.length));
+      }
       return;
     }
     const d = RE_DISTRICT.exec(key);
     if (d) {
       markAdmin();
       const rest = d[1] ?? d[2] ?? d[3] ?? '';
-      if (!out.district) out.district = cleanTail(part.slice(key.length - rest.length));
+      if (!out.district) {
+        rememberAdmin('district', part);
+        out.district = cleanTail(part.slice(key.length - rest.length));
+      }
       return;
     }
     const w = RE_WARD.exec(key);
@@ -212,12 +226,16 @@ export function parseAddress(input: string): ParsedAddress {
       markAdmin();
       const rest = w[1] ?? w[2] ?? w[3] ?? '';
       const at = w[3] !== undefined ? 0 : key.length - rest.length;
-      if (!out.ward) out.ward = cleanTail(part.slice(at, at + rest.length));
+      if (!out.ward) {
+        rememberAdmin('ward', part);
+        out.ward = cleanTail(part.slice(at, at + rest.length));
+      }
       return;
     }
     const prov = lookupProvince(part);
     if (prov) {
       markAdmin();
+      rememberAdmin('province', part);
       out.province = prov;
       return;
     }
