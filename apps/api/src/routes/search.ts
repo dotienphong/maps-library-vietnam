@@ -25,6 +25,8 @@ search.get('/v1/search', requireAuth(), quotaMiddleware('places'), async (c) => 
   if (query && !queryNorm) {
     throw new ApiError(400, 'invalid_request', 'q không có ký tự tra cứu được');
   }
+  // LIKE tận dụng gin_trgm_ops; starts_with trong OR buộc quét cả bảng (xem 72f78a2).
+  const prefixPattern = `${queryNorm.replace(/[\\%_]/g, '\\$&')}%`;
 
   const sql = getSql(c.env);
   try {
@@ -34,11 +36,17 @@ search.get('/v1/search', requireAuth(), quotaMiddleware('places'), async (c) => 
         ${nearPoint ? sql`, ST_DistanceSphere(p.geom, ${nearPoint}) AS d` : sql``}
       FROM poi p LEFT JOIN category c ON c.code = p.category
       WHERE p.status = 'active'
-        ${queryNorm ? sql`AND (p.name_norm % ${queryNorm} OR starts_with(p.name_norm, ${queryNorm}))` : sql``}
+        ${queryNorm ? sql`AND (${queryNorm} <% p.name_norm OR p.name_norm LIKE ${prefixPattern})` : sql``}
         ${category ? sql`AND p.category = ${category}` : sql``}
         ${nearPoint ? sql`AND ST_DWithin(p.geom::geography, ${nearPoint}::geography, ${radius})` : sql``}
         ${bbox ? sql`AND p.geom && ST_MakeEnvelope(${bbox[0]}, ${bbox[1]}, ${bbox[2]}, ${bbox[3]}, 4326)` : sql``}
-      ORDER BY ${queryNorm ? sql`similarity(p.name_norm, ${queryNorm}) DESC` : nearPoint ? sql`d ASC` : sql`p.updated_at DESC`}
+      ORDER BY ${
+        queryNorm
+          ? sql`greatest(word_similarity(${queryNorm}, p.name_norm), similarity(p.name_norm, ${queryNorm})) DESC, p.popularity DESC NULLS LAST`
+          : nearPoint
+            ? sql`d ASC`
+            : sql`p.updated_at DESC`
+      }
       LIMIT ${limit} OFFSET ${offset}`;
     return c.json({ items: rows.map(toPlace), total: rows[0]?.total ? Number(rows[0].total) : 0 });
   } catch (error) {

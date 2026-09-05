@@ -225,7 +225,7 @@ async function stepInterpolate({ sql, parsed, near }: GeocodeContext): Promise<G
   ];
 }
 
-/** Bước 4 — khớp đường, ưu tiên hành chính trong câu rồi khoảng cách near: 0.4. */
+/** Bước 4 — khớp đường (đúng tên, rồi word_similarity spec 05/09), ưu tiên hành chính trong câu rồi khoảng cách near: 0.4. */
 async function stepStreet({ sql, parsed, near, limit }: GeocodeContext): Promise<GeocodeItem[]> {
   const point = nearPoint(sql, near);
   const wardNorm = parsed.ward ? normalizeVi(parsed.ward) : null;
@@ -253,7 +253,7 @@ async function stepStreet({ sql, parsed, near, limit }: GeocodeContext): Promise
             ELSE ST_PointOnSurface(geom)
           END AS mid
         FROM street
-        WHERE ${exact ? sql`name_norm = ${parsed.streetNorm as string}` : sql`name_norm % ${parsed.streetNorm as string}`}
+        WHERE ${exact ? sql`name_norm = ${parsed.streetNorm as string}` : sql`${parsed.streetNorm as string} <% name_norm`}
           ${wardNorm ? sql`AND ${wardNorm} = ANY(ward_norm)` : sql``}
           ${provinceNorm ? sql`AND province_norm = ${provinceNorm}` : sql``}
       ) candidates
