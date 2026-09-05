@@ -48,7 +48,7 @@
 - Modify: `scripts/perf-autocomplete.mjs`
 - Modify: `scripts/perf-autocomplete.test.mjs`
 
-- [ ] **Step 1: Tạo fixture 40 truy vấn**
+- [x] **Step 1: Tạo fixture 40 truy vấn**
 
 Định dạng mỗi dòng `q|đích`: `đích` là chuỗi đã `normalizeVi` phải xuất hiện trong `name` (đã bỏ dấu, lowercase) của một trong 3 item đầu. Dòng bắt đầu `#` là chú thích. Bốn nhóm 10 dòng theo spec 5.7.
 
@@ -102,7 +102,7 @@ phuc long coffee|phuc long
 
 Ghi chú cho người thực hiện: tên thật trong DB có thể khác ("Co.opmart" hay "Co.op Mart"); sau lần đo đầu, sửa cột `đích` cho **10 dòng đối chứng** để cả 10 đạt trên production hiện tại — nhóm đối chứng phải xanh trước khi nhóm mờ có ý nghĩa. Không sửa cột `q` của 30 dòng mờ.
 
-- [ ] **Step 2: Viết test cho tuỳ chọn `queries` và `hit@3`**
+- [x] **Step 2: Viết test cho tuỳ chọn `queries` và `hit@3`**
 
 Thêm vào `scripts/perf-autocomplete.test.mjs`, sau test hiện có:
 
@@ -147,12 +147,12 @@ Sửa dòng import đầu file thành:
 import { measureAutocomplete, parseQueryFixture } from './perf-autocomplete.mjs';
 ```
 
-- [ ] **Step 3: Chạy test để thấy đỏ**
+- [x] **Step 3: Chạy test để thấy đỏ**
 
 Run: `pnpm exec vitest run scripts/perf-autocomplete.test.mjs`
 Expected: FAIL — `parseQueryFixture` không được export; `result.hit3` undefined.
 
-- [ ] **Step 4: Sửa `scripts/perf-autocomplete.mjs`**
+- [x] **Step 4: Sửa `scripts/perf-autocomplete.mjs`**
 
 Thay toàn bộ file bằng:
 
@@ -326,12 +326,12 @@ if (isMain) {
 
 Lưu ý test cũ: kết quả không có `hit3` khi không có đích (`toEqual` cũ vẫn đúng vì spread rỗng). `res.text()` thay `arrayBuffer()` để đọc JSON; test cũ dùng `new Response('{}')` vẫn chạy.
 
-- [ ] **Step 5: Chạy test và typecheck script**
+- [x] **Step 5: Chạy test và typecheck script**
 
 Run: `pnpm exec vitest run scripts/perf-autocomplete.test.mjs && pnpm exec tsc -p tsconfig.scripts.json`
 Expected: 4 test PASS; tsc không lỗi. Nếu tsc báo `json.items` kiểu `any`, giữ JSDoc `@type` như trên (đã có).
 
-- [ ] **Step 6: Đo baseline trên production (code hiện tại)**
+- [x] **Step 6: Đo baseline trên production (code hiện tại)**
 
 Run (dùng khoá `server` của tenant nội bộ, không ghi khoá vào file nào):
 
@@ -341,7 +341,7 @@ node scripts/perf-autocomplete.mjs https://api.ai-solutions.io.vn '<khoá mlv_li
 
 Expected: in `n=80 p50=… p95=… p99=…` và `hit@3=…/40 miss: …`. Chạy **hai lần**: lần 1 là cache lạnh (miss), lần 2 gần như toàn `hit`. Ghi cả hai vào `docs/DEVLOG.md` mục 2 dưới tiêu đề "05/09/2026 — Tìm mờ: baseline" (số p95 lần 1, hit@3 lần 1). Kỳ vọng baseline hit@3 < 20/40; nếu 10 dòng đối chứng không đạt đủ 10, sửa cột `đích` của chúng theo tên thật rồi đo lại.
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add scripts/fixtures/fuzzy-queries.txt scripts/perf-autocomplete.mjs scripts/perf-autocomplete.test.mjs docs/DEVLOG.md
@@ -361,7 +361,7 @@ Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>"
 
 Lý do đặt ở cấp database (không phải role `api`): production nối bằng user `api`, dev bằng `mapslibvn`, dbtest tạo DB cô lập — `ALTER DATABASE current_database() SET` phủ cả ba. `ALTER DATABASE … SET` chạy được trong transaction của `db-migrate.mjs` (chỉ `SET TABLESPACE` bị cấm). Giá trị chỉ áp cho **phiên mới**, nên test phải mở kết nối mới để đọc.
 
-- [ ] **Step 1: Viết test dbtest**
+- [x] **Step 1: Viết test dbtest**
 
 Thêm vào `db/schema.dbtest.mjs`, trong `describe('lược đồ spec 5.2', …)` sau test quyền:
 
@@ -384,12 +384,12 @@ Thêm vào `db/schema.dbtest.mjs`, trong `describe('lược đồ spec 5.2', …
   });
 ```
 
-- [ ] **Step 2: Chạy để thấy đỏ**
+- [x] **Step 2: Chạy để thấy đỏ**
 
 Run: `pnpm db:up && pnpm test:db`
 Expected: test mới FAIL (`setconfig` undefined). `pipeline-fixture.dbtest.mjs` đỏ vì thiếu `tippecanoe` là **đã biết**, bỏ qua.
 
-- [ ] **Step 3: Viết migration**
+- [x] **Step 3: Viết migration**
 
 `db/migrations/0007_word_similarity_threshold.sql`:
 
@@ -411,12 +411,12 @@ DO $$ BEGIN
 END $$;
 ```
 
-- [ ] **Step 4: Chạy dbtest**
+- [x] **Step 4: Chạy dbtest**
 
 Run: `pnpm test:db`
 Expected: `schema.dbtest.mjs` PASS toàn bộ (kể cả test mới); chỉ `pipeline-fixture` đỏ vì tippecanoe.
 
-- [ ] **Step 5: Kiểm revert rồi áp lại trên DB dev**
+- [x] **Step 5: Kiểm revert rồi áp lại trên DB dev**
 
 Run:
 ```bash
@@ -424,7 +424,7 @@ pnpm db:migrate && node scripts/db-migrate.mjs --down && pnpm db:migrate
 ```
 Expected: `[db:migrate] Revert 0007_word_similarity_threshold.sql …`, rồi `Áp dụng 0007_… — 1 migration`.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add db/migrations/0007_word_similarity_threshold.sql db/migrations/0007_word_similarity_threshold.down.sql db/schema.dbtest.mjs
@@ -442,7 +442,7 @@ Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>"
 
 Không có test happy-path (cần DB); test lỗi hiện có ở `healthz-db.test.ts` giữ nguyên. Đây là cách xác nhận migration đã lên production mà không cần vào máy chủ.
 
-- [ ] **Step 1: Sửa truy vấn**
+- [x] **Step 1: Sửa truy vấn**
 
 Trong `apps/api/src/index.ts`, thay khối `app.get('/healthz/db', …)` bằng:
 
@@ -469,18 +469,18 @@ app.get('/healthz/db', async (c) => {
 });
 ```
 
-- [ ] **Step 2: Typecheck + test API**
+- [x] **Step 2: Typecheck + test API**
 
 Run: `pnpm --filter @mapslibvn/api typecheck && pnpm --filter @mapslibvn/api test`
 Expected: typecheck OK; 95 test PASS (không đổi số).
 
-- [ ] **Step 3: Kiểm trên DB dev qua wrangler**
+- [x] **Step 3: Kiểm trên DB dev qua wrangler**
 
 Run (terminal 1, từ `apps/api`): `pnpm --filter @mapslibvn/api dev`
 Run (terminal 2): `curl -s http://localhost:8787/healthz/db`
 Expected: `{"ok":true,"user":"mapslibvn","version":"PostgreSQL 16.x","word_similarity_threshold":0.5}`. Dừng wrangler.
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add apps/api/src/index.ts
@@ -498,7 +498,7 @@ Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>"
 
 `postgres.js` gọi `sql` như template tag (`sql\`…${x}…\``), lồng fragment (`sql\`AND …\``) và `sql.unsafe(text)`. Tag giả dựng lại chuỗi SQL, thay tham số bằng `$n`, để test so chuỗi.
 
-- [ ] **Step 1: Viết helper**
+- [x] **Step 1: Viết helper**
 
 ```ts
 import type { getSql } from '../../src/db';
@@ -546,12 +546,12 @@ export function fakeSql(rows: unknown[] = [], calls: RecordedQuery[] = []) {
 
 Ghi chú: fragment lồng cũng bị đẩy vào `calls` (vì cùng đi qua `tag`); test lọc bằng `calls.filter((c) => c.text.startsWith('SELECT'))` khi cần.
 
-- [ ] **Step 2: Kiểm biên dịch**
+- [x] **Step 2: Kiểm biên dịch**
 
 Run: `pnpm --filter @mapslibvn/api typecheck`
 Expected: OK (file test nằm trong `include` của `apps/api/tsconfig.json`; nếu không, thêm `"test/**/*.ts"` vào `include`).
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 git add apps/api/test/helpers/fake-sql.ts
@@ -568,7 +568,7 @@ Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>"
 - Create: `apps/api/src/autocomplete-sql.ts`
 - Create: `apps/api/test/autocomplete-sql.test.ts`
 
-- [ ] **Step 1: Viết test đỏ**
+- [x] **Step 1: Viết test đỏ**
 
 `apps/api/test/autocomplete-sql.test.ts`:
 
@@ -647,12 +647,12 @@ describe('autocomplete-sql — bậc 1 dùng word_similarity (spec 05/09 mục 5
 });
 ```
 
-- [ ] **Step 2: Chạy để thấy đỏ**
+- [x] **Step 2: Chạy để thấy đỏ**
 
 Run: `pnpm --filter @mapslibvn/api exec vitest run test/autocomplete-sql.test.ts`
 Expected: FAIL — module `../src/autocomplete-sql` không tồn tại.
 
-- [ ] **Step 3: Viết module**
+- [x] **Step 3: Viết module**
 
 `apps/api/src/autocomplete-sql.ts`:
 
@@ -786,17 +786,17 @@ export async function collectCandidates(
 
 Ghi chú: `distance()` tạo `nearPoint` riêng cho mỗi truy vấn — an toàn vì mỗi truy vấn chạy trên kết nối riêng khi song song.
 
-- [ ] **Step 4: Chạy test**
+- [x] **Step 4: Chạy test**
 
 Run: `pnpm --filter @mapslibvn/api exec vitest run test/autocomplete-sql.test.ts`
 Expected: 4 PASS. Nếu test `collectCandidates` đếm `selects` sai vì fragment `ST_SetSRID`/`NULL::float8` cũng bắt đầu bằng chữ khác → chỉ lọc `startsWith('SELECT')` đã đủ vì fragment không bắt đầu bằng `SELECT`.
 
-- [ ] **Step 5: Typecheck**
+- [x] **Step 5: Typecheck**
 
 Run: `pnpm --filter @mapslibvn/api typecheck`
 Expected: OK. Nếu báo `Type 'PendingQuery<…>' is not assignable to 'Promise<CandidateRow[]>'`, đổi mảng `queries` thành `Promise<CandidateRow[]>[]` và bọc `Promise.resolve(poiCandidates(sql, input))` — nhưng `PendingQuery` là thenable nên `Promise.all` chấp nhận; giữ kiểu `Promise<CandidateRow[]>[]` với `as Promise<CandidateRow[]>` nếu cần.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add apps/api/src/autocomplete-sql.ts apps/api/test/autocomplete-sql.test.ts
@@ -812,7 +812,7 @@ Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>"
 **Files:**
 - Modify: `apps/api/src/routes/autocomplete.ts`
 
-- [ ] **Step 1: Thay SQL inline bằng `collectCandidates`**
+- [x] **Step 1: Thay SQL inline bằng `collectCandidates`**
 
 Thay toàn bộ file `apps/api/src/routes/autocomplete.ts` bằng:
 
@@ -896,12 +896,12 @@ autocomplete.get('/v1/autocomplete', requireAuth(), quotaMiddleware('places'), a
 });
 ```
 
-- [ ] **Step 2: Lint, typecheck, test API**
+- [x] **Step 2: Lint, typecheck, test API**
 
 Run: `pnpm lint && pnpm --filter @mapslibvn/api typecheck && pnpm --filter @mapslibvn/api test`
 Expected: lint sạch (Biome sắp import theo bảng chữ cái — `../autocomplete-sql` đứng trước `../auth`); 99 test PASS (95 cũ + 4 mới).
 
-- [ ] **Step 3: Chạy thật trên DB dev có fixture**
+- [x] **Step 3: Chạy thật trên DB dev có fixture**
 
 Chuẩn bị (một lần): `pnpm db:up && pnpm db:migrate && pnpm db:fixture` (fixture Quận 1). Rồi từ `apps/api`: `pnpm --filter @mapslibvn/api dev`. Khoá dev: xem `db/seed/tenant_internal.sql` hoặc `pnpm key:issue`.
 
@@ -912,7 +912,7 @@ curl -s "http://localhost:8787/v1/autocomplete?q=coffee%20highlands&near=10.776,
 
 Expected: cả hai trả `items` có Highlands trong 3 dòng đầu. Nếu `higland` rỗng: kiểm `curl localhost:8787/healthz/db` có `word_similarity_threshold: 0.5` (nếu 0.6 là migration chưa áp lên DB dev).
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add apps/api/src/routes/autocomplete.ts
@@ -930,7 +930,7 @@ Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>"
 - Modify: `apps/api/src/geocode.ts:229-264`
 - Modify: `apps/api/test/geocode.test.ts`
 
-- [ ] **Step 1: Test đỏ cho geocode fallback**
+- [x] **Step 1: Test đỏ cho geocode fallback**
 
 Thêm vào `apps/api/test/geocode.test.ts` (import `fakeSql` từ `./helpers/fake-sql`):
 
@@ -948,12 +948,12 @@ Thêm vào `apps/api/test/geocode.test.ts` (import `fakeSql` từ `./helpers/fak
 
 Sửa dòng import đầu file thêm: `import { fakeSql } from './helpers/fake-sql';`
 
-- [ ] **Step 2: Chạy để thấy đỏ**
+- [x] **Step 2: Chạy để thấy đỏ**
 
 Run: `pnpm --filter @mapslibvn/api exec vitest run test/geocode.test.ts`
 Expected: FAIL ở assertion `<% name_norm` (chuỗi hiện là `name_norm % $1`).
 
-- [ ] **Step 3: Sửa `geocode.ts`**
+- [x] **Step 3: Sửa `geocode.ts`**
 
 Trong `stepStreet`, dòng WHERE hiện là:
 
@@ -969,7 +969,7 @@ Trong `stepStreet`, dòng WHERE hiện là:
 
 và sửa chú thích hàm thành `/** Bước 4 — khớp đường (đúng tên, rồi word_similarity spec 05/09), ưu tiên hành chính trong câu rồi khoảng cách near: 0.4. */`.
 
-- [ ] **Step 4: Sửa `search.ts`**
+- [x] **Step 4: Sửa `search.ts`**
 
 Thay hai dòng trong truy vấn:
 
@@ -1005,12 +1005,12 @@ Thêm sau dòng `const queryNorm = …`:
 
 (`starts_with` bỏ vì trong OR nó buộc quét bảng — cùng lý do đã sửa ở autocomplete `72f78a2`.)
 
-- [ ] **Step 5: Test, lint, typecheck**
+- [x] **Step 5: Test, lint, typecheck**
 
 Run: `pnpm lint && pnpm --filter @mapslibvn/api typecheck && pnpm --filter @mapslibvn/api test`
 Expected: 100 test PASS. Biome có thể đòi định dạng lại ternary lồng — chạy `pnpm lint:fix` rồi kiểm lại.
 
-- [ ] **Step 6: Kiểm search trên DB dev**
+- [x] **Step 6: Kiểm search trên DB dev**
 
 Run (wrangler dev đang chạy):
 ```bash
@@ -1019,7 +1019,7 @@ curl -s "http://localhost:8787/v1/geocode?q=Nguyen%20Hue%20Quan%201" -H "X-Api-K
 ```
 Expected: search trả Highlands; geocode trả `precision: "street"` cho Nguyễn Huệ.
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add apps/api/src/routes/search.ts apps/api/src/geocode.ts apps/api/test/geocode.test.ts
@@ -1036,7 +1036,7 @@ Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>"
 - Modify: `apps/docs/src/content/docs/tim-kiem.md:136-138`
 - Modify: `apps/docs/src/content/docs/api.md` (mục `GET /v1/autocomplete`, sau đoạn mô tả tham số)
 
-- [ ] **Step 1: `tim-kiem.md`**
+- [x] **Step 1: `tim-kiem.md`**
 
 Sau đoạn kết thúc bằng "…dùng chung kết quả." (dòng ~138) thêm:
 
@@ -1047,7 +1047,7 @@ không so cả chuỗi. Truy vấn 2–3 ký tự khớp mọi tên có từ b�
 gõ ít ký tự chủ yếu do khoảng cách tới `near` và độ phổ biến quyết định.
 ```
 
-- [ ] **Step 2: `api.md`**
+- [x] **Step 2: `api.md`**
 
 Trong mục `### GET /v1/autocomplete`, sau bảng tham số, thêm một đoạn:
 
@@ -1057,12 +1057,12 @@ vượt ngưỡng 0,5 của pg_trgm. Nhờ đó lỗi gõ 1–2 ký tự, truy v
 khớp. `search` và bước đường của `geocode` dùng cùng cách khớp.
 ```
 
-- [ ] **Step 3: Build docs + link check**
+- [x] **Step 3: Build docs + link check**
 
 Run: `pnpm --filter @mapslibvn/docs build`
 Expected: build 20 trang thành công. (E2E docs chạy trong cổng cuối Task 8.)
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add apps/docs/src/content/docs/tim-kiem.md apps/docs/src/content/docs/api.md
@@ -1078,7 +1078,7 @@ Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>"
 **Files:**
 - Modify: `docs/DEVLOG.md` (mục 2 và mục 4)
 
-- [ ] **Step 1: Cổng local**
+- [x] **Step 1: Cổng local**
 
 Run:
 ```bash
@@ -1110,7 +1110,7 @@ node scripts/perf-autocomplete.mjs https://api.ai-solutions.io.vn '<khoá nội 
 ```
 Chạy hai lần như Task 0. Tiêu chí (spec mục 11): `hit@3 ≥ 36/40`; p95 lần 1 (cache lạnh) ≤ baseline + 50 ms. Nếu `hit@3` thiếu: xem `miss:`; lỗi thường gặp là cột `đích` không đúng tên thật (sửa fixture) hoặc ngưỡng 0,5 quá chặt cho lỗi gõ 2 ký tự trên từ ngắn (ghi lại, **không** đổi ngưỡng trong plan này — quyết định ở plan hạng mục 3 khi có `stage_hit`).
 
-- [ ] **Step 5: DEVLOG**
+- [x] **Step 5: DEVLOG**
 
 Mục 2 "Bước kế tiếp": thêm mục "05/09/2026 — Tìm mờ bằng `word_similarity` (hạng mục 2 spec 05/09)" ghi: commit phát hành, số test cổng local, run ID CI, baseline vs sau (`p95`, `hit@3` cả hai lần), kết luận tiêu chí 3–4 đạt/không. Mục 4 "Nhật ký": một dòng `2026-09-05 · Tìm mờ T0–T8 · word_similarity + song song · <sha>`.
 
