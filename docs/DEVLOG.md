@@ -5,6 +5,13 @@ commit với code).
 
 ## 1. Trạng thái hiện tại
 
+- **05/09/2026 — Alias hành chính Task 0 hoàn tất:** snapshot Geofabrik 250101 đã tải và xác
+  minh `306547939` bytes, MD5 `1f0fdd199d7194e515a9c4b48b3e5835`, SHA-256
+  `01cc05f42f7287036d8fce59418fe98da8f5ca3ff539c9696302af922a566aad`, timestamp OSM
+  `2025-01-01T21:21:00Z`. Fixture pháp lý có 60 ca tại 6 tỉnh, 6 ca tách và 10 cặp địa chỉ;
+  test fixture 3/3 xanh. Ledger vẫn ghi rõ khoảng trống Jan→Jun và Khánh Hòa, nên chưa tuyên bố
+  độ phủ toàn quốc. Bước tiếp: Task 1 migration 0008.
+
 - **05/09/2026 — Đã viết plan hạng mục 1: Alias đầy đủ đơn vị hành chính cũ–mới**, theo yêu cầu
   PHONG: [plan 10 task](superpowers/plans/2026-09-05-alias-hanh-chinh-cu-moi.md), dựa trên spec đã
   duyệt và source tại `a7d34ef`. **Chưa triển khai**. Bao gồm migration 0008, nguồn/fixture có

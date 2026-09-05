@@ -64,8 +64,8 @@ Thứ tự: **0 → 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 → 9**. Mỗi t
 
 **Interfaces:** manifest có `url`, `md5`, `sha256`, `bytes`, `osmTimestamp`, `downloadedAt`, `targetValidUntil`, `license`. Fixture mỗi dòng có `caseId`, `old`, `expectedKeys`, `expectedTargets: [{ward, province}]`, `split`, `sourceUrl`, `sourceClause`; cặp địa chỉ có `caseId`, `oldQuery`, `newQuery`, `expectedBbox`, `sourceUrl`. Không dùng ID sinh lại theo lần nạp làm ground truth.
 
-- [ ] **0.1** Chụp Git/DB counts hiện hành, `df -h /`, `docker info`; đọc README pipeline, spec và plan này. Lưu baseline theo release, không chép số production cũ từ DEVLOG làm số hiện tại.
-- [ ] **0.2** Viết test manifest/fixture trước; nạp JSONL bằng `readFileSync(...).trim().split('\n').map(JSON.parse)`. Ví dụ assertion thực tế:
+- [x] **0.1** Chụp Git/DB counts hiện hành, `df -h /`, `docker info`; đọc README pipeline, spec và plan này. Lưu baseline theo release, không chép số production cũ từ DEVLOG làm số hiện tại.
+- [x] **0.2** Viết test manifest/fixture trước; nạp JSONL bằng `readFileSync(...).trim().split('\n').map(JSON.parse)`. Ví dụ assertion thực tế:
 
 ```js
 expect(cases.length).toBeGreaterThanOrEqual(60);
@@ -81,11 +81,11 @@ for (const c of cases) {
 expect(addresses).toHaveLength(10);
 ```
 
-- [ ] **0.3** Chạy `pnpm exec vitest run scripts/admin-alias-fixtures.test.mjs`, xác nhận đỏ vì chưa có bằng chứng.
-- [ ] **0.4** Tải snapshot một lần bằng downloader HTTPS; đọc MD5 phía nguồn nếu có, tính lại MD5 và SHA-256 từ bytes thực, ghi manifest. Nếu nguồn không công bố MD5, ghi rõ checksum tự tính từ lần tải HTTPS, không gọi đó là checksum upstream. Không ghi checksum giả và không dùng `latest` thay snapshot. Lấy `osmTimestamp` từ `osmium fileinfo -e -j`; không coi ngày mtime 02/01 là ngày dữ liệu.
-- [ ] **0.5** Đọc điều/khoản nghị quyết gốc để biên soạn ≥60 ca ở HCM, Hà Nội, Đà Nẵng, Cần Thơ, ≥1 tỉnh miền núi và ≥1 tỉnh ĐBSCL khác Cần Thơ; ≥5 ca tách ghi **đầy đủ tập đích**. Dùng 10 địa chỉ công khai có vị trí kiểm chứng; kiểm địa chỉ mới có precision đủ tốt trước khi đưa vào acceptance. Không suy ground truth từ chính output overlay.
-- [ ] **0.6** Kiểm kê mẫu ranh giới/số lượng tháng 1, thay đổi đến 30/06 và coverage của current. Ghi discrepancy ledger vào manifest bằng `issues: [{region, reason, sourceUrl, resolution}]`; vấn đề chưa giải quyết dùng `resolution: null`. Thiếu nguồn là blocker dữ liệu cụ thể, không phải lý do bỏ test hoặc hạ tiêu chí.
-- [ ] **0.7** Chạy lại test fixture xanh; cập nhật DEVLOG, commit `test(data): chốt nguồn và fixture alias hành chính 2025`.
+- [x] **0.3** Chạy `pnpm exec vitest run scripts/admin-alias-fixtures.test.mjs`, xác nhận đỏ vì chưa có bằng chứng.
+- [x] **0.4** Tải snapshot một lần bằng downloader HTTPS; đọc MD5 phía nguồn nếu có, tính lại MD5 và SHA-256 từ bytes thực, ghi manifest. Nếu nguồn không công bố MD5, ghi rõ checksum tự tính từ lần tải HTTPS, không gọi đó là checksum upstream. Không ghi checksum giả và không dùng `latest` thay snapshot. Lấy `osmTimestamp` từ `osmium fileinfo -e -j`; không coi ngày mtime 02/01 là ngày dữ liệu.
+- [x] **0.5** Đọc điều/khoản nghị quyết gốc để biên soạn ≥60 ca ở HCM, Hà Nội, Đà Nẵng, Cần Thơ, ≥1 tỉnh miền núi và ≥1 tỉnh ĐBSCL khác Cần Thơ; ≥5 ca tách ghi **đầy đủ tập đích**. Dùng 10 địa chỉ công khai có vị trí kiểm chứng; kiểm địa chỉ mới có precision đủ tốt trước khi đưa vào acceptance. Không suy ground truth từ chính output overlay.
+- [x] **0.6** Kiểm kê mẫu ranh giới/số lượng tháng 1, thay đổi đến 30/06 và coverage của current. Ghi discrepancy ledger vào manifest bằng `issues: [{region, reason, sourceUrl, resolution}]`; vấn đề chưa giải quyết dùng `resolution: null`. Thiếu nguồn là blocker dữ liệu cụ thể, không phải lý do bỏ test hoặc hạ tiêu chí.
+- [x] **0.7** Chạy lại test fixture xanh; cập nhật DEVLOG, commit `test(data): chốt nguồn và fixture alias hành chính 2025`.
 
 **Deliverable:** nguồn có checksum thật, ground truth độc lập và danh sách khoảng thiếu. Không yêu cầu download toàn quốc trong unit CI.
 

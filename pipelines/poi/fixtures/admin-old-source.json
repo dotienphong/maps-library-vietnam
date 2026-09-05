@@ -1,0 +1,25 @@
+{
+  "url": "https://download.geofabrik.de/asia/vietnam-250101.osm.pbf",
+  "md5": "1f0fdd199d7194e515a9c4b48b3e5835",
+  "sha256": "01cc05f42f7287036d8fce59418fe98da8f5ca3ff539c9696302af922a566aad",
+  "bytes": 306547939,
+  "osmTimestamp": "2025-01-01T21:21:00Z",
+  "downloadedAt": "2026-09-05",
+  "targetValidUntil": "2025-06-30",
+  "license": "ODbL-1.0",
+  "checksumProvenance": "computed-after-https-download",
+  "issues": [
+    {
+      "region": "Vietnam",
+      "reason": "Snapshot reflects OSM at 2025-01-01T21:21Z; changes through 2025-06-30 require reconciliation against the legal fixtures.",
+      "sourceUrl": "https://download.geofabrik.de/asia/vietnam.html",
+      "resolution": null
+    },
+    {
+      "region": "Khánh Hòa/Ninh Thuận",
+      "reason": "The current pipeline has historically lacked a usable Khánh Hòa L4 relation; no synthetic boundary may be invented.",
+      "sourceUrl": "https://xaydungchinhsach.chinhphu.vn/toan-van-nghi-quyet-so-1667-nq-ubtvqh15-sap-xep-cac-dvhc-cap-xa-cua-tinh-khanh-hoa-nam-2025-119250616214952344.htm",
+      "resolution": null
+    }
+  ]
+}
