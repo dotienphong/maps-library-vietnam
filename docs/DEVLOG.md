@@ -135,11 +135,60 @@ commit với code).
   Test `--down` trong `db/schema.dbtest.mjs` đếm số migration sau 0001, nên thêm 0007 phải sửa
   `i < 5` thành `i < 6` — mọi migration sau này đều phải sửa chỗ này.
 
-  **Việc PHONG cần làm để phát hành** (theo thứ tự): `git push` (kích hoạt Deploy API + CI); rồi
-  `pnpm server:update` trên máy chủ nội bộ để áp migration 0007; rồi kiểm
-  `curl -s https://api.ai-solutions.io.vn/healthz/db` phải có `"word_similarity_threshold":0.5`.
-  Nếu deploy API xong mà chưa áp migration thì **không phải sự cố**: ngưỡng rơi về mặc định 0,6
-  (chặt hơn), API vẫn chạy đúng. Đo lại sau bằng lệnh ở mục baseline trên.
+  **Đã phát hành `d5ba3f9` lúc 18:24.** CI, Deploy API, Deploy Docs, API tests (Places, real DB)
+  đều xanh (run `339632370xx`). Production chạy code mới; `skincode` nay trả đúng
+  "Showroom Skincode - Swiss Derma Center" trong khi trước đó trả Skin79/SKINJAM.
+
+  **Migration 0007 CHƯA áp lên production** — `/healthz/db` trả `"word_similarity_threshold":null`,
+  tức ngưỡng đang là mặc định 0,6. Hai lý do:
+  1. `pnpm server:update` **không chạy được, và không liên quan gì tới thay đổi này**:
+     `infra/server/.env` đặt `PIPELINE_IMAGE=mapslibvn/pipeline:local` (image dựng tại máy hôm
+     04/09 cho arm64), nên `docker compose pull` đi tìm `mapslibvn/pipeline` trên Docker Hub và
+     nhận `pull access denied`. Script dừng ngay ở bước pull, **không đụng container nào** —
+     cả 4 container vẫn `Up`. Muốn `server:update` chạy lại được thì phải hoặc đẩy image arm64
+     lên GHCR rồi trỏ `PIPELINE_IMAGE` về đó, hoặc cho script bỏ qua `pull` khi image là local.
+  2. Ghi thẳng SQL vào DB production bị chính sách chặn (đúng), nên không có đường vòng.
+
+  **Số đo sau phát hành, cache lạnh** (cùng lệnh, cùng bộ 40 truy vấn):
+
+  | | baseline (code cũ) | sau (code mới, ngưỡng 0,6) |
+  |---|---:|---:|
+  | p50 | 427 ms | **270 ms** |
+  | p95 | 2156 ms | **808 ms** |
+  | p99 | 2762 ms | **1148 ms** |
+  | hit@3 | 38/40 | 35/40 |
+
+  Độ trễ giảm 62 % ở p95 — đó là phần chạy song song ba loại truy vấn, không phải phần `<%`.
+
+  **hit@3 tụt 38 → 35 là hồi quy thật, cần quyết định.** `word_similarity` giữa truy vấn và tên
+  đích cho thấy nguyên nhân là ngưỡng, không phải thuật toán:
+
+  | truy vấn | word_similarity | qua 0,6 | qua 0,5 |
+  |---|---:|---|---|
+  | `cho rya` | 0,625 | có | có |
+  | `phuc lonh` | 0,800 | có | có |
+  | `nguyne hue` | 0,571 | **không** | có |
+  | `winmrt` | 0,571 | **không** | có |
+  | `higland` | 0,455 | không | **không** |
+  | `cirlce k` | 0,385 | không | **không** |
+
+  Áp 0007 (ngưỡng 0,5) cứu `nguyne hue` và `winmrt`. Còn `higland` (thiếu 1 ký tự) và `cirlce k`
+  (đảo 2 ký tự) trên **từ ngắn** thì `<%` ở mọi ngưỡng hợp lý đều không cứu, trong khi toán tử `%`
+  cũ ở ngưỡng 0,3 lại bắt được. Nói cách khác: đổi `%` sang `<%` **đánh đổi** recall của lỗi gõ
+  trên từ ngắn để lấy độ chính xác và khả năng tìm từ nằm giữa tên dài.
+
+  **Ba lựa chọn cho PHONG** (chưa làm gì, chờ quyết định):
+  - **(a) Giữ cả hai**: `WHERE q <% name_norm OR name_norm % q OR name_norm LIKE 'q%'`. Lấy được
+    cả recall cũ lẫn năng lực mới; đổi lại nhiều ứng viên hơn nên có thể ăn bớt phần độ trễ vừa
+    giành được. Sửa nhỏ, một dòng mỗi truy vấn, nhưng ngược với khẳng định "không còn toán tử `%`"
+    trong plan và test đang khoá điều đó.
+  - **(b) Hạ ngưỡng xuống ~0,45** trong 0007 thay vì 0,5: cứu thêm `higland`, vẫn trượt `cirlce k`,
+    và nới lỏng cho mọi truy vấn nên dễ nhiễu hơn.
+  - **(c) Giữ nguyên**, chấp nhận đánh đổi, để dành cho hạng mục 3 (bậc 2 tsvector token và bậc 3
+    khoá ngữ âm mới là chỗ xử lý đúng lớp lỗi này).
+
+  Khuyến nghị: **(a)** rồi đo lại — nó phục hồi recall mà không phải đoán ngưỡng, và nếu p95 tăng
+  quá thì mới cân nhắc bỏ.
 
 - **05/09/2026 — Progressive POI production release `poi-20260904`.** User phê duyệt release
   riêng; code phát hành ở `f1adb213f9524c49bc62959cddb1359e455ecdf5`. Remote gate đúng SHA:
@@ -661,9 +710,9 @@ vẫn là `sleep 1` phút — `sudo pmset -a sleep 0 disksleep 0`.
   `poi_edit` nên kiểm hạn mức 20 edit/ngày nhận 200 thay vì 429 — sửa ở `2f2b942` bằng cách cho
   `scripts/api-db-test.mjs` giữ một hằng pepper duy nhất và truyền vào cả `wrangler dev` lẫn tiến
   trình vitest. Sau đó CI, Deploy API, API tests và DB tests đều xanh
-- 2026-09-05 · Tìm mờ T0–T7 · `word_similarity` (`<%`) thay `%` ở autocomplete/search/geocode,
+- 2026-09-05 · Tìm mờ T0–T8 · `word_similarity` (`<%`) thay `%` ở autocomplete/search/geocode,
   ba loại truy vấn song song, migration 0007 đặt ngưỡng 0,5 cấp database · `fee9daf` ·
-  **chưa push, chờ PHONG duyệt phát hành**
+  đã phát hành `d5ba3f9`, CI xanh; p95 2156→808 ms nhưng hit@3 38→35, migration 0007 chưa áp
 
 ## 5. Sự cố
 
