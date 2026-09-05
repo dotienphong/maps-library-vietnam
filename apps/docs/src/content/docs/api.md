@@ -124,6 +124,8 @@ Gợi ý khi người dùng đang gõ. Trộn ba loại kết quả: POI, tên �
 
 `near` không lọc theo bán kính, chỉ dùng để cộng điểm cho kết quả ở gần. Kết quả loại `address` chỉ xuất hiện khi câu truy vấn phân tích được thành số nhà kèm tên đường.
 
+Cách khớp tên (từ 05/09/2026): tiền tố (`name_norm LIKE 'q%'`) **hoặc** `word_similarity(q, name_norm)` của pg_trgm vượt ngưỡng 0,5 — tức là so truy vấn với từng đoạn từ liên tục trong tên, không so cả chuỗi. Nhờ đó lỗi gõ 1–2 ký tự, truy vấn ngắn hơn tên và đảo thứ tự từ vẫn khớp. `GET /v1/search` và bước khớp đường của `GET /v1/geocode` dùng cùng cách khớp này.
+
 ```bash
 curl -H "X-Api-Key: mlv_live_…" \
   "https://api.ai-solutions.io.vn/v1/autocomplete?q=ben%20thanh&near=10.7725,106.6981&limit=3"

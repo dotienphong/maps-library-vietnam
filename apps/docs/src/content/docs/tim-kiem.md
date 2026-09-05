@@ -137,6 +137,12 @@ Trả `{ items: AutocompleteItem[] }`, đã sắp xếp giảm dần theo `score
 vấn đã chuẩn hoá và ô lưới của `near`, nên hai người gõ giống nhau ở cùng khu vực dùng chung kết
 quả.
 
+Khớp tên **chịu lỗi gõ nhẹ và đảo từ**: `higland`, `coffee highlands` hay `cho ray benh vien` vẫn
+trả đúng địa điểm, vì API so truy vấn với **từng đoạn từ** của tên chứ không so cả chuỗi. Nhờ vậy
+một từ nằm giữa tên rất dài cũng tìm được: gõ `skincode` ra "Showroom Skincode - Swiss Derma
+Center". Truy vấn 2–3 ký tự khớp rất nhiều tên, nên thứ tự lúc đó chủ yếu do khoảng cách tới `near`
+và độ phổ biến quyết định.
+
 ## 6. `search` — tìm theo tên, loại hoặc vùng
 
 ```ts
