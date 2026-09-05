@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { generatePassword, parseEnv, renderServerEnv, sharedBuffersFor } from './server-env.mjs';
+import {
+  generatePassword,
+  parseEnv,
+  pullPlan,
+  renderServerEnv,
+  sharedBuffersFor,
+} from './server-env.mjs';
 
 describe('generatePassword', () => {
   it('32 ký tự base62, hai lần khác nhau', () => {
@@ -42,5 +48,26 @@ describe('renderServerEnv / parseEnv', () => {
 
   it('parseEnv bỏ comment, dòng trống, dấu nháy', () => {
     expect(parseEnv('# c\nA=1\n\nB="x y"\nC=\'z\'\n')).toEqual({ A: '1', B: 'x y', C: 'z' });
+  });
+});
+
+describe('pullPlan', () => {
+  it('image pipeline dựng tại máy (tag :local) thì chỉ pull dịch vụ công khai', () => {
+    expect(pullPlan('mapslibvn/pipeline:local')).toEqual({
+      services: ['postgres', 'cloudflared'],
+      skipPipeline: true,
+    });
+  });
+
+  it('image trên registry thì pull tất cả (mảng rỗng = mọi dịch vụ)', () => {
+    expect(pullPlan('ghcr.io/dotienphong/mapslibvn-pipeline:latest')).toEqual({
+      services: [],
+      skipPipeline: false,
+    });
+  });
+
+  it('thiếu biến hoặc chuỗi rỗng thì vẫn pull tất cả', () => {
+    expect(pullPlan('')).toEqual({ services: [], skipPipeline: false });
+    expect(pullPlan(undefined)).toEqual({ services: [], skipPipeline: false });
   });
 });

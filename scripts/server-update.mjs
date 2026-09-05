@@ -3,14 +3,19 @@
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { run } from './lib/run.mjs';
-import { parseEnv } from './lib/server-env.mjs';
+import { parseEnv, pullPlan } from './lib/server-env.mjs';
 
 const dir = resolve('infra/server');
 const env = parseEnv(readFileSync(resolve(dir, '.env'), 'utf8'));
 const compose = ['compose', '--env-file', resolve(dir, '.env'), '-f', resolve(dir, 'compose.yml')];
 
 run('git', ['pull', '--ff-only']);
-run('docker', [...compose, 'pull']);
+const { services, skipPipeline } = pullPlan(env.PIPELINE_IMAGE);
+if (skipPipeline) {
+  console.log(`[server:update] Bỏ qua pull ${env.PIPELINE_IMAGE} — image dựng tại máy.`);
+  console.log('              Cần bản mới thì chạy `pnpm image:build` trước khi chạy lệnh này.');
+}
+run('docker', [...compose, 'pull', ...services]);
 run('docker', [...compose, 'up', '-d', '--remove-orphans']);
 run('docker', [
   ...compose,
