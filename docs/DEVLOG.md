@@ -5,6 +5,17 @@ commit với code).
 
 ## 1. Trạng thái hiện tại
 
+- **06/09/2026 — Alias hành chính Task 4 hoàn tất:** coordinator dựng
+  current + old + alias staging rồi publish cả ba trong một transaction; standalone old+alias dùng
+  cùng advisory lock. Overlay giữ riêng raw coverage/discarded share, lọc sliver L8 5%, không lọc
+  các con L6, chặn khóa ngắn mơ hồ, ưu tiên seed theo cả nhóm và ghi report QA trước publish.
+  Polygon DB test phủ 100%, 60/40, 96/4, thiếu 40%, overlap gấp đôi, tên trùng tỉnh và huyện 25
+  con; failure injection chứng minh ba bảng published rollback cùng nhau. Fixture container dựng
+  54 vùng cũ và 299 alias; chạy lại khi current ID đổi vẫn giữ đúng tên đích/FK. Unit gate gồm
+  641 + 103 API tests. DB suite sạch trong pipeline container: 10 file/52 test xanh trong 549,28 s,
+  gồm overlay, failure injection, lock cạnh tranh, schema, ODbL và pipeline fixture. Bước tiếp: Task 5 resolver
+  scope hành chính cũ cho geocode; chưa tuyên bố độ phủ toàn quốc vì ledger Khánh Hòa còn mở.
+
 - **05/09/2026 — Alias hành chính Task 3 hoàn tất:** downloader cache/checksum/failure-safe có
   3/3 unit tests; fixture `admin-old-q1.osm.pbf` 1.755.836 bytes được cắt từ snapshot pinned,
   SHA-256 `9aaec861475aaf03ea6286410ca1b31a3e6a408c506e43f09556ecf086ee60f1`.

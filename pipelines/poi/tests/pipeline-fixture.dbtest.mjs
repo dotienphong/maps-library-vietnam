@@ -29,7 +29,7 @@ beforeAll(() => {
   node('pipelines/poi/src/publish.mjs', '--force');
   node('pipelines/poi/src/geocode/osm-roads.mjs', '--fixture');
   for (const stage of ['admin', 'streets', 'alleys', 'anchors']) {
-    node(`pipelines/poi/src/geocode/${stage}.mjs`);
+    node(`pipelines/poi/src/geocode/${stage}.mjs`, ...(stage === 'admin' ? ['--fixture'] : []));
   }
   node('pipelines/poi/src/export-tiles.mjs', '--release', 'poi-fixture');
   node('pipelines/poi/src/report.mjs');

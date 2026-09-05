@@ -18,7 +18,7 @@ import { Q1_BBOX, lonLatWhere, overtureBboxWhere } from '../src/lib/vn-bbox.mjs'
 
 const overture = arg('--overture', process.env.OVERTURE_RELEASE);
 const fsq = arg('--fsq', process.env.FSQ_RELEASE);
-const snapshot = arg('--snapshot');
+const snapshot = arg('--snapshot', undefined);
 if (snapshot) {
   if (snapshot !== '250101') throw new Error('--snapshot hiện chỉ nhận 250101');
   mkdirSync(FIXTURES, { recursive: true });

@@ -23,7 +23,9 @@ const tables = async () =>
     await sql`SELECT table_name FROM information_schema.tables
       WHERE table_schema = 'public' AND table_type = 'BASE TABLE'
         AND table_name NOT LIKE 'poi\\_work\\_%'
-        AND table_name NOT IN ('spatial_ref_sys', 'vn_boundary', 'osm_road_raw', 'osm_admin_raw', 'address_anchor_raw')
+        AND table_name NOT IN (
+          'spatial_ref_sys','vn_boundary','osm_road_raw','osm_admin_raw','osm_admin_old_raw','address_anchor_raw'
+        )
       ORDER BY 1`
   ).map((r) => r.table_name);
 
@@ -153,6 +155,14 @@ describe('lược đồ spec 5.2', () => {
 
   it('--down revert từng migration rồi migrate lại về đủ bảng', async () => {
     // 0002…0008: bảy migration sau 0001; 0008 chỉ down khi dữ liệu alias còn 1–1.
+    // Các file DB chạy tuần tự nhưng dùng chung DB; geocode có thể đã publish cạnh 1–n hợp lệ.
+    // Test từ chối mất dữ liệu 1–n nằm ở admin-old.dbtest, còn test vòng đời này cần fixture 1–1.
+    await sql.unsafe(`WITH ranked AS (
+      SELECT ctid,row_number() OVER (
+        PARTITION BY alias_norm,level ORDER BY share DESC,admin_area_id
+      ) position FROM admin_alias
+    ) DELETE FROM admin_alias target USING ranked
+      WHERE target.ctid=ranked.ctid AND ranked.position>1`);
     for (let i = 0; i < 7; i++) migrate('--down');
     expect(await tables()).toEqual(['schema_migrations']);
     expect((await sql`SELECT name FROM schema_migrations`).map((r) => r.name)).toEqual([

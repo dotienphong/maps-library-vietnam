@@ -24,6 +24,27 @@ export function connect() {
 }
 
 /**
+ * Giữ advisory lock trên đúng một PostgreSQL connection trong suốt callback.
+ * postgres.js dùng pool nên lock/unlock qua `sql` thường có thể rơi vào hai connection khác nhau.
+ * @template T
+ * Connection riêng chỉ giữ lock; callback tiếp tục dùng pool vì COPY stream của postgres.js
+ * không hoàn tất ổn định trên reserved connection.
+ * @param {Sql} sql @param {string} key @param {(pool: Sql) => Promise<T>} callback
+ */
+export async function withAdvisoryLock(sql, key, callback) {
+  const connection = await sql.reserve();
+  let locked = false;
+  try {
+    await connection`SELECT pg_advisory_lock(hashtext(${key}))`;
+    locked = true;
+    return await callback(sql);
+  } finally {
+    if (locked) await connection`SELECT pg_advisory_unlock(hashtext(${key}))`;
+    connection.release();
+  }
+}
+
+/**
  * Tạo bảng <name>_new giống <name> (INCLUDING ALL: cột, default, CHECK, index; KHÔNG copy FK — bảng thật giữ FK).
  * @param {Sql} sql @param {string} name
  */

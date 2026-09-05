@@ -29,7 +29,8 @@ Số liệu ingest thật toàn VN (Task 10, 31/08/2026): `src_osm_place` 228.25
 | Conflate | `node pipelines/poi/src/conflate.mjs` | `poi_work_record` → `poi_work_pair`, `poi_work_cluster`, `poi_work_cluster_meta` |
 | Publish | `node pipelines/poi/src/publish.mjs [--force]` | gộp vào `poi`, `poi_source_link`; sanity giảm active tối đa 10 % |
 | Trích đường/ranh giới | `node pipelines/poi/src/geocode/osm-roads.mjs [--fixture]` | PBF đã patch → `osm_road_raw`, `osm_admin_raw` |
-| Hành chính | `node pipelines/poi/src/geocode/admin.mjs` | raw OSM + seed alias 2025 → `admin_area`, `admin_alias` |
+| Hành chính | `node pipelines/poi/src/geocode/admin.mjs [--fixture]` | current raw + snapshot 250101 + seed/tag → publish nguyên tử `admin_area`, `admin_area_old`, `admin_alias`; QA ở `out/admin-alias/report.json` |
+| Chỉ dựng lại alias cũ | `node pipelines/poi/src/geocode/admin-old.mjs [--fixture]` | giữ current đã publish; thay nguyên tử old + alias dưới cùng advisory lock |
 | Đường/hẻm | `node pipelines/poi/src/geocode/streets.mjs && node pipelines/poi/src/geocode/alleys.mjs` | raw road → `street`, `alley` + parent/entrance |
 | Mốc địa chỉ | `node pipelines/poi/src/geocode/anchors.mjs` | `src_osm_place` + `poi_work_record` → `address_anchor` |
 | Report | `node pipelines/poi/src/report.mjs` | `out/poi-report-*.json` |
@@ -73,7 +74,7 @@ Tỷ lệ combined là 19,6 % (`other OR *_other`; 297.823 POI).
 
 Fixture Quận 1: `pipelines/poi/fixtures/` (tạo lại bằng `scripts/make-fixture.mjs`). Ranh giới: `data/vn-boundary.geojson` (Natural Earth, public domain).
 
-## admin_level thực tế trong OSM VN
+## admin_level thực tế trong OSM VN — baseline trước hệ alias cũ/mới
 
 Đo ngày 29/08/2026 trên `vietnam-patched.osm.pbf` 313 MB. Đây là số relation **raw**;
 schema MapsLibVN chỉ phát hành đơn vị hành chính Việt Nam còn hiệu lực.
@@ -88,10 +89,13 @@ schema MapsLibVN chỉ phát hành đơn vị hành chính Việt Nam còn hiệ
 | 9 | 5.139 | khu phố/thôn, ngoài scope Task 8 |
 
 OSM hiện thiếu relation level 4 của **Khánh Hòa**, nên `admin_area` có L4=33 thay vì 34 và
-alias `ninh thuan → Khánh Hòa` chưa nạp được. Mọi L6/L8 phát hành phải nằm trong một L4
+alias `ninh thuan → Khánh Hòa` chưa nạp được ở baseline này. Mọi L6/L8 phát hành phải nằm trong một L4
 Việt Nam hiện hành; `admin_area` cuối có L8=3.255 và `admin_alias`
 có 33 khóa distinct từ seed 2025. Alias phường/xã mới chỉ có ví dụ spec Diên Hồng; cần
-biên soạn đầy đủ từ các nghị quyết UBTVQH 2025.
+biên soạn đầy đủ từ các nghị quyết UBTVQH 2025. Task alias mới giữ khoảng thiếu này trong
+`admin-old-source.json`; job toàn quốc dừng trước publish nếu QA còn unmatched, overlap, geometry
+không sửa được hoặc seed không tìm thấy đích. Fixture Quận 1 hiện dựng 54 vùng cũ và khoảng 300
+cạnh alias; đây chỉ là kiểm tích hợp, không phải bằng chứng độ phủ toàn quốc.
 
 Số liệu geocode live Task 10: 215.872 way đường có tên → **61.154 street**; **58.479 alley**,
 52.499 có đường mẹ và entrance; **923.567

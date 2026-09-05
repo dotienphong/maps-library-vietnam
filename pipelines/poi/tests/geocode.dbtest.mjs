@@ -88,7 +88,9 @@ beforeAll(async () => {
         ST_Multi(ST_Buffer(ST_SetSRID(ST_MakePoint(106.699, 10.773), 4326), 0.00005))),
       (999999999996, 6, 'Xã Sa Mouay', 'sa mouay',
         ST_Multi(ST_Buffer(ST_SetSRID(ST_MakePoint(106.4, 10.4), 4326), 0.001)))`;
-  adminOutput = /** @type {string} */ (await node('pipelines/poi/src/geocode/admin.mjs'));
+  adminOutput = /** @type {string} */ (
+    await node('pipelines/poi/src/geocode/admin.mjs', '--fixture')
+  );
   await sql`WITH base AS (
       SELECT ST_SetSRID(ST_MakePoint(106.4, 10.5), 4326) AS named_base,
         ST_SetSRID(ST_MakePoint(106.5, 10.5), 4326) AS touch_base
@@ -151,7 +153,7 @@ describe('geocode tables trên fixture Quận 1', () => {
       await sql`SELECT count(*)::int AS "foreignArea" FROM admin_area WHERE name_norm = 'sa mouay'`;
     expect(foreignArea).toBe(0);
     const [{ aliasCount }] = await sql`SELECT count(*)::int AS "aliasCount" FROM admin_alias`;
-    expect(adminOutput).toContain(`admin_alias ${aliasCount} dòng`);
+    expect(adminOutput).toContain(`admin_alias ${aliasCount}`);
   });
 
   it('street: Lê Lợi là một tuyến MultiLineString, có ward_norm, không có hẻm trong street', async () => {
@@ -221,6 +223,39 @@ describe('geocode tables trên fixture Quận 1', () => {
           WHERE table_name LIKE '%\\_new'`
       )[0].n,
     ).toBe(0);
+  }, 120_000);
+
+  it('current ID đổi vẫn giữ alias trỏ đúng tên và FK', async () => {
+    const [sample] = await sql`SELECT aa.alias_norm,aa.level,aa.old_area_id,
+        array_agg(a.id ORDER BY a.name) ids,array_agg(a.name ORDER BY a.name) names
+      FROM admin_alias aa JOIN admin_area a ON a.id=aa.admin_area_id
+      JOIN admin_area_old old ON old.id=aa.old_area_id
+      WHERE aa.source='overlay' AND aa.level=8 AND NOT ST_Intersects(old.geom,
+        ST_SetSRID(ST_MakePoint(106.698,10.772),4326))
+      GROUP BY aa.alias_norm,aa.level,aa.old_area_id LIMIT 1`;
+    expect(sample).toBeDefined();
+    await sql`INSERT INTO osm_admin_raw(osm_relation_id,level,name,name_norm,tags,geom)
+      VALUES (-900000000001,6,'Phường Task4 ID Shift','task4 id shift','{}',
+        ST_Multi(ST_Buffer(ST_SetSRID(ST_MakePoint(106.698,10.772),4326),0.000001)))`;
+    try {
+      const rerun = /** @type {string} */ (
+        await node('pipelines/poi/src/geocode/admin.mjs', '--fixture')
+      );
+      const after =
+        await sql`SELECT array_agg(a.id ORDER BY a.name) ids,array_agg(a.name ORDER BY a.name) names
+        FROM admin_alias aa JOIN admin_area a ON a.id=aa.admin_area_id
+        WHERE aa.alias_norm=${sample.alias_norm} AND aa.level=${sample.level}
+          AND aa.old_area_id=${sample.old_area_id}`;
+      expect(after[0].names).toEqual(sample.names);
+      expect(after[0].ids).not.toEqual(sample.ids);
+      const [{ dangling }] = await sql`SELECT count(*)::int dangling FROM admin_alias aa
+        LEFT JOIN admin_area a ON a.id=aa.admin_area_id WHERE a.id IS NULL`;
+      expect(dangling).toBe(0);
+      expect(rerun).toMatch(/publish \d+ ms/);
+    } finally {
+      await sql`DELETE FROM osm_admin_raw WHERE osm_relation_id=-900000000001`;
+      await node('pipelines/poi/src/geocode/admin.mjs', '--fixture');
+    }
   }, 120_000);
 
   it('raw swap thất bại giữ nguyên cả hai bảng cũ và cleanup staging', async () => {

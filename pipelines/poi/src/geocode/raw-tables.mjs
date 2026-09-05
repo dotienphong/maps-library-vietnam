@@ -16,7 +16,8 @@ export async function replaceRawTables(sql, { roadRows, adminRows }) {
       geom geometry(LineString, 4326) NOT NULL, province_norm text)`);
     await sql.unsafe(`CREATE TABLE osm_admin_raw_new (
       osm_relation_id bigint PRIMARY KEY, level smallint NOT NULL, name text NOT NULL,
-      name_norm text NOT NULL, geom geometry(MultiPolygon, 4326) NOT NULL)`);
+      name_norm text NOT NULL, tags jsonb NOT NULL DEFAULT '{}',
+      geom geometry(MultiPolygon, 4326) NOT NULL)`);
     const roads = await copyInto(
       sql,
       'osm_road_raw_new',
@@ -35,7 +36,7 @@ export async function replaceRawTables(sql, { roadRows, adminRows }) {
     const admins = await copyInto(
       sql,
       'osm_admin_raw_new',
-      ['osm_relation_id', 'level', 'name', 'name_norm', 'geom'],
+      ['osm_relation_id', 'level', 'name', 'name_norm', 'tags', 'geom'],
       adminRows,
     );
     await sql.unsafe(`CREATE INDEX osm_road_raw_new_geom_idx

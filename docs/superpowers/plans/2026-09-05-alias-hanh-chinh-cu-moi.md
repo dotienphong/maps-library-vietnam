@@ -10,7 +10,7 @@
 
 **Spec:** [Thiết kế đã duyệt](../specs/2026-09-05-tim-kiem-alias-fuzzy-dia-phuong-design.md), mục 4, phần liên quan hạng mục 1 trong mục 7–11 và 13.
 
-**Trạng thái:** Đã viết plan 05/09/2026; chưa thực thi Task 0. Điểm xuất phát đọc trực tiếp tại commit `a7d34ef`; working tree sạch trước khi viết tài liệu. Hạng mục 2 đã có plan riêng và đã đóng. Ước lượng 4–6 ngày kỹ thuật, chưa tính thời gian sửa thiếu dữ liệu nguồn; không cam kết hoàn tất độ phủ theo thời lượng này.
+**Trạng thái:** Task 0–4 đã hoàn tất ngày 06/09/2026; Task 5 là bước kế tiếp. Hạng mục 2 đã có plan riêng và đã đóng. Chưa tuyên bố độ phủ toàn quốc vì ledger nguồn còn khoảng thiếu Khánh Hòa/Jan→Jun.
 
 ## Global Constraints
 
@@ -170,9 +170,9 @@ expect(adminAliasKeys(oldProvince)).toContain('binh duong');
 
 **Interfaces:** `buildCurrentAdmin(sql): Promise<void>` dựng `admin_area_new`; `buildOldAdmin(sql, {currentTable, fixture}): Promise<AdminAliasReport>` dựng old+alias staging, currentTable chỉ nhận allowlist `admin_area|admin_area_new`. `AdminAliasReport` gồm counts theo cấp/source, unmatched relation IDs, raw coverage, discarded share, split cases, seed misses, ambiguous keys và invalid geometries. Ghi JSON vào `out/admin-alias/report.json` trước publish.
 
-- [ ] **4.1** Viết DB tests với polygon tổng hợp: 100%→một đích; 60/40→hai đích; 96/4→bỏ mảnh 4% nhưng report giữ discarded=0.04; thiếu 40% không được biến thành coverage=1; overlap gấp đôi bị report; duplicate tên khác tỉnh không sinh khóa chung. Thêm ca huyện có >20 phường mới, mỗi phường <5% diện tích huyện vẫn phải giữ.
-- [ ] **4.2** Chạy đỏ trên DB cô lập. Dùng assertions số thực: tổng share chuẩn hóa gần 1 với epsilon `1e-5`; raw coverage kiểm riêng, không dùng lại share chuẩn hóa.
-- [ ] **4.3** Gán cha bằng geometry, ưu tiên cấp gần nhất, kiểm cả tỉnh khi nhiều cha cùng tên. ID old dùng relation ID làm giá trị ổn định cho snapshot OSM; không tái dùng `row_number` làm identity bền vững. Xây overlay với chỉ số GiST staging và `ANALYZE` trước join:
+- [x] **4.1** Viết DB tests với polygon tổng hợp: 100%→một đích; 60/40→hai đích; 96/4→bỏ mảnh 4% nhưng report giữ discarded=0.04; thiếu 40% không được biến thành coverage=1; overlap gấp đôi bị report; duplicate tên khác tỉnh không sinh khóa chung. Thêm ca huyện có >20 phường mới, mỗi phường <5% diện tích huyện vẫn phải giữ.
+- [x] **4.2** Chạy đỏ trên DB cô lập. Dùng assertions số thực: tổng share chuẩn hóa gần 1 với epsilon `1e-5`; raw coverage kiểm riêng, không dùng lại share chuẩn hóa.
+- [x] **4.3** Gán cha bằng geometry, ưu tiên cấp gần nhất, kiểm cả tỉnh khi nhiều cha cùng tên. ID old dùng relation ID làm giá trị ổn định cho snapshot OSM; không tái dùng `row_number` làm identity bền vững. Xây overlay với chỉ số GiST staging và `ANALYZE` trước join:
 
 ```sql
 SELECT o.id AS old_area_id, n.id AS admin_area_id,
@@ -185,11 +185,11 @@ WHERE o.level=8;
 ```
 
 L8 giữ raw_share≥0.05 rồi chuẩn hóa; split dùng raw max. L6 cộng diện tích giao của các **con thuộc đúng huyện** rồi chia diện tích huyện; không áp ngưỡng 5% của L8 cho từng phường của huyện. L4 đối chiếu `provinces.json`/seed với current L4; thiếu đích ghi seed misses, không tạo ID giả.
-- [ ] **4.4** Pipeline gọi `adminAliasKeys()` cho từng old area và giữ thứ tự danh sách; bảng staging đếm distinct old IDs theo khóa/cấp để chặn khóa mơ hồ không tỉnh. Province dùng dạng core thống nhất, phân biệt old/current trong provenance. Nạp old_name/alt_name/official_name từ raw current vào alias `source=osm_tag`; giữ tag trong `osm_admin_raw` bằng thay đổi schema raw và rows/COPY cùng commit.
-- [ ] **4.5** Nạp seed sau overlay/tag; nhóm theo khóa+cấp, tìm đích đúng tỉnh, thay **tập cạnh** của nhóm seed, giữ old_area_id khi xác định được. Mở rộng CSV có cột tùy chọn `share,source_url,source_clause` và parser tương thích bốn cột cũ; phần thiếu đích không xóa nhóm đang đúng. Ghi lỗi/độ phủ vào report, không publish full release khi cổng QA đỏ.
-- [ ] **4.6** Refactor `admin.mjs` thành coordinator không side effect khi import, dựng ba staging rồi publish một transaction. Entry `admin-old.mjs` dùng current đã published và publish old+alias cùng nhau. `data-update.mjs` gọi coordinator đúng một lần; không gọi admin-old lần hai. Khóa pipeline dùng advisory lock ở cùng connection/transaction hoặc cơ chế lock hiện hành suốt dựng→publish, để standalone và scheduled run không giẫm `_new` của nhau.
-- [ ] **4.7** Failure injection: lỗi overlay, lỗi seed hoặc lỗi INSERT lúc publish phải để cả ba bảng cũ nguyên vẹn và dọn staging. Chạy update hai lần (có thêm current relation làm đổi current IDs) kiểm alias vẫn trỏ đúng tên/vùng, FK còn, api vẫn SELECT được. Update thường không được quay về chỉ 33 seed. Kiểm concurrent reader: transaction có thể chặn ngắn ở TRUNCATE; đo lock time, không hứa zero downtime.
-- [ ] **4.8** Chạy unit + DB suite trong container; cập nhật DEVLOG, commit `feat(pipeline): overlay alias và phát hành hành chính nguyên tử`.
+- [x] **4.4** Pipeline gọi `adminAliasKeys()` cho từng old area và giữ thứ tự danh sách; bảng staging đếm distinct old IDs theo khóa/cấp để chặn khóa mơ hồ không tỉnh. Province dùng dạng core thống nhất, phân biệt old/current trong provenance. Nạp old_name/alt_name/official_name từ raw current vào alias `source=osm_tag`; giữ tag trong `osm_admin_raw` bằng thay đổi schema raw và rows/COPY cùng commit.
+- [x] **4.5** Nạp seed sau overlay/tag; nhóm theo khóa+cấp, tìm đích đúng tỉnh, thay **tập cạnh** của nhóm seed, giữ old_area_id khi xác định được. Mở rộng CSV có cột tùy chọn `share,source_url,source_clause` và parser tương thích bốn cột cũ; phần thiếu đích không xóa nhóm đang đúng. Ghi lỗi/độ phủ vào report, không publish full release khi cổng QA đỏ.
+- [x] **4.6** Refactor `admin.mjs` thành coordinator không side effect khi import, dựng ba staging rồi publish một transaction. Entry `admin-old.mjs` dùng current đã published và publish old+alias cùng nhau. `data-update.mjs` gọi coordinator đúng một lần; không gọi admin-old lần hai. Khóa pipeline dùng advisory lock ở cùng connection/transaction hoặc cơ chế lock hiện hành suốt dựng→publish, để standalone và scheduled run không giẫm `_new` của nhau.
+- [x] **4.7** Failure injection: lỗi overlay, lỗi seed hoặc lỗi INSERT lúc publish phải để cả ba bảng cũ nguyên vẹn và dọn staging. Chạy update hai lần (có thêm current relation làm đổi current IDs) kiểm alias vẫn trỏ đúng tên/vùng, FK còn, api vẫn SELECT được. Update thường không được quay về chỉ 33 seed. Kiểm concurrent reader: transaction có thể chặn ngắn ở TRUNCATE; đo lock time, không hứa zero downtime.
+- [x] **4.8** Chạy unit + DB suite trong container; cập nhật DEVLOG, commit `feat(pipeline): overlay alias và phát hành hành chính nguyên tử`.
 
 ## Task 5: Bước 0 geocode và scope xuyên suốt thang tìm kiếm
 

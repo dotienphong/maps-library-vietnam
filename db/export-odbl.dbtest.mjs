@@ -31,16 +31,23 @@ describe('export-odbl', () => {
     rmSync(out, { recursive: true, force: true });
   });
 
-  it('tạo 5 CSV gzip + manifest.json + README.md, số dòng khớp DB', async () => {
+  it('tạo 6 CSV gzip + manifest.json + README.md, số dòng khớp DB', async () => {
     const stdout = execFileSync(process.execPath, ['scripts/export-odbl.mjs', '--out', out], {
       encoding: 'utf8',
       env: process.env,
     });
-    expect(stdout).toMatch(/đã xuất 5 bảng/);
+    expect(stdout).toMatch(/đã xuất 6 bảng/);
 
     const latest = readFileSync(join(out, 'LATEST'), 'utf8').trim();
     const dir = join(out, latest);
-    for (const t of ['src_osm_place', 'admin_area', 'admin_alias', 'street', 'alley']) {
+    for (const t of [
+      'src_osm_place',
+      'admin_area',
+      'admin_area_old',
+      'admin_alias',
+      'street',
+      'alley',
+    ]) {
       expect(existsSync(join(dir, `${t}.csv.gz`)), t).toBe(true);
     }
 

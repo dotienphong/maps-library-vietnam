@@ -138,6 +138,7 @@ async function* adminRows() {
       level,
       name,
       normalizeVi(name).replace(/^(?:tinh|thanh pho|quan|huyen|thi xa|phuong|xa|thi tran)\s+/, ''),
+      JSON.stringify(properties),
       wkt,
     ];
   }

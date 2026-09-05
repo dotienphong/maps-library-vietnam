@@ -1,6 +1,8 @@
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 
+/** @typedef {{caseId:string, expectedKeys:string[], expectedTargets:{province:string}[], split:boolean, sourceUrl:string, sourceClause:string}} AliasCase */
+/** @param {string} path */
 const readJsonl = (path) =>
   readFileSync(path, 'utf8')
     .trim()
@@ -23,7 +25,9 @@ describe('admin alias 2025 evidence fixtures', () => {
   });
 
   it('has independent legal ground truth across the required regions', () => {
-    const cases = readJsonl('packages/core/tests/fixtures/admin-alias-2025.jsonl');
+    const cases = /** @type {AliasCase[]} */ (
+      readJsonl('packages/core/tests/fixtures/admin-alias-2025.jsonl')
+    );
     expect(cases.length).toBeGreaterThanOrEqual(60);
     expect(
       new Set(cases.flatMap((c) => c.expectedTargets.map((t) => t.province))).size,

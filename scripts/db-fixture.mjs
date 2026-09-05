@@ -27,7 +27,7 @@ const steps = [
   ['pipelines/poi/src/conflate.mjs'],
   ['pipelines/poi/src/publish.mjs', '--force'],
   ['pipelines/poi/src/geocode/osm-roads.mjs', '--fixture'],
-  ['pipelines/poi/src/geocode/admin.mjs'],
+  ['pipelines/poi/src/geocode/admin.mjs', '--fixture'],
   ['pipelines/poi/src/geocode/streets.mjs'],
   ['pipelines/poi/src/geocode/alleys.mjs'],
   ['pipelines/poi/src/geocode/anchors.mjs'],
