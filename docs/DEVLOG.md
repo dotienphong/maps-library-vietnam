@@ -231,11 +231,52 @@ commit với code).
   chạy trọn, chỉ `pipeline` và `backup` bị tạo lại, **`postgres` và `cloudflared` vẫn `Up`**,
   và `[db:migrate] Áp dụng 0007_word_similarity_threshold.sql … Xong`.
 
+  **Việc 3 — chi phí của nhánh `%` ở quy mô thật, phát hiện sau khi deploy `fcbe06e`.** Đo lại
+  production thấy hit@3 hồi phục 35 → 37 nhưng **p95 vọt lên 2420 ms**, tệ hơn cả baseline.
+  `EXPLAIN ANALYZE` trên DB production 1,5 triệu POI chỉ đúng thủ phạm: chi phí nhánh `%` tăng
+  theo số trigram của truy vấn, và với truy vấn dài nó quét tới **127.151 dòng chỉ số**.
+
+  | truy vấn | độ dài | chỉ `<%` | thêm `%` |
+  |---|---:|---:|---:|
+  | `cirlce k` | 8 | — | 37 ms |
+  | `higland` | 7 | — | 120 ms |
+  | `phuc long coffee` | 16 | 196 ms | **1355 ms** |
+  | `nguyen tieu hoc truong` | 22 | — | **2381 ms** |
+
+  DB dev nhỏ hơn 19 lần nên không lộ ra: cùng phép đo ở đó chỉ 5,5 ms so với 6,8 ms.
+
+  Sửa ở `79ba24f`: **chỉ thêm nhánh `%` khi truy vấn ≤ 12 ký tự** (`useSimilarityBranch()` trong
+  `apps/api/src/autocomplete-sql.ts`, dùng chung cho autocomplete, search và geocode). Đúng chỗ
+  `<%` bất lực (lỗi gõ từ ngắn) và cũng đúng chỗ `%` còn rẻ; truy vấn dài vốn đã được `<%` phục vụ
+  tốt. Ngưỡng 12 phủ mọi ca trong fixture: `winmrt` 6, `higland` 7, `cho rya` 7, `cirlce k` 8,
+  `phuc lonh` 9, `nguyne hue` 10.
+
+  **Số đo cuối cùng trên production**, ba lần chạy cache lạnh hoàn toàn (40 truy vấn, `near` khác
+  nhau mỗi lần để không dính cache 10 phút):
+
+  | lần | p50 | p95 | p99 | hit@3 |
+  |---|---:|---:|---:|---:|
+  | 1 | 680 ms | 1910 ms | 3149 ms | 37/40 |
+  | 2 | 610 ms | 1782 ms | 3073 ms | 37/40 |
+  | 3 | 565 ms | 2055 ms | 3224 ms | 37/40 |
+
+  So với baseline (n=80 nửa nóng nửa lạnh, p95 2156 ms và các mẫu lạnh 2,1–2,8 giây) thì bản cuối
+  nhanh hơn rõ. **Cảnh báo về cách đo:** đừng so p95 giữa các lần chạy khác methodology — lần
+  `n=80` có một nửa mẫu là cache hit nên p95 thấp giả tạo. Chỉ so các lần cùng `n=40` toàn lạnh.
+
+  Ba ca còn trượt: `higland` và `sieu thi co op` là **lỗi đích trong fixture** chứ không phải lỗi
+  API (production có POI đặt tên đúng chữ "Higland" nên chúng xếp trên "Highlands"; `sieu thi co op`
+  trượt từ baseline). Còn `cho rya` là vấn đề xếp hạng: recall có nhưng hàng trăm POI tên "Chợ …"
+  chen lên trên. Cả ba để lại cho hạng mục 3.
+
   **Bẫy Hyperdrive cần nhớ:** ngay sau khi áp migration, `/healthz/db` vẫn trả
   `"word_similarity_threshold":0.6` trong khi `pg_db_role_setting` đã là 0,5 và phiên psql mới đọc
   đúng 0,5. Lý do: `ALTER DATABASE … SET` chỉ áp cho **phiên mới**, còn Hyperdrive gộp và tái dùng
-  kết nối có từ trước. Giá trị mới chỉ hiện khi pool xoay vòng hoặc khi Deploy API tạo worker mới.
-  Đây là hành vi bình thường, không phải migration hỏng — kiểm bằng psql trước khi kết luận.
+  kết nối có từ trước. Đây là hành vi bình thường, không phải migration hỏng — kiểm bằng psql
+  trước khi kết luận. Đã thử hai lần Deploy API (`1597bcb`, `79ba24f`) mà vẫn 0,6, nên pool nằm
+  phía Cloudflare và **sống qua cả lần deploy worker**; nó sẽ tự xoay vòng theo thời gian. Chưa
+  cần can thiệp: nhánh `%` đã lo phần lỗi gõ từ ngắn nên chênh lệch 0,6 với 0,5 hiện không ảnh
+  hưởng hit@3. Muốn ép ngay thì phải `pg_terminate_backend` các kết nối của user `api`.
 
 - **05/09/2026 — Progressive POI production release `poi-20260904`.** User phê duyệt release
   riêng; code phát hành ở `f1adb213f9524c49bc62959cddb1359e455ecdf5`. Remote gate đúng SHA:
@@ -760,7 +801,9 @@ vẫn là `sleep 1` phút — `sudo pmset -a sleep 0 disksleep 0`.
 - 2026-09-05 · Tìm mờ T0–T8 · `word_similarity` (`<%`) thay `%` ở autocomplete/search/geocode,
   ba loại truy vấn song song, migration 0007 đặt ngưỡng 0,5 cấp database · `fee9daf` ·
   đã phát hành `d5ba3f9`; p95 2156→808 ms. Hit@3 tụt 38→35 nên `fcbe06e` giữ lại toán tử `%`;
-  `1597bcb` sửa `server:update` bỏ qua pull image local, nhờ đó migration 0007 đã áp lên production
+  `1597bcb` sửa `server:update` bỏ qua pull image local, nhờ đó migration 0007 đã áp lên production;
+  `79ba24f` chỉ bật nhánh `%` cho truy vấn ≤12 ký tự vì ở 1,5 triệu POI nó tốn 1355 ms với truy vấn dài.
+  Cuối cùng: p95 lạnh 1782–2055 ms (baseline 2,1–2,8 s), hit@3 37/40
 
 ## 5. Sự cố
 
