@@ -5,6 +5,9 @@ export const OUT = process.env.MAPSLIBVN_OUT ?? resolve('out');
 export const POI_WORK = resolve(WORK, 'poi');
 export const FIXTURES = resolve('pipelines/poi/fixtures');
 export const VN_BOUNDARY = resolve('pipelines/poi/data/vn-boundary.geojson');
+export const ADMIN_OLD_MANIFEST = resolve('pipelines/poi/fixtures/admin-old-source.json');
+export const ADMIN_OLD_PBF = resolve(WORK, 'data/sources/vietnam-250101.osm.pbf');
+export const ADMIN_OLD_FIXTURE_PBF = resolve(FIXTURES, 'admin-old-q1.osm.pbf');
 /** --fixture: chạy trên dữ liệu Quận 1 trong repo (test tích hợp, máy dev). */
 export const FIXTURE = process.argv.includes('--fixture');
 /** PBF đã patch chủ quyền do pipeline tiles tạo (M1b), hoặc fixture. */

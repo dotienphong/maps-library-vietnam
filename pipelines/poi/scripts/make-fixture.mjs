@@ -5,11 +5,41 @@ import { mkdirSync, statSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { run } from '../../../scripts/lib/run.mjs';
 import { openDuck } from '../src/duck.mjs';
-import { FIXTURES, WORK, arg, fsqSource, overtureSource } from '../src/lib/env.mjs';
+import {
+  ADMIN_OLD_FIXTURE_PBF,
+  ADMIN_OLD_PBF,
+  FIXTURES,
+  WORK,
+  arg,
+  fsqSource,
+  overtureSource,
+} from '../src/lib/env.mjs';
 import { Q1_BBOX, lonLatWhere, overtureBboxWhere } from '../src/lib/vn-bbox.mjs';
 
 const overture = arg('--overture', process.env.OVERTURE_RELEASE);
 const fsq = arg('--fsq', process.env.FSQ_RELEASE);
+const snapshot = arg('--snapshot');
+if (snapshot) {
+  if (snapshot !== '250101') throw new Error('--snapshot hiện chỉ nhận 250101');
+  mkdirSync(FIXTURES, { recursive: true });
+  run('osmium', [
+    'extract',
+    '--overwrite',
+    '-s',
+    'smart',
+    '-S',
+    'types=any',
+    '-b',
+    Q1_BBOX.join(','),
+    ADMIN_OLD_PBF,
+    '-o',
+    ADMIN_OLD_FIXTURE_PBF,
+  ]);
+  console.log(
+    `admin-old-q1.osm.pbf ${(statSync(ADMIN_OLD_FIXTURE_PBF).size / 2 ** 20).toFixed(1)} MB`,
+  );
+  process.exit(0);
+}
 if (!overture || !fsq)
   throw new Error('Dùng: make-fixture.mjs --overture <ver> --fsq <YYYY-MM-DD>');
 mkdirSync(FIXTURES, { recursive: true });

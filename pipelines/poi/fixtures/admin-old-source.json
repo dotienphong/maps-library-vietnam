@@ -8,6 +8,14 @@
   "targetValidUntil": "2025-06-30",
   "license": "ODbL-1.0",
   "checksumProvenance": "computed-after-https-download",
+  "fixture": {
+    "path": "pipelines/poi/fixtures/admin-old-q1.osm.pbf",
+    "bbox": [106.68, 10.76, 106.72, 10.8],
+    "bytes": 1755836,
+    "md5": "09bcfbb4fef958772c288e350a89a044",
+    "sha256": "9aaec861475aaf03ea6286410ca1b31a3e6a408c506e43f09556ecf086ee60f1",
+    "command": "node pipelines/poi/scripts/make-fixture.mjs --snapshot 250101"
+  },
   "issues": [
     {
       "region": "Vietnam",

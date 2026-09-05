@@ -9,9 +9,7 @@ const readJsonl = (path) =>
 
 describe('admin alias 2025 evidence fixtures', () => {
   it('pins an immutable OSM snapshot with verifiable metadata', () => {
-    const source = JSON.parse(
-      readFileSync('pipelines/poi/fixtures/admin-old-source.json', 'utf8'),
-    );
+    const source = JSON.parse(readFileSync('pipelines/poi/fixtures/admin-old-source.json', 'utf8'));
     expect(source.url).toBe('https://download.geofabrik.de/asia/vietnam-250101.osm.pbf');
     expect(source.bytes).toBe(306_547_939);
     expect(source.md5).toMatch(/^[a-f0-9]{32}$/);
@@ -19,14 +17,17 @@ describe('admin alias 2025 evidence fixtures', () => {
     expect(source.osmTimestamp).toMatch(/^2025-01-/);
     expect(source.targetValidUntil).toBe('2025-06-30');
     expect(source.license).toBe('ODbL-1.0');
+    expect(source.fixture.sha256).toMatch(/^[a-f0-9]{64}$/);
+    expect(source.fixture.bbox).toEqual([106.68, 10.76, 106.72, 10.8]);
     expect(Array.isArray(source.issues)).toBe(true);
   });
 
   it('has independent legal ground truth across the required regions', () => {
     const cases = readJsonl('packages/core/tests/fixtures/admin-alias-2025.jsonl');
     expect(cases.length).toBeGreaterThanOrEqual(60);
-    expect(new Set(cases.flatMap((c) => c.expectedTargets.map((t) => t.province))).size)
-      .toBeGreaterThanOrEqual(6);
+    expect(
+      new Set(cases.flatMap((c) => c.expectedTargets.map((t) => t.province))).size,
+    ).toBeGreaterThanOrEqual(6);
     expect(cases.filter((c) => c.split).length).toBeGreaterThanOrEqual(5);
     expect(new Set(cases.map((c) => c.caseId)).size).toBe(cases.length);
     for (const c of cases) {

@@ -157,12 +157,12 @@ expect(adminAliasKeys(oldProvince)).toContain('binh duong');
 
 **Interfaces:** `loadOldAdminRaw(sql, {pbfPath, snapshot}): Promise<{counts: Record<string,number>}>`, bảng staging `osm_admin_old_raw_new` có relation ID, level, name, norm, tags, geom; chỉ công bố raw sau COPY/validate thành công. `--fixture` chỉ đọc file repo. `--snapshot 250101` trong make-fixture chỉ tạo old PBF, không bắt có Overture/FSQ credentials.
 
-- [ ] **3.1** Viết test downloader dùng file tạm/mocked fetch: cache đúng hash không tải lại, sai checksum xóa file `.part` và lỗi, lỗi download không ghi đè file tốt; unit không có network.
-- [ ] **3.2** Chạy `pnpm exec vitest run pipelines/poi/tests/admin-old-source.test.mjs`, xác nhận đỏ.
-- [ ] **3.3** Import tái dùng `readJsonl`/`copyInto`, không gọi `replaceRawTables()` theo cách xóa raw current. Lọc relation và export polygon theo pattern đang dùng ở `osm-roads.mjs`; đọc `name:vi` trước `name`, chỉ L4/6/8, sửa geometry bằng `ST_Multi(ST_CollectionExtract(ST_MakeValid(geom),3))`; loại geometry rỗng/diện tích 0 vào report, không lặng lẽ bỏ.
-- [ ] **3.4** Tạo fixture bằng `osmium extract -s smart -S types=any` với Q1_BBOX hiện có và snapshot đã pin. Giữ geometry relation nguyên vẹn; sau extract phải kèm L4/L6 cha cần thiết theo relation IDs từ snapshot. Không lấy diện tích polygon bị cắt bbox làm mẫu share. Ghi manifest fixture với checksum nguồn, bbox và lệnh tạo.
-- [ ] **3.5** Test fixture có đủ cha L4/L6, relation không trùng, hình học hợp lệ. Với fixture không bao hết quốc gia, uniqueness phải lấy từ inventory toàn quốc đã pin hoặc chỉ sinh khóa đầy đủ; không kết luận tên duy nhất toàn quốc từ Q1.
-- [ ] **3.6** Chạy unit xanh; chạy import fixture trong pipeline container trên DB cô lập; cập nhật DEVLOG, commit `feat(pipeline): nạp snapshot hành chính cũ có kiểm checksum`.
+- [x] **3.1** Viết test downloader dùng file tạm/mocked fetch: cache đúng hash không tải lại, sai checksum xóa file `.part` và lỗi, lỗi download không ghi đè file tốt; unit không có network.
+- [x] **3.2** Chạy `pnpm exec vitest run pipelines/poi/tests/admin-old-source.test.mjs`, xác nhận đỏ.
+- [x] **3.3** Import tái dùng `readJsonl`/`copyInto`, không gọi `replaceRawTables()` theo cách xóa raw current. Lọc relation và export polygon theo pattern đang dùng ở `osm-roads.mjs`; đọc `name:vi` trước `name`, chỉ L4/6/8, sửa geometry bằng `ST_Multi(ST_CollectionExtract(ST_MakeValid(geom),3))`; loại geometry rỗng/diện tích 0 vào report, không lặng lẽ bỏ.
+- [x] **3.4** Tạo fixture bằng `osmium extract -s smart -S types=any` với Q1_BBOX hiện có và snapshot đã pin. Giữ geometry relation nguyên vẹn; sau extract phải kèm L4/L6 cha cần thiết theo relation IDs từ snapshot. Không lấy diện tích polygon bị cắt bbox làm mẫu share. Ghi manifest fixture với checksum nguồn, bbox và lệnh tạo.
+- [x] **3.5** Test fixture có đủ cha L4/L6, relation không trùng, hình học hợp lệ. Với fixture không bao hết quốc gia, uniqueness phải lấy từ inventory toàn quốc đã pin hoặc chỉ sinh khóa đầy đủ; không kết luận tên duy nhất toàn quốc từ Q1.
+- [x] **3.6** Chạy unit xanh; chạy import fixture trong pipeline container trên DB cô lập; cập nhật DEVLOG, commit `feat(pipeline): nạp snapshot hành chính cũ có kiểm checksum`.
 
 ## Task 4: Overlay, seed và publication nguyên tử
 

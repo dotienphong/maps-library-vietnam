@@ -5,6 +5,12 @@ commit với code).
 
 ## 1. Trạng thái hiện tại
 
+- **05/09/2026 — Alias hành chính Task 3 hoàn tất:** downloader cache/checksum/failure-safe có
+  3/3 unit tests; fixture `admin-old-q1.osm.pbf` 1.755.836 bytes được cắt từ snapshot pinned,
+  SHA-256 `9aaec861475aaf03ea6286410ca1b31a3e6a408c506e43f09556ecf086ee60f1`.
+  Import thật trong pipeline container dựng `osm_admin_old_raw` 54 relation: L4=1, L6=8,
+  L8=45; geometry được validate trước swap. Bước tiếp: Task 4 overlay/publish nguyên tử.
+
 - **05/09/2026 — Alias hành chính Task 2 hoàn tất:** core giữ `adminOriginal` trước khi
   canonicalize tỉnh, export `adminAliasKeys()` theo thứ tự khóa cụ thể→rộng và mở rộng type bằng
   `area`, `bbox`, `district`, `matched.former`. Focused core 57/57 và build/size-limit xanh;
