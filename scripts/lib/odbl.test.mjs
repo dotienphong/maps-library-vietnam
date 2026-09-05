@@ -2,10 +2,11 @@ import { describe, expect, it } from 'vitest';
 import { ODBL_TABLES, copySql, exportDirFor, readmeFor } from './odbl.mjs';
 
 describe('ODBL_TABLES', () => {
-  it('đúng 5 bảng spec 12.2, geometry xuất WKT', () => {
+  it('đúng 6 bảng ODbL, geometry xuất WKT', () => {
     expect(ODBL_TABLES.map((t) => t.name)).toEqual([
       'src_osm_place',
       'admin_area',
+      'admin_area_old',
       'admin_alias',
       'street',
       'alley',
@@ -13,7 +14,9 @@ describe('ODBL_TABLES', () => {
     expect(copySql(ODBL_TABLES[0])).toBe(
       'COPY (SELECT osm_type, osm_id, name, names, tags, ST_AsText(geom) AS geom_wkt, release FROM src_osm_place) TO STDOUT WITH (FORMAT csv, HEADER true)',
     );
-    expect(copySql(ODBL_TABLES[4])).toContain('ST_AsText(entrance) AS entrance_wkt');
+    expect(copySql(ODBL_TABLES[2])).toContain('ST_AsText(geom) AS geom_wkt');
+    expect(copySql(ODBL_TABLES[3])).toContain('share, source, old_area_id');
+    expect(copySql(ODBL_TABLES[5])).toContain('ST_AsText(entrance) AS entrance_wkt');
   });
 
   it('copySql từ chối bảng không tồn tại', () => {

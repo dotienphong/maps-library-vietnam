@@ -31,6 +31,7 @@ const ALL_TABLES = [
   'address_anchor',
   'admin_alias',
   'admin_area',
+  'admin_area_old',
   'alley',
   'api_key',
   'category',
@@ -65,6 +66,7 @@ describe('lược đồ spec 5.2', () => {
     expect(byTable['alley.geom']).toBe('LINESTRING:4326');
     expect(byTable['alley.entrance']).toBe('POINT:4326');
     expect(byTable['admin_area.geom']).toBe('MULTIPOLYGON:4326');
+    expect(byTable['admin_area_old.geom']).toBe('MULTIPOLYGON:4326');
     expect(byTable['address_anchor.geom']).toBe('POINT:4326');
   });
 
@@ -84,6 +86,7 @@ describe('lược đồ spec 5.2', () => {
       'src_overture_place',
       'src_fsq_place',
       'admin_area',
+      'admin_area_old',
       'street',
       'alley',
       'address_anchor',
@@ -149,13 +152,13 @@ describe('lược đồ spec 5.2', () => {
   });
 
   it('--down revert từng migration rồi migrate lại về đủ bảng', async () => {
-    // 0002…0007: sáu migration sau 0001 (0006 thêm cột/hàm, 0007 chỉ đặt GUC — không thêm bảng).
-    for (let i = 0; i < 6; i++) migrate('--down');
+    // 0002…0008: bảy migration sau 0001; 0008 chỉ down khi dữ liệu alias còn 1–1.
+    for (let i = 0; i < 7; i++) migrate('--down');
     expect(await tables()).toEqual(['schema_migrations']);
     expect((await sql`SELECT name FROM schema_migrations`).map((r) => r.name)).toEqual([
       '0001_extensions.sql',
     ]);
     migrate();
-    expect((await tables()).length).toBe(16);
+    expect((await tables()).length).toBe(17);
   });
 });

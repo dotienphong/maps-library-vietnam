@@ -17,6 +17,7 @@ ALTER TABLE category_map OWNER TO pipeline;
 ALTER TABLE poi OWNER TO pipeline;
 ALTER TABLE poi_source_link OWNER TO pipeline;
 ALTER TABLE admin_area OWNER TO pipeline;
+ALTER TABLE admin_area_old OWNER TO pipeline;
 ALTER TABLE admin_alias OWNER TO pipeline;
 ALTER TABLE street OWNER TO pipeline;
 ALTER TABLE alley OWNER TO pipeline;
@@ -24,6 +25,7 @@ ALTER TABLE address_anchor OWNER TO pipeline;
 ALTER TABLE vn_boundary OWNER TO pipeline;
 
 ALTER SEQUENCE admin_area_id_seq OWNER TO pipeline;
+ALTER SEQUENCE admin_area_old_id_seq OWNER TO pipeline;
 ALTER SEQUENCE street_id_seq OWNER TO pipeline;
 ALTER SEQUENCE alley_id_seq OWNER TO pipeline;
 ALTER SEQUENCE address_anchor_id_seq OWNER TO pipeline;
@@ -34,7 +36,7 @@ GRANT SELECT ON category, category_map, poi, poi_source_link, poi_edit TO api;
 GRANT INSERT ON poi_edit TO api;
 GRANT USAGE, SELECT ON SEQUENCE poi_edit_id_seq TO api;
 GRANT SELECT, UPDATE ON poi_edit TO pipeline;
-GRANT SELECT ON admin_area, admin_alias, street, alley, address_anchor TO api;
+GRANT SELECT ON admin_area, admin_area_old, admin_alias, street, alley, address_anchor TO api;
 GRANT SELECT ON tenant, api_key TO api, pipeline;
 
 -- M4 (0006): hàm SECURITY DEFINER phải thuộc pipeline — nếu rơi về superuser sau restore thì

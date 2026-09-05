@@ -27,7 +27,33 @@ export const ODBL_TABLES = [
       'ST_AsText(geom) AS geom_wkt',
     ],
   },
-  { name: 'admin_alias', columns: ['alias_norm', 'level', 'admin_area_id', 'valid_until'] },
+  {
+    name: 'admin_area_old',
+    columns: [
+      'id',
+      'level',
+      'name',
+      'name_norm',
+      'parent_norm',
+      'province_norm',
+      'osm_relation_id',
+      'snapshot',
+      'valid_until',
+      'ST_AsText(geom) AS geom_wkt',
+    ],
+  },
+  {
+    name: 'admin_alias',
+    columns: [
+      'alias_norm',
+      'level',
+      'admin_area_id',
+      'valid_until',
+      'share',
+      'source',
+      'old_area_id',
+    ],
+  },
   {
     name: 'street',
     columns: [

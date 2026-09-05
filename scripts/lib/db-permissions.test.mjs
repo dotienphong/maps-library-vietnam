@@ -5,11 +5,14 @@ describe('PERMISSIONS_SQL', () => {
   it('khôi phục owner và grants bị loại khỏi backup', () => {
     expect(PERMISSIONS_SQL).toContain('ALTER TABLE poi OWNER TO pipeline');
     expect(PERMISSIONS_SQL).toContain('ALTER TABLE address_anchor OWNER TO pipeline');
+    expect(PERMISSIONS_SQL).toContain('ALTER TABLE admin_area_old OWNER TO pipeline');
+    expect(PERMISSIONS_SQL).toContain('ALTER SEQUENCE admin_area_old_id_seq OWNER TO pipeline');
     expect(PERMISSIONS_SQL).toContain('ALTER TABLE vn_boundary OWNER TO pipeline');
     expect(PERMISSIONS_SQL).toContain('GRANT SELECT ON category, category_map, poi');
     expect(PERMISSIONS_SQL).toContain('GRANT INSERT ON poi_edit TO api');
     expect(PERMISSIONS_SQL).toContain('GRANT SELECT, UPDATE ON poi_edit TO pipeline');
     expect(PERMISSIONS_SQL).toContain('GRANT SELECT ON tenant, api_key TO api, pipeline');
+    expect(PERMISSIONS_SQL).toContain('GRANT SELECT ON admin_area, admin_area_old, admin_alias');
   });
 
   it('giữ hàm áp dụng edit (0006) thuộc pipeline và chỉ api được EXECUTE', () => {

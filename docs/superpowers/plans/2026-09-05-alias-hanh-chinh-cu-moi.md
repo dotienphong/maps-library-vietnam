@@ -95,9 +95,9 @@ expect(addresses).toHaveLength(10);
 
 **Interfaces:** schema theo spec 4.2; thêm CHECK `level IN (4,6,8)`, `share > 0 AND share <= 1`, unique `(snapshot, osm_relation_id)`, index `old_area_id`. Thêm GIN trgm `admin_area.name_norm` cho truy vấn vùng mới và B-tree `name_norm text_pattern_ops` trên current/old/alias cho prefix ngắn. Giữ mọi seed cũ.
 
-- [ ] **1.1** Viết DB tests: up giữ seed; một alias chèn được hai current IDs; cùng bộ ba bị unique violation; share=0/1.1 và dangling FK bị từ chối; role `api` SELECT được nhưng INSERT bị từ chối. Dùng `SET LOCAL ROLE api` trong transaction rollback.
-- [ ] **1.2** Xác nhận test đỏ trên schema 0007; dùng harness DB cô lập hiện có, không test schema trên production.
-- [ ] **1.3** Viết migration bằng schema spec và constraints trên. Phần thay PK:
+- [x] **1.1** Viết DB tests: up giữ seed; một alias chèn được hai current IDs; cùng bộ ba bị unique violation; share=0/1.1 và dangling FK bị từ chối; role `api` SELECT được nhưng INSERT bị từ chối. Dùng `SET LOCAL ROLE api` trong transaction rollback.
+- [x] **1.2** Xác nhận test đỏ trên schema 0007; dùng harness DB cô lập hiện có, không test schema trên production.
+- [x] **1.3** Viết migration bằng schema spec và constraints trên. Phần thay PK:
 
 ```sql
 ALTER TABLE admin_alias DROP CONSTRAINT admin_alias_pkey;
@@ -111,9 +111,9 @@ CREATE INDEX admin_alias_old_area_idx ON admin_alias(old_area_id);
 CREATE INDEX admin_alias_trgm_idx ON admin_alias USING gin(alias_norm gin_trgm_ops);
 ```
 
-- [ ] **1.4** Down migration **từ chối mất dữ liệu 1–n**: trước DDL, `IF EXISTS (SELECT 1 FROM admin_alias GROUP BY alias_norm, level HAVING count(*) > 1) THEN RAISE EXCEPTION ...`. Với dataset 1–1, drop FK/cột/index mới, phục hồi PK hai cột và drop old table. Test up→down→up trên dữ liệu 1–1; down trên 1–n phải rollback nguyên vẹn. Rollback release ưu tiên API cũ + giữ schema bổ sung, không tùy tiện xóa cạnh để chạy down.
-- [ ] **1.5** Bổ sung OWNER bảng/sequence `admin_area_old` cho pipeline, SELECT cho api trong migration và permissions restore. Export toàn bộ cột old (geometry WKT), `share/source/old_area_id` của alias; metadata export phải ghi cả release current và snapshot old.
-- [ ] **1.6** Chạy unit permissions/ODbL và DB tests; kiểm bản export import được với FK bằng ID đã xuất. Cập nhật DEVLOG, commit `feat(db): thêm schema hành chính cũ và alias một nhiều`.
+- [x] **1.4** Down migration **từ chối mất dữ liệu 1–n**: trước DDL, `IF EXISTS (SELECT 1 FROM admin_alias GROUP BY alias_norm, level HAVING count(*) > 1) THEN RAISE EXCEPTION ...`. Với dataset 1–1, drop FK/cột/index mới, phục hồi PK hai cột và drop old table. Test up→down→up trên dữ liệu 1–1; down trên 1–n phải rollback nguyên vẹn. Rollback release ưu tiên API cũ + giữ schema bổ sung, không tùy tiện xóa cạnh để chạy down.
+- [x] **1.5** Bổ sung OWNER bảng/sequence `admin_area_old` cho pipeline, SELECT cho api trong migration và permissions restore. Export toàn bộ cột old (geometry WKT), `share/source/old_area_id` của alias; metadata export phải ghi cả release current và snapshot old.
+- [x] **1.6** Chạy unit permissions/ODbL và DB tests; kiểm bản export import được với FK bằng ID đã xuất. Cập nhật DEVLOG, commit `feat(db): thêm schema hành chính cũ và alias một nhiều`.
 
 ## Task 2: Core giữ input gốc và sinh khóa chung
 

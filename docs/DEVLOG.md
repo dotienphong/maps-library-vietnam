@@ -5,6 +5,11 @@ commit với code).
 
 ## 1. Trạng thái hiện tại
 
+- **05/09/2026 — Alias hành chính Task 1 hoàn tất:** migration `0008_admin_old` thêm bảng lịch
+  sử, alias 1–n có share/source/provenance, index prefix/trigram, quyền API/pipeline và bảng xuất
+  ODbL thứ sáu. Focused DB gate trong pipeline container: schema 7/7 và admin-old 4/4; down
+  migration từ chối và rollback nguyên vẹn khi có mapping 1–n. Bước tiếp: Task 2 core keys.
+
 - **05/09/2026 — Alias hành chính Task 0 hoàn tất:** snapshot Geofabrik 250101 đã tải và xác
   minh `306547939` bytes, MD5 `1f0fdd199d7194e515a9c4b48b3e5835`, SHA-256
   `01cc05f42f7287036d8fce59418fe98da8f5ca3ff539c9696302af922a566aad`, timestamp OSM
