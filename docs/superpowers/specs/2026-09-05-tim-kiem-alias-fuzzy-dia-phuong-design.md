@@ -1,7 +1,8 @@
 # Spec — Tìm kiếm: alias hành chính cũ–mới, tìm mờ, cách viết địa phương
 
-Ngày: 05/09/2026. Trạng thái: **bản nháp chờ PHONG duyệt**. Tài liệu do Fable 5.1 nghiên cứu và
-viết; bước kế tiếp là `writing-plans` rồi implement bằng Opus.
+Ngày: 05/09/2026. Trạng thái: **PHONG đã duyệt 05/09/2026**. Tài liệu do Fable 5.1 nghiên cứu và viết;
+implement bằng Opus. Plan hạng mục 2: `docs/superpowers/plans/2026-09-05-tim-mo-word-similarity.md`;
+plan hạng mục 1 và 3 viết sau khi plan 2 nghiệm thu.
 
 Ba hạng mục trong tài liệu này độc lập về code nhưng dùng chung một khung: chuẩn hoá ở
 `@mapslibvn/core`, dữ liệu alias trong Postgres, và truy vấn **theo bậc** (staged) trong API.
