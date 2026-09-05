@@ -179,7 +179,9 @@ commit với code).
   cũ ở ngưỡng 0,3 lại bắt được. Nói cách khác: đổi `%` sang `<%` **đánh đổi** recall của lỗi gõ
   trên từ ngắn để lấy độ chính xác và khả năng tìm từ nằm giữa tên dài.
 
-  **Ba lựa chọn cho PHONG** (chưa làm gì, chờ quyết định):
+  **Đã xử lý xong cả hai việc treo, PHONG chọn "làm giúp tôi" — xem mục kế tiếp.**
+
+  **Ba lựa chọn đã cân nhắc:**
   - **(a) Giữ cả hai**: `WHERE q <% name_norm OR name_norm % q OR name_norm LIKE 'q%'`. Lấy được
     cả recall cũ lẫn năng lực mới; đổi lại nhiều ứng viên hơn nên có thể ăn bớt phần độ trễ vừa
     giành được. Sửa nhỏ, một dòng mỗi truy vấn, nhưng ngược với khẳng định "không còn toán tử `%`"
@@ -191,6 +193,49 @@ commit với code).
 
   Khuyến nghị: **(a)** rồi đo lại — nó phục hồi recall mà không phải đoán ngưỡng, và nếu p95 tăng
   quá thì mới cân nhắc bỏ.
+
+- **05/09/2026 — Đóng cả hai việc treo của tìm mờ.** PHONG chọn làm luôn. Hai commit:
+  `fcbe06e` (giữ cả hai toán tử) và `1597bcb` (sửa `server:update`).
+
+  **Việc 1 — hồi quy hit@3.** Chọn phương án (a): mệnh đề WHERE giữ **cả ba nhánh**
+  `q <% name_norm`, `name_norm % q` và `name_norm LIKE 'q%'`, áp cho `/v1/autocomplete`,
+  `/v1/search` và fallback đường của `/v1/geocode`. Bỏ nhánh `core` khi `nameCore` trùng
+  `normalizeVi` (đa số truy vấn) để khỏi làm việc thừa.
+
+  Chi phí đo trên DB dev, cache ấm, cùng truy vấn `higland`:
+
+  | biến thể | thời gian |
+  |---|---:|
+  | chỉ `%` (mã trước 05/09) | 6,8 ms |
+  | chỉ `<%` | 1,5 ms |
+  | cả hai (đang dùng) | 5,5 ms |
+
+  Tức bản cuối vẫn **nhanh hơn mã cũ**, chỉ đắt hơn bản chỉ-`<%` khoảng 4 ms. `EXPLAIN` cho thấy
+  mọi nhánh đều chạy trên `poi_name_norm_trgm_idx` qua `BitmapOr`, không nhánh nào quét bảng.
+
+  `scripts/fuzzy-ab.mjs` nay so **ba** biến thể và thêm 4 ca lỗi gõ trên từ ngắn. So với mã cũ:
+  cứu 3 ca, hỏng 0 ca. Cột "chỉ`<%`" là bằng chứng vì sao phải giữ `%`: `cirlce k` **không tìm
+  thấy** ở cột đó nhưng hạng 2 ở cột "cả hai". Kiểm qua API dev, cả bảy ca đều đúng, gồm ba ca
+  trước đây trượt (`cirlce k`, `winmrt`, `nguyne hue`) lẫn ba ca năng lực mới (`skincode`,
+  `laptop nhap my`, `coffee highlands`).
+
+  Một ca **không** cứu được: `nguyen thi minh khai cienco` ở hạng 95 với cả hai toán tử, so với 13
+  khi chỉ dùng `<%` — nhánh `%` kéo thêm đối thủ chen lên. Hạng 95 vẫn bằng mã cũ (100) nên không
+  phải hồi quy so với production trước hôm nay. Đã thử đổi `ORDER BY` sang `word_similarity DESC,
+  similarity DESC`: chỉ nhích 95→92 mà làm `cho rya` tệ đi 1→3, nên giữ `greatest(...)`.
+
+  **Việc 2 — `server:update` và migration 0007.** Nguyên nhân đã sửa tận gốc: thêm `pullPlan()`
+  vào `scripts/lib/server-env.mjs`, khi `PIPELINE_IMAGE` có tag `:local` thì chỉ
+  `docker compose pull postgres cloudflared`, không pull image dựng tại máy. Có 3 test đơn vị.
+  Quy trình chạy thật: `pnpm image:build` (image mới có 0007) rồi `pnpm server:update` — lệnh
+  chạy trọn, chỉ `pipeline` và `backup` bị tạo lại, **`postgres` và `cloudflared` vẫn `Up`**,
+  và `[db:migrate] Áp dụng 0007_word_similarity_threshold.sql … Xong`.
+
+  **Bẫy Hyperdrive cần nhớ:** ngay sau khi áp migration, `/healthz/db` vẫn trả
+  `"word_similarity_threshold":0.6` trong khi `pg_db_role_setting` đã là 0,5 và phiên psql mới đọc
+  đúng 0,5. Lý do: `ALTER DATABASE … SET` chỉ áp cho **phiên mới**, còn Hyperdrive gộp và tái dùng
+  kết nối có từ trước. Giá trị mới chỉ hiện khi pool xoay vòng hoặc khi Deploy API tạo worker mới.
+  Đây là hành vi bình thường, không phải migration hỏng — kiểm bằng psql trước khi kết luận.
 
 - **05/09/2026 — Progressive POI production release `poi-20260904`.** User phê duyệt release
   riêng; code phát hành ở `f1adb213f9524c49bc62959cddb1359e455ecdf5`. Remote gate đúng SHA:
@@ -714,7 +759,8 @@ vẫn là `sleep 1` phút — `sudo pmset -a sleep 0 disksleep 0`.
   trình vitest. Sau đó CI, Deploy API, API tests và DB tests đều xanh
 - 2026-09-05 · Tìm mờ T0–T8 · `word_similarity` (`<%`) thay `%` ở autocomplete/search/geocode,
   ba loại truy vấn song song, migration 0007 đặt ngưỡng 0,5 cấp database · `fee9daf` ·
-  đã phát hành `d5ba3f9`, CI xanh; p95 2156→808 ms nhưng hit@3 38→35, migration 0007 chưa áp
+  đã phát hành `d5ba3f9`; p95 2156→808 ms. Hit@3 tụt 38→35 nên `fcbe06e` giữ lại toán tử `%`;
+  `1597bcb` sửa `server:update` bỏ qua pull image local, nhờ đó migration 0007 đã áp lên production
 
 ## 5. Sự cố
 
