@@ -121,9 +121,36 @@ describe('lược đồ spec 5.2', () => {
     expect(owner.tableowner).toBe('pipeline');
   });
 
+  it('0007: pg_trgm.word_similarity_threshold = 0.5 ở cấp database, phiên mới đọc được', async () => {
+    const [setting] = await sql`SELECT setconfig FROM pg_db_role_setting
+      WHERE setdatabase = (SELECT oid FROM pg_database WHERE datname = current_database())
+        AND setrole = 0`;
+    expect(setting?.setconfig).toContain('pg_trgm.word_similarity_threshold=0.5');
+    // Phiên hiện tại mở trước migration nên còn giá trị cũ; mở phiên mới để kiểm giá trị hiệu lực.
+    // Giá trị cấp database vào phiên mới dưới dạng placeholder; chỉ khi thư viện pg_trgm được nạp
+    // (gọi bất kỳ hàm nào của nó, đúng như route autocomplete làm) thì GUC mới thành thật và được
+    // kiểm kiểu. Vì vậy phải nạp trước rồi mới đọc — đọc trước khi nạp thì similarity_threshold
+    // báo "unrecognized configuration parameter".
+    const fresh = postgres(url, { max: 1, onnotice: () => {} });
+    try {
+      await fresh`SELECT show_trgm('x')`;
+      const [row] = await fresh`SELECT current_setting('pg_trgm.word_similarity_threshold') AS v,
+        current_setting('pg_trgm.similarity_threshold') AS s`;
+      expect(row?.v).toBe('0.5');
+      expect(row?.s).toBe('0.3');
+      // Ngưỡng thật sự chi phối toán tử <%: 'cho ray' khớp mờ, chuỗi rời rạc thì không.
+      const [op] = await fresh`SELECT ('cho ray' <% 'benh vien cho ray tphcm') AS gan,
+        ('cho ray' <% 'quan an ngon bat dan') AS xa`;
+      expect(op?.gan).toBe(true);
+      expect(op?.xa).toBe(false);
+    } finally {
+      await fresh.end();
+    }
+  });
+
   it('--down revert từng migration rồi migrate lại về đủ bảng', async () => {
-    // 0002…0006: năm migration sau 0001 (0006 chỉ thêm cột/hàm, không thêm bảng).
-    for (let i = 0; i < 5; i++) migrate('--down');
+    // 0002…0007: sáu migration sau 0001 (0006 thêm cột/hàm, 0007 chỉ đặt GUC — không thêm bảng).
+    for (let i = 0; i < 6; i++) migrate('--down');
     expect(await tables()).toEqual(['schema_migrations']);
     expect((await sql`SELECT name FROM schema_migrations`).map((r) => r.name)).toEqual([
       '0001_extensions.sql',
