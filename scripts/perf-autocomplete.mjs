@@ -17,12 +17,7 @@ const QUERIES = [
 
 /** Bỏ dấu + lowercase để so đích (không import @mapslibvn/core: script chạy trước khi build). */
 const fold = (/** @type {string} */ s) =>
-  s
-    .normalize('NFD')
-    .replace(/\p{M}/gu, '')
-    .replace(/đ/g, 'd')
-    .replace(/Đ/g, 'D')
-    .toLowerCase();
+  s.normalize('NFD').replace(/\p{M}/gu, '').replace(/đ/g, 'd').replace(/Đ/g, 'D').toLowerCase();
 
 /**
  * Đọc fixture "q|đích" (dòng # và rỗng bị bỏ).
@@ -136,7 +131,9 @@ if (isMain) {
     process.exitCode = 1;
   } else {
     try {
-      const queries = queriesFile ? parseQueryFixture(readFileSync(queriesFile, 'utf8')) : undefined;
+      const queries = queriesFile
+        ? parseQueryFixture(readFileSync(queriesFile, 'utf8'))
+        : undefined;
       const result = await measureAutocomplete(base, key, {
         ...(queries ? { queries, count: queries.length * 2 } : {}),
       });

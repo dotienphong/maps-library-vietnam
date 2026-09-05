@@ -67,7 +67,10 @@ describe('measureAutocomplete với bộ truy vấn có đích', () => {
         ),
       now: (() => {
         let t = 0;
-        return () => (t += 5);
+        return () => {
+          t += 5;
+          return t;
+        };
       })(),
     });
     expect(result.hit3).toEqual({ hit: 1, total: 2, misses: ['cho rya'] });
