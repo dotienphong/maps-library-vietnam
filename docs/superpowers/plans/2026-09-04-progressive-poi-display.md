@@ -758,12 +758,12 @@ manifest và không push nếu người dùng chưa yêu cầu push/release tron
 - Consumes: code đã push, CI/image xanh, production DB read-only cho exporter.
 - Produces: archive `poi-20260904` mới và manifest production có rollback history.
 
-- [ ] **Step 1: Xác nhận quyền release và trạng thái an toàn**
+- [x] **Step 1: Xác nhận quyền release và trạng thái an toàn**
 
 Chỉ tiếp tục khi PHONG nói rõ chạy national build/publish. Chạy `df -h /`, `docker info`,
 `git status --short`, `git rev-parse HEAD`, và kiểm CI/image của đúng commit đã xanh.
 
-- [ ] **Step 2: Push code, chờ CI/image rồi nạp image mới vào server**
+- [x] **Step 2: Push code, chờ CI/image rồi nạp image mới vào server**
 
 Run `git push origin main`; chờ CI, DB tests, API tests và image workflow của đúng SHA đều xanh,
 sau đó chạy `pnpm server:update`.
@@ -771,7 +771,7 @@ sau đó chạy `pnpm server:update`.
 Expected: pipeline container dùng image chứa commit progressive POI; Postgres vẫn healthy. Không
 in nội dung `infra/server/.env`.
 
-- [ ] **Step 3: Build candidate từ production DB nhưng chưa upload**
+- [x] **Step 3: Build candidate từ production DB nhưng chưa upload**
 
 Run trong service pipeline:
 
@@ -785,7 +785,7 @@ key `poi-20260904` đã tồn tại trên R2 thì dừng và sửa plan/DEVLOG s
 không ghi đè object. Không dùng `data:update --poi --force` vì lệnh đó tự upload và đổi manifest
 trước visual gate.
 
-- [ ] **Step 4: QA rồi upload immutable candidate, chưa đổi manifest**
+- [x] **Step 4: QA rồi upload immutable candidate, chưa đổi manifest**
 
 Chạy từ host qua service pipeline:
 
@@ -801,7 +801,7 @@ docker compose --env-file infra/server/.env -f infra/server/compose.yml exec -T 
 Expected: QA xanh, 20-point smoke có ít nhất 15 tile dữ liệu. Upload chỉ tạo object immutable;
 manifest chưa đổi nên client production chưa bị ảnh hưởng.
 
-- [ ] **Step 5: Visual smoke national qua Worker local**
+- [x] **Step 5: Visual smoke national qua Worker local**
 
 Đọc `current.vn` bằng `manifest.mjs get` mà không in credentials. Seed KV local bằng
 `MAPSLIBVN_VN_RELEASE` và `MAPSLIBVN_POI_RELEASE=poi-20260904`, rồi chạy Worker local với
@@ -819,7 +819,7 @@ pnpm exec wrangler dev --port 8787 --var TILES_BASE:https://tiles.ai-solutions.i
 Trước khi chạy, thay `vn-20260827` trong command bằng đúng `current.vn` vừa đọc nếu production đã
 đổi. Đây là giá trị runtime lấy từ manifest, không đoán từ DEVLOG.
 
-- [ ] **Step 6: Đổi manifest và verify production**
+- [x] **Step 6: Đổi manifest và verify production**
 
 Run từ host:
 
@@ -832,7 +832,7 @@ Verify `GET /v1/styles/light.json`, `dark.json`, PMTiles range requests, playgro
 `poiClick`, `poi=0`, và các viewport production. Nếu bất kỳ check nào lỗi, chạy ngay
 `docker compose --env-file infra/server/.env -f infra/server/compose.yml exec -T pipeline node pipelines/tiles/src/manifest.mjs rollback`, rồi verify style/playground lại.
 
-- [ ] **Step 7: Ghi bằng chứng release, commit và push**
+- [x] **Step 7: Ghi bằng chứng release, commit và push**
 
 DEVLOG ghi release ID, activeRead/selected/thinned/byMinZoom, dung lượng, smoke, visual matrix,
 manifest trước/sau và kết quả rollback drill logic. Chạy `git diff --check`, commit:

@@ -17,10 +17,11 @@ commit với code).
   - **Khoá `mobile`** (không kiểm origin, ghi `X-Bundle-Id` vào log và báo cáo tuần)
   - Mốc trước: **M5 — Phát hành nội bộ nghiệm thu 03/09/2026 → SPEC BẢN 2 HOÀN TẤT**;
     **M4 — Đóng góp nghiệm thu 02/09/2026**
-- Candidate **hiển thị POI tăng dần theo zoom** đã implement local theo
+- **Hiển thị POI tăng dần theo zoom đã phát hành production 05/09/2026** theo
   `docs/superpowers/plans/2026-09-04-progressive-poi-display.md`: priority xác định, lưới Web
-  Mercator xuyên zoom, ba tầng style và SDK ẩn đủ mọi layer POI. National build/release **chưa
-  chạy**; production manifest vẫn giữ release hiện tại.
+  Mercator xuyên zoom, ba tầng style và SDK ẩn đủ mọi layer POI. Manifest production đang dùng
+  `vn-20260827` + `poi-20260904`; archive trước `poi-20260830` còn trong R2 và đứng đầu rollback
+  history.
 - Plan M5: `docs/superpowers/plans/2026-09-02-m5-phat-hanh-noi-bo.md` — **10/10 task XONG**,
   nghiệm thu 5/5 hạng mục ĐẠT 03/09/2026 (bảng bằng chứng ở mục 10). Gồm: docs đủ 5 trang
   spec 7.4 + 2 trang pháp lý sinh lúc prebuild (`/dieu-khoan/`, `/thong-bao-ben-thu-ba/`,
@@ -71,6 +72,49 @@ commit với code).
 
 ## 2. Bước kế tiếp
 
+- **05/09/2026 — Progressive POI production release `poi-20260904`.** User phê duyệt release
+  riêng; code phát hành ở `f1adb213f9524c49bc62959cddb1359e455ecdf5`. Remote gate đúng SHA:
+  CI + image smoke [33851729860](https://github.com/dotienphong/maps-library-vietnam/actions/runs/33851729860),
+  API real-DB [33851729884](https://github.com/dotienphong/maps-library-vietnam/actions/runs/33851729884),
+  Deploy API [33851729949](https://github.com/dotienphong/maps-library-vietnam/actions/runs/33851729949)
+  và DB integration 27m15s [33851729814](https://github.com/dotienphong/maps-library-vietnam/actions/runs/33851729814)
+  đều xanh. CI ban đầu trên `e4ce269` lộ test seed đọc font vendor bị gitignore; sửa TDD để sprite
+  vẫn bắt buộc, font vendor chỉ seed khi tồn tại, rồi local gate đạt lint 281 file, typecheck 14/14,
+  root 62 file/**622 test** và API 20 file/95 test.
+
+  Máy chủ tạm là arm64 trong khi GHCR CI hiện chỉ publish `linux/amd64`, nên `pnpm server:update`
+  dừng an toàn tại pull trước compose-up. Đã build/smoke image ARM native từ đúng checkout
+  `f1adb213`, recreate riêng `pipeline`/`backup`, giữ Postgres và tunnel đang chạy; container dùng
+  image digest `sha256:4c986846636fa9c3d9e8187e784204f99ed881b5c35694c08eb4c18026543470`,
+  Postgres healthy và migration báo 0 bản mới.
+
+  Export production DB đọc **1.515.984 active**, chọn **255.848**, thinning **1.260.136**,
+  `rankFallback=0`, `invalidCoordinates=0`; minzoom z10→z16 là
+  **622 / 895 / 5.098 / 12.589 / 29.919 / 77.947 / 128.778**. Archive **63,8 MiB**
+  (66.924.565 byte, dưới trần 300 MiB), QA style/sovereignty xanh và R2 custom-domain smoke đạt
+  **19/20 tile dữ liệu**. Range request production trả `206`, `Content-Range:
+  bytes 0-16383/66924565`.
+
+  Visual Chromium 1000×800 chụp đủ **4 địa bàn × 5 zoom × 2 theme = 40 ảnh** trước khi đổi
+  manifest. Mỗi ô dưới là tổng symbol POI render `cũ → mới`; light/dark candidate cho cùng kết quả:
+
+  | Địa bàn | z10 | z12 | z14 | z15 | z16 |
+  |---|---:|---:|---:|---:|---:|
+  | TP.HCM | 186→10 | 368→12 | 292→21 | 256→26 | 136→27 |
+  | Hà Nội | 188→10 | 355→11 | 271→18 | 302→27 | 225→33 |
+  | Đà Nẵng | 41→8 | 210→13 | 241→15 | 124→22 | 47→19 |
+  | Đồng Tháp nông thôn | 39→9 | 61→7 | 7→11 | 8→5 | 2→2 |
+
+  Candidate 40/40 viewport `loaded` + `tilesLoaded=true`; nhãn local bằng 0 trước z16, major chỉ
+  rank 1–2, local chỉ rank 3–5, không thấy overlap hay dải icon sau pan 256px qua biên tile.
+  Click trả đúng `Trường Trưng Vương` id `5XB2X3G9YZH8J70K4FGBQ2A7HK`; `poi=0` ẩn và render 0
+  cho cả ba layer; `lang=en` tải xong; console không có error.
+
+  Sau khi set manifest, style light/dark đều trỏ `poi-20260904`; kiểm lại public URL
+  `https://mapslibvn-docs.pages.dev/playground.html` không `?api=` đạt 40/40 viewport, click,
+  dark, `poi=0`, console sạch và API `/healthz` xanh. Rollback drill logic: `release:history[0]`
+  chứa nguyên manifest trước `{vn:vn-20260827, poi:poi-20260830}`; không xoá archive cũ.
+
 - **04/09/2026 — Progressive POI candidate local.** Contract tile thêm `r` (rank 1–5), `d`
   (display sort key) và `tippecanoe.minzoom`; `popularity` chỉ tham gia xếp hạng nội bộ, không xuất
   vào tile. Style tách `poi` icon-only z10, `poi-label-major` z12 và `poi-label-local` z16;
@@ -78,8 +122,8 @@ commit với code).
   **78.122 active**, chọn **2.136**, thinning **75.986**, `invalidCoordinates=0`; phân bổ minzoom
   z10→z16 là **5 / 2 / 8 / 9 / 21 / 981 / 1.110**; PMTiles **401.489 byte**. Test fixture còn
   chứng minh POI bị thinning vẫn `active`, mỗi display cell chỉ có một feature ở mọi zoom và
-  archive thật giữ `r/d`. National archive/R2/KV **chưa build, chưa upload, chưa đổi manifest**;
-  chỉ được tiếp tục sau phê duyệt release riêng.
+  archive thật giữ `r/d`. Trạng thái lịch sử này đã được release production ngày 05/09/2026 như
+  mục ngay phía trên.
 
   Full gate local: lint **281 file**, typecheck **14/14 task**, Vitest root **62 file / 621 test**,
   API **20 file / 95 test**, build **8/8 task** và docs **20 trang**, Playwright mặc định **26/26**;
