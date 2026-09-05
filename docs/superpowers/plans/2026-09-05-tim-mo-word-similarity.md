@@ -1086,7 +1086,7 @@ pnpm lint && pnpm typecheck && pnpm test && pnpm --filter @mapslibvn/docs build
 ```
 Expected: lint sạch; typecheck 14 task; vitest root ≥ 622 test + 2 mới ở `perf-autocomplete.test.mjs`; API 100 test; build docs OK. Ghi số thật vào DEVLOG.
 
-- [ ] **Step 2: Push và theo dõi CI**
+- [x] **Step 2: Push và theo dõi CI**
 
 ```bash
 git push
@@ -1094,7 +1094,7 @@ gh run list --limit 6
 ```
 Expected: `CI`, `Deploy API`, `Deploy Docs`, `API tests (Places, real DB)` xanh; `DB tests` cũng chạy (chạm `db/`) — phải xanh vì runner có tippecanoe.
 
-- [ ] **Step 3: Áp migration lên production**
+- [x] **Step 3: Áp migration lên production**
 
 Trên máy chủ nội bộ (PHONG chạy, không tự động): `pnpm server:update` — script này áp migration mới (`0007`) rồi khởi động lại container. Kiểm:
 
@@ -1103,7 +1103,7 @@ curl -s https://api.ai-solutions.io.vn/healthz/db
 ```
 Expected: `"user":"api"`, `"word_similarity_threshold":0.5`. Nếu vẫn `0.6`: migration chưa áp; **API vẫn chạy đúng** với ngưỡng mặc định 0,6 (chặt hơn), không phải sự cố.
 
-- [ ] **Step 4: Đo sau**
+- [x] **Step 4: Đo sau**
 
 ```bash
 node scripts/perf-autocomplete.mjs https://api.ai-solutions.io.vn '<khoá nội bộ>' --queries scripts/fixtures/fuzzy-queries.txt
@@ -1114,7 +1114,7 @@ Chạy hai lần như Task 0. Tiêu chí (spec mục 11): `hit@3 ≥ 36/40`; p95
 
 Mục 2 "Bước kế tiếp": thêm mục "05/09/2026 — Tìm mờ bằng `word_similarity` (hạng mục 2 spec 05/09)" ghi: commit phát hành, số test cổng local, run ID CI, baseline vs sau (`p95`, `hit@3` cả hai lần), kết luận tiêu chí 3–4 đạt/không. Mục 4 "Nhật ký": một dòng `2026-09-05 · Tìm mờ T0–T8 · word_similarity + song song · <sha>`.
 
-- [ ] **Step 6: Commit + push**
+- [x] **Step 6: Commit + push**
 
 ```bash
 git add docs/DEVLOG.md
@@ -1134,3 +1134,26 @@ git push
 - 5.7: song song hoá (Task 4), bộ 40 truy vấn + `perf-autocomplete` (Task 0), `STAGE_PENALTY` và `stage_hit` **chưa** — chỉ có ý nghĩa khi có ≥ 2 bậc, để hạng mục 3.
 - 11 tiêu chí 3, 4, 7: Task 8. Tiêu chí 7 phần "test apps/api không cần Postgres": Task 3–6 dùng `fakeSql`.
 - Kiểu/tên nhất quán: `CandidateQueryInput`, `collectCandidates`, `poiCandidates`, `streetCandidates`, `addressCandidates`, `fakeSql` → `{ sql, calls }`, `parseQueryFixture`, `result.hit3` dùng đúng ở mọi task.
+
+---
+
+## Kết quả thực hiện (05/09/2026)
+
+Toàn bộ Task 0–8 đã xong và phát hành. Commit cuối `e5f51a5`, mọi workflow xanh, production chạy
+`word_similarity_threshold: 0.5`.
+
+Ba điểm plan viết sai, đã sửa khi thực hiện — ghi lại để plan hạng mục 1 và 3 không lặp:
+
+1. **GUC phải đặt cấp database, không phải cấp role `api`.** Dev nối bằng user `mapslibvn` và
+   dbtest tạo DB cô lập, cấp role chỉ phủ production.
+2. **`/healthz/db` phải dùng `current_setting(…, true)`.** Bản một tham số ném lỗi khi GUC chưa có,
+   làm endpoint trả 503 trong khoảng giữa lúc Deploy API chạy tự động và lúc migration được áp tay.
+3. **Bỏ hẳn toán tử `%` là sai** (Task 4 khẳng định "không còn toán tử %", test khoá điều đó).
+   Đo thật cho thấy `<%` bỏ sót lỗi gõ trên từ ngắn, hit@3 tụt 38→35. Nhưng giữ `%` cho mọi truy
+   vấn lại tốn 1355 ms ở 1,5 triệu POI. Lời giải cuối: chỉ bật `%` khi truy vấn ≤ 12 ký tự.
+
+Và một sai lầm về phương pháp, đáng giá nhất: **bộ 40 truy vấn HTTP trong Task 0 không phân biệt
+được trước và sau** — baseline đã 38/40, vượt sẵn tiêu chí ≥36/40 của chính plan. Bằng chứng thật
+phải lấy bằng `scripts/fuzzy-ab.mjs` (so hạng POI đích trong danh sách ứng viên) và bằng
+`EXPLAIN ANALYZE` **trên DB production**, vì DB dev nhỏ hơn 19 lần nên giấu mất chi phí thật.
+Khi viết plan sau, benchmark phải chứng minh được là nó đo được chênh lệch, trước khi tin vào nó.
