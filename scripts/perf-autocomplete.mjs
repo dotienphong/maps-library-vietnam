@@ -41,7 +41,7 @@ export function parseQueryFixture(text) {
  * @param {string} base
  * @param {string} key
  * @param {{ count?: number, fetchImpl?: typeof fetch, now?: () => number,
- *   queries?: { q: string, expect: string }[], near?: string }} [options]
+ *   queries?: { q: string, expect: string }[], near?: string, types?: string }} [options]
  */
 export async function measureAutocomplete(
   base,
@@ -52,6 +52,9 @@ export async function measureAutocomplete(
     now = () => performance.now(),
     queries = QUERIES.map((q) => ({ q, expect: '' })),
     near = '10.776,106.700',
+    // Bỏ trống = dùng types mặc định của API. Truyền 'poi,street,address' để so với bộ loại
+    // trước khi có `area`, tách chi phí của area khỏi hồi quy không liên quan (plan 8.5).
+    types = '',
   } = {},
 ) {
   if (!Number.isInteger(count) || count < 1) throw new Error('count phải là số nguyên dương');
@@ -66,8 +69,9 @@ export async function measureAutocomplete(
     const entry = queries[i % queries.length];
     if (entry === undefined) throw new Error('Không có query để đo');
     const t0 = now();
+    const typesParam = types ? `&types=${encodeURIComponent(types)}` : '';
     const res = await fetchImpl(
-      `${normalizedBase}/v1/autocomplete?q=${encodeURIComponent(entry.q)}&near=${near}`,
+      `${normalizedBase}/v1/autocomplete?q=${encodeURIComponent(entry.q)}&near=${near}${typesParam}`,
       { headers: { 'X-Api-Key': key } },
     );
     const body = await res.text();
@@ -122,11 +126,14 @@ if (isMain) {
   const args = process.argv.slice(2);
   const queriesIndex = args.indexOf('--queries');
   const queriesFile = queriesIndex >= 0 ? args[queriesIndex + 1] : undefined;
-  const positional = args.filter((_, i) => i !== queriesIndex && i !== queriesIndex + 1);
+  const typesIndex = args.indexOf('--types');
+  const typesArg = typesIndex >= 0 ? args[typesIndex + 1] : undefined;
+  const consumed = new Set([queriesIndex, queriesIndex + 1, typesIndex, typesIndex + 1]);
+  const positional = args.filter((_, i) => !consumed.has(i));
   const [base, key] = positional;
   if (!base || !key) {
     console.error(
-      'Cách dùng: node scripts/perf-autocomplete.mjs <base-url> <api-key> [--queries scripts/fixtures/fuzzy-queries.txt]',
+      'Cách dùng: node scripts/perf-autocomplete.mjs <base-url> <api-key> [--queries scripts/fixtures/fuzzy-queries.txt] [--types poi,street,address]',
     );
     process.exitCode = 1;
   } else {
@@ -136,6 +143,7 @@ if (isMain) {
         : undefined;
       const result = await measureAutocomplete(base, key, {
         ...(queries ? { queries, count: queries.length * 2 } : {}),
+        ...(typesArg ? { types: typesArg } : {}),
       });
       console.log(`n=${result.n} p50=${result.p50}ms p95=${result.p95}ms p99=${result.p99}ms`);
       if (result.hit3) {

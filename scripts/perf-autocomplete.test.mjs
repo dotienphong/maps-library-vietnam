@@ -2,6 +2,30 @@ import { describe, expect, it } from 'vitest';
 import { measureAutocomplete, parseQueryFixture } from './perf-autocomplete.mjs';
 
 describe('measureAutocomplete', () => {
+  // Plan 8.5: phải so được default mới với bộ loại cũ để tách chi phí của `area`.
+  it('không truyền types thì URL không có tham số types; truyền thì có', async () => {
+    /** @type {string[]} */
+    const urls = [];
+    const fetchImpl = async (/** @type {string | URL | Request} */ url) => {
+      urls.push(String(url));
+      return new Response('{}');
+    };
+    const clock = () => 0;
+    await measureAutocomplete('https://api.test', 'mlv_live_test', {
+      count: 1,
+      fetchImpl,
+      now: clock,
+    });
+    expect(urls[0]).not.toContain('types=');
+    await measureAutocomplete('https://api.test', 'mlv_live_test', {
+      count: 1,
+      fetchImpl,
+      now: clock,
+      types: 'poi,street,address',
+    });
+    expect(urls[1]).toContain('types=poi%2Cstreet%2Caddress');
+  });
+
   it('đo percentile từ response thành công và gửi đúng auth/near', async () => {
     /** @type {{ url: string | URL | Request, init: RequestInit | undefined }[]} */
     const calls = [];

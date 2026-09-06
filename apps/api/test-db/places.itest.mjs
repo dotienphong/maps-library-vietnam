@@ -215,3 +215,20 @@ describe('thang geocode và các route còn lại', () => {
     expect(response.body.error.code).toBe('invalid_key');
   });
 });
+
+// Sự cố 06/09/2026: Worker mang code Task 5/6 deploy trước migration 0008 nên
+// /v1/autocomplete mặc định trả 503 nhiều giờ, trong khi /healthz/db vẫn 200. Chốt hai điều:
+// healthz phải công bố phiên bản schema để phát hiện lệch, và nhánh area phải chạy được.
+describe('lệch schema giữa Worker và DB', () => {
+  it('/healthz/db công bố migration mới nhất đã áp', async () => {
+    const { status, body } = await get('/healthz/db');
+    expect(status).toBe(200);
+    expect(body.ok).toBe(true);
+    expect(body.schema_migration).toMatch(/^\d{4}_/);
+  });
+
+  it('autocomplete mặc định gồm area không được 5xx khi bảng old rỗng', async () => {
+    const { status } = await get('/v1/autocomplete?q=quan%2010&limit=5');
+    expect(status).toBe(200);
+  });
+});

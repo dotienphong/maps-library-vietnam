@@ -5,6 +5,53 @@ commit với code).
 
 ## 1. Trạng thái hiện tại
 
+- **07/09/2026 — Task 8.1–8.2 xong (bộ kiểm chứng), phần đo còn chặn:**
+  `scripts/verify-admin-alias.mjs` gồm hai hàm thuần `evaluateCoverage`/`evaluateGeocode` và CLI
+  `--mode coverage|geocode`, timeout 10 s với **3 lần thử hữu hạn** — lần cuối thất bại giữ nguyên
+  trong kết quả, không retry đến khi đạt rồi bỏ lần trượt. 17 test thuần khoá đúng sáu ca plan yêu
+  cầu: thiếu L8 đất liền, `normalized share=1` nhưng raw coverage 0,6, thiếu đích ca tách, 7/10
+  precision, 8/10 nhưng có cặp kém hơn địa chỉ mới, và lỗi HTTP **vẫn nằm trong mẫu**. Smoke-test
+  thật cả hai mode: coverage trên dev DB → exit 1 với 65 failure; geocode qua API local → exit 1,
+  6/10 chính xác cao. Artifact chứa commit, checksum nguồn, timings, cases và **0 lần xuất hiện
+  khoá API**. Smoke test lộ một lỗi thật đã sửa ngay: coverage đọc `out/admin-alias/report.json`
+  có thể **lệch generation** với DB, nên thêm failure `report_generation_mismatch` — nó bắt đúng
+  trường hợp report 10 vùng cũ so với DB 54 vùng. `perf-autocomplete.mjs` thêm `--types` để so
+  default mới với bộ loại cũ. Lưu ý mốc: **baseline "trước khi deploy API mới" đã trôi** vì API
+  Task 5/6 deploy từ 06/09, chỉ còn so được explicit types trên cùng một bản deploy.
+  8.3–8.7 chặn vì cần bộ dữ liệu toàn quốc qua cổng QA — tức chặn bởi Khánh Hòa.
+  Gate 9.1 chạy đủ: lint, typecheck, unit 68 file/666 test, API unit 23 file/119 test,
+  `pnpm build` 8/8, **`test:db` trong container 10 file/53 test**, `test:api-db` 3 file/31 test,
+  E2E docs 27/27, `git diff --check` sạch.
+
+- **07/09/2026 — SỰ CỐ PRODUCTION đã khắc phục: `/v1/autocomplete` chết vì deploy trước
+  migration.** Phát hiện khi làm Task 9.2. Worker mang code Task 5/6 (`cbbdf06` ~00:48 UTC 06/09)
+  đọc `admin_area_old` và `admin_alias.old_area_id`, nhưng DB production vẫn ở migration 0007 nên
+  không có bảng/cột đó. Vì `area` nằm trong `types` **mặc định**, mọi request
+  `/v1/autocomplete` trả **503** suốt ~4,5 giờ; `/v1/geocode` cũng 503 với mọi câu có đơn vị hành
+  chính. Khoanh vùng bằng hộp đen: `/healthz/db` 200 (DB khoẻ, user `api`, PG 16.4),
+  `types=poi` 200 nhưng `types=area` 503, `geocode?q=Nguyen Lam` 200 nhưng có "Phường 6, Quận 10"
+  thì 503. **`Deploy API` xanh cả 5 lần** — nó chỉ chứng minh Worker đã lên, không chứng minh chạy
+  được, đúng cảnh báo 9.3.
+  **Khắc phục theo đúng thứ tự 9.2:** (1) backup `mapslibvn-20260907-0518.dump.zst` (634,7 MB) lên
+  R2 `backups/daily` bằng `backup.mjs --once` — đây cũng là artifact rollback của 9.6; (2) dựng DB
+  cô lập `mapslibvn_restore_test` từ **schema + dữ liệu admin thật** của production rồi áp 0008 ở
+  đó trước: PK `admin_alias` đổi từ `(alias_norm, level)` sang `(alias_norm, level, admin_area_id)`
+  thành công, 33 alias giữ nguyên, role `api` SELECT được `admin_area_old` và INSERT bị từ chối,
+  và **đúng câu đang gây 503 chạy sạch** (trả 0 dòng); (3) áp 0008 lên production trong **một
+  transaction** kèm ghi `schema_migrations`, giống hệt `db-migrate.mjs`. Sau đó:
+  `/v1/autocomplete` mặc định **200**, `types=area` **200**, geocode có đơn vị hành chính **200**.
+  **Không nạp dữ liệu alias** — bảng old vẫn rỗng, đúng chủ trương không đưa dữ liệu chưa qua cổng
+  độ phủ lên production.
+  **Kiểm chứng không có hồi quy:** `88/9 Nguyễn Lâm, TP.HCM` vẫn trả `interpolated` 0,6 nên bộ lọc
+  `province_norm` mà Task 5 thêm vào không giết kết quả; câu dùng tên phường **cũ** trả rỗng vì
+  `ward_norm` production là tên hiện hành — đúng giới hạn đã ghi trong tài liệu và chính là thứ dữ
+  liệu alias sẽ vá, không phải hồi quy mới.
+  **Chốt chặn để không tái diễn:** `/healthz/db` thêm trường `schema_migration` (tên migration mới
+  nhất đã áp) để phát hiện lệch giữa Worker và DB; phải truy vấn riêng có `try/catch` vì Postgres
+  phân giải quan hệ ngay lúc parse nên không lồng được vào câu healthz cũ. Thêm hai itest: healthz
+  phải công bố `schema_migration`, và autocomplete mặc định (có `area`) không được 5xx khi bảng old
+  rỗng.
+
 - **06/09/2026 — Alias hành chính Task 7 hoàn tất; SDK lên 0.2.0:** bốn gói core/web/react/
   react-native bump minor (deps nội bộ dùng `workspace:*` nên không có ràng buộc version phải
   đồng bộ); `dist/index.d.ts` đã xuất `AutocompleteType` có `area`, `GeocodePrecision` có
