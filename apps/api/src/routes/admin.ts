@@ -1,5 +1,6 @@
 import { Hono } from 'hono';
 import { requireAccess } from '../access';
+import { invalidateCachedJson, placeCacheUrl } from '../cache';
 import { getSql } from '../db';
 import type { AppEnv } from '../env';
 import { ApiError } from '../errors';
@@ -48,6 +49,7 @@ admin.post('/v1/admin/edits/:id/approve', async (c) => {
       SELECT apply_poi_edit(${id}::bigint, ${reviewer}, 'approved') AS poi_id`;
     if (!row || row.poi_id === null)
       throw new ApiError(404, 'not_found', 'Edit không tồn tại hoặc không còn pending');
+    await invalidateCachedJson(placeCacheUrl(row.poi_id));
     return c.json({ ok: true, poi_id: row.poi_id });
   } catch (error) {
     if (error instanceof ApiError) throw error;

@@ -71,6 +71,41 @@ describe('thang geocode và các route còn lại', () => {
     expect(body.items[0]).toMatchObject({ precision: 'ward', confidence: 0.2 });
   });
 
+  it('alias phường cũ khóa rooftop trong polygon dù near sát anchor NULL ngoài vùng', async () => {
+    const query = enc('86 Nguyễn Lâm, Phường 6, Quận 10, TP.HCM');
+    const { status, body } = await get(`/v1/geocode?q=${query}&near=10.9,106.9`);
+    expect(status).toBe(200);
+    expect(body.items[0]).toMatchObject({
+      precision: 'rooftop',
+      matched: { ward: 'Phường Diên Hồng', former: { ward: 'Phường 6' } },
+    });
+    expect(distM(body.items[0].lat, body.items[0].lng, 10.7647, 106.6629)).toBeLessThan(30);
+  });
+
+  it.each([
+    ['88 Nguyễn Lâm, Phường 6, Quận 10, TP.HCM', 'interpolated'],
+    ['112/5 Nguyễn Lâm, Phường 6, Quận 10, TP.HCM', 'alley'],
+    ['Nguyễn Lâm, Phường 6, Quận 10, TP.HCM', 'street'],
+  ])('alias cũ áp scope cho %s', async (query, precision) => {
+    const { status, body } = await get(`/v1/geocode?q=${enc(query)}&near=10.76,106.66`);
+    expect(status).toBe(200);
+    expect(body.items[0]).toMatchObject({ precision, matched: { former: { ward: 'Phường 6' } } });
+    expect(body.items[0].lng).toBeGreaterThan(106.65);
+    expect(body.items[0].lng).toBeLessThan(106.68);
+  });
+
+  it('quận cũ trả một bbox lịch sử thay vì chọn tùy tiện phường mới', async () => {
+    const { status, body } = await get(`/v1/geocode?q=${enc('Quận 10, TP.HCM')}`);
+    expect(status).toBe(200);
+    expect(body.items).toHaveLength(1);
+    expect(body.items[0]).toMatchObject({
+      precision: 'district',
+      matched: { former: { district: 'Quận 10' } },
+      bbox: [106.65, 10.75, 106.68, 10.79],
+    });
+    expect(body.items[0].display_name).toContain('trước 07/2025');
+  });
+
   it('reverse trả khoảng số nhà, đường, phường và tỉnh', async () => {
     const { status, body } = await get('/v1/reverse?lat=10.7647&lng=106.6631');
     expect(status).toBe(200);

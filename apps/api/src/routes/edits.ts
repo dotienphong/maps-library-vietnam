@@ -1,5 +1,6 @@
 import { Hono } from 'hono';
 import { requireAuth } from '../auth';
+import { invalidateCachedJson, placeCacheUrl } from '../cache';
 import { getSql } from '../db';
 import { endUserHash, ipHash, requirePepper } from '../edits/hash';
 import { EDITS_PER_KEY_PER_DAY, EDITS_PER_USER_PER_DAY, decideStatus } from '../edits/rules';
@@ -103,6 +104,7 @@ edits.post('/v1/edits', requireAuth('edits:write'), async (c) => {
       const [applied] = await sql<{ poi_id: string | null }[]>`
         SELECT apply_poi_edit(${row.id}::bigint, ${reason}, 'auto_approved') AS poi_id`;
       poiId = applied?.poi_id ?? poiId;
+      if (poiId) await invalidateCachedJson(placeCacheUrl(poiId));
     }
     return c.json({ edit_id: row.id, status, poi_id: poiId });
   } catch (error) {

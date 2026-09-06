@@ -14,6 +14,38 @@ INSERT INTO admin_area (level, name, name_norm, osm_relation_id, geom) VALUES
     ST_Multi(ST_Buffer(ST_SetSRID(ST_MakePoint(106.6631, 10.7647), 4326), 0.01))),
   (8, 'Phường Linh Xuân', 'linh xuan', 880000000003,
     ST_Multi(ST_Buffer(ST_SetSRID(ST_MakePoint(106.77325, 10.85594), 4326), 0.01)));
+UPDATE admin_area child SET parent_id=province.id
+FROM admin_area province
+WHERE province.osm_relation_id=880000000001
+  AND child.osm_relation_id IN (880000000002,880000000003);
+
+DELETE FROM admin_alias WHERE old_area_id IN (890000000001,890000000002);
+DELETE FROM admin_area_old WHERE id IN (890000000001,890000000002);
+INSERT INTO admin_area_old
+  (id,level,name,name_norm,parent_norm,province_norm,osm_relation_id,snapshot,valid_until,geom)
+VALUES
+  (890000000001,6,'Quận 10','10',NULL,'ho chi minh',890000000001,
+    '2025-01-02','2025-06-30',ST_Multi(ST_MakeEnvelope(106.65,10.75,106.68,10.79,4326))),
+  (890000000002,8,'Phường 6','6','10','ho chi minh',890000000002,
+    '2025-01-02','2025-06-30',ST_Multi(ST_MakeEnvelope(106.65,10.75,106.68,10.79,4326)));
+INSERT INTO admin_alias(alias_norm,level,admin_area_id,valid_until,share,source,old_area_id)
+SELECT 'quan 10 ho chi minh',6,id,'2025-06-30'::date,1,'overlay',890000000001
+FROM admin_area WHERE osm_relation_id=880000000002
+UNION ALL
+SELECT 'quan 10',6,id,'2025-06-30'::date,1,'overlay',890000000001
+FROM admin_area WHERE osm_relation_id=880000000002
+UNION ALL
+SELECT 'phuong 6 quan 10 ho chi minh',8,id,'2025-06-30'::date,1,'overlay',890000000002
+FROM admin_area WHERE osm_relation_id=880000000002
+UNION ALL
+SELECT 'phuong 6 quan 10',8,id,'2025-06-30'::date,1,'overlay',890000000002
+FROM admin_area WHERE osm_relation_id=880000000002
+UNION ALL
+SELECT 'phuong 6 ho chi minh',8,id,'2025-06-30'::date,1,'overlay',890000000002
+FROM admin_area WHERE osm_relation_id=880000000002
+UNION ALL
+SELECT 'phuong 6',8,id,'2025-06-30'::date,1,'overlay',890000000002
+FROM admin_area WHERE osm_relation_id=880000000002;
 
 DELETE FROM street WHERE osm_way_ids && ARRAY[880000000011, 880000000012]::bigint[];
 INSERT INTO street (osm_way_ids, name, name_norm, ward_norm, province_norm, geom) VALUES
@@ -37,7 +69,9 @@ INSERT INTO address_anchor
   ('90', 'nguyen lam', 'dien hong', 'ho chi minh',
     ST_SetSRID(ST_MakePoint(106.6633, 10.7647), 4326), 'osm', 'm3test-90', 0.9),
   ('92', 'nguyen lam', 'dien hong', 'ho chi minh',
-    ST_SetSRID(ST_MakePoint(106.6635, 10.7647), 4326), 'osm', 'm3test-92', 0.9);
+    ST_SetSRID(ST_MakePoint(106.6635, 10.7647), 4326), 'osm', 'm3test-92', 0.9),
+  ('86', 'nguyen lam', NULL, 'ho chi minh',
+    ST_SetSRID(ST_MakePoint(106.9000, 10.9000), 4326), 'user', 'm3test-86-null-outside', 0.95);
 
 DELETE FROM poi WHERE id LIKE '01M3TEST%';
 INSERT INTO poi (id, name, name_norm, category, geom, ward, province, address_text,

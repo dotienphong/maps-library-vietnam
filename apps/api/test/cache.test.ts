@@ -1,6 +1,6 @@
 import { createExecutionContext, waitOnExecutionContext } from 'cloudflare:test';
 import { describe, expect, it } from 'vitest';
-import { cachedJson } from '../src/cache';
+import { cachedJson, invalidateCachedJson, placeCacheUrl } from '../src/cache';
 import { ApiError } from '../src/errors';
 
 const url = (suffix: string) => `https://cache.mapslibvn/test-${suffix}?k=1`;
@@ -48,5 +48,18 @@ describe('cachedJson', () => {
         throw notFound;
       }),
     ).rejects.toBe(notFound);
+  });
+
+  it('xóa cache chi tiết POI sau khi edit được áp dụng', async () => {
+    const cacheUrl = placeCacheUrl('poi id/1');
+    const firstContext = createExecutionContext();
+    await cachedJson(firstContext, cacheUrl, 600, 3600, async () => ({ version: 1 }));
+    await waitOnExecutionContext(firstContext);
+
+    expect(await invalidateCachedJson(cacheUrl)).toBe(true);
+    const response = await cachedJson(createExecutionContext(), cacheUrl, 600, 3600, async () => ({
+      version: 2,
+    }));
+    expect(await response.json()).toEqual({ version: 2 });
   });
 });

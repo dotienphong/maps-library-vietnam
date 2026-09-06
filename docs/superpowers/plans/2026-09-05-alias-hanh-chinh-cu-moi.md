@@ -10,7 +10,7 @@
 
 **Spec:** [Thiết kế đã duyệt](../specs/2026-09-05-tim-kiem-alias-fuzzy-dia-phuong-design.md), mục 4, phần liên quan hạng mục 1 trong mục 7–11 và 13.
 
-**Trạng thái:** Task 0–4 đã hoàn tất ngày 06/09/2026; Task 5 là bước kế tiếp. Hạng mục 2 đã có plan riêng và đã đóng. Chưa tuyên bố độ phủ toàn quốc vì ledger nguồn còn khoảng thiếu Khánh Hòa/Jan→Jun.
+**Trạng thái:** Task 0–5 đã hoàn tất ngày 06/09/2026; Task 6 là bước kế tiếp. Hạng mục 2 đã có plan riêng và đã đóng. Chưa tuyên bố độ phủ toàn quốc vì ledger nguồn còn khoảng thiếu Khánh Hòa/Jan→Jun.
 
 ## Global Constraints
 
@@ -209,10 +209,10 @@ export interface AdminScope {
 export function resolveAdminScope(sql: Sql, parsed: ParsedAddress): Promise<AdminScope>;
 ```
 
-- [ ] **5.1** Thêm test resolver trước: không admin→không query; không alias→scope cũ; phường tách→hai wardNorms; phường trùng khác tỉnh→không trộn; tên tỉnh cũ còn former; seed thiếu old_area_id vẫn phân giải current; tỉnh hiện hành không bị gắn former giả. Nâng fakeSql bằng tùy chọn callback rows theo text, mặc định giữ tương thích `fakeSql(rows, calls)`; không dùng một mảng alias cho mọi SELECT.
-- [ ] **5.2** Chạy `pnpm --filter @mapslibvn/api test`, xác nhận đỏ có chọn lọc.
-- [ ] **5.3** Resolver tra `alias_norm = ANY(keys::text[])`, join current/old; xếp theo vị trí khóa `array_position`, cấp cụ thể, nguồn seed trước; lấy **toàn bộ cạnh của nhóm thắng**, không LIMIT trước khi gom. Có tỉnh/huyện phải xác minh old ancestry/canonical province; `near` chỉ xếp hạng các đích hợp lệ, không thay thế điều kiện địa phương. Không match được khóa phường cụ thể thì không coi khóa tỉnh fallback là bằng chứng đã đổi đúng phường.
-- [ ] **5.4** Truyền scope vào context, chuyển điều kiện ward ở anchors/interpolate sang `= ANY(...::text[])`, street sang `&& ...::text[]`. Giữ OR ward IS NULL ở 1/3 nhưng nếu đã có old area phải kiểm geometry và tỉnh; không cho NULL trở thành đường thoát sang tỉnh khác. Áp scope cho alley qua street cha và kiểm point kết quả; interpolation chỉ ghép hai mốc cùng vùng hợp lệ, query projection street cũng mang scope.
+- [x] **5.1** Thêm test resolver trước: không admin→không query; không alias→scope cũ; phường tách→hai wardNorms; phường trùng khác tỉnh→không trộn; tên tỉnh cũ còn former; seed thiếu old_area_id vẫn phân giải current; tỉnh hiện hành không bị gắn former giả. Nâng fakeSql bằng tùy chọn callback rows theo text, mặc định giữ tương thích `fakeSql(rows, calls)`; không dùng một mảng alias cho mọi SELECT.
+- [x] **5.2** Chạy `pnpm --filter @mapslibvn/api test`, xác nhận đỏ có chọn lọc.
+- [x] **5.3** Resolver tra `alias_norm = ANY(keys::text[])`, join current/old; xếp theo vị trí khóa `array_position`, cấp cụ thể, nguồn seed trước; lấy **toàn bộ cạnh của nhóm thắng**, không LIMIT trước khi gom. Có tỉnh/huyện phải xác minh old ancestry/canonical province; `near` chỉ xếp hạng các đích hợp lệ, không thay thế điều kiện địa phương. Không match được khóa phường cụ thể thì không coi khóa tỉnh fallback là bằng chứng đã đổi đúng phường.
+- [x] **5.4** Truyền scope vào context, chuyển điều kiện ward ở anchors/interpolate sang `= ANY(...::text[])`, street sang `&& ...::text[]`. Giữ OR ward IS NULL ở 1/3 nhưng nếu đã có old area phải kiểm geometry và tỉnh; không cho NULL trở thành đường thoát sang tỉnh khác. Áp scope cho alley qua street cha và kiểm point kết quả; interpolation chỉ ghép hai mốc cùng vùng hợp lệ, query projection street cũng mang scope.
 
 ```ts
 // Fragment dùng trong truy vấn anchor; oldArea.id là tham số, không nối chuỗi SQL.
@@ -222,9 +222,9 @@ sql`AND EXISTS (SELECT 1 FROM admin_area_old old
     AND ST_Covers(old.geom, address_anchor.geom))`;
 ```
 
-- [ ] **5.5** Kết quả đường/địa chỉ ghi matched/former theo alias thực dùng; display dùng tên mới đọc từ vùng đích, không lặp parsed.ward cũ. Với street xuyên nhiều vùng, chọn điểm/đoạn trong scope; không dùng midpoint ngoài vùng rồi báo khớp. `former` không đổi source precision/confidence.
-- [ ] **5.6** Bước admin tách current exact khỏi historical: current ward exact có ngữ cảnh được ưu tiên; quận cũ đã nhận diện trả một old bbox `district`, confidence 0.2, nhãn `(trước 07/2025)`. Legacy `admin_area.level=6` chưa được chứng minh historical vẫn giữ hành vi hiện tại của test. Phường cũ 1–n không có địa chỉ cụ thể trả vùng cũ `ward`, tránh tùy tiện chọn phường mới lớn nhất. “Thủ Dầu Một” hiện nằm trong alias tỉnh của `provinces.json`, nên resolver phải thử `adminOriginal` với old L6 trước khi chấp nhận tỉnh đã canonicalize; thêm test “Thành phố Thủ Dầu Một” và tên trần. Tên vùng chưa được parser nhận diện cần thử khóa raw query ở fallback admin.
-- [ ] **5.7** DB acceptance nhỏ: hai anchors cùng số/đường ở hai tỉnh, có anchor ward NULL ngoài old polygon; phải chọn đúng. Test cả rooftop, alley, interpolated, street, district fallback; input mới không alias giữ hành vi. Chạy API unit + API DB; cập nhật DEVLOG, commit `feat(api): phân giải alias hành chính trước geocode`.
+- [x] **5.5** Kết quả đường/địa chỉ ghi matched/former theo alias thực dùng; display dùng tên mới đọc từ vùng đích, không lặp parsed.ward cũ. Với street xuyên nhiều vùng, chọn điểm/đoạn trong scope; không dùng midpoint ngoài vùng rồi báo khớp. `former` không đổi source precision/confidence.
+- [x] **5.6** Bước admin tách current exact khỏi historical: current ward exact có ngữ cảnh được ưu tiên; quận cũ đã nhận diện trả một old bbox `district`, confidence 0.2, nhãn `(trước 07/2025)`. Legacy `admin_area.level=6` chưa được chứng minh historical vẫn giữ hành vi hiện tại của test. Phường cũ 1–n không có địa chỉ cụ thể trả vùng cũ `ward`, tránh tùy tiện chọn phường mới lớn nhất. “Thủ Dầu Một” hiện nằm trong alias tỉnh của `provinces.json`, nên resolver phải thử `adminOriginal` với old L6 trước khi chấp nhận tỉnh đã canonicalize; thêm test “Thành phố Thủ Dầu Một” và tên trần. Tên vùng chưa được parser nhận diện cần thử khóa raw query ở fallback admin.
+- [x] **5.7** DB acceptance nhỏ: hai anchors cùng số/đường ở hai tỉnh, có anchor ward NULL ngoài old polygon; phải chọn đúng. Test cả rooftop, alley, interpolated, street, district fallback; input mới không alias giữ hành vi. Chạy API unit + API DB; cập nhật DEVLOG, commit `feat(api): phân giải alias hành chính trước geocode`.
 
 ## Task 6: Autocomplete area, nhóm quận cũ và bbox
 

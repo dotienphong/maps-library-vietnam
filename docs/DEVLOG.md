@@ -5,6 +5,16 @@ commit với code).
 
 ## 1. Trạng thái hiện tại
 
+- **06/09/2026 — Alias hành chính Task 5 hoàn tất:** geocode phân giải alias trước thang
+  rooftop → alley → interpolation → street → admin, lấy toàn bộ đích của nhóm alias thắng và
+  giữ scope theo ward/province cùng polygon vùng cũ. Kết quả dùng tên hiện hành, giữ `former`;
+  truy vấn chỉ có quận/phường cũ trả đúng bbox lịch sử với nhãn `(trước 07/2025)`. Fixture DB
+  khóa trường hợp hai địa chỉ trùng số/đường ở hai tỉnh, ward NULL ngoài polygon và đủ bốn bậc
+  rooftop/alley/interpolated/street. Suite API DB thật 3 file/27 test xanh; unit tập trung 15 test
+  và typecheck xanh. Suite cũng phát hiện cache place cũ sau auto/admin approve; route giờ xóa
+  cache đồng bộ để GET ngay thấy dữ liệu vừa duyệt. Bước tiếp: Task 6 autocomplete `area` có
+  grouping alias cũ và bbox.
+
 - **06/09/2026 — Alias hành chính Task 4 hoàn tất:** coordinator dựng
   current + old + alias staging rồi publish cả ba trong một transaction; standalone old+alias dùng
   cùng advisory lock. Overlay giữ riêng raw coverage/discarded share, lọc sliver L8 5%, không lọc

@@ -1,7 +1,7 @@
 import { attributionHtml, attributionText } from '@mapslibvn/core';
 import { Hono } from 'hono';
 import { requireAuth } from '../auth';
-import { cachedJson } from '../cache';
+import { cachedJson, placeCacheUrl } from '../cache';
 import { getSql } from '../db';
 import type { AppEnv } from '../env';
 import { ApiError } from '../errors';
@@ -13,7 +13,7 @@ export const places = new Hono<AppEnv>();
 places.get('/v1/places/:id', requireAuth(), quotaMiddleware('places'), async (c) => {
   const id = c.req.param('id');
   if (!id) throw new ApiError(400, 'invalid_request', 'id POI bắt buộc');
-  const cacheUrl = `https://cache.mapslibvn/place?id=${encodeURIComponent(id)}`;
+  const cacheUrl = placeCacheUrl(id);
   try {
     return await cachedJson(c.executionCtx, cacheUrl, 3600, 7200, async () => {
       const sql = getSql(c.env);

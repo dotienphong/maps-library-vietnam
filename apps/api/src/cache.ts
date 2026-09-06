@@ -1,5 +1,12 @@
 import { ApiError } from './errors';
 
+export const placeCacheUrl = (id: string): string =>
+  `https://cache.mapslibvn/place?id=${encodeURIComponent(id)}`;
+
+export async function invalidateCachedJson(cacheUrl: string): Promise<boolean> {
+  return caches.default.delete(new Request(cacheUrl));
+}
+
 /**
  * Cache API với stale-if-error thủ công (spec 6.6): lưu với max-age = staleSec,
  * ghi mốc thời gian vào header; đọc ra tự phân biệt "tươi" (≤ freshSec) và "stale".
