@@ -119,6 +119,28 @@ describe('overlay ranh giới hành chính cũ', () => {
       await sql`SELECT count(*)::int AS "overlaySurvivedSeedMiss"
       FROM admin_alias_new WHERE source='overlay' AND old_area_id=${oldIds[2]}`;
     expect(overlaySurvivedSeedMiss).toBeGreaterThan(0);
+    expect(report.osmTagSource.available).toBe(true);
+  });
+
+  // Cổng 6.5 phát hiện: DB production không có bảng raw nào (`osm_admin_raw` chỉ tồn tại sau khi
+  // nhánh ingest OSM hiện hành chạy), nên `admin-old.mjs` chạy độc lập chết với 42P01. Thiếu raw
+  // phải bỏ nguồn osm_tag và ghi rõ vào report — không nổ, cũng không bỏ lặng lẽ.
+  it('thiếu osm_admin_raw thì bỏ nguồn osm_tag và ghi rõ vào report', async () => {
+    await sql.unsafe('ALTER TABLE osm_admin_raw RENAME TO osm_admin_raw_hidden');
+    try {
+      const report = await buildOldAdmin(sql, { currentTable: 'admin_area', fixture: true });
+      expect(report.osmTagSource.available).toBe(false);
+      expect(report.osmTagSource.reason).toMatch(/osm_admin_raw/);
+      const [{ tagAliases }] = await sql`SELECT count(*)::int AS "tagAliases"
+        FROM admin_alias_new WHERE source='osm_tag'`;
+      expect(tagAliases).toBe(0);
+      // Nguồn overlay vẫn phải chạy đủ: thiếu osm_tag không được làm rỗng alias.
+      const [{ overlayAliases }] = await sql`SELECT count(*)::int AS "overlayAliases"
+        FROM admin_alias_new WHERE source='overlay'`;
+      expect(overlayAliases).toBeGreaterThan(0);
+    } finally {
+      await sql.unsafe('ALTER TABLE osm_admin_raw_hidden RENAME TO osm_admin_raw');
+    }
   });
 
   it('publish lỗi giữ nguyên đồng thời cả ba bảng', async () => {

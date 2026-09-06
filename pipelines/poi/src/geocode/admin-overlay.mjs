@@ -160,8 +160,24 @@ export async function buildOldAdmin(sql, { currentTable, fixture = FIXTURE, sour
     aliases.map((r) => [r.key, r.level, r.target, '2025-06-30', r.share, 'overlay', r.oldId]),
   );
   // Tag hiện hành là alias bổ sung, không mặc định là tên đã hết hiệu lực.
-  const tagRows = await sql.unsafe(`SELECT a.id,r.level,r.tags FROM ${currentTable} a
-    JOIN osm_admin_raw r ON r.osm_relation_id=a.osm_relation_id`);
+  // `osm_admin_raw` chỉ tồn tại sau khi nhánh ingest OSM hiện hành chạy (`replaceRawTables`).
+  // Chạy `admin-old.mjs` độc lập trên DB chỉ có bảng đã publish thì không có bảng này — bỏ nguồn
+  // osm_tag và ghi vào report, không để nổ 42P01 (cổng 6.5 gặp đúng lỗi này trên DB production)
+  // và cũng không bỏ lặng lẽ.
+  const [rawTable] = await sql`SELECT to_regclass('osm_admin_raw') AS present`;
+  const osmTagSource =
+    rawTable?.present == null
+      ? {
+          available: false,
+          reason:
+            'bảng osm_admin_raw không tồn tại — chạy nhánh ingest OSM hiện hành trước nếu cần alias source=osm_tag',
+        }
+      : { available: true };
+  if (!osmTagSource.available) console.warn(`⚠ bỏ nguồn osm_tag: ${osmTagSource.reason}`);
+  const tagRows = osmTagSource.available
+    ? await sql.unsafe(`SELECT a.id,r.level,r.tags FROM ${currentTable} a
+        JOIN osm_admin_raw r ON r.osm_relation_id=a.osm_relation_id`)
+    : [];
   /** @type {Map<string,Set<string>>} */
   const tagCandidates = new Map();
   for (const row of tagRows)
@@ -273,6 +289,7 @@ export async function buildOldAdmin(sql, { currentTable, fixture = FIXTURE, sour
     aliasCount: await countRows(sql, 'admin_alias_new'),
     countsByLevel: Object.fromEntries(levelCounts.map((row) => [`L${row.level}`, row.count])),
     countsBySource: Object.fromEntries(sourceCounts.map((row) => [row.source, row.count])),
+    osmTagSource,
     coverage,
     unmatched,
     coverageGaps,

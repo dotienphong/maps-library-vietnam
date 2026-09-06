@@ -141,7 +141,52 @@ pipeline current trước. Đây là quyết định thuộc Task 4, chưa sửa
 tức **không thể phát hành alias toàn quốc**, bất kể code đã xong. Đây đúng là mục còn treo trong
 `admin-old-source.json` (`issues[1]`, `resolution: null`).
 
-## 6. Phải đo lại khi nào
+## 6. Sau khi sửa selectivity — đo lại cùng bộ dữ liệu
+
+Bản sửa: `areaCandidates` chia bậc. **Bậc 1 chỉ dùng tiền tố**; chỉ khi bậc 1 **không có kết quả
+nào** mới leo lên bậc 2 có `<%`. Lý do không leo lên khi bậc 1 *ít* kết quả: `quan 10` có đúng 18
+dòng tiền tố, leo lên sẽ trả 11.072 dòng sim thấp — vừa chậm vừa vô ích. `<%` vẫn giữ vì là thứ duy
+nhất cứu lỗi gõ (`quna 10`: 0 hit tiền tố, 12 hit fuzzy).
+
+Đo lại bằng `6-5-explain-gen.mjs --tier1` trên đúng DB và dữ liệu ở mục 2:
+
+| Query | full bậc 2 (cũ) | full bậc 1 (mới) | Cải thiện |
+|---|---:|---:|---:|
+| `Quận 10` | 81,915 ms | **0,269 ms** | 304× |
+| `Tân Thành` | 100,931 ms | **1,032 ms** | 98× |
+| `Phường Nguyễn An Ninh, …` | 13,773 ms | **0,120 ms** | 115× |
+| `qu` | 116,935 ms | **41,926 ms** | 2,8× |
+
+Số dòng ứng viên nhánh alias giảm tương ứng: `Quận 10` 7.700 → 18, `Tân Thành` 6.383 → 10,
+alias dài 77 → 1, `qu` 11.664 → 7.552.
+
+**Trường hợp xấu nhất còn lại là `qu` (41,9 ms).** Không phải do fuzzy mà vì **7.552 alias thật sự
+bắt đầu bằng "qu"** — mọi khóa `quan …` toàn quốc. Grouping chiếm 37,3 ms trong số đó. Đề xuất chưa
+làm: bỏ hẳn nhánh alias khi `queryNorm` ngắn hơn 3 ký tự (nhánh current vẫn trả lời, 0,27 ms), vì
+tiền tố 2 ký tự không định danh được vùng lịch sử và 7.552 ứng viên rồi cũng bị cắt còn 20. Đây là
+đánh đổi tính năng nên chờ PHONG quyết. Lưu ý con số này sẽ tăng khi độ phủ L8 đủ.
+
+## 7. Hai lỗi ở mục 5 — đã sửa
+
+- **Lỗi 2 (`osm_admin_raw`)**: `admin-overlay.mjs` kiểm `to_regclass('osm_admin_raw')` trước khi
+  join. Thiếu bảng thì bỏ nguồn `osm_tag`, in cảnh báo và ghi `report.osmTagSource = {available:
+  false, reason}` — không nổ 42P01 và không bỏ lặng lẽ. DB test khoá cả hai nhánh
+  (`pipelines/poi/tests/admin-old.dbtest.mjs`).
+- **Rủi ro 1 (selectivity)**: đã sửa, xem mục 6.
+
+**Chặn dữ liệu 3 (Khánh Hòa) vẫn mở — đã xác định rõ nguyên nhân:** OSM **không có** relation
+`admin_level=4` cho Khánh Hòa, cả ở snapshot 01/2025 (62/63 tỉnh cũ, không tỉnh nào tên chứa "Kh")
+lẫn ở OSM hiện tại (Overpass truy vấn `[admin_level=4][name="Khánh Hòa"]` trả về rỗng). Vì
+`admin.mjs` chỉ nhận L6/L8 có point-on-surface nằm trong một L4 thuộc danh sách 34 tỉnh, toàn bộ
+phường của vùng này bị loại — đúng "64 relation ngoài retained province" mà M2 T8 đã ghi. Không có
+geometry ODbL nào trong tay để dựng, kể cả cách hợp Khánh Hòa cũ + Ninh Thuận cũ (vì bản thân
+Khánh Hòa cũ cũng vắng). Ba đường ra, đều cần PHONG quyết vì liên quan nguồn/giấy phép:
+đóng góp hoặc chờ OSM upstream; mua/xin nguồn ranh giới có giấy phép tương thích ODbL; hoặc dựng
+ranh giới tỉnh bằng **hợp các phường thuộc tỉnh** (đúng định nghĩa pháp lý, dữ liệu ODbL) — cách
+này cần sửa `admin.mjs` để bootstrap L4 từ L6/L8 khi thiếu relation cha, và cần biết OSM hiện có đủ
+phường Khánh Hòa hay không (chưa kiểm được: Overpass hết thời gian chờ ở truy vấn theo bbox).
+
+## 8. Phải đo lại khi nào
 
 Số liệu ở đây đủ để trả lời câu hỏi index/row count/time của bước 6.5, nhưng **không thay thế**
 benchmark phát hành. Task 8.5/8.6 vẫn phải đo lại trên bộ dữ liệu đã qua cổng độ phủ, cùng DB

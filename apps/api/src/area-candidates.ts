@@ -6,8 +6,11 @@ type Sql = ReturnType<typeof getSql>;
 const point = (sql: Sql, near: CandidateQueryInput['near']) =>
   near ? sql`ST_SetSRID(ST_MakePoint(${near.lng},${near.lat}),4326)` : null;
 
-/** Gợi ý vùng hiện hành và vùng lịch sử; grouping diễn ra trong DB trước LIMIT 20. */
-export function areaCandidates(sql: Sql, input: CandidateQueryInput): Promise<CandidateRow[]> {
+/**
+ * Gợi ý vùng hiện hành và vùng lịch sử; grouping diễn ra trong DB trước LIMIT 20.
+ * `fuzzy=false` là bậc 1 (chỉ tiền tố), `fuzzy=true` là bậc 2 (thêm `<%`) — xem `areaCandidates`.
+ */
+function areaQuery(sql: Sql, input: CandidateQueryInput, fuzzy: boolean): Promise<CandidateRow[]> {
   const { queryNorm, queryCore, prefixPattern, near } = input;
   const aliasLevel = input.parsed.ward
     ? 8
@@ -21,6 +24,14 @@ export function areaCandidates(sql: Sql, input: CandidateQueryInput): Promise<Ca
   const distance = nearPoint
     ? sql`ST_DistanceSphere(ST_PointOnSurface(candidate_geom),${nearPoint})`
     : sql`NULL::float8`;
+  // Bậc 1 bỏ `<%`: trên 36.456 alias toàn quốc, word_similarity bắt mọi alias chứa từ hành chính
+  // phổ biến ("quan", "thanh pho"), nên `quan 10` khớp 11.072 dòng thay vì 18 dòng của tiền tố.
+  const currentMatch = fuzzy
+    ? sql`(${queryCore} <% a.name_norm OR a.name_norm LIKE ${currentPrefix})`
+    : sql`a.name_norm LIKE ${currentPrefix}`;
+  const aliasMatch = fuzzy
+    ? sql`(${queryNorm} <% aa.alias_norm OR aa.alias_norm LIKE ${prefixPattern})`
+    : sql`aa.alias_norm LIKE ${prefixPattern}`;
 
   return sql<CandidateRow[]>`WITH current_hits AS (
       SELECT concat('current:',a.id) dedup_key,1 source_order,a.name,
@@ -30,7 +41,7 @@ export function areaCandidates(sql: Sql, input: CandidateQueryInput): Promise<Ca
         starts_with(a.name_norm,${queryCore}) prefix,a.geom candidate_geom
       FROM admin_area a
       LEFT JOIN admin_area parent ON parent.id=a.parent_id
-      WHERE (${queryCore} <% a.name_norm OR a.name_norm LIKE ${currentPrefix})
+      WHERE ${currentMatch}
         ${aliasLevel ? sql`AND a.level=${aliasLevel}` : sql``}
     ), alias_edges AS (
       SELECT coalesce('old:'||aa.old_area_id,'alias:'||aa.level||':'||aa.alias_norm) group_key,
@@ -41,7 +52,7 @@ export function areaCandidates(sql: Sql, input: CandidateQueryInput): Promise<Ca
       JOIN admin_area current ON current.id=aa.admin_area_id
       WHERE aa.source IN ('overlay','seed')
         ${aliasLevel ? sql`AND aa.level=${aliasLevel}` : sql``}
-        AND (${queryNorm} <% aa.alias_norm OR aa.alias_norm LIKE ${prefixPattern})
+        AND ${aliasMatch}
     ), alias_grouped AS (
       SELECT group_key,old_area_id,level,min(alias_norm) alias_norm,
         min(current_id) representative_id,
@@ -88,4 +99,24 @@ export function areaCandidates(sql: Sql, input: CandidateQueryInput): Promise<Ca
     WHERE position=1 AND candidate_geom IS NOT NULL
     ORDER BY sim DESC,prefix DESC,name,dedup_key
     LIMIT ${20}`;
+}
+
+/**
+ * Bậc 1 chỉ dùng tiền tố; chỉ khi bậc 1 **không có kết quả nào** mới leo lên bậc 2 có `<%`.
+ *
+ * Cổng 6.5 đo trên 36.456 alias toàn quốc cho thấy gộp `<%` vào bậc 1 tốn 61–79 ms vì alias_norm
+ * chứa sẵn từ hành chính và tên tỉnh, nên word_similarity kém chọn lọc: `quan 10` → 11.072 dòng,
+ * `tan thanh` → 6.383 dòng. Bậc 1 tiền tố cho đúng 18 và 10 dòng (0,09 và 0,06 ms).
+ *
+ * Không leo lên bậc 2 khi bậc 1 *ít* kết quả (chỉ khi rỗng): `quan 10` chỉ có 18 dòng tiền tố
+ * nhưng leo lên sẽ trả về 11.072 dòng gần như toàn rác có sim thấp — vừa chậm vừa vô ích.
+ * `<%` vẫn cần thiết vì nó là thứ duy nhất cứu lỗi gõ: `quna 10` cho 0 hit tiền tố, 12 hit fuzzy.
+ */
+export async function areaCandidates(
+  sql: Sql,
+  input: CandidateQueryInput,
+): Promise<CandidateRow[]> {
+  const prefixHits = await areaQuery(sql, input, false);
+  if (prefixHits.length > 0) return prefixHits;
+  return areaQuery(sql, input, true);
 }

@@ -12,11 +12,11 @@
 
 **Trạng thái:** Task 0–6 hoàn tất ngày 06/09/2026, gồm cổng EXPLAIN 6.5 đã đo ở quy mô toàn quốc ([hồ sơ](../../evidence/admin-alias/6-5-explain-autocomplete-area.md)). Task 7 là bước code kế tiếp. Hạng mục 2 đã có plan riêng và đã đóng. Chưa tuyên bố độ phủ toàn quốc vì ledger nguồn còn khoảng thiếu Khánh Hòa/Jan→Jun.
 
-**Ba việc 6.5 phát hiện, phải xử trước khi phát hành (chưa sửa trong Task 6):**
+**Ba việc 6.5 phát hiện — hai đã sửa, một còn chặn:**
 
-1. **Selectivity nhánh alias** — `<%` khớp 32% bảng với query 2 ký tự; nhánh area tốn 82–117 ms trên bộ mới 40% độ phủ. Cổng 8.6 (`p95 ≤ baseline+50ms`) có nguy cơ trượt. Nhánh POI có `useSimilarityBranch()` chặn query dài, nhánh alias chưa có chặn query ngắn.
-2. **`admin-old.mjs` standalone hỏng khi thiếu `osm_admin_raw`** — `admin-overlay.mjs:163` join thẳng bảng raw, mà DB production không có bảng đó. Mâu thuẫn Task 4.6, ảnh hưởng thứ tự phát hành 9.2. Cần chốt: guard + ghi report, hay báo lỗi yêu cầu chạy đủ pipeline current trước.
-3. **Current thiếu Khánh Hòa** — `admin_area` chỉ có 33/34 tỉnh (không có Khánh Hòa, Ninh Thuận, Phú Yên), làm 70/72 vùng unmatched và `seed_miss=1`. Cổng QA alias còn đỏ thì không publish được alias toàn quốc.
+1. **[ĐÃ SỬA]** **Selectivity nhánh alias** — `areaCandidates` chia bậc: bậc 1 chỉ tiền tố, chỉ leo lên `<%` khi bậc 1 rỗng. Đo lại cùng bộ dữ liệu: `Quận 10` 81,9 → **0,269 ms**, `Tân Thành` 100,9 → **1,032 ms**, alias dài 13,8 → **0,120 ms**, `qu` 116,9 → **41,9 ms**. Còn lại: `qu` 41,9 ms vì 7.552 alias thật sự bắt đầu bằng "qu" — đề xuất bỏ nhánh alias khi query < 3 ký tự, chờ PHONG quyết vì là đánh đổi tính năng.
+2. **[ĐÃ SỬA]** **`admin-old.mjs` standalone hỏng khi thiếu `osm_admin_raw`** — guard bằng `to_regclass`, bỏ nguồn `osm_tag` kèm cảnh báo và `report.osmTagSource`, không nổ 42P01 và không bỏ lặng lẽ. DB test khoá cả hai nhánh.
+3. **[CÒN CHẶN — nguồn]** **Thiếu Khánh Hòa** — OSM **không có** relation `admin_level=4` cho Khánh Hòa, cả ở snapshot 01/2025 (62/63 tỉnh cũ) lẫn OSM hiện tại (Overpass trả rỗng), nên không dựng được kể cả bằng cách hợp Khánh Hòa cũ + Ninh Thuận cũ. `admin_area` còn 33/34 tỉnh, cổng QA alias còn đỏ (70/72 unmatched + `seed_miss=1` đều là Ninh Thuận) nên **không publish được alias toàn quốc**. Ba đường ra đều cần PHONG quyết về nguồn/giấy phép — xem mục 7 hồ sơ 6.5.
 
 ## Global Constraints
 

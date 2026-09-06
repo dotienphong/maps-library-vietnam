@@ -5,6 +5,30 @@ commit với code).
 
 ## 1. Trạng thái hiện tại
 
+- **06/09/2026 — Sửa hai việc 6.5 phát hiện; việc thứ ba chặn ở nguồn OSM:**
+  **(1) Selectivity nhánh alias.** `areaCandidates` chia bậc: bậc 1 chỉ tiền tố, chỉ leo lên `<%`
+  khi bậc 1 **rỗng** — không leo khi bậc 1 *ít* kết quả, vì `quan 10` có đúng 18 dòng tiền tố mà
+  leo lên sẽ trả 11.072 dòng sim thấp, vừa chậm vừa vô ích. `<%` vẫn giữ vì là thứ duy nhất cứu lỗi
+  gõ: đo trên DB toàn quốc, `quna 10` cho 0 hit tiền tố và 12 hit fuzzy. Đo lại cùng DB/dữ liệu:
+  `Quận 10` 81,9 → **0,269 ms** (304×), `Tân Thành` 100,9 → **1,032 ms** (98×), alias dài 13,8 →
+  **0,120 ms** (115×), `qu` 116,9 → **41,9 ms** (2,8×). Số ứng viên nhánh alias: 7.700 → 18,
+  6.383 → 10, 77 → 1, 11.664 → 7.552. Trường hợp xấu nhất còn lại là `qu`, **không** do fuzzy mà vì
+  7.552 alias thật sự bắt đầu bằng "qu" (grouping chiếm 37,3 ms); đề xuất bỏ nhánh alias khi query
+  < 3 ký tự chưa làm vì là đánh đổi tính năng, chờ PHONG.
+  **(2) `osm_admin_raw`.** `admin-overlay.mjs` kiểm `to_regclass` trước khi join; thiếu bảng thì bỏ
+  nguồn `osm_tag`, in cảnh báo và ghi `report.osmTagSource={available:false,reason}`. DB test khoá
+  cả hai nhánh và tái hiện đúng lỗi production (`42P01`) ở bước RED.
+  **(3) Khánh Hòa — chặn ở nguồn, đã xác định dứt điểm.** OSM **không có** relation
+  `admin_level=4` cho Khánh Hòa: snapshot 01/2025 chỉ có 62/63 tỉnh cũ và **không tỉnh nào tên chứa
+  "Kh"**, còn OSM hiện tại truy vấn Overpass `[admin_level=4][name="Khánh Hòa"]` trả về rỗng. Nên
+  cách hợp Khánh Hòa cũ + Ninh Thuận cũ cũng bất khả vì bản thân Khánh Hòa cũ vắng. Khớp đúng ghi
+  chú M2 T8: `admin.mjs` chỉ nhận L6/L8 có point-on-surface trong một L4 thuộc 34 tỉnh, nên phường
+  vùng này bị loại ("64 relation ngoài retained province"). 62 phường cũ Ninh Thuận trong snapshot
+  khớp đúng 62 L8 unmatched của report. Ba đường ra (chờ/đóng góp OSM upstream; nguồn có giấy phép
+  tương thích ODbL; bootstrap L4 bằng hợp các phường) đều cần PHONG quyết về nguồn và giấy phép.
+  Gate: unit 66 file/641 test, API 23 file/119 test, API DB 3 file/29 test, `admin-old.dbtest`
+  4/4 — tất cả xanh; lint và typecheck 14/14 sạch.
+
 - **06/09/2026 — Cổng 6.5 đã đo xong ở quy mô toàn quốc; Task 0–6 đóng:** dựng DB dùng-một-lần
   `mapslibvn_alias_scale` trên **chính instance Postgres máy chủ** (chung `shared_buffers=6GB`,
   `work_mem=32MB`) thay vì đụng DB production — `apps/api/wrangler.toml` chỉ có một Hyperdrive

@@ -1,6 +1,7 @@
 // Sinh SQL EXPLAIN cho cổng 6.5, bám đúng apps/api/src/area-candidates.ts.
 // Dùng PREPARE/EXECUTE để giữ bind parameter giống postgres.js, không inline literal.
-import { nameCore, normalizeVi, parseAddress } from '@mapslibvn/core';
+// Đường dẫn tương đối vì file này nằm ngoài workspace package; cần `pnpm --filter @mapslibvn/core build` trước.
+import { nameCore, normalizeVi, parseAddress } from '../../../packages/core/dist/index.js';
 
 const lit = (value) => `'${String(value).replace(/'/g, "''")}'`;
 
@@ -15,6 +16,11 @@ function paramsFor(query) {
 }
 
 // $1 queryCore, $2 queryNorm, $3 currentPrefix, $4 prefixPattern, $5 aliasLevel
+const currentMatch = () =>
+  fuzzy ? '($1 <% a.name_norm OR a.name_norm LIKE $3)' : 'a.name_norm LIKE $3';
+const aliasMatch = () =>
+  fuzzy ? '($2 <% aa.alias_norm OR aa.alias_norm LIKE $4)' : 'aa.alias_norm LIKE $4';
+
 const currentHits = (aliasLevel) => `SELECT concat('current:',a.id) dedup_key,1 source_order,a.name,
         CASE WHEN a.level=4 THEN '' ELSE coalesce(parent.name,'') END secondary,
         CASE WHEN a.level=4 THEN 'province' ELSE 'ward' END AS precision,
@@ -22,7 +28,7 @@ const currentHits = (aliasLevel) => `SELECT concat('current:',a.id) dedup_key,1 
         starts_with(a.name_norm,$1) prefix,a.geom candidate_geom
       FROM admin_area a
       LEFT JOIN admin_area parent ON parent.id=a.parent_id
-      WHERE ($1 <% a.name_norm OR a.name_norm LIKE $3)
+      WHERE ${currentMatch()}
         ${aliasLevel ? 'AND a.level=$5' : ''}`;
 
 const aliasEdges = (
@@ -35,7 +41,7 @@ const aliasEdges = (
       JOIN admin_area current ON current.id=aa.admin_area_id
       WHERE aa.source IN ('overlay','seed')
         ${aliasLevel ? 'AND aa.level=$5' : ''}
-        AND ($2 <% aa.alias_norm OR aa.alias_norm LIKE $4)`;
+        AND ${aliasMatch()}`;
 
 const aliasGrouped = `SELECT group_key,old_area_id,level,min(alias_norm) alias_norm,
         min(current_id) representative_id,
@@ -97,10 +103,13 @@ const branches = (aliasLevel) => ({
   grouping: `WITH alias_edges AS (${aliasEdges(aliasLevel)}) ${aliasGrouped}`,
 });
 
+// --tier1: chỉ tiền tố (bậc 1 sau bản sửa selectivity). Không có cờ: bậc 2, có `<%`.
+const fuzzy = !process.argv.includes('--tier1');
 const lines = [];
 lines.push('\\pset pager off');
 lines.push('\\timing off');
-for (const [index, rawQuery] of process.argv.slice(2).entries()) {
+const rawQueries = process.argv.slice(2).filter((value) => value !== '--tier1');
+for (const [index, rawQuery] of rawQueries.entries()) {
   const p = paramsFor(rawQuery);
   const signature = p.aliasLevel ? '(text,text,text,text,int)' : '(text,text,text,text)';
   const args = [p.queryCore, p.queryNorm, p.currentPrefix, p.prefixPattern];
@@ -111,7 +120,7 @@ for (const [index, rawQuery] of process.argv.slice(2).entries()) {
   for (const [branch, sql] of Object.entries(branches(p.aliasLevel))) {
     const name = `q${index}_${branch}`;
     lines.push(
-      `\\echo '===== QUERY ${JSON.stringify(rawQuery)} | BRANCH ${branch} | queryNorm=${p.queryNorm} queryCore=${p.queryCore} aliasLevel=${p.aliasLevel ?? 'null'} ====='`,
+      `\\echo '===== QUERY ${JSON.stringify(rawQuery)} | BRANCH ${branch} | tier=${fuzzy ? 2 : 1} | queryNorm=${p.queryNorm} queryCore=${p.queryCore} aliasLevel=${p.aliasLevel ?? 'null'} ====='`,
     );
     lines.push(`PREPARE ${name}${signature} AS ${sql};`);
     // Chạy trước một lần cho ấm cache rồi mới đo, để số liệu không lẫn chi phí đọc đĩa lần đầu.
