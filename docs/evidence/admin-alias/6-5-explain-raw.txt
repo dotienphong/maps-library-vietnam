@@ -1,0 +1,1536 @@
+Pager usage is off.
+Timing is off.
+===== QUERY "Quận 10" | BRANCH full | queryNorm=quan 10 queryCore=10 aliasLevel=6 =====
+PREPARE
+                                                                                                                      QUERY PLAN                                                                                                                      
+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Limit  (cost=6752.23..6787.83 rows=20 width=257) (actual time=113.018..114.900 rows=20 loops=1)
+   Buffers: shared hit=13453
+   ->  Result  (cost=6752.23..6794.95 rows=24 width=257) (actual time=112.940..114.773 rows=20 loops=1)
+         Buffers: shared hit=13453
+         ->  Sort  (cost=6752.23..6752.29 rows=24 width=244) (actual time=110.355..110.707 rows=20 loops=1)
+               Sort Key: deduped.sim DESC, deduped.prefix DESC, deduped.name, deduped.dedup_key
+               Sort Method: top-N heapsort  Memory: 78kB
+               Buffers: shared hit=12919
+               ->  Subquery Scan on deduped  (cost=6556.44..6751.68 rows=24 width=244) (actual time=109.601..110.182 rows=359 loops=1)
+                     Filter: ((deduped.candidate_geom IS NOT NULL) AND (deduped."position" = 1))
+                     Buffers: shared hit=12878
+                     ->  WindowAgg  (cost=6556.44..6690.66 rows=4881 width=180) (actual time=109.537..110.072 rows=359 loops=1)
+                           Run Condition: (row_number() OVER (?) <= 1)
+                           Buffers: shared hit=12878
+                           ->  Sort  (cost=6556.44..6568.64 rows=4881 width=172) (actual time=108.959..109.315 rows=359 loops=1)
+                                 Sort Key: (concat('current:', a.id)), (1), (GREATEST(word_similarity('10'::text, a.name_norm), similarity(a.name_norm, '10'::text))) DESC, (starts_with(a.name_norm, '10'::text)) DESC, a.name
+                                 Sort Method: quicksort  Memory: 408kB
+                                 Buffers: shared hit=12878
+                                 ->  Result  (cost=0.56..6257.40 rows=4881 width=172) (actual time=104.911..108.368 rows=359 loops=1)
+                                       Buffers: shared hit=12875
+                                       ->  Append  (cost=0.56..6208.59 rows=4881 width=172) (actual time=104.910..108.326 rows=359 loops=1)
+                                             Buffers: shared hit=12875
+                                             ->  Nested Loop Left Join  (cost=0.56..4.40 rows=1 width=15144) (actual time=0.155..0.157 rows=0 loops=1)
+                                                   Buffers: shared hit=5
+                                                   ->  Index Scan using admin_area_level_idx on admin_area a  (cost=0.28..1.88 rows=1 width=15066) (actual time=0.083..0.083 rows=0 loops=1)
+                                                         Index Cond: (level = 6)
+                                                         Filter: (('10'::text <% name_norm) OR (name_norm ~~ '10%'::text))
+                                                         Buffers: shared hit=5
+                                                   ->  Index Scan using admin_area_pkey on admin_area parent  (cost=0.28..2.50 rows=1 width=25) (never executed)
+                                                         Index Cond: (id = a.parent_id)
+                                             ->  Hash Join  (cost=4405.94..6179.79 rows=4880 width=169) (actual time=104.692..108.070 rows=359 loops=1)
+                                                   Hash Cond: (g.representative_id = representative.id)
+                                                   Buffers: shared hit=12870
+                                                   ->  Merge Right Join  (cost=3115.96..4645.19 rows=4880 width=14232) (actual time=96.654..99.700 rows=359 loops=1)
+                                                         Merge Cond: (old.id = g.old_area_id)
+                                                         Buffers: shared hit=11654
+                                                         ->  Index Scan using admin_area_old_pkey on admin_area_old old  (cost=0.28..1444.06 rows=4900 width=14117) (actual time=0.025..2.540 rows=4855 loops=1)
+                                                               Buffers: shared hit=4140
+                                                         ->  Sort  (cost=3115.68..3127.88 rows=4880 width=123) (actual time=96.264..96.606 rows=359 loops=1)
+                                                               Sort Key: g.old_area_id
+                                                               Sort Method: quicksort  Memory: 146kB
+                                                               Buffers: shared hit=7514
+                                                               ->  Subquery Scan on g  (cost=2424.54..2816.71 rows=4880 width=123) (actual time=65.396..96.481 rows=359 loops=1)
+                                                                     Buffers: shared hit=7514
+                                                                     ->  GroupAggregate  (cost=2424.54..2767.91 rows=4880 width=123) (actual time=65.395..96.448 rows=359 loops=1)
+                                                                           Group Key: (COALESCE(('old:'::text || (aa.old_area_id)::text), ((('alias:'::text || (aa.level)::text) || ':'::text) || aa.alias_norm))), aa.old_area_id
+                                                                           Buffers: shared hit=7514
+                                                                           ->  Sort  (cost=2424.54..2437.81 rows=5310 width=87) (actual time=63.905..64.546 rows=7700 loops=1)
+                                                                                 Sort Key: (COALESCE(('old:'::text || (aa.old_area_id)::text), ((('alias:'::text || (aa.level)::text) || ':'::text) || aa.alias_norm))), aa.old_area_id, current.name
+                                                                                 Sort Method: quicksort  Memory: 944kB
+                                                                                 Buffers: shared hit=6533
+                                                                                 ->  Hash Join  (cost=1375.13..2095.99 rows=5310 width=87) (actual time=5.653..52.045 rows=7700 loops=1)
+                                                                                       Hash Cond: (aa.admin_area_id = current.id)
+                                                                                       Buffers: shared hit=1563
+                                                                                       ->  Bitmap Heap Scan on admin_alias aa  (cost=85.15..685.85 rows=5310 width=38) (actual time=3.991..48.374 rows=7700 loops=1)
+                                                                                             Recheck Cond: (('quan 10'::text <% alias_norm) OR (alias_norm ~~ 'quan 10%'::text))
+                                                                                             Rows Removed by Index Recheck: 19
+                                                                                             Filter: ((source = ANY ('{overlay,seed}'::text[])) AND (level = 6) AND (('quan 10'::text <% alias_norm) OR (alias_norm ~~ 'quan 10%'::text)))
+                                                                                             Rows Removed by Filter: 3372
+                                                                                             Heap Blocks: exact=311
+                                                                                             Buffers: shared hit=347
+                                                                                             ->  BitmapOr  (cost=85.15..85.15 rows=10635 width=0) (actual time=3.491..3.497 rows=0 loops=1)
+                                                                                                   Buffers: shared hit=36
+                                                                                                   ->  Bitmap Index Scan on admin_alias_trgm_idx  (cost=0.00..81.10 rows=10635 width=0) (actual time=3.417..3.417 rows=11091 loops=1)
+                                                                                                         Index Cond: (alias_norm %> 'quan 10'::text)
+                                                                                                         Buffers: shared hit=34
+                                                                                                   ->  Bitmap Index Scan on admin_alias_prefix_idx  (cost=0.00..1.40 rows=1 width=0) (actual time=0.043..0.043 rows=18 loops=1)
+                                                                                                         Index Cond: ((alias_norm ~>=~ 'quan 10'::text) AND (alias_norm ~<~ 'quan 11'::text))
+                                                                                                         Buffers: shared hit=2
+                                                                                       ->  Hash  (cost=1248.88..1248.88 rows=3288 width=25) (actual time=1.310..1.597 rows=3288 loops=1)
+                                                                                             Buckets: 4096  Batches: 1  Memory Usage: 216kB
+                                                                                             Buffers: shared hit=1216
+                                                                                             ->  Seq Scan on admin_area current  (cost=0.00..1248.88 rows=3288 width=25) (actual time=0.011..0.953 rows=3288 loops=1)
+                                                                                                   Buffers: shared hit=1216
+                                                   ->  Hash  (cost=1248.88..1248.88 rows=3288 width=15049) (actual time=7.292..7.293 rows=3288 loops=1)
+                                                         Buckets: 4096  Batches: 1  Memory Usage: 8526kB
+                                                         Buffers: shared hit=1216
+                                                         ->  Seq Scan on admin_area representative  (cost=0.00..1248.88 rows=3288 width=15049) (actual time=0.090..1.582 rows=3288 loops=1)
+                                                               Buffers: shared hit=1216
+ Planning:
+   Buffers: shared hit=618 dirtied=6
+ Planning Time: 32.764 ms
+ Execution Time: 128.894 ms
+(83 rows)
+
+----- lần đo thứ hai (cache ấm) -----
+                                                                                                                      QUERY PLAN                                                                                                                      
+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Limit  (cost=6752.23..6787.83 rows=20 width=257) (actual time=80.584..81.770 rows=20 loops=1)
+   Buffers: shared hit=13389
+   ->  Result  (cost=6752.23..6794.95 rows=24 width=257) (actual time=80.583..81.766 rows=20 loops=1)
+         Buffers: shared hit=13389
+         ->  Sort  (cost=6752.23..6752.29 rows=24 width=244) (actual time=80.532..80.540 rows=20 loops=1)
+               Sort Key: deduped.sim DESC, deduped.prefix DESC, deduped.name, deduped.dedup_key
+               Sort Method: top-N heapsort  Memory: 78kB
+               Buffers: shared hit=12855
+               ->  Subquery Scan on deduped  (cost=6556.44..6751.68 rows=24 width=244) (actual time=80.132..80.319 rows=359 loops=1)
+                     Filter: ((deduped.candidate_geom IS NOT NULL) AND (deduped."position" = 1))
+                     Buffers: shared hit=12849
+                     ->  WindowAgg  (cost=6556.44..6690.66 rows=4881 width=180) (actual time=80.130..80.284 rows=359 loops=1)
+                           Run Condition: (row_number() OVER (?) <= 1)
+                           Buffers: shared hit=12849
+                           ->  Sort  (cost=6556.44..6568.64 rows=4881 width=172) (actual time=80.123..80.140 rows=359 loops=1)
+                                 Sort Key: (concat('current:', a.id)), (1), (GREATEST(word_similarity('10'::text, a.name_norm), similarity(a.name_norm, '10'::text))) DESC, (starts_with(a.name_norm, '10'::text)) DESC, a.name
+                                 Sort Method: quicksort  Memory: 408kB
+                                 Buffers: shared hit=12849
+                                 ->  Result  (cost=0.56..6257.40 rows=4881 width=172) (actual time=77.119..79.313 rows=359 loops=1)
+                                       Buffers: shared hit=12849
+                                       ->  Append  (cost=0.56..6208.59 rows=4881 width=172) (actual time=77.119..79.286 rows=359 loops=1)
+                                             Buffers: shared hit=12849
+                                             ->  Nested Loop Left Join  (cost=0.56..4.40 rows=1 width=15144) (actual time=0.006..0.007 rows=0 loops=1)
+                                                   Buffers: shared hit=2
+                                                   ->  Index Scan using admin_area_level_idx on admin_area a  (cost=0.28..1.88 rows=1 width=15066) (actual time=0.005..0.005 rows=0 loops=1)
+                                                         Index Cond: (level = 6)
+                                                         Filter: (('10'::text <% name_norm) OR (name_norm ~~ '10%'::text))
+                                                         Buffers: shared hit=2
+                                                   ->  Index Scan using admin_area_pkey on admin_area parent  (cost=0.28..2.50 rows=1 width=25) (never executed)
+                                                         Index Cond: (id = a.parent_id)
+                                             ->  Hash Join  (cost=4405.94..6179.79 rows=4880 width=169) (actual time=77.112..79.258 rows=359 loops=1)
+                                                   Hash Cond: (g.representative_id = representative.id)
+                                                   Buffers: shared hit=12847
+                                                   ->  Merge Right Join  (cost=3115.96..4645.19 rows=4880 width=14232) (actual time=75.599..77.484 rows=359 loops=1)
+                                                         Merge Cond: (old.id = g.old_area_id)
+                                                         Buffers: shared hit=11631
+                                                         ->  Index Scan using admin_area_old_pkey on admin_area_old old  (cost=0.28..1444.06 rows=4900 width=14117) (actual time=0.007..1.637 rows=4855 loops=1)
+                                                               Buffers: shared hit=4140
+                                                         ->  Sort  (cost=3115.68..3127.88 rows=4880 width=123) (actual time=75.526..75.543 rows=359 loops=1)
+                                                               Sort Key: g.old_area_id
+                                                               Sort Method: quicksort  Memory: 146kB
+                                                               Buffers: shared hit=7491
+                                                               ->  Subquery Scan on g  (cost=2424.54..2816.71 rows=4880 width=123) (actual time=48.836..75.457 rows=359 loops=1)
+                                                                     Buffers: shared hit=7491
+                                                                     ->  GroupAggregate  (cost=2424.54..2767.91 rows=4880 width=123) (actual time=48.836..75.422 rows=359 loops=1)
+                                                                           Group Key: (COALESCE(('old:'::text || (aa.old_area_id)::text), ((('alias:'::text || (aa.level)::text) || ':'::text) || aa.alias_norm))), aa.old_area_id
+                                                                           Buffers: shared hit=7491
+                                                                           ->  Sort  (cost=2424.54..2437.81 rows=5310 width=87) (actual time=48.804..49.103 rows=7700 loops=1)
+                                                                                 Sort Key: (COALESCE(('old:'::text || (aa.old_area_id)::text), ((('alias:'::text || (aa.level)::text) || ':'::text) || aa.alias_norm))), aa.old_area_id, current.name
+                                                                                 Sort Method: quicksort  Memory: 944kB
+                                                                                 Buffers: shared hit=6510
+                                                                                 ->  Hash Join  (cost=1375.13..2095.99 rows=5310 width=87) (actual time=1.965..38.136 rows=7700 loops=1)
+                                                                                       Hash Cond: (aa.admin_area_id = current.id)
+                                                                                       Buffers: shared hit=1563
+                                                                                       ->  Bitmap Heap Scan on admin_alias aa  (cost=85.15..685.85 rows=5310 width=38) (actual time=1.220..35.974 rows=7700 loops=1)
+                                                                                             Recheck Cond: (('quan 10'::text <% alias_norm) OR (alias_norm ~~ 'quan 10%'::text))
+                                                                                             Rows Removed by Index Recheck: 19
+                                                                                             Filter: ((source = ANY ('{overlay,seed}'::text[])) AND (level = 6) AND (('quan 10'::text <% alias_norm) OR (alias_norm ~~ 'quan 10%'::text)))
+                                                                                             Rows Removed by Filter: 3372
+                                                                                             Heap Blocks: exact=311
+                                                                                             Buffers: shared hit=347
+                                                                                             ->  BitmapOr  (cost=85.15..85.15 rows=10635 width=0) (actual time=1.177..1.178 rows=0 loops=1)
+                                                                                                   Buffers: shared hit=36
+                                                                                                   ->  Bitmap Index Scan on admin_alias_trgm_idx  (cost=0.00..81.10 rows=10635 width=0) (actual time=1.171..1.171 rows=11091 loops=1)
+                                                                                                         Index Cond: (alias_norm %> 'quan 10'::text)
+                                                                                                         Buffers: shared hit=34
+                                                                                                   ->  Bitmap Index Scan on admin_alias_prefix_idx  (cost=0.00..1.40 rows=1 width=0) (actual time=0.005..0.005 rows=18 loops=1)
+                                                                                                         Index Cond: ((alias_norm ~>=~ 'quan 10'::text) AND (alias_norm ~<~ 'quan 11'::text))
+                                                                                                         Buffers: shared hit=2
+                                                                                       ->  Hash  (cost=1248.88..1248.88 rows=3288 width=25) (actual time=0.739..0.739 rows=3288 loops=1)
+                                                                                             Buckets: 4096  Batches: 1  Memory Usage: 216kB
+                                                                                             Buffers: shared hit=1216
+                                                                                             ->  Seq Scan on admin_area current  (cost=0.00..1248.88 rows=3288 width=25) (actual time=0.002..0.481 rows=3288 loops=1)
+                                                                                                   Buffers: shared hit=1216
+                                                   ->  Hash  (cost=1248.88..1248.88 rows=3288 width=15049) (actual time=1.500..1.500 rows=3288 loops=1)
+                                                         Buckets: 4096  Batches: 1  Memory Usage: 8526kB
+                                                         Buffers: shared hit=1216
+                                                         ->  Seq Scan on admin_area representative  (cost=0.00..1248.88 rows=3288 width=15049) (actual time=0.004..0.659 rows=3288 loops=1)
+                                                               Buffers: shared hit=1216
+ Planning:
+   Buffers: shared hit=24
+ Planning Time: 1.653 ms
+ Execution Time: 81.915 ms
+(83 rows)
+
+DEALLOCATE
+===== QUERY "Quận 10" | BRANCH current | queryNorm=quan 10 queryCore=10 aliasLevel=6 =====
+PREPARE
+                                                                 QUERY PLAN                                                                  
+---------------------------------------------------------------------------------------------------------------------------------------------
+ Nested Loop Left Join  (cost=0.56..4.40 rows=1 width=15144) (actual time=0.005..0.005 rows=0 loops=1)
+   Buffers: shared hit=2
+   ->  Index Scan using admin_area_level_idx on admin_area a  (cost=0.28..1.88 rows=1 width=15066) (actual time=0.004..0.004 rows=0 loops=1)
+         Index Cond: (level = 6)
+         Filter: (('10'::text <% name_norm) OR (name_norm ~~ '10%'::text))
+         Buffers: shared hit=2
+   ->  Index Scan using admin_area_pkey on admin_area parent  (cost=0.28..2.50 rows=1 width=25) (never executed)
+         Index Cond: (id = a.parent_id)
+ Planning:
+   Buffers: shared hit=5
+ Planning Time: 0.400 ms
+ Execution Time: 0.023 ms
+(12 rows)
+
+----- lần đo thứ hai (cache ấm) -----
+                                                                 QUERY PLAN                                                                  
+---------------------------------------------------------------------------------------------------------------------------------------------
+ Nested Loop Left Join  (cost=0.56..4.40 rows=1 width=15144) (actual time=0.002..0.002 rows=0 loops=1)
+   Buffers: shared hit=2
+   ->  Index Scan using admin_area_level_idx on admin_area a  (cost=0.28..1.88 rows=1 width=15066) (actual time=0.002..0.002 rows=0 loops=1)
+         Index Cond: (level = 6)
+         Filter: (('10'::text <% name_norm) OR (name_norm ~~ '10%'::text))
+         Buffers: shared hit=2
+   ->  Index Scan using admin_area_pkey on admin_area parent  (cost=0.28..2.50 rows=1 width=25) (never executed)
+         Index Cond: (id = a.parent_id)
+ Planning:
+   Buffers: shared hit=5
+ Planning Time: 0.262 ms
+ Execution Time: 0.011 ms
+(12 rows)
+
+DEALLOCATE
+===== QUERY "Quận 10" | BRANCH alias | queryNorm=quan 10 queryCore=10 aliasLevel=6 =====
+PREPARE
+                                                                      QUERY PLAN                                                                       
+-------------------------------------------------------------------------------------------------------------------------------------------------------
+ Hash Join  (cost=1375.13..2149.09 rows=5310 width=92) (actual time=2.020..60.643 rows=7700 loops=1)
+   Hash Cond: (aa.admin_area_id = current.id)
+   Buffers: shared hit=1563
+   ->  Bitmap Heap Scan on admin_alias aa  (cost=85.15..685.85 rows=5310 width=38) (actual time=1.160..35.938 rows=7700 loops=1)
+         Recheck Cond: (('quan 10'::text <% alias_norm) OR (alias_norm ~~ 'quan 10%'::text))
+         Rows Removed by Index Recheck: 19
+         Filter: ((source = ANY ('{overlay,seed}'::text[])) AND (level = 6) AND (('quan 10'::text <% alias_norm) OR (alias_norm ~~ 'quan 10%'::text)))
+         Rows Removed by Filter: 3372
+         Heap Blocks: exact=311
+         Buffers: shared hit=347
+         ->  BitmapOr  (cost=85.15..85.15 rows=10635 width=0) (actual time=1.124..1.124 rows=0 loops=1)
+               Buffers: shared hit=36
+               ->  Bitmap Index Scan on admin_alias_trgm_idx  (cost=0.00..81.10 rows=10635 width=0) (actual time=1.119..1.119 rows=11091 loops=1)
+                     Index Cond: (alias_norm %> 'quan 10'::text)
+                     Buffers: shared hit=34
+               ->  Bitmap Index Scan on admin_alias_prefix_idx  (cost=0.00..1.40 rows=1 width=0) (actual time=0.004..0.004 rows=18 loops=1)
+                     Index Cond: ((alias_norm ~>=~ 'quan 10'::text) AND (alias_norm ~<~ 'quan 11'::text))
+                     Buffers: shared hit=2
+   ->  Hash  (cost=1248.88..1248.88 rows=3288 width=25) (actual time=0.850..0.850 rows=3288 loops=1)
+         Buckets: 4096  Batches: 1  Memory Usage: 216kB
+         Buffers: shared hit=1216
+         ->  Seq Scan on admin_area current  (cost=0.00..1248.88 rows=3288 width=25) (actual time=0.002..0.609 rows=3288 loops=1)
+               Buffers: shared hit=1216
+ Planning:
+   Buffers: shared hit=14
+ Planning Time: 0.615 ms
+ Execution Time: 60.896 ms
+(27 rows)
+
+----- lần đo thứ hai (cache ấm) -----
+                                                                      QUERY PLAN                                                                       
+-------------------------------------------------------------------------------------------------------------------------------------------------------
+ Hash Join  (cost=1375.13..2149.09 rows=5310 width=92) (actual time=1.910..61.083 rows=7700 loops=1)
+   Hash Cond: (aa.admin_area_id = current.id)
+   Buffers: shared hit=1563
+   ->  Bitmap Heap Scan on admin_alias aa  (cost=85.15..685.85 rows=5310 width=38) (actual time=1.215..36.377 rows=7700 loops=1)
+         Recheck Cond: (('quan 10'::text <% alias_norm) OR (alias_norm ~~ 'quan 10%'::text))
+         Rows Removed by Index Recheck: 19
+         Filter: ((source = ANY ('{overlay,seed}'::text[])) AND (level = 6) AND (('quan 10'::text <% alias_norm) OR (alias_norm ~~ 'quan 10%'::text)))
+         Rows Removed by Filter: 3372
+         Heap Blocks: exact=311
+         Buffers: shared hit=347
+         ->  BitmapOr  (cost=85.15..85.15 rows=10635 width=0) (actual time=1.180..1.180 rows=0 loops=1)
+               Buffers: shared hit=36
+               ->  Bitmap Index Scan on admin_alias_trgm_idx  (cost=0.00..81.10 rows=10635 width=0) (actual time=1.176..1.176 rows=11091 loops=1)
+                     Index Cond: (alias_norm %> 'quan 10'::text)
+                     Buffers: shared hit=34
+               ->  Bitmap Index Scan on admin_alias_prefix_idx  (cost=0.00..1.40 rows=1 width=0) (actual time=0.003..0.003 rows=18 loops=1)
+                     Index Cond: ((alias_norm ~>=~ 'quan 10'::text) AND (alias_norm ~<~ 'quan 11'::text))
+                     Buffers: shared hit=2
+   ->  Hash  (cost=1248.88..1248.88 rows=3288 width=25) (actual time=0.686..0.687 rows=3288 loops=1)
+         Buckets: 4096  Batches: 1  Memory Usage: 216kB
+         Buffers: shared hit=1216
+         ->  Seq Scan on admin_area current  (cost=0.00..1248.88 rows=3288 width=25) (actual time=0.002..0.441 rows=3288 loops=1)
+               Buffers: shared hit=1216
+ Planning:
+   Buffers: shared hit=14
+ Planning Time: 0.588 ms
+ Execution Time: 61.335 ms
+(27 rows)
+
+DEALLOCATE
+===== QUERY "Quận 10" | BRANCH grouping | queryNorm=quan 10 queryCore=10 aliasLevel=6 =====
+PREPARE
+                                                                                  QUERY PLAN                                                                                  
+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ GroupAggregate  (cost=2424.54..2767.91 rows=4880 width=123) (actual time=47.381..73.529 rows=359 loops=1)
+   Group Key: (COALESCE(('old:'::text || (aa.old_area_id)::text), ((('alias:'::text || (aa.level)::text) || ':'::text) || aa.alias_norm))), aa.old_area_id
+   Buffers: shared hit=7491
+   ->  Sort  (cost=2424.54..2437.81 rows=5310 width=87) (actual time=47.357..47.639 rows=7700 loops=1)
+         Sort Key: (COALESCE(('old:'::text || (aa.old_area_id)::text), ((('alias:'::text || (aa.level)::text) || ':'::text) || aa.alias_norm))), aa.old_area_id, current.name
+         Sort Method: quicksort  Memory: 944kB
+         Buffers: shared hit=6510
+         ->  Hash Join  (cost=1375.13..2095.99 rows=5310 width=87) (actual time=1.792..37.094 rows=7700 loops=1)
+               Hash Cond: (aa.admin_area_id = current.id)
+               Buffers: shared hit=1563
+               ->  Bitmap Heap Scan on admin_alias aa  (cost=85.15..685.85 rows=5310 width=38) (actual time=1.091..35.009 rows=7700 loops=1)
+                     Recheck Cond: (('quan 10'::text <% alias_norm) OR (alias_norm ~~ 'quan 10%'::text))
+                     Rows Removed by Index Recheck: 19
+                     Filter: ((source = ANY ('{overlay,seed}'::text[])) AND (level = 6) AND (('quan 10'::text <% alias_norm) OR (alias_norm ~~ 'quan 10%'::text)))
+                     Rows Removed by Filter: 3372
+                     Heap Blocks: exact=311
+                     Buffers: shared hit=347
+                     ->  BitmapOr  (cost=85.15..85.15 rows=10635 width=0) (actual time=1.060..1.060 rows=0 loops=1)
+                           Buffers: shared hit=36
+                           ->  Bitmap Index Scan on admin_alias_trgm_idx  (cost=0.00..81.10 rows=10635 width=0) (actual time=1.056..1.057 rows=11091 loops=1)
+                                 Index Cond: (alias_norm %> 'quan 10'::text)
+                                 Buffers: shared hit=34
+                           ->  Bitmap Index Scan on admin_alias_prefix_idx  (cost=0.00..1.40 rows=1 width=0) (actual time=0.003..0.003 rows=18 loops=1)
+                                 Index Cond: ((alias_norm ~>=~ 'quan 10'::text) AND (alias_norm ~<~ 'quan 11'::text))
+                                 Buffers: shared hit=2
+               ->  Hash  (cost=1248.88..1248.88 rows=3288 width=25) (actual time=0.697..0.697 rows=3288 loops=1)
+                     Buckets: 4096  Batches: 1  Memory Usage: 216kB
+                     Buffers: shared hit=1216
+                     ->  Seq Scan on admin_area current  (cost=0.00..1248.88 rows=3288 width=25) (actual time=0.002..0.456 rows=3288 loops=1)
+                           Buffers: shared hit=1216
+ Planning:
+   Buffers: shared hit=19
+ Planning Time: 0.687 ms
+ Execution Time: 73.575 ms
+(34 rows)
+
+----- lần đo thứ hai (cache ấm) -----
+                                                                                  QUERY PLAN                                                                                  
+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ GroupAggregate  (cost=2424.54..2767.91 rows=4880 width=123) (actual time=48.140..74.940 rows=359 loops=1)
+   Group Key: (COALESCE(('old:'::text || (aa.old_area_id)::text), ((('alias:'::text || (aa.level)::text) || ':'::text) || aa.alias_norm))), aa.old_area_id
+   Buffers: shared hit=7491
+   ->  Sort  (cost=2424.54..2437.81 rows=5310 width=87) (actual time=48.125..48.426 rows=7700 loops=1)
+         Sort Key: (COALESCE(('old:'::text || (aa.old_area_id)::text), ((('alias:'::text || (aa.level)::text) || ':'::text) || aa.alias_norm))), aa.old_area_id, current.name
+         Sort Method: quicksort  Memory: 944kB
+         Buffers: shared hit=6510
+         ->  Hash Join  (cost=1375.13..2095.99 rows=5310 width=87) (actual time=1.941..37.457 rows=7700 loops=1)
+               Hash Cond: (aa.admin_area_id = current.id)
+               Buffers: shared hit=1563
+               ->  Bitmap Heap Scan on admin_alias aa  (cost=85.15..685.85 rows=5310 width=38) (actual time=1.158..35.257 rows=7700 loops=1)
+                     Recheck Cond: (('quan 10'::text <% alias_norm) OR (alias_norm ~~ 'quan 10%'::text))
+                     Rows Removed by Index Recheck: 19
+                     Filter: ((source = ANY ('{overlay,seed}'::text[])) AND (level = 6) AND (('quan 10'::text <% alias_norm) OR (alias_norm ~~ 'quan 10%'::text)))
+                     Rows Removed by Filter: 3372
+                     Heap Blocks: exact=311
+                     Buffers: shared hit=347
+                     ->  BitmapOr  (cost=85.15..85.15 rows=10635 width=0) (actual time=1.121..1.122 rows=0 loops=1)
+                           Buffers: shared hit=36
+                           ->  Bitmap Index Scan on admin_alias_trgm_idx  (cost=0.00..81.10 rows=10635 width=0) (actual time=1.118..1.118 rows=11091 loops=1)
+                                 Index Cond: (alias_norm %> 'quan 10'::text)
+                                 Buffers: shared hit=34
+                           ->  Bitmap Index Scan on admin_alias_prefix_idx  (cost=0.00..1.40 rows=1 width=0) (actual time=0.003..0.003 rows=18 loops=1)
+                                 Index Cond: ((alias_norm ~>=~ 'quan 10'::text) AND (alias_norm ~<~ 'quan 11'::text))
+                                 Buffers: shared hit=2
+               ->  Hash  (cost=1248.88..1248.88 rows=3288 width=25) (actual time=0.780..0.780 rows=3288 loops=1)
+                     Buckets: 4096  Batches: 1  Memory Usage: 216kB
+                     Buffers: shared hit=1216
+                     ->  Seq Scan on admin_area current  (cost=0.00..1248.88 rows=3288 width=25) (actual time=0.002..0.520 rows=3288 loops=1)
+                           Buffers: shared hit=1216
+ Planning:
+   Buffers: shared hit=19
+ Planning Time: 0.679 ms
+ Execution Time: 74.987 ms
+(34 rows)
+
+DEALLOCATE
+===== QUERY "qu" | BRANCH full | queryNorm=qu queryCore=qu aliasLevel=null =====
+PREPARE
+                                                                                                                           QUERY PLAN                                                                                                                           
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Limit  (cost=11264.53..11300.13 rows=20 width=257) (actual time=116.866..118.330 rows=20 loops=1)
+   Buffers: shared hit=16548
+   ->  Result  (cost=11264.53..11378.45 rows=64 width=257) (actual time=116.864..118.326 rows=20 loops=1)
+         Buffers: shared hit=16548
+         ->  Sort  (cost=11264.53..11264.69 rows=64 width=575) (actual time=116.700..116.711 rows=20 loops=1)
+               Sort Key: deduped.sim DESC, deduped.prefix DESC, deduped.name, deduped.dedup_key
+               Sort Method: top-N heapsort  Memory: 32kB
+               Buffers: shared hit=15858
+               ->  Subquery Scan on deduped  (cost=10744.39..11262.83 rows=64 width=575) (actual time=115.026..115.953 rows=1206 loops=1)
+                     Filter: ((deduped.candidate_geom IS NOT NULL) AND (deduped."position" = 1))
+                     Buffers: shared hit=15462
+                     ->  WindowAgg  (cost=10744.39..11100.81 rows=12961 width=511) (actual time=115.024..115.841 rows=1206 loops=1)
+                           Run Condition: (row_number() OVER (?) <= 1)
+                           Buffers: shared hit=15462
+                           ->  Sort  (cost=10744.39..10776.79 rows=12961 width=503) (actual time=115.017..115.122 rows=1970 loops=1)
+                                 Sort Key: (concat('current:', a.id)), (1), (GREATEST(word_similarity('qu'::text, a.name_norm), similarity(a.name_norm, 'qu'::text))) DESC, (starts_with(a.name_norm, 'qu'::text)) DESC, a.name
+                                 Sort Method: quicksort  Memory: 3803kB
+                                 Buffers: shared hit=15462
+                                 ->  Result  (cost=306.93..9859.03 rows=12961 width=503) (actual time=0.587..109.848 rows=1970 loops=1)
+                                       Buffers: shared hit=15156
+                                       ->  Append  (cost=306.93..9729.42 rows=12961 width=503) (actual time=0.587..109.692 rows=1970 loops=1)
+                                             Buffers: shared hit=15156
+                                             ->  Merge Right Join  (cost=306.93..329.97 rows=289 width=15144) (actual time=0.586..0.981 rows=168 loops=1)
+                                                   Merge Cond: (parent.id = a.parent_id)
+                                                   Buffers: shared hit=147
+                                                   ->  Index Scan using admin_area_pkey on admin_area parent  (cost=0.28..1355.19 rows=3288 width=25) (actual time=0.003..0.007 rows=34 loops=1)
+                                                         Buffers: shared hit=4
+                                                   ->  Sort  (cost=306.65..307.37 rows=289 width=15066) (actual time=0.492..0.501 rows=168 loops=1)
+                                                         Sort Key: a.parent_id
+                                                         Sort Method: quicksort  Memory: 462kB
+                                                         Buffers: shared hit=143
+                                                         ->  Bitmap Heap Scan on admin_area a  (cost=13.36..294.84 rows=289 width=15066) (actual time=0.107..0.433 rows=168 loops=1)
+                                                               Recheck Cond: (('qu'::text <% name_norm) OR (name_norm ~~ 'qu%'::text))
+                                                               Filter: (('qu'::text <% name_norm) OR (name_norm ~~ 'qu%'::text))
+                                                               Heap Blocks: exact=133
+                                                               Buffers: shared hit=143
+                                                               ->  BitmapOr  (cost=13.36..13.36 rows=294 width=0) (actual time=0.093..0.094 rows=0 loops=1)
+                                                                     Buffers: shared hit=10
+                                                                     ->  Bitmap Index Scan on admin_area_name_trgm_idx  (cost=0.00..10.82 rows=192 width=0) (actual time=0.066..0.066 rows=168 loops=1)
+                                                                           Index Cond: (name_norm %> 'qu'::text)
+                                                                           Buffers: shared hit=7
+                                                                     ->  Bitmap Index Scan on admin_area_name_prefix_idx  (cost=0.00..2.40 rows=102 width=0) (actual time=0.026..0.027 rows=99 loops=1)
+                                                                           Index Cond: ((name_norm ~>=~ 'qu'::text) AND (name_norm ~<~ 'qv'::text))
+                                                                           Buffers: shared hit=3
+                                             ->  Hash Join  (cost=7053.30..9334.64 rows=12672 width=169) (actual time=104.628..108.586 rows=1802 loops=1)
+                                                   Hash Cond: (g.representative_id = representative.id)
+                                                   Buffers: shared hit=15009
+                                                   ->  Merge Right Join  (cost=5763.32..7409.43 rows=12672 width=14232) (actual time=103.186..106.004 rows=1802 loops=1)
+                                                         Merge Cond: (old.id = g.old_area_id)
+                                                         Buffers: shared hit=13793
+                                                         ->  Index Scan using admin_area_old_pkey on admin_area_old old  (cost=0.28..1444.06 rows=4900 width=14117) (actual time=0.006..2.111 rows=4900 loops=1)
+                                                               Buffers: shared hit=4181
+                                                         ->  Sort  (cost=5763.04..5794.72 rows=12672 width=123) (actual time=103.144..103.229 rows=1802 loops=1)
+                                                               Sort Key: g.old_area_id
+                                                               Sort Method: quicksort  Memory: 377kB
+                                                               Buffers: shared hit=9612
+                                                               ->  Subquery Scan on g  (cost=3733.19..4899.48 rows=12672 width=123) (actual time=59.025..102.788 rows=1802 loops=1)
+                                                                     Buffers: shared hit=9612
+                                                                     ->  GroupAggregate  (cost=3733.19..4772.76 rows=12672 width=123) (actual time=59.024..102.638 rows=1802 loops=1)
+                                                                           Group Key: (COALESCE(('old:'::text || (aa.old_area_id)::text), ((('alias:'::text || (aa.level)::text) || ':'::text) || aa.alias_norm))), aa.old_area_id, aa.level
+                                                                           Buffers: shared hit=9612
+                                                                           ->  Sort  (cost=3733.19..3775.77 rows=17030 width=87) (actual time=58.975..59.470 rows=11664 loops=1)
+                                                                                 Sort Key: (COALESCE(('old:'::text || (aa.old_area_id)::text), ((('alias:'::text || (aa.level)::text) || ':'::text) || aa.alias_norm))), aa.old_area_id, aa.level, current.name
+                                                                                 Sort Method: quicksort  Memory: 1575kB
+                                                                                 Buffers: shared hit=7665
+                                                                                 ->  Hash Join  (cost=1420.53..2536.34 rows=17030 width=87) (actual time=1.766..42.011 rows=11664 loops=1)
+                                                                                       Hash Cond: (aa.admin_area_id = current.id)
+                                                                                       Buffers: shared hit=1572
+                                                                                       ->  Bitmap Heap Scan on admin_alias aa  (cost=130.55..861.00 rows=17030 width=38) (actual time=1.109..39.121 rows=11664 loops=1)
+                                                                                             Recheck Cond: (('qu'::text <% alias_norm) OR (alias_norm ~~ 'qu%'::text))
+                                                                                             Filter: ((source = ANY ('{overlay,seed}'::text[])) AND (('qu'::text <% alias_norm) OR (alias_norm ~~ 'qu%'::text)))
+                                                                                             Heap Blocks: exact=332
+                                                                                             Buffers: shared hit=356
+                                                                                             ->  BitmapOr  (cost=130.55..130.55 rows=19569 width=0) (actual time=1.083..1.084 rows=0 loops=1)
+                                                                                                   Buffers: shared hit=24
+                                                                                                   ->  Bitmap Index Scan on admin_alias_trgm_idx  (cost=0.00..73.34 rows=11717 width=0) (actual time=0.560..0.560 rows=11664 loops=1)
+                                                                                                         Index Cond: (alias_norm %> 'qu'::text)
+                                                                                                         Buffers: shared hit=13
+                                                                                                   ->  Bitmap Index Scan on admin_alias_trgm_idx  (cost=0.00..48.69 rows=7852 width=0) (actual time=0.522..0.522 rows=11664 loops=1)
+                                                                                                         Index Cond: (alias_norm ~~ 'qu%'::text)
+                                                                                                         Buffers: shared hit=11
+                                                                                       ->  Hash  (cost=1248.88..1248.88 rows=3288 width=25) (actual time=0.651..0.652 rows=3288 loops=1)
+                                                                                             Buckets: 4096  Batches: 1  Memory Usage: 216kB
+                                                                                             Buffers: shared hit=1216
+                                                                                             ->  Seq Scan on admin_area current  (cost=0.00..1248.88 rows=3288 width=25) (actual time=0.002..0.407 rows=3288 loops=1)
+                                                                                                   Buffers: shared hit=1216
+                                                   ->  Hash  (cost=1248.88..1248.88 rows=3288 width=15049) (actual time=1.426..1.426 rows=3288 loops=1)
+                                                         Buckets: 4096  Batches: 1  Memory Usage: 8526kB
+                                                         Buffers: shared hit=1216
+                                                         ->  Seq Scan on admin_area representative  (cost=0.00..1248.88 rows=3288 width=15049) (actual time=0.003..0.487 rows=3288 loops=1)
+                                                               Buffers: shared hit=1216
+ Planning:
+   Buffers: shared hit=24
+ Planning Time: 1.331 ms
+ Execution Time: 118.593 ms
+(95 rows)
+
+----- lần đo thứ hai (cache ấm) -----
+                                                                                                                           QUERY PLAN                                                                                                                           
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Limit  (cost=11264.53..11300.13 rows=20 width=257) (actual time=115.321..116.761 rows=20 loops=1)
+   Buffers: shared hit=16545
+   ->  Result  (cost=11264.53..11378.45 rows=64 width=257) (actual time=115.319..116.757 rows=20 loops=1)
+         Buffers: shared hit=16545
+         ->  Sort  (cost=11264.53..11264.69 rows=64 width=575) (actual time=115.158..115.171 rows=20 loops=1)
+               Sort Key: deduped.sim DESC, deduped.prefix DESC, deduped.name, deduped.dedup_key
+               Sort Method: top-N heapsort  Memory: 32kB
+               Buffers: shared hit=15855
+               ->  Subquery Scan on deduped  (cost=10744.39..11262.83 rows=64 width=575) (actual time=113.532..114.419 rows=1206 loops=1)
+                     Filter: ((deduped.candidate_geom IS NOT NULL) AND (deduped."position" = 1))
+                     Buffers: shared hit=15459
+                     ->  WindowAgg  (cost=10744.39..11100.81 rows=12961 width=511) (actual time=113.530..114.304 rows=1206 loops=1)
+                           Run Condition: (row_number() OVER (?) <= 1)
+                           Buffers: shared hit=15459
+                           ->  Sort  (cost=10744.39..10776.79 rows=12961 width=503) (actual time=113.522..113.604 rows=1970 loops=1)
+                                 Sort Key: (concat('current:', a.id)), (1), (GREATEST(word_similarity('qu'::text, a.name_norm), similarity(a.name_norm, 'qu'::text))) DESC, (starts_with(a.name_norm, 'qu'::text)) DESC, a.name
+                                 Sort Method: quicksort  Memory: 3803kB
+                                 Buffers: shared hit=15459
+                                 ->  Result  (cost=306.93..9859.03 rows=12961 width=503) (actual time=0.523..109.862 rows=1970 loops=1)
+                                       Buffers: shared hit=15153
+                                       ->  Append  (cost=306.93..9729.42 rows=12961 width=503) (actual time=0.522..109.711 rows=1970 loops=1)
+                                             Buffers: shared hit=15153
+                                             ->  Merge Right Join  (cost=306.93..329.97 rows=289 width=15144) (actual time=0.522..0.866 rows=168 loops=1)
+                                                   Merge Cond: (parent.id = a.parent_id)
+                                                   Buffers: shared hit=147
+                                                   ->  Index Scan using admin_area_pkey on admin_area parent  (cost=0.28..1355.19 rows=3288 width=25) (actual time=0.004..0.009 rows=34 loops=1)
+                                                         Buffers: shared hit=4
+                                                   ->  Sort  (cost=306.65..307.37 rows=289 width=15066) (actual time=0.506..0.515 rows=168 loops=1)
+                                                         Sort Key: a.parent_id
+                                                         Sort Method: quicksort  Memory: 462kB
+                                                         Buffers: shared hit=143
+                                                         ->  Bitmap Heap Scan on admin_area a  (cost=13.36..294.84 rows=289 width=15066) (actual time=0.052..0.446 rows=168 loops=1)
+                                                               Recheck Cond: (('qu'::text <% name_norm) OR (name_norm ~~ 'qu%'::text))
+                                                               Filter: (('qu'::text <% name_norm) OR (name_norm ~~ 'qu%'::text))
+                                                               Heap Blocks: exact=133
+                                                               Buffers: shared hit=143
+                                                               ->  BitmapOr  (cost=13.36..13.36 rows=294 width=0) (actual time=0.037..0.038 rows=0 loops=1)
+                                                                     Buffers: shared hit=10
+                                                                     ->  Bitmap Index Scan on admin_area_name_trgm_idx  (cost=0.00..10.82 rows=192 width=0) (actual time=0.025..0.025 rows=168 loops=1)
+                                                                           Index Cond: (name_norm %> 'qu'::text)
+                                                                           Buffers: shared hit=7
+                                                                     ->  Bitmap Index Scan on admin_area_name_prefix_idx  (cost=0.00..2.40 rows=102 width=0) (actual time=0.012..0.012 rows=99 loops=1)
+                                                                           Index Cond: ((name_norm ~>=~ 'qu'::text) AND (name_norm ~<~ 'qv'::text))
+                                                                           Buffers: shared hit=3
+                                             ->  Hash Join  (cost=7053.30..9334.64 rows=12672 width=169) (actual time=105.009..108.723 rows=1802 loops=1)
+                                                   Hash Cond: (g.representative_id = representative.id)
+                                                   Buffers: shared hit=15006
+                                                   ->  Merge Right Join  (cost=5763.32..7409.43 rows=12672 width=14232) (actual time=103.447..106.122 rows=1802 loops=1)
+                                                         Merge Cond: (old.id = g.old_area_id)
+                                                         Buffers: shared hit=13790
+                                                         ->  Index Scan using admin_area_old_pkey on admin_area_old old  (cost=0.28..1444.06 rows=4900 width=14117) (actual time=0.008..1.997 rows=4900 loops=1)
+                                                               Buffers: shared hit=4181
+                                                         ->  Sort  (cost=5763.04..5794.72 rows=12672 width=123) (actual time=103.396..103.473 rows=1802 loops=1)
+                                                               Sort Key: g.old_area_id
+                                                               Sort Method: quicksort  Memory: 377kB
+                                                               Buffers: shared hit=9609
+                                                               ->  Subquery Scan on g  (cost=3733.19..4899.48 rows=12672 width=123) (actual time=58.250..103.081 rows=1802 loops=1)
+                                                                     Buffers: shared hit=9609
+                                                                     ->  GroupAggregate  (cost=3733.19..4772.76 rows=12672 width=123) (actual time=58.249..102.917 rows=1802 loops=1)
+                                                                           Group Key: (COALESCE(('old:'::text || (aa.old_area_id)::text), ((('alias:'::text || (aa.level)::text) || ':'::text) || aa.alias_norm))), aa.old_area_id, aa.level
+                                                                           Buffers: shared hit=9609
+                                                                           ->  Sort  (cost=3733.19..3775.77 rows=17030 width=87) (actual time=58.181..58.731 rows=11664 loops=1)
+                                                                                 Sort Key: (COALESCE(('old:'::text || (aa.old_area_id)::text), ((('alias:'::text || (aa.level)::text) || ':'::text) || aa.alias_norm))), aa.old_area_id, aa.level, current.name
+                                                                                 Sort Method: quicksort  Memory: 1575kB
+                                                                                 Buffers: shared hit=7662
+                                                                                 ->  Hash Join  (cost=1420.53..2536.34 rows=17030 width=87) (actual time=2.083..42.113 rows=11664 loops=1)
+                                                                                       Hash Cond: (aa.admin_area_id = current.id)
+                                                                                       Buffers: shared hit=1572
+                                                                                       ->  Bitmap Heap Scan on admin_alias aa  (cost=130.55..861.00 rows=17030 width=38) (actual time=1.171..38.849 rows=11664 loops=1)
+                                                                                             Recheck Cond: (('qu'::text <% alias_norm) OR (alias_norm ~~ 'qu%'::text))
+                                                                                             Filter: ((source = ANY ('{overlay,seed}'::text[])) AND (('qu'::text <% alias_norm) OR (alias_norm ~~ 'qu%'::text)))
+                                                                                             Heap Blocks: exact=332
+                                                                                             Buffers: shared hit=356
+                                                                                             ->  BitmapOr  (cost=130.55..130.55 rows=19569 width=0) (actual time=1.141..1.142 rows=0 loops=1)
+                                                                                                   Buffers: shared hit=24
+                                                                                                   ->  Bitmap Index Scan on admin_alias_trgm_idx  (cost=0.00..73.34 rows=11717 width=0) (actual time=0.592..0.593 rows=11664 loops=1)
+                                                                                                         Index Cond: (alias_norm %> 'qu'::text)
+                                                                                                         Buffers: shared hit=13
+                                                                                                   ->  Bitmap Index Scan on admin_alias_trgm_idx  (cost=0.00..48.69 rows=7852 width=0) (actual time=0.548..0.548 rows=11664 loops=1)
+                                                                                                         Index Cond: (alias_norm ~~ 'qu%'::text)
+                                                                                                         Buffers: shared hit=11
+                                                                                       ->  Hash  (cost=1248.88..1248.88 rows=3288 width=25) (actual time=0.905..0.906 rows=3288 loops=1)
+                                                                                             Buckets: 4096  Batches: 1  Memory Usage: 216kB
+                                                                                             Buffers: shared hit=1216
+                                                                                             ->  Seq Scan on admin_area current  (cost=0.00..1248.88 rows=3288 width=25) (actual time=0.005..0.634 rows=3288 loops=1)
+                                                                                                   Buffers: shared hit=1216
+                                                   ->  Hash  (cost=1248.88..1248.88 rows=3288 width=15049) (actual time=1.534..1.534 rows=3288 loops=1)
+                                                         Buckets: 4096  Batches: 1  Memory Usage: 8526kB
+                                                         Buffers: shared hit=1216
+                                                         ->  Seq Scan on admin_area representative  (cost=0.00..1248.88 rows=3288 width=15049) (actual time=0.003..0.653 rows=3288 loops=1)
+                                                               Buffers: shared hit=1216
+ Planning:
+   Buffers: shared hit=24
+ Planning Time: 1.576 ms
+ Execution Time: 116.935 ms
+(95 rows)
+
+DEALLOCATE
+===== QUERY "qu" | BRANCH current | queryNorm=qu queryCore=qu aliasLevel=null =====
+PREPARE
+                                                                       QUERY PLAN                                                                       
+--------------------------------------------------------------------------------------------------------------------------------------------------------
+ Merge Right Join  (cost=306.93..329.97 rows=289 width=15144) (actual time=0.545..0.888 rows=168 loops=1)
+   Merge Cond: (parent.id = a.parent_id)
+   Buffers: shared hit=147
+   ->  Index Scan using admin_area_pkey on admin_area parent  (cost=0.28..1355.19 rows=3288 width=25) (actual time=0.006..0.010 rows=34 loops=1)
+         Buffers: shared hit=4
+   ->  Sort  (cost=306.65..307.37 rows=289 width=15066) (actual time=0.528..0.535 rows=168 loops=1)
+         Sort Key: a.parent_id
+         Sort Method: quicksort  Memory: 462kB
+         Buffers: shared hit=143
+         ->  Bitmap Heap Scan on admin_area a  (cost=13.36..294.84 rows=289 width=15066) (actual time=0.053..0.465 rows=168 loops=1)
+               Recheck Cond: (('qu'::text <% name_norm) OR (name_norm ~~ 'qu%'::text))
+               Filter: (('qu'::text <% name_norm) OR (name_norm ~~ 'qu%'::text))
+               Heap Blocks: exact=133
+               Buffers: shared hit=143
+               ->  BitmapOr  (cost=13.36..13.36 rows=294 width=0) (actual time=0.037..0.038 rows=0 loops=1)
+                     Buffers: shared hit=10
+                     ->  Bitmap Index Scan on admin_area_name_trgm_idx  (cost=0.00..10.82 rows=192 width=0) (actual time=0.024..0.025 rows=168 loops=1)
+                           Index Cond: (name_norm %> 'qu'::text)
+                           Buffers: shared hit=7
+                     ->  Bitmap Index Scan on admin_area_name_prefix_idx  (cost=0.00..2.40 rows=102 width=0) (actual time=0.012..0.012 rows=99 loops=1)
+                           Index Cond: ((name_norm ~>=~ 'qu'::text) AND (name_norm ~<~ 'qv'::text))
+                           Buffers: shared hit=3
+ Planning:
+   Buffers: shared hit=5
+ Planning Time: 0.464 ms
+ Execution Time: 0.929 ms
+(26 rows)
+
+----- lần đo thứ hai (cache ấm) -----
+                                                                       QUERY PLAN                                                                       
+--------------------------------------------------------------------------------------------------------------------------------------------------------
+ Merge Right Join  (cost=306.93..329.97 rows=289 width=15144) (actual time=0.481..0.798 rows=168 loops=1)
+   Merge Cond: (parent.id = a.parent_id)
+   Buffers: shared hit=147
+   ->  Index Scan using admin_area_pkey on admin_area parent  (cost=0.28..1355.19 rows=3288 width=25) (actual time=0.004..0.008 rows=34 loops=1)
+         Buffers: shared hit=4
+   ->  Sort  (cost=306.65..307.37 rows=289 width=15066) (actual time=0.469..0.476 rows=168 loops=1)
+         Sort Key: a.parent_id
+         Sort Method: quicksort  Memory: 462kB
+         Buffers: shared hit=143
+         ->  Bitmap Heap Scan on admin_area a  (cost=13.36..294.84 rows=289 width=15066) (actual time=0.041..0.416 rows=168 loops=1)
+               Recheck Cond: (('qu'::text <% name_norm) OR (name_norm ~~ 'qu%'::text))
+               Filter: (('qu'::text <% name_norm) OR (name_norm ~~ 'qu%'::text))
+               Heap Blocks: exact=133
+               Buffers: shared hit=143
+               ->  BitmapOr  (cost=13.36..13.36 rows=294 width=0) (actual time=0.029..0.029 rows=0 loops=1)
+                     Buffers: shared hit=10
+                     ->  Bitmap Index Scan on admin_area_name_trgm_idx  (cost=0.00..10.82 rows=192 width=0) (actual time=0.020..0.020 rows=168 loops=1)
+                           Index Cond: (name_norm %> 'qu'::text)
+                           Buffers: shared hit=7
+                     ->  Bitmap Index Scan on admin_area_name_prefix_idx  (cost=0.00..2.40 rows=102 width=0) (actual time=0.008..0.009 rows=99 loops=1)
+                           Index Cond: ((name_norm ~>=~ 'qu'::text) AND (name_norm ~<~ 'qv'::text))
+                           Buffers: shared hit=3
+ Planning:
+   Buffers: shared hit=5
+ Planning Time: 0.364 ms
+ Execution Time: 0.828 ms
+(26 rows)
+
+DEALLOCATE
+===== QUERY "qu" | BRANCH alias | queryNorm=qu queryCore=qu aliasLevel=null =====
+PREPARE
+                                                                    QUERY PLAN                                                                    
+--------------------------------------------------------------------------------------------------------------------------------------------------
+ Hash Join  (cost=1420.53..2706.64 rows=17030 width=92) (actual time=2.338..78.651 rows=11664 loops=1)
+   Hash Cond: (aa.admin_area_id = current.id)
+   Buffers: shared hit=1572
+   ->  Bitmap Heap Scan on admin_alias aa  (cost=130.55..861.00 rows=17030 width=38) (actual time=1.140..39.835 rows=11664 loops=1)
+         Recheck Cond: (('qu'::text <% alias_norm) OR (alias_norm ~~ 'qu%'::text))
+         Filter: ((source = ANY ('{overlay,seed}'::text[])) AND (('qu'::text <% alias_norm) OR (alias_norm ~~ 'qu%'::text)))
+         Heap Blocks: exact=332
+         Buffers: shared hit=356
+         ->  BitmapOr  (cost=130.55..130.55 rows=19569 width=0) (actual time=1.112..1.113 rows=0 loops=1)
+               Buffers: shared hit=24
+               ->  Bitmap Index Scan on admin_alias_trgm_idx  (cost=0.00..73.34 rows=11717 width=0) (actual time=0.584..0.585 rows=11664 loops=1)
+                     Index Cond: (alias_norm %> 'qu'::text)
+                     Buffers: shared hit=13
+               ->  Bitmap Index Scan on admin_alias_trgm_idx  (cost=0.00..48.69 rows=7852 width=0) (actual time=0.527..0.527 rows=11664 loops=1)
+                     Index Cond: (alias_norm ~~ 'qu%'::text)
+                     Buffers: shared hit=11
+   ->  Hash  (cost=1248.88..1248.88 rows=3288 width=25) (actual time=1.187..1.188 rows=3288 loops=1)
+         Buckets: 4096  Batches: 1  Memory Usage: 216kB
+         Buffers: shared hit=1216
+         ->  Seq Scan on admin_area current  (cost=0.00..1248.88 rows=3288 width=25) (actual time=0.003..0.918 rows=3288 loops=1)
+               Buffers: shared hit=1216
+ Planning:
+   Buffers: shared hit=14
+ Planning Time: 0.580 ms
+ Execution Time: 79.060 ms
+(25 rows)
+
+----- lần đo thứ hai (cache ấm) -----
+                                                                    QUERY PLAN                                                                    
+--------------------------------------------------------------------------------------------------------------------------------------------------
+ Hash Join  (cost=1420.53..2706.64 rows=17030 width=92) (actual time=2.371..78.827 rows=11664 loops=1)
+   Hash Cond: (aa.admin_area_id = current.id)
+   Buffers: shared hit=1572
+   ->  Bitmap Heap Scan on admin_alias aa  (cost=130.55..861.00 rows=17030 width=38) (actual time=1.102..39.857 rows=11664 loops=1)
+         Recheck Cond: (('qu'::text <% alias_norm) OR (alias_norm ~~ 'qu%'::text))
+         Filter: ((source = ANY ('{overlay,seed}'::text[])) AND (('qu'::text <% alias_norm) OR (alias_norm ~~ 'qu%'::text)))
+         Heap Blocks: exact=332
+         Buffers: shared hit=356
+         ->  BitmapOr  (cost=130.55..130.55 rows=19569 width=0) (actual time=1.067..1.069 rows=0 loops=1)
+               Buffers: shared hit=24
+               ->  Bitmap Index Scan on admin_alias_trgm_idx  (cost=0.00..73.34 rows=11717 width=0) (actual time=0.560..0.560 rows=11664 loops=1)
+                     Index Cond: (alias_norm %> 'qu'::text)
+                     Buffers: shared hit=13
+               ->  Bitmap Index Scan on admin_alias_trgm_idx  (cost=0.00..48.69 rows=7852 width=0) (actual time=0.507..0.507 rows=11664 loops=1)
+                     Index Cond: (alias_norm ~~ 'qu%'::text)
+                     Buffers: shared hit=11
+   ->  Hash  (cost=1248.88..1248.88 rows=3288 width=25) (actual time=1.255..1.258 rows=3288 loops=1)
+         Buckets: 4096  Batches: 1  Memory Usage: 216kB
+         Buffers: shared hit=1216
+         ->  Seq Scan on admin_area current  (cost=0.00..1248.88 rows=3288 width=25) (actual time=0.005..0.981 rows=3288 loops=1)
+               Buffers: shared hit=1216
+ Planning:
+   Buffers: shared hit=14
+ Planning Time: 0.708 ms
+ Execution Time: 79.214 ms
+(25 rows)
+
+DEALLOCATE
+===== QUERY "qu" | BRANCH grouping | queryNorm=qu queryCore=qu aliasLevel=null =====
+PREPARE
+                                                                                       QUERY PLAN                                                                                       
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ GroupAggregate  (cost=3733.19..4772.76 rows=12672 width=123) (actual time=59.523..103.498 rows=1802 loops=1)
+   Group Key: (COALESCE(('old:'::text || (aa.old_area_id)::text), ((('alias:'::text || (aa.level)::text) || ':'::text) || aa.alias_norm))), aa.old_area_id, aa.level
+   Buffers: shared hit=9609
+   ->  Sort  (cost=3733.19..3775.77 rows=17030 width=87) (actual time=59.473..59.976 rows=11664 loops=1)
+         Sort Key: (COALESCE(('old:'::text || (aa.old_area_id)::text), ((('alias:'::text || (aa.level)::text) || ':'::text) || aa.alias_norm))), aa.old_area_id, aa.level, current.name
+         Sort Method: quicksort  Memory: 1575kB
+         Buffers: shared hit=7662
+         ->  Hash Join  (cost=1420.53..2536.34 rows=17030 width=87) (actual time=2.441..42.876 rows=11664 loops=1)
+               Hash Cond: (aa.admin_area_id = current.id)
+               Buffers: shared hit=1572
+               ->  Bitmap Heap Scan on admin_alias aa  (cost=130.55..861.00 rows=17030 width=38) (actual time=1.163..39.450 rows=11664 loops=1)
+                     Recheck Cond: (('qu'::text <% alias_norm) OR (alias_norm ~~ 'qu%'::text))
+                     Filter: ((source = ANY ('{overlay,seed}'::text[])) AND (('qu'::text <% alias_norm) OR (alias_norm ~~ 'qu%'::text)))
+                     Heap Blocks: exact=332
+                     Buffers: shared hit=356
+                     ->  BitmapOr  (cost=130.55..130.55 rows=19569 width=0) (actual time=1.133..1.133 rows=0 loops=1)
+                           Buffers: shared hit=24
+                           ->  Bitmap Index Scan on admin_alias_trgm_idx  (cost=0.00..73.34 rows=11717 width=0) (actual time=0.594..0.594 rows=11664 loops=1)
+                                 Index Cond: (alias_norm %> 'qu'::text)
+                                 Buffers: shared hit=13
+                           ->  Bitmap Index Scan on admin_alias_trgm_idx  (cost=0.00..48.69 rows=7852 width=0) (actual time=0.538..0.538 rows=11664 loops=1)
+                                 Index Cond: (alias_norm ~~ 'qu%'::text)
+                                 Buffers: shared hit=11
+               ->  Hash  (cost=1248.88..1248.88 rows=3288 width=25) (actual time=1.269..1.270 rows=3288 loops=1)
+                     Buckets: 4096  Batches: 1  Memory Usage: 216kB
+                     Buffers: shared hit=1216
+                     ->  Seq Scan on admin_area current  (cost=0.00..1248.88 rows=3288 width=25) (actual time=0.004..0.994 rows=3288 loops=1)
+                           Buffers: shared hit=1216
+ Planning:
+   Buffers: shared hit=19
+ Planning Time: 0.745 ms
+ Execution Time: 103.608 ms
+(32 rows)
+
+----- lần đo thứ hai (cache ấm) -----
+                                                                                       QUERY PLAN                                                                                       
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ GroupAggregate  (cost=3733.19..4772.76 rows=12672 width=123) (actual time=61.567..106.923 rows=1802 loops=1)
+   Group Key: (COALESCE(('old:'::text || (aa.old_area_id)::text), ((('alias:'::text || (aa.level)::text) || ':'::text) || aa.alias_norm))), aa.old_area_id, aa.level
+   Buffers: shared hit=9609
+   ->  Sort  (cost=3733.19..3775.77 rows=17030 width=87) (actual time=61.520..62.040 rows=11664 loops=1)
+         Sort Key: (COALESCE(('old:'::text || (aa.old_area_id)::text), ((('alias:'::text || (aa.level)::text) || ':'::text) || aa.alias_norm))), aa.old_area_id, aa.level, current.name
+         Sort Method: quicksort  Memory: 1575kB
+         Buffers: shared hit=7662
+         ->  Hash Join  (cost=1420.53..2536.34 rows=17030 width=87) (actual time=2.433..43.878 rows=11664 loops=1)
+               Hash Cond: (aa.admin_area_id = current.id)
+               Buffers: shared hit=1572
+               ->  Bitmap Heap Scan on admin_alias aa  (cost=130.55..861.00 rows=17030 width=38) (actual time=1.163..40.348 rows=11664 loops=1)
+                     Recheck Cond: (('qu'::text <% alias_norm) OR (alias_norm ~~ 'qu%'::text))
+                     Filter: ((source = ANY ('{overlay,seed}'::text[])) AND (('qu'::text <% alias_norm) OR (alias_norm ~~ 'qu%'::text)))
+                     Heap Blocks: exact=332
+                     Buffers: shared hit=356
+                     ->  BitmapOr  (cost=130.55..130.55 rows=19569 width=0) (actual time=1.134..1.135 rows=0 loops=1)
+                           Buffers: shared hit=24
+                           ->  Bitmap Index Scan on admin_alias_trgm_idx  (cost=0.00..73.34 rows=11717 width=0) (actual time=0.596..0.596 rows=11664 loops=1)
+                                 Index Cond: (alias_norm %> 'qu'::text)
+                                 Buffers: shared hit=13
+                           ->  Bitmap Index Scan on admin_alias_trgm_idx  (cost=0.00..48.69 rows=7852 width=0) (actual time=0.537..0.537 rows=11664 loops=1)
+                                 Index Cond: (alias_norm ~~ 'qu%'::text)
+                                 Buffers: shared hit=11
+               ->  Hash  (cost=1248.88..1248.88 rows=3288 width=25) (actual time=1.260..1.262 rows=3288 loops=1)
+                     Buckets: 4096  Batches: 1  Memory Usage: 216kB
+                     Buffers: shared hit=1216
+                     ->  Seq Scan on admin_area current  (cost=0.00..1248.88 rows=3288 width=25) (actual time=0.004..1.001 rows=3288 loops=1)
+                           Buffers: shared hit=1216
+ Planning:
+   Buffers: shared hit=19
+ Planning Time: 0.714 ms
+ Execution Time: 107.041 ms
+(32 rows)
+
+DEALLOCATE
+===== QUERY "Phường Nguyễn An Ninh, Thành phố Vũng Tàu, Bà Rịa Vũng Tàu" | BRANCH full | queryNorm=phuong nguyen an ninh thanh pho vung tau ba ria vung tau queryCore=phuong nguyen an ninh thanh pho vung tau ba ria vung tau aliasLevel=8 =====
+PREPARE
+                                                                                                                                                                                            QUERY PLAN                                                                                                                                                                                            
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Limit  (cost=284.51..286.29 rows=1 width=253) (actual time=12.533..15.835 rows=20 loops=1)
+   Buffers: shared hit=1266
+   ->  Result  (cost=284.51..286.29 rows=1 width=253) (actual time=12.532..15.829 rows=20 loops=1)
+         Buffers: shared hit=1266
+         ->  Sort  (cost=284.51..284.51 rows=1 width=3985) (actual time=12.474..12.484 rows=20 loops=1)
+               Sort Key: deduped.sim DESC, deduped.prefix DESC, deduped.name, deduped.dedup_key
+               Sort Method: quicksort  Memory: 78kB
+               Buffers: shared hit=882
+               ->  Subquery Scan on deduped  (cost=284.34..284.50 rows=1 width=3985) (actual time=12.417..12.443 rows=20 loops=1)
+                     Filter: ((deduped.candidate_geom IS NOT NULL) AND (deduped."position" = 1))
+                     Buffers: shared hit=873
+                     ->  WindowAgg  (cost=284.34..284.45 rows=4 width=3921) (actual time=12.414..12.438 rows=20 loops=1)
+                           Run Condition: (row_number() OVER (?) <= 1)
+                           Buffers: shared hit=873
+                           ->  Sort  (cost=284.34..284.35 rows=4 width=3913) (actual time=12.407..12.414 rows=41 loops=1)
+                                 Sort Key: (concat('current:', a.id)), (1), (GREATEST(word_similarity('phuong nguyen an ninh thanh pho vung tau ba ria vung tau'::text, a.name_norm), similarity(a.name_norm, 'phuong nguyen an ninh thanh pho vung tau ba ria vung tau'::text))) DESC, (starts_with(a.name_norm, 'phuong nguyen an ninh thanh pho vung tau ba ria vung tau'::text)) DESC, a.name
+                                 Sort Method: quicksort  Memory: 99kB
+                                 Buffers: shared hit=873
+                                 ->  Result  (cost=123.75..284.30 rows=4 width=3913) (actual time=10.784..12.366 rows=41 loops=1)
+                                       Buffers: shared hit=867
+                                       ->  Append  (cost=123.75..284.26 rows=4 width=3913) (actual time=10.784..12.359 rows=41 loops=1)
+                                             Buffers: shared hit=867
+                                             ->  Nested Loop Left Join  (cost=123.75..127.11 rows=1 width=15144) (actual time=0.468..0.470 rows=0 loops=1)
+                                                   Buffers: shared hit=87
+                                                   ->  Bitmap Heap Scan on admin_area a  (cost=123.47..124.59 rows=1 width=15066) (actual time=0.468..0.469 rows=0 loops=1)
+                                                         Recheck Cond: (('phuong nguyen an ninh thanh pho vung tau ba ria vung tau'::text <% name_norm) OR (name_norm ~~ 'phuong nguyen an ninh thanh pho vung tau ba ria vung tau%'::text))
+                                                         Filter: ((level = 8) AND (('phuong nguyen an ninh thanh pho vung tau ba ria vung tau'::text <% name_norm) OR (name_norm ~~ 'phuong nguyen an ninh thanh pho vung tau ba ria vung tau%'::text)))
+                                                         Buffers: shared hit=87
+                                                         ->  BitmapOr  (cost=123.47..123.47 rows=1 width=0) (actual time=0.466..0.467 rows=0 loops=1)
+                                                               Buffers: shared hit=87
+                                                               ->  Bitmap Index Scan on admin_area_name_trgm_idx  (cost=0.00..122.08 rows=1 width=0) (actual time=0.460..0.460 rows=0 loops=1)
+                                                                     Index Cond: (name_norm %> 'phuong nguyen an ninh thanh pho vung tau ba ria vung tau'::text)
+                                                                     Buffers: shared hit=85
+                                                               ->  Bitmap Index Scan on admin_area_name_prefix_idx  (cost=0.00..1.39 rows=1 width=0) (actual time=0.005..0.006 rows=0 loops=1)
+                                                                     Index Cond: ((name_norm ~>=~ 'phuong nguyen an ninh thanh pho vung tau ba ria vung tau'::text) AND (name_norm ~<~ 'phuong nguyen an ninh thanh pho vung tau ba ria vung tav'::text))
+                                                                     Buffers: shared hit=2
+                                                   ->  Index Scan using admin_area_pkey on admin_area parent  (cost=0.28..2.50 rows=1 width=25) (never executed)
+                                                         Index Cond: (id = a.parent_id)
+                                             ->  Nested Loop Left Join  (cost=142.32..157.13 rows=3 width=169) (actual time=10.315..11.882 rows=41 loops=1)
+                                                   Buffers: shared hit=780
+                                                   ->  Nested Loop  (cost=142.04..149.49 rows=3 width=15164) (actual time=10.297..11.729 rows=41 loops=1)
+                                                         Buffers: shared hit=657
+                                                         ->  GroupAggregate  (cost=141.76..141.96 rows=3 width=123) (actual time=10.291..11.636 rows=41 loops=1)
+                                                               Group Key: (COALESCE(('old:'::text || (aa.old_area_id)::text), ((('alias:'::text || (aa.level)::text) || ':'::text) || aa.alias_norm))), aa.old_area_id
+                                                               Buffers: shared hit=534
+                                                               ->  Sort  (cost=141.76..141.77 rows=3 width=87) (actual time=10.235..10.244 rows=77 loops=1)
+                                                                     Sort Key: (COALESCE(('old:'::text || (aa.old_area_id)::text), ((('alias:'::text || (aa.level)::text) || ':'::text) || aa.alias_norm))), aa.old_area_id, current.name
+                                                                     Sort Method: quicksort  Memory: 34kB
+                                                                     Buffers: shared hit=486
+                                                                     ->  Nested Loop  (cost=131.13..141.74 rows=3 width=87) (actual time=5.631..10.103 rows=77 loops=1)
+                                                                           Buffers: shared hit=435
+                                                                           ->  Bitmap Heap Scan on admin_alias aa  (cost=130.85..134.18 rows=3 width=38) (actual time=5.513..9.869 rows=77 loops=1)
+                                                                                 Recheck Cond: (('phuong nguyen an ninh thanh pho vung tau ba ria vung tau'::text <% alias_norm) OR (alias_norm ~~ 'phuong nguyen an ninh thanh pho vung tau ba ria vung tau%'::text))
+                                                                                 Rows Removed by Index Recheck: 309
+                                                                                 Filter: ((source = ANY ('{overlay,seed}'::text[])) AND (level = 8) AND (('phuong nguyen an ninh thanh pho vung tau ba ria vung tau'::text <% alias_norm) OR (alias_norm ~~ 'phuong nguyen an ninh thanh pho vung tau ba ria vung tau%'::text)))
+                                                                                 Rows Removed by Filter: 12
+                                                                                 Heap Blocks: exact=49
+                                                                                 Buffers: shared hit=204
+                                                                                 ->  BitmapOr  (cost=130.85..130.85 rows=3 width=0) (actual time=5.347..5.347 rows=0 loops=1)
+                                                                                       Buffers: shared hit=155
+                                                                                       ->  Bitmap Index Scan on admin_alias_trgm_idx  (cost=0.00..129.45 rows=3 width=0) (actual time=5.341..5.341 rows=398 loops=1)
+                                                                                             Index Cond: (alias_norm %> 'phuong nguyen an ninh thanh pho vung tau ba ria vung tau'::text)
+                                                                                             Buffers: shared hit=153
+                                                                                       ->  Bitmap Index Scan on admin_alias_prefix_idx  (cost=0.00..1.40 rows=1 width=0) (actual time=0.005..0.005 rows=1 loops=1)
+                                                                                             Index Cond: ((alias_norm ~>=~ 'phuong nguyen an ninh thanh pho vung tau ba ria vung tau'::text) AND (alias_norm ~<~ 'phuong nguyen an ninh thanh pho vung tau ba ria vung tav'::text))
+                                                                                             Buffers: shared hit=2
+                                                                           ->  Index Scan using admin_area_pkey on admin_area current  (cost=0.28..2.50 rows=1 width=25) (actual time=0.001..0.001 rows=1 loops=77)
+                                                                                 Index Cond: (id = aa.admin_area_id)
+                                                                                 Buffers: shared hit=231
+                                                         ->  Index Scan using admin_area_pkey on admin_area representative  (cost=0.28..2.50 rows=1 width=15049) (actual time=0.002..0.002 rows=1 loops=41)
+                                                               Index Cond: (id = (min(current.id)))
+                                                               Buffers: shared hit=123
+                                                   ->  Index Scan using admin_area_old_pkey on admin_area_old old  (cost=0.28..2.50 rows=1 width=14117) (actual time=0.002..0.002 rows=1 loops=41)
+                                                         Index Cond: (id = aa.old_area_id)
+                                                         Buffers: shared hit=123
+ Planning:
+   Buffers: shared hit=24
+ Planning Time: 2.958 ms
+ Execution Time: 15.923 ms
+(79 rows)
+
+----- lần đo thứ hai (cache ấm) -----
+                                                                                                                                                                                            QUERY PLAN                                                                                                                                                                                            
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Limit  (cost=284.51..286.29 rows=1 width=253) (actual time=12.636..13.677 rows=20 loops=1)
+   Buffers: shared hit=1266
+   ->  Result  (cost=284.51..286.29 rows=1 width=253) (actual time=12.635..13.673 rows=20 loops=1)
+         Buffers: shared hit=1266
+         ->  Sort  (cost=284.51..284.51 rows=1 width=3985) (actual time=12.531..12.539 rows=20 loops=1)
+               Sort Key: deduped.sim DESC, deduped.prefix DESC, deduped.name, deduped.dedup_key
+               Sort Method: quicksort  Memory: 78kB
+               Buffers: shared hit=882
+               ->  Subquery Scan on deduped  (cost=284.34..284.50 rows=1 width=3985) (actual time=12.466..12.512 rows=20 loops=1)
+                     Filter: ((deduped.candidate_geom IS NOT NULL) AND (deduped."position" = 1))
+                     Buffers: shared hit=873
+                     ->  WindowAgg  (cost=284.34..284.45 rows=4 width=3921) (actual time=12.465..12.504 rows=20 loops=1)
+                           Run Condition: (row_number() OVER (?) <= 1)
+                           Buffers: shared hit=873
+                           ->  Sort  (cost=284.34..284.35 rows=4 width=3913) (actual time=12.457..12.466 rows=41 loops=1)
+                                 Sort Key: (concat('current:', a.id)), (1), (GREATEST(word_similarity('phuong nguyen an ninh thanh pho vung tau ba ria vung tau'::text, a.name_norm), similarity(a.name_norm, 'phuong nguyen an ninh thanh pho vung tau ba ria vung tau'::text))) DESC, (starts_with(a.name_norm, 'phuong nguyen an ninh thanh pho vung tau ba ria vung tau'::text)) DESC, a.name
+                                 Sort Method: quicksort  Memory: 99kB
+                                 Buffers: shared hit=873
+                                 ->  Result  (cost=123.75..284.30 rows=4 width=3913) (actual time=10.805..12.386 rows=41 loops=1)
+                                       Buffers: shared hit=867
+                                       ->  Append  (cost=123.75..284.26 rows=4 width=3913) (actual time=10.805..12.378 rows=41 loops=1)
+                                             Buffers: shared hit=867
+                                             ->  Nested Loop Left Join  (cost=123.75..127.11 rows=1 width=15144) (actual time=0.367..0.370 rows=0 loops=1)
+                                                   Buffers: shared hit=87
+                                                   ->  Bitmap Heap Scan on admin_area a  (cost=123.47..124.59 rows=1 width=15066) (actual time=0.366..0.368 rows=0 loops=1)
+                                                         Recheck Cond: (('phuong nguyen an ninh thanh pho vung tau ba ria vung tau'::text <% name_norm) OR (name_norm ~~ 'phuong nguyen an ninh thanh pho vung tau ba ria vung tau%'::text))
+                                                         Filter: ((level = 8) AND (('phuong nguyen an ninh thanh pho vung tau ba ria vung tau'::text <% name_norm) OR (name_norm ~~ 'phuong nguyen an ninh thanh pho vung tau ba ria vung tau%'::text)))
+                                                         Buffers: shared hit=87
+                                                         ->  BitmapOr  (cost=123.47..123.47 rows=1 width=0) (actual time=0.366..0.366 rows=0 loops=1)
+                                                               Buffers: shared hit=87
+                                                               ->  Bitmap Index Scan on admin_area_name_trgm_idx  (cost=0.00..122.08 rows=1 width=0) (actual time=0.361..0.361 rows=0 loops=1)
+                                                                     Index Cond: (name_norm %> 'phuong nguyen an ninh thanh pho vung tau ba ria vung tau'::text)
+                                                                     Buffers: shared hit=85
+                                                               ->  Bitmap Index Scan on admin_area_name_prefix_idx  (cost=0.00..1.39 rows=1 width=0) (actual time=0.005..0.005 rows=0 loops=1)
+                                                                     Index Cond: ((name_norm ~>=~ 'phuong nguyen an ninh thanh pho vung tau ba ria vung tau'::text) AND (name_norm ~<~ 'phuong nguyen an ninh thanh pho vung tau ba ria vung tav'::text))
+                                                                     Buffers: shared hit=2
+                                                   ->  Index Scan using admin_area_pkey on admin_area parent  (cost=0.28..2.50 rows=1 width=25) (never executed)
+                                                         Index Cond: (id = a.parent_id)
+                                             ->  Nested Loop Left Join  (cost=142.32..157.13 rows=3 width=169) (actual time=10.437..12.001 rows=41 loops=1)
+                                                   Buffers: shared hit=780
+                                                   ->  Nested Loop  (cost=142.04..149.49 rows=3 width=15164) (actual time=10.413..11.799 rows=41 loops=1)
+                                                         Buffers: shared hit=657
+                                                         ->  GroupAggregate  (cost=141.76..141.96 rows=3 width=123) (actual time=10.409..11.696 rows=41 loops=1)
+                                                               Group Key: (COALESCE(('old:'::text || (aa.old_area_id)::text), ((('alias:'::text || (aa.level)::text) || ':'::text) || aa.alias_norm))), aa.old_area_id
+                                                               Buffers: shared hit=534
+                                                               ->  Sort  (cost=141.76..141.77 rows=3 width=87) (actual time=10.358..10.368 rows=77 loops=1)
+                                                                     Sort Key: (COALESCE(('old:'::text || (aa.old_area_id)::text), ((('alias:'::text || (aa.level)::text) || ':'::text) || aa.alias_norm))), aa.old_area_id, current.name
+                                                                     Sort Method: quicksort  Memory: 34kB
+                                                                     Buffers: shared hit=486
+                                                                     ->  Nested Loop  (cost=131.13..141.74 rows=3 width=87) (actual time=5.887..10.192 rows=77 loops=1)
+                                                                           Buffers: shared hit=435
+                                                                           ->  Bitmap Heap Scan on admin_alias aa  (cost=130.85..134.18 rows=3 width=38) (actual time=5.873..9.961 rows=77 loops=1)
+                                                                                 Recheck Cond: (('phuong nguyen an ninh thanh pho vung tau ba ria vung tau'::text <% alias_norm) OR (alias_norm ~~ 'phuong nguyen an ninh thanh pho vung tau ba ria vung tau%'::text))
+                                                                                 Rows Removed by Index Recheck: 309
+                                                                                 Filter: ((source = ANY ('{overlay,seed}'::text[])) AND (level = 8) AND (('phuong nguyen an ninh thanh pho vung tau ba ria vung tau'::text <% alias_norm) OR (alias_norm ~~ 'phuong nguyen an ninh thanh pho vung tau ba ria vung tau%'::text)))
+                                                                                 Rows Removed by Filter: 12
+                                                                                 Heap Blocks: exact=49
+                                                                                 Buffers: shared hit=204
+                                                                                 ->  BitmapOr  (cost=130.85..130.85 rows=3 width=0) (actual time=5.606..5.607 rows=0 loops=1)
+                                                                                       Buffers: shared hit=155
+                                                                                       ->  Bitmap Index Scan on admin_alias_trgm_idx  (cost=0.00..129.45 rows=3 width=0) (actual time=5.601..5.601 rows=398 loops=1)
+                                                                                             Index Cond: (alias_norm %> 'phuong nguyen an ninh thanh pho vung tau ba ria vung tau'::text)
+                                                                                             Buffers: shared hit=153
+                                                                                       ->  Bitmap Index Scan on admin_alias_prefix_idx  (cost=0.00..1.40 rows=1 width=0) (actual time=0.004..0.004 rows=1 loops=1)
+                                                                                             Index Cond: ((alias_norm ~>=~ 'phuong nguyen an ninh thanh pho vung tau ba ria vung tau'::text) AND (alias_norm ~<~ 'phuong nguyen an ninh thanh pho vung tau ba ria vung tav'::text))
+                                                                                             Buffers: shared hit=2
+                                                                           ->  Index Scan using admin_area_pkey on admin_area current  (cost=0.28..2.50 rows=1 width=25) (actual time=0.002..0.002 rows=1 loops=77)
+                                                                                 Index Cond: (id = aa.admin_area_id)
+                                                                                 Buffers: shared hit=231
+                                                         ->  Index Scan using admin_area_pkey on admin_area representative  (cost=0.28..2.50 rows=1 width=15049) (actual time=0.002..0.002 rows=1 loops=41)
+                                                               Index Cond: (id = (min(current.id)))
+                                                               Buffers: shared hit=123
+                                                   ->  Index Scan using admin_area_old_pkey on admin_area_old old  (cost=0.28..2.50 rows=1 width=14117) (actual time=0.003..0.003 rows=1 loops=41)
+                                                         Index Cond: (id = aa.old_area_id)
+                                                         Buffers: shared hit=123
+ Planning:
+   Buffers: shared hit=24
+ Planning Time: 3.006 ms
+ Execution Time: 13.773 ms
+(79 rows)
+
+DEALLOCATE
+===== QUERY "Phường Nguyễn An Ninh, Thành phố Vũng Tàu, Bà Rịa Vũng Tàu" | BRANCH current | queryNorm=phuong nguyen an ninh thanh pho vung tau ba ria vung tau queryCore=phuong nguyen an ninh thanh pho vung tau ba ria vung tau aliasLevel=8 =====
+PREPARE
+                                                                                                QUERY PLAN                                                                                                
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Nested Loop Left Join  (cost=123.75..127.11 rows=1 width=15144) (actual time=0.438..0.439 rows=0 loops=1)
+   Buffers: shared hit=87
+   ->  Bitmap Heap Scan on admin_area a  (cost=123.47..124.59 rows=1 width=15066) (actual time=0.437..0.438 rows=0 loops=1)
+         Recheck Cond: (('phuong nguyen an ninh thanh pho vung tau ba ria vung tau'::text <% name_norm) OR (name_norm ~~ 'phuong nguyen an ninh thanh pho vung tau ba ria vung tau%'::text))
+         Filter: ((level = 8) AND (('phuong nguyen an ninh thanh pho vung tau ba ria vung tau'::text <% name_norm) OR (name_norm ~~ 'phuong nguyen an ninh thanh pho vung tau ba ria vung tau%'::text)))
+         Buffers: shared hit=87
+         ->  BitmapOr  (cost=123.47..123.47 rows=1 width=0) (actual time=0.435..0.436 rows=0 loops=1)
+               Buffers: shared hit=87
+               ->  Bitmap Index Scan on admin_area_name_trgm_idx  (cost=0.00..122.08 rows=1 width=0) (actual time=0.429..0.429 rows=0 loops=1)
+                     Index Cond: (name_norm %> 'phuong nguyen an ninh thanh pho vung tau ba ria vung tau'::text)
+                     Buffers: shared hit=85
+               ->  Bitmap Index Scan on admin_area_name_prefix_idx  (cost=0.00..1.39 rows=1 width=0) (actual time=0.006..0.006 rows=0 loops=1)
+                     Index Cond: ((name_norm ~>=~ 'phuong nguyen an ninh thanh pho vung tau ba ria vung tau'::text) AND (name_norm ~<~ 'phuong nguyen an ninh thanh pho vung tau ba ria vung tav'::text))
+                     Buffers: shared hit=2
+   ->  Index Scan using admin_area_pkey on admin_area parent  (cost=0.28..2.50 rows=1 width=25) (never executed)
+         Index Cond: (id = a.parent_id)
+ Planning:
+   Buffers: shared hit=5
+ Planning Time: 1.182 ms
+ Execution Time: 0.472 ms
+(20 rows)
+
+----- lần đo thứ hai (cache ấm) -----
+                                                                                                QUERY PLAN                                                                                                
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Nested Loop Left Join  (cost=123.75..127.11 rows=1 width=15144) (actual time=0.473..0.474 rows=0 loops=1)
+   Buffers: shared hit=87
+   ->  Bitmap Heap Scan on admin_area a  (cost=123.47..124.59 rows=1 width=15066) (actual time=0.472..0.473 rows=0 loops=1)
+         Recheck Cond: (('phuong nguyen an ninh thanh pho vung tau ba ria vung tau'::text <% name_norm) OR (name_norm ~~ 'phuong nguyen an ninh thanh pho vung tau ba ria vung tau%'::text))
+         Filter: ((level = 8) AND (('phuong nguyen an ninh thanh pho vung tau ba ria vung tau'::text <% name_norm) OR (name_norm ~~ 'phuong nguyen an ninh thanh pho vung tau ba ria vung tau%'::text)))
+         Buffers: shared hit=87
+         ->  BitmapOr  (cost=123.47..123.47 rows=1 width=0) (actual time=0.472..0.472 rows=0 loops=1)
+               Buffers: shared hit=87
+               ->  Bitmap Index Scan on admin_area_name_trgm_idx  (cost=0.00..122.08 rows=1 width=0) (actual time=0.467..0.467 rows=0 loops=1)
+                     Index Cond: (name_norm %> 'phuong nguyen an ninh thanh pho vung tau ba ria vung tau'::text)
+                     Buffers: shared hit=85
+               ->  Bitmap Index Scan on admin_area_name_prefix_idx  (cost=0.00..1.39 rows=1 width=0) (actual time=0.004..0.004 rows=0 loops=1)
+                     Index Cond: ((name_norm ~>=~ 'phuong nguyen an ninh thanh pho vung tau ba ria vung tau'::text) AND (name_norm ~<~ 'phuong nguyen an ninh thanh pho vung tau ba ria vung tav'::text))
+                     Buffers: shared hit=2
+   ->  Index Scan using admin_area_pkey on admin_area parent  (cost=0.28..2.50 rows=1 width=25) (never executed)
+         Index Cond: (id = a.parent_id)
+ Planning:
+   Buffers: shared hit=5
+ Planning Time: 1.182 ms
+ Execution Time: 0.492 ms
+(20 rows)
+
+DEALLOCATE
+===== QUERY "Phường Nguyễn An Ninh, Thành phố Vũng Tàu, Bà Rịa Vũng Tàu" | BRANCH alias | queryNorm=phuong nguyen an ninh thanh pho vung tau ba ria vung tau queryCore=phuong nguyen an ninh thanh pho vung tau ba ria vung tau aliasLevel=8 =====
+PREPARE
+                                                                                                                       QUERY PLAN                                                                                                                        
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Nested Loop  (cost=131.13..141.77 rows=3 width=92) (actual time=6.764..13.393 rows=77 loops=1)
+   Buffers: shared hit=435
+   ->  Bitmap Heap Scan on admin_alias aa  (cost=130.85..134.18 rows=3 width=38) (actual time=6.722..11.694 rows=77 loops=1)
+         Recheck Cond: (('phuong nguyen an ninh thanh pho vung tau ba ria vung tau'::text <% alias_norm) OR (alias_norm ~~ 'phuong nguyen an ninh thanh pho vung tau ba ria vung tau%'::text))
+         Rows Removed by Index Recheck: 309
+         Filter: ((source = ANY ('{overlay,seed}'::text[])) AND (level = 8) AND (('phuong nguyen an ninh thanh pho vung tau ba ria vung tau'::text <% alias_norm) OR (alias_norm ~~ 'phuong nguyen an ninh thanh pho vung tau ba ria vung tau%'::text)))
+         Rows Removed by Filter: 12
+         Heap Blocks: exact=49
+         Buffers: shared hit=204
+         ->  BitmapOr  (cost=130.85..130.85 rows=3 width=0) (actual time=6.507..6.508 rows=0 loops=1)
+               Buffers: shared hit=155
+               ->  Bitmap Index Scan on admin_alias_trgm_idx  (cost=0.00..129.45 rows=3 width=0) (actual time=6.493..6.494 rows=398 loops=1)
+                     Index Cond: (alias_norm %> 'phuong nguyen an ninh thanh pho vung tau ba ria vung tau'::text)
+                     Buffers: shared hit=153
+               ->  Bitmap Index Scan on admin_alias_prefix_idx  (cost=0.00..1.40 rows=1 width=0) (actual time=0.013..0.013 rows=1 loops=1)
+                     Index Cond: ((alias_norm ~>=~ 'phuong nguyen an ninh thanh pho vung tau ba ria vung tau'::text) AND (alias_norm ~<~ 'phuong nguyen an ninh thanh pho vung tau ba ria vung tav'::text))
+                     Buffers: shared hit=2
+   ->  Index Scan using admin_area_pkey on admin_area current  (cost=0.28..2.50 rows=1 width=25) (actual time=0.003..0.003 rows=1 loops=77)
+         Index Cond: (id = aa.admin_area_id)
+         Buffers: shared hit=231
+ Planning:
+   Buffers: shared hit=14
+ Planning Time: 1.760 ms
+ Execution Time: 13.450 ms
+(24 rows)
+
+----- lần đo thứ hai (cache ấm) -----
+                                                                                                                       QUERY PLAN                                                                                                                        
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Nested Loop  (cost=131.13..141.77 rows=3 width=92) (actual time=6.534..12.068 rows=77 loops=1)
+   Buffers: shared hit=435
+   ->  Bitmap Heap Scan on admin_alias aa  (cost=130.85..134.18 rows=3 width=38) (actual time=6.494..10.898 rows=77 loops=1)
+         Recheck Cond: (('phuong nguyen an ninh thanh pho vung tau ba ria vung tau'::text <% alias_norm) OR (alias_norm ~~ 'phuong nguyen an ninh thanh pho vung tau ba ria vung tau%'::text))
+         Rows Removed by Index Recheck: 309
+         Filter: ((source = ANY ('{overlay,seed}'::text[])) AND (level = 8) AND (('phuong nguyen an ninh thanh pho vung tau ba ria vung tau'::text <% alias_norm) OR (alias_norm ~~ 'phuong nguyen an ninh thanh pho vung tau ba ria vung tau%'::text)))
+         Rows Removed by Filter: 12
+         Heap Blocks: exact=49
+         Buffers: shared hit=204
+         ->  BitmapOr  (cost=130.85..130.85 rows=3 width=0) (actual time=6.296..6.297 rows=0 loops=1)
+               Buffers: shared hit=155
+               ->  Bitmap Index Scan on admin_alias_trgm_idx  (cost=0.00..129.45 rows=3 width=0) (actual time=6.284..6.284 rows=398 loops=1)
+                     Index Cond: (alias_norm %> 'phuong nguyen an ninh thanh pho vung tau ba ria vung tau'::text)
+                     Buffers: shared hit=153
+               ->  Bitmap Index Scan on admin_alias_prefix_idx  (cost=0.00..1.40 rows=1 width=0) (actual time=0.011..0.011 rows=1 loops=1)
+                     Index Cond: ((alias_norm ~>=~ 'phuong nguyen an ninh thanh pho vung tau ba ria vung tau'::text) AND (alias_norm ~<~ 'phuong nguyen an ninh thanh pho vung tau ba ria vung tav'::text))
+                     Buffers: shared hit=2
+   ->  Index Scan using admin_area_pkey on admin_area current  (cost=0.28..2.50 rows=1 width=25) (actual time=0.001..0.001 rows=1 loops=77)
+         Index Cond: (id = aa.admin_area_id)
+         Buffers: shared hit=231
+ Planning:
+   Buffers: shared hit=14
+ Planning Time: 1.686 ms
+ Execution Time: 12.124 ms
+(24 rows)
+
+DEALLOCATE
+===== QUERY "Phường Nguyễn An Ninh, Thành phố Vũng Tàu, Bà Rịa Vũng Tàu" | BRANCH grouping | queryNorm=phuong nguyen an ninh thanh pho vung tau ba ria vung tau queryCore=phuong nguyen an ninh thanh pho vung tau ba ria vung tau aliasLevel=8 =====
+PREPARE
+                                                                                                                             QUERY PLAN                                                                                                                              
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ GroupAggregate  (cost=141.76..141.96 rows=3 width=123) (actual time=11.252..12.562 rows=41 loops=1)
+   Group Key: (COALESCE(('old:'::text || (aa.old_area_id)::text), ((('alias:'::text || (aa.level)::text) || ':'::text) || aa.alias_norm))), aa.old_area_id
+   Buffers: shared hit=534
+   ->  Sort  (cost=141.76..141.77 rows=3 width=87) (actual time=11.185..11.193 rows=77 loops=1)
+         Sort Key: (COALESCE(('old:'::text || (aa.old_area_id)::text), ((('alias:'::text || (aa.level)::text) || ':'::text) || aa.alias_norm))), aa.old_area_id, current.name
+         Sort Method: quicksort  Memory: 34kB
+         Buffers: shared hit=486
+         ->  Nested Loop  (cost=131.13..141.74 rows=3 width=87) (actual time=6.266..11.015 rows=77 loops=1)
+               Buffers: shared hit=435
+               ->  Bitmap Heap Scan on admin_alias aa  (cost=130.85..134.18 rows=3 width=38) (actual time=6.247..10.863 rows=77 loops=1)
+                     Recheck Cond: (('phuong nguyen an ninh thanh pho vung tau ba ria vung tau'::text <% alias_norm) OR (alias_norm ~~ 'phuong nguyen an ninh thanh pho vung tau ba ria vung tau%'::text))
+                     Rows Removed by Index Recheck: 309
+                     Filter: ((source = ANY ('{overlay,seed}'::text[])) AND (level = 8) AND (('phuong nguyen an ninh thanh pho vung tau ba ria vung tau'::text <% alias_norm) OR (alias_norm ~~ 'phuong nguyen an ninh thanh pho vung tau ba ria vung tau%'::text)))
+                     Rows Removed by Filter: 12
+                     Heap Blocks: exact=49
+                     Buffers: shared hit=204
+                     ->  BitmapOr  (cost=130.85..130.85 rows=3 width=0) (actual time=6.057..6.059 rows=0 loops=1)
+                           Buffers: shared hit=155
+                           ->  Bitmap Index Scan on admin_alias_trgm_idx  (cost=0.00..129.45 rows=3 width=0) (actual time=6.027..6.028 rows=398 loops=1)
+                                 Index Cond: (alias_norm %> 'phuong nguyen an ninh thanh pho vung tau ba ria vung tau'::text)
+                                 Buffers: shared hit=153
+                           ->  Bitmap Index Scan on admin_alias_prefix_idx  (cost=0.00..1.40 rows=1 width=0) (actual time=0.028..0.028 rows=1 loops=1)
+                                 Index Cond: ((alias_norm ~>=~ 'phuong nguyen an ninh thanh pho vung tau ba ria vung tau'::text) AND (alias_norm ~<~ 'phuong nguyen an ninh thanh pho vung tau ba ria vung tav'::text))
+                                 Buffers: shared hit=2
+               ->  Index Scan using admin_area_pkey on admin_area current  (cost=0.28..2.50 rows=1 width=25) (actual time=0.001..0.001 rows=1 loops=77)
+                     Index Cond: (id = aa.admin_area_id)
+                     Buffers: shared hit=231
+ Planning:
+   Buffers: shared hit=19
+ Planning Time: 1.832 ms
+ Execution Time: 12.627 ms
+(31 rows)
+
+----- lần đo thứ hai (cache ấm) -----
+                                                                                                                             QUERY PLAN                                                                                                                              
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ GroupAggregate  (cost=141.76..141.96 rows=3 width=123) (actual time=11.501..12.758 rows=41 loops=1)
+   Group Key: (COALESCE(('old:'::text || (aa.old_area_id)::text), ((('alias:'::text || (aa.level)::text) || ':'::text) || aa.alias_norm))), aa.old_area_id
+   Buffers: shared hit=534
+   ->  Sort  (cost=141.76..141.77 rows=3 width=87) (actual time=11.451..11.457 rows=77 loops=1)
+         Sort Key: (COALESCE(('old:'::text || (aa.old_area_id)::text), ((('alias:'::text || (aa.level)::text) || ':'::text) || aa.alias_norm))), aa.old_area_id, current.name
+         Sort Method: quicksort  Memory: 34kB
+         Buffers: shared hit=486
+         ->  Nested Loop  (cost=131.13..141.74 rows=3 width=87) (actual time=6.570..11.307 rows=77 loops=1)
+               Buffers: shared hit=435
+               ->  Bitmap Heap Scan on admin_alias aa  (cost=130.85..134.18 rows=3 width=38) (actual time=6.553..11.146 rows=77 loops=1)
+                     Recheck Cond: (('phuong nguyen an ninh thanh pho vung tau ba ria vung tau'::text <% alias_norm) OR (alias_norm ~~ 'phuong nguyen an ninh thanh pho vung tau ba ria vung tau%'::text))
+                     Rows Removed by Index Recheck: 309
+                     Filter: ((source = ANY ('{overlay,seed}'::text[])) AND (level = 8) AND (('phuong nguyen an ninh thanh pho vung tau ba ria vung tau'::text <% alias_norm) OR (alias_norm ~~ 'phuong nguyen an ninh thanh pho vung tau ba ria vung tau%'::text)))
+                     Rows Removed by Filter: 12
+                     Heap Blocks: exact=49
+                     Buffers: shared hit=204
+                     ->  BitmapOr  (cost=130.85..130.85 rows=3 width=0) (actual time=6.369..6.370 rows=0 loops=1)
+                           Buffers: shared hit=155
+                           ->  Bitmap Index Scan on admin_alias_trgm_idx  (cost=0.00..129.45 rows=3 width=0) (actual time=6.354..6.355 rows=398 loops=1)
+                                 Index Cond: (alias_norm %> 'phuong nguyen an ninh thanh pho vung tau ba ria vung tau'::text)
+                                 Buffers: shared hit=153
+                           ->  Bitmap Index Scan on admin_alias_prefix_idx  (cost=0.00..1.40 rows=1 width=0) (actual time=0.013..0.013 rows=1 loops=1)
+                                 Index Cond: ((alias_norm ~>=~ 'phuong nguyen an ninh thanh pho vung tau ba ria vung tau'::text) AND (alias_norm ~<~ 'phuong nguyen an ninh thanh pho vung tau ba ria vung tav'::text))
+                                 Buffers: shared hit=2
+               ->  Index Scan using admin_area_pkey on admin_area current  (cost=0.28..2.50 rows=1 width=25) (actual time=0.001..0.001 rows=1 loops=77)
+                     Index Cond: (id = aa.admin_area_id)
+                     Buffers: shared hit=231
+ Planning:
+   Buffers: shared hit=19
+ Planning Time: 2.164 ms
+ Execution Time: 12.832 ms
+(31 rows)
+
+DEALLOCATE
+===== QUERY "Tân Thành" | BRANCH full | queryNorm=tan thanh queryCore=tan thanh aliasLevel=null =====
+PREPARE
+                                                                                                                           QUERY PLAN                                                                                                                           
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Limit  (cost=7254.90..7290.50 rows=20 width=256) (actual time=103.109..104.307 rows=20 loops=1)
+   Buffers: shared hit=15734
+   ->  Result  (cost=7254.90..7306.52 rows=29 width=256) (actual time=103.107..104.302 rows=20 loops=1)
+         Buffers: shared hit=15734
+         ->  Sort  (cost=7254.90..7254.97 rows=29 width=753) (actual time=102.985..102.996 rows=20 loops=1)
+               Sort Key: deduped.sim DESC, deduped.prefix DESC, deduped.name, deduped.dedup_key
+               Sort Method: top-N heapsort  Memory: 159kB
+               Buffers: shared hit=15320
+               ->  Subquery Scan on deduped  (cost=7021.63..7254.19 rows=29 width=753) (actual time=101.701..102.480 rows=929 loops=1)
+                     Filter: ((deduped.candidate_geom IS NOT NULL) AND (deduped."position" = 1))
+                     Buffers: shared hit=14915
+                     ->  WindowAgg  (cost=7021.63..7181.52 rows=5814 width=689) (actual time=101.699..102.387 rows=929 loops=1)
+                           Run Condition: (row_number() OVER (?) <= 1)
+                           Buffers: shared hit=14915
+                           ->  Sort  (cost=7021.63..7036.17 rows=5814 width=681) (actual time=101.685..101.773 rows=1799 loops=1)
+                                 Sort Key: (concat('current:', a.id)), (1), (GREATEST(word_similarity('tan thanh'::text, a.name_norm), similarity(a.name_norm, 'tan thanh'::text))) DESC, (starts_with(a.name_norm, 'tan thanh'::text)) DESC, a.name
+                                 Sort Method: quicksort  Memory: 4000kB
+                                 Buffers: shared hit=14915
+                                 ->  Result  (cost=236.84..6658.11 rows=5814 width=681) (actual time=1.425..98.703 rows=1799 loops=1)
+                                       Buffers: shared hit=14471
+                                       ->  Append  (cost=236.84..6599.97 rows=5814 width=682) (actual time=1.424..98.564 rows=1799 loops=1)
+                                             Buffers: shared hit=14471
+                                             ->  Merge Right Join  (cost=236.84..256.97 rows=199 width=15144) (actual time=1.423..2.136 rows=224 loops=1)
+                                                   Merge Cond: (parent.id = a.parent_id)
+                                                   Buffers: shared hit=202
+                                                   ->  Index Scan using admin_area_pkey on admin_area parent  (cost=0.28..1355.19 rows=3288 width=25) (actual time=0.009..0.024 rows=34 loops=1)
+                                                         Buffers: shared hit=4
+                                                   ->  Sort  (cost=236.56..237.06 rows=199 width=15066) (actual time=1.390..1.414 rows=224 loops=1)
+                                                         Sort Key: a.parent_id
+                                                         Sort Method: quicksort  Memory: 622kB
+                                                         Buffers: shared hit=198
+                                                         ->  Bitmap Heap Scan on admin_area a  (cost=29.68..228.96 rows=199 width=15066) (actual time=0.219..1.249 rows=224 loops=1)
+                                                               Recheck Cond: (('tan thanh'::text <% name_norm) OR (name_norm ~~ 'tan thanh%'::text))
+                                                               Rows Removed by Index Recheck: 23
+                                                               Filter: (('tan thanh'::text <% name_norm) OR (name_norm ~~ 'tan thanh%'::text))
+                                                               Heap Blocks: exact=177
+                                                               Buffers: shared hit=198
+                                                               ->  BitmapOr  (cost=29.68..29.68 rows=200 width=0) (actual time=0.192..0.192 rows=0 loops=1)
+                                                                     Buffers: shared hit=21
+                                                                     ->  Bitmap Index Scan on admin_area_name_trgm_idx  (cost=0.00..28.05 rows=185 width=0) (actual time=0.151..0.152 rows=247 loops=1)
+                                                                           Index Cond: (name_norm %> 'tan thanh'::text)
+                                                                           Buffers: shared hit=19
+                                                                     ->  Bitmap Index Scan on admin_area_name_prefix_idx  (cost=0.00..1.53 rows=15 width=0) (actual time=0.039..0.039 rows=16 loops=1)
+                                                                           Index Cond: ((name_norm ~>=~ 'tan thanh'::text) AND (name_norm ~<~ 'tan thani'::text))
+                                                                           Buffers: shared hit=2
+                                             ->  Hash Join  (cost=4492.20..6313.93 rows=5615 width=169) (actual time=92.886..96.319 rows=1575 loops=1)
+                                                   Hash Cond: (g.representative_id = representative.id)
+                                                   Buffers: shared hit=14269
+                                                   ->  Merge Right Join  (cost=3202.22..4742.47 rows=5615 width=14232) (actual time=90.266..92.843 rows=1575 loops=1)
+                                                         Merge Cond: (old.id = g.old_area_id)
+                                                         Buffers: shared hit=13053
+                                                         ->  Index Scan using admin_area_old_pkey on admin_area_old old  (cost=0.28..1444.06 rows=4900 width=14117) (actual time=0.019..2.022 rows=4866 loops=1)
+                                                               Buffers: shared hit=4149
+                                                         ->  Sort  (cost=3201.94..3215.98 rows=5615 width=123) (actual time=90.176..90.241 rows=1575 loops=1)
+                                                               Sort Key: g.old_area_id
+                                                               Sort Method: quicksort  Memory: 301kB
+                                                               Buffers: shared hit=8904
+                                                               ->  Subquery Scan on g  (cost=2382.55..2852.26 rows=5615 width=123) (actual time=51.867..89.872 rows=1575 loops=1)
+                                                                     Buffers: shared hit=8904
+                                                                     ->  GroupAggregate  (cost=2382.55..2796.11 rows=5615 width=123) (actual time=51.866..89.737 rows=1575 loops=1)
+                                                                           Group Key: (COALESCE(('old:'::text || (aa.old_area_id)::text), ((('alias:'::text || (aa.level)::text) || ':'::text) || aa.alias_norm))), aa.old_area_id, aa.level
+                                                                           Buffers: shared hit=8904
+                                                                           ->  Sort  (cost=2382.55..2398.05 rows=6201 width=87) (actual time=51.811..52.134 rows=6383 loops=1)
+                                                                                 Sort Key: (COALESCE(('old:'::text || (aa.old_area_id)::text), ((('alias:'::text || (aa.level)::text) || ':'::text) || aa.alias_norm))), aa.old_area_id, aa.level, current.name
+                                                                                 Sort Method: quicksort  Memory: 891kB
+                                                                                 Buffers: shared hit=6657
+                                                                                 ->  Hash Join  (cost=1355.07..1991.94 rows=6201 width=87) (actual time=3.008..42.363 rows=6383 loops=1)
+                                                                                       Hash Cond: (aa.admin_area_id = current.id)
+                                                                                       Buffers: shared hit=1566
+                                                                                       ->  Bitmap Heap Scan on admin_alias aa  (cost=65.09..561.64 rows=6201 width=38) (actual time=1.477..39.187 rows=6383 loops=1)
+                                                                                             Recheck Cond: (('tan thanh'::text <% alias_norm) OR (alias_norm ~~ 'tan thanh%'::text))
+                                                                                             Rows Removed by Index Recheck: 1162
+                                                                                             Filter: ((source = ANY ('{overlay,seed}'::text[])) AND (('tan thanh'::text <% alias_norm) OR (alias_norm ~~ 'tan thanh%'::text)))
+                                                                                             Heap Blocks: exact=305
+                                                                                             Buffers: shared hit=350
+                                                                                             ->  BitmapOr  (cost=65.09..65.09 rows=6203 width=0) (actual time=1.445..1.445 rows=0 loops=1)
+                                                                                                   Buffers: shared hit=45
+                                                                                                   ->  Bitmap Index Scan on admin_alias_trgm_idx  (cost=0.00..60.59 rows=6203 width=0) (actual time=1.433..1.433 rows=7545 loops=1)
+                                                                                                         Index Cond: (alias_norm %> 'tan thanh'::text)
+                                                                                                         Buffers: shared hit=43
+                                                                                                   ->  Bitmap Index Scan on admin_alias_prefix_idx  (cost=0.00..1.40 rows=1 width=0) (actual time=0.010..0.010 rows=10 loops=1)
+                                                                                                         Index Cond: ((alias_norm ~>=~ 'tan thanh'::text) AND (alias_norm ~<~ 'tan thani'::text))
+                                                                                                         Buffers: shared hit=2
+                                                                                       ->  Hash  (cost=1248.88..1248.88 rows=3288 width=25) (actual time=1.510..1.511 rows=3288 loops=1)
+                                                                                             Buckets: 4096  Batches: 1  Memory Usage: 216kB
+                                                                                             Buffers: shared hit=1216
+                                                                                             ->  Seq Scan on admin_area current  (cost=0.00..1248.88 rows=3288 width=25) (actual time=0.009..1.130 rows=3288 loops=1)
+                                                                                                   Buffers: shared hit=1216
+                                                   ->  Hash  (cost=1248.88..1248.88 rows=3288 width=15049) (actual time=2.591..2.592 rows=3288 loops=1)
+                                                         Buckets: 4096  Batches: 1  Memory Usage: 8526kB
+                                                         Buffers: shared hit=1216
+                                                         ->  Seq Scan on admin_area representative  (cost=0.00..1248.88 rows=3288 width=15049) (actual time=0.010..1.184 rows=3288 loops=1)
+                                                               Buffers: shared hit=1216
+ Planning:
+   Buffers: shared hit=24
+ Planning Time: 2.016 ms
+ Execution Time: 104.524 ms
+(97 rows)
+
+----- lần đo thứ hai (cache ấm) -----
+                                                                                                                           QUERY PLAN                                                                                                                           
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Limit  (cost=7254.90..7290.50 rows=20 width=256) (actual time=99.745..100.782 rows=20 loops=1)
+   Buffers: shared hit=15734
+   ->  Result  (cost=7254.90..7306.52 rows=29 width=256) (actual time=99.744..100.778 rows=20 loops=1)
+         Buffers: shared hit=15734
+         ->  Sort  (cost=7254.90..7254.97 rows=29 width=753) (actual time=99.629..99.639 rows=20 loops=1)
+               Sort Key: deduped.sim DESC, deduped.prefix DESC, deduped.name, deduped.dedup_key
+               Sort Method: top-N heapsort  Memory: 159kB
+               Buffers: shared hit=15320
+               ->  Subquery Scan on deduped  (cost=7021.63..7254.19 rows=29 width=753) (actual time=98.285..99.115 rows=929 loops=1)
+                     Filter: ((deduped.candidate_geom IS NOT NULL) AND (deduped."position" = 1))
+                     Buffers: shared hit=14915
+                     ->  WindowAgg  (cost=7021.63..7181.52 rows=5814 width=689) (actual time=98.283..99.018 rows=929 loops=1)
+                           Run Condition: (row_number() OVER (?) <= 1)
+                           Buffers: shared hit=14915
+                           ->  Sort  (cost=7021.63..7036.17 rows=5814 width=681) (actual time=98.276..98.354 rows=1799 loops=1)
+                                 Sort Key: (concat('current:', a.id)), (1), (GREATEST(word_similarity('tan thanh'::text, a.name_norm), similarity(a.name_norm, 'tan thanh'::text))) DESC, (starts_with(a.name_norm, 'tan thanh'::text)) DESC, a.name
+                                 Sort Method: quicksort  Memory: 4000kB
+                                 Buffers: shared hit=14915
+                                 ->  Result  (cost=236.84..6658.11 rows=5814 width=681) (actual time=0.950..95.339 rows=1799 loops=1)
+                                       Buffers: shared hit=14471
+                                       ->  Append  (cost=236.84..6599.97 rows=5814 width=682) (actual time=0.949..95.202 rows=1799 loops=1)
+                                             Buffers: shared hit=14471
+                                             ->  Merge Right Join  (cost=236.84..256.97 rows=199 width=15144) (actual time=0.949..1.474 rows=224 loops=1)
+                                                   Merge Cond: (parent.id = a.parent_id)
+                                                   Buffers: shared hit=202
+                                                   ->  Index Scan using admin_area_pkey on admin_area parent  (cost=0.28..1355.19 rows=3288 width=25) (actual time=0.004..0.009 rows=34 loops=1)
+                                                         Buffers: shared hit=4
+                                                   ->  Sort  (cost=236.56..237.06 rows=199 width=15066) (actual time=0.935..0.947 rows=224 loops=1)
+                                                         Sort Key: a.parent_id
+                                                         Sort Method: quicksort  Memory: 622kB
+                                                         Buffers: shared hit=198
+                                                         ->  Bitmap Heap Scan on admin_area a  (cost=29.68..228.96 rows=199 width=15066) (actual time=0.137..0.852 rows=224 loops=1)
+                                                               Recheck Cond: (('tan thanh'::text <% name_norm) OR (name_norm ~~ 'tan thanh%'::text))
+                                                               Rows Removed by Index Recheck: 23
+                                                               Filter: (('tan thanh'::text <% name_norm) OR (name_norm ~~ 'tan thanh%'::text))
+                                                               Heap Blocks: exact=177
+                                                               Buffers: shared hit=198
+                                                               ->  BitmapOr  (cost=29.68..29.68 rows=200 width=0) (actual time=0.117..0.118 rows=0 loops=1)
+                                                                     Buffers: shared hit=21
+                                                                     ->  Bitmap Index Scan on admin_area_name_trgm_idx  (cost=0.00..28.05 rows=185 width=0) (actual time=0.109..0.109 rows=247 loops=1)
+                                                                           Index Cond: (name_norm %> 'tan thanh'::text)
+                                                                           Buffers: shared hit=19
+                                                                     ->  Bitmap Index Scan on admin_area_name_prefix_idx  (cost=0.00..1.53 rows=15 width=0) (actual time=0.008..0.008 rows=16 loops=1)
+                                                                           Index Cond: ((name_norm ~>=~ 'tan thanh'::text) AND (name_norm ~<~ 'tan thani'::text))
+                                                                           Buffers: shared hit=2
+                                             ->  Hash Join  (cost=4492.20..6313.93 rows=5615 width=169) (actual time=90.382..93.620 rows=1575 loops=1)
+                                                   Hash Cond: (g.representative_id = representative.id)
+                                                   Buffers: shared hit=14269
+                                                   ->  Merge Right Join  (cost=3202.22..4742.47 rows=5615 width=14232) (actual time=89.035..91.417 rows=1575 loops=1)
+                                                         Merge Cond: (old.id = g.old_area_id)
+                                                         Buffers: shared hit=13053
+                                                         ->  Index Scan using admin_area_old_pkey on admin_area_old old  (cost=0.28..1444.06 rows=4900 width=14117) (actual time=0.006..1.796 rows=4866 loops=1)
+                                                               Buffers: shared hit=4149
+                                                         ->  Sort  (cost=3201.94..3215.98 rows=5615 width=123) (actual time=88.987..89.053 rows=1575 loops=1)
+                                                               Sort Key: g.old_area_id
+                                                               Sort Method: quicksort  Memory: 301kB
+                                                               Buffers: shared hit=8904
+                                                               ->  Subquery Scan on g  (cost=2382.55..2852.26 rows=5615 width=123) (actual time=50.162..88.695 rows=1575 loops=1)
+                                                                     Buffers: shared hit=8904
+                                                                     ->  GroupAggregate  (cost=2382.55..2796.11 rows=5615 width=123) (actual time=50.161..88.564 rows=1575 loops=1)
+                                                                           Group Key: (COALESCE(('old:'::text || (aa.old_area_id)::text), ((('alias:'::text || (aa.level)::text) || ':'::text) || aa.alias_norm))), aa.old_area_id, aa.level
+                                                                           Buffers: shared hit=8904
+                                                                           ->  Sort  (cost=2382.55..2398.05 rows=6201 width=87) (actual time=50.107..50.369 rows=6383 loops=1)
+                                                                                 Sort Key: (COALESCE(('old:'::text || (aa.old_area_id)::text), ((('alias:'::text || (aa.level)::text) || ':'::text) || aa.alias_norm))), aa.old_area_id, aa.level, current.name
+                                                                                 Sort Method: quicksort  Memory: 891kB
+                                                                                 Buffers: shared hit=6657
+                                                                                 ->  Hash Join  (cost=1355.07..1991.94 rows=6201 width=87) (actual time=1.901..40.810 rows=6383 loops=1)
+                                                                                       Hash Cond: (aa.admin_area_id = current.id)
+                                                                                       Buffers: shared hit=1566
+                                                                                       ->  Bitmap Heap Scan on admin_alias aa  (cost=65.09..561.64 rows=6201 width=38) (actual time=1.223..38.489 rows=6383 loops=1)
+                                                                                             Recheck Cond: (('tan thanh'::text <% alias_norm) OR (alias_norm ~~ 'tan thanh%'::text))
+                                                                                             Rows Removed by Index Recheck: 1162
+                                                                                             Filter: ((source = ANY ('{overlay,seed}'::text[])) AND (('tan thanh'::text <% alias_norm) OR (alias_norm ~~ 'tan thanh%'::text)))
+                                                                                             Heap Blocks: exact=305
+                                                                                             Buffers: shared hit=350
+                                                                                             ->  BitmapOr  (cost=65.09..65.09 rows=6203 width=0) (actual time=1.196..1.196 rows=0 loops=1)
+                                                                                                   Buffers: shared hit=45
+                                                                                                   ->  Bitmap Index Scan on admin_alias_trgm_idx  (cost=0.00..60.59 rows=6203 width=0) (actual time=1.189..1.189 rows=7545 loops=1)
+                                                                                                         Index Cond: (alias_norm %> 'tan thanh'::text)
+                                                                                                         Buffers: shared hit=43
+                                                                                                   ->  Bitmap Index Scan on admin_alias_prefix_idx  (cost=0.00..1.40 rows=1 width=0) (actual time=0.006..0.006 rows=10 loops=1)
+                                                                                                         Index Cond: ((alias_norm ~>=~ 'tan thanh'::text) AND (alias_norm ~<~ 'tan thani'::text))
+                                                                                                         Buffers: shared hit=2
+                                                                                       ->  Hash  (cost=1248.88..1248.88 rows=3288 width=25) (actual time=0.673..0.674 rows=3288 loops=1)
+                                                                                             Buckets: 4096  Batches: 1  Memory Usage: 216kB
+                                                                                             Buffers: shared hit=1216
+                                                                                             ->  Seq Scan on admin_area current  (cost=0.00..1248.88 rows=3288 width=25) (actual time=0.002..0.442 rows=3288 loops=1)
+                                                                                                   Buffers: shared hit=1216
+                                                   ->  Hash  (cost=1248.88..1248.88 rows=3288 width=15049) (actual time=1.334..1.334 rows=3288 loops=1)
+                                                         Buckets: 4096  Batches: 1  Memory Usage: 8526kB
+                                                         Buffers: shared hit=1216
+                                                         ->  Seq Scan on admin_area representative  (cost=0.00..1248.88 rows=3288 width=15049) (actual time=0.003..0.586 rows=3288 loops=1)
+                                                               Buffers: shared hit=1216
+ Planning:
+   Buffers: shared hit=24
+ Planning Time: 1.607 ms
+ Execution Time: 100.931 ms
+(97 rows)
+
+DEALLOCATE
+===== QUERY "Tân Thành" | BRANCH current | queryNorm=tan thanh queryCore=tan thanh aliasLevel=null =====
+PREPARE
+                                                                       QUERY PLAN                                                                       
+--------------------------------------------------------------------------------------------------------------------------------------------------------
+ Merge Right Join  (cost=236.84..256.97 rows=199 width=15144) (actual time=0.972..1.556 rows=224 loops=1)
+   Merge Cond: (parent.id = a.parent_id)
+   Buffers: shared hit=202
+   ->  Index Scan using admin_area_pkey on admin_area parent  (cost=0.28..1355.19 rows=3288 width=25) (actual time=0.005..0.011 rows=34 loops=1)
+         Buffers: shared hit=4
+   ->  Sort  (cost=236.56..237.06 rows=199 width=15066) (actual time=0.960..0.969 rows=224 loops=1)
+         Sort Key: a.parent_id
+         Sort Method: quicksort  Memory: 622kB
+         Buffers: shared hit=198
+         ->  Bitmap Heap Scan on admin_area a  (cost=29.68..228.96 rows=199 width=15066) (actual time=0.133..0.887 rows=224 loops=1)
+               Recheck Cond: (('tan thanh'::text <% name_norm) OR (name_norm ~~ 'tan thanh%'::text))
+               Rows Removed by Index Recheck: 23
+               Filter: (('tan thanh'::text <% name_norm) OR (name_norm ~~ 'tan thanh%'::text))
+               Heap Blocks: exact=177
+               Buffers: shared hit=198
+               ->  BitmapOr  (cost=29.68..29.68 rows=200 width=0) (actual time=0.114..0.115 rows=0 loops=1)
+                     Buffers: shared hit=21
+                     ->  Bitmap Index Scan on admin_area_name_trgm_idx  (cost=0.00..28.05 rows=185 width=0) (actual time=0.108..0.108 rows=247 loops=1)
+                           Index Cond: (name_norm %> 'tan thanh'::text)
+                           Buffers: shared hit=19
+                     ->  Bitmap Index Scan on admin_area_name_prefix_idx  (cost=0.00..1.53 rows=15 width=0) (actual time=0.006..0.006 rows=16 loops=1)
+                           Index Cond: ((name_norm ~>=~ 'tan thanh'::text) AND (name_norm ~<~ 'tan thani'::text))
+                           Buffers: shared hit=2
+ Planning:
+   Buffers: shared hit=5
+ Planning Time: 0.567 ms
+ Execution Time: 1.591 ms
+(27 rows)
+
+----- lần đo thứ hai (cache ấm) -----
+                                                                       QUERY PLAN                                                                       
+--------------------------------------------------------------------------------------------------------------------------------------------------------
+ Merge Right Join  (cost=236.84..256.97 rows=199 width=15144) (actual time=0.837..1.416 rows=224 loops=1)
+   Merge Cond: (parent.id = a.parent_id)
+   Buffers: shared hit=202
+   ->  Index Scan using admin_area_pkey on admin_area parent  (cost=0.28..1355.19 rows=3288 width=25) (actual time=0.004..0.007 rows=34 loops=1)
+         Buffers: shared hit=4
+   ->  Sort  (cost=236.56..237.06 rows=199 width=15066) (actual time=0.827..0.835 rows=224 loops=1)
+         Sort Key: a.parent_id
+         Sort Method: quicksort  Memory: 622kB
+         Buffers: shared hit=198
+         ->  Bitmap Heap Scan on admin_area a  (cost=29.68..228.96 rows=199 width=15066) (actual time=0.137..0.774 rows=224 loops=1)
+               Recheck Cond: (('tan thanh'::text <% name_norm) OR (name_norm ~~ 'tan thanh%'::text))
+               Rows Removed by Index Recheck: 23
+               Filter: (('tan thanh'::text <% name_norm) OR (name_norm ~~ 'tan thanh%'::text))
+               Heap Blocks: exact=177
+               Buffers: shared hit=198
+               ->  BitmapOr  (cost=29.68..29.68 rows=200 width=0) (actual time=0.123..0.123 rows=0 loops=1)
+                     Buffers: shared hit=21
+                     ->  Bitmap Index Scan on admin_area_name_trgm_idx  (cost=0.00..28.05 rows=185 width=0) (actual time=0.120..0.120 rows=247 loops=1)
+                           Index Cond: (name_norm %> 'tan thanh'::text)
+                           Buffers: shared hit=19
+                     ->  Bitmap Index Scan on admin_area_name_prefix_idx  (cost=0.00..1.53 rows=15 width=0) (actual time=0.003..0.003 rows=16 loops=1)
+                           Index Cond: ((name_norm ~>=~ 'tan thanh'::text) AND (name_norm ~<~ 'tan thani'::text))
+                           Buffers: shared hit=2
+ Planning:
+   Buffers: shared hit=5
+ Planning Time: 0.421 ms
+ Execution Time: 1.444 ms
+(27 rows)
+
+DEALLOCATE
+===== QUERY "Tân Thành" | BRANCH alias | queryNorm=tan thanh queryCore=tan thanh aliasLevel=null =====
+PREPARE
+                                                                   QUERY PLAN                                                                   
+------------------------------------------------------------------------------------------------------------------------------------------------
+ Hash Join  (cost=1355.07..2053.95 rows=6201 width=92) (actual time=2.450..69.643 rows=6383 loops=1)
+   Hash Cond: (aa.admin_area_id = current.id)
+   Buffers: shared hit=1566
+   ->  Bitmap Heap Scan on admin_alias aa  (cost=65.09..561.64 rows=6201 width=38) (actual time=1.351..37.963 rows=6383 loops=1)
+         Recheck Cond: (('tan thanh'::text <% alias_norm) OR (alias_norm ~~ 'tan thanh%'::text))
+         Rows Removed by Index Recheck: 1162
+         Filter: ((source = ANY ('{overlay,seed}'::text[])) AND (('tan thanh'::text <% alias_norm) OR (alias_norm ~~ 'tan thanh%'::text)))
+         Heap Blocks: exact=305
+         Buffers: shared hit=350
+         ->  BitmapOr  (cost=65.09..65.09 rows=6203 width=0) (actual time=1.323..1.324 rows=0 loops=1)
+               Buffers: shared hit=45
+               ->  Bitmap Index Scan on admin_alias_trgm_idx  (cost=0.00..60.59 rows=6203 width=0) (actual time=1.317..1.318 rows=7545 loops=1)
+                     Index Cond: (alias_norm %> 'tan thanh'::text)
+                     Buffers: shared hit=43
+               ->  Bitmap Index Scan on admin_alias_prefix_idx  (cost=0.00..1.40 rows=1 width=0) (actual time=0.005..0.006 rows=10 loops=1)
+                     Index Cond: ((alias_norm ~>=~ 'tan thanh'::text) AND (alias_norm ~<~ 'tan thani'::text))
+                     Buffers: shared hit=2
+   ->  Hash  (cost=1248.88..1248.88 rows=3288 width=25) (actual time=1.087..1.087 rows=3288 loops=1)
+         Buckets: 4096  Batches: 1  Memory Usage: 216kB
+         Buffers: shared hit=1216
+         ->  Seq Scan on admin_area current  (cost=0.00..1248.88 rows=3288 width=25) (actual time=0.003..0.829 rows=3288 loops=1)
+               Buffers: shared hit=1216
+ Planning:
+   Buffers: shared hit=14
+ Planning Time: 0.667 ms
+ Execution Time: 69.869 ms
+(26 rows)
+
+----- lần đo thứ hai (cache ấm) -----
+                                                                   QUERY PLAN                                                                   
+------------------------------------------------------------------------------------------------------------------------------------------------
+ Hash Join  (cost=1355.07..2053.95 rows=6201 width=92) (actual time=1.993..70.078 rows=6383 loops=1)
+   Hash Cond: (aa.admin_area_id = current.id)
+   Buffers: shared hit=1566
+   ->  Bitmap Heap Scan on admin_alias aa  (cost=65.09..561.64 rows=6201 width=38) (actual time=1.220..38.278 rows=6383 loops=1)
+         Recheck Cond: (('tan thanh'::text <% alias_norm) OR (alias_norm ~~ 'tan thanh%'::text))
+         Rows Removed by Index Recheck: 1162
+         Filter: ((source = ANY ('{overlay,seed}'::text[])) AND (('tan thanh'::text <% alias_norm) OR (alias_norm ~~ 'tan thanh%'::text)))
+         Heap Blocks: exact=305
+         Buffers: shared hit=350
+         ->  BitmapOr  (cost=65.09..65.09 rows=6203 width=0) (actual time=1.198..1.199 rows=0 loops=1)
+               Buffers: shared hit=45
+               ->  Bitmap Index Scan on admin_alias_trgm_idx  (cost=0.00..60.59 rows=6203 width=0) (actual time=1.194..1.194 rows=7545 loops=1)
+                     Index Cond: (alias_norm %> 'tan thanh'::text)
+                     Buffers: shared hit=43
+               ->  Bitmap Index Scan on admin_alias_prefix_idx  (cost=0.00..1.40 rows=1 width=0) (actual time=0.004..0.004 rows=10 loops=1)
+                     Index Cond: ((alias_norm ~>=~ 'tan thanh'::text) AND (alias_norm ~<~ 'tan thani'::text))
+                     Buffers: shared hit=2
+   ->  Hash  (cost=1248.88..1248.88 rows=3288 width=25) (actual time=0.767..0.767 rows=3288 loops=1)
+         Buckets: 4096  Batches: 1  Memory Usage: 216kB
+         Buffers: shared hit=1216
+         ->  Seq Scan on admin_area current  (cost=0.00..1248.88 rows=3288 width=25) (actual time=0.002..0.538 rows=3288 loops=1)
+               Buffers: shared hit=1216
+ Planning:
+   Buffers: shared hit=14
+ Planning Time: 0.680 ms
+ Execution Time: 70.286 ms
+(26 rows)
+
+DEALLOCATE
+===== QUERY "Tân Thành" | BRANCH grouping | queryNorm=tan thanh queryCore=tan thanh aliasLevel=null =====
+PREPARE
+                                                                                       QUERY PLAN                                                                                       
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ GroupAggregate  (cost=2382.55..2796.11 rows=5615 width=123) (actual time=49.059..89.613 rows=1575 loops=1)
+   Group Key: (COALESCE(('old:'::text || (aa.old_area_id)::text), ((('alias:'::text || (aa.level)::text) || ':'::text) || aa.alias_norm))), aa.old_area_id, aa.level
+   Buffers: shared hit=8904
+   ->  Sort  (cost=2382.55..2398.05 rows=6201 width=87) (actual time=49.029..49.392 rows=6383 loops=1)
+         Sort Key: (COALESCE(('old:'::text || (aa.old_area_id)::text), ((('alias:'::text || (aa.level)::text) || ':'::text) || aa.alias_norm))), aa.old_area_id, aa.level, current.name
+         Sort Method: quicksort  Memory: 891kB
+         Buffers: shared hit=6657
+         ->  Hash Join  (cost=1355.07..1991.94 rows=6201 width=87) (actual time=2.137..39.829 rows=6383 loops=1)
+               Hash Cond: (aa.admin_area_id = current.id)
+               Buffers: shared hit=1566
+               ->  Bitmap Heap Scan on admin_alias aa  (cost=65.09..561.64 rows=6201 width=38) (actual time=1.336..37.829 rows=6383 loops=1)
+                     Recheck Cond: (('tan thanh'::text <% alias_norm) OR (alias_norm ~~ 'tan thanh%'::text))
+                     Rows Removed by Index Recheck: 1162
+                     Filter: ((source = ANY ('{overlay,seed}'::text[])) AND (('tan thanh'::text <% alias_norm) OR (alias_norm ~~ 'tan thanh%'::text)))
+                     Heap Blocks: exact=305
+                     Buffers: shared hit=350
+                     ->  BitmapOr  (cost=65.09..65.09 rows=6203 width=0) (actual time=1.310..1.311 rows=0 loops=1)
+                           Buffers: shared hit=45
+                           ->  Bitmap Index Scan on admin_alias_trgm_idx  (cost=0.00..60.59 rows=6203 width=0) (actual time=1.306..1.306 rows=7545 loops=1)
+                                 Index Cond: (alias_norm %> 'tan thanh'::text)
+                                 Buffers: shared hit=43
+                           ->  Bitmap Index Scan on admin_alias_prefix_idx  (cost=0.00..1.40 rows=1 width=0) (actual time=0.004..0.004 rows=10 loops=1)
+                                 Index Cond: ((alias_norm ~>=~ 'tan thanh'::text) AND (alias_norm ~<~ 'tan thani'::text))
+                                 Buffers: shared hit=2
+               ->  Hash  (cost=1248.88..1248.88 rows=3288 width=25) (actual time=0.795..0.796 rows=3288 loops=1)
+                     Buckets: 4096  Batches: 1  Memory Usage: 216kB
+                     Buffers: shared hit=1216
+                     ->  Seq Scan on admin_area current  (cost=0.00..1248.88 rows=3288 width=25) (actual time=0.002..0.523 rows=3288 loops=1)
+                           Buffers: shared hit=1216
+ Planning:
+   Buffers: shared hit=19
+ Planning Time: 0.763 ms
+ Execution Time: 89.721 ms
+(33 rows)
+
+----- lần đo thứ hai (cache ấm) -----
+                                                                                       QUERY PLAN                                                                                       
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ GroupAggregate  (cost=2382.55..2796.11 rows=5615 width=123) (actual time=49.822..87.008 rows=1575 loops=1)
+   Group Key: (COALESCE(('old:'::text || (aa.old_area_id)::text), ((('alias:'::text || (aa.level)::text) || ':'::text) || aa.alias_norm))), aa.old_area_id, aa.level
+   Buffers: shared hit=8904
+   ->  Sort  (cost=2382.55..2398.05 rows=6201 width=87) (actual time=49.777..50.016 rows=6383 loops=1)
+         Sort Key: (COALESCE(('old:'::text || (aa.old_area_id)::text), ((('alias:'::text || (aa.level)::text) || ':'::text) || aa.alias_norm))), aa.old_area_id, aa.level, current.name
+         Sort Method: quicksort  Memory: 891kB
+         Buffers: shared hit=6657
+         ->  Hash Join  (cost=1355.07..1991.94 rows=6201 width=87) (actual time=2.369..40.880 rows=6383 loops=1)
+               Hash Cond: (aa.admin_area_id = current.id)
+               Buffers: shared hit=1566
+               ->  Bitmap Heap Scan on admin_alias aa  (cost=65.09..561.64 rows=6201 width=38) (actual time=1.186..38.265 rows=6383 loops=1)
+                     Recheck Cond: (('tan thanh'::text <% alias_norm) OR (alias_norm ~~ 'tan thanh%'::text))
+                     Rows Removed by Index Recheck: 1162
+                     Filter: ((source = ANY ('{overlay,seed}'::text[])) AND (('tan thanh'::text <% alias_norm) OR (alias_norm ~~ 'tan thanh%'::text)))
+                     Heap Blocks: exact=305
+                     Buffers: shared hit=350
+                     ->  BitmapOr  (cost=65.09..65.09 rows=6203 width=0) (actual time=1.160..1.162 rows=0 loops=1)
+                           Buffers: shared hit=45
+                           ->  Bitmap Index Scan on admin_alias_trgm_idx  (cost=0.00..60.59 rows=6203 width=0) (actual time=1.154..1.154 rows=7545 loops=1)
+                                 Index Cond: (alias_norm %> 'tan thanh'::text)
+                                 Buffers: shared hit=43
+                           ->  Bitmap Index Scan on admin_alias_prefix_idx  (cost=0.00..1.40 rows=1 width=0) (actual time=0.006..0.006 rows=10 loops=1)
+                                 Index Cond: ((alias_norm ~>=~ 'tan thanh'::text) AND (alias_norm ~<~ 'tan thani'::text))
+                                 Buffers: shared hit=2
+               ->  Hash  (cost=1248.88..1248.88 rows=3288 width=25) (actual time=1.178..1.179 rows=3288 loops=1)
+                     Buckets: 4096  Batches: 1  Memory Usage: 216kB
+                     Buffers: shared hit=1216
+                     ->  Seq Scan on admin_area current  (cost=0.00..1248.88 rows=3288 width=25) (actual time=0.004..0.943 rows=3288 loops=1)
+                           Buffers: shared hit=1216
+ Planning:
+   Buffers: shared hit=19
+ Planning Time: 0.825 ms
+ Execution Time: 87.106 ms
+(33 rows)
+
+DEALLOCATE

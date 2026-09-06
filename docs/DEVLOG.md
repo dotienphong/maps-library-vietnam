@@ -5,6 +5,31 @@ commit với code).
 
 ## 1. Trạng thái hiện tại
 
+- **06/09/2026 — Cổng 6.5 đã đo xong ở quy mô toàn quốc; Task 0–6 đóng:** dựng DB dùng-một-lần
+  `mapslibvn_alias_scale` trên **chính instance Postgres máy chủ** (chung `shared_buffers=6GB`,
+  `work_mem=32MB`) thay vì đụng DB production — `apps/api/wrangler.toml` chỉ có một Hyperdrive
+  `71d7a62b…` cho cả default lẫn `[env.production]`, nên DB máy chủ chính là dữ liệu production và
+  alias chưa qua cổng độ phủ Task 8 không được đưa lên. Copy `admin_area` 3.288 vùng từ DB thật
+  (chỉ đọc), dựng old+alias bằng `admin-old.mjs` trên snapshot đã pin `vietnam-250101.osm.pbf`
+  (md5 khớp manifest): **4.900 vùng cũ (L4 62/L6 686/L8 4.152), 36.456 alias**. Đo 16 phép
+  EXPLAIN ANALYZE BUFFERS (4 query × 4 nhánh), PREPARE/EXECUTE giữ bind parameter như postgres.js,
+  lấy lần chạy ấm (`read=0` toàn bộ), không đụng `enable_seqscan`. Index đúng thiết kế:
+  `admin_alias_trgm_idx` + `admin_alias_prefix_idx` qua BitmapOr, **không seq scan trên
+  `admin_alias`**; `Seq Scan admin_area` trong join là lựa chọn đúng vì bảng chỉ 3.288 dòng.
+  Thời gian full query: `qu` 116,9 ms — `Tân Thành` 100,9 ms — `Quận 10` 81,9 ms — alias dài
+  13,8 ms; nhánh current luôn 0,011–1,44 ms nên **toàn bộ chi phí nằm ở nhánh alias**. Hồ sơ:
+  `docs/evidence/admin-alias/6-5-explain-autocomplete-area.md`. **Ba việc lộ ra, chưa sửa:**
+  (1) `<%` kém chọn lọc — `qu` khớp 11.664/36.456 dòng (32% bảng), `Quận 10` khớp 7.700 dòng dù
+  đã lọc `level=6`, vì `word_similarity` bắt mọi alias chứa từ `quan`; nhánh POI có
+  `useSimilarityBranch()` chặn query dài nhưng nhánh alias không chặn query ngắn → cổng 8.6
+  `p95 ≤ baseline+50ms` có nguy cơ trượt, mà số đo này mới là **cận dưới** (L8 cũ 4.152 so với
+  spec 10.000–10.700). (2) `admin-old.mjs` standalone **hỏng trên production**:
+  `admin-overlay.mjs:163` join thẳng `osm_admin_raw`, nhưng DB production không có bảng raw nào
+  (`42P01`) — mâu thuẫn Task 4.6, ảnh hưởng thứ tự phát hành 9.2. (3) `admin_area` production chỉ
+  có **33/34 tỉnh**, thiếu hẳn Khánh Hòa/Ninh Thuận/Phú Yên → 70/72 vùng unmatched và `seed_miss=1`
+  đều là Ninh Thuận, cổng QA alias đỏ nên chưa thể publish alias toàn quốc. Điểm sáng: cổng QA
+  Task 4.5 chặn publish đúng như thiết kế và staging được dọn sạch sau lỗi (Task 4.7).
+
 - **06/09/2026 — Alias hành chính Task 6 đã triển khai, còn cổng scale 6.5:** autocomplete
   mặc định thêm `area`; query current và alias chạy ở hai nhánh riêng rồi `UNION ALL`, gom/khử
   trùng trước LIMIT. Quận/phường cũ bị tách trả một item cùng bbox cũ và tối đa ba tên đích +

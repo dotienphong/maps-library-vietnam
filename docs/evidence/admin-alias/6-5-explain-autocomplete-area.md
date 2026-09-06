@@ -1,0 +1,148 @@
+# Cổng 6.5 — EXPLAIN ANALYZE BUFFERS cho autocomplete `area` ở quy mô toàn quốc
+
+Ngày đo: 06/09/2026. Bước 6.5 của [plan alias hành chính cũ–mới](../../superpowers/plans/2026-09-05-alias-hanh-chinh-cu-moi.md).
+
+## 1. Đo ở đâu
+
+DB `mapslibvn_alias_scale` — database dùng-một-lần, tạo trên **chính instance Postgres của máy chủ
+nội bộ** (`mapslibvn-server-postgres-1`, postgis/postgis:16-3.4), nên dùng chung phần cứng và
+`postgresql.conf`: `shared_buffers=6GB`, `work_mem=32MB`, `max_parallel_workers_per_gather=2`.
+
+Không đo trên DB `mapslibvn` đang phục vụ API: chỉ có một Hyperdrive `71d7a62b…` cho cả default lẫn
+`[env.production]` trong `apps/api/wrangler.toml`, nên DB đó là dữ liệu production. Alias toàn quốc
+chưa qua cổng độ phủ Task 8 thì không được đưa lên đó.
+
+Vùng hiện hành được copy nguyên trạng từ DB thật (`pg_dump --data-only -t admin_area`), vùng cũ và
+alias dựng bằng `pipelines/poi/src/geocode/admin-old.mjs` chạy trên snapshot đã pin
+`vietnam-250101.osm.pbf` (md5 khớp `admin-old-source.json`).
+
+## 2. Bộ dữ liệu đo — và tình trạng QA
+
+| Bảng | Số dòng |
+|---|---|
+| `admin_area` (hiện hành) | 3.288 (L4 33, L8 3.255) |
+| `admin_area_old` | 4.900 (L4 62, L6 686, L8 4.152) |
+| `admin_alias` | **36.456** (overlay 36.423, seed 33) |
+
+**Cổng QA của pipeline ĐỎ** — `invalid=0, unmatched=72, overlap=0, seed_miss=1`. Pipeline đã từ chối
+publish đúng như Task 4.5 yêu cầu; số liệu dưới đây lấy từ một lần dựng riêng cho việc đo, không
+phải một bản phát hành. Nguyên nhân đỏ:
+
+- **70/72 vùng unmatched thuộc Ninh Thuận** (1 L4 + 7 L6 + 62 L8). Gốc rễ: `admin_area` hiện hành
+  **thiếu hẳn Khánh Hòa** — chỉ có 33/34 tỉnh, không có cả `Khánh Hòa`, `Ninh Thuận` lẫn `Phú Yên`.
+  Vùng cũ Ninh Thuận vì thế không chồng lấn vùng hiện hành nào.
+- 10 vùng unmatched còn lại là L8 rải rác ở Lào Cai, Vĩnh Long, Bình Phước, An Giang, Quảng Ninh
+  (2 mỗi tỉnh) — gồm ca đảo như `Xã Thanh Lân` (Cô Tô).
+- `seed_miss=1`: dòng seed `ninh thuan` → `Khánh Hòa` không tìm được đích, cùng một nguyên nhân.
+
+Ngoài ra: 2.029 khóa bị loại vì mơ hồ toàn quốc, 122 vùng có `rawCoverage < 0.95`, 889 ca tách.
+
+**Ba giới hạn của bộ số liệu này** (đọc kỹ trước khi trích dẫn):
+
+1. L8 cũ chỉ có **4.152** relation, trong khi spec Task 8.3 kỳ vọng 10.000–10.700 đơn vị. Snapshot
+   OSM 01/2025 chưa vẽ đủ ranh giới phường/xã. Bảng alias thật khi đủ độ phủ sẽ **lớn hơn đáng kể**,
+   nên mọi con số thời gian dưới đây là **cận dưới**.
+2. Không có alias `source=osm_tag`: bảng raw `osm_admin_raw` không tồn tại (xem mục 5, lỗi 1). Việc
+   này không ảnh hưởng phép đo vì câu truy vấn lọc `source IN ('overlay','seed')`, nhưng làm bảng
+   nhỏ hơn thực tế.
+3. Đo không có `near` (không truyền toạ độ), đúng nhánh mặc định của `/v1/autocomplete` khi client
+   không gửi vị trí.
+
+## 3. Cách đo
+
+`docs/evidence/admin-alias/6-5-explain-gen.mjs` sinh SQL bám đúng `apps/api/src/area-candidates.ts`.
+Tham số `queryNorm`/`queryCore`/`prefixPattern`/`aliasLevel` tính bằng chính `normalizeVi`,
+`nameCore`, `parseAddress` của `@mapslibvn/core`, giống hệt `routes/autocomplete.ts`.
+
+Dùng `PREPARE` + `EXECUTE` để giữ bind parameter như `postgres.js`, **không inline literal** (inline
+làm planner ước lượng khác đường chạy thật). Mỗi phép chạy hai lần, lấy lần thứ hai để loại chi phí
+đọc đĩa lần đầu — toàn bộ số liệu dưới đây có `read=0`, tức cache đã ấm hoàn toàn.
+
+**Không dùng `SET enable_seqscan=off`** hay bất kỳ tinh chỉnh planner nào.
+
+Bốn nhánh đo riêng: `full` (cả câu), `current` (CTE `current_hits`), `alias` (CTE `alias_edges`),
+`grouping` (`alias_edges` + `alias_grouped`).
+
+Kết quả thô đầy đủ: [`6-5-explain-raw.txt`](6-5-explain-raw.txt).
+
+## 4. Kết quả
+
+Thời gian là `Execution Time` lần chạy ấm; `rows` là số dòng nút trên cùng trả ra; `hit` là
+`Buffers: shared hit` lớn nhất trong cây.
+
+| Query | Dạng | Nhánh | rows | buffers hit | Planning | **Execution** |
+|---|---|---|---:|---:|---:|---:|
+| `Quận 10` | có cấp (L6) | full | 20 | 13.389 | 1,653 ms | **81,915 ms** |
+| | | current | 0 | 5 | 0,262 ms | 0,011 ms |
+| | | alias | 7.700 | 1.563 | 0,588 ms | 61,335 ms |
+| | | grouping | 359 | 7.491 | 0,679 ms | 74,987 ms |
+| `qu` | prefix 2 ký tự | full | 20 | 16.545 | 1,576 ms | **116,935 ms** |
+| | | current | 168 | 147 | 0,364 ms | 0,828 ms |
+| | | alias | 11.664 | 1.572 | 0,708 ms | 79,214 ms |
+| | | grouping | 1.802 | 9.609 | 0,714 ms | 107,041 ms |
+| `Phường Nguyễn An Ninh, Thành phố Vũng Tàu, Bà Rịa Vũng Tàu` | alias dài (L8) | full | 20 | 1.266 | 3,006 ms | **13,773 ms** |
+| | | current | 0 | 87 | 1,182 ms | 0,492 ms |
+| | | alias | 77 | 435 | 1,686 ms | 12,124 ms |
+| | | grouping | 41 | 534 | 2,164 ms | 12,832 ms |
+| `Tân Thành` | trùng tên (15 phường hiện hành cùng tên) | full | 20 | 15.734 | 1,607 ms | **100,931 ms** |
+| | | current | 224 | 202 | 0,421 ms | 1,444 ms |
+| | | alias | 6.383 | 1.566 | 0,680 ms | 70,286 ms |
+| | | grouping | 1.575 | 8.904 | 0,825 ms | 87,106 ms |
+
+### Index thực sự được dùng
+
+Planner chọn index ở mọi nhánh lọc tên — không có seq scan nào trên `admin_alias`:
+
+- Nhánh alias: `Bitmap Heap Scan on admin_alias` qua `BitmapOr` của
+  **`admin_alias_trgm_idx`** (`alias_norm %> $2`) và **`admin_alias_prefix_idx`**
+  (`alias_norm ~~ $4`). Với query 2 ký tự, cả hai nhánh BitmapOr đều rơi vào `admin_alias_trgm_idx`.
+- Nhánh current: `Bitmap Heap Scan on admin_area` qua **`admin_area_name_trgm_idx`** +
+  **`admin_area_name_prefix_idx`**; khi có `aliasLevel` thì chuyển sang
+  **`admin_area_level_idx`** (`Quận 10` → `Index Scan`, 0,011 ms).
+- Join `admin_area` để lấy tên đích: `Seq Scan on admin_area` + Hash Join. Đây là lựa chọn **đúng**
+  của planner — bảng chỉ 3.288 dòng, quét tuần tự rẻ hơn index.
+- `admin_area_old` luôn vào bằng `admin_area_old_pkey`.
+
+## 5. Phát hiện
+
+### Rủi ro 1 — nhánh alias không co giãn theo query ngắn (quan trọng nhất)
+
+Index chạy rất nhanh (`Bitmap Index Scan` 0,5–0,6 ms) nhưng **trả về quá nhiều dòng**:
+
+- `qu` (2 ký tự) khớp **11.664/36.456 dòng — 32% cả bảng**. Riêng `Bitmap Heap Scan` recheck hết
+  chỗ đó mất 39,9 ms, hash join lên 78,8 ms.
+- `Quận 10` khớp 7.700 dòng **dù đã lọc `level=6`**: `word_similarity('quan 10', alias_norm)` khớp
+  **mọi** alias chứa từ `quan`, mà L6 cũ có 686 quận/huyện, mỗi vùng lại sinh vài khóa.
+
+Gốc rễ: toán tử `<%` (`word_similarity`) rất kém chọn lọc với các từ hành chính phổ biến trong tiếng
+Việt — `quan`, `phuong`, `xa`, `huyen`, `thanh pho`. Nhánh POI đã có `useSimilarityBranch()` chặn
+**query dài**, nhưng nhánh alias **không có chặn cho query ngắn**.
+
+Hệ quả với cổng Task 8.6 (`p95 autocomplete ≤ baseline + 50 ms`): riêng nhánh area đã tốn 82–117 ms
+cho query ngắn thông dụng, trên bộ dữ liệu mới chỉ có 40% số phường cũ. Khi đủ độ phủ, bảng alias
+nhiều khả năng gấp ~2 lần và thời gian tăng theo. **Nên coi cổng 8.6 là có nguy cơ trượt** và xử lý
+selectivity trước khi đo benchmark phát hành.
+
+### Lỗi 2 — `admin-old.mjs` chạy độc lập hỏng khi thiếu `osm_admin_raw`
+
+`admin-overlay.mjs:163` join thẳng `osm_admin_raw` để lấy alias `source=osm_tag`. Bảng raw này chỉ do
+`replaceRawTables()` của nhánh ingest OSM hiện hành tạo ra, và **DB production hiện không có nó**
+(cả `osm_admin_raw` lẫn `osm_road_raw` đều không tồn tại). Chạy `admin-old.mjs` standalone trên
+production sẽ chết ngay với `42P01 relation "osm_admin_raw" does not exist`.
+
+Mâu thuẫn với Task 4.6 ("entry `admin-old.mjs` dùng current đã published") và ảnh hưởng trực tiếp
+thứ tự phát hành ở Task 9.2. Cần chốt hướng xử lý: hoặc guard bằng `to_regclass` rồi ghi lý do bỏ
+osm_tag vào report (không được bỏ lặng lẽ, theo Task 3.3), hoặc báo lỗi rõ ràng yêu cầu chạy đủ
+pipeline current trước. Đây là quyết định thuộc Task 4, chưa sửa trong bước này.
+
+### Chặn dữ liệu 3 — thiếu Khánh Hòa trong vùng hiện hành
+
+`admin_area` production có 33/34 tỉnh. Chừng nào chưa nạp được Khánh Hòa thì cổng QA alias còn đỏ,
+tức **không thể phát hành alias toàn quốc**, bất kể code đã xong. Đây đúng là mục còn treo trong
+`admin-old-source.json` (`issues[1]`, `resolution: null`).
+
+## 6. Phải đo lại khi nào
+
+Số liệu ở đây đủ để trả lời câu hỏi index/row count/time của bước 6.5, nhưng **không thay thế**
+benchmark phát hành. Task 8.5/8.6 vẫn phải đo lại trên bộ dữ liệu đã qua cổng độ phủ, cùng DB
+snapshot/location/concurrency, và so với baseline 40 fuzzy query hiện có.
