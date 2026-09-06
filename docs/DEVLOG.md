@@ -22,6 +22,12 @@ commit với code).
   `cà phê` không đổi (top vẫn POI 0,93). Nhờ vậy E2E docs quay lại đúng ca **"Quận 10"** như plan
   viết ban đầu — trước đó phải né sang `Phường An Lợi Đông` vì vùng không lọt top 10. Gate: API
   unit 23 file/128 test, E2E docs 27/27, API DB 3 file/31 test.
+  **Smoke trên production sau deploy** (một phần của 9.4, phần không cần dữ liệu toàn quốc):
+  `Bình Dương` và `Bà Rịa Vũng Tàu` đều trả vùng ở suất cuối — tên hiện hành
+  `Thành phố Hồ Chí Minh`, tên cũ ở dòng phụ, `precision: province` — đúng như hai tỉnh này đã sáp
+  nhập năm 2025. `Quận 10` và `Thủ Dầu Một` **chưa** ra vùng, và đó là đúng: production mới có 32
+  alias L4 + 1 L8 từ seed, chưa có alias cấp quận/phường nên không có ứng viên nào để dành suất.
+  Hai truy vấn đó sẽ ra ngay khi publish được dữ liệu overlay.
   **Bẫy bắt được khi chạy gate:** API DB test đỏ ở chỗ không liên quan — autocomplete trả POI
   "Highlands Coffee" trong khi `setup.sql` chỉ seed "Highlands Coffee Test", mà bảng `poi` của DB
   itest đúng là chỉ có bản Test. Thủ phạm là **cache local của wrangler** ở
