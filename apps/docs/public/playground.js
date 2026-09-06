@@ -320,6 +320,19 @@ function goTo(target, zoom) {
   setStatus(`Đã chọn: ${target.name}`);
 }
 
+/**
+ * Vùng hành chính trả kèm `bbox`, nên khung nhìn phải khớp cả vùng thay vì bay tới một điểm.
+ * Marker chỉ là tâm phụ để thấy vùng nào vừa chọn; không gọi `/v1/places/:id` vì area không có id.
+ * @param {{ lng: number, lat: number, name: string, bbox: [number, number, number, number] }} area
+ */
+function goToArea(area) {
+  clearPins();
+  addPin(area.lng, area.lat, `<b>${escapeHtml(area.name)}</b>`);
+  // Thứ tự bbox của API là [minLng, minLat, maxLng, maxLat] — khớp `MapsLibVNMap.fitBounds`.
+  if (map) map.fitBounds(area.bbox);
+  setStatus(`Đã chọn: ${area.name}`);
+}
+
 /** @param {import('@mapslibvn/core').Place[]} items */
 function renderPlaces(items) {
   el('s-results').replaceChildren(
@@ -593,6 +606,10 @@ function wirePanel() {
 
   el('ac').addEventListener('select', (event) => {
     const item = event.detail;
+    if (item.type === 'area' && Array.isArray(item.bbox)) {
+      goToArea({ lng: item.lng, lat: item.lat, name: item.name, bbox: item.bbox });
+      return;
+    }
     goTo({ lng: item.lng, lat: item.lat, name: item.name }, 16);
   });
 

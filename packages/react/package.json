@@ -1,6 +1,6 @@
 {
   "name": "@mapslibvn/react",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "React bindings MapsLibVN: <MapsLibVNMap>, <Marker>, useMap, usePlaces",
   "license": "MIT",
   "type": "module",

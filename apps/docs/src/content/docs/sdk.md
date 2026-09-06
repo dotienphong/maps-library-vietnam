@@ -9,14 +9,27 @@ Trang này liệt kê **đúng những gì bốn gói xuất ra**, kèm mặc đ
 
 | Gói | Phiên bản | Làm gì | Peer dependency |
 |---|---|---|---|
-| `@mapslibvn/core` | 0.1.0 | client REST, kiểu dữ liệu, chuỗi ghi nguồn, chuẩn hoá tiếng Việt | không có |
-| `@mapslibvn/web` | 0.1.0 | `createMap` bọc MapLibre GL JS, web component autocomplete | `maplibre-gl@^5` |
-| `@mapslibvn/react` | 0.1.0 | component và hook cho React | `maplibre-gl@^5`, `react>=18` |
-| `@mapslibvn/react-native` | 0.1.0 | component và hook cho iOS/Android | `@maplibre/maplibre-react-native@^11.3`, `react>=19.1`, `react-native>=0.80` |
+| `@mapslibvn/core` | 0.2.0 | client REST, kiểu dữ liệu, chuỗi ghi nguồn, chuẩn hoá tiếng Việt | không có |
+| `@mapslibvn/web` | 0.2.0 | `createMap` bọc MapLibre GL JS, web component autocomplete | `maplibre-gl@^5` |
+| `@mapslibvn/react` | 0.2.0 | component và hook cho React | `maplibre-gl@^5`, `react>=18` |
+| `@mapslibvn/react-native` | 0.2.0 | component và hook cho iOS/Android | `@maplibre/maplibre-react-native@^11.3`, `react>=19.1`, `react-native>=0.80` |
 
 `@mapslibvn/web` phụ thuộc `@mapslibvn/core` và `pmtiles`; `@mapslibvn/react` phụ thuộc cả `core` và `web`. Bạn chỉ cần cài gói ngoài cùng.
 
 Cả bốn gói **chưa phát hành lên npm** trong giai đoạn nội bộ. Cách cài hiện tại — UMD qua thẻ `<script>` hoặc tarball — ở [Cài đặt](/cai-dat/).
+
+### Nâng từ 0.1.x lên 0.2.0
+
+Bản 0.2.0 **chỉ thêm**, không xoá trường nào, nên code đang chạy không phải sửa gì để biên dịch —
+trừ một chỗ:
+
+- `AutocompleteType` thêm `'area'` và `GeocodePrecision` thêm `'district'`. Nếu bạn `switch` **vét
+  cạn** hai kiểu này (TypeScript `never` ở nhánh `default`) thì phải bổ sung nhánh cho hai giá trị
+  mới, nếu không sẽ lỗi biên dịch.
+- `AutocompleteItem` thêm `bbox?`; `GeocodeMatched` thêm `former?`. Cả hai là tuỳ chọn.
+- **Loại `area` bật sẵn** trong `types` mặc định của `/v1/autocomplete`, nên kết quả gợi ý giờ có
+  thể chứa vùng hành chính. Muốn giữ đúng bộ loại cũ thì truyền `types: ['poi', 'street', 'address']`
+  (hoặc `types=poi,street,address` khi gọi REST trực tiếp).
 
 ## 2. `@mapslibvn/core`
 
@@ -187,9 +200,20 @@ Tham số thứ hai là `deps`. Bản ESM cần `{ maplibre: maplibregl }`; nế
 
 | Sự kiện | `detail` | Ghi chú |
 |---|---|---|
-| `select` | `AutocompleteItem` | `bubbles: true`, `composed: true` nên bắt được ở ngoài shadow DOM |
+| `select` | `AutocompleteItem` | `bubbles: true`, `composed: true` nên bắt được ở ngoài shadow DOM. `detail` là **nguyên** item, kể cả `bbox` của `type: 'area'` |
 
 Hành vi: gõ từ **2 ký tự** trở lên mới gọi API, debounce **200 ms**, phản hồi của truy vấn đã bị thay thế bị bỏ qua. Ô nhập là combobox ARIA (`role="combobox"`, `aria-expanded`, `aria-controls`, `aria-activedescendant`) với danh sách `role="listbox"` và các mục `role="option"`; `↑`/`↓` di chuyển vòng, `Enter` chọn mục đang sáng, `Escape` đóng danh sách, rời khỏi ô cũng đóng sau 150 ms. Có một vùng `role="status"` `aria-live="polite"` đọc trạng thái ("Đang tìm…", số kết quả, lỗi). Toàn bộ nằm trong shadow DOM nên CSS của trang không tác động vào bên trong.
+
+Mỗi mục có một ký hiệu phân biệt loại ở đầu dòng (`area` khác `poi`) và thuộc tính `data-type` bằng
+`item.type`, dùng được để tự đặt CSS. Với mục `type: 'area'` hãy khớp khung nhìn bằng `bbox`:
+
+```js
+document.querySelector('mapslibvn-autocomplete').addEventListener('select', (event) => {
+  const item = event.detail;
+  if (item.type === 'area' && item.bbox) map.fitBounds(item.bbox);
+  else map.flyTo([item.lng, item.lat], 16);
+});
+```
 
 `defineAutocomplete()` đăng ký thẻ `mapslibvn-autocomplete` (gọi lại nhiều lần không sao). Bản UMD **tự gọi** khi tải; bản ESM bạn phải tự gọi.
 
@@ -225,6 +249,7 @@ Khung bọc mặc định `width: 100%`, `height: 100%`, `position: relative` �
 
 ```tsx
 usePlaces(query, { near, limit, debounceMs, client }) // → { items, loading, error }
+// items giữ nguyên mọi trường của AutocompleteItem, kể cả bbox của type 'area'
 ```
 
 | Tuỳ chọn | Kiểu | Mặc định | Ghi chú |

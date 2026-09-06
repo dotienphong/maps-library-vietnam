@@ -5,6 +5,34 @@ commit với code).
 
 ## 1. Trạng thái hiện tại
 
+- **06/09/2026 — Alias hành chính Task 7 hoàn tất; SDK lên 0.2.0:** bốn gói core/web/react/
+  react-native bump minor (deps nội bộ dùng `workspace:*` nên không có ràng buộc version phải
+  đồng bộ); `dist/index.d.ts` đã xuất `AutocompleteType` có `area`, `GeocodePrecision` có
+  `district`, `bbox?`, `former?`. Web component thêm **icon phân biệt loại** (`TYPE_ICON` glyph
+  hình học, không dùng emoji để không phụ thuộc font hệ điều hành) và `data-type` trên mỗi option
+  để tự đặt CSS; `select` vốn đã phát nguyên item và `secondary` vốn dùng `textContent` nên chỉ
+  icon là phần RED thật. Playground thêm `goToArea()` gọi `map.fitBounds(item.bbox)`;
+  `MapsLibVNMap.fitBounds` đã nhận đúng `[minLng,minLat,maxLng,maxLat]` nên không sửa wrapper.
+  Docs: `tim-kiem.md` (bảng trường + mục "Chọn một vùng hành chính" có ví dụ fitBounds),
+  `api.md` (ví dụ JSON area, `former`, `district`, ghi chú migration), `do-chinh-xac.md` (hàng
+  `district` + mục địa chỉ theo đơn vị cũ), `sdk.md` (mục "Nâng từ 0.1.x lên 0.2.0"),
+  `pipelines/poi/README.md` (manifest nguồn, seed override, trường report, thiếu bảng raw, lỗi
+  coverage). Giữ nguyên câu "bảng alias chưa đầy đủ" vì Task 9 chưa đạt độ phủ, nhưng ghi rõ phạm
+  vi đã kiểm chứng. **Không phải sửa** hai thứ plan dự kiến: `db-fixture.mjs` + coordinator đã
+  truyền `--fixture` từ Task 4.6, `setup.sql` đã có old district + alias từ Task 5.7. Fixture Q1
+  đã pin **có sẵn Quận 10** (alias `quan 10`, 4 đích) nên không cần mở rộng fixture; dev DB nạp
+  bằng `db-migrate` + `osm-roads.mjs --fixture` + `admin.mjs --fixture` cho 54 vùng cũ và 297
+  alias. Gate: unit 67 file/648 test, API 23 file/119 test, `pnpm build` 8/8, **E2E docs 27/27**
+  (phải `playwright install chromium` trước — máy dev chưa có browser).
+  **Việc thứ tư lộ ra ở 7.6 — gợi ý `area` gần như vô hình với `types` mặc định:** đo trên API
+  local, bảy truy vấn tên quận (`Quận 10`, `Quận 3`, `Quận 4`, `Quận 5`, `Quận Bình Thạnh`,
+  `Quận Phú Nhuận`, `Thành phố Thủ Đức`) **không có item `area` nào trong 10 gợi ý**; gọi riêng
+  `types=area` thì trả đúng vùng kèm bbox và ba tên đích + "…". Nguyên nhân **không** phải `prior`
+  (nặng 0,05 trong `COEFF`) mà vì `area-candidates.ts` trả `0 AS pop`, nên vùng mất trắng
+  `0,15·pop`: area 0,76 so với POI khớp token 0,875. Vì thế E2E dùng `Phường An Lợi Đông` (phường
+  cũ đổi tên → `Phường An Khánh`, area ở vị trí 0) thay `Quận 10` như plan viết. Đổi xếp hạng nên
+  chờ PHONG quyết; đã ghi giới hạn vào `tinh-nang.md`.
+
 - **06/09/2026 — Sửa hai việc 6.5 phát hiện; việc thứ ba chặn ở nguồn OSM:**
   **(1) Selectivity nhánh alias.** `areaCandidates` chia bậc: bậc 1 chỉ tiền tố, chỉ leo lên `<%`
   khi bậc 1 **rỗng** — không leo khi bậc 1 *ít* kết quả, vì `quan 10` có đúng 18 dòng tiền tố mà

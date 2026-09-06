@@ -140,7 +140,7 @@ curl -H "X-Api-Key: mlv_live_…" \
 }
 ```
 
-Hai loại còn lại có hình dạng hơi khác: kết quả `street` không có `id`, và kết quả `address` không có `id` nhưng có thêm `precision`.
+Ba loại còn lại có hình dạng hơi khác: kết quả `street` không có `id`; `address` không có `id` nhưng có thêm `precision`; `area` không có `id`, có `precision` (`province` / `district` / `ward`) và có thêm `bbox`.
 
 ```json
 { "type": "street", "name": "Đường Lê Lợi", "secondary": "bac ninh",
@@ -149,7 +149,19 @@ Hai loại còn lại có hình dạng hơi khác: kết quả `street` không c
   "lat": 10.77248266, "lng": 106.69723188, "precision": "rooftop", "score": 0.725 }
 ```
 
+```json
+{ "type": "area", "id": null, "name": "Quận 10",
+  "secondary": "Diên Hồng, Hòa Hưng, Vườn Lài, …", "lat": 10.77, "lng": 106.67,
+  "precision": "district", "score": 0.6, "bbox": [106.65, 10.75, 106.68, 10.79] }
+```
+
 `secondary` của `street` và `address` là chuỗi đã chuẩn hoá (không dấu) vì lấy từ cột dùng để so khớp — hãy hiển thị nó như thông tin phụ, đừng dùng làm nhãn chính.
+
+**Loại `area` bật sẵn trong `types` mặc định.** Nó trả cả đơn vị hành chính hiện hành và đơn vị
+**trước sắp xếp 2025**. Một đơn vị cũ bị **tách** thành nhiều đơn vị mới chỉ trả về **một** gợi ý,
+mang `bbox` của vùng cũ, `secondary` liệt kê tối đa ba tên đích rồi `…`; đơn vị chỉ **đổi tên** trả
+vùng hiện hành với tên cũ ở `secondary`. Muốn giữ đúng bộ loại trước đây thì gửi
+`types=poi,street,address`.
 
 ### GET /v1/search
 
@@ -529,9 +541,16 @@ interface PlaceDetails extends Place {
   attribution: { text: string; html: string };
 }
 
-type GeocodePrecision = 'rooftop' | 'alley' | 'interpolated' | 'street' | 'ward' | 'province';
+type GeocodePrecision =
+  | 'rooftop'
+  | 'alley'
+  | 'interpolated'
+  | 'street'
+  | 'ward'
+  | 'district'
+  | 'province';
 
-type AutocompleteType = 'poi' | 'street' | 'address';
+type AutocompleteType = 'poi' | 'street' | 'address' | 'area';
 
 interface AutocompleteItem {
   type: AutocompleteType;
@@ -542,6 +561,7 @@ interface AutocompleteItem {
   lng: number;
   precision?: GeocodePrecision;
   score: number;
+  bbox?: [number, number, number, number];
 }
 
 interface GeocodeMatched {
@@ -549,6 +569,7 @@ interface GeocodeMatched {
   street?: string;
   ward?: string;
   province?: string;
+  former?: { ward?: string; district?: string; province?: string };
 }
 
 interface GeocodeItem {
@@ -621,8 +642,10 @@ interface PoiFeature {
 
 Vài điểm dễ sai:
 
-- `AutocompleteItem.id` chỉ có với `type: "poi"`; kết quả `street` và `address` không có id nên không gọi được `/v1/places/{id}`.
-- `AutocompleteItem.precision` chỉ có với `type: "address"`.
+- `AutocompleteItem.id` chỉ có với `type: "poi"`; kết quả `street`, `address` và `area` không có id nên không gọi được `/v1/places/{id}`.
+- `AutocompleteItem.precision` có với `type: "address"` (luôn `"rooftop"`) và với `type: "area"` (`"province"` / `"district"` / `"ward"`).
+- `AutocompleteItem.bbox` chỉ có với `type: "area"`, theo thứ tự `[minLng, minLat, maxLng, maxLat]`.
+- `AutocompleteType` và `GeocodePrecision` đều **thêm giá trị mới** (`area`, `district`). Nếu code của bạn `switch` vét cạn hai kiểu này thì phải bổ sung nhánh; không trường nào bị xoá.
 - `PoiFeature.category` và `.group` là **mã** dạng chuỗi, khác `Place.category` là một object có tên tiếng Việt và tiếng Anh.
 - `PoiFeature.lngLat` theo thứ tự **kinh độ trước** (chuẩn GeoJSON), còn tham số `near` của API theo thứ tự **vĩ độ trước**.
 - `contact` và `hours` có thể là `null`. `hours` không có kiểu chặt vì giữ nguyên chuỗi opening_hours của nguồn.

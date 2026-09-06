@@ -65,7 +65,7 @@ trong hai, component thông báo "Thiếu cấu hình API." và không gọi m�
 
 | Sự kiện | `detail` |
 |---|---|
-| `select` | `AutocompleteItem` — `{ type, id?, name, secondary, lat, lng, precision?, score }`. `bubbles: true`, `composed: true` nên bắt được ở phần tử cha |
+| `select` | `AutocompleteItem` — `{ type, id?, name, secondary, lat, lng, precision?, score, bbox? }`. `bubbles: true`, `composed: true` nên bắt được ở phần tử cha |
 
 Khi chọn, component tự điền `item.name` vào ô nhập và đóng danh sách.
 
@@ -75,8 +75,10 @@ Khi chọn, component tự điền `item.name` vào ô nhập và đóng danh s�
 - **Debounce 200 ms** kể từ lần gõ cuối.
 - Mỗi truy vấn mang số thứ tự riêng; kết quả về muộn của truy vấn cũ bị bỏ qua, không ghi đè kết quả
   mới.
-- Component gọi `autocomplete(q, { near })` với thiết lập mặc định của API: tối đa 10 gợi ý, cả ba
-  `types`. Muốn khác thì tự dựng giao diện bằng client ở mục 5.
+- Component gọi `autocomplete(q, { near })` với thiết lập mặc định của API: tối đa 10 gợi ý và
+  **cả bốn** `types` (`poi`, `street`, `address`, `area`). Muốn khác thì tự dựng giao diện bằng
+  client ở mục 5, ví dụ `types: ['poi', 'street', 'address']` để trở về bộ loại trước khi có `area`.
+- Mỗi gợi ý có một ký hiệu phân biệt loại ở đầu dòng; vùng hành chính (`area`) dùng ký hiệu khác POI.
 
 | Phím | Tác dụng |
 |---|---|
@@ -85,6 +87,25 @@ Khi chọn, component tự điền `item.name` vào ô nhập và đóng danh s�
 | `Escape` | Đóng danh sách và huỷ truy vấn đang chờ |
 
 Rời ô nhập (`blur`) thì danh sách đóng sau 150 ms — đủ để cú bấm chuột vào một gợi ý kịp chạy.
+
+### Chọn một vùng hành chính
+
+Gợi ý `type: 'area'` mang thêm `bbox`, nên hãy khớp khung nhìn theo cả vùng thay vì bay tới một
+điểm. Vùng không có `id`, vì vậy **không** gọi `getPlace()` cho nó.
+
+```html
+<mapslibvn-autocomplete id="ac" api-key="mlv_live_…" api-base="https://api.mapslibvn.vn">
+</mapslibvn-autocomplete>
+<script type="module">
+  document.getElementById('ac').addEventListener('select', (event) => {
+    const item = event.detail;
+    if (item.type === 'area' && item.bbox) map.fitBounds(item.bbox);
+    else map.flyTo([item.lng, item.lat], 16);
+  });
+</script>
+```
+
+`bbox` theo thứ tự `[minLng, minLat, maxLng, maxLat]` — đúng thứ tự `MapsLibVNMap.fitBounds()` nhận.
 
 Về khả năng tiếp cận: ô nhập là `role="combobox"` với `aria-autocomplete="list"`, `aria-expanded`,
 `aria-controls` và `aria-activedescendant`; danh sách là `role="listbox"` chứa các `role="option"`
@@ -125,12 +146,13 @@ Trả `{ items: AutocompleteItem[] }`, đã sắp xếp giảm dần theo `score
 
 | Trường | Ý nghĩa |
 |---|---|
-| `type` | `'poi'` một địa điểm, `'street'` một tuyến đường, `'address'` một mốc số nhà |
-| `id` | Chỉ có với `type: 'poi'`; truyền vào `getPlace(id)` để lấy chi tiết |
+| `type` | `'poi'` một địa điểm, `'street'` một tuyến đường, `'address'` một mốc số nhà, `'area'` một đơn vị hành chính |
+| `id` | Chỉ có với `type: 'poi'`; truyền vào `getPlace(id)` để lấy chi tiết. `area` **không có** `id` |
 | `name` | Dòng chính hiển thị |
-| `secondary` | Dòng phụ — với POI là đường, phường, tỉnh ghép lại |
+| `secondary` | Dòng phụ — với POI là đường, phường, tỉnh ghép lại; với `area` là tên vùng cũ hoặc danh sách vùng mới |
 | `lat`, `lng` | Toạ độ |
-| `precision` | Chỉ có với `type: 'address'`, giá trị `'rooftop'` |
+| `precision` | Với `type: 'address'` là `'rooftop'`; với `type: 'area'` là `'province'`, `'district'` hoặc `'ward'` |
+| `bbox` | Chỉ có với `type: 'area'` — `[minLng, minLat, maxLng, maxLat]`, truyền thẳng vào `map.fitBounds()` |
 | `score` | Điểm xếp hạng tổng hợp (độ giống tên, khoảng cách tới `near`, độ phổ biến, loại). Xấp xỉ 0–1, **chỉ dùng để so sánh trong cùng một lượt gợi ý**, không phải xác suất |
 
 `q` phải từ 2 ký tự, nếu không API trả `400 invalid_request`. Kết quả được cache 10 phút theo truy

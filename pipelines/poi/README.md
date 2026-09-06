@@ -97,6 +97,28 @@ biên soạn đầy đủ từ các nghị quyết UBTVQH 2025. Task alias mới
 không sửa được hoặc seed không tìm thấy đích. Fixture Quận 1 hiện dựng 54 vùng cũ và khoảng 300
 cạnh alias; đây chỉ là kiểm tích hợp, không phải bằng chứng độ phủ toàn quốc.
 
+### Nguồn, seed override và report
+
+- **Manifest nguồn** `pipelines/poi/fixtures/admin-old-source.json`: URL, `md5`/`sha256`/`bytes` của
+  snapshot `vietnam-250101.osm.pbf`, `osmTimestamp` lấy từ `osmium fileinfo`, `targetValidUntil`,
+  và `issues[]` là ledger khoảng thiếu (`resolution: null` nghĩa là chưa giải quyết). Downloader
+  kiểm `sha256` trước khi dùng và không ghi đè file tốt khi tải lỗi.
+- **Seed override** `db/seed/admin_alias_2025.csv`: bốn cột cũ vẫn chạy, thêm ba cột tuỳ chọn
+  `share,source_url,source_clause`. Seed nạp **sau** overlay và thay **cả tập cạnh** của nhóm
+  cùng khóa + cấp, nên dùng nó để sửa hẳn một vùng thay vì chèn thêm cạnh lẻ. Nhóm nào không tìm
+  được đích thì vào `seedMisses` và **không** xoá nhóm overlay đang đúng.
+- **Report** `out/admin-alias/report.json`: `countsByLevel`, `countsBySource`, `coverage` (mỗi vùng
+  cũ có `rawCoverage`/`keptCoverage`/`discardedShare`/`targets`), `unmatched`, `coverageGaps`
+  (<0,95), `overlapErrors` (>1,01), `splits`, `seedMisses`, `ambiguousKeys`, `invalidGeometries`,
+  và `osmTagSource`.
+- **Thiếu bảng raw**: nguồn alias `source=osm_tag` cần `osm_admin_raw`, mà bảng này chỉ tồn tại sau
+  khi `osm-roads.mjs` chạy. Chạy `admin-old.mjs` độc lập trên DB chỉ có bảng đã publish thì pipeline
+  **bỏ** nguồn osm_tag, in cảnh báo và ghi `osmTagSource: {available:false, reason}` — không dừng và
+  không bỏ lặng lẽ. Muốn có alias osm_tag thì chạy `osm-roads.mjs` trước, hoặc dùng `admin.mjs`.
+- **Lỗi coverage**: job toàn quốc `throw` với thông điệp dạng
+  `QA alias hành chính đỏ: invalid=…, unmatched=…, overlap=…, seed_miss=…` **sau** khi đã ghi
+  report, và dọn sạch bảng staging. Đọc report để biết vùng nào, đừng chạy lại mù.
+
 Số liệu geocode live Task 10: 215.872 way đường có tên → **61.154 street**; **58.479 alley**,
 52.499 có đường mẹ và entrance; **923.567
 address_anchor**, trong đó Nguyễn Lâm 174. Parent theo tên/chạm dùng geometry GiST prefilter

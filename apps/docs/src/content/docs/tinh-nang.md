@@ -130,8 +130,12 @@ Vì tiles không chạm Worker, lượt tải bản đồ không tính vào hạ
   trong giai đoạn nội bộ, sẽ đổi khi MapsLibVN có tên miền riêng.
 - Dữ liệu ngoài các đô thị lớn thưa hơn Thành phố Hồ Chí Minh và Hà Nội, nên tỷ lệ geocode đạt mức
   `rooftop` thấp hơn ở những nơi đó.
-- Bảng alias tên phường, xã sau sắp xếp hành chính năm 2025 chưa đầy đủ; câu địa chỉ dùng tên cũ có
-  thể rơi xuống mức `province`.
+- Bảng alias tên phường, xã sau sắp xếp hành chính năm 2025 **chưa đầy đủ toàn quốc** — OSM còn
+  thiếu ranh giới cấp tỉnh của Khánh Hòa và một phần ranh giới phường/xã; câu địa chỉ dùng tên cũ ở
+  những vùng đó có thể rơi xuống mức `province`.
+- Gợi ý loại `area` xếp **dưới POI** trong cùng một lượt: điểm của vùng hành chính không có thành
+  phần độ phổ biến, nên truy vấn nào khớp nhiều POI sẽ đẩy vùng ra khỏi danh sách. Muốn chắc chắn
+  thấy vùng thì gọi `/v1/autocomplete` với `types=area`.
 - **Chưa có tiles offline.** MapLibre Native đọc được PMTiles qua `file://` nên có thể bổ sung sau.
 - Repo hiện private; liên hệ theo [Điều khoản tenant](/dieu-khoan/) mục 10 để xin quyền hoặc xin
   khoá API.

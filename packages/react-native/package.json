@@ -1,6 +1,6 @@
 {
   "name": "@mapslibvn/react-native",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "React Native bindings MapsLibVN: <MapsLibVNMap>, <Marker>, useMap, usePlaces — bọc @maplibre/maplibre-react-native",
   "license": "MIT",
   "type": "module",

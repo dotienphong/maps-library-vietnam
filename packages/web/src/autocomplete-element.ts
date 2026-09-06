@@ -1,4 +1,9 @@
-import { type AutocompleteItem, type MapsLibVNClient, createClient } from '@mapslibvn/core';
+import {
+  type AutocompleteItem,
+  type AutocompleteType,
+  type MapsLibVNClient,
+  createClient,
+} from '@mapslibvn/core';
 
 /** Đối tượng tối thiểu để lấy tâm bản đồ làm tham số near. */
 interface NearSource {
@@ -16,11 +21,24 @@ ul { position: absolute; left: 0; right: 0; margin: 4px 0 0; padding: 4px; list-
 li { padding: 8px 10px; border-radius: 5px; cursor: pointer; }
 li:hover, li[aria-selected="true"] { background: #e9f1fc; }
 .secondary { color: #667085; font-size: 12px; display: block; margin-top: 2px; }
+.icon { display: inline-block; width: 1.2em; color: #667085; font-size: 12px; }
+li[data-type="area"] .icon { color: #2458a6; }
 .status { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
   overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
 `;
 
 let instanceId = 0;
+
+/**
+ * Ký hiệu phân biệt loại gợi ý. Dùng glyph hình học thay vì emoji để không phụ thuộc font emoji
+ * của hệ điều hành. Vùng hành chính (`area`) phải khác POI vì hai loại này hay đứng cạnh nhau.
+ */
+const TYPE_ICON: Record<AutocompleteType, string> = {
+  poi: '●',
+  street: '─',
+  address: '⌂',
+  area: '▣',
+};
 
 /** Autocomplete Places không phụ thuộc framework, tự debounce và phát event `select`. */
 export class MapsLibVNAutocomplete extends HTMLElement {
@@ -175,14 +193,19 @@ export class MapsLibVNAutocomplete extends HTMLElement {
         const option = document.createElement('li');
         option.id = `${this.#listId}-option-${index}`;
         option.dataset.index = String(index);
-        option.role = 'option';
-        option.ariaSelected = 'false';
+        option.dataset.type = item.type;
+        option.setAttribute('role', 'option');
+        option.setAttribute('aria-selected', 'false');
+        const icon = document.createElement('span');
+        icon.className = 'icon';
+        icon.setAttribute('aria-hidden', 'true');
+        icon.textContent = TYPE_ICON[item.type] ?? TYPE_ICON.poi;
         const name = document.createElement('span');
         name.textContent = item.name;
         const secondary = document.createElement('span');
         secondary.className = 'secondary';
         secondary.textContent = item.secondary;
-        option.append(name, secondary);
+        option.append(icon, name, secondary);
         return option;
       }),
     );

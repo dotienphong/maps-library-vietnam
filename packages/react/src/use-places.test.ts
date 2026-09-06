@@ -96,4 +96,21 @@ describe('usePlaces', () => {
     expect(result.current.error).toBe(failure);
     expect(result.current.loading).toBe(false);
   });
+  it('trả nguyên item area, không mất bbox', async () => {
+    const area: AutocompleteItem = {
+      type: 'area',
+      name: 'Quận 10',
+      secondary: 'Diên Hồng, Hòa Hưng, Vườn Lài, …',
+      lat: 10.77,
+      lng: 106.67,
+      precision: 'district',
+      score: 0.6,
+      bbox: [106.65, 10.75, 106.68, 10.79],
+    };
+    const { result } = renderHook(() => usePlaces('quan 10', { client: makeClient([area]) }));
+    await advance(200);
+    expect(result.current.items).toEqual([area]);
+    expect(result.current.items[0]?.bbox).toEqual([106.65, 10.75, 106.68, 10.79]);
+    expect(result.current.items[0]?.precision).toBe('district');
+  });
 });

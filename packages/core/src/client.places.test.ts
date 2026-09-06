@@ -35,6 +35,25 @@ describe('client Places methods', () => {
     expect((calledInit().headers as Record<string, string>)['X-Api-Key']).toMatch(/^mlv_live_/);
   });
 
+  it('autocomplete giữ nguyên item area kèm bbox và precision district', async () => {
+    const area = {
+      type: 'area',
+      id: null,
+      name: 'Quận 10',
+      secondary: 'Diên Hồng, Hòa Hưng, Vườn Lài, …',
+      lat: 10.77,
+      lng: 106.67,
+      precision: 'district',
+      score: 0.6,
+      bbox: [106.65, 10.75, 106.68, 10.79],
+    };
+    const { client } = stubClient({ items: [area] });
+    const { items } = await client.autocomplete('quan 10', { types: ['area'] });
+    expect(items).toEqual([area]);
+    expect(items[0]?.bbox).toEqual([106.65, 10.75, 106.68, 10.79]);
+    expect(items[0]?.precision).toBe('district');
+  });
+
   it('search truyền đủ filter và phân trang', async () => {
     const { client, calledUrl } = stubClient({ items: [], total: 0 });
     await client.search('pho', {
