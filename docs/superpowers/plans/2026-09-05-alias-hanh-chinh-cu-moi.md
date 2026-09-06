@@ -10,7 +10,7 @@
 
 **Spec:** [Thiết kế đã duyệt](../specs/2026-09-05-tim-kiem-alias-fuzzy-dia-phuong-design.md), mục 4, phần liên quan hạng mục 1 trong mục 7–11 và 13.
 
-**Trạng thái:** Task 0–5 đã hoàn tất ngày 06/09/2026; Task 6 là bước kế tiếp. Hạng mục 2 đã có plan riêng và đã đóng. Chưa tuyên bố độ phủ toàn quốc vì ledger nguồn còn khoảng thiếu Khánh Hòa/Jan→Jun.
+**Trạng thái:** Task 0–6 đã triển khai ngày 06/09/2026; riêng cổng EXPLAIN 6.5 trên staging toàn quốc còn chờ DB staging nạp migration 0008 và alias toàn quốc. Task 7 là bước code kế tiếp. Hạng mục 2 đã có plan riêng và đã đóng. Chưa tuyên bố độ phủ toàn quốc vì ledger nguồn còn khoảng thiếu Khánh Hòa/Jan→Jun.
 
 ## Global Constraints
 
@@ -232,7 +232,7 @@ sql`AND EXISTS (SELECT 1 FROM admin_area_old old
 
 **Interfaces:** `areaCandidates(sql, input: CandidateQueryInput): Promise<CandidateRow[]>`; `CandidateRow.bbox?` cùng tuple core. ID area không giả thành POI ULID: giữ `id=null` cho public candidate; nội bộ dedup theo current ID hoặc old_area_id trước map response.
 
-- [ ] **6.1** Test đỏ cho `parseTypes('area')`, default gồm area, explicit `poi,street` không query area, prior area=0.6 cả query có/không số; quận có 12 phường mới chỉ một candidate và tối đa 3 tên + “…”; bbox còn sau route mapping/cache.
+- [x] **6.1** Test đỏ cho `parseTypes('area')`, default gồm area, explicit `poi,street` không query area, prior area=0.6 cả query có/không số; quận có 12 phường mới chỉ một candidate và tối đa 3 tên + “…”; bbox còn sau route mapping/cache.
 
 ```ts
 expect(parseTypes()).toEqual(new Set(['poi','street','address','area']));
@@ -240,11 +240,11 @@ expect(priorFor('area', false)).toBe(0.6);
 expect(priorFor('area', true)).toBe(0.6);
 ```
 
-- [ ] **6.2** Candidate current và alias dùng hai SELECT indexed rồi UNION ALL; không dùng OR qua LEFT JOIN làm quét cả bảng. `name_norm` current là tên bỏ cấp: dùng khóa đã bỏ cấp từ parser cho “Phường Diên Hồng”; giữ khóa nguyên có cấp cho alias “Quận 10”. Full typed prefix phải tìm được khi đang gõ dở. Alias source overlay/seed theo spec; ingest osm_tag ở Task 4 nhưng mở rộng match tên thay thế ngoài phạm vi để hạng mục 3.
-- [ ] **6.3** Dùng LIKE prefix escape và `<%`; limit 20 **sau grouping/dedup**, thứ tự hòa deterministic. Một L6 old là một item tên/bbox old; L8 đổi nguyên→item current với secondary tên cũ; L8 split→một item old với danh sách đích, tránh phóng vào đích ngẫu nhiên. L4 seed→current province; secondary giữ tên cũ. Match qua nhiều khóa của cùng current area không lặp candidate.
-- [ ] **6.4** Thêm truy vấn area vào `collectCandidates` cùng Promise.all; route truyền bbox. Không gọi `/places/:id` cho area. Cache giữ TTL 600/stale 3600; thêm version khóa `v=admin1` cho shape mới, để rollback không dùng lẫn cached payload. Test cache hit, lỗi upstream và types filter.
+- [x] **6.2** Candidate current và alias dùng hai SELECT indexed rồi UNION ALL; không dùng OR qua LEFT JOIN làm quét cả bảng. `name_norm` current là tên bỏ cấp: dùng khóa đã bỏ cấp từ parser cho “Phường Diên Hồng”; giữ khóa nguyên có cấp cho alias “Quận 10”. Full typed prefix phải tìm được khi đang gõ dở. Alias source overlay/seed theo spec; ingest osm_tag ở Task 4 nhưng mở rộng match tên thay thế ngoài phạm vi để hạng mục 3.
+- [x] **6.3** Dùng LIKE prefix escape và `<%`; limit 20 **sau grouping/dedup**, thứ tự hòa deterministic. Một L6 old là một item tên/bbox old; L8 đổi nguyên→item current với secondary tên cũ; L8 split→một item old với danh sách đích, tránh phóng vào đích ngẫu nhiên. L4 seed→current province; secondary giữ tên cũ. Match qua nhiều khóa của cùng current area không lặp candidate.
+- [x] **6.4** Thêm truy vấn area vào `collectCandidates` cùng Promise.all; route truyền bbox. Không gọi `/places/:id` cho area. Cache giữ TTL 600/stale 3600; thêm version khóa `v=admin1` cho shape mới, để rollback không dùng lẫn cached payload. Test cache hit, lỗi upstream và types filter.
 - [ ] **6.5** EXPLAIN ANALYZE BUFFERS cho query có cấp, prefix 2 ký tự, query alias dài và query trùng tên trên staging toàn quốc; ghi index/row count/time. Kiểm nhánh current, alias, grouping riêng; không dùng SET enable_seqscan=off làm bằng chứng performance.
-- [ ] **6.6** API tests xanh; cập nhật DEVLOG, commit `feat(api): gợi ý vùng hành chính cũ mới trong autocomplete`.
+- [x] **6.6** API tests xanh; cập nhật DEVLOG, commit `feat(api): gợi ý vùng hành chính cũ mới trong autocomplete`.
 
 ## Task 7: SDK, playground và tài liệu
 

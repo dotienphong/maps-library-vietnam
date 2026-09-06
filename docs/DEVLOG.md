@@ -5,6 +5,17 @@ commit với code).
 
 ## 1. Trạng thái hiện tại
 
+- **06/09/2026 — Alias hành chính Task 6 đã triển khai, còn cổng scale 6.5:** autocomplete
+  mặc định thêm `area`; query current và alias chạy ở hai nhánh riêng rồi `UNION ALL`, gom/khử
+  trùng trước LIMIT. Quận/phường cũ bị tách trả một item cùng bbox cũ và tối đa ba tên đích +
+  “…”; đổi nguyên và tỉnh cũ trả vùng hiện hành với tên cũ ở secondary. Response giữ bbox, area
+  không có POI id, cache giữ TTL cũ và dùng shape key `v=admin1`. Fixture có 12 đích; API unit
+  23 file/116 test và API DB 3 file/29 test xanh, gồm cache hit và types filter. EXPLAIN fixture
+  14 current/72 alias chạy 0,48–4,01 ms; planner chọn seq scan đúng với bảng rất nhỏ. Chưa tick
+  6.5: DB staging dài hạn hiện có 3.288 current nhưng chưa có migration 0008/alias toàn quốc,
+  nên chưa thể chứng minh index/timing toàn quốc mà không làm sai cổng QA nguồn. Bước code tiếp:
+  Task 7 SDK/playground/docs; cổng 6.5 chạy ngay sau khi staging alias toàn quốc hợp lệ.
+
 - **06/09/2026 — Alias hành chính Task 5 hoàn tất:** geocode phân giải alias trước thang
   rooftop → alley → interpolation → street → admin, lấy toàn bộ đích của nhóm alias thắng và
   giữ scope theo ward/province cùng polygon vùng cũ. Kết quả dùng tên hiện hành, giữ `former`;

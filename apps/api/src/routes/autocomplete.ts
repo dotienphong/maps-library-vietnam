@@ -12,6 +12,14 @@ import { gridKey, rankScore } from '../ranking';
 
 export const autocomplete = new Hono<AppEnv>();
 
+export const autocompleteCacheUrl = (input: {
+  queryNorm: string;
+  grid: string;
+  typeKey: string;
+  limit: number;
+}) =>
+  `https://cache.mapslibvn/autocomplete?v=admin1&qn=${encodeURIComponent(input.queryNorm)}&g=${input.grid}&t=${input.typeKey}&l=${input.limit}`;
+
 autocomplete.get('/v1/autocomplete', requireAuth(), quotaMiddleware('places'), async (c) => {
   const query = (c.req.query('q') ?? '').trim();
   if (query.length < 2) {
@@ -32,7 +40,7 @@ autocomplete.get('/v1/autocomplete', requireAuth(), quotaMiddleware('places'), a
   // Cache 10 phút theo (q_norm, lưới near, types, limit); stale-if-error 1 giờ.
   const grid = near ? gridKey(near.lat, near.lng) : '-';
   const typeKey = [...types].sort().join('_');
-  const cacheUrl = `https://cache.mapslibvn/autocomplete?qn=${encodeURIComponent(queryNorm)}&g=${grid}&t=${typeKey}&l=${limit}`;
+  const cacheUrl = autocompleteCacheUrl({ queryNorm, grid, typeKey, limit });
 
   const response = await cachedJson(c.executionCtx, cacheUrl, 600, 3600, async () => {
     const sql = getSql(c.env);
@@ -51,6 +59,7 @@ autocomplete.get('/v1/autocomplete', requireAuth(), quotaMiddleware('places'), a
           lat: row.lat,
           lng: row.lng,
           ...(row.precision ? { precision: row.precision } : {}),
+          ...(row.bbox ? { bbox: row.bbox.map(Number) } : {}),
           score:
             Math.round(
               rankScore({

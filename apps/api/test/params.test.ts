@@ -21,8 +21,9 @@ describe('params', () => {
     expect(() => clampInt('abc', 1, 10, 7, 'limit')).toThrowError(ApiError);
   });
 
-  it('parseTypes: mặc định đủ 3, lọc giá trị lạ → 400', () => {
-    expect([...parseTypes(undefined)].sort()).toEqual(['address', 'poi', 'street']);
+  it('parseTypes: mặc định có area, nhận area và lọc giá trị lạ → 400', () => {
+    expect([...parseTypes(undefined)].sort()).toEqual(['address', 'area', 'poi', 'street']);
+    expect([...parseTypes('area')]).toEqual(['area']);
     expect([...parseTypes('poi,street')].sort()).toEqual(['poi', 'street']);
     expect(() => parseTypes('poi,banana')).toThrowError(ApiError);
   });

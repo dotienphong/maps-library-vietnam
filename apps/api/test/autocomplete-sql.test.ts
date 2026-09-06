@@ -120,4 +120,14 @@ describe('autocomplete-sql — bậc 1 dùng word_similarity (spec 05/09 mục 5
     expect(selects[0]?.text).toMatch(/\$\d+ <% street_norm/);
     expect(selects[0]?.text).toMatch(/street_norm % \$\d+/);
   });
+
+  it('collectCandidates: default có area; explicit poi,street không query area', async () => {
+    const withArea = fakeSql([]);
+    await collectCandidates(withArea.sql, input, new Set(['poi', 'street', 'address', 'area']));
+    expect(withArea.calls.some((call) => call.text.includes('FROM admin_area a'))).toBe(true);
+
+    const oldTypes = fakeSql([]);
+    await collectCandidates(oldTypes.sql, input, new Set(['poi', 'street']));
+    expect(oldTypes.calls.some((call) => call.text.includes('FROM admin_area a'))).toBe(false);
+  });
 });

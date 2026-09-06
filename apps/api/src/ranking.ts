@@ -5,9 +5,10 @@ export const PROX_SCALE_M = 5000;
 /** Lưới thay H3 res 6 cho khoá cache (~5,5 km) — xem plan M3, quyết định 1. */
 export const CACHE_GRID_DEG = 0.05;
 
-export type ItemType = 'poi' | 'street' | 'address';
+export type ItemType = 'poi' | 'street' | 'address' | 'area';
 
 export function priorFor(type: ItemType, qStartsWithDigit: boolean): number {
+  if (type === 'area') return 0.6;
   if (qStartsWithDigit) return type === 'address' ? 1 : type === 'poi' ? 0.5 : 0.7;
   return type === 'poi' ? 1 : 0.7;
 }

@@ -1,4 +1,5 @@
 import type { ParsedAddress } from '@mapslibvn/core';
+import { areaCandidates } from './area-candidates';
 import type { getSql } from './db';
 import type { LatLng } from './params';
 import type { ItemType } from './ranking';
@@ -17,6 +18,7 @@ export interface CandidateRow {
   prefix: boolean;
   pop: number;
   d: number | null;
+  bbox?: [number, number, number, number];
 }
 
 export interface CandidateQueryInput {
@@ -163,6 +165,7 @@ export async function collectCandidates(
   const queries: Promise<CandidateRow[]>[] = [];
   if (types.has('poi')) queries.push(poiCandidates(sql, input));
   if (types.has('street')) queries.push(streetCandidates(sql, input));
+  if (types.has('area')) queries.push(areaCandidates(sql, input));
   const { housenumber, streetNorm } = input.parsed;
   if (types.has('address') && housenumber && streetNorm) {
     queries.push(addressCandidates(sql, input, housenumber, streetNorm));

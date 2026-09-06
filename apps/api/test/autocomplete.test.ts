@@ -1,5 +1,6 @@
 import { SELF, env } from 'cloudflare:test';
 import { beforeAll, describe, expect, it } from 'vitest';
+import { autocompleteCacheUrl } from '../src/routes/autocomplete';
 
 // Khoá giả nạp thẳng vào KV cache của auth — tầng test này không có Postgres.
 const KEY = 'mlv_live_test00000000000000000000';
@@ -70,5 +71,11 @@ describe('GET /v1/autocomplete — auth + validation (không DB)', () => {
     });
     expect(response.status).toBe(503);
     expect(await code(response)).toBe('upstream_unavailable');
+  });
+
+  it('cache key có version shape area để rollback không đọc payload mới', () => {
+    expect(
+      autocompleteCacheUrl({ queryNorm: 'quan 10', grid: '-', typeKey: 'area', limit: 10 }),
+    ).toContain('?v=admin1&');
   });
 });

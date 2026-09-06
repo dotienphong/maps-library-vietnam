@@ -33,7 +33,7 @@ export function clampInt(
   return Math.max(min, Math.min(max, value));
 }
 
-const TYPES: ItemType[] = ['poi', 'street', 'address'];
+const TYPES: ItemType[] = ['poi', 'street', 'address', 'area'];
 
 export function parseTypes(raw: string | undefined): Set<ItemType> {
   if (!raw) return new Set(TYPES);

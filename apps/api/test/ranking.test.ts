@@ -18,6 +18,8 @@ describe('ranking spec 6.2', () => {
     expect(priorFor('address', true)).toBe(1);
     expect(priorFor('poi', true)).toBe(0.5);
     expect(priorFor('street', true)).toBe(0.7);
+    expect(priorFor('area', false)).toBe(0.6);
+    expect(priorFor('area', true)).toBe(0.6);
   });
 
   it('prefix cộng 0.1 vào sim', () => {

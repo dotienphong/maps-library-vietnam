@@ -6,18 +6,26 @@ INSERT INTO category (code, group_code, name_vi, name_en, icon, rank) VALUES
   ('cafe', 'food_drink', 'Quán cà phê', 'Cafe', 'cafe', 3)
 ON CONFLICT (code) DO NOTHING;
 
-DELETE FROM admin_area WHERE osm_relation_id IN (880000000001, 880000000002, 880000000003);
+DELETE FROM admin_area WHERE osm_relation_id IN (880000000001, 880000000002, 880000000003, 880000000004)
+  OR osm_relation_id BETWEEN 880000000101 AND 880000000110;
 INSERT INTO admin_area (level, name, name_norm, osm_relation_id, geom) VALUES
   (4, 'Thành phố Hồ Chí Minh', 'ho chi minh', 880000000001,
     ST_Multi(ST_MakeEnvelope(106.30, 10.30, 107.10, 11.20, 4326))),
   (8, 'Phường Diên Hồng', 'dien hong', 880000000002,
     ST_Multi(ST_Buffer(ST_SetSRID(ST_MakePoint(106.6631, 10.7647), 4326), 0.01))),
   (8, 'Phường Linh Xuân', 'linh xuan', 880000000003,
-    ST_Multi(ST_Buffer(ST_SetSRID(ST_MakePoint(106.77325, 10.85594), 4326), 0.01)));
+    ST_Multi(ST_Buffer(ST_SetSRID(ST_MakePoint(106.77325, 10.85594), 4326), 0.01))),
+  (8, 'Phường Hòa Hưng', 'hoa hung', 880000000004,
+    ST_Multi(ST_Buffer(ST_SetSRID(ST_MakePoint(106.6710, 10.7750), 4326), 0.008)));
+INSERT INTO admin_area (level,name,name_norm,osm_relation_id,geom)
+SELECT 8,'Phường Đích '||lpad(n::text,2,'0'),'dich '||lpad(n::text,2,'0'),880000000100+n,
+  ST_Multi(ST_Buffer(ST_SetSRID(ST_MakePoint(106.652+n*0.002,10.752+n*0.002),4326),0.001))
+FROM generate_series(1,10) n;
 UPDATE admin_area child SET parent_id=province.id
 FROM admin_area province
 WHERE province.osm_relation_id=880000000001
-  AND child.osm_relation_id IN (880000000002,880000000003);
+  AND (child.osm_relation_id IN (880000000002,880000000003,880000000004)
+    OR child.osm_relation_id BETWEEN 880000000101 AND 880000000110);
 
 DELETE FROM admin_alias WHERE old_area_id IN (890000000001,890000000002);
 DELETE FROM admin_area_old WHERE id IN (890000000001,890000000002);
@@ -35,17 +43,47 @@ UNION ALL
 SELECT 'quan 10',6,id,'2025-06-30'::date,1,'overlay',890000000001
 FROM admin_area WHERE osm_relation_id=880000000002
 UNION ALL
+SELECT 'quan 10 ho chi minh',6,id,'2025-06-30'::date,1,'overlay',890000000001
+FROM admin_area WHERE osm_relation_id=880000000004
+UNION ALL
+SELECT 'quan 10',6,id,'2025-06-30'::date,1,'overlay',890000000001
+FROM admin_area WHERE osm_relation_id=880000000004
+UNION ALL
 SELECT 'phuong 6 quan 10 ho chi minh',8,id,'2025-06-30'::date,1,'overlay',890000000002
 FROM admin_area WHERE osm_relation_id=880000000002
+UNION ALL
+SELECT 'phuong 6 quan 10 ho chi minh',8,id,'2025-06-30'::date,1,'overlay',890000000002
+FROM admin_area WHERE osm_relation_id=880000000004
 UNION ALL
 SELECT 'phuong 6 quan 10',8,id,'2025-06-30'::date,1,'overlay',890000000002
 FROM admin_area WHERE osm_relation_id=880000000002
 UNION ALL
+SELECT 'phuong 6 quan 10',8,id,'2025-06-30'::date,1,'overlay',890000000002
+FROM admin_area WHERE osm_relation_id=880000000004
+UNION ALL
 SELECT 'phuong 6 ho chi minh',8,id,'2025-06-30'::date,1,'overlay',890000000002
 FROM admin_area WHERE osm_relation_id=880000000002
 UNION ALL
+SELECT 'phuong 6 ho chi minh',8,id,'2025-06-30'::date,1,'overlay',890000000002
+FROM admin_area WHERE osm_relation_id=880000000004
+UNION ALL
 SELECT 'phuong 6',8,id,'2025-06-30'::date,1,'overlay',890000000002
-FROM admin_area WHERE osm_relation_id=880000000002;
+FROM admin_area WHERE osm_relation_id=880000000002
+UNION ALL
+SELECT 'phuong 6',8,id,'2025-06-30'::date,1,'overlay',890000000002
+FROM admin_area WHERE osm_relation_id=880000000004;
+INSERT INTO admin_alias(alias_norm,level,admin_area_id,valid_until,share,source,old_area_id)
+SELECT key.alias_norm,key.level,a.id,'2025-06-30'::date,0.1,'overlay',key.old_area_id
+FROM admin_area a
+CROSS JOIN (VALUES
+  ('quan 10 ho chi minh',6,890000000001::bigint),
+  ('quan 10',6,890000000001::bigint),
+  ('phuong 6 quan 10 ho chi minh',8,890000000002::bigint),
+  ('phuong 6 quan 10',8,890000000002::bigint),
+  ('phuong 6 ho chi minh',8,890000000002::bigint),
+  ('phuong 6',8,890000000002::bigint)
+) key(alias_norm,level,old_area_id)
+WHERE a.osm_relation_id BETWEEN 880000000101 AND 880000000110;
 
 DELETE FROM street WHERE osm_way_ids && ARRAY[880000000011, 880000000012]::bigint[];
 INSERT INTO street (osm_way_ids, name, name_norm, ward_norm, province_norm, geom) VALUES

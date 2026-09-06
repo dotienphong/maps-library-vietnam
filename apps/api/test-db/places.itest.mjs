@@ -5,7 +5,11 @@ const KEY = 'mlv_live_test00000000000000000000';
 
 const get = async (path, headers = { 'X-Api-Key': KEY }) => {
   const response = await fetch(base + path, { headers });
-  return { status: response.status, body: await response.json() };
+  return {
+    status: response.status,
+    body: await response.json(),
+    cache: response.headers.get('x-mlv-cache'),
+  };
 };
 const distM = (lat1, lng1, lat2, lng2) => {
   const radius = 6_371_000;
@@ -123,6 +127,46 @@ describe('thang geocode và các route còn lại', () => {
     expect(body.items[0].name).toBe('Highlands Coffee Test');
     const scores = body.items.map((item) => item.score);
     expect(scores).toEqual([...scores].sort((a, b) => b - a));
+  });
+
+  it('autocomplete area gom Quận 10 cũ, giữ bbox qua cache và lọc theo types', async () => {
+    const path = `/v1/autocomplete?q=${enc('Quận 10')}&types=area&limit=7`;
+    const first = await get(path);
+    expect(first.status).toBe(200);
+    expect(first.body.items).toHaveLength(1);
+    expect(first.body.items[0]).toMatchObject({
+      type: 'area',
+      name: 'Quận 10',
+      precision: 'district',
+      bbox: [106.65, 10.75, 106.68, 10.79],
+    });
+    expect(first.body.items[0].secondary.split(', ')).toHaveLength(4);
+    expect(first.body.items[0].secondary).toMatch(/, …$/);
+
+    const cached = await get(path);
+    expect(cached.cache).toBe('hit');
+    expect(cached.body.items[0].bbox).toEqual([106.65, 10.75, 106.68, 10.79]);
+
+    const oldTypes = await get(`/v1/autocomplete?q=${enc('Quận 10')}&types=poi,street`);
+    expect(oldTypes.body.items.every((item) => item.type !== 'area')).toBe(true);
+  });
+
+  it('autocomplete area trả current theo tên mới và vùng cũ khi phường bị tách', async () => {
+    const current = await get(`/v1/autocomplete?q=${enc('Phường Diên Hồng')}&types=area`);
+    expect(current.body.items[0]).toMatchObject({
+      type: 'area',
+      name: 'Phường Diên Hồng',
+      precision: 'ward',
+    });
+
+    const old = await get(`/v1/autocomplete?q=${enc('Phường 6')}&types=area`);
+    expect(old.body.items).toHaveLength(1);
+    expect(old.body.items[0]).toMatchObject({
+      type: 'area',
+      name: 'Phường 6',
+      precision: 'ward',
+      bbox: [106.65, 10.75, 106.68, 10.79],
+    });
   });
 
   it('search trả shape Place chuẩn', async () => {
