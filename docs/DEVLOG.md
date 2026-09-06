@@ -51,6 +51,16 @@ commit với code).
   phân giải quan hệ ngay lúc parse nên không lồng được vào câu healthz cũ. Thêm hai itest: healthz
   phải công bố `schema_migration`, và autocomplete mặc định (có `area`) không được 5xx khi bảng old
   rỗng.
+  **Chính chốt chặn đó lúc đầu cũng hỏng, và test không bắt được:** deploy xong production trả
+  `schema_migration: null` vì role `api` **không có quyền SELECT** `schema_migrations` — null khi
+  đó không phân biệt được "thiếu bảng" với "thiếu quyền", tức mất đúng khả năng vừa định thêm.
+  Itest không bắt vì `api-db-test.mjs` cho wrangler nối bằng `POSTGRES_USER` của `.env`
+  (`mapslibvn`, superuser), **không phải role `api` của production** — bài học: assertion về quyền
+  chỉ đáng tin ở tầng DB test có `has_table_privilege`/`SET LOCAL ROLE`. Đã sửa: `db-migrate.mjs`
+  cấp `GRANT SELECT ON schema_migrations TO api` (bọc trong `DO $$` kiểm role tồn tại để DB dev và
+  dbtest không lỗi), thêm DB test `has_table_privilege('api','schema_migrations',…)` xanh sau khi
+  đỏ đúng lý do, và cấp quyền trên production. Kiểm lại:
+  `{"ok":true,"user":"api",…,"schema_migration":"0008_admin_old.sql"}`.
 
 - **06/09/2026 — Alias hành chính Task 7 hoàn tất; SDK lên 0.2.0:** bốn gói core/web/react/
   react-native bump minor (deps nội bộ dùng `workspace:*` nên không có ràng buộc version phải

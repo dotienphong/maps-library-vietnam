@@ -59,6 +59,16 @@ describe('migration 0008 admin old', () => {
     expect(rights).toEqual({ can_read: true, can_write: false });
   });
 
+  // Sự cố 07/09/2026: /healthz/db trả schema_migration=null vì role `api` không đọc được bảng
+  // này, nên không phân biệt được "thiếu bảng" với "thiếu quyền" — mất luôn khả năng phát hiện
+  // Worker deploy trước migration. Chỉ tầng DB test mới kiểm được quyền theo đúng role production.
+  it('api đọc được schema_migrations để healthz công bố phiên bản schema', async () => {
+    const [rights] = await sql`SELECT
+      has_table_privilege('api','schema_migrations','SELECT') AS can_read,
+      has_table_privilege('api','schema_migrations','INSERT') AS can_write`;
+    expect(rights).toEqual({ can_read: true, can_write: false });
+  });
+
   it('down từ chối mất dữ liệu một-nhiều và rollback nguyên vẹn', async () => {
     const result = spawnSync(process.execPath, ['scripts/db-migrate.mjs', '--down'], {
       env: process.env,

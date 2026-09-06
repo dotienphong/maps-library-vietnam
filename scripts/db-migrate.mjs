@@ -20,6 +20,14 @@ try {
     name text PRIMARY KEY,
     applied_at timestamptz NOT NULL DEFAULT now()
   )`;
+  // `api` phải đọc được bảng này để /healthz/db công bố `schema_migration`. Thiếu quyền thì
+  // healthz trả null y như khi thiếu bảng, tức mất khả năng phát hiện Worker deploy trước
+  // migration — đúng sự cố 07/09/2026. Bỏ qua nếu role chưa tồn tại (DB dev/dbtest).
+  await sql`DO $$ BEGIN
+    IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'api') THEN
+      GRANT SELECT ON schema_migrations TO api;
+    END IF;
+  END $$`;
   const applied = (await sql`SELECT name FROM schema_migrations`).map((row) => String(row.name));
 
   if (process.argv.includes('--down')) {
