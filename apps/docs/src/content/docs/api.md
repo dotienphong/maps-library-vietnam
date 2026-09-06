@@ -157,6 +157,11 @@ Ba loại còn lại có hình dạng hơi khác: kết quả `street` không c�
 
 `secondary` của `street` và `address` là chuỗi đã chuẩn hoá (không dấu) vì lấy từ cột dùng để so khớp — hãy hiển thị nó như thông tin phụ, đừng dùng làm nhãn chính.
 
+**Xếp hạng:** vùng hành chính không có điểm độ phổ biến nên thường xếp dưới POI. Khi truy vấn là
+thuần tên hành chính — có phường/quận/tỉnh mà **không** có số nhà hay tên đường — thì một suất
+trong `limit` được dành cho vùng có điểm cao nhất, đặt ở cuối danh sách. Số lượng kết quả không
+đổi, và điểm của các loại khác giữ nguyên.
+
 **Loại `area` bật sẵn trong `types` mặc định.** Nó trả cả đơn vị hành chính hiện hành và đơn vị
 **trước sắp xếp 2025**. Một đơn vị cũ bị **tách** thành nhiều đơn vị mới chỉ trả về **một** gợi ý,
 mang `bbox` của vùng cũ, `secondary` liệt kê tối đa ba tên đích rồi `…`; đơn vị chỉ **đổi tên** trả

@@ -47,11 +47,8 @@ test('gõ "highlands" có gợi ý ≤ 1 s, chọn bằng bàn phím thì hiện
   await expect(input).toHaveAttribute('aria-expanded', 'false');
 });
 
-// Truy vấn dùng tên **phường cũ đã đổi tên** ("An Lợi Đông" → "An Khánh") chứ không phải "Quận 10"
-// như plan viết: `prior` của area là 0,6 nên điểm cuối 0,76, luôn thấp hơn POI 0,875. Trên fixture
-// Quận 1, mọi truy vấn tên quận ("Quận 10", "Quận 3", "Quận Bình Thạnh", …) đều bị 10 POI chứa token
-// tương ứng đẩy vùng hành chính ra khỏi danh sách. Xem DEVLOG 06/09 — đây là việc xếp hạng cần xử
-// riêng, không phải lỗi của luồng chọn vùng.
+// "Quận 10" là quận cũ bị tách sau sắp xếp 2025. Truy vấn thuần tên hành chính nên `withAreaSlot`
+// dành cho vùng một suất; trước khi có suất đó, mười POI chứa token "10" đẩy vùng ra khỏi danh sách.
 test('chọn vùng hành chính thì khớp khung bằng fitBounds', async ({ page }) => {
   const jsErrors: string[] = [];
   page.on('pageerror', (error) => jsErrors.push(error.message));
@@ -62,17 +59,17 @@ test('chọn vùng hành chính thì khớp khung bằng fitBounds', async ({ pa
 
   const autocomplete = page.locator('mapslibvn-autocomplete');
   const input = autocomplete.locator('input');
-  await input.fill('Phường An Lợi Đông');
+  await input.fill('Quận 10');
 
   const areaOption = autocomplete.locator('[role="option"][data-type="area"]').first();
   await expect(areaOption).toBeVisible({ timeout: 2_000 });
-  // Vùng đổi tên: dòng chính là tên hiện hành, dòng phụ giữ tên cũ.
-  await expect(areaOption).toContainText('Phường An Khánh');
-  await expect(areaOption).toContainText('Phường An Lợi Đông');
+  // Vùng bị tách: dòng chính giữ tên quận cũ, dòng phụ liệt kê tối đa ba phường đích rồi "…".
+  await expect(areaOption).toContainText('Quận 10');
+  await expect(areaOption).toContainText('Phường');
 
   await areaOption.click();
 
-  await expect(page.locator('#status')).toContainText('Đã chọn: Phường An Khánh');
+  await expect(page.locator('#status')).toContainText('Đã chọn: Quận 10');
   // Marker chỉ là tâm phụ; khung nhìn do fitBounds đặt theo bbox của vùng. Không khẳng định số
   // marker vì trang còn giữ marker demo lúc tải, ngoài `pins` mà `clearPins()` quản lý.
   await expect(page.locator('.maplibregl-marker').last()).toBeVisible();

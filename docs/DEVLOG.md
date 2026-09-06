@@ -5,6 +5,31 @@ commit với code).
 
 ## 1. Trạng thái hiện tại
 
+- **07/09/2026 — Sửa xếp hạng `area`: vùng hành chính giờ luôn có suất khi người dùng gõ tên
+  hành chính.** Phân tách điểm của `Quận 10` cho thấy chỗ hụt chính xác:
+  area `0,76 = 0,55·1,1 (sim+prefix) + 0,25·0,5 (không có near) + 0,15·0 + 0,05·0,6`, còn POI
+  `0,875` nhờ `0,15·0,633 (pop) + 0,05·1 (prior)`. Tức vùng bị chấp sẵn **0,17 điểm**, trong đó
+  0,15 là do `area-candidates.ts` trả `0 AS pop`. **Không** sửa bằng cách gán `pop` cho vùng: muốn
+  thắng bằng điểm thì phải đặt ≈ 1, tức khai vùng là thứ phổ biến nhất DB và sẽ cướp chỗ POI ở
+  những truy vấn như "Bến Thành"; hơn nữa `sim` của vùng đã bão hoà ở 1,1 nên mô hình điểm không
+  còn chỗ diễn đạt "đây đúng là đơn vị hành chính bạn vừa gõ", và plan cấm đổi xếp hạng POI/đường
+  đã nghiệm thu. Nên can thiệp ở **tầng chọn**: `withAreaSlot()` dành **một** suất cuối cho vùng
+  điểm cao nhất khi `isAdminOnlyQuery()` đúng — có phường/quận/tỉnh mà **không** có số nhà hay tên
+  đường. Điểm của mọi loại giữ nguyên tuyệt đối, số kết quả không đổi. Cổng chặn kiểm trên parse
+  thật: `Quận 10`, `Phường An Lợi Đông` → dành suất; `88/9 Nguyễn Lâm, Phường 6, Quận 10`,
+  `Lê Lợi, Quận 1`, `highlands` → không. Đo lại trên API thật: **cả bảy truy vấn tên quận trước
+  đây trắng tay giờ đều có vùng ở suất cuối** kèm tên và danh sách phường đích; `highlands` và
+  `cà phê` không đổi (top vẫn POI 0,93). Nhờ vậy E2E docs quay lại đúng ca **"Quận 10"** như plan
+  viết ban đầu — trước đó phải né sang `Phường An Lợi Đông` vì vùng không lọt top 10. Gate: API
+  unit 23 file/128 test, E2E docs 27/27, API DB 3 file/31 test.
+  **Bẫy bắt được khi chạy gate:** API DB test đỏ ở chỗ không liên quan — autocomplete trả POI
+  "Highlands Coffee" trong khi `setup.sql` chỉ seed "Highlands Coffee Test", mà bảng `poi` của DB
+  itest đúng là chỉ có bản Test. Thủ phạm là **cache local của wrangler** ở
+  `apps/api/.wrangler/state/v3/cache`: nó sống qua nhiều phiên, nên một lần `pnpm dev:e2e` chạy
+  trên **DB dev** đủ để itest sau đó nhận lại câu trả lời của DB khác. Không phải hồi quy của bản
+  sửa xếp hạng. Đã chặn hẳn: `api-db-test.mjs` xoá thư mục cache đó trước khi dựng DB, nên bộ test
+  tự chứa. Kiểm bằng cách cố tình nạp cache từ DB dev rồi chạy lại — 31/31 xanh.
+
 - **07/09/2026 — Task 8.1–8.2 xong (bộ kiểm chứng), phần đo còn chặn:**
   `scripts/verify-admin-alias.mjs` gồm hai hàm thuần `evaluateCoverage`/`evaluateGeocode` và CLI
   `--mode coverage|geocode`, timeout 10 s với **3 lần thử hữu hạn** — lần cuối thất bại giữ nguyên

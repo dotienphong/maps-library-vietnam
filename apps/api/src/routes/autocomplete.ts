@@ -8,7 +8,7 @@ import type { AppEnv } from '../env';
 import { ApiError } from '../errors';
 import { clampInt, parseLatLngPair, parseTypes } from '../params';
 import { quotaMiddleware } from '../quota';
-import { gridKey, rankScore } from '../ranking';
+import { gridKey, isAdminOnlyQuery, rankScore, withAreaSlot } from '../ranking';
 
 export const autocomplete = new Hono<AppEnv>();
 
@@ -45,9 +45,10 @@ autocomplete.get('/v1/autocomplete', requireAuth(), quotaMiddleware('places'), a
   const response = await cachedJson(c.executionCtx, cacheUrl, 600, 3600, async () => {
     const sql = getSql(c.env);
     try {
+      const parsed = parseAddress(query);
       const rows = await collectCandidates(
         sql,
-        { queryNorm, queryCore, prefixPattern, near, parsed: parseAddress(query) },
+        { queryNorm, queryCore, prefixPattern, near, parsed },
         types,
       );
       const items = rows
@@ -72,9 +73,8 @@ autocomplete.get('/v1/autocomplete', requireAuth(), quotaMiddleware('places'), a
               }) * 1000,
             ) / 1000,
         }))
-        .sort((a, b) => b.score - a.score)
-        .slice(0, limit);
-      return { items };
+        .sort((a, b) => b.score - a.score);
+      return { items: withAreaSlot(items, limit, isAdminOnlyQuery(parsed)) };
     } catch (error) {
       console.error('autocomplete', error);
       throw new ApiError(503, 'upstream_unavailable', 'Không truy vấn được DB');

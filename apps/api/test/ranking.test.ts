@@ -1,5 +1,13 @@
 import { describe, expect, it } from 'vitest';
-import { COEFF, gridKey, priorFor, proxScore, rankScore } from '../src/ranking';
+import {
+  COEFF,
+  gridKey,
+  isAdminOnlyQuery,
+  priorFor,
+  proxScore,
+  rankScore,
+  withAreaSlot,
+} from '../src/ranking';
 
 describe('ranking spec 6.2', () => {
   it('hệ số đúng spec', () => {
@@ -58,5 +66,71 @@ describe('ranking spec 6.2', () => {
     expect(gridKey(10.77, 106.7)).toBe(gridKey(10.78, 106.71));
     expect(gridKey(10.77, 106.7)).not.toBe(gridKey(10.9, 106.7));
     expect(gridKey(-10.77, -106.71)).toBe(gridKey(-10.78, -106.72));
+  });
+});
+
+// Cổng 7.6 đo được: vùng hành chính luôn thua POI vì `pop` của vùng là 0, mất trắng 0,15·pop,
+// trong khi `prior` chỉ nặng 0,05 nên không bù nổi. Không sửa bằng cách bịa `pop` cho vùng —
+// plan cấm đổi xếp hạng POI/đường — mà dành một suất cuối khi truy vấn là thuần tên hành chính.
+describe('withAreaSlot', () => {
+  const poi = (score: number) => ({ type: /** @type {const} */ ('poi'), score }) as const;
+  const area = (score: number) => ({ type: /** @type {const} */ ('area'), score }) as const;
+  const ranked = [poi(0.9), poi(0.88), poi(0.87), area(0.76), area(0.7)];
+
+  it('không phải truy vấn hành chính thì cắt như cũ', () => {
+    expect(withAreaSlot(ranked, 3, false)).toEqual([poi(0.9), poi(0.88), poi(0.87)]);
+  });
+
+  it('truy vấn hành chính mà vùng bị đẩy ra thì vùng điểm cao nhất chiếm suất cuối', () => {
+    const result = withAreaSlot(ranked, 3, true);
+    expect(result).toEqual([poi(0.9), poi(0.88), area(0.76)]);
+    expect(result).toHaveLength(3);
+  });
+
+  it('chỉ dành đúng một suất, không đẩy thêm vùng thứ hai', () => {
+    expect(withAreaSlot(ranked, 4, true).filter((item) => item.type === 'area')).toHaveLength(1);
+  });
+
+  it('vùng đã nằm trong top thì không đổi gì', () => {
+    const withArea = [poi(0.9), area(0.85), poi(0.8)];
+    expect(withAreaSlot(withArea, 2, true)).toEqual([poi(0.9), area(0.85)]);
+  });
+
+  it('không có ứng viên vùng nào thì giữ nguyên POI', () => {
+    expect(withAreaSlot([poi(0.9), poi(0.8)], 2, true)).toEqual([poi(0.9), poi(0.8)]);
+  });
+
+  it('limit 1 vẫn trả đúng một mục và là vùng', () => {
+    expect(withAreaSlot(ranked, 1, true)).toEqual([area(0.76)]);
+  });
+});
+
+describe('isAdminOnlyQuery', () => {
+  it('tên hành chính trần là truy vấn hành chính', () => {
+    expect(isAdminOnlyQuery({ alleyChain: [], confidence: 0.2, district: '10' })).toBe(true);
+    expect(isAdminOnlyQuery({ alleyChain: [], confidence: 0.2, ward: 'an loi dong' })).toBe(true);
+    expect(isAdminOnlyQuery({ alleyChain: [], confidence: 0.2, province: 'Bình Dương' })).toBe(
+      true,
+    );
+  });
+
+  it('có số nhà hoặc tên đường thì KHÔNG phải: người dùng đang tìm địa chỉ', () => {
+    expect(
+      isAdminOnlyQuery({
+        alleyChain: [],
+        confidence: 1,
+        housenumber: '88/9',
+        street: 'Nguyễn Lâm',
+        ward: '6',
+        district: '10',
+      }),
+    ).toBe(false);
+    expect(
+      isAdminOnlyQuery({ alleyChain: [], confidence: 0.4, street: 'Lê Lợi', district: '1' }),
+    ).toBe(false);
+  });
+
+  it('không có phần hành chính nào thì không phải', () => {
+    expect(isAdminOnlyQuery({ alleyChain: [], confidence: 0 })).toBe(false);
   });
 });

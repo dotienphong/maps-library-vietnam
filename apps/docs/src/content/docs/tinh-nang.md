@@ -133,9 +133,11 @@ Vì tiles không chạm Worker, lượt tải bản đồ không tính vào hạ
 - Bảng alias tên phường, xã sau sắp xếp hành chính năm 2025 **chưa đầy đủ toàn quốc** — OSM còn
   thiếu ranh giới cấp tỉnh của Khánh Hòa và một phần ranh giới phường/xã; câu địa chỉ dùng tên cũ ở
   những vùng đó có thể rơi xuống mức `province`.
-- Gợi ý loại `area` xếp **dưới POI** trong cùng một lượt: điểm của vùng hành chính không có thành
-  phần độ phổ biến, nên truy vấn nào khớp nhiều POI sẽ đẩy vùng ra khỏi danh sách. Muốn chắc chắn
-  thấy vùng thì gọi `/v1/autocomplete` với `types=area`.
+- Gợi ý loại `area` xếp **dưới POI** trong cùng một lượt vì điểm của vùng hành chính không có
+  thành phần độ phổ biến. Bù lại, khi truy vấn là **thuần tên hành chính** (có phường/quận/tỉnh mà
+  không có số nhà hay tên đường, ví dụ "Quận 10") thì một suất trong danh sách luôn được dành cho
+  vùng. Truy vấn có tên đường hoặc số nhà thì không dành suất — lúc đó bạn đang tìm địa chỉ. Muốn
+  chỉ lấy vùng thì gọi `/v1/autocomplete` với `types=area`.
 - **Chưa có tiles offline.** MapLibre Native đọc được PMTiles qua `file://` nên có thể bổ sung sau.
 - Repo hiện private; liên hệ theo [Điều khoản tenant](/dieu-khoan/) mục 10 để xin quyền hoặc xin
   khoá API.

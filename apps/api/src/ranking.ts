@@ -1,3 +1,5 @@
+import type { ParsedAddress } from '@mapslibvn/core';
+
 /** Hệ số xếp hạng autocomplete (spec 6.2) — đặt ở đây để chỉnh bằng test. */
 export const COEFF = { sim: 0.55, prox: 0.25, pop: 0.15, prior: 0.05 } as const;
 export const PREFIX_BONUS = 0.1;
@@ -34,6 +36,43 @@ export function rankScore(input: {
     COEFF.pop * pop +
     COEFF.prior * priorFor(input.type, input.qStartsWithDigit)
   );
+}
+
+/**
+ * Truy vấn có phải **thuần tên hành chính** không: có phần phường/quận/tỉnh mà không có số nhà
+ * hay tên đường. "Quận 10" và "Phường An Lợi Đông" là có; "88/9 Nguyễn Lâm, Phường 6, Quận 10"
+ * thì không — ở đó người dùng đang tìm một địa chỉ, không phải cái vùng.
+ */
+export function isAdminOnlyQuery(parsed: ParsedAddress): boolean {
+  if (parsed.housenumber || parsed.street) return false;
+  return Boolean(parsed.ward || parsed.district || parsed.province);
+}
+
+/**
+ * Dành một suất cho vùng hành chính khi người dùng gõ đúng tên hành chính.
+ *
+ * Cổng 7.6 đo trên API thật: bảy truy vấn tên quận đều không có item `area` nào trong 10 gợi ý.
+ * Nguyên nhân là `area` luôn mang `pop = 0` nên mất trắng `0,15·pop`, còn `prior` chỉ nặng 0,05
+ * (`COEFF`) nên chênh lệch prior 0,6 với 1 chỉ đáng 0,02 — không đời nào bù được. Sửa bằng cách
+ * gán `pop` cho vùng thì phải đặt ≈ 1, tức khai vùng là thứ phổ biến nhất DB, và sẽ cướp chỗ POI
+ * ở những truy vấn như "Bến Thành"; ngoài ra plan cấm đổi xếp hạng POI/đường đã nghiệm thu.
+ * Nên can thiệp ở tầng **chọn**, không phải tầng **điểm**: điểm của mọi loại giữ nguyên y hệt.
+ *
+ * Vùng được đặt ở **suất cuối** để không đẩy các kết quả khớp tốt hơn xuống, và chỉ đúng một suất.
+ *
+ * @param sorted danh sách đã xếp giảm dần theo điểm
+ */
+export function withAreaSlot<T extends { type: ItemType }>(
+  sorted: T[],
+  limit: number,
+  adminOnlyQuery: boolean,
+): T[] {
+  const top = sorted.slice(0, limit);
+  if (!adminOnlyQuery || limit < 1) return top;
+  if (top.some((item) => item.type === 'area')) return top;
+  const area = sorted.find((item) => item.type === 'area');
+  if (!area) return top;
+  return [...top.slice(0, limit - 1), area];
 }
 
 export function gridKey(lat: number, lng: number): string {

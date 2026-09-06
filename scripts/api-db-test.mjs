@@ -2,7 +2,7 @@
 // DB cô lập → migrate → seed → Wrangler/Hyperdrive local → integration tests.
 import 'dotenv/config';
 import { spawn, spawnSync } from 'node:child_process';
-import { existsSync } from 'node:fs';
+import { existsSync, rmSync } from 'node:fs';
 import { readFile } from 'node:fs/promises';
 import postgres from 'postgres';
 import { CERTS_PORT, FAKE_AUD } from './lib/access-fake.mjs';
@@ -63,6 +63,12 @@ const detached = process.platform !== 'win32';
 if (!existsSync('apps/admin/dist/admin/index.html')) {
   run('pnpm', ['--filter', '@mapslibvn/admin', 'build']);
 }
+
+// Cache local của wrangler nằm trong .wrangler/state và **sống qua nhiều phiên**: một lần
+// `pnpm dev:e2e` chạy trên DB dev đủ để itest sau đó nhận lại câu trả lời của DB khác và đỏ ở chỗ
+// không liên quan (07/09/2026: autocomplete trả POI "Highlands Coffee" của DB dev thay vì
+// "Highlands Coffee Test" của setup.sql). Xoá để bộ test tự chứa.
+rmSync('apps/api/.wrangler/state/v3/cache', { recursive: true, force: true });
 
 await recreateDatabase();
 console.log(`API itest DB: ${target.hostname}/${DBTEST_DATABASE}`);
