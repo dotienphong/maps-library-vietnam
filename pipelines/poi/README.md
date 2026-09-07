@@ -28,12 +28,29 @@ Số liệu ingest thật toàn VN (Task 10, 31/08/2026): `src_osm_place` 228.25
 | Records | `node pipelines/poi/src/records.mjs` | `src_*` → `poi_work_record` |
 | Conflate | `node pipelines/poi/src/conflate.mjs` | `poi_work_record` → `poi_work_pair`, `poi_work_cluster`, `poi_work_cluster_meta` |
 | Publish | `node pipelines/poi/src/publish.mjs [--force]` | gộp vào `poi`, `poi_source_link`; sanity giảm active tối đa 10 % |
-| Trích đường/ranh giới | `node pipelines/poi/src/geocode/osm-roads.mjs [--fixture]` | PBF đã patch → `osm_road_raw`, `osm_admin_raw` |
+| Trích đường/ranh giới | `node pipelines/poi/src/geocode/osm-roads.mjs [--fixture]` | PBF đã patch → `osm_road_raw` (kèm `name_alt` từ `old_name`/`alt_name`/`short_name`/`name:vi`/`official_name`), `osm_admin_raw` |
 | Hành chính | `node pipelines/poi/src/geocode/admin.mjs [--fixture]` | current raw + snapshot 250101 + seed/tag → publish nguyên tử `admin_area`, `admin_area_old`, `admin_alias`; QA ở `out/admin-alias/report.json` |
 | Chỉ dựng lại alias cũ | `node pipelines/poi/src/geocode/admin-old.mjs [--fixture]` | giữ current đã publish; thay nguyên tử old + alias dưới cùng advisory lock |
-| Đường/hẻm | `node pipelines/poi/src/geocode/streets.mjs && node pipelines/poi/src/geocode/alleys.mjs` | raw road → `street`, `alley` + parent/entrance |
+| Đường/hẻm | `node pipelines/poi/src/geocode/streets.mjs && node pipelines/poi/src/geocode/alleys.mjs` | raw road → `street` (kèm `name_alt`, `name_key`, `name_alt_norm`, `name_tsv`), `alley` + parent/entrance |
 | Mốc địa chỉ | `node pipelines/poi/src/geocode/anchors.mjs` | `src_osm_place` + `poi_work_record` → `address_anchor` |
 | Report | `node pipelines/poi/src/report.mjs` | `out/poi-report-*.json` |
+
+## Backfill cột tìm kiếm
+
+Migration `0009_search_keys.sql` thêm `name_key`, `name_alt_norm`, `name_tsv` (`poi`, `street`),
+`name_key` (`admin_area`, `admin_area_old`) và `alias_key` (`admin_alias`). Pipeline điền chúng từ
+lần chạy kế tiếp, nhưng dữ liệu **đã publish** vẫn NULL cho tới lúc đó — API chịu được NULL (không
+5xx, chỉ là không khớp), nên không phải chạy gấp, nhưng muốn có ngay thì:
+
+```bash
+node scripts/backfill-search-keys.mjs            # chỉ điền dòng còn NULL, idempotent
+node scripts/backfill-search-keys.mjs --all      # tính lại toàn bộ (sau khi đổi bảng luật viKey)
+node scripts/backfill-search-keys.mjs --table street
+```
+
+Script từ chối chạy nếu `schema_migrations` chưa tới `0009_search_keys.sql`. Chạy trong container
+`pipeline` (role `pipeline` có `UPDATE`). Giá trị sinh ra bằng đúng `searchKeys()` của
+`@mapslibvn/core` — cùng một định nghĩa với pipeline, nên hai đường không thể lệch nhau.
 
 ## Hiển thị POI tăng dần theo zoom
 

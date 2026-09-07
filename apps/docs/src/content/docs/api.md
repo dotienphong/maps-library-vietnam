@@ -148,6 +148,8 @@ Ba loại còn lại có hình dạng hơi khác: kết quả `street` không c�
 ```json
 { "type": "street", "name": "Đường Lê Lợi", "secondary": "bac ninh",
   "lat": 21.3564026, "lng": 106.2543289, "score": 0.64 }
+{ "type": "street", "name": "Nam Kỳ Khởi Nghĩa", "secondary": "ho chi minh",
+  "lat": 10.7785, "lng": 106.6925, "score": 0.62, "matched_alt": "Công Lý" }
 { "type": "address", "name": "37 Phan Chu Trinh", "secondary": "ben thanh, ho chi minh",
   "lat": 10.77248266, "lng": 106.69723188, "precision": "rooftop", "score": 0.725 }
 ```
@@ -157,6 +159,10 @@ Ba loại còn lại có hình dạng hơi khác: kết quả `street` không c�
   "secondary": "Diên Hồng, Hòa Hưng, Vườn Lài, …", "lat": 10.77, "lng": 106.67,
   "precision": "district", "score": 0.6, "bbox": [106.65, 10.75, 106.68, 10.79] }
 ```
+
+`matched_alt` (tuỳ chọn, mọi loại) chỉ xuất hiện khi kết quả khớp qua **tên thay thế** — tên cũ hoặc
+tên khác của cùng đối tượng, lấy từ `old_name`/`alt_name` của OSM. Nó giữ nguyên dấu và nên hiển thị
+để người dùng hiểu vì sao dòng đó khớp.
 
 `secondary` của `street` và `address` là chuỗi đã chuẩn hoá (không dấu) vì lấy từ cột dùng để so khớp — hãy hiển thị nó như thông tin phụ, đừng dùng làm nhãn chính.
 

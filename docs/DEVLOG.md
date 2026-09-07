@@ -1435,6 +1435,18 @@ vẫn là `sleep 1` phút — `sudo pmset -a sleep 0 disksleep 0`.
   deploy production đủ 5 endpoint 200 và area `Phường Bàn Cờ` 0,801 hạng 1. Hệ quả: push chỉ chạm
   `packages/style/**` hay `pnpm-lock.yaml` từ nay cũng kéo theo bộ DB thật — đúng ý, vì cả hai đều
   vào bản Worker được deploy
+- 2026-09-08 · Hạng mục 3 · **Nhận diện cách viết địa phương — code xong, chờ nghiệm thu production**
+  · plan `docs/superpowers/plans/2026-09-07-cach-viet-dia-phuong.md`, Task 0–15 · migration `0009`
+  thêm `name_key`/`name_alt_norm`/`name_tsv` (`poi`, `street`), `name_key` (`admin_area`,
+  `admin_area_old`), `alias_key` (`admin_alias`) — đã áp lên production 07/09 (88 giây) và lên DB
+  dev 08/09. Core có `viKey` (khoá ngữ âm, bảng luật là dữ liệu), `applyToponymAlias` (11 địa danh,
+  **mọi dòng có nguồn OSM kiểm được**), `foldTelex`/`looksLikeTelex`, và `searchKeys`/`filterNameAlt`
+  là **một định nghĩa duy nhất** mà pipeline, backfill và test đều gọi. API chạy ba bậc, bậc sau chỉ
+  chạy khi bậc trước chưa đủ `limit`; `matched_alt` trả tên cũ còn dấu; bậc 3b telex nằm sau cờ
+  `AUTOCOMPLETE_TELEX`, **mặc định tắt**, chờ số liệu `stage_hit`. SDK 0.4.0, **chưa publish npm**
+  theo quyết định PHONG. Bằng chứng NULL-safe của spec mục 8 là bộ `test:api-db` 42/42 trên Postgres
+  thật: trước Task 10–12 đúng 4 ca đỏ, sau đó xanh, 36 ca cũ không đổi. **Chưa có số production** —
+  chờ Task 16 (deploy, backfill, chạy lại pipeline đường, đối chiếu tiêu chí 11.6)
 
 ## 5. Sự cố
 

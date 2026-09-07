@@ -77,6 +77,29 @@ test('chọn vùng hành chính thì khớp khung bằng fitBounds', async ({ pa
   expect(jsErrors, `lỗi JS trên trang: ${jsErrors.join(' | ')}`).toEqual([]);
 });
 
+// Hạng mục 3 (spec 6.1): `qui nhon` là cách viết địa phương của Quy Nhơn. Từ điển biến thể áp
+// thẳng lên truy vấn ở bậc 1 nên không phải chờ pipeline chạy lại để điền cột dẫn xuất.
+test('gõ cách viết địa phương "qui nhon" vẫn ra Quy Nhơn', async ({ page }) => {
+  const jsErrors: string[] = [];
+  page.on('pageerror', (error) => jsErrors.push(error.message));
+  await page.goto('/playground.html?api=http://localhost:8787');
+  await expect(page.locator('#status')).toHaveAttribute('data-state', 'loaded', {
+    timeout: 30_000,
+  });
+
+  const autocomplete = page.locator('mapslibvn-autocomplete');
+  await autocomplete.locator('input').fill('qui nhon');
+
+  await expect(autocomplete.locator('[role="option"]').first()).toBeVisible({ timeout: 5_000 });
+  // Phải có địa điểm viết đúng dạng chuẩn CÓ DẤU trong danh sách — đó mới là cái mà cách viết
+  // `qui` không tự khớp được. Không khẳng định nó đứng đầu: dữ liệu thật còn có nơi tên là
+  // "Qui Nhon Quan" viết y hệt truy vấn, khớp trực tiếp nên hạng nhất là đúng.
+  await expect(
+    autocomplete.locator('[role="option"]').filter({ hasText: 'Quy Nhơn' }).first(),
+  ).toBeVisible({ timeout: 5_000 });
+  expect(jsErrors, `lỗi JS trên trang: ${jsErrors.join(' | ')}`).toEqual([]);
+});
+
 test('bốn tab chuyển được bằng chuột và bàn phím', async ({ page }) => {
   await page.goto('/playground.html');
 

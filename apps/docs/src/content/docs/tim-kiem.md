@@ -154,6 +154,7 @@ Trả `{ items: AutocompleteItem[] }`, đã sắp xếp giảm dần theo `score
 | `lat`, `lng` | Toạ độ |
 | `precision` | Với `type: 'address'` là `'rooftop'`; với `type: 'area'` là `'province'`, `'district'` hoặc `'ward'` |
 | `bbox` | Chỉ có với `type: 'area'` — `[minLng, minLat, maxLng, maxLat]`, truyền thẳng vào `map.fitBounds()` |
+| `matched_alt` | Chỉ có khi kết quả khớp qua **tên thay thế** (tên cũ, tên khác trên OSM): tên đó, còn dấu. Gõ `cong ly` ra "Nam Kỳ Khởi Nghĩa" kèm `matched_alt: "Công Lý"` |
 | `score` | Điểm xếp hạng tổng hợp (độ giống tên, khoảng cách tới `near`, độ phổ biến, loại). Xấp xỉ 0–1, **chỉ dùng để so sánh trong cùng một lượt gợi ý**, không phải xác suất |
 
 `q` phải từ 2 ký tự, nếu không API trả `400 invalid_request`. Kết quả được cache 10 phút theo truy
@@ -165,6 +166,26 @@ trả đúng địa điểm, vì API so truy vấn với **từng đoạn từ**
 một từ nằm giữa tên rất dài cũng tìm được: gõ `skincode` ra "Showroom Skincode - Swiss Derma
 Center". Truy vấn 2–3 ký tự khớp rất nhiều tên, nên thứ tự lúc đó chủ yếu do khoảng cách tới `near`
 và độ phổ biến quyết định.
+
+### Cách viết địa phương và tên cũ
+
+Người Việt viết một địa danh theo nhiều cách, và nhiều tuyến đường vẫn được gọi bằng tên cũ. API
+xử lý việc này theo **ba bậc**, và bậc sau **chỉ chạy khi bậc trước chưa đủ kết quả** — truy vấn
+thông thường không phải trả giá cho chúng.
+
+| Bạn gõ | Ra | Nhờ đâu |
+|---|---|---|
+| `qui nhon` | Quy Nhơn | Từ điển biến thể địa danh, áp thẳng lên truy vấn ở **bậc 1** |
+| `cong ly` | Nam Kỳ Khởi Nghĩa, kèm `matched_alt: "Công Lý"` | Tên thay thế của tuyến đường lấy từ OSM (**bậc 1**) |
+| `nghia khoi bac` | Bậc Hai Khởi Nghĩa | **Bậc 2**: mọi từ khớp tiền tố, không kể thứ tự |
+| `bin than`, `kontum` | Bình Thạnh, Kon Tum | **Bậc 3**: khoá ngữ âm, gộp các cách phát âm và cách viết dính/tách từ |
+
+Khoá ngữ âm gộp những khác biệt thường gặp: `ch`/`tr`, `x`/`s`, `d`/`gi`/`r`, `ph`→`f`, `i`/`y`, và
+âm cuối `-ng`/`-n`, `-t`/`-c`. Nó gộp được dính/tách từ trong **cùng một tên** (`nha trang` ↔
+`nhatrang`), nhưng không phải mọi cách viết dính đều gộp.
+
+Điểm của kết quả bậc sau bị trừ một khoảng nhỏ, nên khi bậc 1 đã có kết quả tương đương thì kết quả
+đó vẫn đứng trước.
 
 ## 6. `search` — tìm theo tên, loại hoặc vùng
 
