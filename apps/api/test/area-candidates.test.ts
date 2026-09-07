@@ -8,6 +8,7 @@ const input: CandidateQueryInput = {
   queryCore: '10',
   prefixPattern: 'quan 10%',
   near: null,
+  sources: ['osm', 'overture', 'fsq'],
   parsed: { alleyChain: [], confidence: 0.2, district: '10' },
 };
 
@@ -59,6 +60,7 @@ describe('areaCandidates', () => {
       queryCore: 'thu dau mot',
       prefixPattern: 'thu dau mot%',
       near: null,
+      sources: ['osm', 'overture', 'fsq'],
       parsed: {
         alleyChain: [],
         confidence: 0.2,
@@ -78,6 +80,7 @@ describe('areaCandidates', () => {
       queryCore: 'ho chi minh',
       prefixPattern: 'thanh pho ho chi minh%',
       near: null,
+      sources: ['osm', 'overture', 'fsq'],
       parsed: {
         alleyChain: [],
         confidence: 0.2,
