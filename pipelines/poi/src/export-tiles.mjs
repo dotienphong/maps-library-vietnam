@@ -1,5 +1,6 @@
 #!/usr/bin/env node
-// poi active → GeoJSONSeq → tippecanoe → out/<release>.pmtiles (spec 5.8). Dùng: node export-tiles.mjs [--release poi-YYYYMMDD]
+// poi active → GeoJSONSeq → tippecanoe → out/<release>.pmtiles (spec 5.8).
+// Dùng: node export-tiles.mjs [--release poi-YYYYMMDD] [--sources osm|all]
 import { createWriteStream, mkdirSync, statSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { Readable } from 'node:stream';
@@ -8,6 +9,7 @@ import { run } from '../../../scripts/lib/run.mjs';
 import { releaseName } from '../../tiles/src/lib/dates.mjs';
 import { displayFields, priorityOrderSql } from './display-priority.mjs';
 import { createDisplaySelector } from './display-selector.mjs';
+import { activePoiWhereSql, poiReleasePrefix } from './lib/poi-filter.mjs';
 import { OUT, POI_WORK, arg } from './lib/env.mjs';
 import { connect } from './pg.mjs';
 
@@ -34,10 +36,14 @@ export function featureLine(r, display, minZoom) {
 }
 
 if (process.argv[1]?.endsWith('export-tiles.mjs')) {
-  const release = arg('--release', undefined) ?? releaseName('poi');
+  const profile = arg('--sources', 'all') ?? 'all';
+  const release =
+    arg('--release', undefined) ??
+    releaseName(/** @type {'poi' | 'poi-osm'} */ (poiReleasePrefix(profile)));
   mkdirSync(POI_WORK, { recursive: true });
   mkdirSync(OUT, { recursive: true });
-  const seq = resolve(POI_WORK, 'poi.geojsonseq');
+  // Mỗi release một file seq: hai profile export liền nhau không ghi đè nhau.
+  const seq = resolve(POI_WORK, `${release}.geojsonseq`);
   const output = resolve(OUT, `${release}.pmtiles`);
   const sql = connect();
   const selector = createDisplaySelector();
@@ -51,7 +57,7 @@ if (process.argv[1]?.endsWith('export-tiles.mjs')) {
           ST_X(p.geom) AS lon, ST_Y(p.geom) AS lat
         FROM poi p
         JOIN category c ON c.code = p.category
-        WHERE p.status = 'active'
+        WHERE ${activePoiWhereSql(profile)}
         ORDER BY ${priorityOrderSql}`;
       for await (const rows of sql.unsafe(query).cursor(5000)) {
         for (const r of rows) {
@@ -87,6 +93,7 @@ if (process.argv[1]?.endsWith('export-tiles.mjs')) {
   const selection = selector.snapshot();
   console.log(
     JSON.stringify({
+      sources: profile,
       activeRead,
       selected: selection.selected,
       thinned: selection.thinned,

@@ -64,7 +64,7 @@ describe('pipeline POI trọn vòng trên fixture', () => {
   });
 
   it('GeoJSON và PMTiles giữ contract progressive display mà không sửa POI bị thinning', async () => {
-    const features = readFileSync(resolve(WORK, 'poi', 'poi.geojsonseq'), 'utf8')
+    const features = readFileSync(resolve(WORK, 'poi', 'poi-fixture.geojsonseq'), 'utf8')
       .trim()
       .split('\n')
       .map((line) => JSON.parse(line));

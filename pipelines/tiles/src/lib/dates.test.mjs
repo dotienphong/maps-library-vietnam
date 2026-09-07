@@ -12,4 +12,8 @@ describe('releaseName', () => {
   it('ghép tiền tố và ngày', () => {
     expect(releaseName('vn', new Date('2026-08-26T10:00:00Z'))).toBe('vn-20260826');
   });
+
+  it('nhận tiền tố profile poi-osm', () => {
+    expect(releaseName('poi-osm', new Date('2026-08-26T10:00:00Z'))).toBe('poi-osm-20260826');
+  });
 });

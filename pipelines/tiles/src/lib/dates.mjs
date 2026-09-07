@@ -4,7 +4,7 @@ export function stampVN(date) {
   return vietnamTime.toISOString().slice(0, 10).replace(/-/g, '');
 }
 
-/** @param {'vn' | 'poi'} prefix @param {Date} [date] */
+/** @param {'vn' | 'poi' | 'poi-osm'} prefix @param {Date} [date] */
 export function releaseName(prefix, date = new Date()) {
   return `${prefix}-${stampVN(date)}`;
 }
