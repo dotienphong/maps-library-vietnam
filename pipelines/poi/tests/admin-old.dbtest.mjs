@@ -239,6 +239,23 @@ describe('overlay ranh giới hành chính cũ', () => {
     });
   });
 
+  // Publish khi cổng QA đỏ phải là quyết định **tường minh có ghi lý do**, không phải lách gate:
+  // 07/09/2026 PHONG duyệt publish với 2 ca đảo chưa có đích, và lý do đó phải nằm trong report.
+  it('không có lý do thì cổng QA vẫn ném; có lý do thì ghi vào report', async () => {
+    await expect(
+      buildOldAdmin(sql, { currentTable: 'admin_area', fixture: false }),
+    ).rejects.toThrow(/QA alias hành chính đỏ/);
+    const report = await buildOldAdmin(sql, {
+      currentTable: 'admin_area',
+      fixture: false,
+      acceptQaReason: 'PHONG duyệt 07/09: 2 ca đảo chưa có đích',
+    });
+    expect(report.acceptedQa).toMatchObject({
+      reason: 'PHONG duyệt 07/09: 2 ca đảo chưa có đích',
+    });
+    expect(report.acceptedQa.failure).toMatch(/unmatched/);
+  });
+
   it('publish lỗi giữ nguyên đồng thời cả ba bảng', async () => {
     const [before] = await sql`SELECT
       (SELECT count(*)::int FROM admin_area) areas,

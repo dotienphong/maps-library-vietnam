@@ -60,8 +60,19 @@ const seedRows = () =>
       };
     });
 
-/** @param {Sql} sql @param {{currentTable:'admin_area'|'admin_area_new',fixture?:boolean,sourceStats?:{invalidGeometries?:{repaired?:number,discarded?:number}}}} options */
-export async function buildOldAdmin(sql, { currentTable, fixture = FIXTURE, sourceStats = {} }) {
+/**
+ * @param {Sql} sql
+ * @param {{currentTable:'admin_area'|'admin_area_new',fixture?:boolean,
+ *   sourceStats?:{invalidGeometries?:{repaired?:number,discarded?:number}},
+ *   acceptQaReason?:string}} options
+ *   `acceptQaReason` — publish **dù cổng QA đỏ**, chỉ dùng khi có quyết định của người chịu trách
+ *   nhiệm. Lý do được ghi vào `report.acceptedQa` để lần sau còn truy được ai chấp nhận cái gì;
+ *   không truyền thì cổng ném như cũ.
+ */
+export async function buildOldAdmin(
+  sql,
+  { currentTable, fixture = FIXTURE, sourceStats = {}, acceptQaReason },
+) {
   if (!CURRENT_TABLES.has(currentTable))
     throw new Error(`currentTable không hợp lệ: ${currentTable}`);
   // Cùng lý do như nhánh current: snapshot 01/2025 chỉ có 62/63 tỉnh cũ, thiếu Khánh Hòa, nên 8
@@ -292,6 +303,7 @@ export async function buildOldAdmin(sql, { currentTable, fixture = FIXTURE, sour
   const unmatched = coverage.filter((row) => row.targets === 0);
   const coverageGaps = coverage.filter((row) => row.rawCoverage < 0.95);
   const overlapErrors = coverage.filter((row) => row.rawCoverage > 1.01);
+  /** @type {Record<string, any>} */
   const report = {
     generatedAt: new Date().toISOString(),
     oldCount: await countRows(sql, 'admin_area_old_new'),
@@ -314,17 +326,19 @@ export async function buildOldAdmin(sql, { currentTable, fixture = FIXTURE, sour
   mkdirSync(resolve(OUT, 'admin-alias'), { recursive: true });
   writeFileSync(resolve(OUT, 'admin-alias/report.json'), `${JSON.stringify(report, null, 2)}\n`);
   await sql.unsafe('DROP TABLE admin_overlap_work');
-  if (
+  const qaRed =
     !fixture &&
     (invalidGeometries.discarded > 0 ||
       invalidGeometries.remaining > 0 ||
       unmatched.length > 0 ||
       overlapErrors.length > 0 ||
-      seedMisses.length > 0)
-  ) {
-    throw new Error(
-      `QA alias hành chính đỏ: invalid=${invalidGeometries.discarded + invalidGeometries.remaining}, unmatched=${unmatched.length}, overlap=${overlapErrors.length}, seed_miss=${seedMisses.length}`,
-    );
+      seedMisses.length > 0);
+  if (qaRed) {
+    const message = `QA alias hành chính đỏ: invalid=${invalidGeometries.discarded + invalidGeometries.remaining}, unmatched=${unmatched.length}, overlap=${overlapErrors.length}, seed_miss=${seedMisses.length}`;
+    if (!acceptQaReason) throw new Error(message);
+    report.acceptedQa = { reason: acceptQaReason, failure: message, at: new Date().toISOString() };
+    writeFileSync(resolve(OUT, 'admin-alias/report.json'), `${JSON.stringify(report, null, 2)}\n`);
+    console.warn(`⚠ publish dù cổng QA đỏ — lý do: ${acceptQaReason}\n  ${message}`);
   }
   return report;
 }

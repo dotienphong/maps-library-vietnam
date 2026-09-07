@@ -58,9 +58,17 @@ async function main() {
         if (!FIXTURE) await downloadVerified({ ...manifest, target: oldPbf });
         const sourceStats = await loadOldAdminRaw(connection, { pbfPath: oldPbf });
         await buildCurrentAdmin(connection);
+        // `--accept-qa "<lý do>"`: publish dù cổng QA đỏ. Chỉ dùng khi có quyết định của người
+        // chịu trách nhiệm; lý do được ghi vào report để còn truy được về sau.
+        const acceptIndex = process.argv.indexOf('--accept-qa');
+        const acceptQaReason = acceptIndex >= 0 ? process.argv[acceptIndex + 1] : undefined;
+        if (acceptIndex >= 0 && !acceptQaReason?.trim()) {
+          throw new Error('--accept-qa cần kèm lý do, ví dụ: --accept-qa "PHONG duyệt 07/09: …"');
+        }
         const report = await buildOldAdmin(connection, {
           currentTable: 'admin_area_new',
           sourceStats,
+          ...(acceptQaReason ? { acceptQaReason } : {}),
         });
         const publishStarted = performance.now();
         await publishNew(connection, ['admin_area', 'admin_area_old', 'admin_alias']);
