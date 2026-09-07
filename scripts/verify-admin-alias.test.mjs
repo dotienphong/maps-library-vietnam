@@ -174,6 +174,22 @@ describe('evaluateCoverage', () => {
     expect(failure).toMatchObject({ caseId: 'dn-01', snapshotDistrict: 'hoa vang' });
   });
 
+  // Đồng Tháp có hai `Xã Tân Phước` (Lai Vung và Tân Hồng). Nếu tra lấy dòng đầu tuỳ ý thì fixture
+  // ghi đúng "Tân Hồng" vẫn bị báo lệch — dương tính giả. Phải coi là khớp khi CÓ dòng trùng huyện.
+  it('nhiều đơn vị trùng tên trong tỉnh: khớp nếu có dòng trùng huyện', () => {
+    const result = evaluateCoverage(
+      coverageInput({
+        fixtureMismatches: [],
+        fixtureAmbiguous: [
+          { caseId: 'dt-08', ward: 'tan phuoc', candidates: ['lai vung', 'tan hong'] },
+        ],
+      }),
+    );
+    // Mơ hồ không phải lỗi fixture, nhưng vẫn phải nêu để người đọc biết ca nào chưa kết luận được.
+    expect(result.failures).toEqual([]);
+    expect(result.warnings.map((w) => w.kind)).toContain('fixture_district_ambiguous');
+  });
+
   it('fixture khớp snapshot thì không fail', () => {
     expect(evaluateCoverage(coverageInput({ fixtureMismatches: [] })).failures).toEqual([]);
   });

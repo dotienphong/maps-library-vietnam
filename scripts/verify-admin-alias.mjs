@@ -66,6 +66,7 @@ const RAW_COVERAGE_MAX = 1.05;
  *   dbOldCount?: number | null,
  *   fixtureMismatches?: {caseId:string, ward:string, fixtureDistrict:string,
  *     snapshotDistrict:string}[],
+ *   fixtureAmbiguous?: {caseId:string, ward:string, candidates:string[]}[],
  * }} input
  */
 export function evaluateCoverage(input) {
@@ -147,6 +148,16 @@ export function evaluateCoverage(input) {
       ward: item.ward,
       fixtureDistrict: item.fixtureDistrict,
       snapshotDistrict: item.snapshotDistrict,
+    });
+  }
+
+  // Trùng tên phường trong cùng tỉnh thì không kết luận được huyện nào đúng — nêu ra, không tính lỗi.
+  for (const item of input.fixtureAmbiguous ?? []) {
+    warnings.push({
+      kind: 'fixture_district_ambiguous',
+      caseId: item.caseId,
+      ward: item.ward,
+      candidates: item.candidates,
     });
   }
 
@@ -360,6 +371,8 @@ async function runCoverage() {
     const aliasCases = [];
     /** @type {{caseId:string, ward:string, fixtureDistrict:string, snapshotDistrict:string}[]} */
     const fixtureMismatches = [];
+    /** @type {{caseId:string, ward:string, candidates:string[]}[]} */
+    const fixtureAmbiguous = [];
     for (const item of fixtures) {
       const unit = oldUnitOf(item.old);
       // Tra theo **đơn vị cũ**, không theo `expectedKeys` viết tay: khóa trong fixture Task 0 đã
@@ -372,8 +385,17 @@ async function runCoverage() {
         LEFT JOIN admin_area current ON current.id=a.admin_area_id
         WHERE o.level=8 AND o.name_norm=${unit.ward} AND o.province_norm=${unit.province}
         GROUP BY o.id,o.parent_norm`;
-      const [row] = rows;
-      if (row && unit.district && row.parent_norm && String(row.parent_norm) !== unit.district) {
+      // Ưu tiên dòng trùng huyện của fixture: cùng tỉnh có thể có nhiều phường trùng tên
+      // (Đồng Tháp có hai `Xã Tân Phước`), lấy dòng đầu tuỳ ý sẽ báo lệch sai.
+      const matched = rows.find((candidate) => String(candidate.parent_norm) === unit.district);
+      const row = matched ?? rows[0];
+      if (!matched && unit.district && rows.length > 1) {
+        fixtureAmbiguous.push({
+          caseId: item.caseId,
+          ward: unit.ward,
+          candidates: rows.map((candidate) => String(candidate.parent_norm)),
+        });
+      } else if (!matched && unit.district && row?.parent_norm) {
         fixtureMismatches.push({
           caseId: item.caseId,
           ward: unit.ward,
@@ -400,6 +422,7 @@ async function runCoverage() {
       coverage: report?.coverage ?? [],
       aliasCases,
       fixtureMismatches,
+      fixtureAmbiguous,
       reportOldCount: report ? (report.oldCount ?? null) : null,
       dbOldCount,
     };

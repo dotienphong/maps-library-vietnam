@@ -1,5 +1,7 @@
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { adminAliasKeys, parseAddress } from '../src';
+import { adminAliasKeys, normalizeVi, parseAddress } from '../src';
 
 describe('adminAliasKeys', () => {
   it('giữ tiền tố cấp và xếp khóa cụ thể trước', () => {
@@ -45,5 +47,30 @@ describe('adminAliasKeys', () => {
     const keys = adminAliasKeys({ ward: '6', district: '10' });
     expect(keys).not.toContain('6');
     expect(new Set(keys).size).toBe(keys.length);
+  });
+
+  // 07/09/2026: `expectedKeys` viết tay trong fixture đã lệch khỏi dạng canonical
+  // (`phuong da kao quan 1 thanh pho ho chi minh` so với `phuong da kao quan 1 ho chi minh`) và
+  // còn mang huyện sai ở 10 ca; `scripts/admin-alias-fixtures.test.mjs` chỉ assert
+  // `expectedKeys.length > 0` nên không bắt được. Chốt ở đây vì đây là nơi duy nhất import được
+  // core, và fixture cũng nằm trong `packages/core/tests/fixtures/`.
+  it('expectedKeys của 60 ca fixture khớp đúng adminAliasKeys()', () => {
+    const stripUnit = (value: string) =>
+      value.replace(/^(Phường|Xã|Thị trấn|Đặc khu|Quận|Huyện|Thành phố|Thị xã|Tỉnh)\s+/i, '');
+    const lines = readFileSync(resolve(__dirname, 'fixtures/admin-alias-2025.jsonl'), 'utf8')
+      .trim()
+      .split('\n');
+    expect(lines).toHaveLength(60);
+    for (const line of lines) {
+      const item = JSON.parse(line) as { caseId: string; old: string; expectedKeys: string[] };
+      const [ward = '', district = '', province = ''] = item.old.split(',').map((p) => p.trim());
+      const expected = adminAliasKeys({
+        ward: normalizeVi(stripUnit(ward)),
+        district: normalizeVi(stripUnit(district)),
+        province: normalizeVi(province).replace(/^thanh pho /, ''),
+        adminOriginal: { ward, district, province },
+      });
+      expect(item.expectedKeys, `ca ${item.caseId}`).toEqual(expected);
+    }
   });
 });
