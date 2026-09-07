@@ -1,7 +1,13 @@
-# Spec — Bật/tắt nguồn POI theo profile (OSM mặc định; Overture, Foursquare tuỳ chọn)
+# Spec — Bật/tắt nguồn POI theo profile (chọn tập nguồn khi khởi tạo SDK)
 
-Ngày: 07/09/2026. Trạng thái: PHONG đã duyệt thiết kế qua đối thoại 07/09/2026; chờ duyệt bản viết.
-Tài liệu do Fable 5.1 viết. Plan chưa viết.
+Ngày: 07/09/2026. Trạng thái: PHONG đã duyệt thiết kế qua đối thoại 07/09/2026.
+Tài liệu do Fable 5.1 viết. Plan: `docs/superpowers/plans/2026-09-07-poi-sources-profile.md`.
+
+**Sửa 07/09/2026 sau khi đo production (mục 9 nghiệm thu 1):** OSM chỉ là nguồn chính của **7,0 %**
+POI (106.325 / 1.522.416; Overture 77,1 %, FSQ 15,9 % — `docs/evidence/poi-sources/do-truoc-primary-source.md`).
+Mặc định `['osm']` sẽ làm bản đồ mất ~93 % POI, nên PHONG quyết **đảo mặc định thành `all`** (cả ba
+nguồn, đúng hành vi hiện tại) và vẫn giao profile `osm` như tuỳ chọn cho người tích hợp. Toàn bộ
+tài liệu dưới đây đã theo quyết định đó.
 
 ---
 
@@ -17,9 +23,15 @@ Dữ liệu POI đến từ ba nguồn ingest (`pipelines/poi/src/ingest/`): Ope
 các nguồn thành viên nằm ở `poi_source_link`. Các trường `name`/`contact`/`hours` lấy nguyên từ bản ghi
 primary (`publish.mjs`), chỉ hình học ưu tiên thành viên OSM (`COALESCE(osm.geom, r.geom)`).
 
-PHONG đánh giá POI có primary Overture/FSQ nhiễu hơn OSM và muốn **mặc định chỉ hiển thị POI OSM**,
-cho người tích hợp bật thêm Overture/FSQ khi cần. Yêu cầu kèm: khi một nguồn tắt thì **search cũng không
-trả POI của nguồn đó**.
+PHONG đánh giá POI có primary Overture/FSQ nhiễu hơn OSM và muốn người tích hợp **chọn được tập
+nguồn**, với yêu cầu kèm: khi một nguồn tắt thì **search cũng không trả POI của nguồn đó**.
+
+Giả định "Overture/FSQ nhiễu hơn OSM" **chưa được chứng minh bằng số liệu** và số đo ở đầu tài liệu
+cho thấy nó khó đúng theo nghĩa "lọc rác": OSM Việt Nam chỉ có ~106 nghìn POI trong bộ lọc tag hiện
+tại. Thêm nữa `multiSourcePct` chỉ 3,3 %, tức conflation hầu như không ghép được POI OSM với bản
+sinh đôi ở Overture/FSQ — nên `primary_source` không phải thước đo chất lượng. Vì vậy spec này chỉ
+giao **công tắc chọn nguồn**, không hứa cải thiện chất lượng; việc siết chất lượng là phương án C ở
+mục 3, để sau và độc lập.
 
 Không thể giải bằng lọc ở client trên archive hiện tại: `display-selector.mjs` chọn tối đa một POI mỗi
 ô lưới cho mỗi zoom; POI thua ô bị `select()` trả `null` và `export-tiles.mjs` **không ghi vào archive**.
@@ -31,7 +43,8 @@ lại lỗ trống, không phải để OSM hiện lên thay.
 ### Mục tiêu
 
 1. Người tích hợp chọn tập nguồn POI **một lần lúc khởi tạo SDK**; bản đồ và Places API dùng cùng tập.
-2. Mặc định `['osm']` ở mọi bề mặt (REST và SDK) — một mặc định duy nhất.
+2. Mặc định `all` (cả ba nguồn) ở mọi bề mặt (REST và SDK) — một mặc định duy nhất, giữ đúng
+   hành vi hiện tại nên không người tích hợp nào mất dữ liệu khi nâng cấp.
 3. Bản đồ chỉ-OSM có mật độ đúng như khi lưới progressive chạy trên riêng tập OSM; không có lỗ trống.
 4. POI do người dùng đóng góp (`created_by = 'user'`) luôn có mặt bất kể tập nguồn.
 5. Không thêm migration; không đổi conflate, taxonomy, quality, progressive display; không đổi
@@ -70,8 +83,8 @@ là nền tốt để làm sau.
 
 | Profile | Tập `primary_source` | Tên archive | Vai trò |
 |---|---|---|---|
-| `osm` | `{osm}` | `poi-osm-YYYYMMDD.pmtiles` | **mặc định** |
-| `all` | `{osm, overture, fsq}` | `poi-YYYYMMDD.pmtiles` | archive hiện tại, giữ tên |
+| `all` | `{osm, overture, fsq}` | `poi-YYYYMMDD.pmtiles` | **mặc định**, archive hiện tại, giữ tên |
+| `osm` | `{osm}` | `poi-osm-YYYYMMDD.pmtiles` | tuỳ chọn (ví dụ khi chỉ muốn dữ liệu ODbL) |
 
 Bảng profile là một hằng dùng chung `POI_SOURCE_PROFILES` đặt ở `packages/core/src/poi-sources.ts`
 (`{ osm: ['osm'], all: ['osm','overture','fsq'] }`); API, SDK và pipeline (`pipelines/poi` đã phụ thuộc
@@ -142,7 +155,8 @@ cùng ngày.
 
 - Giá trị: `osm`, `overture`, `fsq`, phân cách dấu phẩy; `all` là bí danh cả ba. Trùng lặp bỏ qua;
   kết quả sắp xếp cố định để làm cache key.
-- Không truyền / rỗng → `['osm']`. Giá trị lạ → `400 invalid_request` "sources chỉ nhận osm,overture,fsq,all".
+- Không truyền / rỗng → cả ba nguồn (`all`). Giá trị lạ → `400 invalid_request`
+  "sources chỉ nhận osm,overture,fsq,all".
 
 ### 6.2 Từng endpoint
 
@@ -172,14 +186,14 @@ cùng ngày.
 
 | Nơi | Thêm | Ghi chú |
 |---|---|---|
-| `@mapslibvn/core` | `type PoiSource = 'osm' \| 'overture' \| 'fsq'`; `ClientOptions.poiSources?: PoiSource[]` (mặc định `['osm']`); `POI_SOURCE_PROFILES` | `autocomplete/search/nearby/reverse` tự gắn `sources=`; `styleUrl(theme)` thêm `&sources=` |
+| `@mapslibvn/core` | `type PoiSource = 'osm' \| 'overture' \| 'fsq'`; `ClientOptions.poiSources?: PoiSource[]` (mặc định cả ba nguồn); `POI_SOURCE_PROFILES` | `autocomplete/search/nearby/reverse` tự gắn `sources=`; `styleUrl(theme)` thêm `&sources=` |
 | `@mapslibvn/web` | `CreateMapOptions.poiSources?: PoiSource[]` | truyền xuống `createClient`; kiểm tra sớm: tập không có profile → `throw new Error` rõ nghĩa lúc `createMap` |
 | `@mapslibvn/react` | prop `poiSources` | vào deps của effect → đổi là tạo lại map, như `poiLayer` |
 | `@mapslibvn/react-native` | prop `poiSources` | truyền `createClient`; `useResolvedStyle` không đổi vì URL lấy từ `places.styleUrl` |
 | `<mapslibvn-autocomplete>` | không đổi | dùng client của map |
 
 `poiLayer`, `PoiFeature`, `poiClick`, `POI_LAYER_ID`, `hidePoiLayer` giữ nguyên. Bump minor cho 4 gói
-(thêm API, không phá chữ ký; hành vi mặc định đổi — ghi CHANGELOG/DEVLOG).
+(chỉ thêm API; mặc định `all` nên hành vi không đổi với code đang chạy).
 
 ## 8. Lỗi và tính an toàn
 
@@ -198,7 +212,7 @@ cùng ngày.
 - `parseSources`: mặc định, `all`, trùng lặp, sắp xếp, giá trị lạ → 400.
 - Mệnh đề lọc: hai bản (API/pipeline) sinh cùng điều kiện; có vế `created_by = 'user'`.
 - Ánh xạ tập → profile; `renderStyle` fallback + header `x-poi-profile`.
-- Client dựng URL đúng `sources=` cho 4 endpoint và `styleUrl`; mặc định `osm`.
+- Client dựng URL đúng `sources=` cho 4 endpoint và `styleUrl`; mặc định cả ba nguồn.
 - `createMap` ném lỗi với tập không có profile.
 - `manifest.mjs set --poi-osm`; `releaseName('poi-osm')`.
 - `autocompleteCacheUrl` có `s=` và `v=src1`.
@@ -211,26 +225,31 @@ cùng ngày.
 
 ### Nghiệm thu production
 
-1. **Đo trước khi chốt mặc định:** đếm `primary_source` × `status='active'` và `selected` của export
-   `--sources osm` (chạy trong container pipeline; máy dev không có `psql`/`cloudflared`). Nếu OSM-primary
-   dưới ~40 % tổng, báo PHONG cân nhắc lại mặc định — không tự đổi.
-2. `perf-autocomplete.mjs --paired`: cohort `sources=osm` vs `sources=all`; cổng p95 của Task 8.6 phải giữ.
+1. **Đo trước khi chốt mặc định — ĐÃ CHẠY 07/09/2026, KHÔNG ĐẠT ngưỡng 40 %:** OSM 7,0 %,
+   Overture 77,1 %, FSQ 15,9 % (`docs/evidence/poi-sources/do-truoc-primary-source.md`). PHONG quyết
+   đảo mặc định thành `all`. Vẫn cần ghi `selected`/`thinned` của export `--sources osm` khi publish.
+2. `perf-autocomplete.mjs --paired-sources`: cohort `sources=osm` vs `sources=all`; cổng p95 của
+   Task 8.6 phải giữ.
 3. `smoke --set poi-osm` xanh; `x-poi-profile: osm` trên `/v1/styles/light.json`.
 4. Kiểm tay bản đồ tại 5 thành phố ở z12/z14/z16 so với archive `all`: không lỗ trống bất thường.
 
 ## 10. Rollout
 
-1. Deploy API + code pipeline (style fallback `all`, search đã lọc `osm`). Đây là khoảng lệch ngắn giữa
-   bản đồ và search — nên bước 1 và 2 chạy **liền nhau trong một phiên**, không để qua ngày.
-2. `data:update --poi` build cả hai archive, `manifest set` một lần → bản đồ chuyển sang `osm`.
-3. Publish SDK; cập nhật docs: `api.md` (tham số `sources`, header `x-poi-profile`, mặc định),
+1. Deploy API + code pipeline. Mặc định `all` nên **không có khoảng lệch** cho người tích hợp hiện
+   tại: bản đồ và search giữ nguyên kết quả. Người nào chủ động đặt `poiSources: ['osm']` trước khi
+   archive `poi-osm` được publish sẽ thấy search đã lọc còn bản đồ còn đầy (style fallback `all`,
+   header `x-poi-profile: all;fallback`) — nên vẫn nên chạy bước 1 và 2 gần nhau.
+2. `data:update --poi` build cả hai archive, `manifest set` một lần → `sources=osm` bắt đầu có archive
+   riêng, mặc định `all` không đổi gì.
+3. Publish SDK; cập nhật docs: `api.md` (tham số `sources`, header `x-poi-profile`, mặc định `all`),
    `ban-do-web.md`, `react.md`, `react-native.md` (prop `poiSources`), `sdk.md`, `tim-kiem.md`
    (search theo tập nguồn), `tinh-nang.md`; DEVLOG.
 
 ## 11. Tiêu chí nghiệm thu
 
-- Với `sources` mặc định: bản đồ và 4 endpoint chỉ trả POI `primary_source='osm'` hoặc `created_by='user'`.
-- Với `sources=all`: hành vi và kết quả như trước thay đổi (ngoại trừ cache key).
+- Với `sources` mặc định (`all`): kết quả bản đồ và 4 endpoint **như trước thay đổi** (ngoại trừ
+  cache key autocomplete lên `v=src1`).
+- Với `sources=osm`: bản đồ và 4 endpoint chỉ trả POI `primary_source='osm'` hoặc `created_by='user'`.
 - Archive `poi-osm-*` ≤ 300 MiB, maxzoom 16, smoke xanh.
 - p95 autocomplete không xấu hơn cổng Task 8.6.
 - Toàn bộ unit test xanh không cần Postgres; dbtest mục 9 xanh trên staging.
