@@ -1198,6 +1198,20 @@ vẫn là `sleep 1` phút — `sudo pmset -a sleep 0 disksleep 0`.
   `.env`** nào bị nướng vào. `pipeline` + `backup` đã force-recreate sang image mới; production
   không đổi (`admin_area` 3.353 / `admin_area_old` 4.972 / `admin_alias` 37.246, autocomplete 200)
 
+- 2026-09-07 · Alias T8.3/8.4 · **số liệu cho ba quyết định còn treo** ·
+  [hồ sơ](evidence/admin-alias/8-3-decision-prep.md) · chạy chỉ đọc trên production, overlap tái tạo
+  bằng đúng SQL của `admin-overlay.mjs` (26.972 cạnh). (A) 60 `raw_coverage_gap`: phép đo "ngoài hợp
+  L4" **vô dụng** vì L4 hiện hành cũng bao lãnh hải (Cô Tô gap 0,961 mà "ngoài đất" = 0); đo lại bằng
+  mật độ POI trong phần không phủ → **42 vùng ≤ 0,5 POI/km², 13 vịnh có cầu tàu, 5 ca Cát Bà/Tam
+  Giang ≤ 2,3 POI/km²**, không vùng nào là đất hở. L4 Ninh Thuận gap 0,572 vì Khánh Hòa hiện hành
+  được dựng từ hợp xã nên không có lãnh hải. (B) sliver: 11.064/12.022 cạnh bị bỏ có `raw_share`
+  < 0,001; theo vùng p90 = 0,46 %, chỉ 11 vùng bỏ ≥ 5 % — evaluator cảnh báo khi `> 0` nên 1.970 cảnh
+  báo phần lớn là nhiễu, đề xuất ≥ 0,01 (≤ 209 vùng). (C) mô phỏng ngưỡng 0,05→0,005: 337 vùng đổi tập
+  đích, ca tách 282→569, 22 vùng ≥ 4 đích, mà `hn-01` **vẫn đỏ** vì Văn Miếu–Quốc Tử Giám 0,130 ở lại
+  ở mọi ngưỡng; đề xuất giữ 0,05. Phép đo đầu treo 6 phút vì làm L4 Ninh Thuận trước và
+  `ST_Difference` với hợp `vn_boundary` — cấu trúc lại: TEMP + `ST_Subdivide`, timeout 120 s/vùng,
+  L4 sau cùng → 60/60 trong 5 s. Không đổi code/gate; chờ PHONG
+
 ## 5. Sự cố
 
 ### SC-1 · Cache Rule nuốt Range của PMTiles — **ĐÃ ĐÓNG 27/08/2026**

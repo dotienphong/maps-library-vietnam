@@ -1,0 +1,1071 @@
+{
+  "generatedAt": "2026-09-07T07:32:31.455Z",
+  "commit": "c71a75c61655253c92fbc9fc513aa3342769a2b0",
+  "note": "Chuẩn bị quyết định 8.3/8.4. Toàn bộ chạy CHỈ ĐỌC trên production qua container pipeline, bảng trung gian TEMP; overlap tái tạo bằng đúng SQL của admin-overlay.mjs.",
+  "overlapEdges": 26972,
+  "sliverHistogramL8": [
+    {
+      "bucket": "[0, 0.001)",
+      "edges": 11064,
+      "old_areas": 3860,
+      "total_share": "0.310"
+    },
+    {
+      "bucket": "[0.001, 0.005)",
+      "edges": 570,
+      "old_areas": 459,
+      "total_share": "1.395"
+    },
+    {
+      "bucket": "[0.005, 0.01)",
+      "edges": 168,
+      "old_areas": 159,
+      "total_share": "1.201"
+    },
+    {
+      "bucket": "[0.01, 0.02)",
+      "edges": 110,
+      "old_areas": 105,
+      "total_share": "1.528"
+    },
+    {
+      "bucket": "[0.02, 0.03)",
+      "edges": 47,
+      "old_areas": 46,
+      "total_share": "1.159"
+    },
+    {
+      "bucket": "[0.03, 0.05)",
+      "edges": 63,
+      "old_areas": 58,
+      "total_share": "2.430"
+    }
+  ],
+  "sliverPerOldArea": {
+    "old_areas": 4056,
+    "p50": "0.0000",
+    "p90": "0.0046",
+    "max": "0.1225",
+    "over_5pct": 11
+  },
+  "thresholdSimulationL8": [
+    {
+      "t": 0.05,
+      "edges_kept": 4527,
+      "splits": 282,
+      "changed_vs_005": 0,
+      "with_4plus_targets": 2,
+      "hn01": [
+        {
+          "new_name": "Phường Cửa Nam",
+          "share": "0.8330"
+        },
+        {
+          "new_name": "Phường Văn Miếu - Quốc Tử Giám",
+          "share": "0.1302"
+        }
+      ],
+      "ct01": [
+        {
+          "new_name": "Phường Bình Thủy",
+          "share": "0.6233"
+        },
+        {
+          "new_name": "Phường Cái Khế",
+          "share": "0.3016"
+        },
+        {
+          "new_name": "Phường Thới An Đông",
+          "share": "0.0751"
+        }
+      ]
+    },
+    {
+      "t": 0.03,
+      "edges_kept": 4590,
+      "splits": 331,
+      "changed_vs_005": 58,
+      "with_4plus_targets": 6,
+      "hn01": [
+        {
+          "new_name": "Phường Cửa Nam",
+          "share": "0.8330"
+        },
+        {
+          "new_name": "Phường Văn Miếu - Quốc Tử Giám",
+          "share": "0.1302"
+        }
+      ],
+      "ct01": [
+        {
+          "new_name": "Phường Bình Thủy",
+          "share": "0.6233"
+        },
+        {
+          "new_name": "Phường Cái Khế",
+          "share": "0.3016"
+        },
+        {
+          "new_name": "Phường Thới An Đông",
+          "share": "0.0751"
+        }
+      ]
+    },
+    {
+      "t": 0.02,
+      "edges_kept": 4637,
+      "splits": 365,
+      "changed_vs_005": 101,
+      "with_4plus_targets": 7,
+      "hn01": [
+        {
+          "new_name": "Phường Cửa Nam",
+          "share": "0.8330"
+        },
+        {
+          "new_name": "Phường Văn Miếu - Quốc Tử Giám",
+          "share": "0.1302"
+        },
+        {
+          "new_name": "Phường Hoàn Kiếm",
+          "share": "0.0292"
+        }
+      ],
+      "ct01": [
+        {
+          "new_name": "Phường Bình Thủy",
+          "share": "0.6233"
+        },
+        {
+          "new_name": "Phường Cái Khế",
+          "share": "0.3016"
+        },
+        {
+          "new_name": "Phường Thới An Đông",
+          "share": "0.0751"
+        }
+      ]
+    },
+    {
+      "t": 0.01,
+      "edges_kept": 4747,
+      "splits": 445,
+      "changed_vs_005": 197,
+      "with_4plus_targets": 12,
+      "hn01": [
+        {
+          "new_name": "Phường Cửa Nam",
+          "share": "0.8330"
+        },
+        {
+          "new_name": "Phường Văn Miếu - Quốc Tử Giám",
+          "share": "0.1302"
+        },
+        {
+          "new_name": "Phường Hoàn Kiếm",
+          "share": "0.0292"
+        }
+      ],
+      "ct01": [
+        {
+          "new_name": "Phường Bình Thủy",
+          "share": "0.6233"
+        },
+        {
+          "new_name": "Phường Cái Khế",
+          "share": "0.3016"
+        },
+        {
+          "new_name": "Phường Thới An Đông",
+          "share": "0.0751"
+        }
+      ]
+    },
+    {
+      "t": 0.005,
+      "edges_kept": 4915,
+      "splits": 569,
+      "changed_vs_005": 337,
+      "with_4plus_targets": 22,
+      "hn01": [
+        {
+          "new_name": "Phường Cửa Nam",
+          "share": "0.8330"
+        },
+        {
+          "new_name": "Phường Văn Miếu - Quốc Tử Giám",
+          "share": "0.1302"
+        },
+        {
+          "new_name": "Phường Hoàn Kiếm",
+          "share": "0.0292"
+        },
+        {
+          "new_name": "Phường Ba Đình",
+          "share": "0.0076"
+        }
+      ],
+      "ct01": [
+        {
+          "new_name": "Phường Bình Thủy",
+          "share": "0.6233"
+        },
+        {
+          "new_name": "Phường Cái Khế",
+          "share": "0.3016"
+        },
+        {
+          "new_name": "Phường Thới An Đông",
+          "share": "0.0751"
+        }
+      ]
+    }
+  ],
+  "coverageGaps": [
+    {
+      "id": "3769311",
+      "level": 8,
+      "name": "Thị trấn Cát Hải",
+      "province_norm": "hai phong",
+      "area_km2": "6.67",
+      "uncovered_km2": "2.20",
+      "gap": 0.3296,
+      "poi_uncovered": 5,
+      "poi_covered": 84,
+      "poi_per_km2_uncovered": 2.27,
+      "poi_per_km2_covered": 18.79,
+      "phanLoai": "can_nhin"
+    },
+    {
+      "id": "3769312",
+      "level": 8,
+      "name": "Xã Gia Luận",
+      "province_norm": "hai phong",
+      "area_km2": "54.26",
+      "uncovered_km2": "9.60",
+      "gap": 0.1769,
+      "poi_uncovered": 12,
+      "poi_covered": 22,
+      "poi_per_km2_uncovered": 1.25,
+      "poi_per_km2_covered": 0.49,
+      "phanLoai": "can_nhin"
+    },
+    {
+      "id": "3769314",
+      "level": 8,
+      "name": "Xã Phù Long",
+      "province_norm": "hai phong",
+      "area_km2": "42.72",
+      "uncovered_km2": "13.25",
+      "gap": 0.3103,
+      "poi_uncovered": 6,
+      "poi_covered": 50,
+      "poi_per_km2_uncovered": 0.45,
+      "poi_per_km2_covered": 1.7,
+      "phanLoai": "nuoc_khong_poi"
+    },
+    {
+      "id": "3769315",
+      "level": 8,
+      "name": "Xã Trân Châu",
+      "province_norm": "hai phong",
+      "area_km2": "42.65",
+      "uncovered_km2": "6.39",
+      "gap": 0.1497,
+      "poi_uncovered": 2,
+      "poi_covered": 99,
+      "poi_per_km2_uncovered": 0.31,
+      "poi_per_km2_covered": 2.73,
+      "phanLoai": "nuoc_khong_poi"
+    },
+    {
+      "id": "3769316",
+      "level": 8,
+      "name": "Xã Việt Hải",
+      "province_norm": "hai phong",
+      "area_km2": "74.54",
+      "uncovered_km2": "38.72",
+      "gap": 0.5194,
+      "poi_uncovered": 32,
+      "poi_covered": 37,
+      "poi_per_km2_uncovered": 0.83,
+      "poi_per_km2_covered": 1.03,
+      "phanLoai": "can_nhin"
+    },
+    {
+      "id": "3769318",
+      "level": 8,
+      "name": "Xã Xuân Đám",
+      "province_norm": "hai phong",
+      "area_km2": "11.13",
+      "uncovered_km2": "2.62",
+      "gap": 0.2352,
+      "poi_uncovered": 0,
+      "poi_covered": 37,
+      "poi_per_km2_uncovered": 0,
+      "poi_per_km2_covered": 4.35,
+      "phanLoai": "nuoc_khong_poi"
+    },
+    {
+      "id": "3769319",
+      "level": 8,
+      "name": "Xã Đồng Bài",
+      "province_norm": "hai phong",
+      "area_km2": "9.20",
+      "uncovered_km2": "4.36",
+      "gap": 0.4741,
+      "poi_uncovered": 2,
+      "poi_covered": 31,
+      "poi_per_km2_uncovered": 0.46,
+      "poi_per_km2_covered": 6.4,
+      "phanLoai": "nuoc_khong_poi"
+    },
+    {
+      "id": "13396624",
+      "level": 8,
+      "name": "Thị trấn Cát Bà",
+      "province_norm": "hai phong",
+      "area_km2": "40.90",
+      "uncovered_km2": "26.69",
+      "gap": 0.6527,
+      "poi_uncovered": 24,
+      "poi_covered": 1187,
+      "poi_per_km2_uncovered": 0.9,
+      "poi_per_km2_covered": 83.53,
+      "phanLoai": "nuoc_mat_do_thap"
+    },
+    {
+      "id": "13396625",
+      "level": 8,
+      "name": "Xã Nghĩa Lộ",
+      "province_norm": "hai phong",
+      "area_km2": "8.11",
+      "uncovered_km2": "1.79",
+      "gap": 0.2202,
+      "poi_uncovered": 1,
+      "poi_covered": 29,
+      "poi_per_km2_uncovered": 0.56,
+      "poi_per_km2_covered": 4.59,
+      "phanLoai": "can_nhin"
+    },
+    {
+      "id": "13565258",
+      "level": 8,
+      "name": "Xã Hiệp Thạnh",
+      "province_norm": "tra vinh",
+      "area_km2": "33.57",
+      "uncovered_km2": "11.02",
+      "gap": 0.3282,
+      "poi_uncovered": 0,
+      "poi_covered": 9,
+      "poi_per_km2_uncovered": 0,
+      "poi_per_km2_covered": 0.4,
+      "phanLoai": "nuoc_khong_poi"
+    },
+    {
+      "id": "14478487",
+      "level": 8,
+      "name": "Phường Bình Hưng",
+      "province_norm": "binh thuan",
+      "area_km2": "1.72",
+      "uncovered_km2": "0.13",
+      "gap": 0.0762,
+      "poi_uncovered": 0,
+      "poi_covered": 1130,
+      "poi_per_km2_uncovered": 0,
+      "poi_per_km2_covered": 710.69,
+      "phanLoai": "nuoc_khong_poi"
+    },
+    {
+      "id": "14478611",
+      "level": 8,
+      "name": "Phường Lạc Đạo",
+      "province_norm": "binh thuan",
+      "area_km2": "1.46",
+      "uncovered_km2": "0.09",
+      "gap": 0.0644,
+      "poi_uncovered": 1,
+      "poi_covered": 847,
+      "poi_per_km2_uncovered": 11.11,
+      "poi_per_km2_covered": 618.25,
+      "phanLoai": "nuoc_mat_do_thap"
+    },
+    {
+      "id": "14672451",
+      "level": 8,
+      "name": "Xã Vĩnh Xương",
+      "province_norm": "an giang",
+      "area_km2": "13.36",
+      "uncovered_km2": "1.14",
+      "gap": 0.0857,
+      "poi_uncovered": 0,
+      "poi_covered": 35,
+      "poi_per_km2_uncovered": 0,
+      "poi_per_km2_covered": 2.86,
+      "phanLoai": "nuoc_khong_poi"
+    },
+    {
+      "id": "14672452",
+      "level": 8,
+      "name": "Xã Phú Lộc",
+      "province_norm": "an giang",
+      "area_km2": "14.96",
+      "uncovered_km2": "2.20",
+      "gap": 0.1472,
+      "poi_uncovered": 0,
+      "poi_covered": 3,
+      "poi_per_km2_uncovered": 0,
+      "poi_per_km2_covered": 0.24,
+      "phanLoai": "nuoc_khong_poi"
+    },
+    {
+      "id": "15015331",
+      "level": 8,
+      "name": "Xã Thanh Lân",
+      "province_norm": "quang ninh",
+      "area_km2": "638.24",
+      "uncovered_km2": "615.54",
+      "gap": 0.9644,
+      "poi_uncovered": 0,
+      "poi_covered": 6,
+      "poi_per_km2_uncovered": 0,
+      "poi_per_km2_covered": 0.26,
+      "phanLoai": "nuoc_khong_poi"
+    },
+    {
+      "id": "15015332",
+      "level": 8,
+      "name": "Xã Đồng Tiến",
+      "province_norm": "quang ninh",
+      "area_km2": "211.30",
+      "uncovered_km2": "197.73",
+      "gap": 0.9358,
+      "poi_uncovered": 7,
+      "poi_covered": 57,
+      "poi_per_km2_uncovered": 0.04,
+      "poi_per_km2_covered": 4.2,
+      "phanLoai": "nuoc_khong_poi"
+    },
+    {
+      "id": "15015333",
+      "level": 8,
+      "name": "Thị trấn Cô Tô",
+      "province_norm": "quang ninh",
+      "area_km2": "202.77",
+      "uncovered_km2": "197.58",
+      "gap": 0.9744,
+      "poi_uncovered": 5,
+      "poi_covered": 126,
+      "poi_per_km2_uncovered": 0.03,
+      "poi_per_km2_covered": 24.28,
+      "phanLoai": "nuoc_khong_poi"
+    },
+    {
+      "id": "15587616",
+      "level": 8,
+      "name": "Xã Long Vĩnh",
+      "province_norm": "tra vinh",
+      "area_km2": "69.96",
+      "uncovered_km2": "5.81",
+      "gap": 0.083,
+      "poi_uncovered": 0,
+      "poi_covered": 14,
+      "poi_per_km2_uncovered": 0,
+      "poi_per_km2_covered": 0.22,
+      "phanLoai": "nuoc_khong_poi"
+    },
+    {
+      "id": "15658223",
+      "level": 8,
+      "name": "Xã An Thạnh 3",
+      "province_norm": "soc trang",
+      "area_km2": "37.27",
+      "uncovered_km2": "4.82",
+      "gap": 0.1293,
+      "poi_uncovered": 0,
+      "poi_covered": 16,
+      "poi_per_km2_uncovered": 0,
+      "poi_per_km2_covered": 0.49,
+      "phanLoai": "nuoc_khong_poi"
+    },
+    {
+      "id": "15754872",
+      "level": 8,
+      "name": "Xã Long Hòa",
+      "province_norm": "tra vinh",
+      "area_km2": "82.84",
+      "uncovered_km2": "43.21",
+      "gap": 0.5216,
+      "poi_uncovered": 2,
+      "poi_covered": 4,
+      "poi_per_km2_uncovered": 0.05,
+      "poi_per_km2_covered": 0.1,
+      "phanLoai": "nuoc_khong_poi"
+    },
+    {
+      "id": "15761594",
+      "level": 8,
+      "name": "Thị trấn Mỹ Long",
+      "province_norm": "tra vinh",
+      "area_km2": "5.31",
+      "uncovered_km2": "2.88",
+      "gap": 0.5425,
+      "poi_uncovered": 0,
+      "poi_covered": 19,
+      "poi_per_km2_uncovered": 0,
+      "poi_per_km2_covered": 7.82,
+      "phanLoai": "nuoc_khong_poi"
+    },
+    {
+      "id": "15761595",
+      "level": 8,
+      "name": "Xã Mỹ Long Bắc",
+      "province_norm": "tra vinh",
+      "area_km2": "26.04",
+      "uncovered_km2": "7.73",
+      "gap": 0.2969,
+      "poi_uncovered": 0,
+      "poi_covered": 9,
+      "poi_per_km2_uncovered": 0,
+      "poi_per_km2_covered": 0.49,
+      "phanLoai": "nuoc_khong_poi"
+    },
+    {
+      "id": "15761596",
+      "level": 8,
+      "name": "Xã Mỹ Long Nam",
+      "province_norm": "tra vinh",
+      "area_km2": "42.22",
+      "uncovered_km2": "13.10",
+      "gap": 0.3103,
+      "poi_uncovered": 0,
+      "poi_covered": 8,
+      "poi_per_km2_uncovered": 0,
+      "poi_per_km2_covered": 0.27,
+      "phanLoai": "nuoc_khong_poi"
+    },
+    {
+      "id": "15825254",
+      "level": 8,
+      "name": "Xã An Quy",
+      "province_norm": "ben tre",
+      "area_km2": "25.52",
+      "uncovered_km2": "2.01",
+      "gap": 0.0786,
+      "poi_uncovered": 0,
+      "poi_covered": 11,
+      "poi_per_km2_uncovered": 0,
+      "poi_per_km2_covered": 0.47,
+      "phanLoai": "nuoc_khong_poi"
+    },
+    {
+      "id": "15825255",
+      "level": 8,
+      "name": "Xã An Nhơn",
+      "province_norm": "ben tre",
+      "area_km2": "28.56",
+      "uncovered_km2": "1.93",
+      "gap": 0.0675,
+      "poi_uncovered": 0,
+      "poi_covered": 41,
+      "poi_per_km2_uncovered": 0,
+      "poi_per_km2_covered": 1.54,
+      "phanLoai": "nuoc_khong_poi"
+    },
+    {
+      "id": "15825259",
+      "level": 8,
+      "name": "Xã Thạnh Phong",
+      "province_norm": "ben tre",
+      "area_km2": "54.55",
+      "uncovered_km2": "6.60",
+      "gap": 0.121,
+      "poi_uncovered": 0,
+      "poi_covered": 16,
+      "poi_per_km2_uncovered": 0,
+      "poi_per_km2_covered": 0.33,
+      "phanLoai": "nuoc_khong_poi"
+    },
+    {
+      "id": "15852528",
+      "level": 8,
+      "name": "Phường Thuận An",
+      "province_norm": "hue",
+      "area_km2": "25.56",
+      "uncovered_km2": "13.21",
+      "gap": 0.5167,
+      "poi_uncovered": 9,
+      "poi_covered": 219,
+      "poi_per_km2_uncovered": 0.68,
+      "poi_per_km2_covered": 17.73,
+      "phanLoai": "nuoc_mat_do_thap"
+    },
+    {
+      "id": "15852553",
+      "level": 8,
+      "name": "Phường Hương Phong",
+      "province_norm": "hue",
+      "area_km2": "16.85",
+      "uncovered_km2": "3.85",
+      "gap": 0.2286,
+      "poi_uncovered": 3,
+      "poi_covered": 35,
+      "poi_per_km2_uncovered": 0.78,
+      "poi_per_km2_covered": 2.69,
+      "phanLoai": "can_nhin"
+    },
+    {
+      "id": "16140102",
+      "level": 8,
+      "name": "Xã Cam Bình",
+      "province_norm": "khanh hoa",
+      "area_km2": "5.32",
+      "uncovered_km2": "0.40",
+      "gap": 0.067,
+      "poi_uncovered": 0,
+      "poi_covered": 58,
+      "poi_per_km2_uncovered": 0,
+      "poi_per_km2_covered": 11.79,
+      "phanLoai": "nuoc_khong_poi"
+    },
+    {
+      "id": "16204045",
+      "level": 8,
+      "name": "Phường Vĩnh Trường",
+      "province_norm": "khanh hoa",
+      "area_km2": "3.01",
+      "uncovered_km2": "0.71",
+      "gap": 0.2356,
+      "poi_uncovered": 1,
+      "poi_covered": 368,
+      "poi_per_km2_uncovered": 1.41,
+      "poi_per_km2_covered": 160,
+      "phanLoai": "nuoc_mat_do_thap"
+    },
+    {
+      "id": "18073531",
+      "level": 8,
+      "name": "Phường Tuần Châu",
+      "province_norm": "quang ninh",
+      "area_km2": "20.55",
+      "uncovered_km2": "11.08",
+      "gap": 0.5391,
+      "poi_uncovered": 5,
+      "poi_covered": 98,
+      "poi_per_km2_uncovered": 0.45,
+      "poi_per_km2_covered": 10.35,
+      "phanLoai": "nuoc_khong_poi"
+    },
+    {
+      "id": "18073532",
+      "level": 8,
+      "name": "Phường Hùng Thắng",
+      "province_norm": "quang ninh",
+      "area_km2": "7.66",
+      "uncovered_km2": "1.94",
+      "gap": 0.2528,
+      "poi_uncovered": 4,
+      "poi_covered": 595,
+      "poi_per_km2_uncovered": 2.06,
+      "poi_per_km2_covered": 104.02,
+      "phanLoai": "nuoc_mat_do_thap"
+    },
+    {
+      "id": "18073533",
+      "level": 8,
+      "name": "Phường Hà Khẩu",
+      "province_norm": "quang ninh",
+      "area_km2": "25.18",
+      "uncovered_km2": "1.76",
+      "gap": 0.0699,
+      "poi_uncovered": 2,
+      "poi_covered": 340,
+      "poi_per_km2_uncovered": 1.14,
+      "poi_per_km2_covered": 14.52,
+      "phanLoai": "nuoc_mat_do_thap"
+    },
+    {
+      "id": "18073534",
+      "level": 8,
+      "name": "Phường Giếng Đáy",
+      "province_norm": "quang ninh",
+      "area_km2": "5.03",
+      "uncovered_km2": "1.35",
+      "gap": 0.2691,
+      "poi_uncovered": 0,
+      "poi_covered": 465,
+      "poi_per_km2_uncovered": 0,
+      "poi_per_km2_covered": 126.36,
+      "phanLoai": "nuoc_khong_poi"
+    },
+    {
+      "id": "18073535",
+      "level": 8,
+      "name": "Phường Bãi Cháy",
+      "province_norm": "quang ninh",
+      "area_km2": "24.20",
+      "uncovered_km2": "7.23",
+      "gap": 0.2987,
+      "poi_uncovered": 22,
+      "poi_covered": 2595,
+      "poi_per_km2_uncovered": 3.04,
+      "poi_per_km2_covered": 152.92,
+      "phanLoai": "nuoc_mat_do_thap"
+    },
+    {
+      "id": "18168722",
+      "level": 8,
+      "name": "Xã Hoàng Tân",
+      "province_norm": "quang ninh",
+      "area_km2": "43.14",
+      "uncovered_km2": "16.74",
+      "gap": 0.388,
+      "poi_uncovered": 0,
+      "poi_covered": 15,
+      "poi_per_km2_uncovered": 0,
+      "poi_per_km2_covered": 0.57,
+      "phanLoai": "nuoc_khong_poi"
+    },
+    {
+      "id": "18168725",
+      "level": 8,
+      "name": "Xã Lê Lợi",
+      "province_norm": "quang ninh",
+      "area_km2": "36.49",
+      "uncovered_km2": "4.72",
+      "gap": 0.1293,
+      "poi_uncovered": 0,
+      "poi_covered": 22,
+      "poi_per_km2_uncovered": 0,
+      "poi_per_km2_covered": 0.69,
+      "phanLoai": "nuoc_khong_poi"
+    },
+    {
+      "id": "18168726",
+      "level": 8,
+      "name": "Phường Hồng Gai",
+      "province_norm": "quang ninh",
+      "area_km2": "3.74",
+      "uncovered_km2": "2.34",
+      "gap": 0.6271,
+      "poi_uncovered": 24,
+      "poi_covered": 832,
+      "poi_per_km2_uncovered": 10.26,
+      "poi_per_km2_covered": 594.29,
+      "phanLoai": "nuoc_mat_do_thap"
+    },
+    {
+      "id": "18168727",
+      "level": 8,
+      "name": "Phường Bạch Đằng",
+      "province_norm": "quang ninh",
+      "area_km2": "3.81",
+      "uncovered_km2": "2.09",
+      "gap": 0.5486,
+      "poi_uncovered": 5,
+      "poi_covered": 1123,
+      "poi_per_km2_uncovered": 2.39,
+      "poi_per_km2_covered": 652.91,
+      "phanLoai": "nuoc_mat_do_thap"
+    },
+    {
+      "id": "18168728",
+      "level": 8,
+      "name": "Phường Cao Xanh",
+      "province_norm": "quang ninh",
+      "area_km2": "6.86",
+      "uncovered_km2": "2.49",
+      "gap": 0.3632,
+      "poi_uncovered": 1,
+      "poi_covered": 583,
+      "poi_per_km2_uncovered": 0.4,
+      "poi_per_km2_covered": 133.41,
+      "phanLoai": "nuoc_khong_poi"
+    },
+    {
+      "id": "18314605",
+      "level": 8,
+      "name": "Phường Trần Hưng Đạo",
+      "province_norm": "quang ninh",
+      "area_km2": "2.34",
+      "uncovered_km2": "0.40",
+      "gap": 0.1719,
+      "poi_uncovered": 7,
+      "poi_covered": 970,
+      "poi_per_km2_uncovered": 17.5,
+      "poi_per_km2_covered": 500,
+      "phanLoai": "nuoc_mat_do_thap"
+    },
+    {
+      "id": "18317350",
+      "level": 8,
+      "name": "Phường Hồng Hải",
+      "province_norm": "quang ninh",
+      "area_km2": "3.70",
+      "uncovered_km2": "0.26",
+      "gap": 0.0709,
+      "poi_uncovered": 1,
+      "poi_covered": 1512,
+      "poi_per_km2_uncovered": 3.85,
+      "poi_per_km2_covered": 439.53,
+      "phanLoai": "nuoc_mat_do_thap"
+    },
+    {
+      "id": "3185925",
+      "level": 6,
+      "name": "Huyện Cát Hải",
+      "province_norm": "hai phong",
+      "area_km2": "303.53",
+      "uncovered_km2": "105.97",
+      "gap": 0.3491,
+      "poi_uncovered": 84,
+      "poi_covered": 1614,
+      "poi_per_km2_uncovered": 0.79,
+      "poi_per_km2_covered": 8.17,
+      "phanLoai": "nuoc_mat_do_thap"
+    },
+    {
+      "id": "6911714",
+      "level": 6,
+      "name": "Thành phố Móng Cái",
+      "province_norm": "quang ninh",
+      "area_km2": "968.38",
+      "uncovered_km2": "565.17",
+      "gap": 0.5836,
+      "poi_uncovered": 2,
+      "poi_covered": 1715,
+      "poi_per_km2_uncovered": 0,
+      "poi_per_km2_covered": 4.25,
+      "phanLoai": "nuoc_khong_poi"
+    },
+    {
+      "id": "6912155",
+      "level": 6,
+      "name": "Huyện Hải Hà",
+      "province_norm": "quang ninh",
+      "area_km2": "802.71",
+      "uncovered_km2": "363.69",
+      "gap": 0.4531,
+      "poi_uncovered": 1,
+      "poi_covered": 363,
+      "poi_per_km2_uncovered": 0,
+      "poi_per_km2_covered": 0.83,
+      "phanLoai": "nuoc_khong_poi"
+    },
+    {
+      "id": "6913068",
+      "level": 6,
+      "name": "Huyện Tiên Yên",
+      "province_norm": "quang ninh",
+      "area_km2": "658.44",
+      "uncovered_km2": "91.86",
+      "gap": 0.1395,
+      "poi_uncovered": 0,
+      "poi_covered": 263,
+      "poi_per_km2_uncovered": 0,
+      "poi_per_km2_covered": 0.46,
+      "phanLoai": "nuoc_khong_poi"
+    },
+    {
+      "id": "6913418",
+      "level": 6,
+      "name": "Đầm Hà",
+      "province_norm": "quang ninh",
+      "area_km2": "410.03",
+      "uncovered_km2": "147.95",
+      "gap": 0.3608,
+      "poi_uncovered": 0,
+      "poi_covered": 123,
+      "poi_per_km2_uncovered": 0,
+      "poi_per_km2_covered": 0.47,
+      "phanLoai": "nuoc_khong_poi"
+    },
+    {
+      "id": "7051225",
+      "level": 6,
+      "name": "Huyện Phú Lộc",
+      "province_norm": "hue",
+      "area_km2": "1359.44",
+      "uncovered_km2": "88.96",
+      "gap": 0.0654,
+      "poi_uncovered": 14,
+      "poi_covered": 1231,
+      "poi_per_km2_uncovered": 0.16,
+      "poi_per_km2_covered": 0.97,
+      "phanLoai": "nuoc_khong_poi"
+    },
+    {
+      "id": "7051226",
+      "level": 6,
+      "name": "Huyện Phú Vang",
+      "province_norm": "hue",
+      "area_km2": "236.34",
+      "uncovered_km2": "54.75",
+      "gap": 0.2317,
+      "poi_uncovered": 11,
+      "poi_covered": 428,
+      "poi_per_km2_uncovered": 0.2,
+      "poi_per_km2_covered": 2.36,
+      "phanLoai": "nuoc_khong_poi"
+    },
+    {
+      "id": "7051227",
+      "level": 6,
+      "name": "Huyện Quảng Điền",
+      "province_norm": "hue",
+      "area_km2": "163.72",
+      "uncovered_km2": "32.23",
+      "gap": 0.1969,
+      "poi_uncovered": 15,
+      "poi_covered": 396,
+      "poi_per_km2_uncovered": 0.47,
+      "poi_per_km2_covered": 3.01,
+      "phanLoai": "nuoc_khong_poi"
+    },
+    {
+      "id": "7133693",
+      "level": 6,
+      "name": "Thị xã Quảng Yên",
+      "province_norm": "quang ninh",
+      "area_km2": "334.50",
+      "uncovered_km2": "58.05",
+      "gap": 0.1735,
+      "poi_uncovered": 1,
+      "poi_covered": 1076,
+      "poi_per_km2_uncovered": 0.02,
+      "poi_per_km2_covered": 3.89,
+      "phanLoai": "nuoc_khong_poi"
+    },
+    {
+      "id": "7133707",
+      "level": 6,
+      "name": "Thành phố Hạ Long",
+      "province_norm": "quang ninh",
+      "area_km2": "1545.29",
+      "uncovered_km2": "458.53",
+      "gap": 0.2967,
+      "poi_uncovered": 120,
+      "poi_covered": 11588,
+      "poi_per_km2_uncovered": 0.26,
+      "poi_per_km2_covered": 10.66,
+      "phanLoai": "nuoc_khong_poi"
+    },
+    {
+      "id": "7133870",
+      "level": 6,
+      "name": "Thành phố Cẩm Phả",
+      "province_norm": "quang ninh",
+      "area_km2": "492.00",
+      "uncovered_km2": "130.85",
+      "gap": 0.266,
+      "poi_uncovered": 9,
+      "poi_covered": 2891,
+      "poi_per_km2_uncovered": 0.07,
+      "poi_per_km2_covered": 8,
+      "phanLoai": "nuoc_khong_poi"
+    },
+    {
+      "id": "7134111",
+      "level": 6,
+      "name": "Huyện Cô Tô",
+      "province_norm": "quang ninh",
+      "area_km2": "1052.30",
+      "uncovered_km2": "1010.85",
+      "gap": 0.9606,
+      "poi_uncovered": 12,
+      "poi_covered": 189,
+      "poi_per_km2_uncovered": 0.01,
+      "poi_per_km2_covered": 4.56,
+      "phanLoai": "nuoc_khong_poi"
+    },
+    {
+      "id": "7134112",
+      "level": 6,
+      "name": "Vân Đồn",
+      "province_norm": "quang ninh",
+      "area_km2": "1772.99",
+      "uncovered_km2": "1311.23",
+      "gap": 0.7396,
+      "poi_uncovered": 25,
+      "poi_covered": 632,
+      "poi_per_km2_uncovered": 0.02,
+      "poi_per_km2_covered": 1.37,
+      "phanLoai": "nuoc_khong_poi"
+    },
+    {
+      "id": "7151532",
+      "level": 6,
+      "name": "Thị xã Duyên Hải",
+      "province_norm": "tra vinh",
+      "area_km2": "183.86",
+      "uncovered_km2": "11.02",
+      "gap": 0.0599,
+      "poi_uncovered": 0,
+      "poi_covered": 327,
+      "poi_per_km2_uncovered": 0,
+      "poi_per_km2_covered": 1.89,
+      "phanLoai": "nuoc_khong_poi"
+    },
+    {
+      "id": "7151598",
+      "level": 6,
+      "name": "Huyện Cầu Ngang",
+      "province_norm": "tra vinh",
+      "area_km2": "328.56",
+      "uncovered_km2": "23.71",
+      "gap": 0.0722,
+      "poi_uncovered": 0,
+      "poi_covered": 298,
+      "poi_per_km2_uncovered": 0,
+      "poi_per_km2_covered": 0.98,
+      "phanLoai": "nuoc_khong_poi"
+    },
+    {
+      "id": "7151606",
+      "level": 6,
+      "name": "Huyện Châu Thành",
+      "province_norm": "tra vinh",
+      "area_km2": "380.04",
+      "uncovered_km2": "43.21",
+      "gap": 0.1137,
+      "poi_uncovered": 2,
+      "poi_covered": 429,
+      "poi_per_km2_uncovered": 0.05,
+      "poi_per_km2_covered": 1.27,
+      "phanLoai": "nuoc_khong_poi"
+    },
+    {
+      "id": "18356280",
+      "level": 6,
+      "name": "Quận Thuận Hóa",
+      "province_norm": "hue",
+      "area_km2": "139.23",
+      "uncovered_km2": "17.06",
+      "gap": 0.1225,
+      "poi_uncovered": 12,
+      "poi_covered": 13773,
+      "poi_per_km2_uncovered": 0.7,
+      "poi_per_km2_covered": 112.74,
+      "phanLoai": "nuoc_mat_do_thap"
+    },
+    {
+      "id": "1886159",
+      "level": 4,
+      "name": "Tỉnh Ninh Thuận",
+      "province_norm": "ninh thuan",
+      "area_km2": "7835.57",
+      "uncovered_km2": "4478.46",
+      "gap": 0.5716,
+      "poi_uncovered": 17,
+      "poi_covered": 5896,
+      "poi_per_km2_uncovered": 0,
+      "poi_per_km2_covered": 1.76,
+      "phanLoai": "nuoc_khong_poi"
+    }
+  ],
+  "coverageGapSummary": {
+    "nuoc_khong_poi": 42,
+    "nuoc_mat_do_thap": 13,
+    "can_nhin": 5
+  }
+}
