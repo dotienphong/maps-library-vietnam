@@ -147,3 +147,61 @@ Muốn thật sự nâng chất lượng thì thứ tự đúng là: (1) sửa k
 Mọi số ở trên lấy bằng script đọc-thuần chạy trong container pipeline với
 `openDatabaseTunnel()` (`scripts/lib/tunnel.mjs`), `SET statement_timeout = '180s'`, không câu lệnh
 ghi nào. Script là tạm, không commit; các truy vấn nằm nguyên văn trong tài liệu này.
+
+---
+
+## 8. Thử dựng bộ mẫu có nhãn tự động — **THẤT BẠI, đừng làm lại**
+
+Mục 4 chỉ có 8 ca dương + 2 ca âm do tôi tự chọn, và tôi đã tự nêu là quá nhỏ (không phủ được lớp
+lỗi `saigon`). Nên thử dựng bộ mẫu lớn với **nhãn độc lập với tên**: hai POI dùng chung **số điện
+thoại** hoặc **tên miền** thì coi là cùng một chỗ.
+
+Điều kiện thuận lợi: phone phủ tốt — trong bbox HCM 0,2°×0,2° có 339.569 POI active thì 225.205
+(66 %) có phone, 138.982 (41 %) có website.
+
+**Lần 1 — dùng chung phone/website, không điều kiện gì thêm:** 950 cặp dương trên 3 lõi đô thị.
+Nhìn vào thì nhãn **sai hàng loạt**:
+
+```
+Atlantic Hotel [fsq]           ↔ Ibiz Hotel [overture]              ← hai khách sạn khác nhau
+Vietnam Vespa Adventures [fsq] ↔ Zoom Cafe [overture]               ← hai doanh nghiệp khác nhau
+Little Hanoi Diamond [fsq]     ↔ Khach San Lucky Star [overture]     ← khác nhau
+```
+
+Nguyên nhân: **số tổng đài đại lý booking** và **domain của chuỗi thương hiệu** (mọi chi nhánh
+Highlands Coffee dùng chung `highlandscoffee.com.vn`).
+
+**Lần 2 — thêm điều kiện hiếm, chỉ nhận số/domain xuất hiện ĐÚNG 2 lần trong vùng:** 950 → 393 cặp.
+Phân bố tần suất trong 3 lõi: 44.522 giá trị dùng 1 lần, 2.778 dùng 2 lần, 412 dùng 3 lần, 104 dùng
+> 5 lần. Nhưng nhãn **vẫn nhiễu khoảng một nửa**:
+
+| đúng | sai |
+|---|---|
+| `Kichi Kichi Vincom` ↔ `Nha Hang Kichi-Kichi` | `Millennium Boutique Hotel` ↔ `Adora Mira Hotel` |
+| `Akatonbo Le Thanh Ton` ↔ `Nhà Hàng Chuồn Chuồn Đỏ` (dịch nghĩa) | `Hanoi Focus Hotel` ↔ `Parklane Hanoi Hotel` |
+| `Shelter coffee` ↔ `Shelter Coffee and Tea` | `Royal Saigon Hotel` ↔ `Cicilia Saigon Hotel and Spa` |
+| `Le Duy Hotel Ho Chi Minh City` ↔ `Khách Sạn Lê Duy` | `Alagon City Point Hotel & Spa` ↔ `Alagon Plus Hotel and Spa` |
+| `矢澤 - Yazawa` ↔ `Yakiniku Yazawa Saigon` | `Khách Sạn Hoàng Ngân` ↔ `Gia Linh Hotel` |
+
+**Kết luận: phone/domain KHÔNG dùng được làm nhãn tự động cho bài này.** Khách sạn và nhà nghỉ nhỏ
+ở Việt Nam dùng chung số thật — cùng chủ, chung lễ tân, hoặc qua đại lý. Lọc theo tần suất giảm
+nhiễu nhưng không khử được, vì hai khách sạn cùng chủ chỉ dùng số đó đúng 2 lần.
+
+Đáng chú ý: `pairAllowed` **đã** dùng chính tín hiệu này để nới ngưỡng (`sim >= 0.45 && shared`).
+Kết quả đo ở đây cho thấy đó là chỗ có thể sinh **ghép sai**, nên nếu sau này nới thêm ngưỡng thì
+đừng dựa vào `shared`.
+
+Một ca sạch đáng ghi: `Chả Cá Thăng Long` [fsq] ↔ `Chả cá Thăng Long` [overture], cách 11 m, chỉ
+khác chữ hoa/thường nên `name_norm` **giống hệt** (`sim` = 1,00) mà vẫn là hai POI riêng. Nó nằm
+trong nhóm 920 cặp ở mục 2.2, tức bị chặn bởi xung đột số nhà hoặc tên đường — bằng chứng cho thấy
+hai luật chặn đó có giá thật, không chỉ lý thuyết.
+
+## 9. Việc tiếp theo cần người quyết
+
+Bước kế tiếp bắt buộc là **bộ mẫu gán nhãn tay** — không có đường tự động nào đáng tin. Đề nghị:
+lấy mẫu phân tầng theo dải `sim` (ví dụ 40 cặp mỗi dải 0,3–0,4 / 0,4–0,5 / 0,5–0,6 / ≥0,6), gán
+nhãn tay, PHONG soát lại. Chỉ khi có bộ đó mới đo được một khoá so tên mới cho tử tế; nếu không thì
+mọi con số "7/10" như mục 4 chỉ là mẫu 10 cặp, không đủ để chốt danh sách từ chỉ loại.
+
+Không viết spec sửa conflate trước khi có bộ mẫu này, vì rủi ro #3 (đổi `poi.id`) khiến việc này
+chỉ nên làm một lần cho đúng.
