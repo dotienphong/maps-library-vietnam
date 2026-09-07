@@ -57,12 +57,19 @@ beforeAll(async () => {
   // Cột phải đủ cho mọi tham chiếu r.* trong publish.mjs — gồm cả r.confidence (poi_source_link).
   await sql`CREATE TABLE poi_work_record (
       rid int PRIMARY KEY, source text, source_id text, confidence real,
-      name text, name_norm text, name_alt text[], category text, geom geometry(Point,4326),
+      name text, name_norm text, name_alt text[], name_key text, name_alt_norm text,
+      category text, geom geometry(Point,4326),
       housenumber text, street text, ward text, province text, address_text text,
       contact jsonb, hours jsonb)`;
-  await sql`INSERT INTO poi_work_record VALUES
-    (1, 'osm', 'm4lock-osm-1', 1, 'Quán Tên Mới Từ Nguồn', 'quan ten moi tu nguon', NULL, 'm4lock_cafe',
-     ST_SetSRID(ST_MakePoint(106.7001, 10.7701), 4326), NULL, NULL, NULL, NULL, NULL, NULL,
+  // Liệt kê cột TƯỜNG MINH: bản trước dùng VALUES theo vị trí, nên thêm một cột vào publish.mjs là
+  // test vỡ ở CI với `column r.name_key does not exist` mà máy dev không thấy.
+  await sql`INSERT INTO poi_work_record
+      (rid, source, source_id, confidence, name, name_norm, name_alt, name_key, name_alt_norm,
+       category, geom, hours)
+    VALUES
+    (1, 'osm', 'm4lock-osm-1', 1, 'Quán Tên Mới Từ Nguồn', 'quan ten moi tu nguon', NULL,
+     'quantenmoitunguon', NULL, 'm4lock_cafe',
+     ST_SetSRID(ST_MakePoint(106.7001, 10.7701), 4326),
      '{"osm":"Mo-Su 08:00-20:00"}'::jsonb)`;
   await sql`CREATE TABLE poi_work_cluster (cluster_no int, rid int, role text)`;
   await sql`INSERT INTO poi_work_cluster VALUES (1, 1, 'primary')`;
