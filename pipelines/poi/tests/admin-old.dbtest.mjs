@@ -34,7 +34,10 @@ beforeAll(async () => {
     (${currentIds[8]},8,'Phường Chồng A','chong a',${currentIds[0]},${currentIds[8]},ST_Multi(ST_MakeEnvelope(100,10.8,101,10.9,4326))),
     (${currentIds[9]},8,'Phường Chồng B','chong b',${currentIds[0]},${currentIds[9]},ST_Multi(ST_MakeEnvelope(100,10.8,101,10.9,4326))),
     (${currentIds[10]},8,'Phường Trùng Alpha','trung alpha',${currentIds[0]},${currentIds[10]},ST_Multi(ST_MakeEnvelope(102,10,103,10.1,4326))),
-    (${currentIds[11]},8,'Phường Trùng Beta','trung beta',${currentIds[1]},${currentIds[11]},ST_Multi(ST_MakeEnvelope(112,10,113,10.1,4326)))`;
+    (${currentIds[11]},8,'Phường Trùng Beta','trung beta',${currentIds[1]},${currentIds[11]},ST_Multi(ST_MakeEnvelope(112,10,113,10.1,4326))),
+    (${currentIds[37]},8,'Xã Đích Một','dich mot',${currentIds[0]},${currentIds[37]},ST_Multi(ST_MakeEnvelope(104,10,104.5,10.1,4326))),
+    (${currentIds[38]},8,'Xã Đích Hai','dich hai',${currentIds[0]},${currentIds[38]},ST_Multi(ST_MakeEnvelope(104.5,10,105,10.1,4326))),
+    (${currentIds[39]},8,'Xã Đích Gộp','dich gop',${currentIds[0]},${currentIds[39]},ST_Multi(ST_MakeEnvelope(106,10,107,10.1,4326)))`;
   await sql`INSERT INTO osm_admin_raw(osm_relation_id,level,name,name_norm,tags,geom) VALUES
     (${currentIds[10]},8,'Phường Trùng Alpha','trung alpha','{"old_name":"Phường Chung"}',ST_Multi(ST_MakeEnvelope(102,10,103,10.1,4326))),
     (${currentIds[11]},8,'Phường Trùng Beta','trung beta','{"old_name":"Phường Chung"}',ST_Multi(ST_MakeEnvelope(112,10,113,10.1,4326)))`;
@@ -70,7 +73,11 @@ beforeAll(async () => {
     (${oldIds[6]},8,'Phường Chồng','chong','2025-01-02',ST_Multi(ST_MakeEnvelope(100,10.8,101,10.9,4326))),
     (${oldIds[7]},8,'Phường Trùng','trung','2025-01-02',ST_Multi(ST_MakeEnvelope(102,10,103,10.1,4326))),
     (${oldIds[8]},8,'Phường Trùng','trung','2025-01-02',ST_Multi(ST_MakeEnvelope(112,10,113,10.1,4326))),
-    (${oldIds[9]},6,'Huyện Rộng','rong','2025-01-02',ST_Multi(ST_MakeEnvelope(100,11.2,101,11.3,4326)))`;
+    (${oldIds[9]},6,'Huyện Rộng','rong','2025-01-02',ST_Multi(ST_MakeEnvelope(100,11.2,101,11.3,4326))),
+    (${oldIds[10]},8,'Xã Song Thành','song thanh','2025-01-02',ST_Multi(ST_MakeEnvelope(104,10,104.5,10.1,4326))),
+    (${oldIds[11]},8,'Xã Song Thạnh','song thanh','2025-01-02',ST_Multi(ST_MakeEnvelope(104.5,10,105,10.1,4326))),
+    (${oldIds[12]},8,'Xã Gộp Thành','gop thanh','2025-01-02',ST_Multi(ST_MakeEnvelope(106,10,106.5,10.1,4326))),
+    (${oldIds[13]},8,'Xã Gộp Thạnh','gop thanh','2025-01-02',ST_Multi(ST_MakeEnvelope(106.5,10,107,10.1,4326)))`;
 });
 
 afterAll(async () => {
@@ -121,6 +128,55 @@ describe('overlay ranh giới hành chính cũ', () => {
       FROM admin_alias_new WHERE source='overlay' AND old_area_id=${oldIds[2]}`;
     expect(overlaySurvivedSeedMiss).toBeGreaterThan(0);
     expect(report.osmTagSource.available).toBe(true);
+  });
+
+  // Production 07/09 mất alias của 8 vùng cũ đất liền: bốn cặp chỉ khác nhau ở dấu nên `name_norm`
+  // trùng khít **kể cả ở khoá đầy đủ nhất** (Đông Thạnh/Đông Thành, Sa Pa/Sa Pả, Phú Thành/Phú
+  // Thạnh, Lộc Thạnh/Lộc Thành). Bộ lọc `keyOwners.size === 1` bỏ luôn mọi khoá của cả hai chủ nên
+  // không vùng nào còn alias — trái quyết định #3 của plan ("không gộp mất provenance old_area_id").
+  // Khoá NGẮN vẫn phải bị bỏ khi nhập nhằng; chỉ khoá đầy đủ nhất được giữ, vì bỏ nó thì vùng cũ
+  // không còn đường nào tra ra được.
+  it('khoá đầy đủ nhất trùng khít ở hai vùng cũ: giữ cả hai khi khác đích, bỏ khoá ngắn', async () => {
+    await buildOldAdmin(sql, { currentTable: 'admin_area', fixture: true });
+
+    const distinctTargets = await sql`SELECT old_area_id::text old_id, admin_area_id::text new_id
+      FROM admin_alias_new WHERE alias_norm='xa song thanh alpha' ORDER BY old_area_id`;
+    expect(distinctTargets.map((row) => [row.old_id, row.new_id])).toEqual([
+      [String(oldIds[10]), String(currentIds[37])],
+      [String(oldIds[11]), String(currentIds[38])],
+    ]);
+
+    const [{ shortAmbiguous }] = await sql`SELECT count(*)::int AS "shortAmbiguous"
+      FROM admin_alias_new WHERE alias_norm IN ('song thanh','xa song thanh')`;
+    expect(shortAmbiguous).toBe(0);
+
+    // Cùng đích thì PK ba cột (alias_norm, level, admin_area_id) chỉ cho đúng một dòng; giữ một
+    // dòng xác định được (old_area_id nhỏ nhất) thay vì bỏ cả hai.
+    const sameTarget = await sql`SELECT old_area_id::text old_id, admin_area_id::text new_id
+      FROM admin_alias_new WHERE alias_norm='xa gop thanh alpha'`;
+    expect(sameTarget.map((row) => [row.old_id, row.new_id])).toEqual([
+      [String(oldIds[12]), String(currentIds[39])],
+    ]);
+  });
+
+  // Giữ khoá đầy đủ nhập nhằng là đánh đổi: tra một tên ra nhiều vùng, và khi trùng đích thì PK
+  // ăn mất provenance của một vùng cũ. QA phải thấy được cả hai, không để nó xảy ra lặng lẽ.
+  it('ghi khoá đầy đủ nhập nhằng vào report kèm số dòng thực sự giữ được', async () => {
+    const report = await buildOldAdmin(sql, { currentTable: 'admin_area', fixture: true });
+    const byKey = new Map(report.ambiguousPrimaryKept.map((row) => [row.key, row]));
+
+    // Khác đích: cả hai vùng cũ giữ được provenance riêng.
+    expect(byKey.get('8:xa song thanh alpha')).toEqual({
+      key: '8:xa song thanh alpha',
+      owners: [String(oldIds[10]), String(oldIds[11])],
+      rowsKept: 2,
+    });
+    // Trùng đích: PK ba cột chỉ cho một dòng, tức mất provenance của vùng cũ còn lại.
+    expect(byKey.get('8:xa gop thanh alpha')).toEqual({
+      key: '8:xa gop thanh alpha',
+      owners: [String(oldIds[12]), String(oldIds[13])],
+      rowsKept: 1,
+    });
   });
 
   // Cổng 6.5 phát hiện: DB production không có bảng raw nào (`osm_admin_raw` chỉ tồn tại sau khi

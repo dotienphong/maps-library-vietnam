@@ -1,0 +1,337 @@
+{
+  "generatedAt": "2026-09-07T06:54:43.428Z",
+  "commit": "732f569939420300ac16343f362dbd40d20a08ac",
+  "note": "Cổng coverage chạy trên DB production (trước sửa) và trên DB staging dựng từ production (sau sửa lọc khoá đầy đủ). Artifact đầy đủ 1,3 MB không commit.",
+  "source": {
+    "url": "https://download.geofabrik.de/asia/vietnam-250101.osm.pbf",
+    "md5": "1f0fdd199d7194e515a9c4b48b3e5835",
+    "sha256": "01cc05f42f7287036d8fce59418fe98da8f5ca3ff539c9696302af922a566aad",
+    "bytes": 306547939
+  },
+  "runs": {
+    "production_truoc_sua": {
+      "db": "mapslibvn (production)",
+      "ok": false,
+      "failureCountByKind": {
+        "count_out_of_range": 1,
+        "missing_mainland_l8": 10,
+        "raw_coverage_gap": 60,
+        "split_target_missing": 1,
+        "unexpected_target": 2,
+        "target_missing": 10
+      },
+      "warningCountByKind": {
+        "distinct_differs_from_relations": 2,
+        "discarded_sliver": 1970
+      },
+      "countsByLevel": {
+        "L4": 63,
+        "L6": 694,
+        "L8": 4215
+      },
+      "aliasCases": {
+        "total": 60,
+        "passed": 48,
+        "splits": 6,
+        "splitsPassed": 4,
+        "failing": [
+          {
+            "caseId": "hn-01",
+            "split": true,
+            "missing": [
+              "Hoàn Kiếm",
+              "Ba Đình"
+            ],
+            "extra": [
+              "Văn Miếu - Quốc Tử Giám"
+            ]
+          },
+          {
+            "caseId": "ct-01",
+            "split": true,
+            "missing": [],
+            "extra": [
+              "Thới An Đông"
+            ]
+          },
+          {
+            "caseId": "lc-01",
+            "split": false,
+            "missing": [
+              "Mường Kim"
+            ],
+            "extra": []
+          },
+          {
+            "caseId": "lc-02",
+            "split": false,
+            "missing": [
+              "Mường Kim"
+            ],
+            "extra": []
+          },
+          {
+            "caseId": "lc-03",
+            "split": false,
+            "missing": [
+              "Mường Kim"
+            ],
+            "extra": []
+          },
+          {
+            "caseId": "lc-04",
+            "split": false,
+            "missing": [
+              "Mường Kim"
+            ],
+            "extra": []
+          },
+          {
+            "caseId": "lc-05",
+            "split": false,
+            "missing": [
+              "Khoen On"
+            ],
+            "extra": []
+          },
+          {
+            "caseId": "lc-06",
+            "split": false,
+            "missing": [
+              "Khoen On"
+            ],
+            "extra": []
+          },
+          {
+            "caseId": "lc-07",
+            "split": false,
+            "missing": [
+              "Than Uyên"
+            ],
+            "extra": []
+          },
+          {
+            "caseId": "lc-08",
+            "split": false,
+            "missing": [
+              "Than Uyên"
+            ],
+            "extra": []
+          },
+          {
+            "caseId": "lc-09",
+            "split": false,
+            "missing": [
+              "Mường Than"
+            ],
+            "extra": []
+          },
+          {
+            "caseId": "lc-10",
+            "split": false,
+            "missing": [
+              "Pắc Ta"
+            ],
+            "extra": []
+          }
+        ]
+      }
+    },
+    "staging_sau_sua": {
+      "db": "mapslibvn_alias_stage (dựng từ production, 4 bảng khớp từng dòng)",
+      "ok": false,
+      "failureCountByKind": {
+        "count_out_of_range": 1,
+        "missing_mainland_l8": 5,
+        "raw_coverage_gap": 60,
+        "split_target_missing": 1,
+        "unexpected_target": 2,
+        "target_missing": 10
+      },
+      "warningCountByKind": {
+        "distinct_differs_from_relations": 2,
+        "discarded_sliver": 1970
+      },
+      "countsByLevel": {
+        "L4": 63,
+        "L6": 694,
+        "L8": 4215
+      },
+      "distinctUnits": {
+        "L4": 63,
+        "L6": 687,
+        "L8": 3983
+      },
+      "aliasCount": 37251,
+      "ambiguousPrimaryKept": [
+        {
+          "key": "8:phuong sa pa thi xa sa pa lao cai",
+          "owners": [
+            "12540572",
+            "12822519"
+          ],
+          "rowsKept": 1
+        },
+        {
+          "key": "8:xa dong thanh thi xa binh minh vinh long",
+          "owners": [
+            "10113776",
+            "10113777"
+          ],
+          "rowsKept": 1
+        },
+        {
+          "key": "8:xa loc thanh huyen loc ninh binh phuoc",
+          "owners": [
+            "15924741",
+            "15963937"
+          ],
+          "rowsKept": 2
+        },
+        {
+          "key": "8:xa phu thanh huyen phu tan an giang",
+          "owners": [
+            "14675895",
+            "14675896"
+          ],
+          "rowsKept": 1
+        }
+      ],
+      "aliasCases": {
+        "total": 60,
+        "passed": 48,
+        "splits": 6,
+        "splitsPassed": 4,
+        "failing": [
+          {
+            "caseId": "hn-01",
+            "split": true,
+            "missing": [
+              "Hoàn Kiếm",
+              "Ba Đình"
+            ],
+            "extra": [
+              "Văn Miếu - Quốc Tử Giám"
+            ]
+          },
+          {
+            "caseId": "ct-01",
+            "split": true,
+            "missing": [],
+            "extra": [
+              "Thới An Đông"
+            ]
+          },
+          {
+            "caseId": "lc-01",
+            "split": false,
+            "missing": [
+              "Mường Kim"
+            ],
+            "extra": []
+          },
+          {
+            "caseId": "lc-02",
+            "split": false,
+            "missing": [
+              "Mường Kim"
+            ],
+            "extra": []
+          },
+          {
+            "caseId": "lc-03",
+            "split": false,
+            "missing": [
+              "Mường Kim"
+            ],
+            "extra": []
+          },
+          {
+            "caseId": "lc-04",
+            "split": false,
+            "missing": [
+              "Mường Kim"
+            ],
+            "extra": []
+          },
+          {
+            "caseId": "lc-05",
+            "split": false,
+            "missing": [
+              "Khoen On"
+            ],
+            "extra": []
+          },
+          {
+            "caseId": "lc-06",
+            "split": false,
+            "missing": [
+              "Khoen On"
+            ],
+            "extra": []
+          },
+          {
+            "caseId": "lc-07",
+            "split": false,
+            "missing": [
+              "Than Uyên"
+            ],
+            "extra": []
+          },
+          {
+            "caseId": "lc-08",
+            "split": false,
+            "missing": [
+              "Than Uyên"
+            ],
+            "extra": []
+          },
+          {
+            "caseId": "lc-09",
+            "split": false,
+            "missing": [
+              "Mường Than"
+            ],
+            "extra": []
+          },
+          {
+            "caseId": "lc-10",
+            "split": false,
+            "missing": [
+              "Pắc Ta"
+            ],
+            "extra": []
+          }
+        ]
+      }
+    }
+  },
+  "missingMainlandL8": [
+    {
+      "kind": "missing_mainland_l8",
+      "id": "10113777",
+      "name": "Xã Đông Thành"
+    },
+    {
+      "kind": "missing_mainland_l8",
+      "id": "12822519",
+      "name": "Phường Sa Pả"
+    },
+    {
+      "kind": "missing_mainland_l8",
+      "id": "14675896",
+      "name": "Xã Phú Thạnh"
+    },
+    {
+      "kind": "missing_mainland_l8",
+      "id": "15015331",
+      "name": "Xã Thanh Lân"
+    },
+    {
+      "kind": "missing_mainland_l8",
+      "id": "15015333",
+      "name": "Thị trấn Cô Tô"
+    }
+  ],
+  "oldL8ByProvince_thapNhat": null
+}

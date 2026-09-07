@@ -155,10 +155,13 @@ export async function buildOldAdmin(
               adminOriginal: { district: old.name, province: old.province_name },
             }
           : { province: old.name_norm, adminOriginal: { province: old.name } };
-    for (const key of adminAliasKeys(input))
+    // `adminAliasKeys` trả khoá đầy đủ nhất ở vị trí 0 (phường+quận+tỉnh), rồi ngắn dần.
+    const keys = adminAliasKeys(input);
+    for (const [keyIndex, key] of keys.entries())
       for (const target of selected)
         provisional.push({
           key,
+          primary: keyIndex === 0,
           level: Number(old.level),
           target: target.admin_area_id,
           share: target.share,
@@ -172,7 +175,38 @@ export async function buildOldAdmin(
     if (!keyOwners.has(group)) keyOwners.set(group, new Set());
     keyOwners.get(group)?.add(String(row.oldId));
   }
-  const aliases = provisional.filter((row) => keyOwners.get(`${row.level}:${row.key}`)?.size === 1);
+  // Khoá NGẮN nhập nhằng phải bị bỏ (quyết định #3: "chỉ giữ khóa không tỉnh khi duy nhất ở đúng
+  // cấp") — "Phường Trùng" trần không được tự chọn một trong hai tỉnh. Nhưng khoá **đầy đủ nhất**
+  // thì không được bỏ: khi hai vùng cũ chỉ khác nhau ở dấu thì `name_norm` trùng khít kể cả ở khoá
+  // đầy đủ, bỏ nó là cả hai vùng mất sạch đường tra (production 07/09: 8 vùng đất liền, trong đó
+  // Lộc Thạnh→846 và Lộc Thành→848 là hai đích khác nhau nằm vừa PK). PK ba cột
+  // (alias_norm, level, admin_area_id) tự lo trường hợp trùng đích, nên phải dedupe trước COPY;
+  // chọn `old_area_id` nhỏ nhất để kết quả xác định được, không phụ thuộc thứ tự dòng của DB.
+  const ordered = [...provisional].sort((a, b) => (BigInt(a.oldId) < BigInt(b.oldId) ? -1 : 1));
+  /** @type {Set<string>} */
+  const seenPk = new Set();
+  const aliases = [];
+  /** @type {Map<string, number>} */
+  const keptByGroup = new Map();
+  for (const row of ordered) {
+    const group = `${row.level}:${row.key}`;
+    if (!row.primary && keyOwners.get(group)?.size !== 1) continue;
+    const pk = `${row.key}\u0000${row.level}\u0000${row.target}`;
+    if (seenPk.has(pk)) continue;
+    seenPk.add(pk);
+    aliases.push(row);
+    keptByGroup.set(group, (keptByGroup.get(group) ?? 0) + 1);
+  }
+  // Khoá đầy đủ nhập nhằng được giữ là đánh đổi phải công bố: `rowsKept` nhỏ hơn số chủ nghĩa là
+  // PK ba cột đã ăn mất provenance của vùng cũ còn lại (trùng đích).
+  const ambiguousPrimaryKept = [...keyOwners]
+    .filter(([group, owners]) => owners.size > 1 && keptByGroup.has(group))
+    .map(([group, owners]) => ({
+      key: group,
+      owners: [...owners].sort(),
+      rowsKept: keptByGroup.get(group) ?? 0,
+    }))
+    .sort((a, b) => a.key.localeCompare(b.key));
   await copyInto(
     sql,
     'admin_alias_new',
@@ -317,6 +351,7 @@ export async function buildOldAdmin(
     overlapErrors,
     splits: coverage.filter((row) => row.targets > 1 && row.rawMax < 0.9),
     seedMisses,
+    ambiguousPrimaryKept,
     ambiguousKeys: [
       ...[...keyOwners].filter(([, owners]) => owners.size > 1).map(([key]) => key),
       ...ambiguousTagKeys,

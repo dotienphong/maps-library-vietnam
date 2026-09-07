@@ -1163,6 +1163,23 @@ vẫn là `sleep 1` phút — `sudo pmset -a sleep 0 disksleep 0`.
   `word_similarity` khi tiền tố rỗng — đúng lớp vấn đề mục 6.5 đã cảnh báo. Đề xuất chờ PHONG: dùng
   lại `isAdminOnlyQuery` để bỏ hẳn nhánh area khi truy vấn không mang dạng hành chính
 
+- 2026-09-07 · Alias T8.3/8.4/8.7 · **cổng độ phủ chạy lần đầu trên dữ liệu production, và một lỗi
+  mất alias đã sửa** · [hồ sơ](evidence/admin-alias/8-3-8-4-coverage-production.md) · trước đó cổng
+  chỉ chạy trên DB đo `mapslibvn_alias_scale` lúc 03:03Z, **trước** khi publish 03:40Z, nên số 8.3/8.4
+  trong plan là của báo cáo QA pipeline chứ không của `verify-admin-alias`. Chạy đúng trên production:
+  84 failure. **Lỗi thật: 8 vùng cũ đất liền mất sạch alias.** `admin-overlay.mjs` bỏ mọi khoá có nhiều
+  hơn một chủ, mà bốn cặp chỉ khác nhau ở dấu (Đông Thạnh/Đông Thành, Sa Pa/Sa Pả, Phú Thành/Phú Thạnh,
+  Lộc Thạnh/Lộc Thành) trùng `name_norm` **kể cả ở khoá đầy đủ nhất** nên cả hai phía mất hết đường tra
+  — trái quyết định #3 của plan. Overlay tính đúng cả 8 (`targets: 1`, `rawCoverage: 1`); cổng QA
+  pipeline không thấy vì kiểm `unmatched` trong bộ nhớ chứ không kiểm bảng đã ghi. Bản sửa giữ khoá đầy
+  đủ nhất, vẫn bỏ khoá ngắn nhập nhằng, dedupe theo PK ba cột, thêm report `ambiguousPrimaryKept` để
+  công bố đánh đổi mất provenance. Đo trên DB staging dựng từ production (4 bảng khớp từng dòng): cổng
+  **84 → 79**, `missing_mainland_l8` **10 → 5**, alias 37.246 → 37.251, Lộc Thạnh→846 và Lộc Thành→848
+  giờ có hai dòng riêng. **Sửa lại một chẩn đoán cũ:** 10/12 ca alias trượt KHÔNG phải fixture sai —
+  snapshot không có xã cũ nào của Huyện Than Uyên, và `hn-01` là ngưỡng sliver 0,05 loại đúng hai đích
+  nghị quyết có nêu (Hoàn Kiếm 0,029, Ba Đình 0,008). Độ lệch nguồn cực không đều: **Sơn La chỉ có 1
+  xã cũ** trong snapshot, Bắc Giang 2, Vĩnh Phúc 2. Chưa publish lên production (thuộc 9.2)
+
 ## 5. Sự cố
 
 ### SC-1 · Cache Rule nuốt Range của PMTiles — **ĐÃ ĐÓNG 27/08/2026**
