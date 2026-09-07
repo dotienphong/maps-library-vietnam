@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // Bước 1 gộp: quét src_osm_place / src_overture_place / src_fsq_place → poi_work_record. Idempotent (dựng lại toàn bộ).
-import { nameCore, normalizeVi, parseAddress } from '@mapslibvn/core';
+import { filterNameAlt, nameCore, normalizeVi, parseAddress, searchKeys } from '@mapslibvn/core';
 import { domainsOf, phonesOf } from './lib/contacts.mjs';
 import { ewkt, pgArray, pgJson } from './lib/copy-format.mjs';
 import { vnDate } from './lib/env.mjs';
@@ -29,6 +29,8 @@ export const RECORD_COLUMNS = [
   'name_norm',
   'name_core',
   'name_alt',
+  'name_key',
+  'name_alt_norm',
   'group_code',
   'category',
   'confidence',
@@ -77,13 +79,20 @@ export function buildRow(r) {
     2 * Number(f.hn) +
     Number(f.cat) +
     2 * r.confidence;
+  const nameNorm = normalizeVi(r.name);
+  // Mảng gốc phải lọc bằng CÙNG luật sinh name_alt_norm, nếu không hai cột lệch chỉ số và
+  // `matched_alt` của API trả sai phần tử.
+  const nameAlt = filterNameAlt(nameNorm, r.nameAlt);
+  const keys = searchKeys(nameNorm, nameAlt);
   return [
     r.source,
     r.sourceId,
     r.name,
-    normalizeVi(r.name),
+    nameNorm,
     nameCore(r.name),
-    r.nameAlt.length ? pgArray(r.nameAlt) : null,
+    nameAlt.length ? pgArray(nameAlt) : null,
+    keys.nameKey,
+    keys.nameAltNorm,
     r.cat.group,
     r.cat.code,
     r.confidence,
@@ -248,7 +257,7 @@ if (process.argv[1]?.endsWith('records.mjs')) {
     );
     await sql.unsafe(`CREATE TABLE poi_work_record (
       rid serial PRIMARY KEY, source text NOT NULL, source_id text NOT NULL, name text NOT NULL, name_norm text NOT NULL, name_core text NOT NULL,
-      name_alt text[], group_code text NOT NULL, category text NOT NULL, confidence real NOT NULL, phones text[] NOT NULL, domains text[] NOT NULL,
+      name_alt text[], name_key text NOT NULL, name_alt_norm text, group_code text NOT NULL, category text NOT NULL, confidence real NOT NULL, phones text[] NOT NULL, domains text[] NOT NULL,
       housenumber text, street text, street_norm text, ward text, ward_norm text, province text, province_norm text, address_text text,
       contact jsonb, hours jsonb, has_phone boolean, has_website boolean, has_hours boolean, has_housenumber boolean, has_category boolean,
       completeness real NOT NULL, updated_at date NOT NULL, closed boolean NOT NULL, geom geometry(Point, 4326) NOT NULL, UNIQUE (source, source_id))`);

@@ -7,9 +7,9 @@ const force = process.argv.includes('--force');
 const sql = connect();
 try {
   await createNewTable(sql, 'poi');
-  await sql.unsafe(`INSERT INTO poi_new (id, name, name_norm, name_alt, category, geom, housenumber, street, ward, province, address_text, contact, hours,
+  await sql.unsafe(`INSERT INTO poi_new (id, name, name_norm, name_alt, name_key, name_alt_norm, name_tsv, category, geom, housenumber, street, ward, province, address_text, contact, hours,
       primary_source, primary_source_id, quality_score, popularity, status, locked_fields, created_by, created_at, updated_at)
-    SELECT m.poi_id, r.name, r.name_norm, r.name_alt, r.category,
+    SELECT m.poi_id, r.name, r.name_norm, r.name_alt, r.name_key, r.name_alt_norm, to_tsvector('simple', r.name_norm), r.category,
            COALESCE(osm.geom, r.geom),
            r.housenumber, r.street, r.ward, r.province, r.address_text, r.contact, r.hours,
            r.source, r.source_id, m.quality_score, m.popularity, m.status, '{}', 'pipeline', now(), now()
@@ -49,6 +49,9 @@ try {
         name          = CASE WHEN 'name'         = ANY(p.locked_fields) THEN p.name         ELSE n.name END,
         name_norm     = CASE WHEN 'name_norm'    = ANY(p.locked_fields) THEN p.name_norm    ELSE n.name_norm END,
         name_alt      = n.name_alt,
+        name_key      = CASE WHEN 'name_norm'    = ANY(p.locked_fields) THEN p.name_key    ELSE n.name_key END,
+        name_alt_norm = n.name_alt_norm,
+        name_tsv      = CASE WHEN 'name_norm'    = ANY(p.locked_fields) THEN p.name_tsv    ELSE n.name_tsv END,
         category      = CASE WHEN 'category'     = ANY(p.locked_fields) THEN p.category     ELSE n.category END,
         geom          = CASE WHEN 'geom'         = ANY(p.locked_fields) THEN p.geom         ELSE n.geom END,
         housenumber   = CASE WHEN 'housenumber'  = ANY(p.locked_fields) THEN p.housenumber  ELSE n.housenumber END,
@@ -63,10 +66,10 @@ try {
         status        = CASE WHEN 'status'       = ANY(p.locked_fields) THEN p.status       ELSE n.status END,
         updated_at = now()
       FROM poi_new n WHERE n.id = p.id AND p.created_by = 'pipeline'
-        AND (p.name, p.name_norm, p.name_alt, p.category, p.housenumber, p.street, p.ward, p.province,
+        AND (p.name, p.name_norm, p.name_alt, p.name_key, p.name_alt_norm, p.category, p.housenumber, p.street, p.ward, p.province,
              p.address_text, p.contact::text, p.hours::text, p.primary_source, p.primary_source_id,
              p.quality_score, p.popularity, p.status, ST_AsText(p.geom))
-            IS DISTINCT FROM (n.name, n.name_norm, n.name_alt, n.category, n.housenumber, n.street, n.ward, n.province,
+            IS DISTINCT FROM (n.name, n.name_norm, n.name_alt, n.name_key, n.name_alt_norm, n.category, n.housenumber, n.street, n.ward, n.province,
                               n.address_text, n.contact::text, n.hours::text, n.primary_source, n.primary_source_id,
                               n.quality_score, n.popularity, n.status, ST_AsText(n.geom))`);
     await tx.unsafe(
