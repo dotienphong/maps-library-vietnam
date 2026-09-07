@@ -458,7 +458,7 @@ commit với code).
   (conflate không ghép được POI OSM với bản sinh đôi Overture/FSQ) trước khi dùng `primary_source`
   làm tín hiệu chất lượng; và cân nhắc profile thứ ba `osm+overture` nếu có nhu cầu.
 
-- **05/09/2026 — Tìm mờ `word_similarity`: baseline trước khi đổi code.** Đo production
+- **05/09/2026 — Tìm mờ `word_similarity`: baseline trước khi đổi code.** *(ĐÃ PHÁT HÀNH — giữ lại làm bằng chứng baseline, không còn là việc chờ làm.)* Đo production
   `api.ai-solutions.io.vn` bằng `scripts/perf-autocomplete.mjs --queries scripts/fixtures/fuzzy-queries.txt`
   (40 truy vấn, khoá `mobile` của tenant …000002). Lần 1 cache lạnh: `p50=427ms p95=2156ms p99=2762ms`,
   `hit@3=36/40`. Ba trong bốn trượt là **lỗi fixture của tôi**, không phải lỗi API: tên thật là
@@ -485,9 +485,9 @@ commit với code).
   **Cứu được 4 ca cũ rơi ngoài `LIMIT 20`; làm hỏng 0 ca cũ đang đạt.** Ba ca tụt hạng (1→3, 1→3,
   4→5) vô hại vì hạng trong SQL chỉ là ngưỡng cắt ứng viên, thứ tự cuối do `rankScore` quyết định.
 
-- **05/09/2026 — Tìm mờ `word_similarity`: đã viết xong mã, CHỜ PHONG duyệt phát hành.** Plan
-  `docs/superpowers/plans/2026-09-05-tim-mo-word-similarity.md`, Task 0–7 xong tại chỗ,
-  **chưa `git push`** nên production chưa đổi. Bảy commit: `4c56cc2` (bộ đo), `62ecebc` (format),
+- **05/09/2026 — Tìm mờ `word_similarity`: ĐÃ PHÁT HÀNH.** *(Kiểm 07/09: cả bảy commit đã push;
+  `/healthz/db` trả `word_similarity_threshold: 0.5` và `schema_migration: 0008_admin_old.sql`.)* Plan
+  `docs/superpowers/plans/2026-09-05-tim-mo-word-similarity.md`, Task 0–7 xong. Bảy commit: `4c56cc2` (bộ đo), `62ecebc` (format),
   `1f0cb8d` (migration 0007), `3efccd7` (healthz), `8c8e695` (fakeSql), `22eed9c` (module truy vấn),
   `8ef0b05` (route autocomplete), `52f74db` (search + geocode), `fee9daf` (docs).
 
