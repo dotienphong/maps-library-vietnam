@@ -1231,6 +1231,25 @@ vẫn là `sleep 1` phút — `sudo pmset -a sleep 0 disksleep 0`.
   229). 24 failure còn lại: 21 cùng gốc nguồn dữ liệu cấp xã cũ, 5 cần nguồn ranh giới Cát Bà/Tam
   Giang, **0 lỗi code**
 
+- 2026-09-07 · **Task 8 ĐÓNG — cổng độ phủ alias 0 failure trên production** ·
+  [hồ sơ](evidence/admin-alias/8-3-8-4-coverage-production.md) · PHONG duyệt cách 2: đóng trong phạm
+  vi snapshot **đã chứng minh** thay vì để cổng đỏ vô thời hạn vì nguồn thiếu. Hai phần: (1) sửa
+  khoảng L8 trong spec mục 11 **10.000–10.700 → 4.200–4.300** kèm lý do — khoảng gốc là số đơn vị
+  **pháp lý** cấp xã, không phải số relation; snapshot Geofabrik 250101 chỉ có 4.215 relation
+  `admin_level=8` và các xã thiếu **không có trong PBF** (Huyện Than Uyên chỉ có relation cấp 6).
+  (2) khai báo 23 chỗ thiếu còn lại trong `scripts/fixtures/admin-alias-known-gaps.json`, **mỗi mục
+  một lý do và bằng chứng đã đo**; cổng hạ đúng những mục đó xuống cảnh báo `known_gap_declared`.
+  Ba chốt chống lạm dụng, có test: phạm vi che của từng nhóm nằm ở `KNOWN_GAP_KINDS` **trong code**
+  nên sửa file dữ liệu không nới được (khai báo sai nhóm không che loại failure khác của cùng id);
+  ca **không** khai báo vẫn đỏ; khai báo đã hết lỗi thì bị nhắc dọn bằng `stale_known_gap`. Kết quả
+  trên production: **0 failure, 309 warning, exit 0** — `discarded_sliver` 229, `coastal_gap_accepted`
+  55, `known_gap_declared` 23 (`outOfSnapshotScope` 10, `coverageGapNeedsSource` 5,
+  `provenanceCollapsedByPk` 3, `boundaryVintageMismatch` 3, `offshoreNoTarget` 2),
+  `distinct_differs_from_relations` 2, **`stale_known_gap` 0**. Cả ngày 07/09 cổng đi
+  **84 → 79 → 24 → 0**, trong đó chỉ 84→79 là sửa lỗi code, còn lại là quyết định có bằng chứng.
+  Việc còn lại là **nguồn ranh giới cấp xã cũ** (4.215/≈10.000) và ranh giới Cát Bà/Tam Giang —
+  hạng mục riêng, không thuộc Task 8
+
 ## 5. Sự cố
 
 ### SC-1 · Cache Rule nuốt Range của PMTiles — **ĐÃ ĐÓNG 27/08/2026**

@@ -59,6 +59,18 @@ const DISCARDED_SHARE_MIN = 0.01;
 // dùng được vì L4 hiện hành cũng bao lãnh hải (Cô Tô gap 0,961 mà "ngoài đất" = 0). Hai nhánh: mật
 // độ tuyệt đối gần không (biển trống), hoặc rất nhỏ so với phần được phủ của chính vùng đó (vịnh có
 // cầu tàu, nhà nổi). Bằng chứng: docs/evidence/admin-alias/8-3-decision-prep.md.
+// Nhóm khai báo trong scripts/fixtures/admin-alias-known-gaps.json che được ĐÚNG những loại failure
+// dưới đây, không hơn. Chính sách nằm ở code (không nằm trong file dữ liệu) để sửa file không nới
+// được phạm vi che. Quyết định PHONG 07/09/2026 (cách 2).
+/** @type {Record<string, string[]>} */
+const KNOWN_GAP_KINDS = {
+  outOfSnapshotScope: ['target_missing', 'split_target_missing', 'unexpected_target'],
+  boundaryVintageMismatch: ['target_missing', 'split_target_missing', 'unexpected_target'],
+  provenanceCollapsedByPk: ['missing_mainland_l8'],
+  offshoreNoTarget: ['missing_mainland_l8'],
+  coverageGapNeedsSource: ['raw_coverage_gap'],
+};
+
 const COASTAL_POI_DENSITY_MAX = 0.5;
 const COASTAL_POI_DENSITY_RATIO = 0.1;
 
@@ -94,6 +106,7 @@ function coastalGapAccepted(row) {
  *   fixtureMismatches?: {caseId:string, ward:string, fixtureDistrict:string,
  *     snapshotDistrict:string}[],
  *   fixtureAmbiguous?: {caseId:string, ward:string, candidates:string[]}[],
+ *   knownGaps?: Record<string, string[]>,
  * }} input
  */
 export function evaluateCoverage(input) {
@@ -219,7 +232,39 @@ export function evaluateCoverage(input) {
     }
   }
 
-  return { ok: failures.length === 0, failures, warnings };
+  // Hạ những mục ĐÃ KHAI BÁO có bằng chứng xuống cảnh báo. Làm ở một chỗ sau khi đã dựng xong danh
+  // sách failure, để không có nhánh nào lặng lẽ bỏ qua kiểm tra. Mục không khai báo, hoặc khai báo
+  // sai nhóm, vẫn là failure.
+  /** @type {Set<string>} */
+  const matchedDeclarations = new Set();
+  /** @type {Finding[]} */
+  const blocking = [];
+  for (const failure of failures) {
+    const key = String(failure.caseId ?? failure.id ?? '');
+    const group = key
+      ? Object.keys(input.knownGaps ?? {}).find(
+          (name) =>
+            (input.knownGaps?.[name] ?? []).includes(key) &&
+            (KNOWN_GAP_KINDS[name] ?? []).includes(String(failure.kind)),
+        )
+      : undefined;
+    if (group) {
+      matchedDeclarations.add(`${group}\u0000${key}`);
+      warnings.push({ ...failure, kind: 'known_gap_declared', group, of: failure.kind });
+    } else {
+      blocking.push(failure);
+    }
+  }
+  // Khai báo mà không còn lỗi tương ứng thì phải dọn, nếu không danh sách sẽ mục ra và che thứ khác.
+  for (const [group, keys] of Object.entries(input.knownGaps ?? {})) {
+    for (const key of keys) {
+      if (!matchedDeclarations.has(`${group}\u0000${key}`)) {
+        warnings.push({ kind: 'stale_known_gap', group, key });
+      }
+    }
+  }
+
+  return { ok: blocking.length === 0, failures: blocking, warnings };
 }
 
 /** @typedef {{precision?:string, lat?:number, lng?:number, error?:string}} GeocodeResult */
@@ -526,12 +571,28 @@ async function main() {
 
   if (mode === 'coverage') {
     const input = await runCoverage();
-    // Cổng đếm ban đầu theo spec 8.3; sửa khoảng phải có lý do ghi vào plan, không padding dữ liệu.
+    // Khoảng đếm và danh sách chỗ thiếu nằm trong scripts/fixtures/admin-alias-known-gaps.json — mỗi
+    // mục có lý do và bằng chứng. Sửa file đó là quyết định phát hành, không phải chỉnh số cho đẹp;
+    // phạm vi che của từng nhóm do KNOWN_GAP_KINDS trong code quyết định, sửa file không nới được.
+    const declaration = JSON.parse(
+      readFileSync(resolve('scripts/fixtures/admin-alias-known-gaps.json'), 'utf8'),
+    );
+    /** @type {Record<string, string[]>} */
+    const knownGaps = {};
+    for (const group of Object.keys(KNOWN_GAP_KINDS)) {
+      const block = declaration[group];
+      if (!block) continue;
+      knownGaps[group] = [
+        ...(block.cases ?? []).map((/** @type {any} */ c) => String(c.caseId)),
+        ...(block.ids ?? []).map((/** @type {any} */ c) => String(c.id)),
+      ];
+    }
     evaluation = evaluateCoverage({
       ...input,
-      expectedCounts: { L4: [63, 63], L6: [690, 710], L8: [10_000, 10_700] },
+      expectedCounts: declaration.expectedCounts,
+      knownGaps,
     });
-    detail = input;
+    detail = { ...input, declaration };
   } else {
     const base = process.env.MAPSLIBVN_API_BASE;
     const apiKey = process.env.MAPSLIBVN_API_KEY;

@@ -305,6 +305,90 @@ describe('evaluateCoverage', () => {
 
   // Quyết định PHONG 07/09/2026 (B): 11.064/12.022 cạnh bị bỏ có raw_share < 0,001; cảnh báo từ
   // `> 0` nhặt cả nhiễu 1e-9. Chỉ cảnh báo khi phần bị bỏ đáng kể.
+  // Quyết định PHONG 07/09/2026 (cách 2): đóng 8.3/8.4 trong phạm vi snapshot đã chứng minh, bằng
+  // danh sách chỗ thiếu có bằng chứng từng ca. LUẬT: chỉ hạ đúng mục được liệt kê, và chỉ đúng loại
+  // failure của nhóm đó. Ca không khai báo vẫn đỏ. Khai báo đã hết lỗi thì phải bị nhắc dọn.
+  it('ca alias được khai báo ngoài phạm vi snapshot thành cảnh báo, ca không khai báo vẫn đỏ', () => {
+    const result = evaluateCoverage(
+      coverageInput({
+        aliasCases: [
+          { caseId: 'lc-01', split: false, expectedTargets: ['Mường Kim'], actualTargets: [] },
+          { caseId: 'zz-99', split: false, expectedTargets: ['Chưa Khai Báo'], actualTargets: [] },
+        ],
+        knownGaps: { outOfSnapshotScope: ['lc-01'] },
+      }),
+    );
+    expect(result.warnings).toContainEqual(
+      expect.objectContaining({
+        kind: 'known_gap_declared',
+        group: 'outOfSnapshotScope',
+        caseId: 'lc-01',
+      }),
+    );
+    expect(result.failures).toEqual([
+      expect.objectContaining({ kind: 'target_missing', caseId: 'zz-99' }),
+    ]);
+  });
+
+  it('vùng được khai báo thiếu nguồn / mất provenance thành cảnh báo', () => {
+    const result = evaluateCoverage(
+      coverageInput({
+        missingMainlandL8: [{ id: '12822519', name: 'Phường Sa Pả' }],
+        coverage: [
+          {
+            id: '3769312',
+            level: 8,
+            rawCoverage: 0.82,
+            keptCoverage: 0.82,
+            discardedShare: 0,
+            targets: 1,
+            uncoveredPoiDensity: 1.25,
+            coveredPoiDensity: 0.49,
+          },
+        ],
+        knownGaps: {
+          provenanceCollapsedByPk: ['12822519'],
+          coverageGapNeedsSource: ['3769312'],
+        },
+      }),
+    );
+    expect(result.failures).toEqual([]);
+    expect(result.ok).toBe(true);
+    expect(
+      result.warnings.map((w) => w.kind).filter((k) => k === 'known_gap_declared'),
+    ).toHaveLength(2);
+  });
+
+  it('khai báo sai nhóm không che được loại failure khác của cùng id', () => {
+    const result = evaluateCoverage(
+      coverageInput({
+        missingMainlandL8: [{ id: '777', name: 'Xã Nào Đó' }],
+        // Khai báo ở nhóm dành cho raw_coverage_gap, không phải nhóm của missing_mainland_l8.
+        knownGaps: { coverageGapNeedsSource: ['777'] },
+      }),
+    );
+    expect(result.failures.map((f) => f.kind)).toContain('missing_mainland_l8');
+  });
+
+  it('khai báo đã hết lỗi thì cảnh báo stale để dọn danh sách', () => {
+    const result = evaluateCoverage(
+      coverageInput({
+        knownGaps: { outOfSnapshotScope: ['lc-01'], coverageGapNeedsSource: ['3769312'] },
+      }),
+    );
+    expect(result.failures).toEqual([]);
+    expect(result.warnings).toContainEqual(
+      expect.objectContaining({
+        kind: 'stale_known_gap',
+        group: 'outOfSnapshotScope',
+        key: 'lc-01',
+      }),
+    );
+    expect(result.warnings).toContainEqual(
+      expect.objectContaining({ kind: 'stale_known_gap', key: '3769312' }),
+    );
+  });
+
   it('sliver nhỏ hơn 1% không cảnh báo; từ 1% trở lên thì cảnh báo', () => {
     const small = evaluateCoverage(
       coverageInput({

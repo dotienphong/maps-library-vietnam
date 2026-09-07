@@ -1,0 +1,80 @@
+{
+  "$comment": [
+    "Phạm vi đã chứng minh của cổng độ phủ alias hành chính, và danh sách chỗ thiếu ĐÃ TRUY ĐẾN GỐC.",
+    "Quyết định PHONG 07/09/2026 (cách 2): đóng 8.3/8.4 trong phạm vi snapshot Geofabrik 250101 thật",
+    "sự có, thay vì để cổng đỏ vô thời hạn vì dữ liệu nguồn thiếu.",
+    "LUẬT: cổng chỉ hạ mỗi mục LIỆT KÊ DƯỚI ĐÂY xuống cảnh báo. Bất kỳ ca nào KHÔNG có trong danh",
+    "sách vẫn là failure. Mục đã hết lỗi mà còn nằm đây thì cổng báo cảnh báo stale_known_gap để dọn.",
+    "Sửa file này là quyết định phát hành, không phải chỉnh số cho đẹp — mỗi mục phải có evidence."
+  ],
+  "source": {
+    "url": "https://download.geofabrik.de/asia/vietnam-250101.osm.pbf",
+    "md5": "1f0fdd199d7194e515a9c4b48b3e5835",
+    "note": "Snapshot 02/01/2025. Chỉ chứa 4.215 relation admin_level=8 trước sắp xếp, lệch rất không đều theo tỉnh: Sơn La 1, Bắc Giang 2, Vĩnh Phúc 2, Hà Nam 2, Điện Biên 3, Kon Tum 4."
+  },
+  "expectedCounts": {
+    "L4": [63, 63],
+    "L6": [690, 710],
+    "L8": [4200, 4300]
+  },
+  "expectedCountsReason": {
+    "L8": {
+      "specGoc": [10000, 10700],
+      "doDuoc": 4215,
+      "lyDo": "Khoảng 10.000–10.700 trong spec mục 11 là số ĐƠN VỊ PHÁP LÝ cấp xã trước 01/07/2025, không phải số relation có trong snapshot. Snapshot Geofabrik 250101 chỉ có 4.215 relation admin_level=8. Đã kiểm không phải lỗi trích xuất: osm_admin_old_raw có 4.985 dòng và ledger nguồn khớp; các xã thiếu KHÔNG có trong PBF (ví dụ Huyện Than Uyên, Lai Châu: snapshot chỉ có relation cấp 6, không có xã cấp 8 nào). Khoảng mới 4.200–4.300 là phạm vi ĐÃ CHỨNG MINH của snapshot này; đổi nguồn thì phải đổi lại khoảng. Không padding bằng duplicate relation.",
+      "hoSo": "docs/evidence/admin-alias/8-3-8-4-coverage-production.md"
+    }
+  },
+  "outOfSnapshotScope": {
+    "reason": "Xã cũ trong fixture KHÔNG tồn tại trong snapshot nên không thể sinh alias. Đã kiểm từng ca: admin_area_old không có dòng nào khớp (tìm lỏng theo name_norm cũng 0), trong khi mọi xã đích mới đều có trong admin_area. Không phải lỗi ground truth, cũng không phải lỗi overlay.",
+    "evidence": "docs/evidence/admin-alias/8-3-8-4-coverage-production.md#4",
+    "cases": [
+      { "caseId": "lc-01", "old": "Xã Tà Mung, Huyện Than Uyên, Lai Châu", "note": "snapshot không có xã cấp 8 nào của Huyện Than Uyên" },
+      { "caseId": "lc-02", "old": "Xã Tà Hừa, Huyện Than Uyên, Lai Châu", "note": "như trên" },
+      { "caseId": "lc-03", "old": "Xã Mường Kim, Huyện Than Uyên, Lai Châu", "note": "như trên" },
+      { "caseId": "lc-04", "old": "Xã Pha Mu, Huyện Than Uyên, Lai Châu", "note": "như trên" },
+      { "caseId": "lc-05", "old": "Xã Ta Gia, Huyện Than Uyên, Lai Châu", "note": "như trên" },
+      { "caseId": "lc-06", "old": "Xã Khoen On, Huyện Than Uyên, Lai Châu", "note": "như trên" },
+      { "caseId": "lc-07", "old": "Thị trấn Than Uyên, Huyện Than Uyên, Lai Châu", "note": "như trên" },
+      { "caseId": "lc-08", "old": "Xã Mường Than, Huyện Than Uyên, Lai Châu", "note": "như trên" },
+      { "caseId": "lc-09", "old": "Xã Hua Nà, Huyện Than Uyên, Lai Châu", "note": "như trên" },
+      { "caseId": "lc-10", "old": "Xã Pắc Ta, Huyện Tân Uyên, Lai Châu", "note": "như trên" }
+    ]
+  },
+  "boundaryVintageMismatch": {
+    "reason": "Overlay đúng hình học nhưng ranh giới OSM của snapshot 01/2025 lệch với ranh giới hiện hành, nên tập đích không khớp văn bản nghị quyết. Đã mô phỏng ngưỡng sliver 0,05 → 0,005: hn-01 vẫn đỏ ở MỌI ngưỡng vì Văn Miếu–Quốc Tử Giám 0,130 luôn ở lại; hạ ngưỡng còn làm 337 vùng khác đổi tập đích. Không sửa được bằng tham số.",
+    "evidence": "docs/evidence/admin-alias/8-3-decision-prep.md#c-ngưỡng-sliver-005--hạ-xuống-không-cứu-được-hn-01",
+    "cases": [
+      { "caseId": "hn-01", "old": "Phường Cửa Nam, Quận Hoàn Kiếm, Hà Nội", "measured": "Cửa Nam 0,833 · Văn Miếu–Quốc Tử Giám 0,130 · Hoàn Kiếm 0,029 · Ba Đình 0,008", "note": "nghị quyết nêu Hoàn Kiếm/Cửa Nam/Ba Đình; hai đích 0,029 và 0,008 dưới ngưỡng sliver, còn Văn Miếu 0,130 thì nghị quyết không nêu" },
+      { "caseId": "ct-01", "old": "Phường Bùi Hữu Nghĩa, Quận Bình Thủy, Cần Thơ", "measured": "Bình Thủy 0,623 · Cái Khế 0,302 · Thới An Đông 0,075", "note": "hai đích đầu đúng nghị quyết; Thới An Đông 0,075 vượt ngưỡng nên được giữ dù nghị quyết không nêu" }
+    ]
+  },
+  "provenanceCollapsedByPk": {
+    "reason": "Hai vùng cũ trùng name_norm sau khi bỏ dấu VÀ trỏ về CÙNG một vùng hiện hành. PK ba cột (alias_norm, level, admin_area_id) theo spec chỉ cho một dòng, nên chỉ một old_area_id giữ được provenance. Địa chỉ cũ vẫn tra ra đúng vùng mới (đã kiểm trên production API). Muốn cả hai có dòng riêng thì phải đưa old_area_id vào PK, tức migration 0009 — plan CẤM trong phạm vi này.",
+    "evidence": "docs/evidence/admin-alias/8-3-8-4-coverage-production.md#2",
+    "ids": [
+      { "id": "10113777", "name": "Xã Đông Thành", "sibling": "10113776 Xã Đông Thạnh", "target": "206 Phường Đông Thành" },
+      { "id": "12822519", "name": "Phường Sa Pả", "sibling": "12540572 Phường Sa Pa", "target": "2269 Phường Sa Pa" },
+      { "id": "14675896", "name": "Xã Phú Thạnh", "sibling": "14675895 Xã Phú Thành", "target": "402 Xã Chợ Vàm" }
+    ]
+  },
+  "offshoreNoTarget": {
+    "reason": "Polygon cũ gần như toàn biển nên không chồng lấn đủ 5% với vùng hiện hành nào. PHONG đã duyệt tại lần publish 07/09/2026.",
+    "evidence": "docs/evidence/admin-alias/8-3-8-4-coverage-production.md",
+    "ids": [
+      { "id": "15015331", "name": "Xã Thanh Lân", "measured": "rawCoverage 0,036 — 615 km² phần trống, 0 POI" },
+      { "id": "15015333", "name": "Thị trấn Cô Tô", "measured": "rawCoverage 0,026 — 197 km² phần trống, 5 POI" }
+    ]
+  },
+  "coverageGapNeedsSource": {
+    "reason": "Phần vùng cũ không được vùng hiện hành nào phủ, và KHÔNG chứng minh được là nước: mật độ POI phần trống không đủ nhỏ so với phần được phủ. Có thể là đất (rừng Cát Bà, đầm phá Tam Giang) chưa thuộc xã hiện hành nào, tức lỗ dữ liệu ranh giới thật. Cần nguồn ranh giới xã hiện hành của Cát Bà–Cát Hải và Tam Giang để đóng — KHÔNG đóng được bằng ngưỡng.",
+    "evidence": "docs/evidence/admin-alias/8-3-decision-prep.md#f-kết-quả-thật-sau-khi-phong-duyệt-a--b--c-07092026-0820z",
+    "ids": [
+      { "id": "3769311", "name": "Thị trấn Cát Hải", "province": "hai phong", "measured": "trống 2,20 km² · 5 POI · mật độ 2,27 so với 18,78 = 12%" },
+      { "id": "3769312", "name": "Xã Gia Luận", "province": "hai phong", "measured": "trống 9,60 km² · 12 POI · mật độ 1,25 so với 0,49 = 254% (CAO HƠN phần được phủ — nghi là rừng, không phải biển)" },
+      { "id": "3769316", "name": "Xã Việt Hải", "province": "hai phong", "measured": "trống 38,72 km² · 32 POI · mật độ 0,83 so với 1,03 = 80% (nghi là rừng)" },
+      { "id": "13396625", "name": "Xã Nghĩa Lộ", "province": "hai phong", "measured": "trống 1,79 km² · 1 POI · mật độ 0,56 so với 4,58 = 12%" },
+      { "id": "15852553", "name": "Phường Hương Phong", "province": "hue", "measured": "trống 3,85 km² · 3 POI · mật độ 0,78 so với 2,69 = 29%" }
+    ]
+  }
+}

@@ -1,106 +1,54 @@
 {
-  "generatedAt": "2026-09-07T08:20:21.402Z",
-  "commit": "c6455fcf031b157fad4ba0a965777c93a2cc4713",
-  "note": "Cổng độ phủ trên production SAU khi PHONG duyệt A+B+C và publish bản sửa alias (admin-old.mjs --accept-qa, không chạm admin_area). Artifact đầy đủ 1,3 MB không commit.",
+  "generatedAt": "2026-09-07T08:33:27.224Z",
+  "commit": "546d59635b71af06836d009e8cd844afc6066749",
+  "note": "Cổng độ phủ trên production sau khi PHONG duyệt cách 2: khoảng L8 spec sửa theo phạm vi snapshot đã chứng minh, và 23 chỗ thiếu còn lại khai báo từng ca kèm bằng chứng ở scripts/fixtures/admin-alias-known-gaps.json. Artifact đầy đủ 1,3 MB không commit.",
   "db": "mapslibvn (production)",
-  "ok": false,
+  "ok": true,
   "aliasCount": 37251,
   "countsByLevel": {
     "L4": 63,
     "L6": 694,
     "L8": 4215
   },
-  "failureCountByKind": {
-    "count_out_of_range": 1,
-    "missing_mainland_l8": 5,
-    "raw_coverage_gap": 5,
-    "split_target_missing": 1,
-    "unexpected_target": 2,
-    "target_missing": 10
-  },
+  "failureCountByKind": {},
   "warningCountByKind": {
     "distinct_differs_from_relations": 2,
     "coastal_gap_accepted": 55,
-    "discarded_sliver": 229
+    "discarded_sliver": 229,
+    "known_gap_declared": 23
   },
-  "rawCoverageGapConLai": [
-    {
-      "kind": "raw_coverage_gap",
-      "id": "3769311",
-      "level": 8,
-      "rawCoverage": 0.670386657001922,
-      "normalizedShareSum": null,
-      "uncoveredPoiDensity": 2.2738,
-      "coveredPoiDensity": 18.7816
-    },
-    {
-      "kind": "raw_coverage_gap",
-      "id": "3769312",
-      "level": 8,
-      "rawCoverage": 0.8231266322610771,
-      "normalizedShareSum": null,
-      "uncoveredPoiDensity": 1.2503,
-      "coveredPoiDensity": 0.4926
-    },
-    {
-      "kind": "raw_coverage_gap",
-      "id": "3769316",
-      "level": 8,
-      "rawCoverage": 0.48057534846591426,
-      "normalizedShareSum": null,
-      "uncoveredPoiDensity": 0.8265,
-      "coveredPoiDensity": 1.0329
-    },
-    {
-      "kind": "raw_coverage_gap",
-      "id": "13396625",
-      "level": 8,
-      "rawCoverage": 0.7798218115415555,
-      "normalizedShareSum": null,
-      "uncoveredPoiDensity": 0.5599,
-      "coveredPoiDensity": 4.5846
-    },
-    {
-      "kind": "raw_coverage_gap",
-      "id": "15852553",
-      "level": 8,
-      "rawCoverage": 0.7714477263213316,
-      "normalizedShareSum": null,
-      "uncoveredPoiDensity": 0.7792,
-      "coveredPoiDensity": 2.6933
-    }
-  ],
-  "missingMainlandL8": [
-    {
-      "kind": "missing_mainland_l8",
-      "id": "10113777",
-      "name": "Xã Đông Thành"
-    },
-    {
-      "kind": "missing_mainland_l8",
-      "id": "12822519",
-      "name": "Phường Sa Pả"
-    },
-    {
-      "kind": "missing_mainland_l8",
-      "id": "14675896",
-      "name": "Xã Phú Thạnh"
-    },
-    {
-      "kind": "missing_mainland_l8",
-      "id": "15015331",
-      "name": "Xã Thanh Lân"
-    },
-    {
-      "kind": "missing_mainland_l8",
-      "id": "15015333",
-      "name": "Thị trấn Cô Tô"
-    }
-  ],
   "aliasCases": {
     "total": 60,
     "passed": 48,
     "splits": 6,
     "splitsPassed": 4
+  },
+  "knownGapDeclaredByGroup": {
+    "provenanceCollapsedByPk": 3,
+    "offshoreNoTarget": 2,
+    "coverageGapNeedsSource": 5,
+    "boundaryVintageMismatch": 3,
+    "outOfSnapshotScope": 10
+  },
+  "staleKnownGap": [],
+  "expectedCounts": {
+    "L4": [
+      63,
+      63
+    ],
+    "L6": [
+      690,
+      710
+    ],
+    "L8": [
+      4200,
+      4300
+    ]
+  },
+  "congDiTrongNgay": {
+    "chay_dau_tren_production": 84,
+    "sau_sua_loi_mat_alias": 79,
+    "sau_duyet_A_B_C_va_publish": 24,
+    "sau_khai_bao_cho_thieu": 0
   }
 }

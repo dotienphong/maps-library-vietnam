@@ -490,8 +490,20 @@ Phiên bản SDK: bump minor cho 4 gói (thêm API, không phá).
 
 ## 11. Tiêu chí nghiệm thu
 
-1. `admin_area_old` có L4 = 63, L6 trong khoảng 690–710, L8 trong khoảng 10.000–10.700; số L8 cũ
-   trên đất liền không khớp phường mới nào = 0; báo cáo ca tách kèm danh sách.
+1. `admin_area_old` có L4 = 63, L6 trong khoảng 690–710, L8 trong khoảng **4.200–4.300**; số L8 cũ
+   trên đất liền không khớp phường mới nào = 0 **trong phạm vi snapshot đã chứng minh**; báo cáo ca
+   tách kèm danh sách.
+
+   > **Sửa khoảng L8 ngày 07/09/2026 (PHONG duyệt).** Khoảng gốc 10.000–10.700 là số **đơn vị pháp
+   > lý** cấp xã trước 01/07/2025, không phải số relation có trong nguồn. Snapshot Geofabrik
+   > `vietnam-250101` chỉ chứa **4.215** relation `admin_level=8`, và thiếu rất không đều theo tỉnh
+   > (Sơn La 1, Bắc Giang 2, Vĩnh Phúc 2). Đã kiểm không phải lỗi trích xuất: các xã thiếu **không có
+   > trong PBF** — ví dụ Huyện Than Uyên (Lai Châu) chỉ có relation cấp 6, không có xã cấp 8 nào.
+   > Khoảng 4.200–4.300 là phạm vi **đã chứng minh của nguồn này**; đổi nguồn thì phải đổi lại khoảng.
+   > Không padding bằng duplicate relation. Chỗ thiếu được liệt kê từng ca kèm bằng chứng trong
+   > `scripts/fixtures/admin-alias-known-gaps.json`; cổng hạ đúng những mục đó xuống cảnh báo
+   > `known_gap_declared` và **giữ đỏ mọi ca không khai báo**. Hồ sơ:
+   > `docs/evidence/admin-alias/8-3-8-4-coverage-production.md`.
 2. Fixture 4.7 (≥ 60 dòng, ≥ 6 tỉnh): 100 % alias đúng phường mới; 10 địa chỉ cũ thật trên
    production ≥ 8/10 giữ `precision` mức đường trở lên.
 3. Bộ 40 truy vấn mờ: ≥ 36/40 có kết quả đích trong top 3 của autocomplete (trước thay đổi đo
