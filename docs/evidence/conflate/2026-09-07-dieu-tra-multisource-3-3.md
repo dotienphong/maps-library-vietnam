@@ -60,7 +60,13 @@ trong 30 m), không suy ra được gì. Hai dải kia mới đáng đọc.
 
 Hai luật chặn trong `pairAllowed` giải thích ~92 %. Nghĩa là **greedy/thứ tự cặp không phải nguyên
 nhân chính** — chỉ 73 cặp có thể do `if (ca && cb) return` (không bắc cầu), `maxSize: 3`, hoặc bị
-loại vì đã là `repOf` của cụm cùng nguồn. Suy ra: **ngưỡng similarity là nguyên nhân chi phối.**
+loại vì đã là `repOf` của cụm cùng nguồn.
+
+> **SỬA 07/09/2026 (mục 10).** Ở bản đầu tôi suy từ số này rằng "ngưỡng similarity là nguyên nhân
+> chi phối". **Kết luận đó SAI.** Đo trên bộ mẫu có nhãn (mục 10) cho thấy ngược lại: luật hiện tại
+> đạt recall **4 %**, và chỉ cần bỏ hai luật chặn hn/street thì lên **44 %**. Chính hai luật chặn
+> này mới là nguyên nhân chi phối — chúng chặn phần lớn là trùng lặp THẬT, vì hai nguồn thường ghi
+> khác nhau cách viết số nhà và nhét tên thành phố vào trường `street`.
 
 > Đáng cân nhắc riêng: hai POI cùng tên cách nhau < 30 m mà số nhà lệch nhau thì khả năng cao là
 > **sai dữ liệu ở một nguồn**, không phải hai cửa hàng khác nhau. Luật chặn hiện tại coi đó là
@@ -139,8 +145,10 @@ Ba ca còn sót và lý do:
 như nhiều POI riêng. Vì vậy quyết định giữ mặc định `all` (07/09) là đúng: lọc theo nguồn là công
 tắc chọn dữ liệu, **không** phải công cụ nâng chất lượng.
 
-Muốn thật sự nâng chất lượng thì thứ tự đúng là: (1) sửa khoá so tên cho conflate, (2) rebuild và
-đo lại `multiSourcePct`, (3) khi đó mới bàn tới ngưỡng `quality_score` theo nguồn.
+Muốn thật sự nâng chất lượng thì thứ tự đúng là: (1) **nới hai luật chặn hn/street** và sửa khoá so
+tên cho conflate, (2) rebuild và đo lại `multiSourcePct`, (3) khi đó mới bàn tới ngưỡng
+`quality_score` theo nguồn. Thứ tự ưu tiên trong (1) đã được đo ở mục 10: nới luật chặn cho hiệu
+quả lớn hơn sửa khoá tên.
 
 ## 7. Cách tái lập
 
@@ -205,3 +213,100 @@ mọi con số "7/10" như mục 4 chỉ là mẫu 10 cặp, không đủ để 
 
 Không viết spec sửa conflate trước khi có bộ mẫu này, vì rủi ro #3 (đổi `poi.id`) khiến việc này
 chỉ nên làm một lần cho đúng.
+
+---
+
+## 10. Bộ mẫu 160 cặp gán nhãn tay — và một kết luận của tôi bị đảo
+
+Fixture: `pipelines/poi/fixtures/conflate-pairs.json`.
+
+### 10.1 Cách lấy mẫu
+
+7 vùng (Q1-HCM, Hoàn Kiếm-HN, Hải Châu-ĐN, Ninh Kiều-CT, Nha Trang, Biên Hoà, Thủ Đức ngoại vi) →
+94.013 POI active → 153.263 ứng viên (khác nguồn, cùng `category`, ≤ 50 m). Tính `sim` **đúng như
+conflate**: `similarity(name_core, name_core)` do Postgres tính. Chia 4 dải, mỗi dải lấy 40 cặp
+theo thứ tự `md5(tên A|tên B)` — **tất định, tái lập được**, không phụ thuộc thứ tự đọc DB.
+
+### 10.2 Nhãn
+
+Nhãn do Claude gán, ba giá trị. **PHONG cần soát lại**, nhất là 27 ca `khong_ro`.
+
+| dải `sim` | cùng | khác | không rõ |
+|---|---:|---:|---:|
+| 0,30–0,40 | 5 | 27 | 8 |
+| 0,40–0,50 | 16 | 18 | 6 |
+| 0,50–0,60 | 23 | 7 | 10 |
+| ≥ 0,60 | 35 | 2 | 3 |
+| **tổng** | **79** | **54** | **27** |
+
+Hai ca `khác` ở dải ≥ 0,60 là dương tính giả cần nhớ: `Ủy Ban Nhân Dân Phường Bến Thành` ↔
+`Uy Ban Nhan Dan Phuong Ben Nghe` (sim 0,62 — **hai phường khác nhau**) và `P’Tea&coffee` ↔
+`Haué Coffee & Tea` (0,61). Loại `khong_ro` gồm: một bên là **một phòng** trong khách sạn
+(`Room B601`), một bên là **đơn vị trong** tổ chức (`Khoa Hóa` trong trường đại học), tên chung
+(`Nhà thuốc`), và chuỗi có hai cơ sở cách nhau vài chục mét.
+
+### 10.3 Đo các luật trên 133 cặp đã quyết (79 cùng / 54 khác)
+
+| luật | TP | FN | FP | TN | precision | recall | F1 |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| **A. hiện tại (nguyên trạng)** | 3 | 76 | 0 | 54 | 100 % | **4 %** | 0,07 |
+| B. bóc từ chỉ loại + `sim ≥ 0,6`, giữ chặn nguyên trạng | 14 | 65 | 0 | 54 | 100 % | 18 % | 0,30 |
+| **C. bóc từ chỉ loại + `sim ≥ 0,6`, BỎ hết chặn** | 47 | 32 | 1 | 53 | 98 % | **59 %** | **0,74** |
+| D. bóc + `sim ≥ 0,6`, chặn "khôn" | 36 | 43 | 1 | 53 | 97 % | 46 % | 0,62 |
+| E. bóc + `sim ≥ 0,5`, chặn "khôn" | 46 | 33 | 4 | 50 | 92 % | 58 % | 0,71 |
+| F. bóc + `sim ≥ 0,45`, chặn "khôn" | 48 | 31 | 4 | 50 | 92 % | 61 % | 0,73 |
+| `word_similarity` trên core `≥ 0,6`, giữ chặn | 30 | 49 | 11 | 43 | 73 % | 38 % | 0,50 |
+
+"Chặn khôn" = chỉ chặn theo số nhà khi **cả hai** là số đơn giản (`^\d{1,4}$`) và khác nhau; bỏ qua
+xung đột `street` khi một bên là giá trị rác (chứa `ho chi minh`, `ha noi`, `district`, `ward`…).
+
+### 10.4 Kết luận — ngược với bản đầu của tài liệu này
+
+**Luật hiện tại bắt được 3 trong 79 cặp trùng lặp thật: recall 4 %.** Precision 100 %, nên nó không
+ghép sai — nó chỉ gần như không ghép gì.
+
+**Nguyên nhân chi phối là hai luật chặn `housenumber`/`street`, không phải ngưỡng similarity.** Chỉ
+bỏ hai luật chặn (không đổi gì khác) đã đưa recall từ 4 % lên 44 %; thêm việc bóc từ chỉ loại thì
+lên 59 % với precision 98 %. Ở mục 2.2 tôi có sẵn con số "92 % bị chặn bởi hn/street" nhưng suy ra
+kết luận ngược — đã sửa tại chỗ.
+
+Vì sao hai luật chặn phản tác dụng: hai nguồn ghi **cùng một địa chỉ theo cách khác nhau**
+(`171`/`71`, `48`/`44-46`, `8-10`/`8`, `3`/`3A`), và Overture/FSQ **nhét tên thành phố vào trường
+`street`** (`st:Đồng Khởi/Ho Chi Minh C`). Luật hiện tại coi mọi khác biệt đó là bằng chứng "hai
+địa điểm khác nhau".
+
+Đáng chú ý: "chặn khôn" của tôi vẫn làm mất recall (59 % → 46 %), tức heuristic đó **vẫn chặn oan
+13 cặp thật**. Nên phương án C (bỏ hết chặn) đang là tốt nhất đo được — nhưng bỏ hoàn toàn một luật
+an toàn là quyết định cần cân nhắc, không nên chốt từ 133 cặp.
+
+### 10.5 Lớp nhiễu thứ hai, chưa xử lý: hậu tố chi nhánh và mô tả
+
+31–32 ca vẫn bỏ sót ở phương án tốt nhất, và chúng có dạng rất đều:
+
+```
+sim_bóc 0.41  ibis Styles Hotels             ↔ ibis Styles Nha Trang
+sim_bóc 0.22  Punto Hostel Ho Chi Minh City  ↔ punto hostel
+sim_bóc 0.48  Khách sạn Lotus Central Saigon ↔ Lotus Central Hotel
+sim_bóc 0.41  Phở 24 - Đồng Khởi             ↔ Phở 24
+sim_bóc 0.36  Tenement Coffee and Wine Bar   ↔ Tenement Coffee Shop
+sim_bóc 0.32  Royal Norwegian Consulate      ↔ Consulate of the Kingdom of Norway
+```
+
+Hai nhóm: **hậu tố địa danh/chi nhánh** (`Nha Trang`, `Ho Chi Minh City`, `Saigon`, `Đồng Khởi`) và
+**hậu tố mô tả** (`and Wine Bar`, `Craft beer & Viet Nam Cuisine`).
+
+Bóc hậu tố địa danh là chỗ tôi đã cảnh báo ở mục 5 rủi ro #1 (`Pizza Saigon` ↔ `Pizza Hanoi`). Cách
+gỡ có nguyên tắc, **chưa đo**: chỉ bóc từ chỉ địa danh khi nó **trùng với `ward`/`province`/`street`
+của chính POI đó** — tức là thông tin vị trí lặp lại, không phải phần của thương hiệu. `ibis Styles
+Nha Trang` nằm ở Nha Trang → bóc; `Pizza Saigon` nằm ở Hà Nội → giữ.
+
+Ca `Royal Norwegian Consulate` ↔ `Consulate of the Kingdom of Norway` thì trigram không giải được —
+cần so theo **tập token**, việc riêng.
+
+### 10.6 Giới hạn của bộ mẫu này
+
+- 160 cặp, nhãn do Claude gán, **chưa được người soát**. Mọi con số ở 10.3 phải đọc kèm điều đó.
+- Chỉ lấy cặp ≤ 50 m **cùng `category`**. Cặp bị lệch category ở hai nguồn không có trong mẫu, nên
+  không nói được gì về `pairAllowed` ở phần group.
+- 7 vùng, phần lớn là lõi đô thị. Không suy ra tỉ lệ toàn quốc từ đây.
+- Không đo `maxSize`/thứ tự greedy vì fixture là từng cặp rời, không phải cụm.
