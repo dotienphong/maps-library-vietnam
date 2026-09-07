@@ -5,8 +5,9 @@ import { useSimilarityBranch } from '../autocomplete-sql';
 import { getSql } from '../db';
 import type { AppEnv } from '../env';
 import { ApiError } from '../errors';
-import { clampInt, parseBbox, parseLatLngPair } from '../params';
+import { clampInt, parseBbox, parseLatLngPair, parseSources } from '../params';
 import { type PlaceRow, placeColumns, toPlace } from '../place';
+import { poiSourceFilter } from '../poi-sources';
 import { quotaMiddleware } from '../quota';
 
 export const search = new Hono<AppEnv>();
@@ -22,6 +23,7 @@ search.get('/v1/search', requireAuth(), quotaMiddleware('places'), async (c) => 
   const radius = clampInt(c.req.query('radius'), 1, 50_000, 5_000, 'radius');
   const limit = clampInt(c.req.query('limit'), 1, 50, 20, 'limit');
   const offset = clampInt(c.req.query('offset'), 0, 500, 0, 'offset');
+  const sources = parseSources(c.req.query('sources'));
   const queryNorm = query ? normalizeVi(query) : '';
   if (query && !queryNorm) {
     throw new ApiError(400, 'invalid_request', 'q không có ký tự tra cứu được');
@@ -38,6 +40,7 @@ search.get('/v1/search', requireAuth(), quotaMiddleware('places'), async (c) => 
         ${nearPoint ? sql`, ST_DistanceSphere(p.geom, ${nearPoint}) AS d` : sql``}
       FROM poi p LEFT JOIN category c ON c.code = p.category
       WHERE p.status = 'active'
+        AND ${poiSourceFilter(sql, sources)}
         ${
           queryNorm
             ? sql`AND (${queryNorm} <% p.name_norm

@@ -47,6 +47,13 @@ describe('validation search/nearby/places (không DB)', () => {
     expect((await fetchApi('/v1/nearby?lat=10.77&lng=106.70')).status).toBe(503);
   });
 
+  it('sources lạ → 400 ở search và nearby; sources hợp lệ đi tới DB → 503', async () => {
+    expect((await fetchApi('/v1/search?q=pho&sources=banana')).status).toBe(400);
+    expect((await fetchApi('/v1/nearby?lat=10.77&lng=106.70&sources=banana')).status).toBe(400);
+    expect((await fetchApi('/v1/search?q=pho&sources=all')).status).toBe(503);
+    expect((await fetchApi('/v1/nearby?lat=10.77&lng=106.70&sources=osm,fsq')).status).toBe(503);
+  });
+
   it('places/{id} không auth → 401; có auth + DB đóng → 503', async () => {
     const anonymous = await SELF.fetch('https://api/v1/places/abc');
     expect(anonymous.status).toBe(401);

@@ -4,7 +4,9 @@ import { getSql } from '../db';
 import type { AppEnv } from '../env';
 import { ApiError } from '../errors';
 import { INTEGER_HOUSE_NUMBER_PATTERN } from '../geocode';
+import { parseSources } from '../params';
 import { type PlaceRow, placeColumns, toPlace } from '../place';
+import { poiSourceFilter } from '../poi-sources';
 import { quotaMiddleware } from '../quota';
 
 export const reverse = new Hono<AppEnv>();
@@ -17,6 +19,7 @@ reverse.get('/v1/reverse', requireAuth(), quotaMiddleware('places'), async (c) =
   if (!Number.isFinite(lat) || !Number.isFinite(lng) || Math.abs(lat) > 90 || Math.abs(lng) > 180) {
     throw new ApiError(400, 'invalid_request', 'lat, lng bắt buộc và phải hợp lệ');
   }
+  const sources = parseSources(c.req.query('sources'));
 
   const sql = getSql(c.env);
   try {
@@ -62,6 +65,7 @@ reverse.get('/v1/reverse', requireAuth(), quotaMiddleware('places'), async (c) =
       SELECT ${placeColumns(sql)}
       FROM poi p LEFT JOIN category c ON c.code = p.category
       WHERE p.status = 'active'
+        AND ${poiSourceFilter(sql, sources)}
         AND ST_DWithin(p.geom::geography, ${point}::geography, 100)
       ORDER BY ST_DistanceSphere(p.geom, ${point}) ASC
       LIMIT 1`;

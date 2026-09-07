@@ -3,8 +3,9 @@ import { requireAuth } from '../auth';
 import { getSql } from '../db';
 import type { AppEnv } from '../env';
 import { ApiError } from '../errors';
-import { clampInt } from '../params';
+import { clampInt, parseSources } from '../params';
 import { type PlaceRow, placeColumns, toPlace } from '../place';
+import { poiSourceFilter } from '../poi-sources';
 import { quotaMiddleware } from '../quota';
 
 export const nearby = new Hono<AppEnv>();
@@ -20,6 +21,7 @@ nearby.get('/v1/nearby', requireAuth(), quotaMiddleware('places'), async (c) => 
   const radius = clampInt(c.req.query('radius'), 1, 5_000, 500, 'radius');
   const limit = clampInt(c.req.query('limit'), 1, 100, 20, 'limit');
   const category = c.req.query('category');
+  const sources = parseSources(c.req.query('sources'));
 
   const sql = getSql(c.env);
   try {
@@ -28,6 +30,7 @@ nearby.get('/v1/nearby', requireAuth(), quotaMiddleware('places'), async (c) => 
       SELECT ${placeColumns(sql)}, ST_DistanceSphere(p.geom, ${point}) AS d
       FROM poi p LEFT JOIN category c ON c.code = p.category
       WHERE p.status = 'active'
+        AND ${poiSourceFilter(sql, sources)}
         AND ST_DWithin(p.geom::geography, ${point}::geography, ${radius})
         ${category ? sql`AND p.category = ${category}` : sql``}
       ORDER BY d ASC

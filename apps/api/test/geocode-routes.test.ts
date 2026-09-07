@@ -23,6 +23,11 @@ const code = async (response: Response) =>
   ((await response.json()) as { error: { code: string } }).error.code;
 
 describe('validation geocode/reverse (không DB)', () => {
+  it('reverse: sources lạ → 400; hợp lệ → 503 (DB đóng)', async () => {
+    expect((await fetchApi('/v1/reverse?lat=10.77&lng=106.70&sources=banana')).status).toBe(400);
+    expect((await fetchApi('/v1/reverse?lat=10.77&lng=106.70&sources=osm')).status).toBe(503);
+  });
+
   it('cả hai route yêu cầu API key', async () => {
     expect((await fetchApi('/v1/geocode?q=Nguyen%20Lam', false)).status).toBe(401);
     expect((await fetchApi('/v1/reverse?lat=10.77&lng=106.7', false)).status).toBe(401);
