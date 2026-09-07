@@ -22,14 +22,22 @@ export function tsQueryFor(queryNorm: string): string | null {
 
 export type Stage = 2 | 3;
 
-/** Bậc nào còn phải chạy sau bậc 1. Không chạy gì khi bậc 1 đã đủ `limit`. */
-export function planStages(input: {
-  have: number;
-  limit: number;
-  tsQuery: string | null;
-  queryKey: string;
-}): Stage[] {
-  if (input.have >= input.limit) return [];
+/**
+ * Bậc nào chạy cùng bậc 1, dựa **chỉ** trên việc truy vấn có đủ dữ kiện cho bậc đó hay không.
+ *
+ * **Đổi 08/09/2026, PHONG duyệt.** Spec mục 5.4 bản gốc viết "bậc 2 chỉ khi bậc 1 trả < `limit`",
+ * và plan cài đúng như vậy. Đo trên production ngày 08/09 cho thấy điều kiện đó khiến bậc 2 và 3
+ * **không bao giờ chạy**: với 1,52 triệu POI, bậc 1 lấp đủ 10 suất cho mọi truy vấn thường
+ * (`kontum`, `qui nhon`, `bin than` đều trả đúng 10). Tiêu chí 11.6 vì thế bất khả thi — dù
+ * `viKey('kontum') === viKey('kon tum')`, bậc 3 không được gọi để dùng điều đó.
+ *
+ * Nay ba bậc chạy **song song** và `STAGE_PENALTY` trong `rankScore` lo việc xếp hạng: kết quả bậc
+ * sau chỉ nổi lên khi bậc trước không có gì tương đương. Chi phí đã đo trên production (poi 1,52
+ * triệu dòng, chạy trên chỉ số): bậc 2 từ 0 đến 4 ms khi có ≥ 2 token; bậc 3 từ 1 đến 483 ms tuỳ
+ * độ phổ biến của khoá. Vì chạy song song nên phần thêm vào thời gian tường là max(), không phải
+ * tổng.
+ */
+export function planStages(input: { tsQuery: string | null; queryKey: string }): Stage[] {
   const stages: Stage[] = [];
   if (input.tsQuery) stages.push(2);
   if (input.queryKey) stages.push(3);

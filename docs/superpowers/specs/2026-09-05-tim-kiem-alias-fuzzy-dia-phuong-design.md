@@ -294,7 +294,16 @@ ORDER BY sim DESC LIMIT 20
 similarity(name_norm, qNorm))`. Giữ `prefix` như cũ. Với `/v1/search` và `stepStreet` cũng thay
 `%` bằng `<%` (fallback không exact).
 
-### 5.4 Bậc 2 — token không kể thứ tự (chỉ khi bậc 1 trả < `limit` và truy vấn có ≥ 2 token)
+### 5.4 Bậc 2 — token không kể thứ tự (khi truy vấn có ≥ 2 token)
+
+> **Sửa 08/09/2026 (PHONG duyệt "cách 2").** Bản gốc viết "chỉ khi bậc 1 trả < `limit`". Đo trên
+> production cho thấy điều kiện đó khiến bậc 2 và bậc 3 **không bao giờ chạy**: với 1,52 triệu POI,
+> bậc 1 lấp đủ `limit` cho mọi truy vấn thường, nên tiêu chí 11.6 bất khả thi ngay từ thiết kế.
+> Nay **cả ba bậc chạy song song** trong một `Promise.all`, và `STAGE_PENALTY` ở mục 5.7 lo việc
+> xếp hạng. Chi phí đo trên production (chạy trên chỉ số): bậc 2 từ 0 đến 4 ms; bậc 3 từ 1 đến
+> 483 ms tuỳ độ phổ biến của khoá. Vì song song nên phần thêm vào thời gian tường là max(), không
+> phải tổng. Bậc 2 vẫn cần ≥ 2 token — một token thì `x:*` khớp gần như mọi tên và tốn 378–780 ms
+> (đo được với `da`, `ph`).
 
 - Cột sinh: `name_tsv tsvector GENERATED ALWAYS AS (to_tsvector('simple', name_norm)) STORED` trên
   `poi`, `street`; chỉ số `GIN (name_tsv)`. Cấu hình `'simple'` để không stem/stopword tiếng Anh.
@@ -305,8 +314,9 @@ similarity(name_norm, qNorm))`. Giữ `prefix` như cũ. Với `/v1/search` và 
 
 ### 5.5 Bậc 3 — khoá ngữ âm (mô tả ở hạng mục 3, mục 6.2)
 
-Chạy khi bậc 1+2 vẫn < `limit`: `${qKey} <% name_key`. Bao luôn dính/tách từ vì `name_key` không
-có khoảng trắng.
+Chạy song song với bậc 1 và 2 (xem sửa ở mục 5.4): `${qKey} <% name_key`. Gộp được dính/tách từ
+trong cùng một tên vì `name_key` không có khoảng trắng — nhưng **không phải** mọi cách viết dính
+đều gộp (`nhatrang` và `nhac trang` cho khoá khác nhau).
 
 ### 5.6 Bậc 3b (tuỳ chọn, bật bằng cờ) — Telex/VNI sót
 

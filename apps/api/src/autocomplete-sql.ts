@@ -256,53 +256,56 @@ export function streetKeyCandidates(sql: Sql, input: CandidateQueryInput) {
 }
 
 /**
- * Chạy song song mọi loại được chọn (spec 5.7); trước đây tuần tự là phần lớn độ trễ khi cache lạnh.
- * Bậc 2 và 3 CHỈ chạy khi bậc 1 chưa đủ `limit` — truy vấn thường không trả tiền cho chúng.
+ * Chạy song song mọi loại được chọn (spec 5.7) VÀ mọi bậc: mọi truy vấn được phát đi trước khi chờ
+ * bất cứ cái nào, nên phần thêm vào thời gian tường là max() chứ không phải tổng.
+ *
+ * Không nhận `limit`: từ 08/09/2026 số kết quả của bậc 1 không còn quyết định bậc 2/3 có chạy hay
+ * không (xem `planStages`). Việc cắt xuống `limit` là của route, sau khi đã xếp hạng bằng
+ * `rankScore` có `STAGE_PENALTY`.
  */
 export async function collectCandidates(
   sql: Sql,
   input: CandidateQueryInput,
   types: Set<ItemType>,
-  limit = 10,
 ): Promise<CandidateRow[]> {
-  const stage1: Promise<CandidateRow[]>[] = [];
-  if (types.has('poi')) stage1.push(poiCandidates(sql, input));
-  if (types.has('street')) stage1.push(streetCandidates(sql, input));
-  if (types.has('area')) stage1.push(areaCandidates(sql, input));
+  /** Mọi truy vấn của mọi bậc, kèm bậc của nó. Phát đi hết TRƯỚC khi chờ bất cứ cái nào. */
+  const jobs: { stage: 1 | 2 | 3; rows: Promise<CandidateRow[]> }[] = [];
+  const add = (stage: 1 | 2 | 3, rows: Promise<CandidateRow[]>) => jobs.push({ stage, rows });
+
+  if (types.has('poi')) add(1, poiCandidates(sql, input));
+  if (types.has('street')) add(1, streetCandidates(sql, input));
+  if (types.has('area')) add(1, areaCandidates(sql, input));
   const { housenumber, streetNorm } = input.parsed;
   if (types.has('address') && housenumber && streetNorm) {
-    stage1.push(addressCandidates(sql, input, housenumber, streetNorm));
+    add(1, addressCandidates(sql, input, housenumber, streetNorm));
   }
-  const rows: CandidateRow[] = (await Promise.all(stage1))
-    .flat()
-    .map((row) => ({ ...row, stage: 1 as const }));
+  for (const stage of planStages({ tsQuery: input.tsQuery, queryKey: input.queryKey })) {
+    if (types.has('poi')) {
+      add(stage, stage === 2 ? poiTokenCandidates(sql, input) : poiKeyCandidates(sql, input));
+    }
+    if (types.has('street')) {
+      add(stage, stage === 2 ? streetTokenCandidates(sql, input) : streetKeyCandidates(sql, input));
+    }
+  }
+
+  const settled = await Promise.all(jobs.map((job) => job.rows));
   // street/address không có id, nên khoá dedup phải lùi về (tên, phụ đề).
   const keyOf = (row: CandidateRow) =>
     `${row.type}:${row.id ?? `${row.name}|${row.secondary ?? ''}`}`;
-  const seen = new Set(rows.map(keyOf));
-  const stages = planStages({
-    have: rows.length,
-    limit,
-    tsQuery: input.tsQuery,
-    queryKey: input.queryKey,
-  });
-  for (const stage of stages) {
-    const runners: Promise<CandidateRow[]>[] = [];
-    if (types.has('poi')) {
-      runners.push(stage === 2 ? poiTokenCandidates(sql, input) : poiKeyCandidates(sql, input));
+  const seen = new Set<string>();
+  const rows: CandidateRow[] = [];
+  // Duyệt theo thứ tự bậc tăng dần để dòng của bậc SỚM hơn thắng dedup: cùng một đối tượng thì giữ
+  // bản có `sim` đo ở bậc chính xác hơn và không bị STAGE_PENALTY trừ điểm.
+  for (const stage of [1, 2, 3] as const) {
+    for (const [index, job] of jobs.entries()) {
+      if (job.stage !== stage) continue;
+      for (const row of settled[index] ?? []) {
+        const key = keyOf(row);
+        if (seen.has(key)) continue;
+        seen.add(key);
+        rows.push({ ...row, stage });
+      }
     }
-    if (types.has('street')) {
-      runners.push(
-        stage === 2 ? streetTokenCandidates(sql, input) : streetKeyCandidates(sql, input),
-      );
-    }
-    for (const row of (await Promise.all(runners)).flat()) {
-      const key = keyOf(row);
-      if (seen.has(key)) continue;
-      seen.add(key);
-      rows.push({ ...row, stage });
-    }
-    if (rows.length >= limit) break;
   }
   return rows;
 }

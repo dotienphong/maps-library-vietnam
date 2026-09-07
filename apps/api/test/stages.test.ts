@@ -28,19 +28,20 @@ describe('tsQueryFor', () => {
 });
 
 describe('planStages', () => {
-  it('chỉ bậc 1 khi đã đủ limit', () => {
-    expect(planStages({ have: 10, limit: 10, tsQuery: 'a:* & b:*', queryKey: 'ab' })).toEqual([]);
+  // Đổi 08/09/2026 (PHONG duyệt "cách 2"): bậc 2/3 chạy theo DỮ LIỆU CÓ SẴN, không theo số kết quả
+  // của bậc 1 nữa. Lý do đo được trên production: với 1,52 triệu POI, bậc 1 luôn lấp đủ `limit`,
+  // nên điều kiện cũ làm bậc 2/3 không bao giờ chạy và tiêu chí 11.6 bất khả thi.
+  it('có cả tsQuery lẫn queryKey → chạy cả hai bậc, bất kể bậc 1 đã đủ hay chưa', () => {
+    expect(planStages({ tsQuery: 'a:* & b:*', queryKey: 'ab' })).toEqual([2, 3]);
   });
 
-  it('thiếu và có ≥2 token → bậc 2 rồi bậc 3; thiếu mà 1 token → chỉ bậc 3', () => {
-    expect(planStages({ have: 3, limit: 10, tsQuery: 'a:* & b:*', queryKey: 'ab' })).toEqual([
-      2, 3,
-    ]);
-    expect(planStages({ have: 3, limit: 10, tsQuery: null, queryKey: 'highlands' })).toEqual([3]);
+  it('một token (tsQuery null) → chỉ bậc 3', () => {
+    expect(planStages({ tsQuery: null, queryKey: 'highlands' })).toEqual([3]);
   });
 
   it('queryKey rỗng thì không có bậc 3', () => {
-    expect(planStages({ have: 0, limit: 10, tsQuery: null, queryKey: '' })).toEqual([]);
+    expect(planStages({ tsQuery: null, queryKey: '' })).toEqual([]);
+    expect(planStages({ tsQuery: 'a:* & b:*', queryKey: '' })).toEqual([2]);
   });
 });
 

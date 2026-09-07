@@ -109,8 +109,11 @@ describe('autocomplete-sql — bậc 1 dùng word_similarity (spec 05/09 mục 5
   });
 
   it('collectCandidates: chạy song song các loại được chọn, bỏ address khi không có số nhà', async () => {
-    const rows = [{ type: 'poi', name: 'x' }];
-    const { sql, calls } = fakeSql(rows);
+    // Mỗi truy vấn phải trả dòng KHÁC nhau: collectCandidates khử trùng theo (type, id) và lùi về
+    // (tên, phụ đề) cho dòng không id, nên hai dòng giả giống hệt sẽ bị gộp và test đo sai thứ.
+    const { sql, calls } = fakeSql((q) => [
+      { type: q.text.includes('FROM street') ? 'street' : 'poi', name: 'x' },
+    ]);
     const result = await collectCandidates(sql, input, new Set(['poi', 'street', 'address']));
     const selects = calls.filter((call) => call.text.startsWith('SELECT'));
     expect(selects).toHaveLength(2); // poi + street; address bị bỏ vì parsed không có housenumber
@@ -225,21 +228,42 @@ const poiRow = (id: string, sim: number) => ({
   d: null,
 });
 
-describe('collectCandidates — bậc 2/3 chỉ chạy khi bậc 1 thiếu (spec 5.4–5.5)', () => {
-  it('bậc 1 đủ limit thì KHÔNG gọi SQL bậc 2/3', async () => {
+describe('collectCandidates — bậc 2/3 luôn chạy song song (spec 5.4–5.5, sửa 08/09)', () => {
+  it('bậc 1 đã đủ limit thì bậc 2/3 VẪN chạy — điều kiện cũ làm chúng chết trên production', async () => {
     const rows = Array.from({ length: 10 }, (_, i) => poiRow(String(i), 0.9));
     const { sql, calls } = fakeSql(rows);
     await collectCandidates(
       sql,
       { ...input, tsQuery: 'a:* & b:*', queryKey: 'ab' },
       new Set(['poi']),
-      10,
     );
-    expect(calls.filter((c) => c.text.includes('name_tsv @@'))).toHaveLength(0);
-    expect(calls.filter((c) => c.text.includes('<% name_key'))).toHaveLength(0);
+    expect(calls.filter((c) => c.text.includes('name_tsv @@'))).toHaveLength(1);
+    expect(calls.filter((c) => c.text.includes('<% name_key'))).toHaveLength(1);
   });
 
-  it('thiếu → chạy bậc 2 (tsvector) rồi bậc 3 (name_key), gắn stage và dedup theo id', async () => {
+  it('mọi bậc phát truy vấn TRƯỚC khi chờ, tức chạy song song chứ không nối đuôi', async () => {
+    let resolveStage1 = (_: unknown[]) => {};
+    const pending = new Promise<unknown[]>((r) => {
+      resolveStage1 = r;
+    });
+    const { sql, calls } = fakeSql((q) =>
+      q.text.includes('FROM poi p') && !q.text.includes('name_tsv') && !q.text.includes('name_key')
+        ? pending
+        : [],
+    );
+    const promise = collectCandidates(
+      sql,
+      { ...input, tsQuery: 'a:* & b:*', queryKey: 'ab' },
+      new Set(['poi']),
+    );
+    // Bậc 1 còn treo, nhưng bậc 2 và 3 phải đã được phát đi rồi.
+    expect(calls.some((c) => c.text.includes('name_tsv @@'))).toBe(true);
+    expect(calls.some((c) => c.text.includes('<% name_key'))).toBe(true);
+    resolveStage1([]);
+    await promise;
+  });
+
+  it('chạy bậc 2 (tsvector) và bậc 3 (name_key), gắn stage và dedup theo id', async () => {
     // Phân biệt theo NỘI DUNG truy vấn, không theo thứ tự gọi: fakeSql gọi hàm rows cho mọi
     // fragment lồng nhau (matchedAlt, aliasBranch…), nên đếm lượt gọi là đo sai thứ.
     const { sql, calls } = fakeSql((q) =>
@@ -249,7 +273,6 @@ describe('collectCandidates — bậc 2/3 chỉ chạy khi bậc 1 thiếu (spec
       sql,
       { ...input, tsQuery: 'a:* & b:*', queryKey: 'ab' },
       new Set(['poi']),
-      10,
     );
     expect(calls.some((c) => c.text.includes("to_tsquery('simple'"))).toBe(true);
     expect(calls.some((c) => c.text.includes('<% name_key'))).toBe(true);
@@ -257,23 +280,28 @@ describe('collectCandidates — bậc 2/3 chỉ chạy khi bậc 1 thiếu (spec
     expect(rows.map((r) => `${r.id}:${r.stage}`)).toEqual(['1:1', '2:2']);
   });
 
-  it('dừng ngay khi đủ limit, không chạy tiếp bậc 3', async () => {
-    const { sql, calls } = fakeSql((q) =>
-      q.text.includes('name_tsv @@') ? [poiRow('2', 0.5), poiRow('3', 0.5)] : [poiRow('1', 0.9)],
+  it('bậc 1 thắng dedup: cùng id thì giữ dòng bậc 1, không để bậc 2/3 hạ bậc nó', async () => {
+    const { sql } = fakeSql((q) =>
+      q.text.includes('name_tsv @@') || q.text.includes('<% name_key')
+        ? [poiRow('1', 0.99), poiRow('9', 0.5)]
+        : [poiRow('1', 0.5)],
     );
     const rows = await collectCandidates(
       sql,
       { ...input, tsQuery: 'a:* & b:*', queryKey: 'ab' },
       new Set(['poi']),
-      3,
     );
-    expect(rows).toHaveLength(3);
-    expect(calls.filter((c) => c.text.includes('<% name_key'))).toHaveLength(0);
+    const one = rows.find((r) => r.id === '1');
+    expect(one?.stage).toBe(1);
+    expect(one?.sim).toBe(0.5);
+    // id 9 xuất hiện ở cả bậc 2 và bậc 3 → chỉ giữ một lần, gắn bậc SỚM hơn.
+    expect(rows.filter((r) => r.id === '9')).toHaveLength(1);
+    expect(rows.find((r) => r.id === '9')?.stage).toBe(2);
   });
 
   it('tsQuery null và queryKey rỗng → chỉ bậc 1, không truy vấn thêm', async () => {
     const { sql, calls } = fakeSql([poiRow('1', 0.9)]);
-    await collectCandidates(sql, { ...input, tsQuery: null, queryKey: '' }, new Set(['poi']), 10);
+    await collectCandidates(sql, { ...input, tsQuery: null, queryKey: '' }, new Set(['poi']));
     expect(calls.filter((c) => c.text.startsWith('SELECT'))).toHaveLength(1);
   });
 });

@@ -76,7 +76,6 @@ autocomplete.get('/v1/autocomplete', requireAuth(), quotaMiddleware('places'), a
           queryKey,
         },
         types,
-        limit,
       );
       // Bậc 3b (spec 5.6): chỉ khi cờ bật VÀ mọi bậc trước rỗng. Chuỗi đã gập là một queryNorm
       // khác nên không đụng cache của chuỗi gốc.
@@ -101,7 +100,6 @@ autocomplete.get('/v1/autocomplete', requireAuth(), quotaMiddleware('places'), a
             queryKey: viKey(foldedAlias),
           },
           types,
-          limit,
         );
         rows.push(...retry.map((row) => ({ ...row, stage: 3 as const })));
       }
