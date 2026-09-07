@@ -151,6 +151,48 @@ Checksum đầu tiên đổi giữa hai lần chạy (`4e68600f…` → `a9dfb18
 phần. Đã thêm tên tỉnh của đích vào khoá và sắp trong JS; sau đó checksum ổn định qua 3 lần chạy.
 Nếu không truy `diff` mà tin ngay checksum thì đã kết luận sai rằng pipeline không idempotent.
 
+## 3b. Task 9.3 — workflow thật theo SHA
+
+Mọi workflow đều **lọc path**, nên một commit chỉ-tài-liệu chỉ kích hoạt `CI`; các workflow khác giữ
+kết quả của SHA cuối cùng chạm đúng path của chúng. Đó là lý do bảng dưới trải trên nhiều SHA — không
+suy ra từ local build:
+
+| Workflow | Trigger paths | SHA | Kết luận | Run |
+|---|---|---|---|---|
+| `CI` | không lọc | `9bccce2` | **success** | [34107792243](https://github.com/dotienphong/maps-library-vietnam/actions/runs/34107792243) |
+| `Deploy API` | `apps/api/**`, `apps/admin/**`, `packages/core/**`, `packages/style/**`, `pnpm-lock.yaml` | `bde2d35` | **success** | [34106026388](https://github.com/dotienphong/maps-library-vietnam/actions/runs/34106026388) |
+| `API tests (Places, real DB)` | `apps/api/**`, `apps/admin/**`, `packages/core/**`, `db/migrations/**`, `scripts/ap…` | `bde2d35` | **success** | [34106026398](https://github.com/dotienphong/maps-library-vietnam/actions/runs/34106026398) |
+| `Deploy Docs` | `apps/docs/**`, `packages/web/**`, `packages/core/**`, `packages/react/**`, … | `834db37` | **success** | [34105145022](https://github.com/dotienphong/maps-library-vietnam/actions/runs/34105145022) |
+| `DB tests` | `db/**`, `pipelines/poi/**`, `scripts/**`, `packages/core/**`, `vitest.db.config.ts` | `9bccce2` | **success** — 10 file / **62 test** | [34108066281](https://github.com/dotienphong/maps-library-vietnam/actions/runs/34108066281) |
+
+`DB tests` liên tục bị **cancelled** trong ngày vì `concurrency: cancel-in-progress` và tôi push nối
+tiếp; run xanh gần nhất là `0585eb1`
+([34101480379](https://github.com/dotienphong/maps-library-vietnam/actions/runs/34101480379)), nhưng SHA
+đó **trước** khi `pipelines/poi/src/lib/poi-filter.mjs` xuất hiện — tức chưa kiểm cây pipeline hiện
+tại. Đã `workflow_dispatch` một run trên `main` (`9bccce2`) để có bằng chứng đúng cây: **success, 10 file / 62 test**.
+
+**Cả 5 workflow đều có run xanh trên cây hiện tại.**
+
+### Hai lỗi chặn CI trong ngày, đều **không** thuộc Task 8/9
+
+1. **5 test `styleUrl`** ở `packages/web` + `packages/react-native` — việc `sources` thêm
+   `&sources=osm,overture,fsq` vào `styleUrl` mà chưa cập nhật kỳ vọng. Phiên đó sửa ở `37e4870`.
+2. **Thứ tự build**: `scripts/lib/poi-profile.mjs` → `pipelines/.../poi-filter.mjs` →
+   `@mapslibvn/core`. `tsconfig.scripts.json` include `scripts/**/*.mjs` nên `tsc` kéo `poi-filter.mjs`
+   vào program, mà bước `tsc -p tsconfig.scripts.json` chạy **trước** `turbo run typecheck` nên không
+   được hưởng `dependsOn: ["^build"]` và không có `packages/core/dist`. Local xanh **chỉ vì** dist đã
+   build sẵn từ trước; tái hiện đúng lỗi CI bằng `rm -rf packages/core/dist && pnpm typecheck`. Sửa ở
+   `44da644`: thêm `pnpm --filter @mapslibvn/core build &&` vào đầu script `typecheck`, đúng cách
+   script `test` vẫn làm.
+
+### Sửa lại một điều tôi nói sai ở mục 0
+
+`deploy-api.yml` **có** gate trên test: nó chạy `pnpm --filter @mapslibvn/api test` như một step. Cái
+nó **không** gate là bộ **DB thật** — đó là workflow riêng `apitest.yml`. Nên phát biểu đúng là: Deploy
+API chạy API unit test nhưng **không chờ** `API tests (Places, real DB)`, và chính bộ DB thật mới là
+bộ bắt được lỗi `malformed array literal`. Đề xuất cho PHONG vẫn giữ nguyên: cho Deploy API phụ thuộc
+workflow đó.
+
 ## 4. Còn lại của Task 9
 
 - **9.2** phần publish data: **xong** (37.251 alias lên production). SDK/docs npm chưa phát hành —

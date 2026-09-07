@@ -1353,6 +1353,25 @@ vẫn là `sleep 1` phút — `sudo pmset -a sleep 0 disksleep 0`.
   Local xanh chỉ vì dist đã build sẵn; tái hiện đúng lỗi CI bằng `rm -rf packages/core/dist &&
   pnpm typecheck`. Sửa (`44da644`): `pnpm typecheck` build core trước, đúng cách `pnpm test` vẫn làm
 
+- 2026-09-07 · Alias T9.3 · **đóng 9.3 — cả 5 workflow xanh trên cây hiện tại** ·
+  [hồ sơ mục 3b](evidence/admin-alias/9-4-9-5-nghiem-thu-production.md) · `CI` `9bccce2` success
+  ([34107792243](https://github.com/dotienphong/maps-library-vietnam/actions/runs/34107792243)) ·
+  `Deploy API` `bde2d35` success
+  ([34106026388](https://github.com/dotienphong/maps-library-vietnam/actions/runs/34106026388)) ·
+  `API tests (Places, real DB)` `bde2d35` success
+  ([34106026398](https://github.com/dotienphong/maps-library-vietnam/actions/runs/34106026398)) ·
+  `Deploy Docs` `834db37` success
+  ([34105145022](https://github.com/dotienphong/maps-library-vietnam/actions/runs/34105145022)) ·
+  `DB tests` `9bccce2` success **10 file / 62 test**
+  ([34108066281](https://github.com/dotienphong/maps-library-vietnam/actions/runs/34108066281)).
+  Bảng trải nhiều SHA vì **mọi workflow đều lọc path**: commit chỉ-tài-liệu chỉ kích hoạt `CI`.
+  `DB tests` bị cancelled suốt ngày do `concurrency: cancel-in-progress` cộng với push nối tiếp, và
+  run xanh gần nhất (`0585eb1`) **trước** khi có `pipelines/poi/src/lib/poi-filter.mjs` — tức chưa
+  kiểm cây pipeline hiện tại, nên đã `workflow_dispatch` một run trên `main` thay vì nhận run cũ.
+  **Sửa lại phát biểu trước:** `deploy-api.yml` **có** gate trên `pnpm --filter @mapslibvn/api test`;
+  cái nó **không** chờ là workflow riêng `apitest.yml` (DB thật) — và chính bộ DB thật mới bắt được
+  `malformed array literal`. Đề xuất PHONG: cho Deploy API phụ thuộc `apitest.yml`
+
 ## 5. Sự cố
 
 ### SC-1 · Cache Rule nuốt Range của PMTiles — **ĐÃ ĐÓNG 27/08/2026**
