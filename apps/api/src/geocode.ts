@@ -304,7 +304,8 @@ async function stepStreet({
           exact
             ? sql`name_norm = ${parsed.streetNorm as string}`
             : sql`(${parsed.streetNorm as string} <% name_norm
-                ${useSimilarityBranch(parsed.streetNorm as string) ? sql`OR name_norm % ${parsed.streetNorm as string}` : sql``})`
+                ${useSimilarityBranch(parsed.streetNorm as string) ? sql`OR name_norm % ${parsed.streetNorm as string}` : sql``}
+                OR ${parsed.streetNorm as string} <% name_alt_norm)`
         }
           ${scope.wardNorms.length ? sql`AND ward_norm&&${textArray(sql, scope.wardNorms)}` : sql``}
           ${scope.provinceNorm ? sql`AND province_norm = ${scope.provinceNorm}` : sql``}

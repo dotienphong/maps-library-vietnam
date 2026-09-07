@@ -86,7 +86,8 @@ describe('GET /v1/autocomplete — auth + validation (không DB)', () => {
       sourceKey: 'osm_fsq',
       limit: 10,
     });
-    expect(url).toContain('?v=src1&');
+    // Đổi khi hình dạng item đổi: alt1 thêm trường matched_alt, cache cũ phải bị bỏ.
+    expect(url).toContain('?v=alt1&');
     expect(url).toContain('&s=osm_fsq&');
   });
 });

@@ -15,6 +15,9 @@ const input: CandidateQueryInput = {
   near: null,
   parsed: { alleyChain: [], confidence: 0 },
   sources: ['osm', 'overture', 'fsq'],
+  queryAlias: 'coffee highlands',
+  tsQuery: null,
+  queryKey: '',
 };
 
 /** 7 ký tự — đủ ngắn để có thêm nhánh `%`. */
@@ -22,6 +25,9 @@ const shortInput: CandidateQueryInput = {
   ...input,
   queryNorm: 'higland',
   queryCore: 'higland',
+  // Phải ghi đè cùng queryNorm: từ điển địa danh không đổi 'higland', nên queryAlias === queryNorm
+  // và nhánh alias KHÔNG được bật — nếu quên, mọi phép đếm nhánh `<% name_norm` lệch 1.
+  queryAlias: 'higland',
   prefixPattern: 'higland%',
 };
 
@@ -68,6 +74,7 @@ describe('autocomplete-sql — bậc 1 dùng word_similarity (spec 05/09 mục 5
       ...input,
       queryNorm: 'ca phe cong',
       queryCore: 'cong',
+      queryAlias: 'ca phe cong',
       prefixPattern: 'ca phe cong%',
     });
     const [query] = calls.filter((call) => call.text.startsWith('SELECT'));
@@ -141,5 +148,65 @@ describe('autocomplete-sql — bậc 1 dùng word_similarity (spec 05/09 mục 5
     const oldTypes = fakeSql([]);
     await collectCandidates(oldTypes.sql, input, new Set(['poi', 'street']));
     expect(oldTypes.calls.some((call) => call.text.includes('FROM admin_area a'))).toBe(false);
+  });
+});
+
+describe('autocomplete-sql — biến thể địa danh và tên thay thế OSM (spec 6.1, 6.3)', () => {
+  it('bậc 1 POI: có nhánh name_alt_norm và matched_alt lấy tên gốc thẳng hàng', async () => {
+    const { sql, calls } = fakeSql([]);
+    await poiCandidates(sql, {
+      ...input,
+      queryNorm: 'cong ly',
+      queryCore: 'cong ly',
+      queryAlias: 'cong ly',
+      prefixPattern: 'cong ly%',
+    });
+    const q = calls.filter((call) => call.text.startsWith('SELECT'))[0]?.text ?? '';
+    expect(q).toMatch(/<% name_alt_norm/);
+    expect(q).toMatch(/unnest\(name_alt, string_to_array\(name_alt_norm, ' \| '\)\)/);
+    expect(q).toMatch(/AS matched_alt/);
+  });
+
+  it('bậc 1 POI: queryAlias khác queryNorm thì thêm nhánh qAlias <% name_norm; bằng thì không', async () => {
+    const a = fakeSql([]);
+    await poiCandidates(a.sql, {
+      ...input,
+      queryNorm: 'qui nhon',
+      queryCore: 'qui nhon',
+      queryAlias: 'quy nhon',
+      prefixPattern: 'qui nhon%',
+    });
+    const b = fakeSql([]);
+    await poiCandidates(b.sql, {
+      ...input,
+      queryNorm: 'quy nhon',
+      queryCore: 'quy nhon',
+      queryAlias: 'quy nhon',
+      prefixPattern: 'quy nhon%',
+    });
+    // Đếm NHÁNH, không đếm tham số: khi queryNorm chính là 'quy nhon' thì chuỗi đó bị bind ở mọi
+    // nhánh (word_similarity, similarity, starts_with, matched_alt…), nên phép đếm tham số đo sai thứ.
+    const branches = (calls: typeof a.calls) =>
+      calls.filter((c) => c.text.startsWith('SELECT'))[0]?.text.match(/<% name_norm/g)?.length ?? 0;
+    expect(branches(a.calls)).toBe(branches(b.calls) + 1);
+    // Và dạng chuẩn phải thật sự được bind ở ca a (nếu không thì nhánh chỉ là chữ, không có dữ liệu).
+    const paramsA =
+      a.calls.filter((c) => c.text.startsWith('SELECT'))[0]?.params.filter((p) => p === 'quy nhon')
+        .length ?? 0;
+    expect(paramsA).toBe(1);
+  });
+
+  it('bậc 1 street: cũng có name_alt_norm và matched_alt', async () => {
+    const { sql, calls } = fakeSql([]);
+    await streetCandidates(sql, {
+      ...input,
+      queryNorm: 'cong ly',
+      queryCore: 'cong ly',
+      queryAlias: 'cong ly',
+      prefixPattern: 'cong ly%',
+    });
+    const q = calls.filter((call) => call.text.startsWith('SELECT'))[0]?.text ?? '';
+    expect(q).toMatch(/<% name_alt_norm/);
+    expect(q).toMatch(/AS matched_alt/);
   });
 });

@@ -1,4 +1,10 @@
-import { nameCore, normalizeVi, parseAddress, poiSourcesKey } from '@mapslibvn/core';
+import {
+  applyToponymAlias,
+  nameCore,
+  normalizeVi,
+  parseAddress,
+  poiSourcesKey,
+} from '@mapslibvn/core';
 import { Hono } from 'hono';
 import { requireAuth } from '../auth';
 import { collectCandidates } from '../autocomplete-sql';
@@ -19,7 +25,7 @@ export const autocompleteCacheUrl = (input: {
   sourceKey: string;
   limit: number;
 }) =>
-  `https://cache.mapslibvn/autocomplete?v=src1&qn=${encodeURIComponent(input.queryNorm)}&g=${input.grid}&t=${input.typeKey}&s=${input.sourceKey}&l=${input.limit}`;
+  `https://cache.mapslibvn/autocomplete?v=alt1&qn=${encodeURIComponent(input.queryNorm)}&g=${input.grid}&t=${input.typeKey}&s=${input.sourceKey}&l=${input.limit}`;
 
 autocomplete.get('/v1/autocomplete', requireAuth(), quotaMiddleware('places'), async (c) => {
   const query = (c.req.query('q') ?? '').trim();
@@ -32,6 +38,8 @@ autocomplete.get('/v1/autocomplete', requireAuth(), quotaMiddleware('places'), a
   const sources = parseSources(c.req.query('sources'));
   const queryNorm = normalizeVi(query);
   const queryCore = nameCore(query) || queryNorm;
+  // Biến thể địa danh áp NGAY trên truy vấn (spec 6.1), nên không phải chờ pipeline điền name_key.
+  const queryAlias = applyToponymAlias(queryNorm);
   const queryStartsWithDigit = /^\d/.test(queryNorm);
   if (!queryNorm) {
     throw new ApiError(400, 'invalid_request', 'q không có ký tự tra cứu được');
@@ -51,7 +59,17 @@ autocomplete.get('/v1/autocomplete', requireAuth(), quotaMiddleware('places'), a
       const parsed = parseAddress(query);
       const rows = await collectCandidates(
         sql,
-        { queryNorm, queryCore, prefixPattern, near, parsed, sources },
+        {
+          queryNorm,
+          queryCore,
+          queryAlias,
+          prefixPattern,
+          near,
+          parsed,
+          sources,
+          tsQuery: null,
+          queryKey: '',
+        },
         types,
       );
       const items = rows
@@ -64,6 +82,7 @@ autocomplete.get('/v1/autocomplete', requireAuth(), quotaMiddleware('places'), a
           lng: row.lng,
           ...(row.precision ? { precision: row.precision } : {}),
           ...(row.bbox ? { bbox: row.bbox.map(Number) } : {}),
+          ...(row.matched_alt ? { matched_alt: row.matched_alt } : {}),
           score:
             Math.round(
               rankScore({

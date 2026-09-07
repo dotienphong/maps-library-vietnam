@@ -1,4 +1,4 @@
-import { normalizeVi } from '@mapslibvn/core';
+import { applyToponymAlias, normalizeVi } from '@mapslibvn/core';
 import { Hono } from 'hono';
 import { requireAuth } from '../auth';
 import { useSimilarityBranch } from '../autocomplete-sql';
@@ -31,6 +31,7 @@ search.get('/v1/search', requireAuth(), quotaMiddleware('places'), async (c) => 
   // LIKE tận dụng gin_trgm_ops; starts_with trong OR buộc quét cả bảng (xem 72f78a2).
   const prefixPattern = `${queryNorm.replace(/[\\%_]/g, '\\$&')}%`;
   const fuzzy = useSimilarityBranch(queryNorm);
+  const queryAlias = applyToponymAlias(queryNorm);
 
   const sql = getSql(c.env);
   try {
@@ -45,6 +46,8 @@ search.get('/v1/search', requireAuth(), quotaMiddleware('places'), async (c) => 
           queryNorm
             ? sql`AND (${queryNorm} <% p.name_norm
                 ${fuzzy ? sql`OR p.name_norm % ${queryNorm}` : sql``}
+                ${queryAlias !== queryNorm ? sql`OR ${queryAlias} <% p.name_norm` : sql``}
+                OR ${queryNorm} <% p.name_alt_norm
                 OR p.name_norm LIKE ${prefixPattern})`
             : sql``
         }

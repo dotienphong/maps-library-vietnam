@@ -10,6 +10,9 @@ const input: CandidateQueryInput = {
   near: null,
   sources: ['osm', 'overture', 'fsq'],
   parsed: { alleyChain: [], confidence: 0.2, district: '10' },
+  queryAlias: 'quan 10',
+  tsQuery: null,
+  queryKey: 'quan10',
 };
 
 const areaQueries = (calls: RecordedQuery[]) =>
@@ -95,6 +98,9 @@ describe('areaCandidates', () => {
     const { sql, calls } = fakeSql([{ type: 'area' }]);
     await areaCandidates(sql, {
       queryNorm: 'thu dau mot',
+      queryAlias: 'thu dau mot',
+      tsQuery: null,
+      queryKey: '',
       queryCore: 'thu dau mot',
       prefixPattern: 'thu dau mot%',
       near: null,
@@ -115,6 +121,9 @@ describe('areaCandidates', () => {
     const { sql, calls } = fakeSql([{ type: 'area' }]);
     await areaCandidates(sql, {
       queryNorm: 'thanh pho ho chi minh',
+      queryAlias: 'thanh pho ho chi minh',
+      tsQuery: null,
+      queryKey: '',
       queryCore: 'ho chi minh',
       prefixPattern: 'thanh pho ho chi minh%',
       near: null,

@@ -160,3 +160,45 @@ INSERT INTO poi (id, name, name_norm, category, geom, ward, province,
     ST_SetSRID(ST_MakePoint(106.695, 10.775), 4326), 'Bến Thành', 'Thành phố Hồ Chí Minh',
     40, 0.1, 'active', 'osm', 'm4test-con1', 'pipeline')
 ON CONFLICT (id) DO NOTHING;
+
+-- Hạng mục 3 (spec 05/09 mục 6, 8). Ba lớp dòng:
+--  (a) t3-poi-null: cột dẫn xuất NULL — mô phỏng dữ liệu chưa backfill; phải KHÔNG gây 5xx và vẫn
+--      tìm được ở bậc 1 qua nhánh qAlias.
+--  (b) t3-street-alt (Nam Kỳ Khởi Nghĩa): có name_alt, chưa backfill — itest gọi backfill rồi kiểm
+--      matched_alt.
+--  (c) t3-poi-key / t3-street-tsv: name_norm VÔ NGHĨA nên bậc 1 chắc chắn rỗng, còn name_key/
+--      name_tsv ĐẶT TAY đúng giá trị đích — đây là cách duy nhất chứng minh cơ chế bậc 3 / bậc 2
+--      chạy thật, vì word_similarity của pg_trgm khoan dung tới mức gần như mọi truy vấn nhiều từ
+--      đều trúng ngay bậc 1. Backfill trong itest chạy KHÔNG --all nên các dòng đặt tay giữ nguyên.
+INSERT INTO poi (id, name, name_norm, category, geom, ward, province, status, created_by,
+                 primary_source, primary_source_id, quality_score, popularity)
+VALUES
+  ('t3-poi-null', 'Quán Qui Nhơn Chưa Backfill', 'quan qui nhon chua backfill', 'cafe',
+    ST_SetSRID(ST_MakePoint(106.700, 10.776), 4326), 'Phường Sài Gòn', 'Thành phố Hồ Chí Minh',
+    'active', 'pipeline', 'osm', 't3-1', 70, 0.5),
+  ('t3-poi-key', 'Hẻm Vô Nghĩa Bậc Ba', 'zqxv kkkq', 'cafe',
+    ST_SetSRID(ST_MakePoint(106.701, 10.777), 4326), 'Phường Sài Gòn', 'Thành phố Hồ Chí Minh',
+    'active', 'pipeline', 'osm', 't3-2', 70, 0.5)
+ON CONFLICT (id) DO NOTHING;
+-- viKey('chan bien') = 'canbien' (ch→c ở đầu từ, 'bien' giữ nguyên).
+UPDATE poi SET name_key = 'canbien' WHERE id = 't3-poi-key';
+
+-- (d) t3-poi-alt: name_norm VÔ NGHĨA nên không nhánh nào của bậc 1 khớp được, chỉ còn đường qua
+-- name_alt_norm. Đây là ca duy nhất chứng minh nhánh name_alt_norm của /v1/search: route search
+-- dựng SQL ngay trong handler nên không có hàm thuần để test bằng fakeSql.
+INSERT INTO poi (id, name, name_norm, name_alt, category, geom, ward, province, status, created_by,
+                 primary_source, primary_source_id, quality_score, popularity)
+VALUES
+  ('t3-poi-alt', 'Quán Tên Chính Vô Nghĩa', 'zzzk vvvq', ARRAY['Chợ Cũ Sài Gòn'], 'cafe',
+    ST_SetSRID(ST_MakePoint(106.702, 10.778), 4326), 'Phường Sài Gòn', 'Thành phố Hồ Chí Minh',
+    'active', 'pipeline', 'osm', 't3-3', 70, 0.5)
+ON CONFLICT (id) DO NOTHING;
+
+DELETE FROM street WHERE osm_way_ids && '{930001,930002}';
+INSERT INTO street (osm_way_ids, name, name_norm, name_alt, province_norm, geom) VALUES
+  ('{930001}', 'Nam Kỳ Khởi Nghĩa', 'nam ky khoi nghia', '{"Công Lý"}', 'ho chi minh',
+    ST_Multi(ST_GeomFromText('LINESTRING(106.690 10.780,106.695 10.790)', 4326))),
+  ('{930002}', 'Đường Vô Nghĩa Bậc Hai', 'wwqq zzxx', '{}', 'ho chi minh',
+    ST_Multi(ST_GeomFromText('LINESTRING(106.680 10.780,106.685 10.790)', 4326)));
+-- Bậc 2 khớp qua name_tsv đặt tay; name_norm vô nghĩa để bậc 1 rỗng.
+UPDATE street SET name_tsv = to_tsvector('simple', 'khoi nghia bac hai') WHERE name_norm = 'wwqq zzxx';

@@ -20,6 +20,10 @@ export interface CandidateRow {
   pop: number;
   d: number | null;
   bbox?: [number, number, number, number];
+  /** Tên thay thế GỐC (còn dấu) đã khớp truy vấn, nếu kết quả đến từ `name_alt_norm`. */
+  matched_alt?: string | null;
+  /** Bậc đã cho ra dòng này (1 tiền tố+trigram, 2 tsvector, 3 khoá ngữ âm). */
+  stage?: 1 | 2 | 3;
 }
 
 export interface CandidateQueryInput {
@@ -31,7 +35,25 @@ export interface CandidateQueryInput {
   parsed: ParsedAddress;
   /** Tập nguồn POI (spec 07/09); chỉ nhánh `poi` dùng. */
   sources: readonly PoiSource[];
+  /** `applyToponymAlias(queryNorm)`; bằng `queryNorm` khi không có biến thể. Bậc 1 thêm nhánh khi khác. */
+  queryAlias: string;
+  /** `tsQueryFor(queryNorm)` — null khi < 2 token; bậc 2. */
+  tsQuery: string | null;
+  /** `viKey(queryAlias)` — bậc 3. */
+  queryKey: string;
 }
+
+/**
+ * Tên thay thế OSM (spec 6.3): khớp `name_alt_norm` và trả lại tên GỐC đã khớp. Làm được vì
+ * pipeline ghi `name_alt` và `name_alt_norm` THẲNG HÀNG theo chỉ số (xem `filterNameAlt` của core),
+ * nên `unnest` hai mảng song song ghép đúng cặp.
+ *
+ * NULL-safe theo thiết kế: `name_alt_norm` NULL → `string_to_array` NULL → `unnest` không ra dòng
+ * nào → subquery trả NULL. Task 13 chứng minh bằng DB thật, không chỉ khẳng định.
+ */
+const matchedAltExpr = (sql: Sql, queryNorm: string) =>
+  sql`(SELECT a.orig FROM unnest(name_alt, string_to_array(name_alt_norm, ' | ')) AS a(orig, norm)
+      WHERE ${queryNorm} <% a.norm ORDER BY word_similarity(${queryNorm}, a.norm) DESC LIMIT 1)`;
 
 /**
  * Truy vấn dài bao nhiêu thì THÔI dùng thêm toán tử `%`.
@@ -80,8 +102,11 @@ const distance = (sql: Sql, near: LatLng | null, geometry: string) => {
  * bảng. ORDER BY thêm pop để 20 ứng viên đầu không ngẫu nhiên khi sim hoà (truy vấn 2–3 ký tự).
  */
 export function poiCandidates(sql: Sql, input: CandidateQueryInput) {
-  const { queryNorm, queryCore, prefixPattern, near, sources } = input;
+  const { queryNorm, queryCore, queryAlias, prefixPattern, near, sources } = input;
   const fuzzy = useSimilarityBranch(queryNorm);
+  // Biến thể địa danh (spec 6.1): chỉ thêm nhánh khi từ điển thật sự đổi được chuỗi.
+  const aliasBranch = queryAlias === queryNorm ? sql`` : sql`OR ${queryAlias} <% name_norm`;
+  const matchedAlt = matchedAltExpr(sql, queryNorm);
   const simNorm = fuzzy ? sql`OR name_norm % ${queryNorm}` : sql``;
   // Phần lớn truy vấn có nameCore trùng normalizeVi; khi đó nhánh core chỉ là việc thừa.
   const coreBranches =
@@ -97,11 +122,13 @@ export function poiCandidates(sql: Sql, input: CandidateQueryInput) {
       greatest(
         word_similarity(${queryNorm}, name_norm),
         word_similarity(${queryCore}, name_norm),
-        similarity(name_norm, ${queryNorm})
+        similarity(name_norm, ${queryNorm}),
+        word_similarity(${queryNorm}, coalesce(name_alt_norm, ''))
       ) AS sim,
       starts_with(name_norm, ${queryNorm}) AS prefix,
       coalesce(popularity, 0) AS pop,
-      ${distance(sql, near, 'geom')} AS d
+      ${distance(sql, near, 'geom')} AS d,
+      ${matchedAlt} AS matched_alt
     FROM poi p
     WHERE status = 'active'
       AND ${poiSourceFilter(sql, sources)}
@@ -109,6 +136,8 @@ export function poiCandidates(sql: Sql, input: CandidateQueryInput) {
         ${queryNorm} <% name_norm
         ${simNorm}
         ${coreBranches}
+        ${aliasBranch}
+        OR ${queryNorm} <% name_alt_norm
         OR name_norm LIKE ${prefixPattern}
       )
     ORDER BY sim DESC, pop DESC
@@ -116,21 +145,30 @@ export function poiCandidates(sql: Sql, input: CandidateQueryInput) {
 }
 
 export function streetCandidates(sql: Sql, input: CandidateQueryInput) {
-  const { queryNorm, prefixPattern, near } = input;
+  const { queryNorm, queryAlias, prefixPattern, near } = input;
   const simNorm = useSimilarityBranch(queryNorm) ? sql`OR name_norm % ${queryNorm}` : sql``;
+  const aliasBranch = queryAlias === queryNorm ? sql`` : sql`OR ${queryAlias} <% name_norm`;
+  const matchedAlt = matchedAltExpr(sql, queryNorm);
   return sql<CandidateRow[]>`
     SELECT 'street' AS type, NULL AS id, name,
       coalesce(province_norm, '') AS secondary,
       ST_Y(ST_PointOnSurface(geom)) AS lat,
       ST_X(ST_PointOnSurface(geom)) AS lng,
       NULL AS precision,
-      greatest(word_similarity(${queryNorm}, name_norm), similarity(name_norm, ${queryNorm})) AS sim,
+      greatest(
+        word_similarity(${queryNorm}, name_norm),
+        similarity(name_norm, ${queryNorm}),
+        word_similarity(${queryNorm}, coalesce(name_alt_norm, ''))
+      ) AS sim,
       starts_with(name_norm, ${queryNorm}) AS prefix,
       0 AS pop,
-      ${distance(sql, near, 'geom')} AS d
+      ${distance(sql, near, 'geom')} AS d,
+      ${matchedAlt} AS matched_alt
     FROM street
     WHERE ${queryNorm} <% name_norm
       ${simNorm}
+      ${aliasBranch}
+      OR ${queryNorm} <% name_alt_norm
       OR name_norm LIKE ${prefixPattern}
     ORDER BY sim DESC
     LIMIT 20`;

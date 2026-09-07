@@ -35,6 +35,10 @@ describe('geocode helpers', () => {
     // Fallback giữ cả hai toán tử: <% cho cụm/đảo từ, % cho lỗi gõ trên từ ngắn.
     expect(streetQueries[1]?.text).toMatch(/\$\d+ <% name_norm/);
     expect(streetQueries[1]?.text).toMatch(/name_norm % \$\d+/);
+    // Tên cũ của đường (spec 6.3): fallback cũng soi name_alt_norm, nhánh exact thì KHÔNG —
+    // khớp đúng tên chính phải thắng trước, không để tên cũ chen vào.
+    expect(streetQueries[1]?.text).toMatch(/\$\d+ <% name_alt_norm/);
+    expect(streetQueries[0]?.text).not.toMatch(/name_alt_norm/);
   });
 
   it('guard ép int nhận số nhà thực tế nhưng loại SĐT/ID quá dài từ nguồn', () => {

@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { beforeAll, describe, expect, it } from 'vitest';
 
 const base = process.env.PLACES_API_BASE ?? 'http://127.0.0.1:8799';
 const KEY = 'mlv_live_test00000000000000000000';
@@ -270,5 +270,86 @@ describe('lệch schema giữa Worker và DB', () => {
   it('autocomplete mặc định gồm area không được 5xx khi bảng old rỗng', async () => {
     const { status } = await get('/v1/autocomplete?q=quan%2010&limit=5');
     expect(status).toBe(200);
+  });
+});
+
+describe('hạng mục 3 — trước backfill: cột dẫn xuất NULL không gây 5xx (spec 8)', () => {
+  it('autocomplete/search 200; dòng NULL vẫn tìm được ở bậc 1 qua nhánh qAlias', async () => {
+    const a = await get(`/v1/autocomplete?q=${enc('qui nhon')}&types=poi`);
+    expect(a.status).toBe(200);
+    expect(a.body.items.some((i) => i.id === 't3-poi-null')).toBe(true);
+    const s = await get(`/v1/search?q=${enc('qui nhon')}`);
+    expect(s.status).toBe(200);
+    expect(s.body.items.some((i) => i.id === 't3-poi-null')).toBe(true);
+  });
+
+  it('bậc 2 + 3 chạy thật trên Postgres khi cột NULL ở phần lớn dòng: 200 và rỗng đúng nghĩa', async () => {
+    const r = await get(`/v1/autocomplete?q=${enc('zzq wwx')}&types=poi,street`);
+    expect(r.status).toBe(200);
+    expect(r.body.items).toEqual([]);
+  });
+
+  it('bậc 3 — cơ chế: "chan bien" (bậc 1/2 rỗng) ra t3-poi-key qua name_key đặt tay', async () => {
+    const r = await get(`/v1/autocomplete?q=${enc('chan bien')}&types=poi`);
+    expect(r.status).toBe(200);
+    expect(r.body.items.map((i) => i.id)).toContain('t3-poi-key');
+  });
+
+  it('bậc 2 — cơ chế: "hai bac nghia" (đảo thứ tự, bậc 1 rỗng) ra đường qua name_tsv đặt tay', async () => {
+    const r = await get(`/v1/autocomplete?q=${enc('hai bac nghia')}&types=street`);
+    expect(r.status).toBe(200);
+    expect(r.body.items.some((i) => i.name === 'Đường Vô Nghĩa Bậc Hai')).toBe(true);
+  });
+});
+
+describe('hạng mục 3 — sau backfill (chỉ điền dòng NULL, giữ dòng đặt tay)', () => {
+  beforeAll(async () => {
+    const { execFileSync } = await import('node:child_process');
+    execFileSync(process.execPath, ['scripts/backfill-search-keys.mjs'], {
+      stdio: 'inherit',
+      env: process.env,
+    });
+  });
+
+  it('tên cũ của đường: "cong ly" trả Nam Kỳ Khởi Nghĩa với matched_alt "Công Lý"', async () => {
+    const r = await get(`/v1/autocomplete?q=${enc('cong ly')}&types=street`);
+    expect(r.status).toBe(200);
+    const hit = r.body.items.find((i) => i.name === 'Nam Kỳ Khởi Nghĩa');
+    expect(hit?.matched_alt).toBe('Công Lý');
+  });
+
+  it('geocode "Công Lý" qua tên thay thế của đường trả precision street', async () => {
+    const r = await get(`/v1/geocode?q=${enc('Công Lý')}&near=10.78,106.69`);
+    expect(r.status).toBe(200);
+    expect(r.body.items[0]?.precision).toBe('street');
+  });
+
+  it('/v1/search tìm được POI mà CHỈ tên thay thế khớp (nhánh name_alt_norm của route search)', async () => {
+    // name_norm của dòng này là 'zzzk vvvq' nên không nhánh nào của bậc 1 khớp 'cho cu sai gon';
+    // ra được kết quả tức là nhánh name_alt_norm đang chạy thật.
+    const r = await get(`/v1/search?q=${enc('cho cu sai gon')}`);
+    expect(r.status).toBe(200);
+    expect(r.body.items.some((i) => i.id === 't3-poi-alt')).toBe(true);
+  });
+
+  it('autocomplete trả matched_alt cho POI khớp qua tên thay thế', async () => {
+    const r = await get(`/v1/autocomplete?q=${enc('cho cu sai gon')}&types=poi`);
+    expect(r.status).toBe(200);
+    const hit = r.body.items.find((i) => i.id === 't3-poi-alt');
+    expect(hit?.matched_alt).toBe('Chợ Cũ Sài Gòn');
+  });
+
+  it('dòng NULL đã được điền đúng searchKeys; dòng đặt tay giữ nguyên', async () => {
+    const { default: postgres } = await import('postgres');
+    const { searchKeys } = await import('@mapslibvn/core');
+    const sql = postgres(process.env.DATABASE_URL ?? '', { max: 1, onnotice: () => {} });
+    try {
+      const [n] = await sql`SELECT name_norm, name_key FROM poi WHERE id = 't3-poi-null'`;
+      expect(n.name_key).toBe(searchKeys(n.name_norm, null).nameKey);
+      const [k] = await sql`SELECT name_key FROM poi WHERE id = 't3-poi-key'`;
+      expect(k.name_key).toBe('canbien');
+    } finally {
+      await sql.end();
+    }
   });
 });
