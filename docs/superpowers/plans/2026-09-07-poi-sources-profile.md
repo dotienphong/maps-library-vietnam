@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Người tích hợp chọn tập nguồn POI (`osm` | `overture` | `fsq`) một lần khi khởi tạo SDK; bản đồ dùng archive tile build riêng cho tập đó và Places API lọc cùng tập. Mặc định `['osm']` ở mọi bề mặt.
+**Goal:** Người tích hợp chọn tập nguồn POI (`osm` | `overture` | `fsq`) một lần khi khởi tạo SDK; bản đồ dùng archive tile build riêng cho tập đó và Places API lọc cùng tập. Mặc định là **cả ba nguồn** (`all`) ở mọi bề mặt — giữ đúng hành vi hiện tại.
 
 **Architecture:** Hằng `POI_SOURCE_PROFILES` ở `@mapslibvn/core` là nguồn sự thật duy nhất cho API, SDK và pipeline. Pipeline export thêm archive `poi-osm-YYYYMMDD.pmtiles` (lưới progressive chạy lại trên riêng tập OSM) và manifest KV có `poiProfiles.osm`. API nhận `sources=` trên `search/nearby/autocomplete/reverse/styles`; style trả archive theo profile, fallback `all` khi profile chưa publish. POI `created_by='user'` luôn có mặt.
 
@@ -18,7 +18,12 @@
 
 ---
 
-## Task 1: Đo trước khi chốt mặc định (cổng, không có code)
+## Task 1: Đo trước khi chốt mặc định (cổng, không có code) — ✅ XONG 07/09/2026
+
+**Kết quả:** OSM 7,0 % (106.325), Overture 77,1 % (1.174.282), FSQ 15,9 % (241.809);
+`multiSourcePct` 3,3 %. Cổng ≥ 40 % **KHÔNG ĐẠT** → PHONG quyết **đảo mặc định thành `all`**, vẫn
+giao profile `osm` như tuỳ chọn. Bằng chứng: `docs/evidence/poi-sources/do-truoc-primary-source.md`
+(commit `9853b97`). Mọi task dưới đây đã theo mặc định `all`.
 
 Spec mục 9 nghiệm thu 1. Máy dev không có `psql`/`cloudflared`; dùng báo cáo `report.mjs` đã nằm trên R2 (`bySource` đếm theo `primary_source`).
 
@@ -52,6 +57,8 @@ Expected: ba dòng `osm/overture/fsq` (và có thể `user/null`) với phần t
 
 Nếu `osm` **≥ 40 %** tổng → tiếp tục plan, mặc định `osm` giữ nguyên.
 Nếu **< 40 %** → DỪNG plan, báo PHONG kèm số liệu; không tự đổi mặc định (spec mục 9).
+
+(Thực tế: 7,0 % → đã dừng và PHONG chọn đảo mặc định thành `all`.)
 
 - [ ] **Step 4: Ghi bằng chứng**
 
@@ -104,9 +111,10 @@ import {
 } from './poi-sources';
 
 describe('poi-sources', () => {
-  it('mặc định là profile osm', () => {
-    expect(DEFAULT_POI_SOURCES).toEqual(['osm']);
+  it('mặc định là profile all (cả ba nguồn)', () => {
+    expect(DEFAULT_POI_SOURCES).toEqual(['osm', 'overture', 'fsq']);
     expect(POI_SOURCE_PROFILES.all).toEqual(['osm', 'overture', 'fsq']);
+    expect(POI_SOURCE_PROFILES.osm).toEqual(['osm']);
   });
 
   it('normalizePoiSources: bỏ trùng, sắp theo thứ tự chuẩn, sai → null', () => {
@@ -115,10 +123,11 @@ describe('poi-sources', () => {
     expect(normalizePoiSources(['osm', 'banana'])).toBeNull();
   });
 
-  it('parsePoiSourcesCsv: rỗng → mặc định; all → cả ba; lạ → null', () => {
-    expect(parsePoiSourcesCsv(undefined)).toEqual(['osm']);
-    expect(parsePoiSourcesCsv('')).toEqual(['osm']);
+  it('parsePoiSourcesCsv: rỗng → mặc định cả ba; all → cả ba; lạ → null', () => {
+    expect(parsePoiSourcesCsv(undefined)).toEqual(['osm', 'overture', 'fsq']);
+    expect(parsePoiSourcesCsv('')).toEqual(['osm', 'overture', 'fsq']);
     expect(parsePoiSourcesCsv('all')).toEqual(['osm', 'overture', 'fsq']);
+    expect(parsePoiSourcesCsv('osm')).toEqual(['osm']);
     expect(parsePoiSourcesCsv(' overture , osm ')).toEqual(['osm', 'overture']);
     expect(parsePoiSourcesCsv('osm,banana')).toBeNull();
   });
@@ -163,8 +172,12 @@ export const POI_SOURCE_PROFILES: Readonly<Record<PoiSourceProfile, readonly Poi
   all: ['osm', 'overture', 'fsq'],
 };
 
-/** Mặc định ở mọi bề mặt (REST và SDK): chỉ OSM. */
-export const DEFAULT_POI_SOURCES: readonly PoiSource[] = POI_SOURCE_PROFILES.osm;
+/**
+ * Mặc định ở mọi bề mặt (REST và SDK): cả ba nguồn, tức đúng hành vi trước khi có tuỳ chọn này.
+ * Đo 07/09/2026 cho thấy OSM chỉ là nguồn chính của 7 % POI, nên mặc định `osm` sẽ làm bản đồ mất
+ * ~93 % dữ liệu (`docs/evidence/poi-sources/do-truoc-primary-source.md`).
+ */
+export const DEFAULT_POI_SOURCES: readonly PoiSource[] = POI_SOURCE_PROFILES.all;
 
 const isPoiSource = (value: string): value is PoiSource =>
   (POI_SOURCES as readonly string[]).includes(value);
@@ -241,12 +254,12 @@ git commit -m "feat(core): hằng profile nguồn POI và hàm chuẩn hoá sour
 Trong `packages/core/src/client.test.ts`, test `'styleUrl mang theme và key'` đổi kỳ vọng:
 ```ts
     expect(client.styleUrl('dark')).toBe(
-      'https://api.example.test/v1/styles/dark.json?key=k%201&sources=osm',
+      'https://api.example.test/v1/styles/dark.json?key=k%201&sources=osm%2Coverture%2Cfsq',
     );
 ```
 Thêm cuối `describe('createClient', …)`:
 ```ts
-  it('poiSources mặc định osm: autocomplete/search/nearby/reverse đều gửi sources=osm', async () => {
+  it('poiSources mặc định: autocomplete/search/nearby/reverse đều gửi cả ba nguồn', async () => {
     const fetch = okFetch({ items: [] });
     const client = createClient({ apiKey: 'k', baseUrl: 'https://api.example.test', fetch });
     await client.autocomplete('pho');
@@ -255,7 +268,7 @@ Thêm cuối `describe('createClient', …)`:
     await client.reverse(10.7, 106.7);
     for (const call of fetch.mock.calls) {
       const url = (call as unknown as [URL])[0];
-      expect(url.searchParams.get('sources')).toBe('osm');
+      expect(url.searchParams.get('sources')).toBe('osm,overture,fsq');
     }
     expect(fetch).toHaveBeenCalledTimes(4);
   });
@@ -266,14 +279,14 @@ Thêm cuối `describe('createClient', …)`:
       apiKey: 'k',
       baseUrl: 'https://api.example.test',
       fetch,
-      poiSources: ['fsq', 'osm', 'overture'],
+      poiSources: ['fsq', 'osm'],
     });
     await client.search('pho');
     expect((fetch.mock.calls[0] as unknown as [URL])[0].searchParams.get('sources')).toBe(
-      'osm,overture,fsq',
+      'osm,fsq',
     );
     expect(client.styleUrl('light')).toBe(
-      'https://api.example.test/v1/styles/light.json?key=k&sources=osm%2Coverture%2Cfsq',
+      'https://api.example.test/v1/styles/light.json?key=k&sources=osm%2Cfsq',
     );
     await client.geocode('12 nguyen hue');
     expect((fetch.mock.calls[1] as unknown as [URL])[0].searchParams.has('sources')).toBe(false);
@@ -296,7 +309,7 @@ Thêm cuối `describe('createClient', …)`:
 - [ ] **Step 2: Chạy test, xác nhận đỏ**
 
 Run: `pnpm vitest run packages/core/src/client.test.ts`
-Expected: FAIL — `styleUrl` thiếu `&sources=osm`; `searchParams.get('sources')` là `null`; không ném lỗi.
+Expected: FAIL — `styleUrl` thiếu `&sources=…`; `searchParams.get('sources')` là `null`; không ném lỗi.
 
 - [ ] **Step 3: Implement**
 
@@ -315,7 +328,7 @@ import {
 Thêm vào `ClientOptions` (sau `headers?`):
 ```ts
   /**
-   * Tập nguồn POI cho bản đồ và Places API (spec 07/09). Mặc định `['osm']`.
+   * Tập nguồn POI cho bản đồ và Places API (spec 07/09). Mặc định cả ba nguồn.
    * Áp cho autocomplete/search/nearby/reverse và `styleUrl`; `getPlace`/`geocode` không lọc.
    */
   poiSources?: readonly PoiSource[];
@@ -367,9 +380,10 @@ git commit -m "feat(core): client nhận poiSources, gắn sources= cho Places A
 
 Thêm vào `apps/api/test/params.test.ts` (import thêm `parseSources`):
 ```ts
-  it('parseSources: mặc định osm, all → ba nguồn, chuẩn hoá thứ tự, lạ → 400', () => {
-    expect(parseSources(undefined)).toEqual(['osm']);
-    expect(parseSources('')).toEqual(['osm']);
+  it('parseSources: mặc định cả ba, all → ba nguồn, chuẩn hoá thứ tự, lạ → 400', () => {
+    expect(parseSources(undefined)).toEqual(['osm', 'overture', 'fsq']);
+    expect(parseSources('')).toEqual(['osm', 'overture', 'fsq']);
+    expect(parseSources('osm')).toEqual(['osm']);
     expect(parseSources('all')).toEqual(['osm', 'overture', 'fsq']);
     expect(parseSources('fsq,osm')).toEqual(['osm', 'fsq']);
     expect(() => parseSources('osm,banana')).toThrowError(ApiError);
@@ -410,7 +424,7 @@ Expected: FAIL — `parseSources` không export; `../src/poi-sources` không t�
 import { type PoiSource, parsePoiSourcesCsv } from '@mapslibvn/core';
 ```
 ```ts
-/** `sources=osm,overture,fsq` | `all`; rỗng → mặc định osm (spec 07/09 mục 6.1). */
+/** `sources=osm,overture,fsq` | `all`; rỗng → mặc định cả ba nguồn (spec 07/09 mục 6.1). */
 export function parseSources(raw: string | undefined): PoiSource[] {
   const sources = parsePoiSourcesCsv(raw);
   if (!sources) {
@@ -522,7 +536,7 @@ Expected: PASS toàn bộ.
 
 ```bash
 git add apps/api/src/routes/search.ts apps/api/src/routes/nearby.ts apps/api/src/routes/reverse.ts apps/api/test/places-routes.test.ts apps/api/test/geocode-routes.test.ts
-git commit -m "feat(api): search/nearby/reverse lọc POI theo sources (mặc định osm)"
+git commit -m "feat(api): search/nearby/reverse lọc POI theo sources (mặc định cả ba nguồn)"
 ```
 
 ---
@@ -640,12 +654,24 @@ git commit -m "feat(api): autocomplete lọc poi theo sources, cache key v=src1"
 
 Thêm vào `describe('GET /v1/styles/:theme.json')` trong `apps/api/test/styles.test.ts`:
 ```ts
-  it('mặc định sources=osm nhưng manifest chưa có profile → dùng archive all + header fallback', async () => {
+  it('mặc định (không có sources) → profile all, không fallback', async () => {
     await env.META.put(
       'release:current',
       JSON.stringify({ vn: 'vn-20260826', poi: 'poi-20260901' }),
     );
     const res = await SELF.fetch('https://api/v1/styles/light.json');
+    expect(res.status).toBe(200);
+    expect(res.headers.get('x-poi-profile')).toBe('all');
+    const style = (await res.json()) as { sources: Record<string, { url?: string }> };
+    expect(style.sources.poi?.url).toBe('pmtiles://https://tiles.test/tiles/poi-20260901.pmtiles');
+  });
+
+  it('sources=osm nhưng manifest chưa có profile → dùng archive all + header fallback', async () => {
+    await env.META.put(
+      'release:current',
+      JSON.stringify({ vn: 'vn-20260826', poi: 'poi-20260901' }),
+    );
+    const res = await SELF.fetch('https://api/v1/styles/light.json?sources=osm');
     expect(res.status).toBe(200);
     expect(res.headers.get('x-poi-profile')).toBe('all;fallback');
     const style = (await res.json()) as { sources: Record<string, { url?: string }> };
@@ -1256,20 +1282,19 @@ git commit -m "test(pipeline): dbtest profile osm là tập con và giữ POI ng
 
 `packages/web/src/map.test.ts`: trong test đầu đổi kỳ vọng
 ```ts
-    expect(opts.style).toBe('https://api.test/v1/styles/light.json?key=mlv_live_t&sources=osm');
+    expect(opts.style).toBe(
+      'https://api.test/v1/styles/light.json?key=mlv_live_t&sources=osm%2Coverture%2Cfsq',
+    );
 ```
 Thêm:
 ```ts
   it('poiSources đi vào style URL và client Places; tổ hợp chưa có archive → ném lỗi sớm', () => {
     const { ml } = fakeMaplibre();
-    const m = createMap(
-      { ...base, poiSources: ['fsq', 'overture', 'osm'] },
-      { maplibre: ml as never },
-    );
+    const m = createMap({ ...base, poiSources: ['osm'] }, { maplibre: ml as never });
     expect((m.gl as unknown as { options: Record<string, unknown> }).options.style).toBe(
-      'https://api.test/v1/styles/light.json?key=mlv_live_t&sources=osm%2Coverture%2Cfsq',
+      'https://api.test/v1/styles/light.json?key=mlv_live_t&sources=osm',
     );
-    expect(m.places.styleUrl('dark')).toContain('sources=osm%2Coverture%2Cfsq');
+    expect(m.places.styleUrl('dark')).toContain('sources=osm');
     expect(() =>
       createMap({ ...base, poiSources: ['osm', 'overture'] }, { maplibre: ml as never }),
     ).toThrowError(/osm,overture,fsq/);
@@ -1311,6 +1336,7 @@ và test mới (đặt trong `describe` có sẵn):
       poiSources: ['osm', 'fsq'],
     });
     element.remove();
+    // Không có thuộc tính `sources` → không truyền poiSources, client tự dùng mặc định cả ba nguồn.
 
     const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
     const bad = new MapsLibVNAutocomplete();
@@ -1352,7 +1378,7 @@ import {
 Thêm vào `CreateMapOptions` sau `poiLayer?`:
 ```ts
   /**
-   * Tập nguồn POI cho bản đồ và `map.places` — mặc định `['osm']`. Chỉ nhận tổ hợp đã có bộ tiles
+   * Tập nguồn POI cho bản đồ và `map.places` — mặc định cả ba. Chỉ nhận tổ hợp đã có bộ tiles
    * (`['osm']` hoặc cả ba); tổ hợp khác ném lỗi ngay khi tạo map.
    */
   poiSources?: readonly PoiSource[];
@@ -1428,22 +1454,25 @@ git commit -m "feat(web): poiSources cho createMap và thuộc tính sources c�
 
 `packages/react-native/src/map.test.tsx`: test đầu đổi kỳ vọng
 ```ts
-      'https://api.test/v1/styles/light.json?key=mlv_live_k&sources=osm',
+      'https://api.test/v1/styles/light.json?key=mlv_live_k&sources=osm%2Coverture%2Cfsq',
 ```
 Thêm:
 ```ts
   it('poiSources đi vào style URL và client; đổi prop tạo lại map', () => {
-    const { rerender } = render(<MapsLibVNMap {...base} poiSources={['osm', 'overture', 'fsq']} />);
-    expect(screen.getByTestId('mlrn-map').dataset.style).toContain('sources=osm%2Coverture%2Cfsq');
-    const onLoad = vi.fn();
-    rerender(<MapsLibVNMap {...base} poiSources={['osm']} onLoad={onLoad} />);
+    const { rerender } = render(<MapsLibVNMap {...base} poiSources={['osm']} />);
     expect(screen.getByTestId('mlrn-map').dataset.style).toContain('sources=osm');
+    expect(screen.getByTestId('mlrn-map').dataset.style).not.toContain('overture');
+    const onLoad = vi.fn();
+    rerender(<MapsLibVNMap {...base} poiSources={['osm', 'overture', 'fsq']} onLoad={onLoad} />);
+    expect(screen.getByTestId('mlrn-map').dataset.style).toContain('sources=osm%2Coverture%2Cfsq');
     const props = getLastMapProps() as unknown as { onDidFinishLoadingStyle: () => void };
     act(() => props.onDidFinishLoadingStyle());
-    expect(onLoad.mock.calls[0]?.[0].places.styleUrl('light')).toContain('sources=osm');
+    expect(onLoad.mock.calls[0]?.[0].places.styleUrl('light')).toContain(
+      'sources=osm%2Coverture%2Cfsq',
+    );
   });
 ```
-`packages/react-native/src/use-style.test.ts`: kỳ vọng `styleUrlFor(places, 'dark')` đổi thành `'https://api.test/v1/styles/dark.json?key=mlv_live_k&sources=osm'`.
+`packages/react-native/src/use-style.test.ts`: kỳ vọng `styleUrlFor(places, 'dark')` đổi thành `'https://api.test/v1/styles/dark.json?key=mlv_live_k&sources=osm%2Coverture%2Cfsq'`.
 
 - [ ] **Step 2: Chạy, xác nhận đỏ**
 
@@ -1467,7 +1496,7 @@ export type { AutocompleteItem, MapsLibVNClient, Place, PoiSource } from '@mapsl
 - Import `type PoiSource` từ `@mapslibvn/core`.
 - Props thêm sau `poiLayer?`:
 ```ts
-  /** Tập nguồn POI cho bản đồ và Places API — mặc định ['osm']; đổi sau khi mount tạo lại map. */
+  /** Tập nguồn POI cho bản đồ và Places API — mặc định cả ba; đổi sau khi mount tạo lại map. */
   poiSources?: readonly PoiSource[];
 ```
 - Destructure `poiSources,` (sau `poiLayer = true,`).
@@ -1611,14 +1640,14 @@ Expected: bốn dòng `"version": "0.3.0"`. Kiểm các gói có peer/dependency
 
 Bảng tham số `GET /v1/autocomplete`, `GET /v1/search`, `GET /v1/nearby`, `GET /v1/reverse` — thêm dòng:
 ```markdown
-| `sources` | danh sách ngăn bằng dấu phẩy | không | `osm` | `osm`, `overture`, `fsq`; `all` = cả ba. Lọc POI theo **nguồn chính**; POI do người dùng đóng góp luôn có mặt |
+| `sources` | danh sách ngăn bằng dấu phẩy | không | `all` | `osm`, `overture`, `fsq`; `all` = cả ba. Lọc POI theo **nguồn chính**; POI do người dùng đóng góp luôn có mặt |
 ```
 Với `autocomplete` thêm câu sau bảng: "`sources` chỉ ảnh hưởng kết quả `poi`; `street`, `address`, `area` không có nguồn."
 Với `reverse`: câu "POI gần nhất: 100 m, chỉ POI `active`" thêm "và thuộc `sources`".
 Mục `GET /v1/places/{id}`: thêm câu "Không nhận `sources`: tra theo id luôn trả POI dù nguồn nào, để POI đã bấm trên bản đồ hay đã ghim luôn mở được."
 Mục `GET /v1/styles/{theme}.json`: thêm dòng bảng
 ```markdown
-| `sources` | chuỗi truy vấn | không | `osm` | chỉ nhận tổ hợp đã có bộ tiles: `osm` hoặc `osm,overture,fsq` (`all`); tổ hợp khác `400 invalid_request` |
+| `sources` | chuỗi truy vấn | không | `all` | chỉ nhận tổ hợp đã có bộ tiles: `osm` hoặc `osm,overture,fsq` (`all`); tổ hợp khác `400 invalid_request` |
 ```
 và đoạn:
 ```markdown
@@ -1631,33 +1660,36 @@ Mục `GET /v1/tiles/{set}.json`: `set` là `vn`, `poi` (đầy đủ) hoặc `p
 
 `ban-do-web.md` bảng `CreateMapOptions` thêm sau `poiLayer`:
 ```markdown
-| `poiSources` | `('osm' \| 'overture' \| 'fsq')[]` | `['osm']` | Nguồn POI cho bản đồ **và** `map.places`. Hiện chỉ có bộ tiles cho `['osm']` và cả ba; tổ hợp khác ném lỗi khi tạo map |
+| `poiSources` | `('osm' \| 'overture' \| 'fsq')[]` | cả ba | Nguồn POI cho bản đồ **và** `map.places`. Hiện chỉ có bộ tiles cho `['osm']` và cả ba; tổ hợp khác ném lỗi khi tạo map |
 ```
 Mục 8 "Lớp POI" thêm đoạn:
 ```markdown
-Mặc định bản đồ chỉ vẽ POI có nguồn chính OpenStreetMap (và POI người dùng đóng góp). Muốn thêm
-Overture và Foursquare: `poiSources: ['osm', 'overture', 'fsq']`. Tuỳ chọn này áp cả cho search,
-nearby và reverse của `map.places`, nên POI không hiện trên bản đồ cũng không xuất hiện trong ô tìm
-kiếm. `<mapslibvn-autocomplete>` nhận thuộc tính `sources="osm,overture,fsq"` tương ứng.
+Mặc định bản đồ vẽ POI từ cả ba nguồn. Muốn chỉ dùng dữ liệu OpenStreetMap — ví dụ để mọi POI đều
+là ODbL — đặt `poiSources: ['osm']`. Lưu ý OSM là nguồn chính của khoảng 7 % POI Việt Nam trong kho
+hiện tại, nên bản đồ sẽ **thưa hẳn**. Tuỳ chọn này áp cả cho search, nearby và reverse của
+`map.places`, nên POI không hiện trên bản đồ cũng không xuất hiện trong ô tìm kiếm.
+`<mapslibvn-autocomplete>` nhận thuộc tính `sources="osm"` tương ứng.
 ```
-`react.md` bảng props thêm dòng `| `poiSources` | `PoiSource[]` | `['osm']` | đổi là tạo lại map |`.
-`react-native.md`: đoạn "Đổi `apiKey`, `apiBase`, `style`, `lang`, `poiLayer` sau khi mount…" thêm `poiSources`; thêm dòng ví dụ `poiSources={['osm', 'overture', 'fsq']}` (chú thích `// mặc định ['osm']`) vào khối `<MapsLibVNMap>`.
-`tim-kiem.md` mục 4: sau đoạn `createClient` còn nhận `fetch`, `headers` thêm câu: "và `poiSources` (mặc định `['osm']`) — tập nguồn POI áp cho `autocomplete`, `search`, `nearby`, `reverse` và `styleUrl`; `getPlace`/`geocode` không lọc."
+`react.md` bảng props thêm dòng `| `poiSources` | `PoiSource[]` | cả ba | đổi là tạo lại map |`.
+`react-native.md`: đoạn "Đổi `apiKey`, `apiBase`, `style`, `lang`, `poiLayer` sau khi mount…" thêm `poiSources`; thêm dòng ví dụ `poiSources={['osm']}` (chú thích `// mặc định: cả ba nguồn`) vào khối `<MapsLibVNMap>`.
+`tim-kiem.md` mục 4: sau đoạn `createClient` còn nhận `fetch`, `headers` thêm câu: "và `poiSources` (mặc định cả ba nguồn) — tập nguồn POI áp cho `autocomplete`, `search`, `nearby`, `reverse` và `styleUrl`; `getPlace`/`geocode` không lọc."
 `tinh-nang.md` mục 2: sau đoạn "Dữ liệu POI gộp từ ba nguồn mở…" thêm:
 ```markdown
-Mặc định bản đồ và Places API **chỉ dùng POI có nguồn chính OpenStreetMap** cùng POI người dùng
-đóng góp; người tích hợp bật thêm Overture/Foursquare bằng `poiSources` (SDK) hoặc `sources=` (REST).
-Lớp POI cho từng tập nguồn được build riêng nên mật độ hiển thị luôn đúng, không có lỗ trống.
+Mặc định bản đồ và Places API dùng **cả ba nguồn**. Người tích hợp có thể giới hạn tập nguồn bằng
+`poiSources` (SDK) hoặc `sources=` (REST) — ví dụ `['osm']` khi chỉ muốn dữ liệu ODbL. Lớp POI cho
+từng tập nguồn được build thành archive riêng nên mật độ hiển thị luôn đúng, không có lỗ trống.
+Phân bố nguồn chính hiện tại: Overture 77 %, Foursquare 16 %, OpenStreetMap 7 %.
 ```
 `sdk.md`: bảng phiên bản đổi `0.2.0` → `0.3.0` cho bốn gói; thêm mục trước "Nâng từ 0.1.x lên 0.2.0":
 ```markdown
 ### Nâng từ 0.2.x lên 0.3.0
 
-Bản 0.3.0 chỉ thêm API nhưng **đổi hành vi mặc định**: bản đồ và Places API chỉ trả POI có nguồn
-chính OpenStreetMap (cùng POI người dùng). Muốn giữ đúng dữ liệu như 0.2.x, truyền
-`poiSources: ['osm', 'overture', 'fsq']` cho `createMap`/`<MapsLibVNMap>`/`createClient`, hoặc
-`sources=all` khi gọi REST trực tiếp. Kiểu mới: `PoiSource`, `PoiSourceProfile`,
-`POI_SOURCE_PROFILES`, `DEFAULT_POI_SOURCES`, `parsePoiSourcesCsv`, `profileForSources`.
+Bản 0.3.0 **chỉ thêm**, không đổi hành vi: mặc định vẫn là cả ba nguồn POI như 0.2.x, nên code đang
+chạy không phải sửa gì. Mới: tuỳ chọn `poiSources` cho `createMap`, `<MapsLibVNMap>` (React và React
+Native) và `createClient`, thuộc tính `sources` cho `<mapslibvn-autocomplete>`, cùng các export
+`PoiSource`, `PoiSourceProfile`, `POI_SOURCE_PROFILES`, `DEFAULT_POI_SOURCES`, `parsePoiSourcesCsv`,
+`profileForSources`. Đặt `poiSources: ['osm']` nếu chỉ muốn POI có nguồn chính OpenStreetMap — lưu ý
+đó là khoảng 7 % kho POI hiện tại.
 ```
 Bảng export `@mapslibvn/core` thêm nhóm "Nguồn POI" với các export trên.
 
@@ -1665,8 +1697,10 @@ Bảng export `@mapslibvn/core` thêm nhóm "Nguồn POI" với các export trê
 
 Thêm đầu mục "## 1. Trạng thái hiện tại" một gạch đầu dòng (ngày thực tế):
 ```markdown
-- **<DD/09/2026> — Bật/tắt nguồn POI theo profile (spec 07/09).** Core có `POI_SOURCE_PROFILES`
-  (`osm` mặc định, `all`); API nhận `sources=` ở search/nearby/autocomplete/reverse/styles, cache
+- **<DD/09/2026> — Bật/tắt nguồn POI theo profile (spec 07/09).** Đo trước cho thấy OSM chỉ là
+  nguồn chính của **7,0 %** POI (Overture 77,1 %, FSQ 15,9 %) nên **mặc định là `all`**, không phải
+  `osm` như dự định ban đầu — hành vi hiện tại không đổi. Core có `POI_SOURCE_PROFILES`
+  (`all` mặc định, `osm` tuỳ chọn); API nhận `sources=` ở search/nearby/autocomplete/reverse/styles, cache
   key autocomplete lên `v=src1`, style trả `x-poi-profile` và fallback `all` khi profile chưa
   publish; pipeline export thêm `poi-osm-YYYYMMDD` (lưới progressive chạy riêng trên OSM), manifest
   có `poiProfiles.osm`, `data:update` publish hai archive trong một lần set. SDK 0.3.0: `poiSources`
@@ -1690,7 +1724,9 @@ git commit -m "docs(sdk,api): poiSources/sources=, SDK 0.3.0, DEVLOG"
 
 ## Task 15: Rollout và nghiệm thu production (spec mục 9–11)
 
-Chạy **liền một phiên** để khoảng lệch giữa bước 1 và 2 ngắn nhất. Không có migration DB.
+Mặc định `all` nên bước 1 **không đổi hành vi** của người tích hợp hiện tại; khoảng lệch chỉ ảnh
+hưởng ai chủ động đặt `poiSources: ['osm']` trước khi archive `poi-osm` lên. Vẫn nên chạy hai bước
+gần nhau. Không có migration DB.
 
 **Files:**
 - Create: `docs/evidence/poi-sources/nghiem-thu-production.md`
@@ -1702,8 +1738,10 @@ Run (từ `apps/api`, wrangler đọc `.env` gốc repo — memory `wrangler-doc
 ```bash
 cd apps/api && pnpm test && pnpm deploy && cd ../..
 curl -sI "https://api.ai-solutions.io.vn/v1/styles/light.json" | grep -i x-poi-profile
+curl -sI "https://api.ai-solutions.io.vn/v1/styles/light.json?sources=osm" | grep -i x-poi-profile
 ```
-Expected: `x-poi-profile: all;fallback` (profile `osm` chưa publish). Kiểm `curl -s "https://api.ai-solutions.io.vn/v1/search?q=pho&sources=banana" -H "X-Api-Key: $KEY"` → 400.
+Expected: dòng một `x-poi-profile: all` (mặc định, không đổi gì); dòng hai `all;fallback` vì profile
+`osm` chưa publish. Kiểm `curl -s "https://api.ai-solutions.io.vn/v1/search?q=pho&sources=banana" -H "X-Api-Key: $KEY"` → 400.
 
 - [ ] **Step 2: Build và publish hai archive**
 
@@ -1714,11 +1752,11 @@ Expected: log có `✓ POI poi-YYYYMMDD + poi-osm-YYYYMMDD`; hai dòng JSON củ
 
 Run:
 ```bash
-curl -sI "https://api.ai-solutions.io.vn/v1/styles/light.json" | grep -i x-poi-profile
+curl -sI "https://api.ai-solutions.io.vn/v1/styles/light.json?sources=osm" | grep -i x-poi-profile
+curl -s "https://api.ai-solutions.io.vn/v1/styles/light.json?sources=osm" | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>console.log(JSON.parse(s).sources.poi.url))'
 curl -s "https://api.ai-solutions.io.vn/v1/styles/light.json" | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>console.log(JSON.parse(s).sources.poi.url))'
-curl -sI "https://api.ai-solutions.io.vn/v1/styles/light.json?sources=all" | grep -i x-poi-profile
 ```
-Expected: `osm` + URL chứa `poi-osm-YYYYMMDD.pmtiles`; dòng ba `all`. Nếu header vẫn `all;fallback` sau 60 s (KV `cacheTtl: 60`), kiểm `manifest.mjs get` trong container.
+Expected: dòng một `osm` (hết fallback); dòng hai chứa `poi-osm-YYYYMMDD.pmtiles`; dòng ba — mặc định — vẫn chứa `poi-YYYYMMDD.pmtiles`. Nếu header còn `all;fallback` sau 60 s (KV `cacheTtl: 60`), kiểm `manifest.mjs get` trong container.
 
 - [ ] **Step 4: Cổng p95 (Task 8.6 phải giữ)**
 
@@ -1727,11 +1765,11 @@ Run (production URL và khoá thật; chờ ≥ 11 phút sau bước 2 để cac
 node scripts/perf-autocomplete.mjs https://api.ai-solutions.io.vn "$KEY" \
   --queries scripts/fixtures/fuzzy-queries.txt --paired-sources --rounds 2 | tee /tmp/perf-sources.txt
 ```
-Expected: ở `cache=hit` (warm), p95 cohort `osm` không lớn hơn cohort `all` quá +50 ms; ghi cả `byColo`. Nếu vượt → ghi vào bằng chứng và báo PHONG, không kết luận ĐẠT.
+Expected: ở `cache=hit` (warm), chênh p95 giữa hai cohort trong ±50 ms; ghi cả `byColo`. Cohort `osm` quét ít dòng hơn nên thường nhanh hơn — điều cần canh là cohort `all` (mặc định) **không** xấu đi so với cổng Task 8.6. Nếu xấu hơn → ghi vào bằng chứng và báo PHONG, không kết luận ĐẠT.
 
 - [ ] **Step 5: Kiểm tay bản đồ**
 
-Mở playground docs (hoặc `examples/`) với `poiSources` mặc định và với `['osm','overture','fsq']`, so 5 thành phố `[106.7,10.77] [105.85,21.03] [108.2,16.05] [106.35,9.99] [109.19,12.24]` ở z12/z14/z16. Chụp ảnh màn hình vào `docs/evidence/poi-sources/`. Kỳ vọng: bản đồ `osm` thưa hơn nhưng phân bố đều, không có ô trống bất thường cạnh POI dày; nhãn major vẫn có ở z12.
+Mở playground docs (hoặc `examples/`) với `poiSources` mặc định (cả ba) và với `['osm']`, so 5 thành phố `[106.7,10.77] [105.85,21.03] [108.2,16.05] [106.35,9.99] [109.19,12.24]` ở z12/z14/z16. Chụp ảnh màn hình vào `docs/evidence/poi-sources/`. Kỳ vọng: bản đồ mặc định **giống trước thay đổi**; bản đồ `['osm']` thưa hơn nhiều (OSM chỉ 7 % kho) nhưng phân bố đều, không có ô trống bất thường cạnh POI dày, nhãn major vẫn có ở z12.
 
 - [ ] **Step 6: Ghi bằng chứng và DEVLOG**
 
@@ -1751,6 +1789,7 @@ git push
 
 ## Self-review
 
+- **Mặc định:** sau Task 1 (OSM 7 %), PHONG chốt mặc định `all`; Task 2–15 đã cập nhật theo, spec cũng đã sửa. `profileForSources` vẫn nhận cả `['osm']` và cả ba nên profile `osm` được giao đầy đủ.
 - **Spec coverage:** mục 4 (hằng profile, mệnh đề chung) → Task 2, 4, 8; 5.1–5.4 (export, data-update, manifest, tiles/smoke) → Task 8, 9, 7; 6.1–6.3 (API) → Task 4–7; 7 (SDK) → Task 3, 11, 12; 8 (lỗi/an toàn: fallback, 400, rollback) → Task 7, 15; 9 (unit/dbtest/nghiệm thu) → mọi task + Task 10, 13, 15; 10 (rollout, docs) → Task 14, 15; 11 (tiêu chí) → Task 15 bước 6. Ngoài phạm vi giữ đúng: không thêm property tile, không đổi conflate.
 - **Type consistency:** `PoiSource`, `PoiSourceProfile`, `POI_SOURCE_PROFILES`, `DEFAULT_POI_SOURCES`, `normalizePoiSources`, `parsePoiSourcesCsv`, `poiSourcesKey`, `profileForSources`, `poiSourceClause` (Task 2) dùng nhất quán ở Task 3–13; `parseSources` (API) và `poiSourceFilter(sql, sources)` (Task 4) dùng ở Task 5–7; `poiReleaseFor`/`Manifest.poiProfiles` (Task 7) khớp `nextManifest` (Task 9) và kiểm `tiles.ts`; `CandidateQueryInput.sources` (Task 6) là `readonly PoiSource[]` như `poiSourceFilter` nhận.
 - **Placeholder:** không có TBD; giá trị ngày trong Task 1/14/15 là số liệu chỉ có lúc chạy, được đánh dấu `<…>` rõ ràng cho người thực thi điền.
