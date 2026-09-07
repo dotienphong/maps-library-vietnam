@@ -1149,6 +1149,20 @@ vẫn là `sleep 1` phút — `sudo pmset -a sleep 0 disksleep 0`.
   `79ba24f` chỉ bật nhánh `%` cho truy vấn ≤12 ký tự vì ở 1,5 triệu POI nó tốn 1355 ms với truy vấn dài.
   Cuối cùng: p95 lạnh 1782–2055 ms (baseline 2,1–2,8 s), hit@3 37/40
 
+- 2026-09-07 · Alias T8.5 · **đo lại chi phí nhánh `area`, cổng p95 của 8.6 ĐẠT** ·
+  [hồ sơ](evidence/admin-alias/8-5-benchmark-area-cost.md) · phép đo 8.5 lúc 11:27 cùng ngày bị bỏ vì
+  ba khiếm khuyết: hai cohort chạy tuần tự nên rơi vào hai colo khác nhau, p95 bị cache lạnh chi
+  phối, và chỉ 80 request/cohort. Công cụ mới `measurePairedCohorts` đo **xen kẽ trên cùng query**,
+  tách theo `x-mlv-cache` và theo colo. Khi nhìn số liệu lần chạy đầu thì lộ **khiếm khuyết thứ tư
+  do chính tôi gây ra**: cohort đi trước mỗi cặp gánh chi phí khởi động worker/Hyperdrive (cold p50
+  684/530 trong khi warm p50 bằng nhau 96/96), đã thêm luân phiên thứ tự cohort và đo lại từ đầu.
+  Bộ query cũ 40 truy vấn POI gần như không chạm nhánh `area` nên thêm `perf-area-queries.txt`
+  (15 huyện cũ + 9 tỉnh cũ + 10 địa chỉ cũ) đúng như plan 8.5 yêu cầu. Kết quả: warm p95 **+2/−2/−38 ms**;
+  cold p95 phía Worker (`$workers.wallTimeMs`, 164 so với 159 mẫu, 100% cache miss) **−163 ms**.
+  Chi phí thật của `area` là **+93 ms ở cold p50** (581 so với 488), do nhánh alias leo lên bậc 2
+  `word_similarity` khi tiền tố rỗng — đúng lớp vấn đề mục 6.5 đã cảnh báo. Đề xuất chờ PHONG: dùng
+  lại `isAdminOnlyQuery` để bỏ hẳn nhánh area khi truy vấn không mang dạng hành chính
+
 ## 5. Sự cố
 
 ### SC-1 · Cache Rule nuốt Range của PMTiles — **ĐÃ ĐÓNG 27/08/2026**

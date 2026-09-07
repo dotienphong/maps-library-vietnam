@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { measureAutocomplete, parseQueryFixture } from './perf-autocomplete.mjs';
+import {
+  measureAutocomplete,
+  measurePairedCohorts,
+  parseCliArgs,
+  parseQueryFixture,
+} from './perf-autocomplete.mjs';
 
 describe('measureAutocomplete', () => {
   // Plan 8.5: phải so được default mới với bộ loại cũ để tách chi phí của `area`.
@@ -106,6 +111,208 @@ describe('measureAutocomplete với bộ truy vấn có đích', () => {
     ).toEqual([
       { q: 'higland', expect: 'highlands' },
       { q: 'coffee highlands', expect: 'highlands' },
+    ]);
+  });
+});
+
+// Plan 8.5: lần đo 07/09 không kết luận được vì hai cohort chạy tuần tự nên rơi vào hai colo
+// khác nhau (HKG/SIN), và p95 bị cache lạnh chi phối. Cần đo xen kẽ, tách theo colo và theo
+// trạng thái cache thì mới so được cùng điều kiện.
+describe('measurePairedCohorts', () => {
+  /** @param {string[]} colos @param {string[]} caches */
+  const stubFetch = (colos, caches) => {
+    let i = 0;
+    /** @type {string[]} */
+    const urls = [];
+    const fetchImpl = async (/** @type {string | URL | Request} */ url) => {
+      urls.push(String(url));
+      const headers = new Headers();
+      const colo = colos[i % colos.length];
+      const cache = caches[i % caches.length];
+      if (colo) headers.set('cf-ray', `abc123-${colo}`);
+      if (cache) headers.set('x-mlv-cache', cache);
+      i++;
+      return new Response('{}', { headers });
+    };
+    return { fetchImpl, urls };
+  };
+
+  /** @param {number[]} ticks */
+  const stubClock = (ticks) => {
+    const queue = [...ticks];
+    return () => {
+      const tick = queue.shift();
+      if (tick === undefined) throw new Error('test clock hết tick');
+      return tick;
+    };
+  };
+
+  it('gửi xen kẽ hai cohort trên cùng một query trước khi sang query kế', async () => {
+    const { fetchImpl, urls } = stubFetch(['HKG'], ['hit']);
+    await measurePairedCohorts('https://api.test', 'k', {
+      cohorts: [
+        { label: 'default', types: '' },
+        { label: 'legacy', types: 'poi,street,address' },
+      ],
+      queries: [
+        { q: 'aa', expect: '' },
+        { q: 'bb', expect: '' },
+      ],
+      rounds: 1,
+      fetchImpl,
+      now: stubClock([0, 1, 2, 3, 4, 5, 6, 7]),
+    });
+
+    // Cặp phải khép kín theo từng query (cohort nào đi trước do luân phiên, xem test bên dưới).
+    const pairs = urls.map(
+      (url) => `${url.match(/q=(\w+)/)?.[1]}:${url.includes('types=') ? 'legacy' : 'default'}`,
+    );
+    expect(pairs.slice(0, 2).map((pair) => pair.split(':')[0])).toEqual(['aa', 'aa']);
+    expect(pairs.slice(2, 4).map((pair) => pair.split(':')[0])).toEqual(['bb', 'bb']);
+    expect([...new Set(pairs)].sort()).toEqual([
+      'aa:default',
+      'aa:legacy',
+      'bb:default',
+      'bb:legacy',
+    ]);
+  });
+
+  it('tách percentile theo trạng thái cache để p95 cold không chi phối cohort', async () => {
+    // Mỗi cohort 2 request: một miss 100ms, một hit 10ms.
+    const { fetchImpl } = stubFetch(['HKG'], ['miss', 'miss', 'hit', 'hit']);
+    const result = await measurePairedCohorts('https://api.test', 'k', {
+      cohorts: [
+        { label: 'default', types: '' },
+        { label: 'legacy', types: 'poi,street,address' },
+      ],
+      queries: [{ q: 'aa', expect: '' }],
+      rounds: 2,
+      fetchImpl,
+      now: stubClock([0, 100, 0, 100, 0, 10, 0, 10]),
+    });
+
+    const def = result.cohorts.find((cohort) => cohort.label === 'default');
+    expect(def?.byCache.miss).toMatchObject({ n: 1, p50: 100 });
+    expect(def?.byCache.hit).toMatchObject({ n: 1, p50: 10 });
+  });
+
+  it('tách percentile theo colo để không so HKG với SIN', async () => {
+    const { fetchImpl } = stubFetch(['HKG', 'HKG', 'SIN', 'SIN'], ['hit']);
+    const result = await measurePairedCohorts('https://api.test', 'k', {
+      cohorts: [
+        { label: 'default', types: '' },
+        { label: 'legacy', types: 'poi,street,address' },
+      ],
+      queries: [{ q: 'aa', expect: '' }],
+      rounds: 2,
+      fetchImpl,
+      now: stubClock([0, 20, 0, 20, 0, 60, 0, 60]),
+    });
+
+    const def = result.cohorts.find((cohort) => cohort.label === 'default');
+    expect(def?.byColo.HKG).toMatchObject({ n: 1, p50: 20 });
+    expect(def?.byColo.SIN).toMatchObject({ n: 1, p50: 60 });
+  });
+
+  it('mỗi cohort nhận đủ rounds × số query request', async () => {
+    const { fetchImpl } = stubFetch(['HKG'], ['hit']);
+    const ticks = Array.from({ length: 24 }, (_, i) => i);
+    const result = await measurePairedCohorts('https://api.test', 'k', {
+      cohorts: [
+        { label: 'default', types: '' },
+        { label: 'legacy', types: 'poi,street,address' },
+      ],
+      queries: [
+        { q: 'aa', expect: '' },
+        { q: 'bb', expect: '' },
+        { q: 'cc', expect: '' },
+      ],
+      rounds: 2,
+      fetchImpl,
+      now: stubClock(ticks),
+    });
+
+    expect(result.cohorts.map(({ label, n }) => ({ label, n }))).toEqual([
+      { label: 'default', n: 6 },
+      { label: 'legacy', n: 6 },
+    ]);
+  });
+});
+
+// Cờ `--types` từng nuốt mất base-url vì indexOf trả -1. Tách parser ra hàm thuần để lớp lỗi
+// đó không quay lại khi thêm cờ mới.
+describe('parseCliArgs', () => {
+  it('giữ nguyên positional khi không có cờ nào', () => {
+    expect(parseCliArgs(['https://api.test', 'mlv_live_x'])).toMatchObject({
+      base: 'https://api.test',
+      key: 'mlv_live_x',
+      paired: false,
+    });
+  });
+
+  it('không để cờ ăn mất base-url ở vị trí 0', () => {
+    expect(parseCliArgs(['https://api.test', 'k', '--types', 'poi,street'])).toMatchObject({
+      base: 'https://api.test',
+      key: 'k',
+      types: 'poi,street',
+    });
+  });
+
+  it('đọc --near để lấy ô lưới cache khác, dùng gom thêm mẫu cold', () => {
+    expect(parseCliArgs(['https://api.test', 'k', '--near', '21.028,105.854'])).toMatchObject({
+      base: 'https://api.test',
+      key: 'k',
+      near: '21.028,105.854',
+    });
+  });
+
+  it('đọc --paired và --rounds cho chế độ đo hai cohort xen kẽ', () => {
+    expect(
+      parseCliArgs(['https://api.test', 'k', '--paired', '--rounds', '3', '--queries', 'f.txt']),
+    ).toMatchObject({
+      base: 'https://api.test',
+      key: 'k',
+      paired: true,
+      rounds: 3,
+      queriesFile: 'f.txt',
+    });
+  });
+});
+
+// Nếu một cohort luôn đi trước trong mỗi cặp thì nó gánh chi phí khởi động worker/Hyperdrive còn
+// cohort sau hưởng cache/kết nối đã ấm — sai lệch hệ thống đúng bằng thứ mà 8.5 đang muốn đo.
+describe('measurePairedCohorts luân phiên thứ tự cohort', () => {
+  it('đảo thứ tự hai cohort giữa các cặp liên tiếp', async () => {
+    /** @type {string[]} */
+    const order = [];
+    const fetchImpl = async (/** @type {string | URL | Request} */ url) => {
+      order.push(String(url).includes('types=') ? 'legacy' : 'default');
+      return new Response('{}');
+    };
+    let t = 0;
+    await measurePairedCohorts('https://api.test', 'k', {
+      cohorts: [
+        { label: 'default', types: '' },
+        { label: 'legacy', types: 'poi,street,address' },
+      ],
+      queries: [
+        { q: 'aa', expect: '' },
+        { q: 'bb', expect: '' },
+      ],
+      rounds: 2,
+      fetchImpl,
+      now: () => t++,
+    });
+
+    expect(order).toEqual([
+      'default',
+      'legacy',
+      'legacy',
+      'default',
+      'default',
+      'legacy',
+      'legacy',
+      'default',
     ]);
   });
 });

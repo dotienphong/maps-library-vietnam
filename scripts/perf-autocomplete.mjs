@@ -93,14 +93,7 @@ export async function measureAutocomplete(
       colo: res.headers.get('cf-ray')?.split('-').at(-1) ?? '',
     });
   }
-  const times = samples.map(({ ms }) => ms);
-  times.sort((a, b) => a - b);
-  /** @param {number} p */
-  const pct = (p) => {
-    const value = times[Math.ceil((p / 100) * times.length) - 1];
-    if (value === undefined) throw new Error('Không có sample để tính percentile');
-    return Math.round(value);
-  };
+  const stats = summarize(samples);
   const slowest = samples
     .sort((a, b) => b.ms - a.ms)
     .slice(0, 5)
@@ -112,33 +105,181 @@ export async function measureAutocomplete(
       colo,
     }));
   return {
-    n: times.length,
-    p50: pct(50),
-    p95: pct(95),
-    p99: pct(99),
+    ...stats,
     slowest,
     ...(judged ? { hit3: { hit, total: judged, misses } } : {}),
   };
 }
 
+/**
+ * Tóm tắt percentile cho một nhóm sample.
+ * @param {{ ms: number }[]} group
+ */
+function summarize(group) {
+  const times = group.map(({ ms }) => ms).sort((a, b) => a - b);
+  /** @param {number} p */
+  const pct = (p) => {
+    const value = times[Math.ceil((p / 100) * times.length) - 1];
+    if (value === undefined) throw new Error('Không có sample để tính percentile');
+    return Math.round(value);
+  };
+  return { n: times.length, p50: pct(50), p95: pct(95), p99: pct(99) };
+}
+
+/**
+ * Gom sample theo một khoá rồi tóm tắt từng nhóm.
+ * @param {{ ms: number, cache: string, colo: string }[]} samples
+ * @param {(sample: { ms: number, cache: string, colo: string }) => string} keyOf
+ * @returns {Record<string, { n: number, p50: number, p95: number, p99: number }>}
+ */
+function summarizeBy(samples, keyOf) {
+  /** @type {Map<string, { ms: number, cache: string, colo: string }[]>} */
+  const groups = new Map();
+  for (const sample of samples) {
+    const key = keyOf(sample);
+    if (!key) continue;
+    const bucket = groups.get(key);
+    if (bucket) bucket.push(sample);
+    else groups.set(key, [sample]);
+  }
+  /** @type {Record<string, { n: number, p50: number, p95: number, p99: number }>} */
+  const out = {};
+  for (const [key, group] of groups) out[key] = summarize(group);
+  return out;
+}
+
+/**
+ * Đo nhiều cohort `types` **xen kẽ trên cùng một query**: cả hai cohort đi liền nhau nên gặp
+ * cùng điều kiện mạng và cùng phân bố colo. Kết quả tách theo trạng thái cache và theo colo,
+ * vì lần đo 07/09 chạy tuần tự đã rơi vào hai colo khác nhau và p95 bị cache lạnh chi phối
+ * (plan 8.5). Cache key của API có `typeKey` nên hai cohort không dùng chung entry.
+ *
+ * @param {string} base
+ * @param {string} key
+ * @param {{ cohorts: { label: string, types: string }[],
+ *   queries: { q: string, expect: string }[], rounds?: number,
+ *   fetchImpl?: typeof fetch, now?: () => number, near?: string }} options
+ */
+export async function measurePairedCohorts(
+  base,
+  key,
+  {
+    cohorts,
+    queries,
+    rounds = 1,
+    fetchImpl = fetch,
+    now = () => performance.now(),
+    near = '10.776,106.700',
+  },
+) {
+  if (cohorts.length === 0) throw new Error('Không có cohort để đo');
+  if (queries.length === 0) throw new Error('Không có query để đo');
+  if (!Number.isInteger(rounds) || rounds < 1) throw new Error('rounds phải là số nguyên dương');
+  const normalizedBase = base.replace(/\/+$/, '');
+  /** @type {Map<string, { query: string, ms: number, cache: string, colo: string }[]>} */
+  const byLabel = new Map(cohorts.map(({ label }) => [label, []]));
+
+  let pairIndex = 0;
+  for (let round = 0; round < rounds; round++) {
+    for (const entry of queries) {
+      // Đảo thứ tự mỗi cặp: request đầu tiên của một cặp cold phải trả chi phí khởi động
+      // worker/Hyperdrive, nếu luôn là cùng một cohort thì sai lệch đó cộng dồn vào nó.
+      const order = pairIndex++ % 2 === 0 ? cohorts : [...cohorts].reverse();
+      for (const cohort of order) {
+        const typesParam = cohort.types ? `&types=${encodeURIComponent(cohort.types)}` : '';
+        const t0 = now();
+        const res = await fetchImpl(
+          `${normalizedBase}/v1/autocomplete?q=${encodeURIComponent(entry.q)}&near=${near}${typesParam}`,
+          { headers: { 'X-Api-Key': key } },
+        );
+        await res.text();
+        const ms = now() - t0;
+        if (!res.ok) {
+          throw new Error(`${cohort.label} vòng ${round + 1} "${entry.q}": HTTP ${res.status}`);
+        }
+        const bucket = byLabel.get(cohort.label);
+        if (!bucket) throw new Error(`Cohort trùng nhãn: ${cohort.label}`);
+        bucket.push({
+          query: entry.q,
+          ms,
+          cache: res.headers.get('x-mlv-cache') ?? 'miss',
+          colo: res.headers.get('cf-ray')?.split('-').at(-1) ?? '',
+        });
+      }
+    }
+  }
+
+  return {
+    cohorts: cohorts.map(({ label, types }) => {
+      const samples = byLabel.get(label);
+      if (!samples) throw new Error(`Thiếu sample cho cohort ${label}`);
+      return {
+        label,
+        types,
+        ...summarize(samples),
+        byCache: summarizeBy(samples, ({ cache }) => cache),
+        byColo: summarizeBy(samples, ({ colo }) => colo),
+      };
+    }),
+  };
+}
+
+/**
+ * Tách đối số CLI. Cờ có giá trị chỉ "tiêu thụ" ô kế tiếp khi cờ thực sự có mặt — indexOf trả
+ * -1 thì -1+1=0 sẽ ăn mất base-url ở vị trí 0.
+ * @param {string[]} args
+ */
+export function parseCliArgs(args) {
+  /** @type {Set<number>} */
+  const consumed = new Set();
+  /** @param {string} flag */
+  const flagValue = (flag) => {
+    const at = args.indexOf(flag);
+    if (at < 0) return undefined;
+    consumed.add(at);
+    consumed.add(at + 1);
+    return args[at + 1];
+  };
+  /** @param {string} flag */
+  const hasFlag = (flag) => {
+    const at = args.indexOf(flag);
+    if (at < 0) return false;
+    consumed.add(at);
+    return true;
+  };
+
+  const queriesFile = flagValue('--queries');
+  const types = flagValue('--types');
+  const roundsArg = flagValue('--rounds');
+  const near = flagValue('--near');
+  const paired = hasFlag('--paired');
+  const [base, key] = args.filter((_, i) => !consumed.has(i));
+  const rounds = roundsArg === undefined ? undefined : Number(roundsArg);
+  return {
+    base,
+    key,
+    queriesFile,
+    types,
+    near,
+    paired,
+    ...(rounds === undefined ? {} : { rounds }),
+  };
+}
+
 const isMain = process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href;
 if (isMain) {
-  const args = process.argv.slice(2);
-  const queriesIndex = args.indexOf('--queries');
-  const queriesFile = queriesIndex >= 0 ? args[queriesIndex + 1] : undefined;
-  const typesIndex = args.indexOf('--types');
-  const typesArg = typesIndex >= 0 ? args[typesIndex + 1] : undefined;
-  // Chỉ đánh dấu "đã tiêu thụ" khi cờ thực sự có mặt: indexOf trả -1 thì -1+1=0 sẽ ăn mất
-  // base-url ở vị trí 0.
-  const consumed = new Set([
-    ...(queriesIndex >= 0 ? [queriesIndex, queriesIndex + 1] : []),
-    ...(typesIndex >= 0 ? [typesIndex, typesIndex + 1] : []),
-  ]);
-  const positional = args.filter((_, i) => !consumed.has(i));
-  const [base, key] = positional;
+  const {
+    base,
+    key,
+    queriesFile,
+    types: typesArg,
+    near,
+    paired,
+    rounds,
+  } = parseCliArgs(process.argv.slice(2));
   if (!base || !key) {
     console.error(
-      'Cách dùng: node scripts/perf-autocomplete.mjs <base-url> <api-key> [--queries scripts/fixtures/fuzzy-queries.txt] [--types poi,street,address]',
+      'Cách dùng: node scripts/perf-autocomplete.mjs <base-url> <api-key> [--queries scripts/fixtures/fuzzy-queries.txt] [--types poi,street,address] [--paired [--rounds N]] [--near lat,lng]',
     );
     process.exitCode = 1;
   } else {
@@ -146,27 +287,56 @@ if (isMain) {
       const queries = queriesFile
         ? parseQueryFixture(readFileSync(queriesFile, 'utf8'))
         : undefined;
-      const result = await measureAutocomplete(base, key, {
-        ...(queries ? { queries, count: queries.length * 2 } : {}),
-        ...(typesArg ? { types: typesArg } : {}),
-      });
-      console.log(`n=${result.n} p50=${result.p50}ms p95=${result.p95}ms p99=${result.p99}ms`);
-      if (result.hit3) {
+      if (paired) {
+        // Cohort mặc định (có `area`) so với bộ loại trước khi có `area`, xen kẽ từng query.
+        const result = await measurePairedCohorts(base, key, {
+          cohorts: [
+            { label: 'default', types: '' },
+            { label: 'legacy', types: 'poi,street,address' },
+          ],
+          ...(queries ? { queries } : { queries: QUERIES.map((q) => ({ q, expect: '' })) }),
+          ...(rounds ? { rounds } : {}),
+          ...(near ? { near } : {}),
+        });
+        for (const cohort of result.cohorts) {
+          console.log(
+            `[${cohort.label}] n=${cohort.n} p50=${cohort.p50}ms p95=${cohort.p95}ms p99=${cohort.p99}ms`,
+          );
+          for (const [state, stats] of Object.entries(cohort.byCache)) {
+            console.log(
+              `  cache=${state}: n=${stats.n} p50=${stats.p50}ms p95=${stats.p95}ms p99=${stats.p99}ms`,
+            );
+          }
+          for (const [colo, stats] of Object.entries(cohort.byColo)) {
+            console.log(
+              `  colo=${colo}: n=${stats.n} p50=${stats.p50}ms p95=${stats.p95}ms p99=${stats.p99}ms`,
+            );
+          }
+        }
+        console.log(JSON.stringify(result));
+      } else {
+        const result = await measureAutocomplete(base, key, {
+          ...(queries ? { queries, count: queries.length * 2 } : {}),
+          ...(typesArg ? { types: typesArg } : {}),
+        });
+        console.log(`n=${result.n} p50=${result.p50}ms p95=${result.p95}ms p99=${result.p99}ms`);
+        if (result.hit3) {
+          console.log(
+            `hit@3=${result.hit3.hit}/${result.hit3.total}${result.hit3.misses.length ? ` miss: ${result.hit3.misses.join(', ')}` : ''}`,
+          );
+        }
         console.log(
-          `hit@3=${result.hit3.hit}/${result.hit3.total}${result.hit3.misses.length ? ` miss: ${result.hit3.misses.join(', ')}` : ''}`,
+          `slowest=${result.slowest
+            .map(
+              ({ index, query, ms, cache, colo }) =>
+                `#${index} ${query}:${ms}ms cache=${cache}${colo ? ` colo=${colo}` : ''}`,
+            )
+            .join(', ')}`,
+        );
+        console.log(
+          'Lưu ý: từ vòng lặp thứ 2 các query trùng sẽ hit cache 10 phút — giống hành vi client thật.',
         );
       }
-      console.log(
-        `slowest=${result.slowest
-          .map(
-            ({ index, query, ms, cache, colo }) =>
-              `#${index} ${query}:${ms}ms cache=${cache}${colo ? ` colo=${colo}` : ''}`,
-          )
-          .join(', ')}`,
-      );
-      console.log(
-        'Lưu ý: từ vòng lặp thứ 2 các query trùng sẽ hit cache 10 phút — giống hành vi client thật.',
-      );
     } catch (error) {
       console.error(error instanceof Error ? error.message : error);
       process.exitCode = 1;

@@ -1,0 +1,39 @@
+# Bộ query cho benchmark 8.5 nhánh `area` — bổ sung cho fuzzy-queries.txt (40 POI).
+# Định dạng q|đích như fuzzy-queries.txt; chế độ --paired chỉ đo thời gian, cột đích để đọc.
+# --- 15 tên đơn vị cấp huyện CŨ (isAdminOnlyQuery = true, kích hoạt withAreaSlot) ---
+Quận 10|quan 10
+Quận 1|quan 1
+Quận 3|quan 3
+Quận Bình Thạnh|binh thanh
+Quận Hải Châu|hai chau
+Huyện Củ Chi|cu chi
+Quận Ninh Kiều|ninh kieu
+Quận Hoàn Kiếm|hoan kiem
+Quận Ba Đình|ba dinh
+Quận Cầu Giấy|cau giay
+Thành phố Thủ Đức|thu duc
+Quận Tân Bình|tan binh
+Quận Gò Vấp|go vap
+Huyện Hóc Môn|hoc mon
+Quận Phú Nhuận|phu nhuan
+# --- 9 tên tỉnh CŨ đã sáp nhập ---
+Bình Dương|ho chi minh
+Bà Rịa - Vũng Tàu|ho chi minh
+Hậu Giang|can tho
+Bắc Kạn|thai nguyen
+Hà Nam|ninh binh
+Vĩnh Phúc|phu tho
+Quảng Nam|da nang
+Bình Phước|dong nai
+Ninh Thuận|khanh hoa
+# --- 10 địa chỉ CŨ từ admin-alias-addresses.jsonl (oldQuery, giữ nguyên chuỗi) ---
+88/9 Nguyễn Lâm, Phường 6, Quận 10, TP.HCM|
+2 Công xã Paris, Phường Bến Nghé, Quận 1, TP.HCM|
+7 Công trường Lam Sơn, Phường Bến Nghé, Quận 1, TP.HCM|
+1 Nguyễn Tất Thành, Phường 12, Quận 4, TP.HCM|
+1 Lê Duẩn, Phường Bến Nghé, Quận 1, TP.HCM|
+135 Nam Kỳ Khởi Nghĩa, Phường Bến Thành, Quận 1, TP.HCM|
+268 Lý Thường Kiệt, Phường 14, Quận 10, TP.HCM|
+2 Hải Triều, Phường Bến Nghé, Quận 1, TP.HCM|
+10 Mai Chí Thọ, Phường Thủ Thiêm, TP Thủ Đức, TP.HCM|
+12 Quốc Hương, Phường Thảo Điền, TP Thủ Đức, TP.HCM|

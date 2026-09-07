@@ -1,0 +1,468 @@
+{
+  "generatedAt": "2026-09-07T05:30:30Z",
+  "commit": "f4d8294f443e16b9d5af42919abbbb9096e73335",
+  "target": "https://api.ai-solutions.io.vn (production)",
+  "method": "Hai cohort đo XEN KẼ trên cùng query, thứ tự cohort luân phiên từng cặp; tách theo x-mlv-cache và theo colo (cf-ray). Cache key API có typeKey nên hai cohort không dùng chung entry.",
+  "cohorts": {
+    "default": "types mặc định (poi,street,address,area)",
+    "legacy": "types=poi,street,address"
+  },
+  "clientSide": [
+    {
+      "run": "A-fuzzy",
+      "queries": "scripts/fixtures/fuzzy-queries.txt",
+      "queryCount": 40,
+      "rounds": 3,
+      "near": "10.776,106.700",
+      "cohorts": [
+        {
+          "label": "default",
+          "types": "",
+          "n": 120,
+          "p50": 80,
+          "p95": 1312,
+          "p99": 1983,
+          "byCache": {
+            "miss": {
+              "n": 40,
+              "p50": 584,
+              "p95": 1915,
+              "p99": 3084
+            },
+            "hit": {
+              "n": 80,
+              "p50": 77,
+              "p95": 89,
+              "p99": 99
+            }
+          },
+          "byColo": {
+            "SIN": {
+              "n": 120,
+              "p50": 80,
+              "p95": 1312,
+              "p99": 1983
+            }
+          }
+        },
+        {
+          "label": "legacy",
+          "types": "poi,street,address",
+          "n": 120,
+          "p50": 80,
+          "p95": 958,
+          "p99": 1926,
+          "byCache": {
+            "miss": {
+              "n": 40,
+              "p50": 533,
+              "p95": 1776,
+              "p99": 2855
+            },
+            "hit": {
+              "n": 80,
+              "p50": 76,
+              "p95": 87,
+              "p99": 213
+            }
+          },
+          "byColo": {
+            "SIN": {
+              "n": 120,
+              "p50": 80,
+              "p95": 958,
+              "p99": 1926
+            }
+          }
+        }
+      ]
+    },
+    {
+      "run": "B-area",
+      "queries": "scripts/fixtures/perf-area-queries.txt",
+      "queryCount": 34,
+      "rounds": 3,
+      "near": "10.776,106.700",
+      "cohorts": [
+        {
+          "label": "default",
+          "types": "",
+          "n": 102,
+          "p50": 69,
+          "p95": 1664,
+          "p99": 2316,
+          "byCache": {
+            "miss": {
+              "n": 34,
+              "p50": 1124,
+              "p95": 2316,
+              "p99": 2626
+            },
+            "hit": {
+              "n": 68,
+              "p50": 67,
+              "p95": 71,
+              "p99": 75
+            }
+          },
+          "byColo": {
+            "HKG": {
+              "n": 102,
+              "p50": 69,
+              "p95": 1664,
+              "p99": 2316
+            }
+          }
+        },
+        {
+          "label": "legacy",
+          "types": "poi,street,address",
+          "n": 102,
+          "p50": 68,
+          "p95": 1701,
+          "p99": 2400,
+          "byCache": {
+            "miss": {
+              "n": 34,
+              "p50": 1099,
+              "p95": 2400,
+              "p99": 2654
+            },
+            "hit": {
+              "n": 68,
+              "p50": 67,
+              "p95": 73,
+              "p99": 92
+            }
+          },
+          "byColo": {
+            "HKG": {
+              "n": 102,
+              "p50": 68,
+              "p95": 1701,
+              "p99": 2400
+            }
+          }
+        }
+      ]
+    },
+    {
+      "run": "C-prefix",
+      "queries": "scripts/fixtures/perf-prefix-queries.txt",
+      "queryCount": 5,
+      "rounds": 4,
+      "near": "10.776,106.700",
+      "cohorts": [
+        {
+          "label": "default",
+          "types": "",
+          "n": 20,
+          "p50": 99,
+          "p95": 2143,
+          "p99": 2435,
+          "byCache": {
+            "miss": {
+              "n": 5,
+              "p50": 1542,
+              "p95": 2435,
+              "p99": 2435
+            },
+            "hit": {
+              "n": 15,
+              "p50": 96,
+              "p95": 117,
+              "p99": 117
+            }
+          },
+          "byColo": {
+            "SIN": {
+              "n": 20,
+              "p50": 99,
+              "p95": 2143,
+              "p99": 2435
+            }
+          }
+        },
+        {
+          "label": "legacy",
+          "types": "poi,street,address",
+          "n": 20,
+          "p50": 95,
+          "p95": 2189,
+          "p99": 2430,
+          "byCache": {
+            "miss": {
+              "n": 5,
+              "p50": 1436,
+              "p95": 2430,
+              "p99": 2430
+            },
+            "hit": {
+              "n": 15,
+              "p50": 92,
+              "p95": 155,
+              "p99": 155
+            }
+          },
+          "byColo": {
+            "SIN": {
+              "n": 20,
+              "p50": 95,
+              "p95": 2189,
+              "p99": 2430
+            }
+          }
+        }
+      ]
+    },
+    {
+      "run": "cold-hanoi",
+      "queries": "scripts/fixtures/fuzzy-queries.txt",
+      "queryCount": 40,
+      "rounds": 1,
+      "near": "21.028,105.854",
+      "cohorts": [
+        {
+          "label": "default",
+          "types": "",
+          "n": 40,
+          "p50": 540,
+          "p95": 1807,
+          "p99": 2856,
+          "byCache": {
+            "miss": {
+              "n": 40,
+              "p50": 540,
+              "p95": 1807,
+              "p99": 2856
+            }
+          },
+          "byColo": {
+            "SIN": {
+              "n": 40,
+              "p50": 540,
+              "p95": 1807,
+              "p99": 2856
+            }
+          }
+        },
+        {
+          "label": "legacy",
+          "types": "poi,street,address",
+          "n": 40,
+          "p50": 515,
+          "p95": 1769,
+          "p99": 2871,
+          "byCache": {
+            "miss": {
+              "n": 40,
+              "p50": 515,
+              "p95": 1769,
+              "p99": 2871
+            }
+          },
+          "byColo": {
+            "SIN": {
+              "n": 40,
+              "p50": 515,
+              "p95": 1769,
+              "p99": 2871
+            }
+          }
+        }
+      ]
+    },
+    {
+      "run": "cold-danang",
+      "queries": "scripts/fixtures/fuzzy-queries.txt",
+      "queryCount": 40,
+      "rounds": 1,
+      "near": "16.047,108.206",
+      "cohorts": [
+        {
+          "label": "default",
+          "types": "",
+          "n": 40,
+          "p50": 620,
+          "p95": 1793,
+          "p99": 3008,
+          "byCache": {
+            "miss": {
+              "n": 40,
+              "p50": 620,
+              "p95": 1793,
+              "p99": 3008
+            }
+          },
+          "byColo": {
+            "HKG": {
+              "n": 40,
+              "p50": 620,
+              "p95": 1793,
+              "p99": 3008
+            }
+          }
+        },
+        {
+          "label": "legacy",
+          "types": "poi,street,address",
+          "n": 40,
+          "p50": 607,
+          "p95": 1795,
+          "p99": 3000,
+          "byCache": {
+            "miss": {
+              "n": 40,
+              "p50": 607,
+              "p95": 1795,
+              "p99": 3000
+            }
+          },
+          "byColo": {
+            "HKG": {
+              "n": 40,
+              "p50": 607,
+              "p95": 1795,
+              "p99": 3000
+            }
+          }
+        }
+      ]
+    },
+    {
+      "run": "cold-cantho",
+      "queries": "scripts/fixtures/fuzzy-queries.txt",
+      "queryCount": 40,
+      "rounds": 1,
+      "near": "10.045,105.746",
+      "cohorts": [
+        {
+          "label": "default",
+          "types": "",
+          "n": 40,
+          "p50": 587,
+          "p95": 1750,
+          "p99": 3026,
+          "byCache": {
+            "miss": {
+              "n": 40,
+              "p50": 587,
+              "p95": 1750,
+              "p99": 3026
+            }
+          },
+          "byColo": {
+            "SIN": {
+              "n": 40,
+              "p50": 587,
+              "p95": 1750,
+              "p99": 3026
+            }
+          }
+        },
+        {
+          "label": "legacy",
+          "types": "poi,street,address",
+          "n": 40,
+          "p50": 527,
+          "p95": 1657,
+          "p99": 2894,
+          "byCache": {
+            "miss": {
+              "n": 40,
+              "p50": 527,
+              "p95": 1657,
+              "p99": 2894
+            }
+          },
+          "byColo": {
+            "SIN": {
+              "n": 40,
+              "p50": 527,
+              "p95": 1657,
+              "p99": 2894
+            }
+          }
+        }
+      ]
+    },
+    {
+      "run": "cold-nhatrang",
+      "queries": "scripts/fixtures/fuzzy-queries.txt",
+      "queryCount": 40,
+      "rounds": 1,
+      "near": "12.239,109.196",
+      "cohorts": [
+        {
+          "label": "default",
+          "types": "",
+          "n": 40,
+          "p50": 621,
+          "p95": 1771,
+          "p99": 2990,
+          "byCache": {
+            "miss": {
+              "n": 40,
+              "p50": 621,
+              "p95": 1771,
+              "p99": 2990
+            }
+          },
+          "byColo": {
+            "HKG": {
+              "n": 40,
+              "p50": 621,
+              "p95": 1771,
+              "p99": 2990
+            }
+          }
+        },
+        {
+          "label": "legacy",
+          "types": "poi,street,address",
+          "n": 40,
+          "p50": 536,
+          "p95": 1824,
+          "p99": 3005,
+          "byCache": {
+            "miss": {
+              "n": 40,
+              "p50": 536,
+              "p95": 1824,
+              "p99": 3005
+            }
+          },
+          "byColo": {
+            "HKG": {
+              "n": 40,
+              "p50": 536,
+              "p95": 1824,
+              "p99": 3005
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "serverSide": {
+    "source": "Cloudflare Workers observability, $workers.wallTimeMs, path=/v1/autocomplete",
+    "window": "2026-09-07T05:26:00Z..05:30:30Z (bốn lượt cold, 100% cache miss)",
+    "default": {
+      "n": 164,
+      "p50": 581,
+      "p95": 1756,
+      "p99": 2958
+    },
+    "legacy": {
+      "n": 159,
+      "p50": 488,
+      "p95": 1919,
+      "p99": 2950
+    },
+    "delta": {
+      "p50": 93,
+      "p95": -163,
+      "p99": 8
+    }
+  }
+}

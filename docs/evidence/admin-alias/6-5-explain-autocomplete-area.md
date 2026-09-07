@@ -319,6 +319,11 @@ hổng độ phủ upstream, không phải hồi quy precision.
 
 ### 8.5 — chi phí của `area`, và tại sao chưa kết luận được cổng p95
 
+> **ĐÃ THAY THẾ.** Phép đo dưới đây có ba khiếm khuyết phương pháp và không dùng để nghiệm thu.
+> Phép đo có kết luận nằm ở [`8-5-benchmark-area-cost.md`](8-5-benchmark-area-cost.md) (07/09 12:21–12:30):
+> cổng p95 **ĐẠT** (warm p95 +2/−2/−38 ms; cold p95 phía Worker −163 ms), chi phí thật của `area` là
+> **+93 ms ở cold p50**. Giữ lại phần dưới làm ghi chép về việc đo sai như thế nào.
+
 | Cohort | p50 | p95 | p99 | hit@3 | colo |
 |---|---:|---:|---:|---|---|
 | default (có `area`) | 81 ms | 1.873 ms | 3.160 ms | 37/40 | HKG |

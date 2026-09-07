@@ -1,0 +1,7 @@
+# Ca xấu nhất đã biết từ cổng 6.5: truy vấn 2 ký tự làm nhánh alias quét rộng (`qu` 41,9 ms).
+# Tách riêng khỏi bộ gate để không vừa đo vừa chọn mẫu; xem mục 8.5 hồ sơ 6.5.
+qu|
+ph|
+bi|
+th|
+ng|
