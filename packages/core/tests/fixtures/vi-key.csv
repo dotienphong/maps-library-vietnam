@@ -1,0 +1,137 @@
+# input|key — spec 05/09 mục 6.2. `input` là chuỗi ĐÃ normalizeVi (không dấu, thường).
+# `key` nối các từ KHÔNG khoảng trắng, chỉ còn [a-z0-9].
+#
+# Thứ tự luật (vi_key_rules.json): đầu từ → âm cuối → i/y.
+#   đầu từ:  ngh→ng · gh→g · ph→f · gi(+nguyên âm)→d · r→d · tr→c · ch→c · x→s · k(+a/o/u)→c
+#   âm cuối: -ng→-n · -nh→-n · -t→-c
+#   i/y:     quy→qui · [phụ âm]y ở cuối từ→[phụ âm]i
+#
+# HAI ĐIỀU DỄ HIỂU SAI, đã kiểm tay:
+#  1. Luật đầu từ CHỈ áp ở đầu TỪ, không áp giữa từ. Nên dính/tách từ **không luôn** cho cùng khoá:
+#     `nhac trang` → nhaccan (tr ở đầu từ → c) nhưng `nhatrang` → nhatran (tr nằm giữa từ, giữ nguyên).
+#     Xem hai dòng có chú thích ở nhóm dính/tách bên dưới.
+#  2. `nh` chỉ bị bỏ h khi ở CUỐI từ (-nh→-n). `nhuan` không kết thúc bằng nh nên giữ nguyên:
+#     `phu nhuan` → funhuan, không phải funuan.
+#
+# --- i/y cuối từ sau phụ âm, và quy → qui (12 ca) ---
+my tho|mitho
+mi tho|mitho
+ly thuong kiet|lithuonkiec
+li thuong kiet|lithuonkiec
+ky anh|kian
+ki anh|kian
+hy vong|hivon
+hi vong|hivon
+quy nhon|quinhon
+qui nhon|quinhon
+ty gia|tida
+ti gia|tida
+# --- k đầu từ trước a/o/u → c; `kh` KHÔNG đổi vì sau k là h (10 ca) ---
+bac kan|baccan
+bac can|baccan
+kon tum|contum
+con tum|contum
+kontum|contum
+ku chi|cuci
+cu chi|cuci
+kien giang|kiendan
+khu pho|khufo
+dac khu con dao|dackhucondao
+# --- ph đầu từ → f (8 ca) ---
+pho co|foco
+fo co|foco
+phu nhuan|funhuan
+fu nhuan|funhuan
+phan rang|fandan
+fan rang|fandan
+phuoc long|fuoclon
+fuoc long|fuoclon
+# --- gi / r / d đầu từ → d (10 ca) ---
+gia lai|dalai
+da lai|dalai
+ra lai|dalai
+rach gia|dachda
+dach gia|dachda
+gio linh|dolin
+do linh|dolin
+rung sac|dunsac
+dung sac|dunsac
+gia dinh|dadin
+# --- tr / ch đầu từ → c (8 ca) ---
+tran hung dao|canhundao
+chan hung dao|canhundao
+tra vinh|cavin
+cha vinh|cavin
+truong sa|cuonsa
+chuong sa|cuonsa
+trang bang|canban
+chang bang|canban
+# --- x đầu từ → s (6 ca) ---
+xoc trang|soccan
+soc trang|soccan
+xuan loc|suanloc
+suan loc|suanloc
+xa loi|saloi
+sa loi|saloi
+# --- gh / ngh bỏ h (6 ca) ---
+nghe an|ngean
+nge an|ngean
+nghia lo|ngialo
+ngia lo|ngialo
+ghenh rang|gendan
+genh rang|gendan
+# --- âm cuối -ng/-nh → -n (12 ca) ---
+binh thanh|binthan
+bin than|binthan
+long an|lonan
+lon an|lonan
+quang nam|quannam
+quan nam|quannam
+vinh long|vinlon
+vin lon|vinlon
+thanh xuan|thansuan
+than xuan|thansuan
+da nang|danan
+danang|danan
+# --- âm cuối -t → -c (10 ca) ---
+viet nam|viecnam
+viec nam|viecnam
+nhat trang|nhaccan
+nhac trang|nhaccan
+dat do|dacdo
+dac do|dacdo
+tan son nhat|tansonnhac
+tan son nhac|tansonnhac
+dalat|dalac
+da lat|dalac
+# --- dính / tách từ: cùng khoá KHI không có luật đầu từ nào bị bỏ (8 ca) ---
+saigon|saigon
+sai gon|saigon
+hanoi|hanoi
+ha noi|hanoi
+hoian|hoian
+hoi an|hoian
+cantho|cantho
+can tho|cantho
+# --- dính / tách từ: KHÁC khoá vì luật đầu từ chỉ áp ở đầu TỪ (điều 1 ở đầu file, 2 ca) ---
+nhatrang|nhatran
+phanthiet|fanthiec
+# --- địa danh thật, phủ nhiều luật cùng lúc (4 ca) ---
+# `thuot`: chỉ -t→-c; `th` KHÔNG phải luật đầu từ nên giữ nguyên.
+buon ma thuot|buonmathuoc
+# Cặp buon/ban và ma/me khác nguyên âm nên viKey KHÔNG gộp được — đó là việc của từ điển 6.1.
+ban me thuot|banmethuoc
+# Lại là điều 1: `pleiku` một từ thì k nằm giữa từ nên giữ; `plei ku` thì ku ở đầu từ → cu.
+pleiku|pleiku
+plei ku|pleicu
+# --- số nhà và ký tự không phải chữ: chỉ giữ [a-z0-9] (6 ca) ---
+88/9 nguyen lam|889nguyenlam
+quan 10|quan10
+phuong 6 quan 10|fuon6quan10
+xa tan phuoc|satanfuoc
+thi tran co to|thicancoto
+duong 3/2|duon32
+# --- CẶP ĐƯỢC GỘP CỐ Ý (âm cuối miền Nam) — test theo cặp ở vi-key.test.ts ---
+#   bac = bat  ·  binh thanh = bin than  ·  viet = viec
+# --- CẶP KHÔNG ĐƯỢC GỘP — test theo cặp ở vi-key.test.ts ---
+#   ha noi ≠ ha loi (không áp l/n)  ·  tan ≠ tran  ·  nam ≠ lam  ·  hue ≠ hua

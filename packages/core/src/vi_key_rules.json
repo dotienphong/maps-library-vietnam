@@ -1,0 +1,29 @@
+{
+  "$comment": [
+    "Bảng luật khoá ngữ âm — spec 05/09 mục 6.2. Đặt ở dữ liệu để chỉnh mà không sửa logic.",
+    "Áp SAU normalizeVi và applyToponymAlias, theo TỪNG TỪ, rồi nối không khoảng trắng.",
+    "Thứ tự có ý nghĩa: đầu từ → âm cuối → i/y. `ngh` phải trước `gh`; `gi` phải trước `r`/`d`.",
+    "KHÔNG áp l/n: 'Hà Nội' ↔ 'Hà Lội' va chạm tên riêng thật quá nhiều (spec nói rõ).",
+    "Chỉ dùng ở bậc 3 nên va chạm chỉ ảnh hưởng thứ tự trong nhóm mờ, không làm sai bậc 1/2."
+  ],
+  "wordStart": [
+    ["^ngh", "ng"],
+    ["^gh", "g"],
+    ["^ph", "f"],
+    ["^gi(?=[aeiouy])", "d"],
+    ["^r", "d"],
+    ["^tr", "c"],
+    ["^ch", "c"],
+    ["^x", "s"],
+    ["^k(?=[aou])", "c"]
+  ],
+  "wordEnd": [
+    ["ng$", "n"],
+    ["nh$", "n"],
+    ["t$", "c"]
+  ],
+  "anywhere": [
+    ["quy", "qui"],
+    ["([bcdfghklmnpqrstvx])y$", "$1i"]
+  ]
+}
