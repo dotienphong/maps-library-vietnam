@@ -151,6 +151,10 @@ describe('overlay ranh giới hành chính cũ', () => {
   // để không gộp nhầm relation nước ngoài hay hai tỉnh vào một.
   describe('bootstrap tỉnh thiếu relation cấp tỉnh', () => {
     const RAW = 'admin_bootstrap_raw';
+    // Bảng ranh giới RIÊNG: chèn vào `vn_boundary` thật sẽ làm `ensureVnBoundary()` bỏ nạp ranh
+    // giới VN (nó return sớm khi bảng đã có dòng), rồi `deleteOutsideVn()` xoá sạch POI Quận 1 của
+    // các test khác dùng chung DB cô lập — đúng thứ đã làm DB tests đỏ ở 93fc7e2.
+    const BOUNDARY = 'admin_bootstrap_boundary';
     const child = (id, name, left) =>
       sql.unsafe(`INSERT INTO ${RAW}(osm_relation_id,level,name,name_norm,geom) VALUES
         (${id},6,'${name}','${name.toLowerCase()}',
@@ -162,17 +166,21 @@ describe('overlay ranh giới hành chính cũ', () => {
           name text NOT NULL, name_norm text NOT NULL, tags jsonb NOT NULL DEFAULT '{}',
           geom geometry(MultiPolygon,4326) NOT NULL);
         CREATE INDEX ${RAW}_geom_idx ON ${RAW} USING gist(geom)`);
-      await sql.unsafe(`CREATE TABLE IF NOT EXISTS vn_boundary
-        (id serial PRIMARY KEY, geom geometry(Polygon,4326) NOT NULL)`);
-      await sql`DELETE FROM vn_boundary WHERE id > 0`;
+      await sql.unsafe(`DROP TABLE IF EXISTS ${BOUNDARY};
+        CREATE TABLE ${BOUNDARY}(id serial PRIMARY KEY, geom geometry(Polygon,4326) NOT NULL);
+        CREATE INDEX ${BOUNDARY}_geom_idx ON ${BOUNDARY} USING gist(geom)`);
       // "VN" cho test: hộp phủ hai con mồ côi đầu, KHÔNG phủ con thứ ba.
-      await sql`INSERT INTO vn_boundary(geom) VALUES (ST_MakeEnvelope(100,19.9,100.5,20.3,4326))`;
+      await sql.unsafe(`INSERT INTO ${BOUNDARY}(geom)
+        VALUES (ST_MakeEnvelope(100,19.9,100.5,20.3,4326))`);
     });
 
-    afterAll(() => sql.unsafe(`DROP TABLE IF EXISTS ${RAW}`));
+    afterAll(() => sql.unsafe(`DROP TABLE IF EXISTS ${RAW},${BOUNDARY}`));
 
     it('thiếu hơn một tỉnh thì KHÔNG dựng, và nói rõ lý do', async () => {
-      const result = await bootstrapMissingProvince(sql, { rawTable: RAW });
+      const result = await bootstrapMissingProvince(sql, {
+        rawTable: RAW,
+        boundaryTable: BOUNDARY,
+      });
       expect(result.applied).toBe(false);
       expect(result.reason).toMatch(/không đúng một tỉnh|nhiều tỉnh/i);
     });
@@ -223,7 +231,10 @@ describe('overlay ranh giới hành chính cũ', () => {
       await child(9_200_002, 'Cam Ranh', 100.25);
       await child(9_200_003, 'Ngoai VN', 120.0);
 
-      const result = await bootstrapMissingProvince(sql, { rawTable: RAW });
+      const result = await bootstrapMissingProvince(sql, {
+        rawTable: RAW,
+        boundaryTable: BOUNDARY,
+      });
       expect(result.applied).toBe(true);
       expect(result.province).toBe('Khánh Hòa');
       // Chỉ hai con trong vn_boundary được gộp; con thứ ba ngoài VN bị loại.

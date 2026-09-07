@@ -33,10 +33,19 @@ const canonicalProvinces = () =>
  * Sa Mouay vẫn lọt và bị hút vào polygon tỉnh.
  *
  * @param {import('postgres').Sql} sql
- * @param {{rawTable:string, childLevel?:number}} options
+ * @param {{rawTable:string, childLevel?:number, boundaryTable?:string}} options
+ *   `boundaryTable` chỉ để test truyền bảng riêng: `ensureVnBoundary()` có guard
+ *   "đã có dòng thì bỏ qua", nên test mà chèn vào `vn_boundary` sẽ làm pipeline bỏ nạp ranh giới
+ *   thật rồi `deleteOutsideVn()` xoá sạch POI của các test khác dùng chung DB cô lập.
  * @returns {Promise<{applied:boolean, province?:string, children?:number, reason?:string}>}
  */
-export async function bootstrapMissingProvince(sql, { rawTable, childLevel = 6 }) {
+export async function bootstrapMissingProvince(
+  sql,
+  { rawTable, childLevel = 6, boundaryTable = 'vn_boundary' },
+) {
+  if (!/^[a-z_][a-z0-9_]*$/.test(boundaryTable)) {
+    throw new Error(`boundaryTable không hợp lệ: ${boundaryTable}`);
+  }
   const canonical = canonicalProvinces();
   const existing = await sql.unsafe(`SELECT name_norm FROM ${rawTable} WHERE level=4`);
   const have = new Set(existing.map((row) => String(row.name_norm)));
@@ -47,9 +56,12 @@ export async function bootstrapMissingProvince(sql, { rawTable, childLevel = 6 }
       reason: `không đúng một tỉnh thiếu relation cấp tỉnh (thiếu ${missing.length}) — không phân biệt được đơn vị con thuộc tỉnh nào`,
     };
   }
-  const [boundary] = await sql`SELECT to_regclass('vn_boundary') AS present`;
+  const [boundary] = await sql.unsafe(`SELECT to_regclass('${boundaryTable}') AS present`);
   if (boundary?.present == null) {
-    return { applied: false, reason: 'thiếu bảng vn_boundary nên không giới hạn được trong VN' };
+    return {
+      applied: false,
+      reason: `thiếu bảng ${boundaryTable} nên không giới hạn được trong VN`,
+    };
   }
   const target = missing[0];
   if (!target) return { applied: false, reason: 'không xác định được tỉnh thiếu' };
@@ -58,7 +70,7 @@ export async function bootstrapMissingProvince(sql, { rawTable, childLevel = 6 }
       AND NOT EXISTS (SELECT 1 FROM ${rawTable} p WHERE p.level=4
         AND p.geom&&r.geom AND ST_Covers(p.geom,ST_PointOnSurface(r.geom)))
       AND (SELECT coalesce(sum(ST_Area(ST_Intersection(r.geom,b.geom)::geography)),0)
-           FROM vn_boundary b WHERE b.geom&&r.geom)
+           FROM ${boundaryTable} b WHERE b.geom&&r.geom)
           >= ${INSIDE_VN_MIN_RATIO} * NULLIF(ST_Area(r.geom::geography),0)`;
   const [counted] = await sql.unsafe(
     `SELECT count(*)::int AS n FROM ${rawTable} r WHERE ${orphanFilter}`,
