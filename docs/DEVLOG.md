@@ -454,9 +454,28 @@ commit với code).
 
 ## 2. Bước kế tiếp
 
-- **Nguồn POI:** đã phát hành 07/09 (xem mục 1). Việc còn để mở: điều tra `multiSourcePct` 3,3 %
-  (conflate không ghép được POI OSM với bản sinh đôi Overture/FSQ) trước khi dùng `primary_source`
-  làm tín hiệu chất lượng; và cân nhắc profile thứ ba `osm+overture` nếu có nhu cầu.
+- **Nguồn POI:** đã phát hành 07/09 (xem mục 1). Profile thứ ba `osm+overture` chỉ làm khi có nhu
+  cầu thật (thêm một dòng vào `POI_SOURCE_PROFILES` + một lần `pnpm poi:profile`).
+
+- **07/09/2026 — ĐÃ ĐIỀU TRA XONG `multiSourcePct` 3,3 %; chờ PHONG quyết có sửa conflate hay không.**
+  Báo cáo: `docs/evidence/conflate/2026-09-07-dieu-tra-multisource-3-3.md` (đo trên production, chỉ
+  đọc). Nguyên nhân chi phối **không** phải greedy: 920 cặp `sim ≥ 0,6` chưa ghép thì 92 % bị chặn
+  đúng luật (xung đột số nhà 500 / tên đường 594), chỉ 73 cặp không giải thích được. Thủ phạm là
+  **khoá so tên**: `NAME_FILLERS` chỉ có 13 từ thương mại tiếng Việt và `nameCore` chỉ bóc **tiền
+  tố**, nên tên kiểu Overture/FSQ (từ chỉ loại ở CUỐI, tiếng Anh) không được chuẩn hoá →
+  `brewbliss coffee` ↔ `brewbliss` = 0,59, **sát dưới ngưỡng 0,6**. Đo 3 lõi đô thị: 4.108 cặp nằm
+  trong dải 0,30–0,60 trên 64.049 POI. "BrewBliss" tồn tại ba lần (osm/overture/fsq).
+  **Đã thử và LOẠI `word_similarity`:** cứu 6/8 ca dương nhưng ghép sai **cả 2/2 ca đối chứng âm**
+  (`amazing specialty coffee` ↔ `shin specialty coffee` = 0,81) — nó khớp cụm con nên cụm chỉ-loại
+  dùng chung đủ vượt ngưỡng. Hướng đúng: **bóc từ chỉ loại ở cả hai đầu, hai ngôn ngữ** — 7/10, và
+  là phương án duy nhất giữ được cả hai ca âm.
+  **Ba rủi ro chưa giải quyết, đọc trước khi implement:** (1) danh sách từ phải tách "từ chỉ loại"
+  khỏi "địa danh", nếu bóc `saigon` thì `Pizza Saigon` và `Pizza Hanoi` ghép sai; (2) `nameCore`
+  dùng chung với autocomplete/search nên nên viết `conflateKey` riêng thay vì sửa `nameCore`;
+  (3) gộp thêm sẽ **đổi `poi.id`** (sinh từ `hash(primary_source, source_id)`) → ảnh hưởng client
+  đã lưu id và `poi_edit.poi_id` của M4, cần đường di trú.
+  **Kết luận cho quyết định 07/09:** `primary_source` không phải thước đo chất lượng, nên giữ mặc
+  định `all` là đúng; lọc theo nguồn là công tắc chọn dữ liệu, không phải công cụ nâng chất lượng.
 
 - **05/09/2026 — Tìm mờ `word_similarity`: baseline trước khi đổi code.** *(ĐÃ PHÁT HÀNH — giữ lại làm bằng chứng baseline, không còn là việc chờ làm.)* Đo production
   `api.ai-solutions.io.vn` bằng `scripts/perf-autocomplete.mjs --queries scripts/fixtures/fuzzy-queries.txt`
