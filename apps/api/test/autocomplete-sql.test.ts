@@ -192,11 +192,63 @@ describe('autocomplete-sql — biến thể địa danh và tên thay thế OSM 
     const branches = (calls: typeof a.calls) =>
       calls.filter((c) => c.text.startsWith('SELECT'))[0]?.text.match(/<% name_norm/g)?.length ?? 0;
     expect(branches(a.calls)).toBe(branches(b.calls) + 1);
-    // Và dạng chuẩn phải thật sự được bind ở ca a (nếu không thì nhánh chỉ là chữ, không có dữ liệu).
-    const paramsA =
-      a.calls.filter((c) => c.text.startsWith('SELECT'))[0]?.params.filter((p) => p === 'quy nhon')
+    // Và dạng chuẩn phải thật sự được bind ở ca a: 3 lần — trong `sim`, trong WHERE, và trong
+    // `prefix`. Ca b không bind lần nào vì chuỗi trùng queryNorm.
+    const paramsOf = (calls: typeof a.calls) =>
+      calls.filter((c) => c.text.startsWith('SELECT'))[0]?.params.filter((p) => p === 'quy nhon')
         .length ?? 0;
-    expect(paramsA).toBe(1);
+    expect(paramsOf(a.calls)).toBe(3);
+  });
+
+  // Đây là thứ chặn `qui nhon` và `tan son nhut` khỏi top 3: dòng khớp qua nhánh alias bị chấm
+  // điểm bằng CHUỖI GỐC. Đo trên production: 'Quy Nhơn' cho sim 0,636 theo 'qui nhon' nhưng 1,000
+  // theo 'quy nhon'; vì ORDER BY dùng chính sim đó nên chúng còn bị LIMIT 20 cắt trước khi xếp hạng.
+  it('bậc 1 POI: sim và prefix tính CẢ theo dạng chuẩn khi queryAlias khác queryNorm', async () => {
+    const { sql, calls } = fakeSql([]);
+    await poiCandidates(sql, {
+      ...input,
+      queryNorm: 'qui nhon',
+      queryCore: 'qui nhon',
+      queryAlias: 'quy nhon',
+      prefixPattern: 'qui nhon%',
+    });
+    const q = calls.filter((c) => c.text.startsWith('SELECT'))[0];
+    // Đếm vế, không đọc số hiệu $n: fakeSql không đánh lại số cho fragment lồng nhau, nên số hiệu
+    // trong bản giả không phản ánh SQL thật. Ba vế word_similarity(_, name_norm) = queryNorm,
+    // queryCore, và dạng chuẩn.
+    expect(q?.text.match(/word_similarity\(\$\d+, name_norm\)/g)).toHaveLength(3);
+    expect(q?.text).toMatch(/starts_with\(name_norm, \$\d+\) OR starts_with\(name_norm, \$\d+\)/);
+    expect(q?.params).toContain('quy nhon');
+  });
+
+  it('bậc 1 POI: queryAlias bằng queryNorm thì KHÔNG sinh biểu thức thừa', async () => {
+    const { sql, calls } = fakeSql([]);
+    await poiCandidates(sql, {
+      ...input,
+      queryNorm: 'quy nhon',
+      queryCore: 'quy nhon',
+      queryAlias: 'quy nhon',
+      prefixPattern: 'quy nhon%',
+    });
+    const q = calls.filter((c) => c.text.startsWith('SELECT'))[0];
+    expect(q?.text.match(/word_similarity\(\$\d+, name_norm\)/g)).toHaveLength(2);
+    expect(q?.text).not.toMatch(/starts_with\(name_norm, \$\d+\) OR starts_with/);
+  });
+
+  it('bậc 1 street: sim cũng tính theo dạng chuẩn', async () => {
+    const { sql, calls } = fakeSql([]);
+    await streetCandidates(sql, {
+      ...input,
+      queryNorm: 'qui nhon',
+      queryCore: 'qui nhon',
+      queryAlias: 'quy nhon',
+      prefixPattern: 'qui nhon%',
+    });
+    const q = calls.filter((c) => c.text.startsWith('SELECT'))[0];
+    // street có 2 vế word_similarity(_, name_norm) khi không alias (queryNorm, và vế alt dùng cột
+    // khác nên không tính), thành 2 khi có alias — đếm vế alias bằng cách so với ca không alias.
+    expect(q?.text.match(/word_similarity\(\$\d+, name_norm\)/g)).toHaveLength(2);
+    expect(q?.params).toContain('quy nhon');
   });
 
   it('bậc 1 street: cũng có name_alt_norm và matched_alt', async () => {

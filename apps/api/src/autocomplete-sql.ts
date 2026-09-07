@@ -107,6 +107,14 @@ export function poiCandidates(sql: Sql, input: CandidateQueryInput) {
   const fuzzy = useSimilarityBranch(queryNorm);
   // Biến thể địa danh (spec 6.1): chỉ thêm nhánh khi từ điển thật sự đổi được chuỗi.
   const aliasBranch = queryAlias === queryNorm ? sql`` : sql`OR ${queryAlias} <% name_norm`;
+  // Và phải CHẤM ĐIỂM theo dạng chuẩn nữa, không chỉ tìm theo nó. Đo trên production 08/09: POI
+  // "Quy Nhơn" cho word_similarity 0,636 với 'qui nhon' nhưng 1,000 với 'quy nhon'. Vì ORDER BY
+  // dùng chính `sim` này, thiếu vế alias thì dòng đúng vừa bị xếp thấp vừa bị `LIMIT 20` cắt
+  // trước khi tới được bước xếp hạng của route.
+  const aliasSim =
+    queryAlias === queryNorm ? sql`` : sql`, word_similarity(${queryAlias}, name_norm)`;
+  const aliasPrefix =
+    queryAlias === queryNorm ? sql`` : sql`OR starts_with(name_norm, ${queryAlias})`;
   const matchedAlt = matchedAltExpr(sql, queryNorm);
   const simNorm = fuzzy ? sql`OR name_norm % ${queryNorm}` : sql``;
   // Phần lớn truy vấn có nameCore trùng normalizeVi; khi đó nhánh core chỉ là việc thừa.
@@ -125,8 +133,9 @@ export function poiCandidates(sql: Sql, input: CandidateQueryInput) {
         word_similarity(${queryCore}, name_norm),
         similarity(name_norm, ${queryNorm}),
         word_similarity(${queryNorm}, coalesce(name_alt_norm, ''))
+        ${aliasSim}
       ) AS sim,
-      starts_with(name_norm, ${queryNorm}) AS prefix,
+      (starts_with(name_norm, ${queryNorm}) ${aliasPrefix}) AS prefix,
       coalesce(popularity, 0) AS pop,
       ${distance(sql, near, 'geom')} AS d,
       ${matchedAlt} AS matched_alt
@@ -149,6 +158,10 @@ export function streetCandidates(sql: Sql, input: CandidateQueryInput) {
   const { queryNorm, queryAlias, prefixPattern, near } = input;
   const simNorm = useSimilarityBranch(queryNorm) ? sql`OR name_norm % ${queryNorm}` : sql``;
   const aliasBranch = queryAlias === queryNorm ? sql`` : sql`OR ${queryAlias} <% name_norm`;
+  const aliasSim =
+    queryAlias === queryNorm ? sql`` : sql`, word_similarity(${queryAlias}, name_norm)`;
+  const aliasPrefix =
+    queryAlias === queryNorm ? sql`` : sql`OR starts_with(name_norm, ${queryAlias})`;
   const matchedAlt = matchedAltExpr(sql, queryNorm);
   return sql<CandidateRow[]>`
     SELECT 'street' AS type, NULL AS id, name,
@@ -160,8 +173,9 @@ export function streetCandidates(sql: Sql, input: CandidateQueryInput) {
         word_similarity(${queryNorm}, name_norm),
         similarity(name_norm, ${queryNorm}),
         word_similarity(${queryNorm}, coalesce(name_alt_norm, ''))
+        ${aliasSim}
       ) AS sim,
-      starts_with(name_norm, ${queryNorm}) AS prefix,
+      (starts_with(name_norm, ${queryNorm}) ${aliasPrefix}) AS prefix,
       0 AS pop,
       ${distance(sql, near, 'geom')} AS d,
       ${matchedAlt} AS matched_alt
