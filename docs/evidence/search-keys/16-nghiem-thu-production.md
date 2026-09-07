@@ -36,6 +36,10 @@ Bộ 20 truy vấn cách viết địa phương: **hit@3 = 3/20**, y hệt basel
 | Deploy Docs | success | [34163248478](https://github.com/dotienphong/maps-library-vietnam/actions/runs/34163248478) |
 | DB tests | **failure** → sửa ở `52d8507` | [34163248549](https://github.com/dotienphong/maps-library-vietnam/actions/runs/34163248549) |
 
+`DB tests` sau khi sửa: **success** trên `52d8507`
+([run 34167785870](https://github.com/dotienphong/maps-library-vietnam/actions/runs/34167785870)).
+`CI` cũng xanh trên `52d8507` và `2758486`.
+
 `DB tests` đỏ 1/10 file: `edit-lock.dbtest.mjs` tự dựng `poi_work_record` bằng DDL riêng nên thiếu
 `name_key`. Tôi bỏ sót vì bộ dbtest chạy local không gồm file đó. Đã sửa và đổi `INSERT` sang liệt
 kê cột tường minh để lỗi cùng loại không tái diễn.
