@@ -13,7 +13,7 @@
     "lint": "biome check .",
     "lint:fix": "biome check --write .",
     "notices:sync": "node scripts/notices-sync.mjs",
-    "typecheck": "tsc -p tsconfig.scripts.json && turbo run typecheck --continue",
+    "typecheck": "pnpm --filter @mapslibvn/core build && tsc -p tsconfig.scripts.json && turbo run typecheck --continue",
     "test": "pnpm --filter @mapslibvn/core build && vitest run && pnpm --filter @mapslibvn/admin build && pnpm --filter @mapslibvn/api test",
     "test:watch": "vitest",
     "db:up": "docker compose --env-file .env -f infra/dev/compose.yml up -d postgres",
