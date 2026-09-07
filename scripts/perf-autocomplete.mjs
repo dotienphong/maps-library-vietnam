@@ -156,7 +156,7 @@ function summarizeBy(samples, keyOf) {
  *
  * @param {string} base
  * @param {string} key
- * @param {{ cohorts: { label: string, types: string }[],
+ * @param {{ cohorts: { label: string, types?: string, sources?: string }[],
  *   queries: { q: string, expect: string }[], rounds?: number,
  *   fetchImpl?: typeof fetch, now?: () => number, near?: string }} options
  */
@@ -187,9 +187,10 @@ export async function measurePairedCohorts(
       const order = pairIndex++ % 2 === 0 ? cohorts : [...cohorts].reverse();
       for (const cohort of order) {
         const typesParam = cohort.types ? `&types=${encodeURIComponent(cohort.types)}` : '';
+        const sourcesParam = cohort.sources ? `&sources=${encodeURIComponent(cohort.sources)}` : '';
         const t0 = now();
         const res = await fetchImpl(
-          `${normalizedBase}/v1/autocomplete?q=${encodeURIComponent(entry.q)}&near=${near}${typesParam}`,
+          `${normalizedBase}/v1/autocomplete?q=${encodeURIComponent(entry.q)}&near=${near}${typesParam}${sourcesParam}`,
           { headers: { 'X-Api-Key': key } },
         );
         await res.text();
@@ -210,12 +211,13 @@ export async function measurePairedCohorts(
   }
 
   return {
-    cohorts: cohorts.map(({ label, types }) => {
+    cohorts: cohorts.map(({ label, types, sources }) => {
       const samples = byLabel.get(label);
       if (!samples) throw new Error(`Thiếu sample cho cohort ${label}`);
       return {
         label,
-        types,
+        ...(types === undefined ? {} : { types }),
+        ...(sources === undefined ? {} : { sources }),
         ...summarize(samples),
         byCache: summarizeBy(samples, ({ cache }) => cache),
         byColo: summarizeBy(samples, ({ colo }) => colo),
@@ -253,6 +255,7 @@ export function parseCliArgs(args) {
   const roundsArg = flagValue('--rounds');
   const near = flagValue('--near');
   const paired = hasFlag('--paired');
+  const pairedSources = hasFlag('--paired-sources');
   const [base, key] = args.filter((_, i) => !consumed.has(i));
   const rounds = roundsArg === undefined ? undefined : Number(roundsArg);
   return {
@@ -262,6 +265,7 @@ export function parseCliArgs(args) {
     types,
     near,
     paired,
+    pairedSources,
     ...(rounds === undefined ? {} : { rounds }),
   };
 }
@@ -275,11 +279,12 @@ if (isMain) {
     types: typesArg,
     near,
     paired,
+    pairedSources,
     rounds,
   } = parseCliArgs(process.argv.slice(2));
   if (!base || !key) {
     console.error(
-      'Cách dùng: node scripts/perf-autocomplete.mjs <base-url> <api-key> [--queries scripts/fixtures/fuzzy-queries.txt] [--types poi,street,address] [--paired [--rounds N]] [--near lat,lng]',
+      'Cách dùng: node scripts/perf-autocomplete.mjs <base-url> <api-key> [--queries scripts/fixtures/fuzzy-queries.txt] [--types poi,street,address] [--paired | --paired-sources [--rounds N]] [--near lat,lng]',
     );
     process.exitCode = 1;
   } else {
@@ -287,13 +292,18 @@ if (isMain) {
       const queries = queriesFile
         ? parseQueryFixture(readFileSync(queriesFile, 'utf8'))
         : undefined;
-      if (paired) {
+      if (paired || pairedSources) {
         // Cohort mặc định (có `area`) so với bộ loại trước khi có `area`, xen kẽ từng query.
         const result = await measurePairedCohorts(base, key, {
-          cohorts: [
-            { label: 'default', types: '' },
-            { label: 'legacy', types: 'poi,street,address' },
-          ],
+          cohorts: pairedSources
+            ? [
+                { label: 'osm', sources: 'osm' },
+                { label: 'all', sources: 'all' },
+              ]
+            : [
+                { label: 'default', types: '' },
+                { label: 'legacy', types: 'poi,street,address' },
+              ],
           ...(queries ? { queries } : { queries: QUERIES.map((q) => ({ q, expect: '' })) }),
           ...(rounds ? { rounds } : {}),
           ...(near ? { near } : {}),

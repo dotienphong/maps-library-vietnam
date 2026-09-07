@@ -266,6 +266,11 @@ describe('parseCliArgs', () => {
     });
   });
 
+  it('đọc --paired-sources cho cặp cohort osm/all', () => {
+    expect(parseCliArgs(['https://a', 'k', '--paired-sources']).pairedSources).toBe(true);
+    expect(parseCliArgs(['https://a', 'k']).pairedSources).toBe(false);
+  });
+
   it('đọc --paired và --rounds cho chế độ đo hai cohort xen kẽ', () => {
     expect(
       parseCliArgs(['https://api.test', 'k', '--paired', '--rounds', '3', '--queries', 'f.txt']),
@@ -282,6 +287,26 @@ describe('parseCliArgs', () => {
 // Nếu một cohort luôn đi trước trong mỗi cặp thì nó gánh chi phí khởi động worker/Hyperdrive còn
 // cohort sau hưởng cache/kết nối đã ấm — sai lệch hệ thống đúng bằng thứ mà 8.5 đang muốn đo.
 describe('measurePairedCohorts luân phiên thứ tự cohort', () => {
+  it('cohort có sources thì URL mang sources=, không có types=', async () => {
+    /** @type {string[]} */
+    const urls = [];
+    await measurePairedCohorts('https://api.test', 'k', {
+      cohorts: [
+        { label: 'osm', sources: 'osm' },
+        { label: 'all', sources: 'all' },
+      ],
+      queries: [{ q: 'pho', expect: '' }],
+      fetchImpl: async (/** @type {string | URL | Request} */ url) => {
+        urls.push(String(url));
+        return new Response('{}');
+      },
+      now: () => 0,
+    });
+    expect(urls.some((u) => u.includes('sources=osm'))).toBe(true);
+    expect(urls.some((u) => u.includes('sources=all'))).toBe(true);
+    expect(urls.every((u) => !u.includes('types='))).toBe(true);
+  });
+
   it('đảo thứ tự hai cohort giữa các cặp liên tiếp', async () => {
     /** @type {string[]} */
     const order = [];
