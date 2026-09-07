@@ -153,8 +153,61 @@ describe('lược đồ spec 5.2', () => {
     }
   });
 
+  it('0009: cột dẫn xuất tìm kiếm và chỉ số GIN (quyết định 1: name_tsv là cột THƯỜNG)', async () => {
+    const cols = async (/** @type {string} */ table) =>
+      (
+        await sql`SELECT column_name, is_generated FROM information_schema.columns
+          WHERE table_schema = 'public' AND table_name = ${table}`
+      ).map((r) => `${r.column_name}:${r.is_generated}`);
+    expect(await cols('poi')).toEqual(
+      expect.arrayContaining(['name_key:NEVER', 'name_alt_norm:NEVER', 'name_tsv:NEVER']),
+    );
+    expect(await cols('street')).toEqual(
+      expect.arrayContaining([
+        'name_alt:NEVER',
+        'name_key:NEVER',
+        'name_alt_norm:NEVER',
+        'name_tsv:NEVER',
+      ]),
+    );
+    expect(await cols('admin_area')).toEqual(expect.arrayContaining(['name_key:NEVER']));
+    expect(await cols('admin_area_old')).toEqual(expect.arrayContaining(['name_key:NEVER']));
+    expect(await cols('admin_alias')).toEqual(expect.arrayContaining(['alias_key:NEVER']));
+
+    const defs = (await sql`SELECT indexdef FROM pg_indexes WHERE schemaname = 'public'`).map(
+      (r) => r.indexdef,
+    );
+    for (const needle of [
+      'poi_name_key_trgm_idx ON public.poi USING gin (name_key gin_trgm_ops)',
+      'poi_name_alt_norm_trgm_idx ON public.poi USING gin (name_alt_norm gin_trgm_ops)',
+      'poi_name_tsv_idx ON public.poi USING gin (name_tsv)',
+      'street_name_key_trgm_idx ON public.street USING gin (name_key gin_trgm_ops)',
+      'street_name_alt_norm_trgm_idx ON public.street USING gin (name_alt_norm gin_trgm_ops)',
+      'street_name_tsv_idx ON public.street USING gin (name_tsv)',
+      'admin_area_name_key_trgm_idx ON public.admin_area USING gin (name_key gin_trgm_ops)',
+      'admin_area_old_name_key_trgm_idx ON public.admin_area_old USING gin (name_key gin_trgm_ops)',
+      'admin_alias_alias_key_trgm_idx ON public.admin_alias USING gin (alias_key gin_trgm_ops)',
+    ]) {
+      expect(
+        defs.some((d) => d.includes(needle)),
+        needle,
+      ).toBe(true);
+    }
+  });
+
+  it('0009: name_tsv điền được bằng SQL thuần (migration backfill bằng đúng câu này)', async () => {
+    await sql`INSERT INTO street (osm_way_ids, name, name_norm, geom)
+      VALUES ('{990009}', 'Đường 0009 Test', 'duong 0009 test',
+        ST_Multi(ST_GeomFromText('LINESTRING(106.7 10.77,106.71 10.77)', 4326)))`;
+    await sql`UPDATE street SET name_tsv = to_tsvector('simple', name_norm) WHERE name_tsv IS NULL`;
+    const [row] =
+      await sql`SELECT name_tsv::text AS tsv FROM street WHERE name_norm = 'duong 0009 test'`;
+    expect(row?.tsv).toContain("'duong':1");
+    await sql`DELETE FROM street WHERE name_norm = 'duong 0009 test'`;
+  });
+
   it('--down revert từng migration rồi migrate lại về đủ bảng', async () => {
-    // 0002…0008: bảy migration sau 0001; 0008 chỉ down khi dữ liệu alias còn 1–1.
+    // 0002…0009: tám migration sau 0001; 0008 chỉ down khi dữ liệu alias còn 1–1.
     // Các file DB chạy tuần tự nhưng dùng chung DB; geocode có thể đã publish cạnh 1–n hợp lệ.
     // Test từ chối mất dữ liệu 1–n nằm ở admin-old.dbtest, còn test vòng đời này cần fixture 1–1.
     await sql.unsafe(`WITH ranked AS (
@@ -163,7 +216,7 @@ describe('lược đồ spec 5.2', () => {
       ) position FROM admin_alias
     ) DELETE FROM admin_alias target USING ranked
       WHERE target.ctid=ranked.ctid AND ranked.position>1`);
-    for (let i = 0; i < 7; i++) migrate('--down');
+    for (let i = 0; i < 8; i++) migrate('--down');
     expect(await tables()).toEqual(['schema_migrations']);
     expect((await sql`SELECT name FROM schema_migrations`).map((r) => r.name)).toEqual([
       '0001_extensions.sql',

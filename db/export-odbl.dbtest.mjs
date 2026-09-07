@@ -57,8 +57,16 @@ describe('export-odbl', () => {
     expect(manifest.tables.admin_area.sha256).toMatch(/^[0-9a-f]{64}$/);
     expect(manifest.license).toBe('ODbL-1.0');
 
+    // 0009: cột dẫn xuất tìm kiếm phải nằm trong bản xuất ODbL (spec 8).
+    const streetCsv = gunzipSync(readFileSync(join(dir, 'street.csv.gz'))).toString('utf8');
+    expect(streetCsv.split('\n')[0]).toContain('name_alt_norm');
+    const aliasCsv = gunzipSync(readFileSync(join(dir, 'admin_alias.csv.gz'))).toString('utf8');
+    expect(aliasCsv.split('\n')[0]).toContain('alias_key');
+
     const csv = gunzipSync(readFileSync(join(dir, 'admin_area.csv.gz'))).toString('utf8');
-    expect(csv.split('\n')[0]).toBe('id,level,name,name_norm,parent_id,osm_relation_id,geom_wkt');
+    expect(csv.split('\n')[0]).toBe(
+      'id,level,name,name_norm,name_key,parent_id,osm_relation_id,geom_wkt',
+    );
     expect(csv).toContain(AREA_NAME);
     expect(csv).toContain('MULTIPOLYGON((');
 

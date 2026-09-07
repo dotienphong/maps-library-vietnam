@@ -70,15 +70,30 @@ describe('migration 0008 admin old', () => {
   });
 
   it('down từ chối mất dữ liệu một-nhiều và rollback nguyên vẹn', async () => {
-    const result = spawnSync(process.execPath, ['scripts/db-migrate.mjs', '--down'], {
-      env: process.env,
-      encoding: 'utf8',
-    });
-    expect(result.status).not.toBe(0);
-    expect(`${result.stdout}${result.stderr}`).toContain('quan hệ một-nhiều');
-    const [state] = await sql`SELECT
-      to_regclass('public.admin_area_old') IS NOT NULL AS old_exists,
-      count(*)::int AS edges FROM admin_alias WHERE alias_norm='phuong cu quan cu'`;
-    expect(state).toEqual({ old_exists: true, edges: 2 });
+    const down = () =>
+      spawnSync(process.execPath, ['scripts/db-migrate.mjs', '--down'], {
+        env: process.env,
+        encoding: 'utf8',
+      });
+    // 0009 nằm trên 0008, mà `--down` chỉ revert ĐÚNG MỘT migration cuối. Phải hạ 0009 trước mới
+    // tới được down của 0008 — đó mới là cái test này kiểm.
+    const first = down();
+    expect(first.status, `hạ 0009 phải thành công: ${first.stdout}${first.stderr}`).toBe(0);
+    try {
+      const result = down();
+      expect(result.status).not.toBe(0);
+      expect(`${result.stdout}${result.stderr}`).toContain('quan hệ một-nhiều');
+      const [state] = await sql`SELECT
+        to_regclass('public.admin_area_old') IS NOT NULL AS old_exists,
+        count(*)::int AS edges FROM admin_alias WHERE alias_norm='phuong cu quan cu'`;
+      expect(state).toEqual({ old_exists: true, edges: 2 });
+    } finally {
+      // Trả DB về đủ migration, nếu không các file dbtest chạy sau sẽ thiếu cột của 0009.
+      const up = spawnSync(process.execPath, ['scripts/db-migrate.mjs'], {
+        env: process.env,
+        encoding: 'utf8',
+      });
+      expect(up.status, `migrate lại phải thành công: ${up.stdout}${up.stderr}`).toBe(0);
+    }
   });
 });
