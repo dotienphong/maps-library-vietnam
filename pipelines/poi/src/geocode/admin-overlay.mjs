@@ -2,6 +2,7 @@ import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { adminAliasKeys, normalizeVi } from '@mapslibvn/core';
 import { FIXTURE, OUT } from '../lib/env.mjs';
+import { fillSearchKeys } from '../lib/search-keys.mjs';
 import { copyInto, countRows, createNewTable } from '../pg.mjs';
 import { bootstrapMissingProvince } from './raw-tables.mjs';
 
@@ -162,6 +163,13 @@ export async function buildOldAdmin(
       ON n.level=CASE WHEN o.level=4 THEN 4 ELSE 8 END AND o.geom&&n.geom AND ST_Intersects(o.geom,n.geom)
     WHERE NOT ST_IsEmpty(ST_Intersection(o.geom,n.geom));
     CREATE INDEX admin_overlap_work_old_idx ON admin_overlap_work(old_area_id)`);
+  await fillSearchKeys(sql, 'admin_area_old_new', {
+    joinColumns: ['id'],
+    nameNormColumn: 'name_norm',
+    altColumn: null,
+    altNormColumn: null,
+    tsvColumn: null,
+  });
   const oldRows = /** @type {any[]} */ (
     await sql.unsafe(`SELECT o.*,
     (SELECT p.name FROM admin_area_old_new p WHERE p.level=6 AND p.name_norm=o.parent_norm
@@ -382,6 +390,15 @@ export async function buildOldAdmin(
         (alias_norm,level,admin_area_id,valid_until,share,source,old_area_id)
         VALUES (${aliasNorm},${level},${edge.target.id},'2025-06-30',${shares[index]},'seed',${oldAreaId})`;
   }
+  // Đặt sau vòng seed vì seed còn chèn dòng mới vào admin_alias_new — chạy trước sẽ để lọt.
+  await fillSearchKeys(sql, 'admin_alias_new', {
+    joinColumns: ['alias_norm'],
+    nameNormColumn: 'alias_norm',
+    altColumn: null,
+    keyColumn: 'alias_key',
+    altNormColumn: null,
+    tsvColumn: null,
+  });
   const levelCounts =
     await sql`SELECT level,count(*)::int count FROM admin_area_old_new GROUP BY 1 ORDER BY 1`;
   const sourceCounts =

@@ -3,6 +3,7 @@ import { readFileSync } from 'node:fs';
 import { pathToFileURL } from 'node:url';
 import { normalizeVi } from '@mapslibvn/core';
 import { ADMIN_OLD_FIXTURE_PBF, ADMIN_OLD_MANIFEST, ADMIN_OLD_PBF, FIXTURE } from '../lib/env.mjs';
+import { fillSearchKeys } from '../lib/search-keys.mjs';
 import { connect, countRows, createNewTable, publishNew, withAdvisoryLock } from '../pg.mjs';
 import { downloadVerified, loadOldAdminRaw } from './admin-old-source.mjs';
 import { bootstrapMissingProvince } from './raw-tables.mjs';
@@ -46,6 +47,13 @@ export async function buildCurrentAdmin(sql) {
     FROM admin_area_new candidate WHERE candidate.level<child.level
       AND ST_Contains(candidate.geom,ST_PointOnSurface(child.geom))
     ORDER BY candidate.level DESC LIMIT 1) WHERE child.level>4; ANALYZE admin_area_new`);
+  await fillSearchKeys(sql, 'admin_area_new', {
+    joinColumns: ['id'],
+    nameNormColumn: 'name_norm',
+    altColumn: null,
+    altNormColumn: null,
+    tsvColumn: null,
+  });
 }
 
 async function main() {

@@ -174,6 +174,23 @@ describe('overlay ranh giới hành chính cũ', () => {
   // không vùng nào còn alias — trái quyết định #3 của plan ("không gộp mất provenance old_area_id").
   // Khoá NGẮN vẫn phải bị bỏ khi nhập nhằng; chỉ khoá đầy đủ nhất được giữ, vì bỏ nó thì vùng cũ
   // không còn đường nào tra ra được.
+  it('admin_area_old_new.name_key và admin_alias_new.alias_key khớp searchKeys của core', async () => {
+    await buildOldAdmin(sql, { currentTable: 'admin_area', fixture: true });
+    const { searchKeys } = await import('@mapslibvn/core');
+    const olds = await sql`SELECT name_norm, name_key FROM admin_area_old_new`;
+    expect(olds.length).toBeGreaterThan(0);
+    for (const r of olds)
+      expect(r.name_key, r.name_norm).toBe(searchKeys(r.name_norm, null).nameKey);
+    const aliases = await sql`SELECT alias_norm, alias_key FROM admin_alias_new`;
+    expect(aliases.length).toBeGreaterThan(0);
+    for (const r of aliases)
+      expect(r.alias_key, r.alias_norm).toBe(searchKeys(r.alias_norm, null).nameKey);
+    // Alias seed được chèn SAU vòng dựng nên phải kiểm riêng, không để lọt dòng NULL.
+    const [{ n }] = await sql`SELECT count(*)::int AS n FROM admin_alias_new
+      WHERE source = 'seed' AND alias_key IS NULL`;
+    expect(n).toBe(0);
+  });
+
   it('khoá đầy đủ nhất trùng khít ở hai vùng cũ: giữ cả hai khi khác đích, bỏ khoá ngắn', async () => {
     await buildOldAdmin(sql, { currentTable: 'admin_area', fixture: true });
 
