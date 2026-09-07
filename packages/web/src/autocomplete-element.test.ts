@@ -133,6 +133,37 @@ describe('MapsLibVNAutocomplete — vùng hành chính', () => {
     expect(icon(options[0])).not.toBe(icon(options[1]));
   });
 
+  it('matched_alt hiện thành "tên cũ: …" ở dòng phụ, vẫn là textContent', async () => {
+    const street: AutocompleteItem = {
+      ...poi,
+      type: 'street',
+      name: 'Nam Kỳ Khởi Nghĩa',
+      secondary: 'ho chi minh',
+      matched_alt: 'Công Lý',
+    };
+    const { options } = await typeQuery([street]);
+    expect(options[0]?.querySelector('.secondary')?.textContent).toBe(
+      'ho chi minh · tên cũ: Công Lý',
+    );
+  });
+
+  it('matched_alt mà secondary rỗng thì không có dấu chấm giữa thừa', async () => {
+    const street: AutocompleteItem = {
+      ...poi,
+      type: 'street',
+      name: 'Nam Kỳ Khởi Nghĩa',
+      secondary: '',
+      matched_alt: 'Công Lý',
+    };
+    const { options } = await typeQuery([street]);
+    expect(options[0]?.querySelector('.secondary')?.textContent).toBe('tên cũ: Công Lý');
+  });
+
+  it('không có matched_alt thì dòng phụ y như cũ', async () => {
+    const { options } = await typeQuery([area]);
+    expect(options[0]?.querySelector('.secondary')?.textContent).toBe(area.secondary);
+  });
+
   it('secondary render bằng textContent nên không dựng thẻ từ dữ liệu', async () => {
     const injected: AutocompleteItem = { ...area, secondary: '<b>Diên Hồng</b>' };
     const { options } = await typeQuery([injected]);

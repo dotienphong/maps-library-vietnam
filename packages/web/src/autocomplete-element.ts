@@ -216,7 +216,11 @@ export class MapsLibVNAutocomplete extends HTMLElement {
         name.textContent = item.name;
         const secondary = document.createElement('span');
         secondary.className = 'secondary';
-        secondary.textContent = item.secondary;
+        // Tên cũ của đường/địa danh (spec 6.3): nói rõ vì sao dòng này khớp, người dùng gõ
+        // "Công Lý" mà thấy "Nam Kỳ Khởi Nghĩa" thì cần biết lý do.
+        secondary.textContent = item.matched_alt
+          ? `${item.secondary}${item.secondary ? ' · ' : ''}tên cũ: ${item.matched_alt}`
+          : item.secondary;
         option.append(icon, name, secondary);
         return option;
       }),

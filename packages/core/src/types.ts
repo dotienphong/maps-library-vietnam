@@ -60,6 +60,8 @@ export interface AutocompleteItem {
   precision?: GeocodePrecision;
   score: number;
   bbox?: [number, number, number, number];
+  /** Tên thay thế (OSM `alt_name`/`old_name`) đã khớp truy vấn, ví dụ "Công Lý" (spec 6.3). */
+  matched_alt?: string;
 }
 
 export interface GeocodeMatched {
