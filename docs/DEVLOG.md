@@ -5,6 +5,29 @@ commit với code).
 
 ## 1. Trạng thái hiện tại
 
+- **07/09/2026 — Bật/tắt nguồn POI theo profile (spec 07/09). CODE XONG, CHƯA PUBLISH DỮ LIỆU.**
+  Cổng đo trước cho kết quả bất ngờ: OSM chỉ là **nguồn chính của 7,0 %** POI (106.325/1.522.416;
+  Overture 77,1 %, FSQ 15,9 %; `multiSourcePct` 3,3 %) — mặc định `['osm']` như dự định ban đầu sẽ
+  làm bản đồ mất ~93 % POI, nên PHONG quyết **đảo mặc định thành `all`**, giữ profile `osm` làm tuỳ
+  chọn. Bằng chứng: `docs/evidence/poi-sources/do-truoc-primary-source.md`.
+  **Core:** `POI_SOURCE_PROFILES` (`all` mặc định, `osm`), `parsePoiSourcesCsv`, `profileForSources`,
+  `poiSourceClause` — một nguồn sự thật cho API, SDK và pipeline.
+  **API:** `sources=` ở search/nearby/reverse/autocomplete/styles; cache key autocomplete lên
+  `v=src1` (thêm `&s=`); style trả header `x-poi-profile` và fallback `all` khi profile chưa publish;
+  tiles thêm set `poi-osm`. `/v1/places/{id}` cố ý KHÔNG lọc.
+  **Pipeline:** `export-tiles --sources`, seq theo release, manifest `--poi-osm` + `poiProfiles.osm`,
+  `data:update --poi` build và publish hai archive trong MỘT lần set manifest.
+  **SDK 0.3.0:** `poiSources` (web/react/RN), thuộc tính `sources` của web component. Chỉ thêm API,
+  mặc định không đổi hành vi.
+  **Hai lỗi tự bắt được:** (1) route TileJSON dùng pattern `[a-z]+\.json` nên `poi-osm.json` không
+  khớp → đổi thành `[a-z][a-z-]*`; (2) bind mảng JS rồi cast `::text[]` chạy đúng ở unit test nhưng
+  `postgres/cf` trong Workers nối thành `"osm,overture,fsq"` → `malformed array literal` trên
+  production; đã dùng lại `textArray` của `geocode.ts` (nay export) và khoá bằng 2 itest chạy
+  Wrangler/Hyperdrive thật.
+  **Kiểm thử:** 70 file/711 test unit + 24 file/140 test API + 3 file/33 test api-db + 10 file/62
+  test DB (trong container vì máy dev thiếu tippecanoe) — tất cả xanh.
+  **Còn lại:** Task 15 của plan — deploy API rồi `data:update --poi`, nghiệm thu p95 và bản đồ.
+
 - **07/09/2026 — ĐÃ PUBLISH dữ liệu alias hành chính lên production; nghiệm thu 8.5/8.6.**
   Thứ tự theo 9.2: backup `mapslibvn-20260907-1020.dump.zst` lên R2 → `osm-roads.mjs` (9.105 ranh
   giới, 216.301 đường) → `admin.mjs --accept-qa "<lý do>"`. Kết quả: `admin_area` **3.353 (L4=34**,
@@ -415,6 +438,10 @@ commit với code).
   **PENDING Windows** (chờ PHONG có máy để kiểm)
 
 ## 2. Bước kế tiếp
+
+- **Nguồn POI:** chạy Task 15 của `docs/superpowers/plans/2026-09-07-poi-sources-profile.md`:
+  deploy API → `data:update --poi` (build `poi-*` + `poi-osm-*`) → nghiệm thu p95 `--paired-sources`,
+  smoke `--set poi-osm`, kiểm tay bản đồ 5 thành phố.
 
 - **05/09/2026 — Tìm mờ `word_similarity`: baseline trước khi đổi code.** Đo production
   `api.ai-solutions.io.vn` bằng `scripts/perf-autocomplete.mjs --queries scripts/fixtures/fuzzy-queries.txt`

@@ -128,9 +128,10 @@ const client = createClient({
 });
 ```
 
-`createClient` còn nhận `fetch` (tiêm bản `fetch` riêng cho test hoặc môi trường không có global) và
+`createClient` còn nhận `fetch` (tiêm bản `fetch` riêng cho test hoặc môi trường không có global),
 `headers` (header thêm cho mọi request, ví dụ `X-Bundle-Id` cho khoá `mobile`; không ghi đè được
-`X-Api-Key`).
+`X-Api-Key`) và `poiSources` (mặc định cả ba nguồn) — tập nguồn POI áp cho `autocomplete`, `search`,
+`nearby`, `reverse` và `styleUrl`; `getPlace` và `geocode` không lọc theo nguồn.
 
 ## 5. `autocomplete` — gợi ý khi đang gõ
 

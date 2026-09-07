@@ -9,14 +9,28 @@ Trang này liệt kê **đúng những gì bốn gói xuất ra**, kèm mặc đ
 
 | Gói | Phiên bản | Làm gì | Peer dependency |
 |---|---|---|---|
-| `@mapslibvn/core` | 0.2.0 | client REST, kiểu dữ liệu, chuỗi ghi nguồn, chuẩn hoá tiếng Việt | không có |
-| `@mapslibvn/web` | 0.2.0 | `createMap` bọc MapLibre GL JS, web component autocomplete | `maplibre-gl@^5` |
-| `@mapslibvn/react` | 0.2.0 | component và hook cho React | `maplibre-gl@^5`, `react>=18` |
-| `@mapslibvn/react-native` | 0.2.0 | component và hook cho iOS/Android | `@maplibre/maplibre-react-native@^11.3`, `react>=19.1`, `react-native>=0.80` |
+| `@mapslibvn/core` | 0.3.0 | client REST, kiểu dữ liệu, chuỗi ghi nguồn, chuẩn hoá tiếng Việt | không có |
+| `@mapslibvn/web` | 0.3.0 | `createMap` bọc MapLibre GL JS, web component autocomplete | `maplibre-gl@^5` |
+| `@mapslibvn/react` | 0.3.0 | component và hook cho React | `maplibre-gl@^5`, `react>=18` |
+| `@mapslibvn/react-native` | 0.3.0 | component và hook cho iOS/Android | `@maplibre/maplibre-react-native@^11.3`, `react>=19.1`, `react-native>=0.80` |
 
 `@mapslibvn/web` phụ thuộc `@mapslibvn/core` và `pmtiles`; `@mapslibvn/react` phụ thuộc cả `core` và `web`. Bạn chỉ cần cài gói ngoài cùng.
 
 Cả bốn gói **chưa phát hành lên npm** trong giai đoạn nội bộ. Cách cài hiện tại — UMD qua thẻ `<script>` hoặc tarball — ở [Cài đặt](/cai-dat/).
+
+### Nâng từ 0.2.x lên 0.3.0
+
+Bản 0.3.0 **chỉ thêm**, không đổi hành vi: mặc định vẫn là cả ba nguồn POI như 0.2.x, nên code đang
+chạy không phải sửa gì. Mới:
+
+- Tuỳ chọn `poiSources` cho `createMap`, `<MapsLibVNMap>` (React và React Native) và `createClient`;
+  thuộc tính `sources` cho `<mapslibvn-autocomplete>`; tham số `sources=` cho REST.
+- Export mới ở `@mapslibvn/core`: `PoiSource`, `PoiSourceProfile`, `POI_SOURCES`,
+  `POI_SOURCE_PROFILES`, `DEFAULT_POI_SOURCES`, `normalizePoiSources`, `parsePoiSourcesCsv`,
+  `poiSourcesKey`, `profileForSources`, `poiSourceClause`.
+
+Đặt `poiSources: ['osm']` nếu chỉ muốn POI có nguồn chính OpenStreetMap — lưu ý đó là khoảng 7 %
+kho POI hiện tại, nên bản đồ sẽ thưa hẳn.
 
 ### Nâng từ 0.1.x lên 0.2.0
 
@@ -38,6 +52,7 @@ Toàn bộ export của `packages/core/src/index.ts`:
 | Nhóm | Export |
 |---|---|
 | Client | `createClient`, kiểu `ClientOptions`, `MapsLibVNClient`, `AttributionResponse`, `Theme` |
+| Nguồn POI | `POI_SOURCES`, `POI_SOURCE_PROFILES`, `DEFAULT_POI_SOURCES`, `normalizePoiSources`, `parsePoiSourcesCsv`, `poiSourcesKey`, `profileForSources`, `poiSourceClause`, kiểu `PoiSource`, `PoiSourceProfile` |
 | Lỗi | `MapsLibVNError` |
 | Ghi nguồn | `attributionText()`, `attributionHtml()`, `ATTRIBUTION_LINKS`, kiểu `AttributionLink` |
 | Chuẩn hoá tiếng Việt | `normalizeVi`, `stripDiacritics`, `expandAbbrev`, `applyBrandAlias`, `nameCore`, `NAME_FILLERS` |

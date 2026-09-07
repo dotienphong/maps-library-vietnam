@@ -57,6 +57,7 @@ Props nhận **toàn bộ `CreateMapOptions` trừ `container`**, cộng năm pr
 | `zoom` | `number` | `12` | — |
 | `lang` | `'vi' \| 'en'` | `'vi'` | — |
 | `poiLayer` | `boolean` | `true` | — |
+| `poiSources` | `PoiSource[]` | cả ba | `['osm']` nếu chỉ muốn dữ liệu OpenStreetMap. Đổi prop là tạo lại map |
 | `compactAttribution` | `boolean` | `false` | — |
 | `className` | `string` | — | class của khung bao |
 | `containerStyle` | `CSSProperties` | — | CSS của khung bao. Đây mới là chỗ đặt kiểu, vì `style` đã mang nghĩa theme |

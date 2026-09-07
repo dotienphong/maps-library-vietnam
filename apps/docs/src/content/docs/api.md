@@ -121,6 +121,9 @@ Gợi ý khi người dùng đang gõ. Trộn ba loại kết quả: POI, tên �
 | `near` | `"lat,lng"` | không | — | `lat` trong ±90, `lng` trong ±180 |
 | `limit` | số nguyên | không | `10` | 1–10 |
 | `types` | danh sách ngăn bằng dấu phẩy | không | cả ba loại | `poi`, `street`, `address` |
+| `sources` | danh sách ngăn bằng dấu phẩy | không | `all` | `osm`, `overture`, `fsq`; `all` = cả ba. Lọc POI theo **nguồn chính**; POI do người dùng đóng góp luôn có mặt |
+
+`sources` chỉ ảnh hưởng kết quả `poi`; `street`, `address` và `area` không có nguồn.
 
 `near` không lọc theo bán kính, chỉ dùng để cộng điểm cho kết quả ở gần. Kết quả loại `address` chỉ xuất hiện khi câu truy vấn phân tích được thành số nhà kèm tên đường.
 
@@ -181,6 +184,7 @@ Tìm POI theo tên, theo loại, theo bán kính quanh một điểm hoặc theo
 | `radius` | số nguyên, mét | không | `5000` | 1–50000 (chỉ có tác dụng khi có `near`) |
 | `limit` | số nguyên | không | `20` | 1–50 |
 | `offset` | số nguyên | không | `0` | 0–500 |
+| `sources` | danh sách ngăn bằng dấu phẩy | không | `all` | `osm`, `overture`, `fsq`; `all` = cả ba. Lọc POI theo **nguồn chính**; POI do người dùng đóng góp luôn có mặt |
 
 Phải có **ít nhất một** trong `q`, `category`, `near`, `bbox`; thiếu cả bốn trả `400 invalid_request`. Bốn tham số này kết hợp theo kiểu "và": gửi cả `q` và `category` sẽ lọc theo cả hai.
 
@@ -225,6 +229,7 @@ Danh sách POI quanh một điểm, sắp xếp theo khoảng cách tăng dần.
 | `radius` | số nguyên, mét | không | `500` | 1–5000 |
 | `limit` | số nguyên | không | `20` | 1–100 |
 | `category` | chuỗi | không | — | một mã loại, khớp chính xác |
+| `sources` | danh sách ngăn bằng dấu phẩy | không | `all` | `osm`, `overture`, `fsq`; `all` = cả ba. Lọc POI theo **nguồn chính**; POI do người dùng đóng góp luôn có mặt |
 
 ```bash
 curl -H "X-Api-Key: mlv_live_…" \
@@ -254,6 +259,8 @@ curl -H "X-Api-Key: mlv_live_…" \
 Phản hồi không có `total`. Không tìm thấy gì thì `items` là mảng rỗng, không phải lỗi 404.
 
 ### GET /v1/places/{id}
+
+Không nhận `sources`: tra theo id luôn trả POI dù nguồn nào, để POI đã bấm trên bản đồ hay đã ghim bằng marker luôn mở được. Trường `sources` trong phản hồi cho biết nguồn nào đóng góp bản ghi.
 
 Chi tiết một POI, kèm danh sách nguồn và chuỗi ghi nguồn.
 
@@ -348,12 +355,13 @@ Toạ độ thành địa chỉ, kèm POI gần nhất.
 |---|---|---|---|---|
 | `lat` | số | có | — | ±90 |
 | `lng` | số | có | — | ±180 |
+| `sources` | danh sách ngăn bằng dấu phẩy | không | `all` | `osm`, `overture`, `fsq`; `all` = cả ba. Lọc POI theo **nguồn chính**; POI do người dùng đóng góp luôn có mặt |
 
 Bán kính tìm kiếm cố định, không cấu hình được:
 
 - **Đường**: 150 m. Lấy tuyến gần nhất.
 - **Mốc số nhà**: 300 m, chỉ trên đúng tuyến đường vừa tìm được và chỉ lấy số nhà nguyên. Có hai mốc thì trả khoảng `≈ 13–20`, một mốc thì trả `≈ 13`.
-- **POI gần nhất**: 100 m, chỉ POI `active`.
+- **POI gần nhất**: 100 m, chỉ POI `active` và thuộc `sources`.
 
 Phường và tỉnh lấy theo ranh giới hành chính chứa điểm đó, không theo bán kính. Nếu không có đường nào trong 150 m nhưng có POI trong 100 m, `display_name` mô tả theo địa điểm, ví dụ "gần Chợ Bến Thành".
 
@@ -459,8 +467,11 @@ Style MapLibre của MapsLibVN, đã điền sẵn URL bộ tiles hiện hành.
 | Tham số | Kiểu | Bắt buộc | Mặc định | Khoảng |
 |---|---|---|---|---|
 | `theme` | chuỗi trong đường dẫn | có | — | `light` hoặc `dark` |
+| `sources` | chuỗi truy vấn | không | `all` | chỉ nhận tổ hợp đã có bộ tiles: `osm` hoặc `osm,overture,fsq` (`all`); tổ hợp khác trả `400 invalid_request` |
 
 Tên khác trả `404 not_found`. Cache 1 giờ. Route này **không kiểm khoá API**, nhưng SDK vẫn gắn `?key=` vào URL style để hành vi không đổi khi việc kiểm được bật về sau — đừng dựa vào việc endpoint hiện đang mở.
+
+Header `x-poi-profile` cho biết archive đang phục vụ: `osm`, `all`, hoặc `all;fallback` khi profile được yêu cầu chưa phát hành — lúc đó API tạm dùng archive đầy đủ thay vì trả lỗi.
 
 Khi bộ tiles POI chưa phát hành, nguồn và lớp `poi` bị lược khỏi style để MapLibre không tải một file rỗng.
 
@@ -470,7 +481,7 @@ curl "https://api.ai-solutions.io.vn/v1/styles/light.json"
 
 ### GET /v1/tiles/{set}.json và tile `.pbf`
 
-TileJSON và tile vector, đọc trực tiếp từ archive PMTiles trên R2 bằng HTTP Range. `set` là `vn` (bản đồ nền) hoặc `poi` (lớp địa điểm); tên khác hoặc bộ chưa phát hành trả `404 not_found`.
+TileJSON và tile vector, đọc trực tiếp từ archive PMTiles trên R2 bằng HTTP Range. `set` là `vn` (bản đồ nền), `poi` (lớp địa điểm, cả ba nguồn) hoặc `poi-osm` (chỉ nguồn OpenStreetMap); tên khác hoặc bộ chưa phát hành trả `404 not_found`.
 
 ```
 GET /v1/tiles/vn.json

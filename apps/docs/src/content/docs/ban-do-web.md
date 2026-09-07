@@ -53,6 +53,7 @@ Gói chưa có trên npm — cách cài hiện tại xem [Cài đặt](/cai-dat/
 | `zoom` | `number` | `12` | Mức thu phóng ban đầu |
 | `lang` | `'vi' \| 'en'` | `'vi'` | Ngôn ngữ nhãn |
 | `poiLayer` | `boolean` | `true` | `false` ẩn lớp POI |
+| `poiSources` | `('osm' \| 'overture' \| 'fsq')[]` | cả ba | Nguồn POI cho bản đồ **và** `map.places`. Hiện chỉ có bộ tiles cho `['osm']` và cả ba; tổ hợp khác ném lỗi khi tạo map |
 | `compactAttribution` | `boolean` | `false` | Attribution dạng gọn. Không có tuỳ chọn tắt |
 
 Phần tử chứa bản đồ phải có chiều cao thật (`height`), nếu không bản đồ cao 0 pixel.
@@ -174,6 +175,12 @@ map.on('poiClick', async (poi) => {
 ```
 
 ## 8. Lớp POI
+
+Mặc định bản đồ vẽ POI từ cả ba nguồn dữ liệu. Muốn chỉ dùng dữ liệu OpenStreetMap — ví dụ để mọi
+POI đều theo giấy phép ODbL — đặt `poiSources: ['osm']`. Lưu ý OSM là nguồn chính của khoảng 7 % POI
+Việt Nam trong kho hiện tại, nên bản đồ sẽ **thưa hẳn**. Tuỳ chọn này áp cho cả `search`, `nearby`
+và `reverse` của `map.places`, nên POI không hiện trên bản đồ cũng không xuất hiện trong ô tìm kiếm.
+`<mapslibvn-autocomplete>` nhận thuộc tính `sources="osm"` tương ứng.
 
 `poiLayer: false` đặt `visibility: 'none'` cho lớp `poi` khi style tải xong. Bật lại lúc chạy:
 

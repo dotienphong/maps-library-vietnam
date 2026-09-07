@@ -53,6 +53,7 @@ export function Screen() {
       style="light"                 // 'light' | 'dark' | URL style riêng
       center={[106.7, 10.776]} zoom={13}
       lang="vi"                     // 'en' đổi nhãn; nhãn chủ quyền luôn tiếng Việt
+      poiSources={['osm']}          // mặc định: cả ba nguồn (osm, overture, fsq)
       bundleId={Application.applicationId ?? undefined}
       onPoiClick={(poi) => console.log(poi.name, poi.category)}
       onLoad={(map) => map.flyTo([106.7, 10.776], 15)}
@@ -77,7 +78,7 @@ cây con của `<MapsLibVNMap>` (tự lấy client) hoặc truyền `client` ri�
 | `<Marker popupHtml>` | không có HTML; truyền `children` và `onPress` |
 | Attribution `AttributionControl` | dòng MapsLibVN chồng góc dưới trái + nút "i" native; `compactAttribution` gọn, **không tắt được** |
 
-Đổi `apiKey`, `apiBase`, `style`, `lang`, `poiLayer` sau khi mount sẽ tạo lại map và gọi `onLoad` lần nữa.
+Đổi `apiKey`, `apiBase`, `style`, `lang`, `poiLayer`, `poiSources` sau khi mount sẽ tạo lại map và gọi `onLoad` lần nữa.
 
 ## 5. Khoá `mobile`
 

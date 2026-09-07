@@ -1,20 +1,35 @@
 {
   "name": "@mapslibvn/react",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "React bindings MapsLibVN: <MapsLibVNMap>, <Marker>, useMap, usePlaces",
   "license": "MIT",
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
-  "exports": { ".": { "types": "./dist/index.d.ts", "import": "./dist/index.js" } },
-  "files": ["dist", "LICENSE", "THIRD_PARTY_NOTICES.md"],
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "LICENSE",
+    "THIRD_PARTY_NOTICES.md"
+  ],
   "sideEffects": false,
   "scripts": {
     "build": "tsup src/index.ts --format esm --dts --clean --target es2022 --external react --external maplibre-gl --external pmtiles",
     "typecheck": "tsc --noEmit"
   },
-  "peerDependencies": { "maplibre-gl": "^5.0.0", "react": ">=18" },
-  "dependencies": { "@mapslibvn/core": "workspace:*", "@mapslibvn/web": "workspace:*" },
+  "peerDependencies": {
+    "maplibre-gl": "^5.0.0",
+    "react": ">=18"
+  },
+  "dependencies": {
+    "@mapslibvn/core": "workspace:*",
+    "@mapslibvn/web": "workspace:*"
+  },
   "devDependencies": {
     "@types/react": "^18.3.0",
     "maplibre-gl": "^5.0.0",
