@@ -153,6 +153,31 @@ describe('evaluateCoverage', () => {
     expect(result.failures.map((f) => f.kind)).toContain('report_missing');
   });
 
+  // 07/09/2026: fixture Task 0 gán sai huyện cho nhiều ca (toàn bộ Đà Nẵng ghi "Quận Hải Châu",
+  // Cần Thơ ghi "Ninh Kiều"), trong khi snapshot ODbL nói Hòa Liên thuộc Hòa Vang, Xuân Hà thuộc
+  // Thanh Khê. Ground truth sai thì cổng 8.4 vô nghĩa, nên phải chặn bằng failure riêng.
+  it('fixture ghi huyện khác snapshot thì fail', () => {
+    const result = evaluateCoverage(
+      coverageInput({
+        fixtureMismatches: [
+          {
+            caseId: 'dn-01',
+            ward: 'hoa lien',
+            fixtureDistrict: 'hai chau',
+            snapshotDistrict: 'hoa vang',
+          },
+        ],
+      }),
+    );
+    expect(result.ok).toBe(false);
+    const failure = result.failures.find((f) => f.kind === 'fixture_district_mismatch');
+    expect(failure).toMatchObject({ caseId: 'dn-01', snapshotDistrict: 'hoa vang' });
+  });
+
+  it('fixture khớp snapshot thì không fail', () => {
+    expect(evaluateCoverage(coverageInput({ fixtureMismatches: [] })).failures).toEqual([]);
+  });
+
   it('raw coverage ngoài [0,95;1,05] và sliver bị bỏ là cảnh báo có ghi lại', () => {
     const result = evaluateCoverage(
       coverageInput({

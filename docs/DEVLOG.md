@@ -5,6 +5,30 @@ commit với code).
 
 ## 1. Trạng thái hiện tại
 
+- **07/09/2026 — Chạy 8.3/8.4 trên bộ toàn quốc: cổng đỏ vì BA nguyên nhân độc lập, trong đó một
+  cái là ground truth của chính fixture sai.** Chạy `verify-admin-alias.mjs --mode coverage` trên DB
+  `mapslibvn_alias_scale` (3.288 current, 4.900 old, 36.456 alias). Kết quả: **47/60 ca alias đạt,
+  ca tách 4/6**; failures gồm `missing_mainland_l8` 72, `raw_coverage_gap` 122,
+  **`fixture_district_mismatch` 11**, `count_out_of_range` 3, `target_missing` 11,
+  `split_target_missing` 1, `unexpected_target` 3; warnings 1.901 sliver bị bỏ. Tóm tắt commit ở
+  `docs/evidence/admin-alias/8-3-8-4-coverage-summary.json` (artifact đầy đủ 1,3 MB không commit).
+  **Nguyên nhân 2 là phát hiện mới và nặng nhất:** fixture `admin-alias-2025.jsonl` — thứ đáng ra là
+  ground truth biên soạn từ nghị quyết — **gán sai huyện cho 11 ca**, theo kiểu điền hàng loạt: mọi
+  ca Đà Nẵng ghi "Quận Hải Châu", mọi ca Cần Thơ ghi "Ninh Kiều". Snapshot ODbL nói Hòa Liên thuộc
+  **Hòa Vang**, Xuân Hà thuộc **Thanh Khê**, Hòa An thuộc **Cẩm Lệ**, Phước Mỹ và Thọ Quang thuộc
+  **Sơn Trà**, Bùi Hữu Nghĩa và Trà An thuộc **Bình Thủy**, Quán Thánh thuộc **Ba Đình**.
+  `admin-alias-fixtures.test.mjs` không bắt được vì chỉ assert `expectedKeys.length > 0`.
+  Đã thêm failure `fixture_district_mismatch` vào `evaluateCoverage` để lớp lỗi này không lọt nữa.
+  **Một lỗi nữa của chính phép đo, đã sửa:** CLI tra alias theo `expectedKeys[0]` viết tay, mà khóa
+  đó lệch khỏi dạng canonical của core (`phuong da kao quan 1 thanh pho ho chi minh` so với
+  `phuong da kao quan 1 ho chi minh` — core bỏ "thanh pho" ở tên tỉnh). Vì thế lần đo đầu báo ca
+  tách **0/6** dù dữ liệu hoàn toàn đúng: `Phường Đa Kao` thật sự có đủ hai đích `Phường Sài Gòn` và
+  `Phường Tân Định`. CLI nay tra theo **đơn vị cũ** (tên/huyện/tỉnh), không theo chuỗi khóa; sau khi
+  sửa mới ra 47/60 và 4/6. Bài học: đừng lấy chuỗi khóa viết tay làm khoá tra khi core là nguồn sinh
+  khóa duy nhất.
+  Còn `missing_mainland_l8` giữ nguyên cả 10 ca đảo (Thanh Lân, Cô Tô…) trong danh sách thiếu —
+  Task 8.3 cấm suy "ngoài đất liền" chỉ vì không khớp, phải có bằng chứng nguồn mới tách ra.
+
 - **07/09/2026 — Sửa xếp hạng `area`: vùng hành chính giờ luôn có suất khi người dùng gõ tên
   hành chính.** Phân tách điểm của `Quận 10` cho thấy chỗ hụt chính xác:
   area `0,76 = 0,55·1,1 (sim+prefix) + 0,25·0,5 (không có near) + 0,15·0 + 0,05·0,6`, còn POI

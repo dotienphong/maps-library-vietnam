@@ -1,0 +1,657 @@
+{
+  "generatedAt": "2026-09-07T01:00:27.855Z",
+  "mode": "coverage",
+  "commit": null,
+  "source": null,
+  "note": "Bản tóm tắt để commit. Artifact đầy đủ 1,3 MB (4.900 dòng coverage) không commit theo Task 8.",
+  "dataset": {
+    "db": "mapslibvn_alias_scale (dùng-một-lần, cùng instance máy chủ)",
+    "countsByLevel": {
+      "L4": 62,
+      "L6": 686,
+      "L8": 4152
+    },
+    "distinctUnits": {
+      "L4": 62,
+      "L6": 679,
+      "L8": 3920
+    },
+    "oldCount": 4900
+  },
+  "ok": false,
+  "failureCountByKind": {
+    "count_out_of_range": 3,
+    "missing_mainland_l8": 72,
+    "raw_coverage_gap": 122,
+    "fixture_district_mismatch": 11,
+    "split_target_missing": 1,
+    "unexpected_target": 3,
+    "target_missing": 11
+  },
+  "warningCountByKind": {
+    "distinct_differs_from_relations": 2,
+    "discarded_sliver": 1901
+  },
+  "aliasCases": {
+    "total": 60,
+    "passed": 47,
+    "splits": 6,
+    "splitsPassed": 4,
+    "failing": [
+      {
+        "caseId": "hn-01",
+        "split": true,
+        "expected": [
+          "Hoàn Kiếm",
+          "Cửa Nam",
+          "Ba Đình"
+        ],
+        "actual": [
+          "Cửa Nam",
+          "Văn Miếu - Quốc Tử Giám"
+        ],
+        "missing": [
+          "Hoàn Kiếm",
+          "Ba Đình"
+        ],
+        "extra": [
+          "Văn Miếu - Quốc Tử Giám"
+        ]
+      },
+      {
+        "caseId": "ct-01",
+        "split": true,
+        "expected": [
+          "Cái Khế",
+          "Bình Thủy"
+        ],
+        "actual": [
+          "Bình Thủy",
+          "Cái Khế",
+          "Thới An Đông"
+        ],
+        "missing": [],
+        "extra": [
+          "Thới An Đông"
+        ]
+      },
+      {
+        "caseId": "lc-01",
+        "split": false,
+        "expected": [
+          "Mường Kim"
+        ],
+        "actual": [],
+        "missing": [
+          "Mường Kim"
+        ],
+        "extra": []
+      },
+      {
+        "caseId": "lc-02",
+        "split": false,
+        "expected": [
+          "Mường Kim"
+        ],
+        "actual": [],
+        "missing": [
+          "Mường Kim"
+        ],
+        "extra": []
+      },
+      {
+        "caseId": "lc-03",
+        "split": false,
+        "expected": [
+          "Mường Kim"
+        ],
+        "actual": [],
+        "missing": [
+          "Mường Kim"
+        ],
+        "extra": []
+      },
+      {
+        "caseId": "lc-04",
+        "split": false,
+        "expected": [
+          "Mường Kim"
+        ],
+        "actual": [],
+        "missing": [
+          "Mường Kim"
+        ],
+        "extra": []
+      },
+      {
+        "caseId": "lc-05",
+        "split": false,
+        "expected": [
+          "Khoen On"
+        ],
+        "actual": [],
+        "missing": [
+          "Khoen On"
+        ],
+        "extra": []
+      },
+      {
+        "caseId": "lc-06",
+        "split": false,
+        "expected": [
+          "Khoen On"
+        ],
+        "actual": [],
+        "missing": [
+          "Khoen On"
+        ],
+        "extra": []
+      },
+      {
+        "caseId": "lc-07",
+        "split": false,
+        "expected": [
+          "Than Uyên"
+        ],
+        "actual": [],
+        "missing": [
+          "Than Uyên"
+        ],
+        "extra": []
+      },
+      {
+        "caseId": "lc-08",
+        "split": false,
+        "expected": [
+          "Than Uyên"
+        ],
+        "actual": [],
+        "missing": [
+          "Than Uyên"
+        ],
+        "extra": []
+      },
+      {
+        "caseId": "lc-09",
+        "split": false,
+        "expected": [
+          "Mường Than"
+        ],
+        "actual": [],
+        "missing": [
+          "Mường Than"
+        ],
+        "extra": []
+      },
+      {
+        "caseId": "lc-10",
+        "split": false,
+        "expected": [
+          "Pắc Ta"
+        ],
+        "actual": [],
+        "missing": [
+          "Pắc Ta"
+        ],
+        "extra": []
+      },
+      {
+        "caseId": "dt-08",
+        "split": false,
+        "expected": [
+          "An Phước"
+        ],
+        "actual": [
+          "Lai Vung"
+        ],
+        "missing": [
+          "An Phước"
+        ],
+        "extra": [
+          "Lai Vung"
+        ]
+      }
+    ]
+  },
+  "fixtureDistrictMismatches": [
+    {
+      "kind": "fixture_district_mismatch",
+      "caseId": "hn-10",
+      "ward": "quan thanh",
+      "fixtureDistrict": "hoan kiem",
+      "snapshotDistrict": "ba dinh"
+    },
+    {
+      "kind": "fixture_district_mismatch",
+      "caseId": "dn-01",
+      "ward": "hoa lien",
+      "fixtureDistrict": "hai chau",
+      "snapshotDistrict": "hoa vang"
+    },
+    {
+      "kind": "fixture_district_mismatch",
+      "caseId": "dn-07",
+      "ward": "xuan ha",
+      "fixtureDistrict": "hai chau",
+      "snapshotDistrict": "thanh khe"
+    },
+    {
+      "kind": "fixture_district_mismatch",
+      "caseId": "dn-08",
+      "ward": "hoa an",
+      "fixtureDistrict": "hai chau",
+      "snapshotDistrict": "cam le"
+    },
+    {
+      "kind": "fixture_district_mismatch",
+      "caseId": "dn-09",
+      "ward": "phuoc my",
+      "fixtureDistrict": "hai chau",
+      "snapshotDistrict": "son tra"
+    },
+    {
+      "kind": "fixture_district_mismatch",
+      "caseId": "dn-10",
+      "ward": "tho quang",
+      "fixtureDistrict": "hai chau",
+      "snapshotDistrict": "son tra"
+    },
+    {
+      "kind": "fixture_district_mismatch",
+      "caseId": "ct-01",
+      "ward": "bui huu nghia",
+      "fixtureDistrict": "ninh kieu",
+      "snapshotDistrict": "binh thuy"
+    },
+    {
+      "kind": "fixture_district_mismatch",
+      "caseId": "ct-09",
+      "ward": "tra an",
+      "fixtureDistrict": "ninh kieu",
+      "snapshotDistrict": "binh thuy"
+    },
+    {
+      "kind": "fixture_district_mismatch",
+      "caseId": "ct-10",
+      "ward": "le binh",
+      "fixtureDistrict": "ninh kieu",
+      "snapshotDistrict": "cai rang"
+    },
+    {
+      "kind": "fixture_district_mismatch",
+      "caseId": "dt-08",
+      "ward": "tan phuoc",
+      "fixtureDistrict": "tan hong",
+      "snapshotDistrict": "lai vung"
+    },
+    {
+      "kind": "fixture_district_mismatch",
+      "caseId": "dt-10",
+      "ward": "long khanh a",
+      "fixtureDistrict": "tan hong",
+      "snapshotDistrict": "hong ngu"
+    }
+  ],
+  "missingMainlandL8": [
+    {
+      "id": "10113776",
+      "name": "Xã Đông Thạnh"
+    },
+    {
+      "id": "10113777",
+      "name": "Xã Đông Thành"
+    },
+    {
+      "id": "12540572",
+      "name": "Phường Sa Pa"
+    },
+    {
+      "id": "12822519",
+      "name": "Phường Sa Pả"
+    },
+    {
+      "id": "14675895",
+      "name": "Xã Phú Thành"
+    },
+    {
+      "id": "14675896",
+      "name": "Xã Phú Thạnh"
+    },
+    {
+      "id": "15015331",
+      "name": "Xã Thanh Lân"
+    },
+    {
+      "id": "15015333",
+      "name": "Thị trấn Cô Tô"
+    },
+    {
+      "id": "15924741",
+      "name": "Xã Lộc Thạnh"
+    },
+    {
+      "id": "15963937",
+      "name": "Xã Lộc Thành"
+    },
+    {
+      "id": "16074366",
+      "name": "Phường Bảo An"
+    },
+    {
+      "id": "16074367",
+      "name": "Phường Đài Sơn"
+    },
+    {
+      "id": "16074368",
+      "name": "Phường Đạo Long"
+    },
+    {
+      "id": "16074369",
+      "name": "Phường Đô Vinh"
+    },
+    {
+      "id": "16074980",
+      "name": "Phường Đông Hải"
+    },
+    {
+      "id": "16074981",
+      "name": "Phường Kinh Dinh"
+    },
+    {
+      "id": "16074982",
+      "name": "Phường Mỹ Bình"
+    },
+    {
+      "id": "16074983",
+      "name": "Phường Mỹ Đông"
+    },
+    {
+      "id": "16074984",
+      "name": "Phường Mỹ Hải"
+    },
+    {
+      "id": "16075207",
+      "name": "Phường Phủ Hà"
+    },
+    {
+      "id": "16075208",
+      "name": "Phường Phước Mỹ"
+    },
+    {
+      "id": "16075211",
+      "name": "Phường Văn Hải"
+    },
+    {
+      "id": "16075212",
+      "name": "Xã Thành Hải"
+    },
+    {
+      "id": "17606319",
+      "name": "Thị trấn Khánh Hải"
+    },
+    {
+      "id": "17606320",
+      "name": "Xã Hộ Hải"
+    },
+    {
+      "id": "17606321",
+      "name": "Xã Xuân Hải"
+    },
+    {
+      "id": "17606322",
+      "name": "Xã Tân Hải"
+    },
+    {
+      "id": "17606323",
+      "name": "Xã Phương Hải"
+    },
+    {
+      "id": "17606324",
+      "name": "Xã Tri Hải"
+    },
+    {
+      "id": "17606325",
+      "name": "Xã Nhơn Hải"
+    },
+    {
+      "id": "17606326",
+      "name": "Xã Thanh Hải"
+    },
+    {
+      "id": "17606327",
+      "name": "Xã Vĩnh Hải"
+    },
+    {
+      "id": "17606328",
+      "name": "Xã Phước Kháng"
+    },
+    {
+      "id": "17606329",
+      "name": "Xã Phước Chiến"
+    },
+    {
+      "id": "17606330",
+      "name": "Xã Công Hải"
+    },
+    {
+      "id": "17606331",
+      "name": "Xã Lợi Hải"
+    },
+    {
+      "id": "17606332",
+      "name": "Xã Bắc Phong"
+    },
+    {
+      "id": "17606333",
+      "name": "Xã Bắc Sơn"
+    },
+    {
+      "id": "17606334",
+      "name": "Xã Phước Bình"
+    },
+    {
+      "id": "17606335",
+      "name": "Xã Phước Hòa"
+    },
+    {
+      "id": "17606336",
+      "name": "Xã Phước Tân"
+    },
+    {
+      "id": "17606337",
+      "name": "Xã Phước Tiến"
+    },
+    {
+      "id": "17606338",
+      "name": "Xã Phước Thắng"
+    },
+    {
+      "id": "17606339",
+      "name": "Xã Phước Đại"
+    },
+    {
+      "id": "17606340",
+      "name": "Xã Phước Chính"
+    },
+    {
+      "id": "17606341",
+      "name": "Xã Phước Trung"
+    },
+    {
+      "id": "17606342",
+      "name": "Xã Phước Thành"
+    },
+    {
+      "id": "17609698",
+      "name": "Xã Phước Hà"
+    },
+    {
+      "id": "17609699",
+      "name": "Xã Nhị Hà"
+    },
+    {
+      "id": "17609700",
+      "name": "Xã Phước Ninh"
+    },
+    {
+      "id": "17609701",
+      "name": "Xã Phước Nam"
+    },
+    {
+      "id": "17609702",
+      "name": "Xã Phước Minh"
+    },
+    {
+      "id": "17609703",
+      "name": "Xã Cà Ná"
+    },
+    {
+      "id": "17609704",
+      "name": "Xã Phước Diêm"
+    },
+    {
+      "id": "17609705",
+      "name": "Xã Phước Dinh"
+    },
+    {
+      "id": "17609706",
+      "name": "Xã An Hải"
+    },
+    {
+      "id": "17609707",
+      "name": "Xã Phước Hải"
+    },
+    {
+      "id": "17609708",
+      "name": "Thị trấn Phước Dân"
+    },
+    {
+      "id": "17609709",
+      "name": "Xã Phước Hữu"
+    },
+    {
+      "id": "17609710",
+      "name": "Xã Phước Thái"
+    },
+    {
+      "id": "17609711",
+      "name": "Xã Phước Vinh"
+    },
+    {
+      "id": "17609712",
+      "name": "Xã Phước Sơn"
+    },
+    {
+      "id": "17609713",
+      "name": "Xã Phước Hậu"
+    },
+    {
+      "id": "17609714",
+      "name": "Xã Phước Thuận"
+    },
+    {
+      "id": "17609715",
+      "name": "Xã Nhơn Sơn"
+    },
+    {
+      "id": "17609716",
+      "name": "Xã Mỹ Sơn"
+    },
+    {
+      "id": "17609717",
+      "name": "Xã Ma Nới"
+    },
+    {
+      "id": "17609718",
+      "name": "Xã Hòa Sơn"
+    },
+    {
+      "id": "17609719",
+      "name": "Xã Quảng Sơn"
+    },
+    {
+      "id": "17609720",
+      "name": "Thị trấn Tân Sơn"
+    },
+    {
+      "id": "17609721",
+      "name": "Xã Lương Sơn"
+    },
+    {
+      "id": "17609722",
+      "name": "Xã Lâm Sơn"
+    }
+  ],
+  "worstRawCoverageGaps": [
+    {
+      "kind": "raw_coverage_gap",
+      "id": "1886159",
+      "level": 4,
+      "rawCoverage": 0,
+      "normalizedShareSum": null
+    },
+    {
+      "kind": "raw_coverage_gap",
+      "id": "7082628",
+      "level": 6,
+      "rawCoverage": 0,
+      "normalizedShareSum": null
+    },
+    {
+      "kind": "raw_coverage_gap",
+      "id": "7082679",
+      "level": 6,
+      "rawCoverage": 0,
+      "normalizedShareSum": null
+    },
+    {
+      "kind": "raw_coverage_gap",
+      "id": "7082711",
+      "level": 6,
+      "rawCoverage": 0,
+      "normalizedShareSum": null
+    },
+    {
+      "kind": "raw_coverage_gap",
+      "id": "7082746",
+      "level": 6,
+      "rawCoverage": 0,
+      "normalizedShareSum": null
+    },
+    {
+      "kind": "raw_coverage_gap",
+      "id": "7082775",
+      "level": 6,
+      "rawCoverage": 0,
+      "normalizedShareSum": null
+    },
+    {
+      "kind": "raw_coverage_gap",
+      "id": "7082949",
+      "level": 6,
+      "rawCoverage": 0,
+      "normalizedShareSum": null
+    },
+    {
+      "kind": "raw_coverage_gap",
+      "id": "7082988",
+      "level": 6,
+      "rawCoverage": 0,
+      "normalizedShareSum": null
+    },
+    {
+      "kind": "raw_coverage_gap",
+      "id": "16074366",
+      "level": 8,
+      "rawCoverage": 0,
+      "normalizedShareSum": null
+    },
+    {
+      "kind": "raw_coverage_gap",
+      "id": "16074367",
+      "level": 8,
+      "rawCoverage": 0,
+      "normalizedShareSum": null
+    }
+  ]
+}

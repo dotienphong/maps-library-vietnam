@@ -186,7 +186,67 @@ ranh giới tỉnh bằng **hợp các phường thuộc tỉnh** (đúng địn
 này cần sửa `admin.mjs` để bootstrap L4 từ L6/L8 khi thiếu relation cha, và cần biết OSM hiện có đủ
 phường Khánh Hòa hay không (chưa kiểm được: Overpass hết thời gian chờ ở truy vấn theo bbox).
 
-## 8. Phải đo lại khi nào
+## 8. Task 8.3/8.4 — đã chạy trên bộ toàn quốc, cổng đỏ vì ba nguyên nhân độc lập
+
+Chạy `scripts/verify-admin-alias.mjs --mode coverage` trên đúng DB ở mục 1. Tóm tắt:
+[`8-3-8-4-coverage-summary.json`](8-3-8-4-coverage-summary.json) (artifact đầy đủ 1,3 MB với 4.900
+dòng coverage không commit, theo Task 8).
+
+| Nhóm failure | Số |
+|---|---:|
+| `missing_mainland_l8` | 72 |
+| `raw_coverage_gap` (raw coverage < 0,95) | 122 |
+| `fixture_district_mismatch` | **11** |
+| `count_out_of_range` | 3 |
+| `target_missing` / `split_target_missing` / `unexpected_target` | 11 / 1 / 3 |
+
+Ca alias: **47/60 đạt**, ca tách **4/6**. Cảnh báo: 1.901 sliver bị bỏ, 2 cấp có số đơn vị distinct
+khác số relation.
+
+### Nguyên nhân 1 — độ phủ L8 của snapshot
+
+L4 62 (spec 63), L6 686 (spec 690–710), L8 **4.152** (spec 10.000–10.700). 72 vùng cũ không có
+alias, trong đó **62 là Ninh Thuận** (hệ quả của việc thiếu Khánh Hòa, mục 7) và 10 vùng rải rác ở
+Lào Cai, Vĩnh Long, Bình Phước, An Giang, Quảng Ninh — gồm ca đảo như `Xã Thanh Lân`,
+`Thị trấn Cô Tô`. **Không** tự xếp chúng là "ngoài đất liền": Task 8.3 cấm suy điều đó chỉ vì không
+khớp, nên chúng nằm trong `missing_mainland_l8` cho tới khi có bằng chứng nguồn.
+
+### Nguyên nhân 2 — ground truth trong fixture Task 0 sai
+
+Đây là phát hiện mới của lần chạy này, và nó làm mọi con số nghiệm thu trước đó vô nghĩa. Fixture
+`packages/core/tests/fixtures/admin-alias-2025.jsonl` gán sai huyện cho **11 ca**, theo kiểu điền
+hàng loạt: mọi ca Đà Nẵng ghi "Quận Hải Châu", mọi ca Cần Thơ ghi "Ninh Kiều".
+
+| Ca | Phường | Fixture ghi | Snapshot ODbL |
+|---|---|---|---|
+| `hn-10` | Quán Thánh | Hoàn Kiếm | **Ba Đình** |
+| `dn-01` | Hòa Liên | Hải Châu | **Hòa Vang** |
+| `dn-07` | Xuân Hà | Hải Châu | **Thanh Khê** |
+| `dn-08` | Hòa An | Hải Châu | **Cẩm Lệ** |
+| `dn-09` | Phước Mỹ | Hải Châu | **Sơn Trà** |
+| `dn-10` | Thọ Quang | Hải Châu | **Sơn Trà** |
+| `ct-01` | Bùi Hữu Nghĩa | Ninh Kiều | **Bình Thủy** |
+| `ct-09` | Trà An | Ninh Kiều | **Bình Thủy** |
+
+`admin-alias-fixtures.test.mjs` không bắt được vì nó chỉ assert `expectedKeys.length > 0`, **không**
+đối chiếu với `adminAliasKeys()` của core hay với snapshot. Nay `evaluateCoverage` có failure
+`fixture_district_mismatch` để lớp lỗi này không còn lọt.
+
+Kèm theo, `expectedKeys` viết tay cũng đã lệch khỏi dạng canonical của core: fixture ghi
+`phuong da kao quan 1 thanh pho ho chi minh` còn core sinh `phuong da kao quan 1 ho chi minh`
+(tỉnh bỏ "thanh pho"). Vì vậy CLI **tra theo đơn vị cũ** (tên/huyện/tỉnh) chứ không theo chuỗi khóa;
+so theo khóa thì 5/6 ca tách bị báo rỗng dù dữ liệu hoàn toàn đúng — `Phường Đa Kao` thật sự có đủ
+hai đích `Phường Sài Gòn` và `Phường Tân Định`.
+
+### Nguyên nhân 3 — 122 vùng có raw coverage dưới 0,95
+
+Cần điều tra riêng theo geometry; chưa quy được về hai nguyên nhân trên.
+
+**Kết luận:** 8.3 và 8.4 đã **chạy xong và có bằng chứng**, nhưng **không đạt**. Ba nguyên nhân trên
+phải xử lý xong mới đo được 8.6, và nguyên nhân 2 cần biên soạn lại fixture từ nghị quyết gốc —
+việc đọc văn bản pháp lý, không phải việc code.
+
+## 9. Phải đo lại khi nào
 
 Số liệu ở đây đủ để trả lời câu hỏi index/row count/time của bước 6.5, nhưng **không thay thế**
 benchmark phát hành. Task 8.5/8.6 vẫn phải đo lại trên bộ dữ liệu đã qua cổng độ phủ, cùng DB

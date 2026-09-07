@@ -64,6 +64,8 @@ const RAW_COVERAGE_MAX = 1.05;
  *   aliasCases: AliasCase[],
  *   reportOldCount?: number | null,
  *   dbOldCount?: number | null,
+ *   fixtureMismatches?: {caseId:string, ward:string, fixtureDistrict:string,
+ *     snapshotDistrict:string}[],
  * }} input
  */
 export function evaluateCoverage(input) {
@@ -133,6 +135,19 @@ export function evaluateCoverage(input) {
     if (row.discardedShare > 0) {
       warnings.push({ kind: 'discarded_sliver', id: row.id, discardedShare: row.discardedShare });
     }
+  }
+
+  // Ground truth sai thì mọi con số sau đó vô nghĩa. 07/09/2026: fixture Task 0 gán toàn bộ ca
+  // Đà Nẵng vào "Quận Hải Châu" và Cần Thơ vào "Ninh Kiều", trong khi snapshot ODbL nói Hòa Liên
+  // thuộc Hòa Vang, Xuân Hà thuộc Thanh Khê, Thọ Quang thuộc Sơn Trà, Bùi Hữu Nghĩa thuộc Bình Thủy.
+  for (const item of input.fixtureMismatches ?? []) {
+    failures.push({
+      kind: 'fixture_district_mismatch',
+      caseId: item.caseId,
+      ward: item.ward,
+      fixtureDistrict: item.fixtureDistrict,
+      snapshotDistrict: item.snapshotDistrict,
+    });
   }
 
   for (const item of input.aliasCases) {
@@ -224,6 +239,35 @@ export function evaluateGeocode(cases) {
 
 /* ---------- Phần I/O: chỉ chạy khi gọi trực tiếp ---------- */
 
+/**
+ * Bỏ dấu + lowercase, khớp `normalizeVi` cho mục đích so tên hành chính. Không import
+ * `@mapslibvn/core` để script không phụ thuộc thứ tự build (cùng lý do với perf-autocomplete).
+ * @param {string} value
+ */
+const fold = (value) =>
+  value
+    .normalize('NFD')
+    .replace(/\p{M}/gu, '')
+    .replace(/đ/g, 'd')
+    .replace(/Đ/g, 'D')
+    .toLowerCase()
+    .replace(/\s+/g, ' ')
+    .trim();
+
+/** @param {string} value */
+const stripUnitPrefix = (value) =>
+  value.replace(/^(Phường|Xã|Thị trấn|Đặc khu|Quận|Huyện|Thành phố|Thị xã|Tỉnh)\s+/i, '');
+
+/** Tách "Xã Hòa Liên, Quận Hải Châu, Đà Nẵng" thành ba khóa đã chuẩn hoá. @param {string} value */
+const oldUnitOf = (value) => {
+  const [ward = '', district = '', province = ''] = value.split(',').map((part) => part.trim());
+  return {
+    ward: fold(stripUnitPrefix(ward)),
+    district: fold(stripUnitPrefix(district)),
+    province: fold(stripUnitPrefix(province)),
+  };
+};
+
 /** @param {string} path */
 const readJsonl = (path) =>
   readFileSync(path, 'utf8')
@@ -314,16 +358,37 @@ async function runCoverage() {
     const fixtures = readJsonl(resolve('packages/core/tests/fixtures/admin-alias-2025.jsonl'));
     /** @type {AliasCase[]} */
     const aliasCases = [];
+    /** @type {{caseId:string, ward:string, fixtureDistrict:string, snapshotDistrict:string}[]} */
+    const fixtureMismatches = [];
     for (const item of fixtures) {
-      const [key] = item.expectedKeys;
-      const rows = await sql`SELECT DISTINCT current.name FROM admin_alias a
-        JOIN admin_area current ON current.id=a.admin_area_id
-        WHERE a.alias_norm=${key} ORDER BY current.name`;
+      const unit = oldUnitOf(item.old);
+      // Tra theo **đơn vị cũ**, không theo `expectedKeys` viết tay: khóa trong fixture Task 0 đã
+      // lệch khỏi dạng canonical của core (`thanh pho ho chi minh` so với `ho chi minh`), nên so
+      // theo khóa sẽ báo rỗng dù dữ liệu đúng.
+      const rows = await sql`SELECT o.parent_norm,
+          coalesce(string_agg(DISTINCT current.name, '|' ORDER BY current.name),'') AS names
+        FROM admin_area_old o
+        LEFT JOIN admin_alias a ON a.old_area_id=o.id
+        LEFT JOIN admin_area current ON current.id=a.admin_area_id
+        WHERE o.level=8 AND o.name_norm=${unit.ward} AND o.province_norm=${unit.province}
+        GROUP BY o.id,o.parent_norm`;
+      const [row] = rows;
+      if (row && unit.district && row.parent_norm && String(row.parent_norm) !== unit.district) {
+        fixtureMismatches.push({
+          caseId: item.caseId,
+          ward: unit.ward,
+          fixtureDistrict: unit.district,
+          snapshotDistrict: String(row.parent_norm),
+        });
+      }
       aliasCases.push({
         caseId: item.caseId,
         split: Boolean(item.split),
         expectedTargets: item.expectedTargets.map((/** @type {{ward:string}} */ t) => t.ward),
-        actualTargets: rows.map((row) => String(row.name).replace(/^(Phường|Xã|Thị trấn)\s+/, '')),
+        actualTargets: String(row?.names ?? '')
+          .split('|')
+          .filter(Boolean)
+          .map(stripUnitPrefix),
       });
     }
 
@@ -334,6 +399,7 @@ async function runCoverage() {
       offshore: [],
       coverage: report?.coverage ?? [],
       aliasCases,
+      fixtureMismatches,
       reportOldCount: report ? (report.oldCount ?? null) : null,
       dbOldCount,
     };
