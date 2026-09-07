@@ -61,6 +61,62 @@ describe('GET /v1/styles/:theme.json', () => {
     expect(poiLayers.find((layer) => layer.id === 'poi')?.minzoom).toBe(10);
   });
 
+  it('mặc định (không có sources) → profile all, không fallback', async () => {
+    await env.META.put(
+      'release:current',
+      JSON.stringify({ vn: 'vn-20260826', poi: 'poi-20260901' }),
+    );
+    const res = await SELF.fetch('https://api/v1/styles/light.json');
+    expect(res.status).toBe(200);
+    expect(res.headers.get('x-poi-profile')).toBe('all');
+    const style = (await res.json()) as { sources: Record<string, { url?: string }> };
+    expect(style.sources.poi?.url).toBe('pmtiles://https://tiles.test/tiles/poi-20260901.pmtiles');
+  });
+
+  it('sources=osm nhưng manifest chưa có profile → dùng archive all + header fallback', async () => {
+    await env.META.put(
+      'release:current',
+      JSON.stringify({ vn: 'vn-20260826', poi: 'poi-20260901' }),
+    );
+    const res = await SELF.fetch('https://api/v1/styles/light.json?sources=osm');
+    expect(res.status).toBe(200);
+    expect(res.headers.get('x-poi-profile')).toBe('all;fallback');
+    const style = (await res.json()) as { sources: Record<string, { url?: string }> };
+    expect(style.sources.poi?.url).toBe('pmtiles://https://tiles.test/tiles/poi-20260901.pmtiles');
+  });
+
+  it('manifest có poiProfiles.osm → archive osm; sources=all → archive all', async () => {
+    await env.META.put(
+      'release:current',
+      JSON.stringify({
+        vn: 'vn-20260826',
+        poi: 'poi-20260901',
+        poiProfiles: { osm: 'poi-osm-20260901' },
+      }),
+    );
+    const osm = await SELF.fetch('https://api/v1/styles/light.json?sources=osm');
+    expect(osm.headers.get('x-poi-profile')).toBe('osm');
+    const osmStyle = (await osm.json()) as { sources: Record<string, { url?: string }> };
+    expect(osmStyle.sources.poi?.url).toBe(
+      'pmtiles://https://tiles.test/tiles/poi-osm-20260901.pmtiles',
+    );
+    const all = await SELF.fetch('https://api/v1/styles/light.json?sources=all');
+    expect(all.headers.get('x-poi-profile')).toBe('all');
+    const allStyle = (await all.json()) as { sources: Record<string, { url?: string }> };
+    expect(allStyle.sources.poi?.url).toBe(
+      'pmtiles://https://tiles.test/tiles/poi-20260901.pmtiles',
+    );
+  });
+
+  it('tập nguồn chưa có profile → 400 kèm danh sách profile; giá trị lạ → 400', async () => {
+    const res = await SELF.fetch('https://api/v1/styles/light.json?sources=osm,overture');
+    expect(res.status).toBe(400);
+    const body = (await res.json()) as { error: { code: string; message: string } };
+    expect(body.error.code).toBe('invalid_request');
+    expect(body.error.message).toContain('osm,overture,fsq');
+    expect((await SELF.fetch('https://api/v1/styles/light.json?sources=banana')).status).toBe(400);
+  });
+
   it('chưa có manifest → 503 upstream_unavailable', async () => {
     await env.META.delete('release:current');
     const res = await SELF.fetch('https://api/v1/styles/dark.json');

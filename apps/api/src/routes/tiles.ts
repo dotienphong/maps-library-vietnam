@@ -2,21 +2,21 @@ import { Hono } from 'hono';
 import { Compression, PMTiles } from 'pmtiles';
 import type { Env } from '../env';
 import { ApiError } from '../errors';
-import { getManifest } from '../manifest';
+import { type Manifest, getManifest } from '../manifest';
 import { R2Source } from '../r2-source';
 
 export const tiles = new Hono<{ Bindings: Env }>();
-const SETS = ['vn', 'poi'] as const;
+const SETS = ['vn', 'poi', 'poi-osm'] as const;
 
-function releaseFor(set: string, m: { vn: string | null; poi: string | null }): string {
+function releaseFor(set: string, m: Manifest): string {
   if (!(SETS as readonly string[]).includes(set))
     throw new ApiError(404, 'not_found', `Không có bộ tiles "${set}"`);
-  const r = set === 'vn' ? m.vn : m.poi;
+  const r = set === 'vn' ? m.vn : set === 'poi' ? m.poi : (m.poiProfiles?.osm ?? null);
   if (!r) throw new ApiError(404, 'not_found', `Bộ tiles "${set}" chưa phát hành`);
   return r;
 }
 
-tiles.get('/v1/tiles/:file{[a-z]+\\.json}', async (c) => {
+tiles.get('/v1/tiles/:file{[a-z][a-z-]*\\.json}', async (c) => {
   const set = c.req.param('file').replace(/\.json$/, '');
   const release = releaseFor(set, await getManifest(c.env));
   const p = new PMTiles(new R2Source(c.env.TILES, `tiles/${release}.pmtiles`));

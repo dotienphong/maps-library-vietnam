@@ -15,6 +15,29 @@ describe('tiles fallback khi chưa có dữ liệu', () => {
       /chưa phát hành/,
     );
   });
+  it('set poi-osm đọc manifest.poiProfiles.osm; thiếu → 404', async () => {
+    await env.META.put(
+      'release:current',
+      JSON.stringify({ vn: 'vn-20260826', poi: 'poi-20260901' }),
+    );
+    const missing = await SELF.fetch('https://api/v1/tiles/poi-osm/10/815/483.pbf');
+    expect(missing.status).toBe(404);
+    expect(((await missing.json()) as { error: { message: string } }).error.message).toMatch(
+      /chưa phát hành/,
+    );
+    await env.META.put(
+      'release:current',
+      JSON.stringify({
+        vn: 'vn-20260826',
+        poi: 'poi-20260901',
+        poiProfiles: { osm: 'poi-osm-20260901' },
+      }),
+    );
+    // Có release nhưng R2 local trống → lỗi đọc archive, không phải 404 "chưa phát hành".
+    const present = await SELF.fetch('https://api/v1/tiles/poi-osm.json');
+    expect(present.status).not.toBe(404);
+  });
+
   it('/r2/* trả 404 đúng định dạng khi R2 local trống', async () => {
     const res = await SELF.fetch('https://api/r2/tiles/none.pmtiles');
     expect(res.status).toBe(404);
