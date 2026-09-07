@@ -32,7 +32,9 @@ describe('createClient', () => {
       baseUrl: 'https://api.example.test',
       fetch: okFetch({}),
     });
-    expect(client.styleUrl('dark')).toBe('https://api.example.test/v1/styles/dark.json?key=k%201');
+    expect(client.styleUrl('dark')).toBe(
+      'https://api.example.test/v1/styles/dark.json?key=k%201&sources=osm%2Coverture%2Cfsq',
+    );
   });
 
   it('ném MapsLibVNError với code/request_id từ body lỗi', async () => {
@@ -90,5 +92,50 @@ describe('createClient', () => {
     const headers = init.headers as Record<string, string>;
     expect(headers['X-Api-Key']).toBe('mlv_live_abc');
     expect(headers['content-type']).toBe('application/json');
+  });
+  it('poiSources mặc định: autocomplete/search/nearby/reverse đều gửi cả ba nguồn', async () => {
+    const fetch = okFetch({ items: [] });
+    const client = createClient({ apiKey: 'k', baseUrl: 'https://api.example.test', fetch });
+    await client.autocomplete('pho');
+    await client.search('pho');
+    await client.nearby({ lat: 10.7, lng: 106.7 });
+    await client.reverse(10.7, 106.7);
+    for (const call of fetch.mock.calls) {
+      const url = (call as unknown as [URL])[0];
+      expect(url.searchParams.get('sources')).toBe('osm,overture,fsq');
+    }
+    expect(fetch).toHaveBeenCalledTimes(4);
+  });
+
+  it('poiSources tuỳ chọn được chuẩn hoá thứ tự; styleUrl và geocode/getPlace không lệch', async () => {
+    const fetch = okFetch({ items: [] });
+    const client = createClient({
+      apiKey: 'k',
+      baseUrl: 'https://api.example.test',
+      fetch,
+      poiSources: ['fsq', 'osm'],
+    });
+    await client.search('pho');
+    expect((fetch.mock.calls[0] as unknown as [URL])[0].searchParams.get('sources')).toBe(
+      'osm,fsq',
+    );
+    expect(client.styleUrl('light')).toBe(
+      'https://api.example.test/v1/styles/light.json?key=k&sources=osm%2Cfsq',
+    );
+    await client.geocode('12 nguyen hue');
+    expect((fetch.mock.calls[1] as unknown as [URL])[0].searchParams.has('sources')).toBe(false);
+  });
+
+  it('poiSources rỗng hoặc lạ → ném Error lúc tạo client', () => {
+    expect(() => createClient({ apiKey: 'k', baseUrl: 'https://x', poiSources: [] })).toThrowError(
+      /poiSources/,
+    );
+    expect(() =>
+      createClient({
+        apiKey: 'k',
+        baseUrl: 'https://x',
+        poiSources: ['banana' as unknown as 'osm'],
+      }),
+    ).toThrowError(/poiSources/);
   });
 });

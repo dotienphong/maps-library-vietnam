@@ -1,4 +1,10 @@
 import { MapsLibVNError } from './errors';
+import {
+  DEFAULT_POI_SOURCES,
+  type PoiSource,
+  normalizePoiSources,
+  poiSourcesKey,
+} from './poi-sources';
 import type {
   AutocompleteItem,
   AutocompleteType,
@@ -24,6 +30,11 @@ export interface ClientOptions {
    * Không ghi đè được `X-Api-Key`.
    */
   headers?: Record<string, string>;
+  /**
+   * Tập nguồn POI cho bản đồ và Places API (spec 07/09). Mặc định cả ba nguồn.
+   * Áp cho autocomplete/search/nearby/reverse và `styleUrl`; `getPlace`/`geocode` không lọc.
+   */
+  poiSources?: readonly PoiSource[];
 }
 
 export interface AttributionResponse {
@@ -38,6 +49,11 @@ interface ErrorBody {
 
 export function createClient(options: ClientOptions) {
   const baseUrl = options.baseUrl.replace(/\/+$/, '');
+  const poiSources = normalizePoiSources(options.poiSources ?? DEFAULT_POI_SOURCES);
+  if (!poiSources) {
+    throw new Error(`poiSources không hợp lệ: ${JSON.stringify(options.poiSources)}`);
+  }
+  const sources = poiSourcesKey(poiSources);
   const doFetch = options.fetch ?? globalThis.fetch.bind(globalThis);
   const baseHeaders = (): Record<string, string> => ({
     ...(options.headers ?? {}),
@@ -90,7 +106,7 @@ export function createClient(options: ClientOptions) {
     baseUrl,
     attribution: () => get<AttributionResponse>('/v1/attribution'),
     styleUrl: (theme: Theme) =>
-      `${baseUrl}/v1/styles/${theme}.json?key=${encodeURIComponent(options.apiKey)}`,
+      `${baseUrl}/v1/styles/${theme}.json?key=${encodeURIComponent(options.apiKey)}&sources=${encodeURIComponent(sources)}`,
     autocomplete: (
       q: string,
       opts: { near?: [number, number]; limit?: number; types?: AutocompleteType[] } = {},
@@ -100,6 +116,7 @@ export function createClient(options: ClientOptions) {
         near: opts.near?.join(','),
         limit: opts.limit,
         types: opts.types?.join(','),
+        sources,
       }),
     search: (
       q: string,
@@ -120,6 +137,7 @@ export function createClient(options: ClientOptions) {
         bbox: opts.bbox?.join(','),
         limit: opts.limit,
         offset: opts.offset,
+        sources,
       }),
     nearby: (opts: {
       lat: number;
@@ -134,6 +152,7 @@ export function createClient(options: ClientOptions) {
         radius: opts.radius,
         category: opts.category,
         limit: opts.limit,
+        sources,
       }),
     getPlace: (id: string) => get<PlaceDetails>(`/v1/places/${encodeURIComponent(id)}`),
     geocode: (q: string, opts: { near?: [number, number]; limit?: number } = {}) =>
@@ -142,7 +161,8 @@ export function createClient(options: ClientOptions) {
         near: opts.near?.join(','),
         limit: opts.limit,
       }),
-    reverse: (lat: number, lng: number) => get<ReverseResponse>('/v1/reverse', { lat, lng }),
+    reverse: (lat: number, lng: number) =>
+      get<ReverseResponse>('/v1/reverse', { lat, lng, sources }),
     /** Gửi đóng góp/sửa POI (spec 6.1). Khoá phải có scope edits:write. */
     suggestEdit: (edit: SuggestEditRequest) => post<SuggestEditResponse>('/v1/edits', edit),
   };
