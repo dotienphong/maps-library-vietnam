@@ -185,6 +185,43 @@ tại. Đã `workflow_dispatch` một run trên `main` (`9bccce2`) để có b�
    `44da644`: thêm `pnpm --filter @mapslibvn/core build &&` vào đầu script `typecheck`, đúng cách
    script `test` vẫn làm.
 
+### Đã vá: Deploy API giờ chặn bởi bộ test DB thật (`f9f5fdb`)
+
+`needs` chỉ hoạt động giữa các job **trong cùng một workflow**, nên không thể `needs` sang
+`apitest.yml`. Cách làm: biến `apitest.yml` thành workflow **gọi lại được** (`workflow_call`), và
+`Deploy API` thêm job `apitest: uses: ./.github/workflows/apitest.yml` với `deploy: needs: apitest`.
+Chọn cách này thay vì `workflow_run` vì `workflow_run` phải tự xử lý checkout đúng SHA và điều kiện
+`conclusion` cross-workflow, lại không chạy khi apitest không được trigger (ví dụ push chỉ chạm
+`packages/style/**`).
+
+Hai cái bẫy đã xử lý:
+
+1. **Chạy hai lần.** Path của apitest và deploy-api trùng nhau ở `apps/api/**`, `apps/admin/**`,
+   `packages/core/**`. Nếu giữ nguyên, mỗi lần chạm `apps/api` sẽ chạy bộ test hai lần — repo private
+   chỉ có **2.000 phút Actions/tháng**. Đã cắt các path trùng khỏi trigger `push` của apitest, giữ lại
+   đúng phần deploy-api **không** bao: `db/migrations/**`, `scripts/api-db-test.mjs`, `scripts/lib/**`,
+   `.github/workflows/apitest.yml`.
+2. **Tự huỷ cổng.** `concurrency` của apitest có `cancel-in-progress: true`. Nếu group dùng chung thì
+   một `workflow_dispatch` apitest giữa lúc deploy sẽ **huỷ luôn job cổng** của deploy. Đã thêm
+   `github.workflow` vào group — đó là workflow **cấp cao nhất**, nên lần chạy do `Deploy API` gọi có
+   group khác lần chạy độc lập.
+
+Hệ quả cần biết: từ nay push chỉ chạm `packages/style/**` hoặc `pnpm-lock.yaml` cũng kéo theo bộ DB
+thật (trước thì không) — đúng ý, vì cả hai đều vào bản Worker được deploy.
+
+**Đã nghiệm thu bằng run thật, không chỉ đọc YAML:**
+
+| Kiểm | Kết quả |
+|---|---|
+| `API tests (Places, real DB)` chạy **độc lập** trên `f9f5fdb` | ✅ success — chuyển `workflow_call` không vỡ đường cũ ([34119721603](https://github.com/dotienphong/maps-library-vietnam/actions/runs/34119721603)) |
+| `CI` trên `f9f5fdb` | ✅ success |
+| `Deploy API` khi mới khởi động | graph **chỉ có** job `apitest / apitest`; job `deploy` **chưa tồn tại** vì đang bị `needs` giữ |
+| Thứ tự thật trong run | `apitest / apitest` success **12:05:04** → `deploy` mới bắt đầu **12:06:42** ([34119938354](https://github.com/dotienphong/maps-library-vietnam/actions/runs/34119938354)) |
+| Production sau lần deploy có cổng | `/healthz/db` ok · autocomplete/search/nearby/reverse/geocode **200** · area `Phường Bàn Cờ` **0,801 hạng 1** |
+
+Trước bản vá, `deploy` chạy song song bất kể test; giờ nó không xuất hiện trong graph cho tới khi
+`apitest` xanh. Lần deploy dùng để nghiệm thu là redeploy đúng code đang live nên production không đổi.
+
 ### Sửa lại một điều tôi nói sai ở mục 0
 
 `deploy-api.yml` **có** gate trên test: nó chạy `pnpm --filter @mapslibvn/api test` như một step. Cái

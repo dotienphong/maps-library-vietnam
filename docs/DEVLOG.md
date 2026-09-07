@@ -1415,6 +1415,27 @@ vẫn là `sleep 1` phút — `sudo pmset -a sleep 0 disksleep 0`.
   **Điểm tiếp theo: viết plan hạng mục 3** — không tự implement phonetic, `viKey`, tsvector,
   `matched_alt` hay migration 0009.
 
+- 2026-09-07 · Hạ tầng CI · **Deploy API giờ bị chặn bởi bộ test DB thật** (`f9f5fdb`) ·
+  [hồ sơ](evidence/admin-alias/9-4-9-5-nghiem-thu-production.md) · vá đúng lỗ hổng đã để sự cố 503
+  lên production hôm nay: Deploy API thành công trên `178d086` và `0585eb1` dù
+  "API tests (Places, real DB)" đỏ ~10 giây trước. `needs` chỉ hoạt động giữa các job **cùng một
+  workflow**, nên biến `apitest.yml` thành workflow gọi lại được (`workflow_call`) và Deploy API thêm
+  job `apitest: uses: ./.github/workflows/apitest.yml` với `deploy: needs: apitest`. Chọn cách này
+  thay `workflow_run` vì `workflow_run` phải tự xử lý checkout SHA và không chạy khi apitest không
+  được trigger. **Hai bẫy đã xử lý:** (1) path hai workflow trùng ở `apps/api`/`apps/admin`/
+  `packages/core` — giữ nguyên thì mỗi lần chạm `apps/api` chạy bộ test 15 phút **hai lần**, mà repo
+  private chỉ có 2.000 phút Actions/tháng; đã cắt path trùng khỏi trigger `push` của apitest, giữ
+  đúng phần deploy-api không bao (`db/migrations`, `scripts/api-db-test.mjs`, `scripts/lib`, chính
+  file workflow). (2) `concurrency` của apitest có `cancel-in-progress` — dùng chung group thì một
+  `workflow_dispatch` apitest giữa lúc deploy sẽ **huỷ luôn job cổng**; đã thêm `github.workflow`
+  (workflow cấp cao nhất) vào group. **Nghiệm thu bằng run thật:** apitest độc lập trên `f9f5fdb`
+  xanh (không vỡ đường cũ); `Deploy API` lúc khởi động chỉ có job `apitest`, job `deploy` chưa tồn
+  tại; thứ tự thật `apitest` success **12:05:04** → `deploy` bắt đầu **12:06:42**, run success
+  ([34119938354](https://github.com/dotienphong/maps-library-vietnam/actions/runs/34119938354)); sau
+  deploy production đủ 5 endpoint 200 và area `Phường Bàn Cờ` 0,801 hạng 1. Hệ quả: push chỉ chạm
+  `packages/style/**` hay `pnpm-lock.yaml` từ nay cũng kéo theo bộ DB thật — đúng ý, vì cả hai đều
+  vào bản Worker được deploy
+
 ## 5. Sự cố
 
 ### SC-1 · Cache Rule nuốt Range của PMTiles — **ĐÃ ĐÓNG 27/08/2026**
