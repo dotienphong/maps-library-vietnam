@@ -1,4 +1,4 @@
-import { nameCore, normalizeVi, parseAddress } from '@mapslibvn/core';
+import { nameCore, normalizeVi, parseAddress, poiSourcesKey } from '@mapslibvn/core';
 import { Hono } from 'hono';
 import { requireAuth } from '../auth';
 import { collectCandidates } from '../autocomplete-sql';
@@ -6,7 +6,7 @@ import { cachedJson } from '../cache';
 import { getSql } from '../db';
 import type { AppEnv } from '../env';
 import { ApiError } from '../errors';
-import { clampInt, parseLatLngPair, parseTypes } from '../params';
+import { clampInt, parseLatLngPair, parseSources, parseTypes } from '../params';
 import { quotaMiddleware } from '../quota';
 import { gridKey, isAdminOnlyQuery, rankScore, withAreaSlot } from '../ranking';
 
@@ -16,9 +16,10 @@ export const autocompleteCacheUrl = (input: {
   queryNorm: string;
   grid: string;
   typeKey: string;
+  sourceKey: string;
   limit: number;
 }) =>
-  `https://cache.mapslibvn/autocomplete?v=admin1&qn=${encodeURIComponent(input.queryNorm)}&g=${input.grid}&t=${input.typeKey}&l=${input.limit}`;
+  `https://cache.mapslibvn/autocomplete?v=src1&qn=${encodeURIComponent(input.queryNorm)}&g=${input.grid}&t=${input.typeKey}&s=${input.sourceKey}&l=${input.limit}`;
 
 autocomplete.get('/v1/autocomplete', requireAuth(), quotaMiddleware('places'), async (c) => {
   const query = (c.req.query('q') ?? '').trim();
@@ -28,6 +29,7 @@ autocomplete.get('/v1/autocomplete', requireAuth(), quotaMiddleware('places'), a
   const near = parseLatLngPair(c.req.query('near'), 'near');
   const limit = clampInt(c.req.query('limit'), 1, 10, 10, 'limit');
   const types = parseTypes(c.req.query('types'));
+  const sources = parseSources(c.req.query('sources'));
   const queryNorm = normalizeVi(query);
   const queryCore = nameCore(query) || queryNorm;
   const queryStartsWithDigit = /^\d/.test(queryNorm);
@@ -37,10 +39,11 @@ autocomplete.get('/v1/autocomplete', requireAuth(), quotaMiddleware('places'), a
   // LIKE tận dụng gin_trgm_ops; escape wildcard để giữ đúng nghĩa tiền tố.
   const prefixPattern = `${queryNorm.replace(/[\\%_]/g, '\\$&')}%`;
 
-  // Cache 10 phút theo (q_norm, lưới near, types, limit); stale-if-error 1 giờ.
+  // Cache 10 phút theo (q_norm, lưới near, types, sources, limit); stale-if-error 1 giờ.
   const grid = near ? gridKey(near.lat, near.lng) : '-';
   const typeKey = [...types].sort().join('_');
-  const cacheUrl = autocompleteCacheUrl({ queryNorm, grid, typeKey, limit });
+  const sourceKey = poiSourcesKey(sources).replace(/,/g, '_');
+  const cacheUrl = autocompleteCacheUrl({ queryNorm, grid, typeKey, sourceKey, limit });
 
   const response = await cachedJson(c.executionCtx, cacheUrl, 600, 3600, async () => {
     const sql = getSql(c.env);
@@ -48,7 +51,7 @@ autocomplete.get('/v1/autocomplete', requireAuth(), quotaMiddleware('places'), a
       const parsed = parseAddress(query);
       const rows = await collectCandidates(
         sql,
-        { queryNorm, queryCore, prefixPattern, near, parsed },
+        { queryNorm, queryCore, prefixPattern, near, parsed, sources },
         types,
       );
       const items = rows

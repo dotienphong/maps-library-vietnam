@@ -58,7 +58,12 @@ describe('GET /v1/autocomplete — auth + validation (không DB)', () => {
   });
 
   it('q < 2 ký tự → 400; near hỏng → 400; types lạ → 400', async () => {
-    for (const query of ['q=a', 'q=highlands&near=xx', 'q=highlands&types=banana']) {
+    for (const query of [
+      'q=a',
+      'q=highlands&near=xx',
+      'q=highlands&types=banana',
+      'q=highlands&sources=banana',
+    ]) {
       const response = await SELF.fetch(url(query), { headers: { 'X-Api-Key': KEY } });
       expect(response.status).toBe(400);
       expect(await code(response)).toBe('invalid_request');
@@ -73,9 +78,15 @@ describe('GET /v1/autocomplete — auth + validation (không DB)', () => {
     expect(await code(response)).toBe('upstream_unavailable');
   });
 
-  it('cache key có version shape area để rollback không đọc payload mới', () => {
-    expect(
-      autocompleteCacheUrl({ queryNorm: 'quan 10', grid: '-', typeKey: 'area', limit: 10 }),
-    ).toContain('?v=admin1&');
+  it('cache key có version shape nguồn và khoá sources', () => {
+    const url = autocompleteCacheUrl({
+      queryNorm: 'quan 10',
+      grid: '-',
+      typeKey: 'area',
+      sourceKey: 'osm_fsq',
+      limit: 10,
+    });
+    expect(url).toContain('?v=src1&');
+    expect(url).toContain('&s=osm_fsq&');
   });
 });

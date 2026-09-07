@@ -1212,6 +1212,25 @@ vẫn là `sleep 1` phút — `sudo pmset -a sleep 0 disksleep 0`.
   `ST_Difference` với hợp `vn_boundary` — cấu trúc lại: TEMP + `ST_Subdivide`, timeout 120 s/vùng,
   L4 sau cùng → 60/60 trong 5 s. Không đổi code/gate; chờ PHONG
 
+- 2026-09-07 · Alias T8.3/8.4 · **PHONG duyệt A+B+C, đã cài và publish — cổng 84 → 24 failure** ·
+  [hồ sơ mục F](evidence/admin-alias/8-3-decision-prep.md) · (A) overlay đo mật độ POI ở phần không
+  phủ và phần được phủ, **chỉ cho vùng thiếu phủ** (không tốn truy vấn cho 4.900 vùng), `ST_Subdivide`
+  cho phần trống nhiều đảo; evaluator chuyển sang cảnh báo `coastal_gap_accepted` khi ≤ 0,5 POI/km²
+  hoặc < 10 % mật độ phần phủ. **Bảng `poi` rỗng thì không trả số nào** và cổng giữ nguyên failure —
+  mật độ 0 khi chưa có POI sẽ chấp nhận mọi gap. (B) cảnh báo `discarded_sliver` từ 0,01. (C) giữ
+  ngưỡng 0,05, không đổi gì. Thêm `--accept-qa` cho `admin-old.mjs` (`a4a8146`) vì `admin.mjs` có mà
+  nó không, nên đường "chỉ thay old+alias" không publish được trên dữ liệu thật. Publish production
+  bằng `admin-old.mjs --accept-qa`, **không chạm `admin_area`**: alias 37.246 → **37.251**,
+  `unmatched=2 overlap=0 seed_miss=0`, publish 1.809 ms. Cổng chạy lại: **84 → 24 failure**, cảnh báo
+  **1.970 → 286** (`discarded_sliver` 229, `coastal_gap_accepted` 55). Xác nhận trên production API:
+  "Lộc Thạnh" và "Lộc Thành" trước trả **rỗng**, giờ trả đúng hai xã khác nhau; Đông Thạnh, Sa Pả,
+  Phú Thạnh cũng ra kết quả. **Hai dự đoán của tôi lệch, đã sửa trong hồ sơ:** đoán còn 19 failure
+  (thực tế **24** — luật máy chấp nhận 55/60 gap, 5 ca Cát Bà/Tam Giang giữ đỏ vì Gia Luận và Việt
+  Hải có mật độ phần trống **cao hơn** phần phủ, có thể là rừng chưa thuộc xã nào chứ không phải
+  biển, nên câu "không vùng nào là đất bị hở" của tôi là quá mạnh); và đoán cảnh báo ≤ 209 (thực tế
+  229). 24 failure còn lại: 21 cùng gốc nguồn dữ liệu cấp xã cũ, 5 cần nguồn ranh giới Cát Bà/Tam
+  Giang, **0 lỗi code**
+
 ## 5. Sự cố
 
 ### SC-1 · Cache Rule nuốt Range của PMTiles — **ĐÃ ĐÓNG 27/08/2026**

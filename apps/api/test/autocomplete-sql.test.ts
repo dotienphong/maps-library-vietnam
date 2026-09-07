@@ -14,6 +14,7 @@ const input: CandidateQueryInput = {
   prefixPattern: 'coffee highlands%',
   near: null,
   parsed: { alleyChain: [], confidence: 0 },
+  sources: ['osm', 'overture', 'fsq'],
 };
 
 /** 7 ký tự — đủ ngắn để có thêm nhánh `%`. */
@@ -73,6 +74,17 @@ describe('autocomplete-sql — bậc 1 dùng word_similarity (spec 05/09 mục 5
     expect(query?.text.match(/<% name_norm/g)).toHaveLength(2);
     expect(query?.text.match(/name_norm % \$\d+/g)).toHaveLength(2);
     expect(query?.params).toEqual(expect.arrayContaining(['ca phe cong', 'cong']));
+  });
+
+  it('poi: lọc theo sources với alias p, giữ POI người dùng', async () => {
+    const { sql, calls } = fakeSql([]);
+    await poiCandidates(sql, { ...shortInput, sources: ['osm', 'fsq'] });
+    const [query] = calls.filter((call) => call.text.startsWith('SELECT'));
+    expect(query?.text).toContain('FROM poi p');
+    expect(query?.text).toMatch(
+      /p\.primary_source = ANY\(\$\d+::text\[\]\) OR p\.created_by = 'user'/,
+    );
+    expect(query?.params).toEqual(expect.arrayContaining([['osm', 'fsq']]));
   });
 
   it('street: truy vấn ngắn có nhánh %, truy vấn dài thì không', async () => {

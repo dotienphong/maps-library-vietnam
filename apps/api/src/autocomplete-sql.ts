@@ -1,7 +1,8 @@
-import type { ParsedAddress } from '@mapslibvn/core';
+import type { ParsedAddress, PoiSource } from '@mapslibvn/core';
 import { areaCandidates } from './area-candidates';
 import type { getSql } from './db';
 import type { LatLng } from './params';
+import { poiSourceFilter } from './poi-sources';
 import type { ItemType } from './ranking';
 
 type Sql = ReturnType<typeof getSql>;
@@ -28,6 +29,8 @@ export interface CandidateQueryInput {
   prefixPattern: string;
   near: LatLng | null;
   parsed: ParsedAddress;
+  /** Tập nguồn POI (spec 07/09); chỉ nhánh `poi` dùng. */
+  sources: readonly PoiSource[];
 }
 
 /**
@@ -77,7 +80,7 @@ const distance = (sql: Sql, near: LatLng | null, geometry: string) => {
  * bảng. ORDER BY thêm pop để 20 ứng viên đầu không ngẫu nhiên khi sim hoà (truy vấn 2–3 ký tự).
  */
 export function poiCandidates(sql: Sql, input: CandidateQueryInput) {
-  const { queryNorm, queryCore, prefixPattern, near } = input;
+  const { queryNorm, queryCore, prefixPattern, near, sources } = input;
   const fuzzy = useSimilarityBranch(queryNorm);
   const simNorm = fuzzy ? sql`OR name_norm % ${queryNorm}` : sql``;
   // Phần lớn truy vấn có nameCore trùng normalizeVi; khi đó nhánh core chỉ là việc thừa.
@@ -99,8 +102,9 @@ export function poiCandidates(sql: Sql, input: CandidateQueryInput) {
       starts_with(name_norm, ${queryNorm}) AS prefix,
       coalesce(popularity, 0) AS pop,
       ${distance(sql, near, 'geom')} AS d
-    FROM poi
+    FROM poi p
     WHERE status = 'active'
+      AND ${poiSourceFilter(sql, sources)}
       AND (
         ${queryNorm} <% name_norm
         ${simNorm}

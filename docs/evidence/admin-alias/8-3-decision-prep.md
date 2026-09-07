@@ -92,3 +92,57 @@ và mốc ca tách dừng ở 4/6.
 (cùng gốc nguồn) + 5 `missing_mainland_l8` (3 PK + 2 đảo đã duyệt) + 2 `unexpected_target` + 1
 `split_target_missing` (`ct-01`/`hn-01`, C). Cảnh báo 1.970 → ≤ 209. Tức sau ba quyết định trên, mọi
 thứ còn lại quy về đúng **một** câu hỏi: nguồn dữ liệu cấp xã cũ.
+
+---
+
+## F. Kết quả thật sau khi PHONG duyệt A + B + C (07/09/2026, 08:20Z)
+
+Đã cài A và B, giữ nguyên C, rồi publish bản sửa alias lên production bằng
+`admin-old.mjs --accept-qa` (chỉ thay `admin_area_old` + `admin_alias`, **không** chạm `admin_area`).
+`admin_alias` 37.246 → **37.251**; `unmatched=2`, `overlap=0`, `seed_miss=0`.
+
+Cổng chạy lại trên production: **84 → 24 failure**, cảnh báo **1.970 → 286**.
+
+| | trước | sau |
+|---|---:|---:|
+| `raw_coverage_gap` | 60 | **5** |
+| `target_missing` | 10 | 10 |
+| `missing_mainland_l8` | 10 | **5** |
+| `unexpected_target` | 2 | 2 |
+| `count_out_of_range` | 1 | 1 |
+| `split_target_missing` | 1 | 1 |
+| **failure** | **84** | **24** |
+| `discarded_sliver` (cảnh báo) | 1.970 | **229** |
+| `coastal_gap_accepted` (cảnh báo mới) | — | **55** |
+
+**Hai chỗ tôi dự đoán lệch, sửa lại cho đúng:**
+
+1. Mục E đoán còn **19** failure vì giả định cả 60 gap được chấp nhận. Thực tế luật máy chấp nhận
+   **55**, còn **5** vẫn đỏ. Đây là năm ca tôi đã xếp "cần nhìn" ở mục A, và giữ chúng đỏ là **đúng**:
+   luật không được nới để cho một con số đẹp.
+
+   | id | vùng | phần trống | POI | mật độ trống / phủ |
+   |---|---|---:|---:|---|
+   | 3769311 | Thị trấn Cát Hải (Hải Phòng) | 2,20 km² | 5 | 2,27 / 18,78 = 12 % |
+   | 3769312 | Xã Gia Luận (Hải Phòng) | 9,60 km² | 12 | 1,25 / 0,49 = **254 %** |
+   | 3769316 | Xã Việt Hải (Hải Phòng) | 38,72 km² | 32 | 0,83 / 1,03 = 80 % |
+   | 13396625 | Xã Nghĩa Lộ (Hải Phòng) | 1,79 km² | 1 | 0,56 / 4,58 = 12 % |
+   | 15852553 | Phường Hương Phong (Huế) | 3,85 km² | 3 | 0,78 / 2,69 = 29 % |
+
+   Gia Luận và Việt Hải có mật độ POI ở phần **trống cao hơn** phần được phủ — cả hai nằm trong vườn
+   quốc gia Cát Bà, nên phần không phủ có thể là **rừng thật sự chưa thuộc xã hiện hành nào**, tức lỗ
+   dữ liệu thật chứ không phải biển. Câu ở mục A "không vùng nào là đất bị hở" là **kết luận quá
+   mạnh** của tôi; năm ca này chưa chứng minh được là nước. Chúng cần đối chiếu ranh giới xã hiện
+   hành của Cát Bà–Cát Hải và đầm phá Tam Giang — việc có nguồn, không phải việc ngưỡng.
+
+2. Mục B đoán cảnh báo sliver còn "≤ 209"; thực tế **229** (con số 209 là ước từ histogram có trùng
+   vùng giữa các bucket).
+
+**Còn lại 24 failure, quy về ba nhóm:**
+
+- **21** cùng một gốc là **nguồn dữ liệu cấp xã cũ**: `count_out_of_range` (4.215 so với 10.000–10.700)
+  + 10 `target_missing` (toàn bộ Lai Châu, snapshot không có xã nào của Huyện Than Uyên) + 3
+  `missing_mainland_l8` do PK ba cột + 2 ca đảo PHONG đã duyệt + 2 `unexpected_target` + 1
+  `split_target_missing` (`hn-01`/`ct-01`, lệch niên đại ranh giới).
+- **5** `raw_coverage_gap` ở bảng trên — cần nguồn ranh giới Cát Bà/Tam Giang.
+- **0** lỗi code.
