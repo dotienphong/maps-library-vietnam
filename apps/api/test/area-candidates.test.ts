@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { areaCandidates } from '../src/area-candidates';
 import type { CandidateQueryInput } from '../src/autocomplete-sql';
-import { fakeSql } from './helpers/fake-sql';
+import { type RecordedQuery, fakeSql } from './helpers/fake-sql';
 
 const input: CandidateQueryInput = {
   queryNorm: 'quan 10',
@@ -12,7 +12,7 @@ const input: CandidateQueryInput = {
   parsed: { alleyChain: [], confidence: 0.2, district: '10' },
 };
 
-const areaQueries = (calls: { text: string }[]) =>
+const areaQueries = (calls: RecordedQuery[]) =>
   calls.filter((call) => call.text.includes('current_hits AS'));
 
 describe('areaCandidates', () => {
@@ -28,6 +28,44 @@ describe('areaCandidates', () => {
     expect(query?.text).toMatch(/LIMIT \$\d+$/);
     expect(query?.text).toMatch(/a\.name_norm LIKE \$\d+/);
     expect(query?.text).toMatch(/aa\.alias_norm LIKE \$\d+/);
+  });
+
+  // Nghiệm thu 9.4 (07/09/2026) trên production: `Phường Bàn Cờ` KHÔNG trả về Phường Bàn Cờ
+  // (top là Phường Cầu Ông Lãnh), còn `Bàn Cờ` thì trả đúng hạng 1 score 0,801. Gốc rễ:
+  // `NAME_FILLERS` có 'quan' nhưng KHÔNG có 'phuong'/'xa'/'thi tran', nên
+  // nameCore('Phường Bàn Cờ') = 'phuong ban co' và `admin_area.name_norm LIKE 'phuong ban co%'`
+  // không khớp gì vì name_norm lưu 'ban co'. Bậc 2 fuzzy cũng không cứu được tên phường ngắn:
+  // word_similarity('phuong ban co','ban co') bị pha loãng dưới ngưỡng 0,5.
+  // `parseAddress` đã tách sẵn tên đúng (`ward: 'Bàn Cờ'`), nên nhánh current phải dùng nó.
+  it('nhánh current khớp theo tên đơn vị đã tách của parseAddress, không theo queryCore còn tiền tố', async () => {
+    const { sql, calls } = fakeSql([]);
+    await areaCandidates(sql, {
+      ...input,
+      queryNorm: 'phuong ban co',
+      queryCore: 'phuong ban co',
+      prefixPattern: 'phuong ban co%',
+      parsed: { alleyChain: [], confidence: 0.2, ward: 'Bàn Cờ' },
+    });
+    const query = areaQueries(calls)[0];
+    // Hai nhánh dùng hai khoá KHÁC nhau: current khớp `admin_area.name_norm` (không có tiền tố)
+    // nên phải là 'ban co%'; alias khớp `admin_alias.alias_norm` (CÓ tiền tố) nên giữ nguyên
+    // 'phuong ban co%'. Trước bản sửa, cả hai đều là 'phuong ban co%' và nhánh current trắng tay.
+    expect(query?.params).toContain('ban co%');
+    expect(query?.params).toContain('phuong ban co%');
+    // Điểm và cờ prefix của nhánh current cũng phải tính trên khoá đã bỏ tiền tố.
+    expect(query?.params.filter((value) => value === 'ban co')).not.toHaveLength(0);
+  });
+
+  it('truy vấn POI không có đơn vị hành chính thì vẫn dùng queryCore như trước', async () => {
+    const { sql, calls } = fakeSql([]);
+    await areaCandidates(sql, {
+      ...input,
+      queryNorm: 'highlands',
+      queryCore: 'highlands',
+      prefixPattern: 'highlands%',
+      parsed: { alleyChain: [], confidence: 0.2 },
+    });
+    expect(areaQueries(calls)[0]?.params).toContain('highlands%');
   });
 
   // Cổng 6.5 đo trên 36.456 alias toàn quốc: gộp `<%` vào bậc 1 làm `quan 10` khớp 11.072 dòng

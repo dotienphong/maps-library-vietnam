@@ -30,7 +30,17 @@ function areaQuery(sql: Sql, input: CandidateQueryInput, fuzzy: boolean): Promis
       : input.parsed.province && !provinceFromAlias
         ? 4
         : null;
-  const currentPrefix = `${queryCore.replace(/[\\%_]/g, '\\$&')}%`;
+  // `admin_area.name_norm` lưu tên KHÔNG có tiền tố đơn vị ("ban co", không phải "phuong ban co"),
+  // mà `nameCore` chỉ bỏ filler POI: `NAME_FILLERS` có 'quan' nhưng không có 'phuong'/'xa'/
+  // 'thi tran'. Nên `queryCore` của "Phường Bàn Cờ" vẫn là "phuong ban co" và tiền tố không khớp
+  // gì; bậc 2 fuzzy cũng không cứu được tên ngắn vì word_similarity('phuong ban co','ban co') bị
+  // pha loãng dưới ngưỡng 0,5 (nghiệm thu 9.4 07/09/2026: truy vấn này trả về RỖNG trên
+  // production, còn "Bàn Cờ" trả đúng hạng 1). `parseAddress` đã tách sẵn tên đúng nên dùng nó.
+  // Chỉ dùng ward/district: `province` bị canonicalize ("Bình Dương" → "Thành phố Hồ Chí Minh")
+  // nên lấy nó sẽ đổi hành vi của các truy vấn tỉnh cũ đang đúng.
+  const adminUnit = input.parsed.ward ?? input.parsed.district;
+  const currentKey = adminUnit ? normalizeVi(adminUnit) : queryCore;
+  const currentPrefix = `${currentKey.replace(/[\\%_]/g, '\\$&')}%`;
   const nearPoint = point(sql, near);
   const distance = nearPoint
     ? sql`ST_DistanceSphere(ST_PointOnSurface(candidate_geom),${nearPoint})`
@@ -38,7 +48,7 @@ function areaQuery(sql: Sql, input: CandidateQueryInput, fuzzy: boolean): Promis
   // Bậc 1 bỏ `<%`: trên 36.456 alias toàn quốc, word_similarity bắt mọi alias chứa từ hành chính
   // phổ biến ("quan", "thanh pho"), nên `quan 10` khớp 11.072 dòng thay vì 18 dòng của tiền tố.
   const currentMatch = fuzzy
-    ? sql`(${queryCore} <% a.name_norm OR a.name_norm LIKE ${currentPrefix})`
+    ? sql`(${currentKey} <% a.name_norm OR a.name_norm LIKE ${currentPrefix})`
     : sql`a.name_norm LIKE ${currentPrefix}`;
   const aliasMatch = fuzzy
     ? sql`(${queryNorm} <% aa.alias_norm OR aa.alias_norm LIKE ${prefixPattern})`
@@ -48,8 +58,8 @@ function areaQuery(sql: Sql, input: CandidateQueryInput, fuzzy: boolean): Promis
       SELECT concat('current:',a.id) dedup_key,1 source_order,a.name,
         CASE WHEN a.level=4 THEN '' ELSE coalesce(parent.name,'') END secondary,
         CASE WHEN a.level=4 THEN 'province' ELSE 'ward' END AS precision,
-        greatest(word_similarity(${queryCore},a.name_norm),similarity(a.name_norm,${queryCore})) sim,
-        starts_with(a.name_norm,${queryCore}) prefix,a.geom candidate_geom
+        greatest(word_similarity(${currentKey},a.name_norm),similarity(a.name_norm,${currentKey})) sim,
+        starts_with(a.name_norm,${currentKey}) prefix,a.geom candidate_geom
       FROM admin_area a
       LEFT JOIN admin_area parent ON parent.id=a.parent_id
       WHERE ${currentMatch}
