@@ -1,0 +1,73 @@
+{
+  "quy nhon": {
+    "variants": [
+      "qui nhon"
+    ],
+    "source": "osm:node/369487010 alt_name"
+  },
+  "dak lak": {
+    "variants": [
+      "darlac",
+      "daklak"
+    ],
+    "source": "osm:relation/1884034 alt_name"
+  },
+  "buon ma thuot": {
+    "variants": [
+      "buon me thuot",
+      "ban me thuot",
+      "buon ma thot"
+    ],
+    "source": "osm:node/2502425156 alt_name"
+  },
+  "da nang": {
+    "variants": [
+      "tourane"
+    ],
+    "source": "osm:relation/1891418 old_name"
+  },
+  "hue": {
+    "variants": [
+      "thua thien hue",
+      "thua thien"
+    ],
+    "source": "osm:relation/1891483 old_name"
+  },
+  "tan son nhat": {
+    "variants": [
+      "tan son nhut"
+    ],
+    "source": "osm:node/13097604035 old_name"
+  },
+  "hoi an": {
+    "variants": [
+      "faifo"
+    ],
+    "source": "osm:node/110506070 old_name"
+  },
+  "soc trang": {
+    "variants": [
+      "khanh hung"
+    ],
+    "source": "osm:node/369487102 old_name"
+  },
+  "can tho": {
+    "variants": [
+      "tay do",
+      "phong dinh"
+    ],
+    "source": "osm:node/948325197 old_name"
+  },
+  "ca mau": {
+    "variants": [
+      "an xuyen"
+    ],
+    "source": "osm:relation/1873490 old_name"
+  },
+  "ha noi": {
+    "variants": [
+      "thang long"
+    ],
+    "source": "osm:relation/1903516 old_name"
+  }
+}
