@@ -18,7 +18,7 @@ const node = (/** @type {string[]} */ ...args) =>
     stdio: ['ignore', 'pipe', 'inherit'],
   });
 
-beforeAll(() => {
+beforeAll(async () => {
   node('scripts/db-migrate.mjs');
   for (const source of ['osm', 'overture', 'fsq']) {
     node(`pipelines/poi/src/ingest/${source}.mjs`, '--fixture');
@@ -31,7 +31,16 @@ beforeAll(() => {
   for (const stage of ['admin', 'streets', 'alleys', 'anchors']) {
     node(`pipelines/poi/src/geocode/${stage}.mjs`, ...(stage === 'admin' ? ['--fixture'] : []));
   }
+  // POI người dùng: primary_source NULL, phải có mặt ở MỌI profile (spec 07/09 mục 4). Chèn sau
+  // publish vì publish gộp poi_new và chỉ chừa lại created_by='user'.
+  // Toạ độ CỐ Ý đặt xa fixture Quận 1: lưới progressive chỉ giữ một POI mỗi ô, nên đặt trong vùng
+  // dày đặc thì POI này bị thinning và test không còn nói được gì về bộ lọc nguồn.
+  await sql`INSERT INTO poi (id, name, name_norm, category, geom, quality_score, popularity, status, locked_fields, created_by)
+    VALUES ('USERPOI0000000000000000001', 'Quán thử người dùng', 'quan thu nguoi dung', 'cafe',
+            ST_SetSRID(ST_MakePoint(108.5, 13.5), 4326), 60, 0.2, 'active', '{}', 'user')
+    ON CONFLICT (id) DO NOTHING`;
   node('pipelines/poi/src/export-tiles.mjs', '--release', 'poi-fixture');
+  node('pipelines/poi/src/export-tiles.mjs', '--release', 'poi-osm-fixture', '--sources', 'osm');
   node('pipelines/poi/src/report.mjs');
 });
 afterAll(() => sql.end());
@@ -116,6 +125,36 @@ describe('pipeline POI trọn vòng trên fixture', () => {
       r: sample.properties.r,
       d: sample.properties.d,
     });
+  });
+
+  it('profile osm: chỉ POI primary osm hoặc người dùng; là tập con thật của all', async () => {
+    const readIds = (/** @type {string} */ release) =>
+      new Set(
+        readFileSync(resolve(WORK, 'poi', `${release}.geojsonseq`), 'utf8')
+          .trim()
+          .split('\n')
+          .map((line) => JSON.parse(line).properties.id),
+      );
+    const osmIds = readIds('poi-osm-fixture');
+    const allIds = readIds('poi-fixture');
+    expect(osmIds.size).toBeGreaterThan(0);
+    expect(osmIds.size).toBeLessThan(allIds.size);
+
+    const allowed = await sql`SELECT id FROM poi p
+      WHERE p.status = 'active' AND (p.primary_source = 'osm' OR p.created_by = 'user')`;
+    const allowedIds = new Set(allowed.map((row) => row.id));
+    for (const id of osmIds) expect(allowedIds.has(id), `POI ${id} không phải osm/user`).toBe(true);
+
+    expect(osmIds.has('USERPOI0000000000000000001')).toBe(true);
+    expect(allIds.has('USERPOI0000000000000000001')).toBe(true);
+
+    const [other] = await sql`SELECT count(*)::int AS n FROM poi
+      WHERE status = 'active' AND primary_source IN ('overture', 'fsq')`;
+    expect(other.n).toBeGreaterThan(0);
+
+    const file = resolve(OUT, 'poi-osm-fixture.pmtiles');
+    expect(existsSync(file)).toBe(true);
+    expect(() => node('pipelines/tiles/src/qa.mjs', file, '--skip-islands')).not.toThrow();
   });
 
   it('báo cáo ghi ra out/poi-report-*.json với các khối poi/links/geocode', () => {
