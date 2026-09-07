@@ -16,7 +16,7 @@ import { ApiError } from '../errors';
 import { clampInt, parseLatLngPair, parseSources, parseTypes } from '../params';
 import { quotaMiddleware } from '../quota';
 import { gridKey, isAdminOnlyQuery, rankScore, withAreaSlot } from '../ranking';
-import { tsQueryFor } from '../stages';
+import { telexFallback, tsQueryFor } from '../stages';
 
 export const autocomplete = new Hono<AppEnv>();
 
@@ -78,6 +78,33 @@ autocomplete.get('/v1/autocomplete', requireAuth(), quotaMiddleware('places'), a
         types,
         limit,
       );
+      // Bậc 3b (spec 5.6): chỉ khi cờ bật VÀ mọi bậc trước rỗng. Chuỗi đã gập là một queryNorm
+      // khác nên không đụng cache của chuỗi gốc.
+      const folded = telexFallback({
+        enabled: c.env.AUTOCOMPLETE_TELEX === '1',
+        have: rows.length,
+        queryNorm,
+      });
+      if (folded) {
+        const foldedAlias = applyToponymAlias(folded);
+        const retry = await collectCandidates(
+          sql,
+          {
+            queryNorm: folded,
+            queryCore: nameCore(folded) || folded,
+            queryAlias: foldedAlias,
+            prefixPattern: `${folded.replace(/[\\%_]/g, '\\$&')}%`,
+            near,
+            parsed,
+            sources,
+            tsQuery: tsQueryFor(folded),
+            queryKey: viKey(foldedAlias),
+          },
+          types,
+          limit,
+        );
+        rows.push(...retry.map((row) => ({ ...row, stage: 3 as const })));
+      }
       const items = rows
         .map((row) => ({
           type: row.type,

@@ -1,4 +1,5 @@
 /** Bộ lập bậc truy vấn (spec 05/09 mục 5.4–5.5): thuần TS, test không cần DB. */
+import { foldTelex, looksLikeTelex } from '@mapslibvn/core';
 
 /**
  * `to_tsquery('simple', …)` từ chuỗi đã `normalizeVi`: mọi token là tiền tố, nối AND, không kể
@@ -33,4 +34,24 @@ export function planStages(input: {
   if (input.tsQuery) stages.push(2);
   if (input.queryKey) stages.push(3);
   return stages;
+}
+
+/**
+ * Bậc 3b (spec 5.6): chuỗi đã gập telex để chạy lại TOÀN BỘ bậc, hoặc null khi không áp dụng.
+ *
+ * Là hàm thuần vì test route của `apps/api` chạy với DB đóng và không quan sát được SQL — quyết
+ * định "có chạy lại không" phải kiểm được ở đây, route chỉ gọi.
+ *
+ * Ba cửa phải qua hết: cờ bật, các bậc trước RỖNG (không phải "ít"), và chuỗi khớp mẫu telex.
+ * Cửa cuối là gập xong phải KHÁC chuỗi ban đầu — nếu bằng thì chạy lại chỉ tốn một vòng SQL nữa
+ * cho đúng kết quả rỗng vừa nhận.
+ */
+export function telexFallback(input: {
+  enabled: boolean;
+  have: number;
+  queryNorm: string;
+}): string | null {
+  if (!input.enabled || input.have > 0 || !looksLikeTelex(input.queryNorm)) return null;
+  const folded = foldTelex(input.queryNorm);
+  return folded !== input.queryNorm ? folded : null;
 }

@@ -10,6 +10,8 @@ QUOTA_ENABLED = "0"
 # Chỉ cho dev/test. Production KHÔNG lấy giá trị này (khối [env.production] ghi đè toàn bộ vars)
 # mà đọc secret đặt bằng `wrangler secret put IP_HASH_PEPPER --env production`.
 IP_HASH_PEPPER = "dev-pepper-khong-bi-mat"
+# AUTOCOMPLETE_TELEX = "1"  # bậc 3b gập telex/VNI, spec 5.6 — bật sau khi số liệu stage_hit cho
+# thấy tỷ lệ truy vấn rỗng khớp mẫu telex đủ đáng kể. Mặc định tắt.
 
 # Trang duyệt đóng góp (M4): SPA tĩnh build từ apps/admin, phục vụ tại /admin.
 # Cùng origin với /v1/admin/* nên chỉ cần một Cloudflare Access application.

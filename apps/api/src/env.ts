@@ -17,6 +17,8 @@ export interface Env {
   ACCESS_CERTS_URL?: string;
   /** Secret băm `ip_hash`/`end_user_hash` (checklist C4). Đặt bằng `wrangler secret put`. */
   IP_HASH_PEPPER?: string;
+  /** '1' = bật bậc 3b gập telex/VNI (spec 5.6). Mặc định TẮT; bật sau khi có số liệu stage_hit. */
+  AUTOCOMPLETE_TELEX?: string;
 }
 
 /** Kiểu Hono chung cho app: Variables.auth do requireAuth() gán, reviewer do requireAccess(). */

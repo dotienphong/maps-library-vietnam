@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { planStages, tsQueryFor } from '../src/stages';
+import { planStages, telexFallback, tsQueryFor } from '../src/stages';
 
 describe('tsQueryFor', () => {
   it('mọi token là tiền tố, AND, bỏ token < 2 ký tự, giữ token toàn số', () => {
@@ -41,5 +41,28 @@ describe('planStages', () => {
 
   it('queryKey rỗng thì không có bậc 3', () => {
     expect(planStages({ have: 0, limit: 10, tsQuery: null, queryKey: '' })).toEqual([]);
+  });
+});
+
+describe('telexFallback (bậc 3b, spec 5.6)', () => {
+  it('tắt cờ → luôn null, kể cả khi chuỗi rõ ràng là telex và kết quả rỗng', () => {
+    expect(telexFallback({ enabled: false, have: 0, queryNorm: 'saif gonf' })).toBeNull();
+  });
+
+  it('bật cờ nhưng đã có kết quả → null (chỉ chạy khi các bậc trước rỗng)', () => {
+    expect(telexFallback({ enabled: true, have: 1, queryNorm: 'saif gonf' })).toBeNull();
+  });
+
+  it('bật cờ, rỗng, khớp mẫu telex → trả chuỗi đã gập', () => {
+    expect(telexFallback({ enabled: true, have: 0, queryNorm: 'saif gonf' })).toBe('sai gon');
+    // Telex thật của "Đồng Khởi" là `ddoongf khowir` (ow→ơ rồi r là dấu hỏi), không phải `khoiwr`.
+    expect(telexFallback({ enabled: true, have: 0, queryNorm: 'ddoongf khowir' })).toBe(
+      'dong khoi',
+    );
+  });
+
+  it('bật cờ, rỗng, nhưng không phải telex hoặc gập xong không đổi → null', () => {
+    expect(telexFallback({ enabled: true, have: 0, queryNorm: 'highlands' })).toBeNull();
+    expect(telexFallback({ enabled: true, have: 0, queryNorm: 'circle k' })).toBeNull();
   });
 });
