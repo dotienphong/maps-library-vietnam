@@ -9,8 +9,8 @@ import { run } from '../../../scripts/lib/run.mjs';
 import { releaseName } from '../../tiles/src/lib/dates.mjs';
 import { displayFields, priorityOrderSql } from './display-priority.mjs';
 import { createDisplaySelector } from './display-selector.mjs';
-import { activePoiWhereSql, poiReleasePrefix } from './lib/poi-filter.mjs';
 import { OUT, POI_WORK, arg } from './lib/env.mjs';
+import { activePoiWhereSql, poiReleasePrefix } from './lib/poi-filter.mjs';
 import { connect } from './pg.mjs';
 
 /**
