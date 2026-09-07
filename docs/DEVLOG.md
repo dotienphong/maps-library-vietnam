@@ -1315,6 +1315,25 @@ vẫn là `sleep 1` phút — `sudo pmset -a sleep 0 disksleep 0`.
   phải thứ tự toàn phần (hai vùng cùng tên "Xã Đại Đồng"); `diff` cho đúng 2 dòng cùng nội dung khác
   vị trí — tin checksum mà không truy diff thì đã kết luận sai rằng pipeline không idempotent
 
+- 2026-09-07 · Alias T9.3/9.4 · **đóng 9.4: sửa lỗi recall nhánh area; và một lỗi thứ tự build chặn CI** ·
+  [hồ sơ](evidence/admin-alias/9-4-9-5-nghiem-thu-production.md) · **9.4:** smoke "tên hiện hành" lộ
+  lỗi thật — `q="Phường Bàn Cờ"` trả về danh sách **không có** Phường Bàn Cờ (top Cầu Ông Lãnh 0,59)
+  còn `q="Bàn Cờ"` trả đúng 0,801. Là **recall**, không phải xếp hạng: `admin_area.name_norm` lưu tên
+  **không có tiền tố đơn vị**, nhưng nhánh current khớp bằng `queryCore`, mà `nameCore` chỉ bỏ filler
+  POI — `NAME_FILLERS` có `'quan'` (quán ăn) nhưng **không có** `'phuong'`/`'xa'`/`'thi tran'`. Đo
+  trực tiếp: `nameCore('Phường Bàn Cờ')` = `'phuong ban co'`, còn `nameCore('Quận 10')` = `'10'` (bỏ
+  được chỉ vì trùng filler POI). Nên bậc 1 chạy `LIKE 'phuong ban co%'` → không khớp gì; bậc 2 fuzzy
+  cũng bị pha loãng dưới ngưỡng 0,5 với tên ngắn. `Phường Sài Gòn`/`Xã Chợ Vàm` thoát được chỉ vì tên
+  dài hơn — đó là lý do lỗi trông như "không đều". Sửa (`bde2d35`): nhánh current dùng tên đơn vị
+  `parseAddress` đã tách sẵn, chỉ `ward`/`district` vì `province` bị canonicalize (`Bình Dương` →
+  `Thành phố Hồ Chí Minh`); nhánh alias giữ `queryNorm` vì `alias_norm` **có** tiền tố. Production sau
+  deploy: `Phường Bàn Cờ` **0,801 hạng 1**, `Phường Diên Hồng` **0,744 hạng 1**, có/không tiền tố cùng
+  score; smoke area **5/5**; **hit@3 fuzzy 37/40 = baseline**. · **9.3:** `CI` đỏ ở `bde2d35` dù local
+  xanh — `scripts/lib/poi-profile.mjs` → `pipelines/.../poi-filter.mjs` → `@mapslibvn/core`, mà
+  `tsc -p tsconfig.scripts.json` chạy **trước** `turbo run typecheck` nên không có `packages/core/dist`.
+  Local xanh chỉ vì dist đã build sẵn; tái hiện đúng lỗi CI bằng `rm -rf packages/core/dist &&
+  pnpm typecheck`. Sửa (`44da644`): `pnpm typecheck` build core trước, đúng cách `pnpm test` vẫn làm
+
 ## 5. Sự cố
 
 ### SC-1 · Cache Rule nuốt Range của PMTiles — **ĐÃ ĐÓNG 27/08/2026**

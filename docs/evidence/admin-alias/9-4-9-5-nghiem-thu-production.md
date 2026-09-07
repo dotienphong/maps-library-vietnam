@@ -43,7 +43,7 @@ cho PHONG: cho Deploy API phụ thuộc job API tests.**
 | API role đọc old table | ✓ `api` có SELECT trên `admin_area`, `admin_area_old`, `admin_alias`, `poi`, `street`, `category`; `/healthz/db` trả `user: api`, `schema_migration: 0008` |
 | Export ODbL có old+alias mới | ✓ `admin_area` 3.353 · `admin_area_old` 4.972 · **`admin_alias` 37.251** (gồm +5 dòng bản sửa), manifest có sha256 từng bảng |
 | Playground tải SDK mới | ✓ `/sdk/mapslibvn.umd.js` (1,09 MB) có `"area"`, 7× `poiSources`, 3× `sources=` |
-| Smoke area | 4/5 đạt — **1 ca lộ vấn đề thật, xem mục 2** |
+| Smoke area | 5/5 đạt sau khi sửa lỗi recall ở mục 2 |
 
 ### Smoke area (types mặc định, `near=10.776,106.700`)
 
@@ -53,9 +53,9 @@ cho PHONG: cho Deploy API phụ thuộc job API tests.**
 | `Bình Dương` | ✓ area: **Phường Bình Dương** → Thành phố Hồ Chí Minh |
 | `Thủ Dầu Một` | ✓ area: **Phường Thủ Dầu Một** → Thành phố Hồ Chí Minh |
 | `types=poi,street,address` | ✓ `area=0` — loại trừ area hoạt động đúng |
-| `Phường Diên Hồng` (tên hiện hành) | ✗ xem dưới |
+| `Phường Diên Hồng` (tên hiện hành) | ✓ sau bản sửa `bde2d35` — trước đó tụt hạng, xem mục 2 |
 
-## 2. Phát hiện của 9.4: tiền tố đơn vị trong truy vấn làm tụt tên hiện hành
+## 2. Lỗi tìm được ở 9.4: tiền tố đơn vị làm mất hẳn tên hiện hành khỏi ứng viên
 
 `types=area`, cùng `near`:
 
@@ -72,9 +72,51 @@ id 1224 TP.HCM và 1985 Gia Lai; Bàn Cờ nằm trong danh sách đích của Q
 đúng ngay hạng 1. Nghi vấn: token dùng chung `phuong` làm `word_similarity` cao giả, đẩy vùng không
 liên quan lên trên khớp tên chính xác. Không đều — `Phường Sài Gòn` và `Xã Chợ Vàm` vẫn đúng.
 
-**Chưa sửa.** Đây là vấn đề xếp hạng/recall của nhánh area, cần điều tra riêng: không phải lỗi dữ
-liệu alias (dữ liệu có đủ), không phải hồi quy của việc hôm nay (`withAreaSlot` và bậc hoá từ Task
-6.5/7). Giữ 9.4 mở với đúng hai ca cụ thể theo luật plan "nếu trượt, giữ task mở với case cụ thể".
+### Truy đến gốc: đây là RECALL, không phải xếp hạng
+
+`q="Phường Bàn Cờ"` trả về danh sách **hoàn toàn không có** Phường Bàn Cờ (top Phường Cầu Ông Lãnh
+score 0,59); `q="Bàn Cờ"` trả đúng nó, score **0,801**, là kết quả duy nhất. Tức vùng đúng không vào
+nổi danh sách ứng viên.
+
+`admin_area.name_norm` lưu tên **không có tiền tố đơn vị** (`ban co`), nhưng nhánh current khớp bằng
+`queryCore`, mà `nameCore` chỉ bỏ **filler POI**: `NAME_FILLERS` có `'quan'` (quán ăn) nhưng **không
+có** `'phuong'`, `'xa'`, `'thi tran'`. Đo trực tiếp:
+
+| Truy vấn | `normalizeVi` | `nameCore` |
+|---|---|---|
+| `Phường Bàn Cờ` | `phuong ban co` | `phuong ban co` ← tiền tố còn nguyên |
+| `Quận 10` | `quan 10` | `10` ← bỏ được, do trùng filler POI |
+| `Xã Chợ Vàm` | `xa cho vam` | `xa cho vam` |
+
+Nên bậc 1 chạy `name_norm LIKE 'phuong ban co%'` → không khớp gì. Bậc 2 fuzzy cũng không cứu được tên
+ngắn: `word_similarity('phuong ban co','ban co')` bị pha loãng dưới ngưỡng 0,5. `Phường Sài Gòn` và
+`Xã Chợ Vàm` thoát được chỉ vì tên dài/đặc trưng hơn nên fuzzy vẫn vượt ngưỡng — đó là lý do lỗi trông
+như "không đều".
+
+### Bản sửa
+
+`parseAddress` **đã tách sẵn tên đúng**: `ward: 'Bàn Cờ'`, `'Diên Hồng'`, `'Chợ Vàm'`, `district: '10'`.
+Nhánh current giờ dùng nó cho cả tiền tố, so khớp và tính điểm. Chỉ lấy `ward`/`district` — `province`
+bị canonicalize (`Bình Dương` → `Thành phố Hồ Chí Minh`) nên lấy nó sẽ đổi hành vi các truy vấn tỉnh
+cũ đang đúng. Truy vấn POI có `ward`/`district` rỗng nên vẫn dùng `queryCore` như trước. Nhánh alias
+giữ nguyên `queryNorm` vì `admin_alias.alias_norm` **có** chứa tiền tố.
+
+Sửa ở `bde2d35`, deploy xong 16:27:48 (+07). Đo lại trên production, `types=area`:
+
+| Truy vấn | Trước | Sau |
+|---|---|---|
+| `Phường Bàn Cờ` | **không có trong 10** | **0,801 Phường Bàn Cờ** |
+| `Bàn Cờ` | 0,801 Phường Bàn Cờ | 0,801 Phường Bàn Cờ |
+| `Phường Diên Hồng` | hạng 2 (top An Khánh) | **0,744 Phường Diên Hồng** |
+| `Diên Hồng` | 0,744 | 0,744 |
+| `Phường Sài Gòn` | 0,861 | 0,861 |
+| `Xã Chợ Vàm` | 0,635 | 0,635 |
+
+Có và không có tiền tố giờ cho **cùng một kết quả và cùng score**. Không hồi quy: smoke `Quận 10` /
+`Bình Dương` / `Thủ Dầu Một` vẫn đúng, `types=poi,street,address` vẫn cho `area=0`, và **hit@3 fuzzy
+37/40 = baseline** (miss vẫn đúng ba ca cũ: `higland`, `cho rya`, `sieu thi co op`).
+
+Test khoá lại: hai nhánh phải dùng hai khoá khác nhau, và ca POI không đổi hành vi.
 
 ## 3. Task 9.5 — cập nhật dữ liệu lần hai trên staging
 
@@ -113,8 +155,12 @@ Nếu không truy `diff` mà tin ngay checksum thì đã kết luận sai rằng
 
 - **9.2** phần publish data: **xong** (37.251 alias lên production). SDK/docs npm chưa phát hành —
   giai đoạn nội bộ.
-- **9.3**: chờ CI xanh. 5 test `styleUrl` ở `packages/web` + `packages/react-native` còn đỏ do việc
-  `sources` (kỳ vọng chưa cập nhật cho `&sources=...`).
-- **9.4**: mở với hai ca `Phường Diên Hồng` / `Phường Bàn Cờ` ở mục 2.
+- **9.3**: 5 test `styleUrl` đã được phiên `sources` sửa ở `37e4870`. Còn một lỗi thứ tự build:
+  `scripts/lib/poi-profile.mjs` → `pipelines/.../poi-filter.mjs` → `@mapslibvn/core`, mà
+  `tsc -p tsconfig.scripts.json` chạy **trước** `turbo run typecheck` nên không được hưởng
+  `dependsOn: ["^build"]` và không có `packages/core/dist`. Local xanh chỉ vì dist đã build sẵn; tái
+  hiện được bằng `rm -rf packages/core/dist && pnpm typecheck`. Sửa ở `44da644`: `pnpm typecheck`
+  build core trước, đúng cách `pnpm test` vẫn làm.
+- **9.4**: **đóng** — lỗi recall đã sửa ở `bde2d35`, đo lại trên production đạt 5/5.
 - **9.6**: artifact rollback sẵn, chưa cần dùng.
 - **9.7**: chưa tick.
