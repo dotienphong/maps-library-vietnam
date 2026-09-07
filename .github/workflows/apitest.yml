@@ -1,12 +1,13 @@
 name: API tests (Places, real DB)
 
 on:
+  # `Deploy API` gọi workflow này làm cổng chặn deploy (xem deploy-api.yml). Vì vậy trigger push ở
+  # đây CHỈ giữ những path mà deploy-api KHÔNG bao — nếu giữ cả path trùng thì mỗi lần chạm
+  # apps/api sẽ chạy bộ test hai lần, mà repo private chỉ có 2.000 phút Actions/tháng.
+  workflow_call:
   push:
     branches: [main]
     paths:
-      - 'apps/api/**'
-      - 'apps/admin/**'
-      - 'packages/core/**'
       - 'db/migrations/**'
       - 'scripts/api-db-test.mjs'
       - 'scripts/lib/**'
@@ -14,7 +15,10 @@ on:
   workflow_dispatch:
 
 concurrency:
-  group: apitest-${{ github.ref }}
+  # `github.workflow` là workflow CẤP CAO NHẤT, nên lần chạy do `Deploy API` gọi có group khác lần
+  # chạy độc lập. Nếu dùng chung group thì một `workflow_dispatch` apitest giữa lúc deploy sẽ huỷ
+  # luôn job cổng của deploy (cancel-in-progress).
+  group: apitest-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:

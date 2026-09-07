@@ -5,7 +5,16 @@ on:
     paths: ['apps/api/**', 'apps/admin/**', 'packages/core/**', 'packages/style/**', 'pnpm-lock.yaml']
   workflow_dispatch:
 jobs:
+  # Cổng chặn deploy. 07/09/2026: `Deploy API` thành công trên 178d086 và 0585eb1 dù
+  # "API tests (Places, real DB)" đỏ ~10 giây trước, và chính bộ DB thật đó mới bắt được
+  # `malformed array literal` làm autocomplete/search/nearby/reverse trả 503 trên production —
+  # bản build của postgres.js cho Workers nối mảng thành chuỗi, nên unit test không DB không thấy.
+  # Deploy API vẫn chạy `pnpm --filter @mapslibvn/api test` (unit) ở dưới; job này thêm bộ DB thật.
+  apitest:
+    uses: ./.github/workflows/apitest.yml
+
   deploy:
+    needs: apitest
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
