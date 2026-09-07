@@ -3,6 +3,7 @@ import { resolve } from 'node:path';
 import { adminAliasKeys, normalizeVi } from '@mapslibvn/core';
 import { FIXTURE, OUT } from '../lib/env.mjs';
 import { copyInto, countRows, createNewTable } from '../pg.mjs';
+import { bootstrapMissingProvince } from './raw-tables.mjs';
 
 /** @typedef {import('postgres').Sql} Sql */
 /** @typedef {{raw_share:number|string,admin_area_id?:number|string,[key:string]:unknown}} Overlap */
@@ -63,6 +64,14 @@ const seedRows = () =>
 export async function buildOldAdmin(sql, { currentTable, fixture = FIXTURE, sourceStats = {} }) {
   if (!CURRENT_TABLES.has(currentTable))
     throw new Error(`currentTable không hợp lệ: ${currentTable}`);
+  // Cùng lý do như nhánh current: snapshot 01/2025 chỉ có 62/63 tỉnh cũ, thiếu Khánh Hòa, nên 8
+  // quận/huyện của tỉnh đó bị loại vì không nằm trong L4 nào.
+  const bootstrap = await bootstrapMissingProvince(sql, { rawTable: 'osm_admin_old_raw' });
+  console.log(
+    bootstrap.applied
+      ? `✓ dựng L4 cũ ${bootstrap.province} từ ${bootstrap.children} đơn vị con mồ côi`
+      : `· không dựng L4 cũ bù: ${bootstrap.reason}`,
+  );
   await createNewTable(sql, 'admin_area_old');
   await createNewTable(sql, 'admin_alias');
   await sql.unsafe(`INSERT INTO admin_area_old_new

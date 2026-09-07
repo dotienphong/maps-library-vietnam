@@ -3,6 +3,7 @@ import postgres from 'postgres';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { databaseUrlFromEnv } from '../../../scripts/lib/migrations.mjs';
 import { buildOldAdmin } from '../src/geocode/admin-overlay.mjs';
+import { bootstrapMissingProvince } from '../src/geocode/raw-tables.mjs';
 import { createNewTable, publishNew, withAdvisoryLock } from '../src/pg.mjs';
 
 const databaseUrl = databaseUrlFromEnv(process.env);
@@ -141,6 +142,101 @@ describe('overlay ranh giới hành chính cũ', () => {
     } finally {
       await sql.unsafe('ALTER TABLE osm_admin_raw_hidden RENAME TO osm_admin_raw');
     }
+  });
+
+  // Việc 2 (07/09/2026): OSM không có relation cấp tỉnh cho Khánh Hòa, cả ở snapshot 01/2025 lẫn
+  // OSM hiện tại, nên 8 quận/huyện cũ của tỉnh này (Nha Trang, Cam Ranh, Cam Lâm, Diên Khánh,
+  // Khánh Sơn, Khánh Vĩnh, Vạn Ninh, Ninh Hòa) bị loại vì không nằm trong L4 nào. Dựng L4 bằng hợp
+  // các đơn vị con mồ côi **nằm trong VN** — chỉ làm khi đúng một tỉnh trong provinces.json thiếu,
+  // để không gộp nhầm relation nước ngoài hay hai tỉnh vào một.
+  describe('bootstrap tỉnh thiếu relation cấp tỉnh', () => {
+    const RAW = 'admin_bootstrap_raw';
+    const child = (id, name, left) =>
+      sql.unsafe(`INSERT INTO ${RAW}(osm_relation_id,level,name,name_norm,geom) VALUES
+        (${id},6,'${name}','${name.toLowerCase()}',
+         ST_Multi(ST_MakeEnvelope(${left},20,${left + 0.2},20.2,4326)))`);
+
+    beforeAll(async () => {
+      await sql.unsafe(`DROP TABLE IF EXISTS ${RAW};
+        CREATE TABLE ${RAW}(osm_relation_id bigint PRIMARY KEY, level smallint NOT NULL,
+          name text NOT NULL, name_norm text NOT NULL, tags jsonb NOT NULL DEFAULT '{}',
+          geom geometry(MultiPolygon,4326) NOT NULL);
+        CREATE INDEX ${RAW}_geom_idx ON ${RAW} USING gist(geom)`);
+      await sql.unsafe(`CREATE TABLE IF NOT EXISTS vn_boundary
+        (id serial PRIMARY KEY, geom geometry(Polygon,4326) NOT NULL)`);
+      await sql`DELETE FROM vn_boundary WHERE id > 0`;
+      // "VN" cho test: hộp phủ hai con mồ côi đầu, KHÔNG phủ con thứ ba.
+      await sql`INSERT INTO vn_boundary(geom) VALUES (ST_MakeEnvelope(100,19.9,100.5,20.3,4326))`;
+    });
+
+    afterAll(() => sql.unsafe(`DROP TABLE IF EXISTS ${RAW}`));
+
+    it('thiếu hơn một tỉnh thì KHÔNG dựng, và nói rõ lý do', async () => {
+      const result = await bootstrapMissingProvince(sql, { rawTable: RAW });
+      expect(result.applied).toBe(false);
+      expect(result.reason).toMatch(/không đúng một tỉnh|nhiều tỉnh/i);
+    });
+
+    it('đúng một tỉnh thiếu thì dựng L4 từ hợp con mồ côi trong VN', async () => {
+      // Nạp đủ 33/34 tỉnh để chỉ còn Khánh Hòa thiếu.
+      const canon = [
+        'ha noi',
+        'hue',
+        'lai chau',
+        'dien bien',
+        'son la',
+        'lang son',
+        'quang ninh',
+        'thanh hoa',
+        'nghe an',
+        'ha tinh',
+        'cao bang',
+        'tuyen quang',
+        'lao cai',
+        'thai nguyen',
+        'phu tho',
+        'bac ninh',
+        'hung yen',
+        'hai phong',
+        'ninh binh',
+        'quang tri',
+        'da nang',
+        'quang ngai',
+        'gia lai',
+        'lam dong',
+        'dak lak',
+        'ho chi minh',
+        'dong nai',
+        'tay ninh',
+        'can tho',
+        'vinh long',
+        'dong thap',
+        'ca mau',
+        'an giang',
+      ];
+      for (const [index, norm] of canon.entries()) {
+        await sql.unsafe(`INSERT INTO ${RAW}(osm_relation_id,level,name,name_norm,geom) VALUES
+          (${9_100_000 + index},4,'T ${norm}','${norm}',
+           ST_Multi(ST_MakeEnvelope(${50 + index * 0.5},10,${50.4 + index * 0.5},10.4,4326)))`);
+      }
+      await child(9_200_001, 'Nha Trang', 100.0);
+      await child(9_200_002, 'Cam Ranh', 100.25);
+      await child(9_200_003, 'Ngoai VN', 120.0);
+
+      const result = await bootstrapMissingProvince(sql, { rawTable: RAW });
+      expect(result.applied).toBe(true);
+      expect(result.province).toBe('Khánh Hòa');
+      // Chỉ hai con trong vn_boundary được gộp; con thứ ba ngoài VN bị loại.
+      expect(result.children).toBe(2);
+
+      const [row] = await sql.unsafe(`SELECT name, name_norm, tags,
+          ST_XMin(geom) AS xmin, ST_XMax(geom) AS xmax
+        FROM ${RAW} WHERE level=4 AND name_norm='khanh hoa'`);
+      expect(row.name).toBe('Khánh Hòa');
+      expect(row.tags['mapslibvn:derived']).toBe('union-of-orphan-children');
+      expect(Number(row.xmin)).toBeCloseTo(100.0, 5);
+      expect(Number(row.xmax)).toBeCloseTo(100.45, 5);
+    });
   });
 
   it('publish lỗi giữ nguyên đồng thời cả ba bảng', async () => {

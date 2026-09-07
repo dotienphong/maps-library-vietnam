@@ -5,6 +5,7 @@ import { normalizeVi } from '@mapslibvn/core';
 import { ADMIN_OLD_FIXTURE_PBF, ADMIN_OLD_MANIFEST, ADMIN_OLD_PBF, FIXTURE } from '../lib/env.mjs';
 import { connect, countRows, createNewTable, publishNew, withAdvisoryLock } from '../pg.mjs';
 import { downloadVerified, loadOldAdminRaw } from './admin-old-source.mjs';
+import { bootstrapMissingProvince } from './raw-tables.mjs';
 
 /** @typedef {import('postgres').Sql} Sql */
 import { buildOldAdmin } from './admin-overlay.mjs';
@@ -16,6 +17,14 @@ const provinceNorms = () =>
 
 /** @param {Sql} sql */
 export async function buildCurrentAdmin(sql) {
+  // OSM thiếu relation cấp tỉnh của Khánh Hòa, mà mọi L6/L8 chỉ được giữ khi nằm trong một L4 —
+  // không dựng bù thì cả tỉnh biến mất khỏi dữ liệu hiện hành.
+  const bootstrap = await bootstrapMissingProvince(sql, { rawTable: 'osm_admin_raw' });
+  console.log(
+    bootstrap.applied
+      ? `✓ dựng L4 ${bootstrap.province} từ ${bootstrap.children} đơn vị con mồ côi`
+      : `· không dựng L4 bù: ${bootstrap.reason}`,
+  );
   await createNewTable(sql, 'admin_area');
   await sql`INSERT INTO admin_area_new (id,level,name,name_norm,osm_relation_id,geom)
     WITH retained_province AS (SELECT * FROM osm_admin_raw WHERE level=4

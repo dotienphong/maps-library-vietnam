@@ -5,6 +5,47 @@ commit với code).
 
 ## 1. Trạng thái hiện tại
 
+- **07/09/2026 — Ba việc PHONG yêu cầu: việc 1 và 3 xong, việc 2 sửa được một nửa quan trọng.**
+
+  **Việc 1 — fixture sai ground truth.** Fetch nguyên văn NQ 1659 (Đà Nẵng) và NQ 1668 (Cần Thơ):
+  **tập đích trong fixture ĐÚNG** (Xuân Hà→Thanh Khê, Hòa An→An Khê, Phước Mỹ→An Hải,
+  Thọ Quang→Sơn Trà, Bùi Hữu Nghĩa tách khoản 2 "một phần" + khoản 6 "phần còn lại",
+  Trà An→Thới An Đông, Lê Bình→Cái Răng). Chỉ trường **huyện** bị điền hàng loạt sai — đã sửa 10 ca
+  theo snapshot đã pin. Sinh lại `expectedKeys` cho cả 60 ca từ `adminAliasKeys()` và thêm test chốt
+  `expectedKeys === adminAliasKeys()` trong `packages/core/tests` (nơi duy nhất import được core).
+  Cũng sửa một **dương tính giả của chính CLI**: Đồng Tháp có hai `Xã Tân Phước` (Lai Vung và Tân
+  Hồng), CLI lấy dòng đầu tuỳ ý nên báo `dt-08` lệch dù fixture ghi đúng; nay ưu tiên dòng trùng
+  huyện và cảnh báo `fixture_district_ambiguous` khi không quyết được. Danh sách lệch thật: **10 ca**.
+
+  **Việc 3 — 122 vùng `raw_coverage < 0,95`.** Phân rã dứt điểm: **70 ca là Ninh Thuận** (cùng gốc
+  việc 2), 52 ca còn lại dồn vào tỉnh ven biển/cửa sông (Quảng Ninh 25, Hải Phòng 11, Trà Vinh 10,
+  Bến Tre 4…). Nguyên nhân là **thước đo sai**, không phải thiếu dữ liệu: tử số là phần đất (phường
+  hiện hành chỉ vẽ trên đất) còn mẫu số là cả polygon cũ **gồm lãnh hải**. Bằng chứng định lượng:
+  `Tỉnh Bà Rịa - Vũng Tàu` cũ 31.303 km² nhưng phần phủ 1.967 km² — trùng khít đất liền thật
+  (~1.980); Cà Mau 5.130 (~5.294), Bình Thuận 7.947 (~7.812), Kiên Giang 6.313 (~6.348),
+  Hải Phòng 1.411 (~1.526). `Thị trấn Cô Tô` cũ 202,8 km² phủ 5,2 km². **Không** tự đổi ngữ nghĩa
+  cổng: `vn_boundary` là VN **đệm 2 km** nên clip vào đó vẫn làm hỏng mẫu số cho đảo nhỏ. Đây là
+  danh sách ngoại lệ cần quyết định QA có nguồn theo đúng 8.4.
+
+  **Việc 2 — Khánh Hòa.** Xác minh được điều quyết định: **các đơn vị cấu thành có đủ trong OSM**.
+  Snapshot 01/2025 có 8 quận/huyện cũ (Nha Trang, Cam Ranh, Cam Lâm, Diên Khánh, Khánh Sơn, Khánh
+  Vĩnh, Vạn Ninh, Ninh Hòa) — chúng chính là 8 trong 11 relation L6 bị loại vì không nằm trong L4
+  nào (3 relation còn lại là nước ngoài: Sa Mouay, Bằng Tường, ໄຊຈຳພອນ). Overpass xác nhận OSM hiện
+  tại cũng có phường mới của tỉnh này (`Phường Nha Trang`, `Bắc/Nam/Tây Nha Trang`, `admin_level=6`).
+  Đã thêm `bootstrapMissingProvince()` dựng L4 bằng **hợp các con mồ côi**, hai chốt an toàn: chỉ
+  chạy khi **đúng một** tỉnh trong `provinces.json` thiếu (đo thật: đúng một, `khanh hoa`, ở cả phía
+  old và current), và chỉ gộp con có **≥90% diện tích trong VN**. Ngưỡng đó không phải chọn bừa:
+  kiểm bằng point-on-surface **không đủ** — `vn_boundary` đệm 2 km nên `Sa Mouay` (Lào) vẫn lọt và
+  bị hút vào polygon tỉnh; đo tỷ lệ diện tích thì Sa Mouay 0,362 còn 8 huyện Khánh Hòa 0,987–1,000,
+  tách sạch. Chạy thật trên snapshot toàn quốc: L4 **62 → 63** (đúng spec), L6 **686 → 694** (vào
+  khoảng 690–710 của spec), L8 4.152 → 4.215, Khánh Hòa có **72 vùng cũ**. Hàm idempotent (lần hai
+  báo "thiếu 0", không chèn trùng).
+  **Cảnh báo vận hành quan trọng:** sửa riêng nhánh old làm cổng QA **xấu đi** — unmatched
+  **72 → 142** — vì phía current vẫn thiếu Khánh Hòa nên các vùng cũ vừa được giữ không có đích.
+  Chỉ xanh khi dựng lại current bằng cùng hàm này, việc đó cần extract OSM hiện hành
+  (`work/vietnam-patched.osm.pbf`, ~400 MB) và một lần chạy `admin.mjs` toàn quốc.
+  **Không publish trạng thái trung gian này.**
+
 - **07/09/2026 — Chạy 8.3/8.4 trên bộ toàn quốc: cổng đỏ vì BA nguyên nhân độc lập, trong đó một
   cái là ground truth của chính fixture sai.** Chạy `verify-admin-alias.mjs --mode coverage` trên DB
   `mapslibvn_alias_scale` (3.288 current, 4.900 old, 36.456 alias). Kết quả: **47/60 ca alias đạt,
