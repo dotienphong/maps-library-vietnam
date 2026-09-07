@@ -128,7 +128,12 @@ if (isMain) {
   const queriesFile = queriesIndex >= 0 ? args[queriesIndex + 1] : undefined;
   const typesIndex = args.indexOf('--types');
   const typesArg = typesIndex >= 0 ? args[typesIndex + 1] : undefined;
-  const consumed = new Set([queriesIndex, queriesIndex + 1, typesIndex, typesIndex + 1]);
+  // Chỉ đánh dấu "đã tiêu thụ" khi cờ thực sự có mặt: indexOf trả -1 thì -1+1=0 sẽ ăn mất
+  // base-url ở vị trí 0.
+  const consumed = new Set([
+    ...(queriesIndex >= 0 ? [queriesIndex, queriesIndex + 1] : []),
+    ...(typesIndex >= 0 ? [typesIndex, typesIndex + 1] : []),
+  ]);
   const positional = args.filter((_, i) => !consumed.has(i));
   const [base, key] = positional;
   if (!base || !key) {

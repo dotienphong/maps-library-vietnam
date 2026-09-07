@@ -5,6 +5,34 @@ commit với code).
 
 ## 1. Trạng thái hiện tại
 
+- **07/09/2026 — ĐÃ PUBLISH dữ liệu alias hành chính lên production; nghiệm thu 8.5/8.6.**
+  Thứ tự theo 9.2: backup `mapslibvn-20260907-1020.dump.zst` lên R2 → `osm-roads.mjs` (9.105 ranh
+  giới, 216.301 đường) → `admin.mjs --accept-qa "<lý do>"`. Kết quả: `admin_area` **3.353 (L4=34**,
+  trước 33), `admin_area_old` 4.972, `admin_alias` **37.246** (trước 33), publish **2.496 ms** —
+  khoá ngắn hơn dự đoán nhiều. Cổng QA còn `unmatched=2` (hai vùng đảo Thanh Lân, Cô Tô), publish
+  bằng cờ tường minh, lý do ghi vào `report.acceptedQa`.
+  **Smoke:** `Quận 10` trả vùng kèm danh sách phường đích (trước rỗng), `Bình Dương` trả
+  `Thành phố Hồ Chí Minh` với tên cũ ở dòng phụ. `Thủ Dầu Một` lúc đầu vẫn rỗng vì nó là thành phố
+  cấp huyện cũ nhưng nằm trong alias tỉnh của `provinces.json`, nên `parseAddress` canonicalize
+  thành tỉnh và `aliasLevel` khoá cấp 4 trong khi alias `thu dau mot` chỉ có ở level 6 — đã sửa:
+  tỉnh suy từ alias thì không khoá cấp.
+  **8.6 geocode ĐẠT:** 9/10 chính xác cao (yêu cầu ≥8), tám cặp cho `rooftop` ở cả hai cách viết,
+  `hcm-address-10` địa chỉ **cũ còn tốt hơn mới** (`rooftop` so với `ward`), không ca nào ra ngoài
+  `expectedBbox`. **hit@3 37/40 = baseline** ĐẠT. Ca trượt duy nhất `hcm-address-04`: old ward
+  "Phường 12" của **Quận 4 không có trong snapshot** — lỗ hổng upstream, không phải hồi quy.
+  **8.5 đo được nhưng chưa kết luận cổng p95:** default (có `area`) p50 81 ms / p95 1.873 ms so với
+  `types=poi,street,address` p50 88 ms / p95 1.627 ms. Chênh p95 +246 ms vượt ngưỡng +50 ms, nhưng
+  hai cohort **rơi vào hai colo khác nhau** (HKG/SIN), p95 do cache lạnh qua internet chi phối, và
+  mỗi cohort chỉ 80 request thay vì ≥100. Tín hiệu tin được là p50 (81 so với 88) — `area` không
+  thêm chi phí đo được ở nhánh ấm. Phải đo lại từ điểm quan sát ổn định; không tự chọn lại bộ mẫu.
+  **Một lỗi của chính tôi đã sửa:** DB tests đỏ từ `93fc7e2` (4 file/5 test) vì test
+  `bootstrapMissingProvince` chèn hộp giả vào `vn_boundary` thật — `ensureVnBoundary()` có guard
+  "đã có dòng thì return" nên bỏ nạp ranh giới VN, rồi `deleteOutsideVn()` xoá sạch POI Quận 1 của
+  các test khác dùng chung DB cô lập; ingest ra 0 dòng và tippecanoe báo "Did not read any valid
+  geometries". Nay hàm nhận `boundaryTable` và test dùng bảng riêng: bộ DB trong container
+  **10 file/57 test xanh**. Cũng sửa lỗi tôi gây ra ở `--types` của `perf-autocomplete.mjs`:
+  `indexOf` trả -1 thì `-1+1=0` ăn mất base-url.
+
 - **07/09/2026 — Dựng lại CẢ HAI phía toàn quốc: cổng QA pipeline từ `unmatched=72` xuống `=2`.**
   Tải extract OSM hiện hành `vietnam-latest.osm.pbf` (md5 `72d7b298f4dbae54283a2ee8506bd17f`, đối
   chiếu **độc lập** với Geofabrik vì log tải có ba lần 503/502 nên không tin lần kiểm trong script),

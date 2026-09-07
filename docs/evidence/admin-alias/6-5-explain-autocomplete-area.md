@@ -285,7 +285,53 @@ từ **8**. Kết quả publish vào DB đo: `admin_area` 3.353 (L4 **34**, L8 3
 **Chưa publish lên production.** Trạng thái này ở DB đo dùng-một-lần; phát hành phải theo Task 9.2
 (backup → staging QA → publish data → API → SDK) và cần cổng xanh hoặc ngoại lệ có quyết định QA.
 
-## 10. Phải đo lại khi nào
+## 10. Publish lên production và nghiệm thu 8.5/8.6 (07/09/2026)
+
+Đã publish dữ liệu alias lên production theo thứ tự 9.2: backup
+`mapslibvn-20260907-1020.dump.zst` lên R2 → `osm-roads.mjs` (9.105 ranh giới, 216.301 đường) →
+`admin.mjs --accept-qa "<lý do>"`. Kết quả: `admin_area` **3.353 (L4=34**, trước 33), `admin_area_old`
+4.972, `admin_alias` **37.246** (trước 33), publish trong **2.496 ms**.
+
+Cổng QA còn `unmatched=2` (hai vùng đảo Thanh Lân, Cô Tô); publish bằng cờ tường minh và lý do được
+ghi vào `report.acceptedQa`, không lách gate.
+
+### Smoke production
+
+`Quận 10` trả vùng kèm danh sách phường đích (trước rỗng); `Bình Dương` trả `Thành phố Hồ Chí Minh`
+với tên cũ ở dòng phụ. `Thủ Dầu Một` lúc đầu vẫn rỗng — nó là thành phố cấp huyện cũ nhưng nằm
+trong alias tỉnh của `provinces.json` nên `parseAddress` canonicalize thành tỉnh và `aliasLevel`
+khoá cấp 4, trong khi alias `thu dau mot` chỉ có ở level 6. Đã sửa: tỉnh suy ra từ alias thì không
+khoá cấp.
+
+### 8.6 — nghiệm thu 10 cặp địa chỉ trên production
+
+| Chỉ tiêu 8.6 | Yêu cầu | Đo được |
+|---|---|---|
+| Chính xác cao (`rooftop`/`alley`/`interpolated`) | ≥ 8/10 | **9/10** ✓ |
+| Không cặp nào kém hơn địa chỉ mới | — | ✓ (`hcm-address-10` cũ `rooftop` còn **tốt hơn** mới `ward`) |
+| Nằm trong `expectedBbox` | — | ✓ (không có failure `outside_expected_bbox`) |
+| hit@3 fuzzy | ≥ baseline 37/40 | **37/40** ✓ |
+
+Tám cặp cho `rooftop` ở cả hai cách viết. Ca duy nhất trượt là `hcm-address-04`
+(`1 Nguyễn Tất Thành, Phường 12, Quận 4`): old ward "Phường 12" của **Quận 4 không có trong
+snapshot** (snapshot có Phường 12 ở quận 10, 3, 5, 6, Bình Thạnh, Gò Vấp, Tân Bình) — lại là lỗ
+hổng độ phủ upstream, không phải hồi quy precision.
+
+### 8.5 — chi phí của `area`, và tại sao chưa kết luận được cổng p95
+
+| Cohort | p50 | p95 | p99 | hit@3 | colo |
+|---|---:|---:|---:|---|---|
+| default (có `area`) | 81 ms | 1.873 ms | 3.160 ms | 37/40 | HKG |
+| `types=poi,street,address` | 88 ms | 1.627 ms | 2.929 ms | 37/40 | SIN |
+
+Chênh p95 là +246 ms, **vượt ngưỡng +50 ms** của 8.6. Nhưng **chưa kết luận cổng này** vì phép đo
+không đủ sạch: hai cohort rơi vào **hai colo khác nhau** (HKG so với SIN), p95 bị chi phối hoàn toàn
+bởi các ca cache lạnh qua internet công cộng, và mỗi cohort chỉ 80 request thay vì ≥100 như 8.5 yêu
+cầu. Tín hiệu đáng tin là p50: **81 so với 88 ms**, tức `area` không thêm chi phí đo được ở nhánh
+ấm. Muốn chốt cổng p95 phải đo từ điểm quan sát ổn định (cùng colo, cùng chế độ cache) với ≥100
+request mỗi cohort — không tự chọn lại bộ mẫu theo 8.6.
+
+## 11. Phải đo lại khi nào
 
 Số liệu ở đây đủ để trả lời câu hỏi index/row count/time của bước 6.5, nhưng **không thay thế**
 benchmark phát hành. Task 8.5/8.6 vẫn phải đo lại trên bộ dữ liệu đã qua cổng độ phủ, cùng DB
