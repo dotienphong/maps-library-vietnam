@@ -1180,6 +1180,24 @@ vẫn là `sleep 1` phút — `sudo pmset -a sleep 0 disksleep 0`.
   nghị quyết có nêu (Hoàn Kiếm 0,029, Ba Đình 0,008). Độ lệch nguồn cực không đều: **Sơn La chỉ có 1
   xã cũ** trong snapshot, Bắc Giang 2, Vĩnh Phúc 2. Chưa publish lên production (thuộc 9.2)
 
+- 2026-09-07 · Hạ tầng · **build lại image pipeline từ HEAD; `.dockerignore` thiếu manifest mà
+  `admin.mjs` cần** · image `mapslibvn/pipeline:local` đang chạy là bản **tiền-alias**: không có
+  `admin-overlay.mjs`, thiếu `db/migrations/0008_admin_old.sql` và `scripts/verify-admin-alias.mjs`.
+  `admin.mjs` trong image đó đánh lại ID `admin_area` bằng `row_number()` rồi
+  `publishNew(['admin_area','admin_alias'])`, tức sẽ **thay 37.246 alias bằng ~33 dòng seed** và
+  đánh lại đúng những ID mà `admin_alias.admin_area_id` trỏ vào — đúng điều quyết định #1 của plan
+  alias cảnh báo. Cron `data:update` kế tiếp `2026-09-13T19:00Z` (thứ Hai 14/09 02:00 VN), lần 02:00
+  ngày 07/09 đã chạy trước khi publish nên chưa thiệt hại. Build lại từ HEAD **phát hiện thêm một
+  lỗi đóng gói**: `.dockerignore` loại cả `pipelines/poi/fixtures`, mà `admin.mjs` ở HEAD đọc
+  `pipelines/poi/fixtures/admin-old-source.json` **không có điều kiện** ngay đầu advisory lock — nên
+  image build từ HEAD vẫn chết ENOENT ở bước admin. Rà cả hai thư mục fixture bị loại thì đúng một
+  file được đọc lúc chạy thật (manifest 1,4 KB, URL + checksum), nên thêm ngoại lệ
+  `!pipelines/poi/fixtures/admin-old-source.json`; 14 MB PBF/parquet test vẫn nằm ngoài image.
+  Nghiệm thu image mới: smoke đủ 11 công cụ, có `ambiguousPrimaryKept` (bản sửa alias), có manifest
+  đúng md5 `1f0fdd19`, `admin-overlay`/`admin-old-source` import được trong container, **không có
+  `.env`** nào bị nướng vào. `pipeline` + `backup` đã force-recreate sang image mới; production
+  không đổi (`admin_area` 3.353 / `admin_area_old` 4.972 / `admin_alias` 37.246, autocomplete 200)
+
 ## 5. Sự cố
 
 ### SC-1 · Cache Rule nuốt Range của PMTiles — **ĐÃ ĐÓNG 27/08/2026**

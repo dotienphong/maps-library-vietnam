@@ -14,3 +14,6 @@ out
 packages/style/assets/fonts
 pipelines/tiles/fixtures
 pipelines/poi/fixtures
+# admin.mjs đọc manifest này lúc chạy thật (URL + checksum snapshot ranh giới cũ), không
+# phải fixture test — 1,4 KB. Phần bị loại ở trên là PBF/parquet test 14 MB.
+!pipelines/poi/fixtures/admin-old-source.json
