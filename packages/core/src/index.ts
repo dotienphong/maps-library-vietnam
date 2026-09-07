@@ -7,6 +7,7 @@ export * from './admin-alias';
 export * from './types';
 export * from './style-transform';
 export * from './poi-sources';
+export * from './search-keys';
 export * from './telex';
 export * from './toponym';
 export * from './vi-key';
