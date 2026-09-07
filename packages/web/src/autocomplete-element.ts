@@ -3,6 +3,7 @@ import {
   type AutocompleteType,
   type MapsLibVNClient,
   createClient,
+  parsePoiSourcesCsv,
 } from '@mapslibvn/core';
 
 /** Đối tượng tối thiểu để lấy tâm bản đồ làm tham số near. */
@@ -42,7 +43,7 @@ const TYPE_ICON: Record<AutocompleteType, string> = {
 
 /** Autocomplete Places không phụ thuộc framework, tự debounce và phát event `select`. */
 export class MapsLibVNAutocomplete extends HTMLElement {
-  static observedAttributes = ['api-key', 'api-base', 'placeholder', 'near'];
+  static observedAttributes = ['api-key', 'api-base', 'placeholder', 'near', 'sources'];
 
   /** Gán map trả về từ createMap để dùng tâm bản đồ làm near. */
   map: NearSource | null = null;
@@ -85,7 +86,7 @@ export class MapsLibVNAutocomplete extends HTMLElement {
   }
 
   attributeChangedCallback(name: string) {
-    if (name === 'api-key' || name === 'api-base') {
+    if (name === 'api-key' || name === 'api-base' || name === 'sources') {
       this.#client = null;
       this.#seq++;
     }
@@ -142,7 +143,18 @@ export class MapsLibVNAutocomplete extends HTMLElement {
     const apiKey = this.getAttribute('api-key');
     const baseUrl = this.getAttribute('api-base');
     if (!apiKey || !baseUrl) return null;
-    this.#client = createClient({ apiKey, baseUrl });
+    // Thuộc tính vắng → để client tự dùng mặc định; có nhưng sai → cảnh báo rồi vẫn dùng mặc định,
+    // vì một thuộc tính gõ sai không nên làm ô tìm kiếm chết hẳn.
+    const rawSources = this.getAttribute('sources');
+    const poiSources = rawSources === null ? null : parsePoiSourcesCsv(rawSources);
+    if (rawSources !== null && !poiSources) {
+      console.warn(`<mapslibvn-autocomplete sources="${rawSources}"> không hợp lệ — dùng mặc định`);
+    }
+    this.#client = createClient({
+      apiKey,
+      baseUrl,
+      ...(poiSources ? { poiSources } : {}),
+    });
     return this.#client;
   }
 

@@ -68,7 +68,9 @@ describe('createMap', () => {
     expect(ml.addProtocol).toHaveBeenCalledTimes(1);
     expect(ml.addProtocol.mock.calls[0]?.[0]).toBe('pmtiles');
     const opts = (m1.gl as unknown as { options: Record<string, unknown> }).options;
-    expect(opts.style).toBe('https://api.test/v1/styles/light.json?key=mlv_live_t');
+    expect(opts.style).toBe(
+      'https://api.test/v1/styles/light.json?key=mlv_live_t&sources=osm%2Coverture%2Cfsq',
+    );
     expect(opts.attributionControl).toBe(false);
     const ctl = (m1.gl.addControl as ReturnType<typeof vi.fn>).mock.calls[0]?.[0] as {
       options: { customAttribution: string };
@@ -87,6 +89,18 @@ describe('createMap', () => {
     };
     // Không biết style lạ có ghi nguồn hay không, nên phải thêm đủ.
     expect(ctl.options.customAttribution).toBe(attributionHtml());
+  });
+
+  it('poiSources đi vào style URL và client Places; tổ hợp chưa có archive → ném lỗi sớm', () => {
+    const { ml } = fakeMaplibre();
+    const m = createMap({ ...base, poiSources: ['osm'] }, { maplibre: ml as never });
+    expect((m.gl as unknown as { options: Record<string, unknown> }).options.style).toBe(
+      'https://api.test/v1/styles/light.json?key=mlv_live_t&sources=osm',
+    );
+    expect(m.places.styleUrl('dark')).toContain('sources=osm');
+    expect(() =>
+      createMap({ ...base, poiSources: ['osm', 'overture'] }, { maplibre: ml as never }),
+    ).toThrowError(/osm,overture,fsq/);
   });
 
   it('style là URL tuỳ biến thì giữ nguyên', () => {

@@ -4,10 +4,11 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { MapsLibVNAutocomplete, defineAutocomplete } from './autocomplete-element';
 
 const autocomplete = vi.fn();
+const createClientMock = vi.fn(() => ({ autocomplete }));
 
 vi.mock('@mapslibvn/core', async (importOriginal) => ({
   ...(await importOriginal<typeof import('@mapslibvn/core')>()),
-  createClient: () => ({ autocomplete }),
+  createClient: (...args: unknown[]) => createClientMock(...(args as [])),
 }));
 
 const area: AutocompleteItem = {
@@ -33,11 +34,16 @@ const poi: AutocompleteItem = {
 defineAutocomplete();
 
 /** Gắn element, gõ `query` rồi chờ hết debounce 200 ms để danh sách render. */
-async function typeQuery(items: AutocompleteItem[], query = 'quan 10') {
+async function typeQuery(
+  items: AutocompleteItem[],
+  query = 'quan 10',
+  attrs: Record<string, string> = {},
+) {
   autocomplete.mockResolvedValue({ items });
   const element = new MapsLibVNAutocomplete();
   element.setAttribute('api-key', 'mlv_test');
   element.setAttribute('api-base', 'https://api.test');
+  for (const [name, value] of Object.entries(attrs)) element.setAttribute(name, value);
   document.body.append(element);
   const input = element.shadowRoot?.querySelector('input');
   if (!input) throw new Error('không dựng được input');
@@ -58,6 +64,33 @@ describe('MapsLibVNAutocomplete — vùng hành chính', () => {
     vi.useRealTimers();
     document.body.replaceChildren();
     autocomplete.mockReset();
+  });
+
+  it('thuộc tính sources → poiSources của client; lạ → cảnh báo và dùng mặc định', async () => {
+    createClientMock.mockClear();
+    await typeQuery([poi], 'high');
+    expect(createClientMock).toHaveBeenLastCalledWith({
+      apiKey: 'mlv_test',
+      baseUrl: 'https://api.test',
+    });
+
+    createClientMock.mockClear();
+    await typeQuery([poi], 'high', { sources: 'fsq,osm' });
+    expect(createClientMock).toHaveBeenLastCalledWith({
+      apiKey: 'mlv_test',
+      baseUrl: 'https://api.test',
+      poiSources: ['osm', 'fsq'],
+    });
+
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    createClientMock.mockClear();
+    await typeQuery([poi], 'high', { sources: 'banana' });
+    expect(createClientMock).toHaveBeenLastCalledWith({
+      apiKey: 'mlv_test',
+      baseUrl: 'https://api.test',
+    });
+    expect(warn).toHaveBeenCalled();
+    warn.mockRestore();
   });
 
   it('click phát select giữ nguyên object area kèm bbox', async () => {

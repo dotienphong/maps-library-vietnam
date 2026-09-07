@@ -1,10 +1,14 @@
 import {
+  DEFAULT_POI_SOURCES,
   type MapsLibVNClient,
+  POI_SOURCE_PROFILES,
   type PoiFeature,
+  type PoiSource,
   type Theme,
   attributionHtml,
   createClient,
   isPoiStyleLayer,
+  profileForSources,
 } from '@mapslibvn/core';
 import type maplibregl from 'maplibre-gl';
 import { type Lang, applyLanguage } from './language';
@@ -24,6 +28,11 @@ export interface CreateMapOptions {
   lang?: Lang;
   /** Hiển thị lớp POI (khi đã phát hành) — mặc định true */
   poiLayer?: boolean;
+  /**
+   * Tập nguồn POI cho bản đồ và `map.places` — mặc định cả ba. Chỉ nhận tổ hợp đã có bộ tiles
+   * (`['osm']` hoặc cả ba); tổ hợp khác ném lỗi ngay khi tạo map.
+   */
+  poiSources?: readonly PoiSource[];
   /** Attribution gọn (không có tuỳ chọn tắt) */
   compactAttribution?: boolean;
 }
@@ -64,7 +73,16 @@ export function createMap(opts: CreateMapOptions, deps?: Deps): MapsLibVNMap {
     throw new Error('Cần maplibre-gl: import maplibre-gl hoặc dùng bản UMD @mapslibvn/web/umd');
   ensurePmtilesProtocol(ml);
 
-  const places = createClient({ apiKey: opts.apiKey, baseUrl: opts.apiBase });
+  const poiSources = opts.poiSources ?? DEFAULT_POI_SOURCES;
+  if (!profileForSources(poiSources)) {
+    const available = Object.values(POI_SOURCE_PROFILES)
+      .map((list) => list.join(','))
+      .join(' | ');
+    throw new Error(
+      `poiSources "${poiSources.join(',')}" chưa có bộ tiles; hiện hỗ trợ: ${available}`,
+    );
+  }
+  const places = createClient({ apiKey: opts.apiKey, baseUrl: opts.apiBase, poiSources });
   const styleOpt = opts.style ?? 'light';
   const style = isTheme(styleOpt) ? places.styleUrl(styleOpt) : styleOpt;
 
