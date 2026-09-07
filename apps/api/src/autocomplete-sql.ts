@@ -4,6 +4,7 @@ import type { getSql } from './db';
 import type { LatLng } from './params';
 import { poiSourceFilter } from './poi-sources';
 import type { ItemType } from './ranking';
+import { planStages } from './stages';
 
 type Sql = ReturnType<typeof getSql>;
 
@@ -198,20 +199,110 @@ export function addressCandidates(
     LIMIT 10`;
 }
 
-/** Chạy song song mọi loại được chọn (spec 5.7); trước đây tuần tự là phần lớn độ trễ khi cache lạnh. */
+/** Bậc 2 (spec 5.4): mọi token khớp tiền tố, không kể thứ tự; sim cùng thang bậc 1 (word_similarity). */
+export function poiTokenCandidates(sql: Sql, input: CandidateQueryInput) {
+  const { queryNorm, tsQuery, near, sources } = input;
+  return sql<CandidateRow[]>`
+    SELECT 'poi' AS type, id, name, concat_ws(', ', street, ward, province) AS secondary,
+      ST_Y(geom) AS lat, ST_X(geom) AS lng, NULL AS precision,
+      word_similarity(${queryNorm}, name_norm) AS sim, false AS prefix,
+      coalesce(popularity, 0) AS pop, ${distance(sql, near, 'geom')} AS d, NULL AS matched_alt
+    FROM poi p
+    WHERE status = 'active' AND ${poiSourceFilter(sql, sources)}
+      AND name_tsv @@ to_tsquery('simple', ${tsQuery})
+    ORDER BY sim DESC, pop DESC LIMIT 20`;
+}
+
+export function streetTokenCandidates(sql: Sql, input: CandidateQueryInput) {
+  const { queryNorm, tsQuery, near } = input;
+  return sql<CandidateRow[]>`
+    SELECT 'street' AS type, NULL AS id, name, coalesce(province_norm, '') AS secondary,
+      ST_Y(ST_PointOnSurface(geom)) AS lat, ST_X(ST_PointOnSurface(geom)) AS lng, NULL AS precision,
+      word_similarity(${queryNorm}, name_norm) AS sim, false AS prefix, 0 AS pop,
+      ${distance(sql, near, 'geom')} AS d, NULL AS matched_alt
+    FROM street
+    WHERE name_tsv @@ to_tsquery('simple', ${tsQuery})
+    ORDER BY sim DESC LIMIT 20`;
+}
+
+/**
+ * Bậc 3 (spec 5.5/6.2): khoá ngữ âm. `name_key` nối từ không khoảng trắng nên gộp được dính/tách
+ * từ trong CÙNG một tên (`nha trang` ↔ `nhatrang`), nhưng KHÔNG phải mọi cách viết dính đều gộp —
+ * `nhatrang` và `nhac trang` cho khoá khác nhau.
+ */
+export function poiKeyCandidates(sql: Sql, input: CandidateQueryInput) {
+  const { queryKey, near, sources } = input;
+  return sql<CandidateRow[]>`
+    SELECT 'poi' AS type, id, name, concat_ws(', ', street, ward, province) AS secondary,
+      ST_Y(geom) AS lat, ST_X(geom) AS lng, NULL AS precision,
+      word_similarity(${queryKey}, name_key) AS sim, false AS prefix,
+      coalesce(popularity, 0) AS pop, ${distance(sql, near, 'geom')} AS d, NULL AS matched_alt
+    FROM poi p
+    WHERE status = 'active' AND ${poiSourceFilter(sql, sources)}
+      AND ${queryKey} <% name_key
+    ORDER BY sim DESC, pop DESC LIMIT 20`;
+}
+
+export function streetKeyCandidates(sql: Sql, input: CandidateQueryInput) {
+  const { queryKey, near } = input;
+  return sql<CandidateRow[]>`
+    SELECT 'street' AS type, NULL AS id, name, coalesce(province_norm, '') AS secondary,
+      ST_Y(ST_PointOnSurface(geom)) AS lat, ST_X(ST_PointOnSurface(geom)) AS lng, NULL AS precision,
+      word_similarity(${queryKey}, name_key) AS sim, false AS prefix, 0 AS pop,
+      ${distance(sql, near, 'geom')} AS d, NULL AS matched_alt
+    FROM street
+    WHERE ${queryKey} <% name_key
+    ORDER BY sim DESC LIMIT 20`;
+}
+
+/**
+ * Chạy song song mọi loại được chọn (spec 5.7); trước đây tuần tự là phần lớn độ trễ khi cache lạnh.
+ * Bậc 2 và 3 CHỈ chạy khi bậc 1 chưa đủ `limit` — truy vấn thường không trả tiền cho chúng.
+ */
 export async function collectCandidates(
   sql: Sql,
   input: CandidateQueryInput,
   types: Set<ItemType>,
+  limit = 10,
 ): Promise<CandidateRow[]> {
-  const queries: Promise<CandidateRow[]>[] = [];
-  if (types.has('poi')) queries.push(poiCandidates(sql, input));
-  if (types.has('street')) queries.push(streetCandidates(sql, input));
-  if (types.has('area')) queries.push(areaCandidates(sql, input));
+  const stage1: Promise<CandidateRow[]>[] = [];
+  if (types.has('poi')) stage1.push(poiCandidates(sql, input));
+  if (types.has('street')) stage1.push(streetCandidates(sql, input));
+  if (types.has('area')) stage1.push(areaCandidates(sql, input));
   const { housenumber, streetNorm } = input.parsed;
   if (types.has('address') && housenumber && streetNorm) {
-    queries.push(addressCandidates(sql, input, housenumber, streetNorm));
+    stage1.push(addressCandidates(sql, input, housenumber, streetNorm));
   }
-  const results = await Promise.all(queries);
-  return results.flat();
+  const rows: CandidateRow[] = (await Promise.all(stage1))
+    .flat()
+    .map((row) => ({ ...row, stage: 1 as const }));
+  // street/address không có id, nên khoá dedup phải lùi về (tên, phụ đề).
+  const keyOf = (row: CandidateRow) =>
+    `${row.type}:${row.id ?? `${row.name}|${row.secondary ?? ''}`}`;
+  const seen = new Set(rows.map(keyOf));
+  const stages = planStages({
+    have: rows.length,
+    limit,
+    tsQuery: input.tsQuery,
+    queryKey: input.queryKey,
+  });
+  for (const stage of stages) {
+    const runners: Promise<CandidateRow[]>[] = [];
+    if (types.has('poi')) {
+      runners.push(stage === 2 ? poiTokenCandidates(sql, input) : poiKeyCandidates(sql, input));
+    }
+    if (types.has('street')) {
+      runners.push(
+        stage === 2 ? streetTokenCandidates(sql, input) : streetKeyCandidates(sql, input),
+      );
+    }
+    for (const row of (await Promise.all(runners)).flat()) {
+      const key = keyOf(row);
+      if (seen.has(key)) continue;
+      seen.add(key);
+      rows.push({ ...row, stage });
+    }
+    if (rows.length >= limit) break;
+  }
+  return rows;
 }

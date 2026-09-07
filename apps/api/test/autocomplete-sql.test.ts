@@ -210,3 +210,70 @@ describe('autocomplete-sql — biến thể địa danh và tên thay thế OSM 
     expect(q).toMatch(/AS matched_alt/);
   });
 });
+
+const poiRow = (id: string, sim: number) => ({
+  type: 'poi',
+  id,
+  name: `p${id}`,
+  secondary: null,
+  lat: 0,
+  lng: 0,
+  precision: null,
+  sim,
+  prefix: false,
+  pop: 0,
+  d: null,
+});
+
+describe('collectCandidates — bậc 2/3 chỉ chạy khi bậc 1 thiếu (spec 5.4–5.5)', () => {
+  it('bậc 1 đủ limit thì KHÔNG gọi SQL bậc 2/3', async () => {
+    const rows = Array.from({ length: 10 }, (_, i) => poiRow(String(i), 0.9));
+    const { sql, calls } = fakeSql(rows);
+    await collectCandidates(
+      sql,
+      { ...input, tsQuery: 'a:* & b:*', queryKey: 'ab' },
+      new Set(['poi']),
+      10,
+    );
+    expect(calls.filter((c) => c.text.includes('name_tsv @@'))).toHaveLength(0);
+    expect(calls.filter((c) => c.text.includes('<% name_key'))).toHaveLength(0);
+  });
+
+  it('thiếu → chạy bậc 2 (tsvector) rồi bậc 3 (name_key), gắn stage và dedup theo id', async () => {
+    // Phân biệt theo NỘI DUNG truy vấn, không theo thứ tự gọi: fakeSql gọi hàm rows cho mọi
+    // fragment lồng nhau (matchedAlt, aliasBranch…), nên đếm lượt gọi là đo sai thứ.
+    const { sql, calls } = fakeSql((q) =>
+      q.text.includes('name_tsv @@') ? [poiRow('1', 0.5), poiRow('2', 0.5)] : [poiRow('1', 0.9)],
+    );
+    const rows = await collectCandidates(
+      sql,
+      { ...input, tsQuery: 'a:* & b:*', queryKey: 'ab' },
+      new Set(['poi']),
+      10,
+    );
+    expect(calls.some((c) => c.text.includes("to_tsquery('simple'"))).toBe(true);
+    expect(calls.some((c) => c.text.includes('<% name_key'))).toBe(true);
+    // id 1 giữ dòng của bậc 1, không bị bậc 2 chèn lại.
+    expect(rows.map((r) => `${r.id}:${r.stage}`)).toEqual(['1:1', '2:2']);
+  });
+
+  it('dừng ngay khi đủ limit, không chạy tiếp bậc 3', async () => {
+    const { sql, calls } = fakeSql((q) =>
+      q.text.includes('name_tsv @@') ? [poiRow('2', 0.5), poiRow('3', 0.5)] : [poiRow('1', 0.9)],
+    );
+    const rows = await collectCandidates(
+      sql,
+      { ...input, tsQuery: 'a:* & b:*', queryKey: 'ab' },
+      new Set(['poi']),
+      3,
+    );
+    expect(rows).toHaveLength(3);
+    expect(calls.filter((c) => c.text.includes('<% name_key'))).toHaveLength(0);
+  });
+
+  it('tsQuery null và queryKey rỗng → chỉ bậc 1, không truy vấn thêm', async () => {
+    const { sql, calls } = fakeSql([poiRow('1', 0.9)]);
+    await collectCandidates(sql, { ...input, tsQuery: null, queryKey: '' }, new Set(['poi']), 10);
+    expect(calls.filter((c) => c.text.startsWith('SELECT'))).toHaveLength(1);
+  });
+});

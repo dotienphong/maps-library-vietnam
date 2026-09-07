@@ -4,6 +4,7 @@ import {
   normalizeVi,
   parseAddress,
   poiSourcesKey,
+  viKey,
 } from '@mapslibvn/core';
 import { Hono } from 'hono';
 import { requireAuth } from '../auth';
@@ -15,6 +16,7 @@ import { ApiError } from '../errors';
 import { clampInt, parseLatLngPair, parseSources, parseTypes } from '../params';
 import { quotaMiddleware } from '../quota';
 import { gridKey, isAdminOnlyQuery, rankScore, withAreaSlot } from '../ranking';
+import { tsQueryFor } from '../stages';
 
 export const autocomplete = new Hono<AppEnv>();
 
@@ -40,6 +42,9 @@ autocomplete.get('/v1/autocomplete', requireAuth(), quotaMiddleware('places'), a
   const queryCore = nameCore(query) || queryNorm;
   // Biến thể địa danh áp NGAY trên truy vấn (spec 6.1), nên không phải chờ pipeline điền name_key.
   const queryAlias = applyToponymAlias(queryNorm);
+  // Bậc 2 và 3 chỉ chạy khi bậc 1 thiếu; tính sẵn ở đây vì cả hai là hàm thuần của truy vấn.
+  const tsQuery = tsQueryFor(queryNorm);
+  const queryKey = viKey(queryAlias);
   const queryStartsWithDigit = /^\d/.test(queryNorm);
   if (!queryNorm) {
     throw new ApiError(400, 'invalid_request', 'q không có ký tự tra cứu được');
@@ -67,10 +72,11 @@ autocomplete.get('/v1/autocomplete', requireAuth(), quotaMiddleware('places'), a
           near,
           parsed,
           sources,
-          tsQuery: null,
-          queryKey: '',
+          tsQuery,
+          queryKey,
         },
         types,
+        limit,
       );
       const items = rows
         .map((row) => ({
@@ -92,10 +98,13 @@ autocomplete.get('/v1/autocomplete', requireAuth(), quotaMiddleware('places'), a
                 pop: Number(row.pop),
                 type: row.type,
                 qStartsWithDigit: queryStartsWithDigit,
+                stage: row.stage ?? 1,
               }) * 1000,
             ) / 1000,
         }))
         .sort((a, b) => b.score - a.score);
+      // 0 = không có kết quả nào; phân biệt với -1 (route khác) trong analytics.
+      c.set('stageHit', rows.length ? Math.max(...rows.map((row) => row.stage ?? 1)) : 0);
       return { items: withAreaSlot(items, limit, isAdminOnlyQuery(parsed)) };
     } catch (error) {
       console.error('autocomplete', error);
@@ -104,5 +113,9 @@ autocomplete.get('/v1/autocomplete', requireAuth(), quotaMiddleware('places'), a
       c.executionCtx.waitUntil(sql.end({ timeout: 1 }));
     }
   });
+  // cachedJson bỏ qua callback khi trúng cache, nên stageHit chưa được đặt. Phải phân biệt ba
+  // trạng thái, nếu không thì tỷ lệ truy vấn rỗng (thứ quyết định có bật Telex hay không) sai:
+  // -1 route khác, -2 trúng cache (không chạy bậc nào), 0 chạy mà rỗng, 1..3 bậc cho kết quả.
+  if (c.get('stageHit') === undefined) c.set('stageHit', -2);
   return response;
 });

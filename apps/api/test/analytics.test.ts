@@ -29,7 +29,9 @@ describe('analyticsMiddleware', () => {
           },
         },
       },
-      get: () => auth,
+      // Phải phân biệt theo khoá: trước đây trả `auth` cho MỌI khoá, nên khi thêm chiều
+      // stage_hit thì c.get('stageHit') cũng nhận nguyên đối tượng auth.
+      get: (key: string) => (key === 'auth' ? auth : undefined),
       req: { url: 'https://api.test/v1/autocomplete?q=highlands' },
       res: new Response(null, { status: 204 }),
     } as unknown as Context<AppEnv>;
@@ -45,6 +47,9 @@ describe('analyticsMiddleware', () => {
     ]);
     expect(points[0]?.doubles?.[0]).toBe(204);
     expect(points[0]?.doubles?.[1]).toBeGreaterThanOrEqual(0);
+    // stage_hit là chiều thứ ba: -1 khi route không phải autocomplete (đây là preflight OPTIONS).
+    expect(points[0]?.doubles).toHaveLength(3);
+    expect(points[0]?.doubles?.[2]).toBe(-1);
     expect(points[0]?.indexes).toEqual(['mlv_live_test00000000000000000000']);
   });
 });

@@ -3,6 +3,12 @@ import type { ParsedAddress } from '@mapslibvn/core';
 /** Hệ số xếp hạng autocomplete (spec 6.2) — đặt ở đây để chỉnh bằng test. */
 export const COEFF = { sim: 0.55, prox: 0.25, pop: 0.15, prior: 0.05 } as const;
 export const PREFIX_BONUS = 0.1;
+/**
+ * Trừ điểm theo bậc (spec 5.6): kết quả của bậc sau chỉ nên nổi lên khi bậc trước không có gì
+ * tương đương. 0,05 nhỏ hơn PREFIX_BONUS nên nó không lật ngược một kết quả bậc 1 khớp tiền tố,
+ * nhưng đủ để hai dòng cùng `sim` xếp đúng thứ tự bậc.
+ */
+export const STAGE_PENALTY = 0.05;
 export const PROX_SCALE_M = 5000;
 /** Lưới thay H3 res 6 cho khoá cache (~5,5 km) — xem plan M3, quyết định 1. */
 export const CACHE_GRID_DEG = 0.05;
@@ -27,6 +33,8 @@ export function rankScore(input: {
   pop: number;
   type: ItemType;
   qStartsWithDigit: boolean;
+  /** Bậc đã cho ra dòng này; thiếu = 1, nên điểm của dữ liệu cũ không đổi. */
+  stage?: 1 | 2 | 3;
 }): number {
   const sim = input.sim + (input.prefix ? PREFIX_BONUS : 0);
   const pop = Math.max(0, Math.min(1, input.pop));
@@ -34,7 +42,8 @@ export function rankScore(input: {
     COEFF.sim * sim +
     COEFF.prox * proxScore(input.dMeters) +
     COEFF.pop * pop +
-    COEFF.prior * priorFor(input.type, input.qStartsWithDigit)
+    COEFF.prior * priorFor(input.type, input.qStartsWithDigit) -
+    STAGE_PENALTY * ((input.stage ?? 1) - 1)
   );
 }
 

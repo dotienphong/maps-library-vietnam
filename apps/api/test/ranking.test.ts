@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   COEFF,
+  STAGE_PENALTY,
   gridKey,
   isAdminOnlyQuery,
   priorFor,
@@ -132,5 +133,31 @@ describe('isAdminOnlyQuery', () => {
 
   it('không có phần hành chính nào thì không phải', () => {
     expect(isAdminOnlyQuery({ alleyChain: [], confidence: 0 })).toBe(false);
+  });
+});
+
+describe('STAGE_PENALTY — bậc sau không được vượt bậc trước khi sim tương đương', () => {
+  const base = {
+    sim: 0.8,
+    prefix: false,
+    dMeters: null,
+    pop: 0.5,
+    type: 'poi' as const,
+    qStartsWithDigit: false,
+  };
+
+  it('bậc 3 thấp hơn bậc 1 đúng 2 × STAGE_PENALTY, bậc 2 đúng 1 ×', () => {
+    expect(rankScore({ ...base, stage: 1 })).toBeCloseTo(
+      rankScore({ ...base, stage: 2 }) + STAGE_PENALTY,
+      10,
+    );
+    expect(rankScore({ ...base, stage: 1 })).toBeCloseTo(
+      rankScore({ ...base, stage: 3 }) + 2 * STAGE_PENALTY,
+      10,
+    );
+  });
+
+  it('không truyền stage thì điểm y hệt stage 1 — kết quả cũ không đổi', () => {
+    expect(rankScore(base)).toBe(rankScore({ ...base, stage: 1 }));
   });
 });

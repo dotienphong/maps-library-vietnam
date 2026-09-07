@@ -173,3 +173,26 @@ describe('areaCandidates', () => {
     expect(row.secondary.split(', ')).toHaveLength(4);
   });
 });
+
+describe('bậc 3 khoá ngữ âm trong nhánh vùng (spec 6.2)', () => {
+  // areaCandidates chạy bậc 1 (tiền tố) trước; fakeSql([]) làm nó rỗng nên bậc 2 fuzzy mới chạy.
+  // Nhánh khoá chỉ có ở truy vấn fuzzy, tức truy vấn THỨ HAI.
+  const fuzzyQuery = (calls: RecordedQuery[]) => areaQueries(calls)[1];
+
+  it('fuzzy có queryKey → thêm nhánh name_key và alias_key', async () => {
+    const { sql, calls } = fakeSql([]);
+    await areaCandidates(sql, { ...input, queryNorm: 'quna 10', queryKey: 'quan10' });
+    expect(areaQueries(calls)).toHaveLength(2);
+    expect(fuzzyQuery(calls)?.text).toMatch(/<% a\.name_key/);
+    expect(fuzzyQuery(calls)?.text).toMatch(/<% aa\.alias_key/);
+    // Bậc 1 tiền tố KHÔNG được có nhánh khoá — đó là chỗ đã phải bỏ `<%` vì kém chọn lọc.
+    expect(areaQueries(calls)[0]?.text).not.toMatch(/name_key/);
+  });
+
+  it('queryKey rỗng → KHÔNG có nhánh khoá (chuỗi rỗng <% khớp mọi dòng)', async () => {
+    const { sql, calls } = fakeSql([]);
+    await areaCandidates(sql, { ...input, queryNorm: 'quna 10', queryKey: '' });
+    expect(fuzzyQuery(calls)?.text).not.toMatch(/name_key/);
+    expect(fuzzyQuery(calls)?.text).not.toMatch(/alias_key/);
+  });
+});

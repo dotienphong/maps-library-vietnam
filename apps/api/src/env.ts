@@ -20,4 +20,8 @@ export interface Env {
 }
 
 /** Kiểu Hono chung cho app: Variables.auth do requireAuth() gán, reviewer do requireAccess(). */
-export type AppEnv = { Bindings: Env; Variables: { auth?: AuthInfo; reviewer?: string } };
+export type AppEnv = {
+  Bindings: Env;
+  /** `stageHit`: bậc cao nhất đã cho ra kết quả autocomplete (0 = rỗng) — spec 5.7, ghi vào analytics. */
+  Variables: { auth?: AuthInfo; reviewer?: string; stageHit?: number };
+};

@@ -47,11 +47,16 @@ function areaQuery(sql: Sql, input: CandidateQueryInput, fuzzy: boolean): Promis
     : sql`NULL::float8`;
   // Bậc 1 bỏ `<%`: trên 36.456 alias toàn quốc, word_similarity bắt mọi alias chứa từ hành chính
   // phổ biến ("quan", "thanh pho"), nên `quan 10` khớp 11.072 dòng thay vì 18 dòng của tiền tố.
+  // Khoá ngữ âm (spec 6.2) chỉ thêm ở nhánh fuzzy, và chỉ khi có khoá: chuỗi rỗng `'' <% col`
+  // khớp mọi dòng, đúng kiểu lỗi làm nổ số ứng viên mà bậc 1 đã phải bỏ `<%` để tránh.
+  const keyBranch = fuzzy && input.queryKey ? input.queryKey : null;
   const currentMatch = fuzzy
-    ? sql`(${currentKey} <% a.name_norm OR a.name_norm LIKE ${currentPrefix})`
+    ? sql`(${currentKey} <% a.name_norm OR a.name_norm LIKE ${currentPrefix}
+        ${keyBranch ? sql`OR ${keyBranch} <% a.name_key` : sql``})`
     : sql`a.name_norm LIKE ${currentPrefix}`;
   const aliasMatch = fuzzy
-    ? sql`(${queryNorm} <% aa.alias_norm OR aa.alias_norm LIKE ${prefixPattern})`
+    ? sql`(${queryNorm} <% aa.alias_norm OR aa.alias_norm LIKE ${prefixPattern}
+        ${keyBranch ? sql`OR ${keyBranch} <% aa.alias_key` : sql``})`
     : sql`aa.alias_norm LIKE ${prefixPattern}`;
 
   return sql<CandidateRow[]>`WITH current_hits AS (
