@@ -1277,6 +1277,29 @@ vẫn là `sleep 1` phút — `sudo pmset -a sleep 0 disksleep 0`.
   Việc còn lại là **nguồn ranh giới cấp xã cũ** (4.215/≈10.000) và ranh giới Cát Bà/Tam Giang —
   hạng mục riêng, không thuộc Task 8
 
+- 2026-09-07 · Alias T9.4/9.5 · **nghiệm thu production và thử cập nhật lần hai; kèm một sự cố
+  production tìm được khi đang smoke** · [hồ sơ](evidence/admin-alias/9-4-9-5-nghiem-thu-production.md) ·
+  **Sự cố:** smoke area trả 0 item ở mọi truy vấn → không phải dữ liệu mà `autocomplete`/`search`/
+  `nearby`/`reverse` đều 503, `geocode` và `/healthz/db` vẫn 200. Log CI job "API tests (Places, real
+  DB)" cho nguyên nhân: `PostgresError: malformed array literal: "osm,overture,fsq"` —
+  `poiSourceFilter` bind mảng JS rồi cast `::text[]`, bản `postgres/cf` trong Workers nối mảng thành
+  chuỗi còn bản Node serialize đúng, nên lỗi **không hiện ở unit test không DB**. `geocode` sống vì
+  đã dùng `textArray`. Sửa ở `2728347`, `test:api-db` **7 đỏ → 33 xanh**, deploy 16:01:47 (+07), cả 4
+  endpoint về 200. **Lỗ hổng quy trình:** `deploy-api.yml` chỉ `on: push` và **không `needs:`** bộ
+  test DB thật — trên cả `178d086` và `0585eb1`, API tests đỏ ~10 giây TRƯỚC khi Deploy API chạy mà
+  deploy vẫn thành công. Đề xuất PHONG: cho Deploy API phụ thuộc job đó. · **9.4:** đạt coverage
+  0 failure, 60 ca 48/60, geocode 9/10, API role đọc old table, export ODbL `admin_alias` **37.251**
+  kèm sha256, playground dùng SDK mới; smoke `Quận 10`/`Bình Dương`/`Thủ Dầu Một` và loại trừ area
+  đúng. **Giữ mở vì một ca thật:** tên hiện hành **kèm tiền tố đơn vị** làm khớp chính xác tụt hạng —
+  `Phường Diên Hồng` hạng 2, `Phường Bàn Cờ` **không có trong 10**, bỏ tiền tố thì đúng hạng 1; nghi
+  token `phuong` làm `word_similarity` cao giả. · **9.5 XONG:** ba trạng thái trên staging cho cùng
+  checksum `84f4cedbe29495c9` — nền, sau `admin-old.mjs`, sau `admin.mjs`. Tức standalone idempotent
+  **và cập nhật thường không làm mất alias** dù `admin.mjs` đánh lại toàn bộ ID `admin_area`; **rủi ro
+  cron thứ Hai 14/09 không còn**. Checksum khoá theo tên đích + tên tỉnh, không theo `admin_area.id`.
+  Ghi lại lỗi phép đo của tôi: checksum đầu đổi giữa hai lần chạy chỉ vì `ORDER BY` theo tên không
+  phải thứ tự toàn phần (hai vùng cùng tên "Xã Đại Đồng"); `diff` cho đúng 2 dòng cùng nội dung khác
+  vị trí — tin checksum mà không truy diff thì đã kết luận sai rằng pipeline không idempotent
+
 ## 5. Sự cố
 
 ### SC-1 · Cache Rule nuốt Range của PMTiles — **ĐÃ ĐÓNG 27/08/2026**
