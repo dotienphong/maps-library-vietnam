@@ -6,3 +6,4 @@ export * from './address';
 export * from './admin-alias';
 export * from './types';
 export * from './style-transform';
+export * from './poi-sources';
