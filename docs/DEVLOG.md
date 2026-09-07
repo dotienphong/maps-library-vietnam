@@ -1447,6 +1447,23 @@ vẫn là `sleep 1` phút — `sudo pmset -a sleep 0 disksleep 0`.
   theo quyết định PHONG. Bằng chứng NULL-safe của spec mục 8 là bộ `test:api-db` 42/42 trên Postgres
   thật: trước Task 10–12 đúng 4 ca đỏ, sau đó xanh, 36 ca cũ không đổi. **Chưa có số production** —
   chờ Task 16 (deploy, backfill, chạy lại pipeline đường, đối chiếu tiêu chí 11.6)
+- 2026-09-08 · Hạng mục 3 · **Phát hành production xong; tiêu chí 11.6 KHÔNG ĐẠT, đã đo rõ nguyên
+  nhân** (`eb5cc76`, `52d8507`) · [hồ sơ](evidence/search-keys/16-nghiem-thu-production.md) ·
+  backfill 1.522.417 POI (252 giây, chạy lần hai đúng 0 dòng), pipeline đường dựng lại 61.234 tuyến
+  / 58.597 hẻm, DB 5.471 → 5.927 MB. **Đạt:** bộ 40 truy vấn mờ 38/40 (baseline 37/40, không hồi
+  quy); 5/5 endpoint 200 khi cột dẫn xuất còn NULL — bằng chứng production cho khẳng định của spec
+  mục 8; ba bậc đều dùng chỉ số 0009, không Seq Scan; `matched_alt` chạy thật (`co thanh ve` →
+  Đường Bế Văn Đàn hạng 1). **Không đạt:** bộ 20 biến thể vẫn **3/20**, y hệt baseline. Ba nguyên
+  nhân đã đo tách bạch: (a) với 1,52 triệu POI, bậc 1 luôn trả đúng `limit` nên `planStages` trả
+  rỗng và **bậc 2/3 không bao giờ chạy** — trên DB dev 79.775 POI thì chúng có chạy và `kontum` →
+  Kon Tum, `bin than` → Bình Thạnh đều đúng, tức cơ chế đúng còn điều kiện kích hoạt sai cỡ; (b)
+  ngay trong bậc 1, `LIMIT 20` bị bão hoà bởi các dòng hoà `sim` nên dòng của nhánh alias bị cắt
+  trước khi xếp hạng (`tan son nhut` đưa Tân Sơn Nhất lên hạng 4, không vào top 3); (c) `cong ly`
+  là thiếu **dữ liệu**: OSM Việt Nam không gắn `old_name=Công Lý` cho Nam Kỳ Khởi Nghĩa. Sửa (a) và
+  (b) là **sửa spec mục 5.4**, không phải sửa lỗi, nên để PHONG quyết. Hai lỗi lộ ra khi chạy thật
+  đã vá trong `52d8507`: `edit-lock.dbtest.mjs` dựng tay `poi_work_record` thiếu cột mới (CI đỏ, máy
+  dev không thấy vì bộ dbtest local không gồm file đó), và role `pipeline` thiếu `SELECT` trên
+  `schema_migrations` làm cổng migration của backfill ném `permission denied`
 
 ## 5. Sự cố
 

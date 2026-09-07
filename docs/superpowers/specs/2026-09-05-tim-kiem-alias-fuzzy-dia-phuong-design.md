@@ -512,6 +512,21 @@ Phiên bản SDK: bump minor cho 4 gói (thêm API, không phá).
 5. Gõ "Quận 10", "Bình Dương", "Thủ Dầu Một" trong playground trả item `area` với `secondary` nêu
    đơn vị mới.
 6. "qui nhon", "kontum", "dak lak", "tan son nhut", "cong ly" (đường) đều trả đúng đích trong top 3.
+
+   > **Trạng thái 08/09/2026: KHÔNG ĐẠT — 1/5 (`dak lak`).** Đã phát hành đủ mã hạng mục 3 lên
+   > production và đo. Ba nguyên nhân tách bạch, hồ sơ
+   > `docs/evidence/search-keys/16-nghiem-thu-production.md`:
+   > (a) **mục 5.4 tự mâu thuẫn với tiêu chí này ở quy mô thật.** "Bậc 2 chỉ khi bậc 1 trả
+   > < `limit`" khiến bậc 2/3 **không bao giờ chạy** trên 1,52 triệu POI — bậc 1 luôn lấp đủ 10 suất.
+   > Trên DB dev 79.775 POI thì bậc 3 có chạy và `kontum`/`bin than` đều đúng, nên cơ chế đúng còn
+   > điều kiện kích hoạt sai. Sửa được tiêu chí này đòi **đổi mục 5.4**, ví dụ đổi điều kiện sang
+   > "bậc 1 không có dòng nào đạt ngưỡng `sim`", hoặc luôn chạy song song rồi để `STAGE_PENALTY`
+   > xếp hạng (đo được: bậc 2 tốn 2,6 ms, bậc 3 tốn 206 ms trên chỉ số).
+   > (b) trong bậc 1, `LIMIT 20` bị bão hoà bởi các dòng hoà `sim` nên dòng của nhánh `qAlias` bị
+   > cắt trước khi xếp hạng — cần tách suất riêng cho nhánh alias.
+   > (c) `cong ly` là thiếu **dữ liệu**, không phải mã: OSM VN không gắn `old_name=Công Lý` cho Nam
+   > Kỳ Khởi Nghĩa. Cơ chế đã chứng minh chạy được trên tên thay thế OSM có thật.
+   > Ba việc trên chờ PHONG quyết; không tự đổi spec.
 7. CI xanh 4 gói; test `apps/api` vẫn chạy không cần Postgres; `export:odbl` có `admin_area_old`;
    docs 3 trang cập nhật và link check xanh.
 

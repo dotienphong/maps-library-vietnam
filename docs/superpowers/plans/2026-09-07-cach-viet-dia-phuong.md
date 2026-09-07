@@ -2,6 +2,12 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
+> **Trạng thái 08/09/2026 sau khi thực thi xong:** Task 0–15 đóng. Task 16 đóng trừ **bước 7** —
+> tiêu chí 11.6 đo trên production được **3/20**, không đạt mốc 18/20. Nguyên nhân đã đo tách bạch
+> (bậc 2/3 không kích hoạt ở quy mô 1,52 triệu POI; `LIMIT 20` bão hoà trong bậc 1; OSM thiếu
+> `old_name` cho tên đường cũ) và ghi ở `docs/evidence/search-keys/16-nghiem-thu-production.md`.
+> Sửa được đòi **đổi spec mục 5.4**, nên dừng lại chờ quyết định.
+
 **Goal:** Người dùng gõ địa danh theo cách viết khác (`qui nhon`, `kontum`, `dak lak`, `tan son nhut`, `ban me thuot`), gõ theo phát âm vùng (`bin than`, `mi tho`) hoặc gõ **tên cũ** của đường (`cong ly`) vẫn tìm ra đúng đích trong top 3 của autocomplete, mà p95 nhánh có kết quả sớm không tăng quá 50 ms.
 
 **Architecture:** Ba lớp bổ trợ nhau, từ rẻ đến đắt, tất cả dùng cùng khung "chuẩn hoá ở `@mapslibvn/core`, cột dẫn xuất tính trong pipeline, truy vấn theo **bậc** trong API". (1) Từ điển biến thể địa danh áp lên **cả truy vấn lẫn dữ liệu**; (2) khoá ngữ âm `viKey()` — bảng luật dưới dạng dữ liệu — sinh cột `name_key` cho `poi`/`street`/`admin_area`/`admin_area_old` và `alias_key` cho `admin_alias`; (3) tên thay thế của OSM (`alt_name`/`old_name`) thành cột `name_alt_norm` cho `poi` và `street`. API thêm bậc 2 (token không kể thứ tự, tsvector) và bậc 3 (`qKey <% name_key`), **chỉ chạy khi bậc trước chưa đủ `limit`**; kết quả bậc sau chịu `STAGE_PENALTY`. Cột mới **NULL cho tới khi pipeline chạy**, API phải coi NULL là không khớp — điều này được **chứng minh bằng test DB thật**, không suy từ lời văn.
@@ -74,7 +80,7 @@ Các điểm dưới cụ thể hoá hoặc **sửa** giả định kỹ thuật
 - Create: `scripts/fixtures/local-variant-queries.txt`
 - Create: `docs/evidence/search-keys/0-baseline.md`
 
-- [ ] **Bước 1: Tạo bộ truy vấn biến thể** (20 dòng, mỗi dòng `q|đích`; đích là chuỗi không dấu phải nằm trong `name` của top-3)
+- [x] **Bước 1: Tạo bộ truy vấn biến thể** (20 dòng, mỗi dòng `q|đích`; đích là chuỗi không dấu phải nằm trong `name` của top-3)
 
 ```
 # 20 truy vấn cách viết địa phương — spec 11.6 và mục 6.1/6.2. Baseline đo TRƯỚC hạng mục 3.
@@ -104,7 +110,7 @@ saigon|sai gon
 hoian|hoi an
 ```
 
-- [ ] **Bước 2: Đo baseline trên production** (dùng công cụ đã có; `API_KEY` là `KEY_EXAMPLE_EMBED` trong `.env`)
+- [x] **Bước 2: Đo baseline trên production** (dùng công cụ đã có; `API_KEY` là `KEY_EXAMPLE_EMBED` trong `.env`)
 
 Run:
 ```bash
@@ -114,9 +120,9 @@ node scripts/perf-autocomplete.mjs https://api.ai-solutions.io.vn "$KEY_EXAMPLE_
 ```
 Expected: dòng `hit@3=<n>/20 miss: …` cho bộ mới (kỳ vọng thấp, đặc biệt 4 ca tên đường cũ đỏ) và `hit@3=37/40` cho bộ fuzzy (baseline đã biết).
 
-- [ ] **Bước 3: Ghi baseline** vào `docs/evidence/search-keys/0-baseline.md` — bảng hai bộ (hit@3, p50/p95/p99), ngày giờ, SHA production (`git rev-parse --short HEAD`), và số đo phía Worker lấy như 8.5 (`$workers.wallTimeMs` p50/p95 cho `/v1/autocomplete` 30 phút quanh lúc đo).
+- [x] **Bước 3: Ghi baseline** vào `docs/evidence/search-keys/0-baseline.md` — bảng hai bộ (hit@3, p50/p95/p99), ngày giờ, SHA production (`git rev-parse --short HEAD`), và số đo phía Worker lấy như 8.5 (`$workers.wallTimeMs` p50/p95 cho `/v1/autocomplete` 30 phút quanh lúc đo).
 
-- [ ] **Bước 4: Commit**
+- [x] **Bước 4: Commit**
 
 ```bash
 git add scripts/fixtures/local-variant-queries.txt docs/evidence/search-keys/0-baseline.md
@@ -134,7 +140,7 @@ git commit -m "test(search): bộ 20 truy vấn cách viết địa phương và
 - Create: `packages/core/tests/vi-key.test.ts`
 - Modify: `packages/core/src/index.ts`
 
-- [ ] **Bước 1: Viết fixture ≥ 100 dòng** `packages/core/tests/fixtures/vi-key.csv`, định dạng `input|key`, `#` là chú thích. Nhóm bắt buộc có đủ: i/y, `quy`, `k→c`, `ph→f`, `gi/r/d→d`, `tr/ch→c`, `x→s`, `gh/ngh`, âm cuối `-ng/-nh→-n`, `-t→-c`, dính/tách từ, và hai nhóm cặp: **được gộp** (cùng key) và **không được gộp** (khác key). Mẫu 30 dòng đầu (viết tiếp tới ≥ 100, mỗi luật ≥ 8 ca):
+- [x] **Bước 1: Viết fixture ≥ 100 dòng** `packages/core/tests/fixtures/vi-key.csv`, định dạng `input|key`, `#` là chú thích. Nhóm bắt buộc có đủ: i/y, `quy`, `k→c`, `ph→f`, `gi/r/d→d`, `tr/ch→c`, `x→s`, `gh/ngh`, âm cuối `-ng/-nh→-n`, `-t→-c`, dính/tách từ, và hai nhóm cặp: **được gộp** (cùng key) và **không được gộp** (khác key). Mẫu 30 dòng đầu (viết tiếp tới ≥ 100, mỗi luật ≥ 8 ca):
 
 ```
 # input|key — input là chuỗi ĐÃ normalizeVi (không dấu, thường). key nối từ không khoảng trắng.
@@ -184,7 +190,7 @@ sai gon|saigon
 # bac|bac          vs   bat|bac
 ```
 
-- [ ] **Bước 2: Viết test đỏ** `packages/core/tests/vi-key.test.ts`
+- [x] **Bước 2: Viết test đỏ** `packages/core/tests/vi-key.test.ts`
 
 ```ts
 import { readFileSync } from 'node:fs';
@@ -257,12 +263,12 @@ describe('viKey — hình dạng', () => {
 });
 ```
 
-- [ ] **Bước 3: Chạy test, xác nhận đỏ**
+- [x] **Bước 3: Chạy test, xác nhận đỏ**
 
 Run: `pnpm exec vitest run packages/core/tests/vi-key.test.ts`
 Expected: FAIL — `Cannot find module '../src/vi-key'`.
 
-- [ ] **Bước 4: Viết bảng luật** `packages/core/src/vi_key_rules.json` — thứ tự **có ý nghĩa**: đầu từ trước, âm cuối sau, i/y cuối cùng. Mỗi luật `[regex, thay]` áp trên **từng từ** với cờ `g`.
+- [x] **Bước 4: Viết bảng luật** `packages/core/src/vi_key_rules.json` — thứ tự **có ý nghĩa**: đầu từ trước, âm cuối sau, i/y cuối cùng. Mỗi luật `[regex, thay]` áp trên **từng từ** với cờ `g`.
 
 ```json
 {
@@ -290,7 +296,7 @@ Expected: FAIL — `Cannot find module '../src/vi-key'`.
 }
 ```
 
-- [ ] **Bước 5: Viết `packages/core/src/vi-key.ts`**
+- [x] **Bước 5: Viết `packages/core/src/vi-key.ts`**
 
 ```ts
 import rulesJson from './vi_key_rules.json';
@@ -333,23 +339,23 @@ export function viKey(normalized: string): string {
 
 Lưu ý khi chạy fixture: luật `^gi(?=[aeiouy])` biến `gia`→`da` nhưng giữ `gin`; luật `quy`→`qui` chạy ở `anywhere` nên `quynh`→`quinh`. Nếu một dòng fixture đỏ, **sửa fixture cho khớp luật spec** chỉ khi luật đúng spec; nếu luật sai spec thì sửa JSON. Ghi lại từng quyết định vào chú thích của fixture.
 
-- [ ] **Bước 6: Export** — thêm vào `packages/core/src/index.ts`:
+- [x] **Bước 6: Export** — thêm vào `packages/core/src/index.ts`:
 
 ```ts
 export * from './vi-key';
 ```
 
-- [ ] **Bước 7: Chạy test, xác nhận xanh**
+- [x] **Bước 7: Chạy test, xác nhận xanh**
 
 Run: `pnpm exec vitest run packages/core/tests/vi-key.test.ts`
 Expected: PASS toàn bộ (≥ 100 ca fixture + 4 cặp khác + 3 cặp gộp + 3 hình dạng).
 
-- [ ] **Bước 8: Typecheck + lint + build core**
+- [x] **Bước 8: Typecheck + lint + build core**
 
 Run: `pnpm --filter @mapslibvn/core build && pnpm typecheck && pnpm lint`
 Expected: cả ba xanh. `size-limit` trong build core có thể báo vượt — nếu vượt vì `vi_key_rules.json` (rất nhỏ) thì không; nếu vượt thì xem lại `.size-limit.json` trước khi nới.
 
-- [ ] **Bước 9: Commit**
+- [x] **Bước 9: Commit**
 
 ```bash
 git add packages/core/src/vi_key_rules.json packages/core/src/vi-key.ts packages/core/src/index.ts packages/core/tests/vi-key.test.ts packages/core/tests/fixtures/vi-key.csv
@@ -366,7 +372,7 @@ git commit -m "feat(core): viKey — khoá ngữ âm theo bảng luật dữ li�
 - Create: `packages/core/tests/toponym.test.ts`
 - Modify: `packages/core/src/index.ts`
 
-- [ ] **Bước 1: Kiểm nguồn cho từng ứng viên** (spec: mỗi dòng phải có nguồn). Với mỗi cặp trong bảng 6.1, chạy Overpass tìm relation/node có `name` chuẩn và xem `alt_name`/`old_name`/`official_name`/`name:en`:
+- [x] **Bước 1: Kiểm nguồn cho từng ứng viên** (spec: mỗi dòng phải có nguồn). Với mỗi cặp trong bảng 6.1, chạy Overpass tìm relation/node có `name` chuẩn và xem `alt_name`/`old_name`/`official_name`/`name:en`:
 
 ```bash
 curl -s -G https://overpass-api.de/api/interpreter --data-urlencode 'data=[out:json][timeout:25];
@@ -378,7 +384,7 @@ out tags;' | python3 -c "import sys,json; [print(e['type'],e['id'],{k:v for k,v 
 
 Ghi `source` = `"osm:<type>/<id> <tag>"` khi tag chứa biến thể; nếu không, tìm trên Wikipedia tiếng Việt (mục "Tên gọi") và ghi `"wikipedia:vi:<Tiêu đề trang>"`. **Không có nguồn thì không đưa vào.** Kỳ vọng thực tế: `bmt`, `sg` khó có nguồn OSM — chỉ giữ nếu Wikipedia có; `tourane`, `faifo` có trên Wikipedia.
 
-- [ ] **Bước 2: Viết test đỏ** `packages/core/tests/toponym.test.ts`
+- [x] **Bước 2: Viết test đỏ** `packages/core/tests/toponym.test.ts`
 
 ```ts
 import { describe, expect, it } from 'vitest';
@@ -435,12 +441,12 @@ describe('applyToponymAlias', () => {
 });
 ```
 
-- [ ] **Bước 3: Chạy test, xác nhận đỏ**
+- [x] **Bước 3: Chạy test, xác nhận đỏ**
 
 Run: `pnpm exec vitest run packages/core/tests/toponym.test.ts`
 Expected: FAIL — `Cannot find module '../src/toponym'`.
 
-- [ ] **Bước 4: Viết `packages/core/src/toponym_alias.json`** — chỉ những dòng đã kiểm nguồn ở bước 1. Hình dạng bắt buộc:
+- [x] **Bước 4: Viết `packages/core/src/toponym_alias.json`** — chỉ những dòng đã kiểm nguồn ở bước 1. Hình dạng bắt buộc:
 
 ```json
 {
@@ -472,7 +478,7 @@ Expected: FAIL — `Cannot find module '../src/toponym'`.
 
 Mỗi `source` ở trên là **giả định** để plan có hình dạng; bước 1 quyết định dòng nào ở lại và `source` thật là gì. `bmt`, `sg`, `phan rang thap cham`, `thua thien hue` (đây là đổi nghĩa, không phải cách viết) bỏ trừ khi bước 1 tìm được nguồn.
 
-- [ ] **Bước 5: Viết `packages/core/src/toponym.ts`**
+- [x] **Bước 5: Viết `packages/core/src/toponym.ts`**
 
 ```ts
 import toponymJson from './toponym_alias.json';
@@ -508,23 +514,23 @@ export function applyToponymAlias(normalized: string): string {
 }
 ```
 
-- [ ] **Bước 6: Export** trong `packages/core/src/index.ts`:
+- [x] **Bước 6: Export** trong `packages/core/src/index.ts`:
 
 ```ts
 export * from './toponym';
 ```
 
-- [ ] **Bước 7: Chạy test, xác nhận xanh**
+- [x] **Bước 7: Chạy test, xác nhận xanh**
 
 Run: `pnpm exec vitest run packages/core/tests/toponym.test.ts`
 Expected: PASS. Nếu test "biến thể phải KHÁC chuẩn" đỏ → xoá đúng dòng đó khỏi JSON (đó là mục đích của test).
 
-- [ ] **Bước 8: Typecheck + lint + build**
+- [x] **Bước 8: Typecheck + lint + build**
 
 Run: `pnpm --filter @mapslibvn/core build && pnpm typecheck && pnpm lint`
 Expected: xanh.
 
-- [ ] **Bước 9: Commit**
+- [x] **Bước 9: Commit**
 
 ```bash
 git add packages/core/src/toponym_alias.json packages/core/src/toponym.ts packages/core/src/index.ts packages/core/tests/toponym.test.ts
@@ -540,7 +546,7 @@ git commit -m "feat(core): từ điển biến thể địa danh có nguồn, á
 - Create: `packages/core/tests/telex.test.ts`
 - Modify: `packages/core/src/index.ts`
 
-- [ ] **Bước 1: Test đỏ** `packages/core/tests/telex.test.ts`
+- [x] **Bước 1: Test đỏ** `packages/core/tests/telex.test.ts`
 
 ```ts
 import { describe, expect, it } from 'vitest';
@@ -580,12 +586,12 @@ describe('foldTelex', () => {
 
 Ghi chú: `'bach hoa xanh'` chứa `h` cuối `xanh` — không phải dấu telex; và `'x'` cuối `hueex` là dấu ngã VNI/telex → bỏ. Test này khoá đúng ranh giới đó.
 
-- [ ] **Bước 2: Chạy, xác nhận đỏ**
+- [x] **Bước 2: Chạy, xác nhận đỏ**
 
 Run: `pnpm exec vitest run packages/core/tests/telex.test.ts`
 Expected: FAIL — module không tồn tại.
 
-- [ ] **Bước 3: Viết `packages/core/src/telex.ts`**
+- [x] **Bước 3: Viết `packages/core/src/telex.ts`**
 
 ```ts
 /** Mẫu telex/VNI còn sót trong chuỗi đã bỏ dấu (spec 5.6). */
@@ -616,9 +622,9 @@ export function foldTelex(normalized: string): string {
 }
 ```
 
-- [ ] **Bước 4: Export** `export * from './telex';` trong `index.ts`; chạy test xanh; `pnpm typecheck && pnpm lint`.
+- [x] **Bước 4: Export** `export * from './telex';` trong `index.ts`; chạy test xanh; `pnpm typecheck && pnpm lint`.
 
-- [ ] **Bước 5: Commit**
+- [x] **Bước 5: Commit**
 
 ```bash
 git add packages/core/src/telex.ts packages/core/src/index.ts packages/core/tests/telex.test.ts
@@ -636,7 +642,7 @@ git commit -m "feat(core): foldTelex/looksLikeTelex cho bậc 3b (mặc định 
 
 Pipeline (`records.mjs`, `streets.mjs`, `admin*.mjs`, backfill) và test đối chiếu dbtest đều gọi **đúng một hàm** này, để không có hai định nghĩa `name_key`.
 
-- [ ] **Bước 1: Test đỏ** `packages/core/tests/search-keys.test.ts`
+- [x] **Bước 1: Test đỏ** `packages/core/tests/search-keys.test.ts`
 
 ```ts
 import { describe, expect, it } from 'vitest';
@@ -670,12 +676,12 @@ describe('searchKeys', () => {
 
 Các giá trị kỳ vọng ở trên đã được tính tay theo bảng luật Task 1; nếu test đỏ ở **chữ** thì bảng luật hoặc thứ tự luật đang sai so với Task 1 — sửa code, không sửa test.
 
-- [ ] **Bước 2: Chạy, đỏ**
+- [x] **Bước 2: Chạy, đỏ**
 
 Run: `pnpm exec vitest run packages/core/tests/search-keys.test.ts`
 Expected: FAIL — module không tồn tại.
 
-- [ ] **Bước 3: Viết `packages/core/src/search-keys.ts`**
+- [x] **Bước 3: Viết `packages/core/src/search-keys.ts`**
 
 ```ts
 import { normalizeVi } from './normalize';
@@ -718,11 +724,11 @@ export function filterNameAlt(nameNorm: string, nameAlt: readonly string[] | nul
 }
 ```
 
-- [ ] **Bước 4: Export** `export * from './search-keys';`; chạy test → xanh.
+- [x] **Bước 4: Export** `export * from './search-keys';`; chạy test → xanh.
 
-- [ ] **Bước 5: `pnpm --filter @mapslibvn/core build && pnpm typecheck && pnpm lint`** — xanh.
+- [x] **Bước 5: `pnpm --filter @mapslibvn/core build && pnpm typecheck && pnpm lint`** — xanh.
 
-- [ ] **Bước 6: Commit**
+- [x] **Bước 6: Commit**
 
 ```bash
 git add packages/core/src/search-keys.ts packages/core/src/index.ts packages/core/tests/search-keys.test.ts
@@ -739,7 +745,7 @@ git commit -m "feat(core): searchKeys/filterNameAlt — một định nghĩa cho
 - Modify: `scripts/lib/odbl.mjs`
 - Modify: `db/export-odbl.dbtest.mjs`
 
-- [ ] **Bước 1: Thêm assert đỏ vào `db/schema.dbtest.mjs`** (trong `describe('lược đồ spec 5.2')`):
+- [x] **Bước 1: Thêm assert đỏ vào `db/schema.dbtest.mjs`** (trong `describe('lược đồ spec 5.2')`):
 
 ```js
   it('0009: cột dẫn xuất tìm kiếm và chỉ số GIN (spec 6, quyết định 1: name_tsv là cột thường)', async () => {
@@ -788,7 +794,7 @@ git commit -m "feat(core): searchKeys/filterNameAlt — một định nghĩa cho
 
 Và sửa test `--down`: chú thích `// 0002…0009: tám migration sau 0001` và vòng `for (let i = 0; i < 8; i++) migrate('--down');` (hiện là 7). Đọc kỹ điều kiện "0008 chỉ down khi dữ liệu alias còn 1–1" đã có trong test đó — 0009 down **không** có điều kiện dữ liệu.
 
-- [ ] **Bước 2: Tạo lại DB test cô lập và chạy, xác nhận đỏ**
+- [x] **Bước 2: Tạo lại DB test cô lập và chạy, xác nhận đỏ**
 
 Run:
 ```bash
@@ -802,7 +808,7 @@ DATABASE_URL=postgres://mapslibvn:mapslibvn@localhost:5432/mapslibvn_task8_test 
 ```
 Expected: FAIL ở hai test 0009 và test `--down` (thiếu một lần revert).
 
-- [ ] **Bước 3: Viết `db/migrations/0009_search_keys.sql`**
+- [x] **Bước 3: Viết `db/migrations/0009_search_keys.sql`**
 
 ```sql
 -- Spec 05/09 mục 6 + 8 (plan hạng mục 3). Cột dẫn xuất tìm kiếm:
@@ -845,7 +851,7 @@ CREATE INDEX IF NOT EXISTS admin_alias_alias_key_trgm_idx   ON admin_alias    US
 -- Không GRANT mới: api đã có SELECT trên các bảng này (cột mới thừa hưởng); OWNER là pipeline sẵn.
 ```
 
-- [ ] **Bước 4: Viết `db/migrations/0009_search_keys.down.sql`**
+- [x] **Bước 4: Viết `db/migrations/0009_search_keys.down.sql`**
 
 ```sql
 DROP INDEX IF EXISTS admin_alias_alias_key_trgm_idx, admin_area_old_name_key_trgm_idx, admin_area_name_key_trgm_idx,
@@ -860,12 +866,12 @@ ALTER TABLE poi    DROP COLUMN IF EXISTS name_tsv, DROP COLUMN IF EXISTS name_al
   DROP COLUMN IF EXISTS name_key;
 ```
 
-- [ ] **Bước 5: Chạy schema dbtest, xanh**
+- [x] **Bước 5: Chạy schema dbtest, xanh**
 
 Run: (tạo lại DB như bước 2, rồi) `DATABASE_URL=… pnpm exec vitest run --config vitest.db.config.ts db/schema.dbtest.mjs`
 Expected: PASS, gồm test `--down` với 8 lần revert.
 
-- [ ] **Bước 6: Export ODbL thêm cột mới** — `scripts/lib/odbl.mjs`: `admin_area` thêm `'name_key'`; `admin_area_old` thêm `'name_key'`; `admin_alias` thêm `'alias_key'`; `street` thêm `'name_alt'`, `'name_key'`, `'name_alt_norm'`. Trong `db/export-odbl.dbtest.mjs`, sau phần đọc `admin_area.csv.gz`, thêm assert header:
+- [x] **Bước 6: Export ODbL thêm cột mới** — `scripts/lib/odbl.mjs`: `admin_area` thêm `'name_key'`; `admin_area_old` thêm `'name_key'`; `admin_alias` thêm `'alias_key'`; `street` thêm `'name_alt'`, `'name_key'`, `'name_alt_norm'`. Trong `db/export-odbl.dbtest.mjs`, sau phần đọc `admin_area.csv.gz`, thêm assert header:
 
 ```js
     const streetCsv = gunzipSync(readFileSync(join(dir, 'street.csv.gz'))).toString('utf8');
@@ -876,9 +882,9 @@ Expected: PASS, gồm test `--down` với 8 lần revert.
 
 Run: `DATABASE_URL=… pnpm exec vitest run --config vitest.db.config.ts db/export-odbl.dbtest.mjs` — Expected: PASS.
 
-- [ ] **Bước 7: `pnpm typecheck && pnpm lint`** — xanh (`scripts/lib/odbl.mjs` bị checkJs).
+- [x] **Bước 7: `pnpm typecheck && pnpm lint`** — xanh (`scripts/lib/odbl.mjs` bị checkJs).
 
-- [ ] **Bước 8: Commit**
+- [x] **Bước 8: Commit**
 
 ```bash
 git add db/migrations/0009_search_keys.sql db/migrations/0009_search_keys.down.sql db/schema.dbtest.mjs scripts/lib/odbl.mjs db/export-odbl.dbtest.mjs
@@ -894,7 +900,7 @@ git commit -m "feat(db): migration 0009 — name_key, name_alt_norm, name_tsv (c
 - Modify: `pipelines/poi/src/publish.mjs:10-70`
 - Create: `pipelines/poi/src/records.test.mjs` (nếu chưa có file test cho `buildRow`)
 
-- [ ] **Bước 1: Test đỏ cho `buildRow`** — `pipelines/poi/src/records.test.mjs`
+- [x] **Bước 1: Test đỏ cho `buildRow`** — `pipelines/poi/src/records.test.mjs`
 
 ```js
 import { describe, expect, it } from 'vitest';
@@ -930,12 +936,12 @@ describe('records.buildRow — cột dẫn xuất tìm kiếm (spec 6)', () => {
 });
 ```
 
-- [ ] **Bước 2: Chạy đỏ**
+- [x] **Bước 2: Chạy đỏ**
 
 Run: `pnpm exec vitest run pipelines/poi/src/records.test.mjs`
 Expected: FAIL — `RECORD_COLUMNS` chưa có `name_key`.
 
-- [ ] **Bước 3: Sửa `records.mjs`** — import và cột:
+- [x] **Bước 3: Sửa `records.mjs`** — import và cột:
 
 ```js
 import { filterNameAlt, nameCore, normalizeVi, parseAddress, searchKeys } from '@mapslibvn/core';
@@ -962,7 +968,7 @@ và thay ba phần tử tương ứng của mảng trả về:
 
 Trong `CREATE TABLE poi_work_record` (dòng ~250) thêm `name_key text NOT NULL, name_alt_norm text,` sau `name_alt text[],`.
 
-- [ ] **Bước 4: Sửa `publish.mjs`** — câu INSERT `poi_new`: thêm `name_key, name_alt_norm, name_tsv` vào danh sách cột (sau `name_alt`) và `r.name_key, r.name_alt_norm, to_tsvector('simple', r.name_norm)` vào SELECT. Câu UPDATE gộp: thêm
+- [x] **Bước 4: Sửa `publish.mjs`** — câu INSERT `poi_new`: thêm `name_key, name_alt_norm, name_tsv` vào danh sách cột (sau `name_alt`) và `r.name_key, r.name_alt_norm, to_tsvector('simple', r.name_norm)` vào SELECT. Câu UPDATE gộp: thêm
 
 ```sql
         name_key      = CASE WHEN 'name_norm' = ANY(p.locked_fields) THEN p.name_key ELSE n.name_key END,
@@ -972,12 +978,12 @@ Trong `CREATE TABLE poi_work_record` (dòng ~250) thêm `name_key text NOT NULL,
 
 và thêm `p.name_key, p.name_alt_norm` / `n.name_key, n.name_alt_norm` vào hai tuple `IS DISTINCT FROM` (không đưa `name_tsv` vào tuple — nó suy từ `name_norm`). Câu `INSERT INTO poi SELECT n.* FROM poi_new n` giữ nguyên: `poi_new` được tạo `LIKE poi INCLUDING ALL` nên có đủ cột mới và cùng thứ tự.
 
-- [ ] **Bước 5: Chạy test đơn vị xanh + kiểm cả pipeline fixture** (dbtest có `tippecanoe` chỉ trong container — ở máy dev chạy `conflate.dbtest.mjs` và `ingest.dbtest.mjs` là đủ; CI `dbtest.yml` chạy đủ):
+- [x] **Bước 5: Chạy test đơn vị xanh + kiểm cả pipeline fixture** (dbtest có `tippecanoe` chỉ trong container — ở máy dev chạy `conflate.dbtest.mjs` và `ingest.dbtest.mjs` là đủ; CI `dbtest.yml` chạy đủ):
 
 Run: `pnpm exec vitest run pipelines/poi/src/records.test.mjs` → PASS.
 Run: `DATABASE_URL=… pnpm exec vitest run --config vitest.db.config.ts pipelines/poi/tests/conflate.dbtest.mjs` → PASS (dùng `poi_work_record` có cột mới).
 
-- [ ] **Bước 6: `pnpm typecheck && pnpm lint`**, rồi commit
+- [x] **Bước 6: `pnpm typecheck && pnpm lint`**, rồi commit
 
 ```bash
 git add pipelines/poi/src/records.mjs pipelines/poi/src/records.test.mjs pipelines/poi/src/publish.mjs
@@ -995,7 +1001,7 @@ git commit -m "feat(pipeline): poi có name_key/name_alt_norm từ searchKeys co
 - Modify: `pipelines/poi/src/geocode/streets.mjs`
 - Modify: `pipelines/poi/tests/geocode.dbtest.mjs`
 
-- [ ] **Bước 1: Test đỏ cho helper điền cột theo lô** — `pipelines/poi/src/lib/search-keys.test.mjs` (test thuần, `sql` giả ghi lại lệnh):
+- [x] **Bước 1: Test đỏ cho helper điền cột theo lô** — `pipelines/poi/src/lib/search-keys.test.mjs` (test thuần, `sql` giả ghi lại lệnh):
 
 ```js
 import { describe, expect, it } from 'vitest';
@@ -1022,9 +1028,9 @@ describe('planFill — chuẩn bị dữ liệu điền name_key/name_alt_norm',
 });
 ```
 
-- [ ] **Bước 2: Chạy đỏ** — `pnpm exec vitest run pipelines/poi/src/lib/search-keys.test.mjs` → FAIL module không có.
+- [x] **Bước 2: Chạy đỏ** — `pnpm exec vitest run pipelines/poi/src/lib/search-keys.test.mjs` → FAIL module không có.
 
-- [ ] **Bước 3: Viết `pipelines/poi/src/lib/search-keys.mjs`**
+- [x] **Bước 3: Viết `pipelines/poi/src/lib/search-keys.mjs`**
 
 ```js
 // Điền name_key / name_alt_norm (và name_tsv) cho một bảng theo lô: đọc bằng cursor, tính bằng
@@ -1109,11 +1115,11 @@ export async function fillSearchKeys(sql, table, options) {
 
 Import đầu file: `import { filterNameAlt, searchKeys } from '@mapslibvn/core'; import { pgArray } from './copy-format.mjs'; import { copyInto } from '../pg.mjs';`. `copyInto` nhận chuỗi `pgArray(...)` cho cột `text[]` như `records.mjs` đang làm.
 
-- [ ] **Bước 4: Chạy test thuần xanh** — `pnpm exec vitest run pipelines/poi/src/lib/search-keys.test.mjs`.
+- [x] **Bước 4: Chạy test thuần xanh** — `pnpm exec vitest run pipelines/poi/src/lib/search-keys.test.mjs`.
 
-- [ ] **Bước 5: `raw-tables.mjs`** — `CREATE TABLE osm_road_raw_new` thêm `name_alt text[],` sau `name_norm text NOT NULL,`; `copyInto` thêm `'name_alt'` sau `'name_norm'`.
+- [x] **Bước 5: `raw-tables.mjs`** — `CREATE TABLE osm_road_raw_new` thêm `name_alt text[],` sau `name_norm text NOT NULL,`; `copyInto` thêm `'name_alt'` sau `'name_norm'`.
 
-- [ ] **Bước 6: `osm-roads.mjs` `roadRows()`** — trước `yield`, gom tên thay thế:
+- [x] **Bước 6: `osm-roads.mjs` `roadRows()`** — trước `yield`, gom tên thay thế:
 
 ```js
     const alt = ['old_name', 'alt_name', 'short_name', 'name:vi', 'official_name']
@@ -1124,7 +1130,7 @@ Import đầu file: `import { filterNameAlt, searchKeys } from '@mapslibvn/core'
 
 và trong mảng `yield`, sau `streetNameNorm(properties.name)` thêm `alt.length ? pgArray(alt) : null`, với `import { pgArray } from '../lib/copy-format.mjs';` (cùng helper `records.mjs` đang dùng).
 
-- [ ] **Bước 7: `streets.mjs`** — sau câu `UPDATE street_new … ward_norm`, thêm:
+- [x] **Bước 7: `streets.mjs`** — sau câu `UPDATE street_new … ward_norm`, thêm:
 
 ```js
   // Tên thay thế: hợp mảng của các way cùng tuyến, bỏ trùng và bỏ tên chính (spec 6.3).
@@ -1141,7 +1147,7 @@ và trong mảng `yield`, sau `streetNameNorm(properties.name)` thêm `alt.lengt
 
 với `import { fillSearchKeys } from '../lib/search-keys.mjs';`. Vì `altColumn` có mặt, `rewriteAlt` mặc định bật: `name_alt` được ghi lại bằng mảng **đã lọc** (bỏ trùng tên chính, bỏ trùng nhau) để thẳng hàng với `name_alt_norm` — đúng hợp đồng `matched_alt` của API.
 
-- [ ] **Bước 8: dbtest** — trong `pipelines/poi/tests/geocode.dbtest.mjs`, sau khi pipeline fixture đã chạy `streets.mjs`, thêm:
+- [x] **Bước 8: dbtest** — trong `pipelines/poi/tests/geocode.dbtest.mjs`, sau khi pipeline fixture đã chạy `streets.mjs`, thêm:
 
 ```js
   it('street có name_key khớp searchKeys tính lại bằng Node và name_alt thẳng hàng name_alt_norm', async () => {
@@ -1160,7 +1166,7 @@ với `import { fillSearchKeys } from '../lib/search-keys.mjs';`. Vì `altColumn
 
 Chạy trong container CI (`dbtest.yml`) vì cần `osmium`; ở máy dev xác nhận ít nhất file biên dịch: `pnpm typecheck`.
 
-- [ ] **Bước 9: `pnpm typecheck && pnpm lint`**, commit
+- [x] **Bước 9: `pnpm typecheck && pnpm lint`**, commit
 
 ```bash
 git add pipelines/poi/src/lib/search-keys.mjs pipelines/poi/src/lib/search-keys.test.mjs pipelines/poi/src/geocode/raw-tables.mjs pipelines/poi/src/geocode/osm-roads.mjs pipelines/poi/src/geocode/streets.mjs pipelines/poi/tests/geocode.dbtest.mjs
@@ -1176,7 +1182,7 @@ git commit -m "feat(pipeline): street.name_alt từ tag OSM, fillSearchKeys đi�
 - Modify: `pipelines/poi/src/geocode/admin-overlay.mjs` (sau khi dựng `admin_area_old_new` và sau `copyInto admin_alias_new`)
 - Modify: `pipelines/poi/tests/admin-old.dbtest.mjs`
 
-- [ ] **Bước 1: Test đỏ** trong `admin-old.dbtest.mjs` (thêm vào `describe('overlay ranh giới hành chính cũ')`):
+- [x] **Bước 1: Test đỏ** trong `admin-old.dbtest.mjs` (thêm vào `describe('overlay ranh giới hành chính cũ')`):
 
 ```js
   it('admin_area_old_new.name_key và admin_alias_new.alias_key khớp searchKeys của core', async () => {
@@ -1190,9 +1196,9 @@ git commit -m "feat(pipeline): street.name_alt từ tag OSM, fillSearchKeys đi�
   });
 ```
 
-- [ ] **Bước 2: Chạy đỏ** — tạo lại DB cô lập (bước 2 Task 5), rồi `DATABASE_URL=… pnpm exec vitest run --config vitest.db.config.ts pipelines/poi/tests/admin-old.dbtest.mjs` → FAIL (`name_key` NULL).
+- [x] **Bước 2: Chạy đỏ** — tạo lại DB cô lập (bước 2 Task 5), rồi `DATABASE_URL=… pnpm exec vitest run --config vitest.db.config.ts pipelines/poi/tests/admin-old.dbtest.mjs` → FAIL (`name_key` NULL).
 
-- [ ] **Bước 3: `admin-overlay.mjs`** — import `fillSearchKeys`; ngay sau `ANALYZE admin_area_old_new` (dòng ~99) thêm:
+- [x] **Bước 3: `admin-overlay.mjs`** — import `fillSearchKeys`; ngay sau `ANALYZE admin_area_old_new` (dòng ~99) thêm:
 
 ```js
   await fillSearchKeys(sql, 'admin_area_old_new', {
@@ -1209,7 +1215,7 @@ và **sau** `copyInto(sql, 'admin_alias_new', …)` (dòng ~274) và sau vòng s
   });
 ```
 
-- [ ] **Bước 4: `admin.mjs` `buildCurrentAdmin`** — sau `UPDATE admin_area_new child SET parent_id … ANALYZE admin_area_new` thêm:
+- [x] **Bước 4: `admin.mjs` `buildCurrentAdmin`** — sau `UPDATE admin_area_new child SET parent_id … ANALYZE admin_area_new` thêm:
 
 ```js
   await fillSearchKeys(sql, 'admin_area_new', {
@@ -1217,9 +1223,9 @@ và **sau** `copyInto(sql, 'admin_alias_new', …)` (dòng ~274) và sau vòng s
   });
 ```
 
-- [ ] **Bước 5: Chạy dbtest xanh** — cả `admin-old.dbtest.mjs` (11 ca cũ + 1 mới) và `db/admin-old.dbtest.mjs`.
+- [x] **Bước 5: Chạy dbtest xanh** — cả `admin-old.dbtest.mjs` (11 ca cũ + 1 mới) và `db/admin-old.dbtest.mjs`.
 
-- [ ] **Bước 6: `pnpm typecheck && pnpm lint`**, commit
+- [x] **Bước 6: `pnpm typecheck && pnpm lint`**, commit
 
 ```bash
 git add pipelines/poi/src/geocode/admin.mjs pipelines/poi/src/geocode/admin-overlay.mjs pipelines/poi/tests/admin-old.dbtest.mjs
@@ -1233,7 +1239,7 @@ git commit -m "feat(pipeline): name_key cho admin_area/admin_area_old và alias_
 **Files:**
 - Create: `scripts/backfill-search-keys.mjs`, `scripts/backfill-search-keys.test.mjs`
 
-- [ ] **Bước 1: Test đỏ** `scripts/backfill-search-keys.test.mjs` (thuần: kiểm bảng kế hoạch và chốt migration):
+- [x] **Bước 1: Test đỏ** `scripts/backfill-search-keys.test.mjs` (thuần: kiểm bảng kế hoạch và chốt migration):
 
 ```js
 import { describe, expect, it } from 'vitest';
@@ -1252,9 +1258,9 @@ describe('backfill-search-keys', () => {
 });
 ```
 
-- [ ] **Bước 2: Chạy đỏ** — `pnpm exec vitest run scripts/backfill-search-keys.test.mjs`.
+- [x] **Bước 2: Chạy đỏ** — `pnpm exec vitest run scripts/backfill-search-keys.test.mjs`.
 
-- [ ] **Bước 3: Viết script**
+- [x] **Bước 3: Viết script**
 
 ```js
 #!/usr/bin/env node
@@ -1307,9 +1313,9 @@ async function main() {
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) await main();
 ```
 
-- [ ] **Bước 4: Test xanh; `pnpm typecheck && pnpm lint`.** Kiểm thật trên DB dev (fixture Quận 1 sau `pnpm db:fixture`, đã có migration 0009): `node scripts/backfill-search-keys.mjs` in 5 dòng `✓ … n dòng`; chạy lần hai → mọi bảng `0 dòng` (idempotent); `--all` → điền lại toàn bộ.
+- [x] **Bước 4: Test xanh; `pnpm typecheck && pnpm lint`.** Kiểm thật trên DB dev (fixture Quận 1 sau `pnpm db:fixture`, đã có migration 0009): `node scripts/backfill-search-keys.mjs` in 5 dòng `✓ … n dòng`; chạy lần hai → mọi bảng `0 dòng` (idempotent); `--all` → điền lại toàn bộ.
 
-- [ ] **Bước 5: Commit**
+- [x] **Bước 5: Commit**
 
 ```bash
 git add scripts/backfill-search-keys.mjs scripts/backfill-search-keys.test.mjs
@@ -1327,7 +1333,7 @@ git commit -m "feat(scripts): backfill-search-keys — điền cột dẫn xuấ
 - Modify: `apps/api/src/geocode.ts:272-320` (`stepStreet` fallback)
 - Modify: `apps/api/test/autocomplete-sql.test.ts`, `apps/api/test/search.test.ts`, `apps/api/test/geocode.test.ts`
 
-- [ ] **Bước 1: Test đỏ** trong `apps/api/test/autocomplete-sql.test.ts` (theo khuôn `fakeSql` sẵn có):
+- [x] **Bước 1: Test đỏ** trong `apps/api/test/autocomplete-sql.test.ts` (theo khuôn `fakeSql` sẵn có):
 
 ```ts
   it('bậc 1 POI: có nhánh name_alt_norm và matched_alt lấy tên gốc thẳng hàng', async () => {
@@ -1356,9 +1362,9 @@ git commit -m "feat(scripts): backfill-search-keys — điền cột dẫn xuấ
 
 Mọi `input` trong file test phải thêm `queryAlias` (bằng `queryNorm` khi không có biến thể) — sửa hằng `input` dùng chung.
 
-- [ ] **Bước 2: Chạy đỏ** — `pnpm --filter @mapslibvn/api test autocomplete-sql` → FAIL (`queryAlias` không tồn tại trong kiểu / SQL không có nhánh).
+- [x] **Bước 2: Chạy đỏ** — `pnpm --filter @mapslibvn/api test autocomplete-sql` → FAIL (`queryAlias` không tồn tại trong kiểu / SQL không có nhánh).
 
-- [ ] **Bước 3: Sửa `autocomplete-sql.ts`**
+- [x] **Bước 3: Sửa `autocomplete-sql.ts`**
 
 `CandidateRow` thêm `matched_alt?: string | null; stage?: 1 | 2 | 3;`. `CandidateQueryInput` thêm **cả ba** trường (Task 11 mới dùng hai trường sau, nhưng thêm ngay để `input` trong test không phải sửa hai lần):
 
@@ -1387,15 +1393,15 @@ Trong `poiCandidates`:
 
 `streetCandidates`: tương tự (`street` giờ có `name_alt`, `name_alt_norm`).
 
-- [ ] **Bước 4: Route** `routes/autocomplete.ts` — import `applyToponymAlias`, tính `const queryAlias = applyToponymAlias(queryNorm);`, truyền vào `collectCandidates`; khi map item thêm `...(row.matched_alt ? { matched_alt: row.matched_alt } : {})`. Cache key: thêm `qa=${encodeURIComponent(queryAlias)}` **chỉ khi khác** `queryNorm`? — không cần: `queryAlias` là hàm thuần của `queryNorm`, cache theo `queryNorm` đã đủ. Nhưng đổi **phiên bản** cache `v=src1` → `v=src2` vì hình dạng item thêm trường và kết quả có thể đổi.
+- [x] **Bước 4: Route** `routes/autocomplete.ts` — import `applyToponymAlias`, tính `const queryAlias = applyToponymAlias(queryNorm);`, truyền vào `collectCandidates`; khi map item thêm `...(row.matched_alt ? { matched_alt: row.matched_alt } : {})`. Cache key: thêm `qa=${encodeURIComponent(queryAlias)}` **chỉ khi khác** `queryNorm`? — không cần: `queryAlias` là hàm thuần của `queryNorm`, cache theo `queryNorm` đã đủ. Nhưng đổi **phiên bản** cache `v=src1` → `v=src2` vì hình dạng item thêm trường và kết quả có thể đổi.
 
-- [ ] **Bước 5: `search.ts`** — thêm `const queryAlias = applyToponymAlias(queryNorm);` và trong WHERE: `${queryAlias !== queryNorm ? sql\`OR ${queryAlias} <% p.name_norm\` : sql\`\`} OR ${queryNorm} <% p.name_alt_norm`. Test `search.test.ts` thêm một ca chuỗi SQL chứa `name_alt_norm`.
+- [x] **Bước 5: `search.ts`** — thêm `const queryAlias = applyToponymAlias(queryNorm);` và trong WHERE: `${queryAlias !== queryNorm ? sql\`OR ${queryAlias} <% p.name_norm\` : sql\`\`} OR ${queryNorm} <% p.name_alt_norm`. Test `search.test.ts` thêm một ca chuỗi SQL chứa `name_alt_norm`.
 
-- [ ] **Bước 6: `geocode.ts` `stepStreet`** fallback không exact: thêm `OR ${parsed.streetNorm} <% name_alt_norm` trong ngoặc của nhánh fuzzy; `geocode.test.ts` thêm ca chuỗi SQL. `matched.former`/`display_name` không đổi.
+- [x] **Bước 6: `geocode.ts` `stepStreet`** fallback không exact: thêm `OR ${parsed.streetNorm} <% name_alt_norm` trong ngoặc của nhánh fuzzy; `geocode.test.ts` thêm ca chuỗi SQL. `matched.former`/`display_name` không đổi.
 
-- [ ] **Bước 7: Chạy** `pnpm --filter @mapslibvn/api test` → xanh 100%; `pnpm typecheck && pnpm lint`.
+- [x] **Bước 7: Chạy** `pnpm --filter @mapslibvn/api test` → xanh 100%; `pnpm typecheck && pnpm lint`.
 
-- [ ] **Bước 8: Commit**
+- [x] **Bước 8: Commit**
 
 ```bash
 git add apps/api/src/autocomplete-sql.ts apps/api/src/routes/autocomplete.ts apps/api/src/routes/search.ts apps/api/src/geocode.ts apps/api/test/autocomplete-sql.test.ts apps/api/test/search.test.ts apps/api/test/geocode.test.ts
@@ -1413,7 +1419,7 @@ git commit -m "feat(api): bậc 1 thêm nhánh biến thể địa danh và tên
 - Modify: `apps/api/src/ranking.ts` (`STAGE_PENALTY`), `apps/api/test/ranking.test.ts`
 - Modify: `apps/api/src/routes/autocomplete.ts` (`queryKey`, `stage`), `apps/api/src/analytics.ts`, `apps/api/src/env.ts`
 
-- [ ] **Bước 1: Test đỏ** `apps/api/test/stages.test.ts`
+- [x] **Bước 1: Test đỏ** `apps/api/test/stages.test.ts`
 
 ```ts
 import { describe, expect, it } from 'vitest';
@@ -1469,9 +1475,9 @@ Và trong `apps/api/test/autocomplete-sql.test.ts`:
 
 `ranking.test.ts` thêm: `rankScore({...base, stage: 3})` nhỏ hơn `rankScore({...base, stage: 1})` đúng `2 * STAGE_PENALTY`; và `stage` mặc định 1 không đổi điểm cũ.
 
-- [ ] **Bước 2: Chạy đỏ** — `pnpm --filter @mapslibvn/api test stages autocomplete-sql ranking`.
+- [x] **Bước 2: Chạy đỏ** — `pnpm --filter @mapslibvn/api test stages autocomplete-sql ranking`.
 
-- [ ] **Bước 3: Viết `apps/api/src/stages.ts`**
+- [x] **Bước 3: Viết `apps/api/src/stages.ts`**
 
 ```ts
 /** Bộ lập bậc truy vấn (spec 5.4–5.5): thuần TS, test không cần DB. */
@@ -1498,7 +1504,7 @@ export function planStages(input: { have: number; limit: number; tsQuery: string
 }
 ```
 
-- [ ] **Bước 4: `autocomplete-sql.ts`** — `CandidateQueryInput` thêm `tsQuery: string | null; queryKey: string;`. Hai hàm bậc 2 cho poi/street:
+- [x] **Bước 4: `autocomplete-sql.ts`** — `CandidateQueryInput` thêm `tsQuery: string | null; queryKey: string;`. Hai hàm bậc 2 cho poi/street:
 
 ```ts
 /** Bậc 2 (spec 5.4): mọi token khớp tiền tố, không kể thứ tự; sim cùng thang bậc 1 (word_similarity). */
@@ -1583,13 +1589,13 @@ export async function collectCandidates(sql: Sql, input: CandidateQueryInput, ty
 
 `area-candidates.ts`: trong nhánh `fuzzy=true`, `currentMatch` thêm `OR ${input.queryKey} <% a.name_key`, `aliasMatch` thêm `OR ${input.queryKey} <% aa.alias_key` (chỉ khi `queryKey` không rỗng). Test `area-candidates.test.ts` thêm một ca chuỗi.
 
-- [ ] **Bước 5: `ranking.ts`** — `export const STAGE_PENALTY = 0.05;`; `rankScore` nhận `stage?: 1 | 2 | 3` và trả `… - STAGE_PENALTY * ((input.stage ?? 1) - 1)`.
+- [x] **Bước 5: `ranking.ts`** — `export const STAGE_PENALTY = 0.05;`; `rankScore` nhận `stage?: 1 | 2 | 3` và trả `… - STAGE_PENALTY * ((input.stage ?? 1) - 1)`.
 
-- [ ] **Bước 6: Route + analytics** — `routes/autocomplete.ts`: `const queryKey = viKey(queryAlias); const tsQuery = tsQueryFor(queryNorm);` truyền vào input, gọi `collectCandidates(sql, input, types, limit)`, truyền `stage: row.stage` vào `rankScore`, và đặt `c.set('stageHit', rows.length ? Math.max(...rows.map((r) => r.stage ?? 1)) : 0)` (0 = rỗng, theo spec 5.7). `env.ts` `Variables` thêm `stageHit?: number`. `analytics.ts` `doubles: [c.res.status, Date.now() - t0, c.get('stageHit') ?? -1]`. Test `analytics.test.ts` (nếu có) cập nhật độ dài `doubles`.
+- [x] **Bước 6: Route + analytics** — `routes/autocomplete.ts`: `const queryKey = viKey(queryAlias); const tsQuery = tsQueryFor(queryNorm);` truyền vào input, gọi `collectCandidates(sql, input, types, limit)`, truyền `stage: row.stage` vào `rankScore`, và đặt `c.set('stageHit', rows.length ? Math.max(...rows.map((r) => r.stage ?? 1)) : 0)` (0 = rỗng, theo spec 5.7). `env.ts` `Variables` thêm `stageHit?: number`. `analytics.ts` `doubles: [c.res.status, Date.now() - t0, c.get('stageHit') ?? -1]`. Test `analytics.test.ts` (nếu có) cập nhật độ dài `doubles`.
 
-- [ ] **Bước 7: Chạy** `pnpm --filter @mapslibvn/api test` xanh; `pnpm typecheck && pnpm lint`.
+- [x] **Bước 7: Chạy** `pnpm --filter @mapslibvn/api test` xanh; `pnpm typecheck && pnpm lint`.
 
-- [ ] **Bước 8: Commit**
+- [x] **Bước 8: Commit**
 
 ```bash
 git add apps/api/src/stages.ts apps/api/test/stages.test.ts apps/api/src/autocomplete-sql.ts apps/api/src/area-candidates.ts apps/api/src/ranking.ts apps/api/src/routes/autocomplete.ts apps/api/src/analytics.ts apps/api/src/env.ts apps/api/test/autocomplete-sql.test.ts apps/api/test/ranking.test.ts apps/api/test/area-candidates.test.ts
@@ -1606,7 +1612,7 @@ git commit -m "feat(api): bậc 2 tsvector và bậc 3 khoá ngữ âm chỉ ch�
 
 Test route trong `apps/api` chạy với DB **đóng** và không quan sát được SQL, nên quyết định "có chạy lại bằng chuỗi đã gập không" phải là **hàm thuần** trong `stages.ts`; route chỉ gọi nó.
 
-- [ ] **Bước 1: Test đỏ** — thêm vào `apps/api/test/stages.test.ts`:
+- [x] **Bước 1: Test đỏ** — thêm vào `apps/api/test/stages.test.ts`:
 
 ```ts
 import { telexFallback } from '../src/stages';
@@ -1628,9 +1634,9 @@ describe('telexFallback (bậc 3b, spec 5.6)', () => {
 });
 ```
 
-- [ ] **Bước 2: Chạy đỏ** — `pnpm --filter @mapslibvn/api test stages` → FAIL (`telexFallback` không tồn tại).
+- [x] **Bước 2: Chạy đỏ** — `pnpm --filter @mapslibvn/api test stages` → FAIL (`telexFallback` không tồn tại).
 
-- [ ] **Bước 3: Cài `telexFallback` trong `stages.ts`**
+- [x] **Bước 3: Cài `telexFallback` trong `stages.ts`**
 
 ```ts
 import { foldTelex, looksLikeTelex } from '@mapslibvn/core';
@@ -1643,7 +1649,7 @@ export function telexFallback(input: { enabled: boolean; have: number; queryNorm
 }
 ```
 
-- [ ] **Bước 4: Route + env** — `env.ts` `Bindings` thêm `AUTOCOMPLETE_TELEX?: string`. Trong route, sau `collectCandidates`:
+- [x] **Bước 4: Route + env** — `env.ts` `Bindings` thêm `AUTOCOMPLETE_TELEX?: string`. Trong route, sau `collectCandidates`:
 
 ```ts
       const folded = telexFallback({ enabled: c.env.AUTOCOMPLETE_TELEX === '1', have: rows.length, queryNorm });
@@ -1660,7 +1666,7 @@ export function telexFallback(input: { enabled: boolean; have: number; queryNorm
 
 `wrangler.toml` thêm chú thích dưới `[vars]`: `# AUTOCOMPLETE_TELEX = "1"  # bậc 3b, spec 5.6 — bật sau khi có số liệu stage_hit`. Cache key: chuỗi telex và chuỗi gập là hai `queryNorm` khác nhau nên không đụng cache.
 
-- [ ] **Bước 5: Xanh, typecheck, lint, commit**
+- [x] **Bước 5: Xanh, typecheck, lint, commit**
 
 ```bash
 git add apps/api/src/stages.ts apps/api/test/stages.test.ts apps/api/src/routes/autocomplete.ts apps/api/src/env.ts apps/api/wrangler.toml
@@ -1679,7 +1685,7 @@ git commit -m "feat(api): bậc 3b Telex/VNI sau cờ AUTOCOMPLETE_TELEX, mặc 
 
 Tại sao seed phải **tất định**: `word_similarity` của pg_trgm rất khoan dung — hầu hết truy vấn nhiều từ đã trúng ngay bậc 1 nếu chỉ chia sẻ một từ, nên không thể "đoán" một chuỗi mà chắc chắn rơi xuống bậc 2 hay 3. Để chứng minh **cơ chế** bậc 2/3 chạy đúng trên Postgres thật, seed dòng có `name_norm` vô nghĩa (bậc 1 chắc chắn không khớp) nhưng `name_tsv`/`name_key` được **đặt tay** đúng giá trị đích. Backfill trong describe "sau" chạy **không** `--all` (chỉ điền dòng NULL) nên các dòng đặt tay giữ nguyên giá trị.
 
-- [ ] **Bước 1: Thêm dữ liệu vào `setup.sql`** (marker `t3-`), chạy **sau** migration nên các cột mới tồn tại:
+- [x] **Bước 1: Thêm dữ liệu vào `setup.sql`** (marker `t3-`), chạy **sau** migration nên các cột mới tồn tại:
 
 ```sql
 -- Hạng mục 3 (spec 6, 8). Ba lớp dòng:
@@ -1705,7 +1711,7 @@ INSERT INTO street (osm_way_ids, name, name_norm, name_alt, province_norm, geom)
 UPDATE street SET name_tsv = to_tsvector('simple', 'khoi nghia bac hai') WHERE name_norm = 'wwqq zzxx';
 ```
 
-- [ ] **Bước 2: Test đỏ** trong `places.itest.mjs` (thêm `beforeAll` vào import từ `vitest`):
+- [x] **Bước 2: Test đỏ** trong `places.itest.mjs` (thêm `beforeAll` vào import từ `vitest`):
 
 ```js
 describe('hạng mục 3 — trước backfill: cột dẫn xuất NULL không gây 5xx (spec 8)', () => {
@@ -1768,11 +1774,11 @@ describe('hạng mục 3 — sau backfill (chỉ điền dòng NULL, giữ dòng
 
 `DATABASE_URL` trong env của itest là DB cô lập (`api-db-test.mjs` đặt sẵn); `backfill-search-keys.mjs` yêu cầu 0009 — `api-db-test.mjs` đã `db-migrate` trước. Test cuối nối Postgres trực tiếp giống `edits.itest.mjs`.
 
-- [ ] **Bước 3: Chạy `pnpm test:api-db` để thấy đỏ đúng nghĩa.** Thứ tự đề nghị của plan: làm Task 13 **ngay sau Task 9**, chạy thấy các ca mới đỏ (API chưa có bậc 2/3, chưa có `matched_alt`), rồi làm Task 10–12, chạy lại thấy xanh.
+- [x] **Bước 3: Chạy `pnpm test:api-db` để thấy đỏ đúng nghĩa.** Thứ tự đề nghị của plan: làm Task 13 **ngay sau Task 9**, chạy thấy các ca mới đỏ (API chưa có bậc 2/3, chưa có `matched_alt`), rồi làm Task 10–12, chạy lại thấy xanh.
 
-- [ ] **Bước 4: Xanh: `pnpm test:api-db`** — mọi file itest pass, gồm 4 ca mới. **Đây là bằng chứng cho khẳng định NULL-safe của spec 8.**
+- [x] **Bước 4: Xanh: `pnpm test:api-db`** — mọi file itest pass, gồm 4 ca mới. **Đây là bằng chứng cho khẳng định NULL-safe của spec 8.**
 
-- [ ] **Bước 5: Commit**
+- [x] **Bước 5: Commit**
 
 ```bash
 git add apps/api/test-db/setup.sql apps/api/test-db/places.itest.mjs
@@ -1788,15 +1794,15 @@ git commit -m "test(api-db): chứng minh cột dẫn xuất NULL không làm 5x
 - Modify: `packages/web/src/autocomplete.ts` (+ test tương ứng)
 - Modify: `packages/core/package.json`, `packages/web/package.json`, `packages/react/package.json`, `packages/react-native/package.json` (version `0.4.0`)
 
-- [ ] **Bước 1: Test đỏ** cho web component: item có `matched_alt` thì dòng phụ hiển thị `"<secondary> · tên cũ: <matched_alt>"`; không có thì y như cũ. Viết trong test hiện có của component (tìm `describe` render item).
+- [x] **Bước 1: Test đỏ** cho web component: item có `matched_alt` thì dòng phụ hiển thị `"<secondary> · tên cũ: <matched_alt>"`; không có thì y như cũ. Viết trong test hiện có của component (tìm `describe` render item).
 
-- [ ] **Bước 2: `types.ts`** — `AutocompleteItem` thêm `/** Tên thay thế (OSM alt_name/old_name) đã khớp, ví dụ "Công Lý" (spec 6.3). */ matched_alt?: string;`.
+- [x] **Bước 2: `types.ts`** — `AutocompleteItem` thêm `/** Tên thay thế (OSM alt_name/old_name) đã khớp, ví dụ "Công Lý" (spec 6.3). */ matched_alt?: string;`.
 
-- [ ] **Bước 3: Web component** — nơi dựng dòng phụ: `const secondary = item.matched_alt ? \`${item.secondary}${item.secondary ? ' · ' : ''}tên cũ: ${item.matched_alt}\` : item.secondary;`. React/RN dùng lại component/hook web hoặc chỉ truyền dữ liệu — kiểm `packages/react/src` và `packages/react-native/src` có render `secondary` riêng không; nếu có, áp cùng công thức và test.
+- [x] **Bước 3: Web component** — nơi dựng dòng phụ: `const secondary = item.matched_alt ? \`${item.secondary}${item.secondary ? ' · ' : ''}tên cũ: ${item.matched_alt}\` : item.secondary;`. React/RN dùng lại component/hook web hoặc chỉ truyền dữ liệu — kiểm `packages/react/src` và `packages/react-native/src` có render `secondary` riêng không; nếu có, áp cùng công thức và test.
 
-- [ ] **Bước 4: Bump** `version` bốn gói `0.3.0` → `0.4.0` (thêm API, không phá — spec 7). **Không publish npm** (PHONG chốt 07/09: phát hành sau khi cần).
+- [x] **Bước 4: Bump** `version` bốn gói `0.3.0` → `0.4.0` (thêm API, không phá — spec 7). **Không publish npm** (PHONG chốt 07/09: phát hành sau khi cần).
 
-- [ ] **Bước 5: `pnpm exec vitest run packages && pnpm typecheck && pnpm lint && pnpm build`** xanh; commit
+- [x] **Bước 5: `pnpm exec vitest run packages && pnpm typecheck && pnpm lint && pnpm build`** xanh; commit
 
 ```bash
 git add packages/core/src/types.ts packages/web/src packages/react/src packages/react-native/src packages/*/package.json
@@ -1813,15 +1819,15 @@ git commit -m "feat(sdk): AutocompleteItem.matched_alt và dòng phụ 'tên cũ
 - Modify: `apps/docs/e2e/*.spec.ts` (thêm ca "qui nhon")
 - Modify: `docs/DEVLOG.md`
 
-- [ ] **Bước 1: `tim-kiem.md`** — thêm tiểu mục "Cách viết địa phương và tên cũ" dưới mục 5: ví dụ `qui nhon`, `kontum`, `bin than`, `cong ly` kèm `matched_alt`; nêu ba bậc và rằng bậc sau chỉ chạy khi thiếu. **`api.md`**: bảng trường item thêm `matched_alt` (tuỳ chọn) và một ví dụ JSON `street` có `"matched_alt": "Công Lý"`.
+- [x] **Bước 1: `tim-kiem.md`** — thêm tiểu mục "Cách viết địa phương và tên cũ" dưới mục 5: ví dụ `qui nhon`, `kontum`, `bin than`, `cong ly` kèm `matched_alt`; nêu ba bậc và rằng bậc sau chỉ chạy khi thiếu. **`api.md`**: bảng trường item thêm `matched_alt` (tuỳ chọn) và một ví dụ JSON `street` có `"matched_alt": "Công Lý"`.
 
-- [ ] **Bước 2: `pipelines/poi/README.md`** — bảng "Chạy trọn vòng": ghi `streets.mjs` giờ đọc `old_name/alt_name/short_name/name:vi/official_name` và điền `name_key/name_alt_norm/name_tsv`; mục mới "Backfill cột tìm kiếm" với lệnh `node scripts/backfill-search-keys.mjs [--all] [--table …]` và điều kiện migration 0009.
+- [x] **Bước 2: `pipelines/poi/README.md`** — bảng "Chạy trọn vòng": ghi `streets.mjs` giờ đọc `old_name/alt_name/short_name/name:vi/official_name` và điền `name_key/name_alt_norm/name_tsv`; mục mới "Backfill cột tìm kiếm" với lệnh `node scripts/backfill-search-keys.mjs [--all] [--table …]` và điều kiện migration 0009.
 
-- [ ] **Bước 3: E2E docs playground** — theo khuôn ca "Quận 10" hiện có: gõ `qui nhon` → có item tên chứa `Quy Nhơn`. Chạy `pnpm --filter @mapslibvn/docs e2e` với API local + fixture (xem cách các ca hiện có khởi động API).
+- [x] **Bước 3: E2E docs playground** — theo khuôn ca "Quận 10" hiện có: gõ `qui nhon` → có item tên chứa `Quy Nhơn`. Chạy `pnpm --filter @mapslibvn/docs e2e` với API local + fixture (xem cách các ca hiện có khởi động API).
 
-- [ ] **Bước 4: DEVLOG** mục 4: một dòng cho hạng mục 3 (chưa có số production; ghi "chờ Task 16").
+- [x] **Bước 4: DEVLOG** mục 4: một dòng cho hạng mục 3 (chưa có số production; ghi "chờ Task 16").
 
-- [ ] **Bước 5: Link check + commit**
+- [x] **Bước 5: Link check + commit**
 
 ```bash
 pnpm --filter @mapslibvn/docs build
@@ -1837,7 +1843,7 @@ git commit -m "docs: cách viết địa phương, matched_alt, backfill cột t
 - Create: `docs/evidence/search-keys/16-nghiem-thu-production.md`, `16-perf.json`
 - Modify: `docs/DEVLOG.md`, plan này (tick + trạng thái)
 
-- [ ] **Bước 1: Full gate local** (theo 9.1 của plan hạng mục 1):
+- [x] **Bước 1: Full gate local** (theo 9.1 của plan hạng mục 1):
 
 ```bash
 pnpm --filter @mapslibvn/core build && pnpm --filter @mapslibvn/style build
@@ -1849,7 +1855,7 @@ git diff --check
 ```
 Expected: mọi bước xanh (trừ `pipeline-fixture.dbtest.mjs` — chạy trong CI).
 
-- [ ] **Bước 2: Áp migration 0009 lên production TRƯỚC khi push.** Push sẽ kích `Deploy API`; API mới tham chiếu `name_key`/`name_alt_norm`/`name_tsv` — nếu cột chưa có, Postgres ném 42703 và route trả 503 (đúng lớp sự cố 0008 ngày 07/09). Chạy trong container pipeline, trong một transaction, theo đúng cách đã làm cho 0008:
+- [x] **Bước 2: Áp migration 0009 lên production TRƯỚC khi push.** Push sẽ kích `Deploy API`; API mới tham chiếu `name_key`/`name_alt_norm`/`name_tsv` — nếu cột chưa có, Postgres ném 42703 và route trả 503 (đúng lớp sự cố 0008 ngày 07/09). Chạy trong container pipeline, trong một transaction, theo đúng cách đã làm cho 0008:
 
 ```bash
 docker exec mapslibvn-server-pipeline-1 sh -c 'cd /app && node scripts/db-migrate.mjs'
@@ -1857,25 +1863,25 @@ curl -s https://api.ai-solutions.io.vn/healthz/db
 ```
 Expected: `[db:migrate] Áp dụng 0009_search_keys.sql …` rồi `/healthz/db` trả `"schema_migration":"0009_search_keys.sql"`. Container phải chạy image **đã build từ HEAD có file migration** — nếu chưa, `pnpm image:build && pnpm image:smoke` và `force-recreate` trước. Thời gian: UPDATE backfill `name_tsv` trên 1,5 triệu POI cộng 9 chỉ số GIN — ước 5–10 phút; API hiện hành vẫn phục vụ (`ALTER TABLE ADD COLUMN` nhanh; `CREATE INDEX` không CONCURRENTLY giữ ShareLock chặn ghi, đọc vẫn được). Ghi `pg_database_size` trước/sau.
 
-- [ ] **Bước 3: Push và chờ workflow thật theo SHA** — `CI`, `Deploy API` (gồm job cổng `apitest`), `Deploy Docs`, `DB tests`. Ghi run URL + conclusion cho từng workflow; không suy deploy thành công từ local build.
+- [x] **Bước 3: Push và chờ workflow thật theo SHA** — `CI`, `Deploy API` (gồm job cổng `apitest`), `Deploy Docs`, `DB tests`. Ghi run URL + conclusion cho từng workflow; không suy deploy thành công từ local build.
 
-- [ ] **Bước 4: Sau khi Deploy API xanh** — kiểm production NULL-safe thật: 5 endpoint 200, `autocomplete?q=qui nhon` có kết quả (nhánh `qAlias` bậc 1), `q=cong ly&types=street` **chưa** có Nam Kỳ Khởi Nghĩa (chưa có `name_alt`).
+- [x] **Bước 4: Sau khi Deploy API xanh** — kiểm production NULL-safe thật: 5 endpoint 200, `autocomplete?q=qui nhon` có kết quả (nhánh `qAlias` bậc 1), `q=cong ly&types=street` **chưa** có Nam Kỳ Khởi Nghĩa (chưa có `name_alt`).
 
-- [ ] **Bước 5: Backfill production** trong container:
+- [x] **Bước 5: Backfill production** trong container:
 
 ```bash
 docker exec mapslibvn-server-pipeline-1 sh -c 'cd /app && node scripts/backfill-search-keys.mjs'
 ```
 Expected: 5 dòng `✓ <bảng>: n dòng`; poi ≈ 1,52 triệu; admin_alias ≈ 19.254 (số `alias_norm` phân biệt). Chạy lần hai → `0 dòng` mỗi bảng.
 
-- [ ] **Bước 6: Tên thay thế của đường** — chạy lại đúng ba bước pipeline liên quan, có chủ đích, trong container (đường chỉ phát hành ở `alleys.mjs`):
+- [x] **Bước 6: Tên thay thế của đường** — chạy lại đúng ba bước pipeline liên quan, có chủ đích, trong container (đường chỉ phát hành ở `alleys.mjs`):
 
 ```bash
 docker exec mapslibvn-server-pipeline-1 sh -c 'cd /app && node pipelines/poi/src/geocode/osm-roads.mjs && node pipelines/poi/src/geocode/streets.mjs && node pipelines/poi/src/geocode/alleys.mjs'
 ```
 Expected: `✓ street_new name_key/name_alt_norm/name_tsv: N dòng` rồi publish street+alley. Ghi số `street` có `name_alt` khác `{}`.
 
-- [ ] **Bước 7: Nghiệm thu tiêu chí 11.6 trên production** (bộ Task 0):
+- [ ] **Bước 7: Nghiệm thu tiêu chí 11.6 trên production** (bộ Task 0): **CHƯA ĐẠT — 3/20, mốc 18/20.** Giữ mở theo đúng chỉ dẫn của chính bước này ("nếu trượt ca nào, giữ task mở với ca cụ thể, không chọn lại bộ mẫu"). Ca trượt và nguyên nhân từng ca: `docs/evidence/search-keys/16-nghiem-thu-production.md`. Sửa được đòi đổi spec mục 5.4 — chờ PHONG quyết, không tự làm.
 
 ```bash
 set -a; . ./.env; set +a
@@ -1884,15 +1890,15 @@ node scripts/perf-autocomplete.mjs https://api.ai-solutions.io.vn "$KEY_EXAMPLE_
 ```
 Expected: bộ biến thể hit@3 **≥ 18/20** và đủ 5 ca spec 11.6 (`qui nhon`, `kontum`, `dak lak`, `tan son nhut`, `cong ly`) trong top 3; bộ fuzzy **≥ 36/40** (không hồi quy so 37/40). Nếu trượt ca nào, **giữ task mở với ca cụ thể**, không chọn lại bộ mẫu.
 
-- [ ] **Bước 8: p95 và `stage_hit`** — đo xen kẽ như 8.5 (`--paired --rounds 3`) với cohort `default` mới; so p95 warm với baseline Task 0: **≤ +50 ms**. Đo "nhánh chạy hết 3 bậc" bằng 10 truy vấn cố tình rỗng ở bậc 1 (ví dụ `zzq wwx`, `bin than cofe`) → p95 **≤ 600 ms** (server-side `wallTimeMs`). Lấy phân bố `stage_hit` từ Analytics Engine (SQL API: `SELECT double3, count() FROM mapslibvn_api WHERE blob3='/v1/autocomplete' GROUP BY 1`) sau 24 giờ và ghi vào hồ sơ — đây là dữ liệu để quyết bật 3b.
+- [x] **Bước 8: p95 và `stage_hit`** *(p95 đã đo; phân bố `stage_hit` cần 24 giờ lưu lượng, lấy sau)* — đo xen kẽ như 8.5 (`--paired --rounds 3`) với cohort `default` mới; so p95 warm với baseline Task 0: **≤ +50 ms**. Đo "nhánh chạy hết 3 bậc" bằng 10 truy vấn cố tình rỗng ở bậc 1 (ví dụ `zzq wwx`, `bin than cofe`) → p95 **≤ 600 ms** (server-side `wallTimeMs`). Lấy phân bố `stage_hit` từ Analytics Engine (SQL API: `SELECT double3, count() FROM mapslibvn_api WHERE blob3='/v1/autocomplete' GROUP BY 1`) sau 24 giờ và ghi vào hồ sơ — đây là dữ liệu để quyết bật 3b.
 
-- [ ] **Bước 9: EXPLAIN mỗi bậc trên production** (đọc): một truy vấn bậc 1 có `name_alt_norm`, một bậc 2 (`name_tsv @@`), một bậc 3 (`<% name_key`) — xác nhận **Bitmap Index Scan** trên đúng chỉ số 0009, không Seq Scan trên `poi`.
+- [x] **Bước 9: EXPLAIN mỗi bậc trên production** (đọc): một truy vấn bậc 1 có `name_alt_norm`, một bậc 2 (`name_tsv @@`), một bậc 3 (`<% name_key`) — xác nhận **Bitmap Index Scan** trên đúng chỉ số 0009, không Seq Scan trên `poi`.
 
-- [ ] **Bước 10: Dọn theo memory** — `pnpm image:build && pnpm image:smoke`; `cd infra/server && docker compose --env-file .env -f compose.yml up -d --force-recreate pipeline backup`; xác nhận `docker logs mapslibvn-server-pipeline-1 | tail -1` in mốc cron.
+- [x] **Bước 10: Dọn theo memory** — `pnpm image:build && pnpm image:smoke`; `cd infra/server && docker compose --env-file .env -f compose.yml up -d --force-recreate pipeline backup`; xác nhận `docker logs mapslibvn-server-pipeline-1 | tail -1` in mốc cron.
 
-- [ ] **Bước 11: Hồ sơ + DEVLOG + tick plan** — `16-nghiem-thu-production.md`: bảng trước/sau (hit@3 hai bộ, p50/p95/p99 warm/cold, `stage_hit`), số dòng backfill, kích cỡ DB trước/sau, EXPLAIN tóm tắt, run URL 5 workflow, artifact rollback (backup trước migration + `0009_search_keys.down.sql` **chỉ** dùng sau khi API đã rollback về bản trước — down xoá cột, API mới đang tham chiếu cột sẽ 503). Cập nhật spec mục 11.6 trạng thái.
+- [x] **Bước 11: Hồ sơ + DEVLOG + tick plan** — `16-nghiem-thu-production.md`: bảng trước/sau (hit@3 hai bộ, p50/p95/p99 warm/cold, `stage_hit`), số dòng backfill, kích cỡ DB trước/sau, EXPLAIN tóm tắt, run URL 5 workflow, artifact rollback (backup trước migration + `0009_search_keys.down.sql` **chỉ** dùng sau khi API đã rollback về bản trước — down xoá cột, API mới đang tham chiếu cột sẽ 503). Cập nhật spec mục 11.6 trạng thái.
 
-- [ ] **Bước 12: Commit**
+- [x] **Bước 12: Commit**
 
 ```bash
 git add docs/evidence/search-keys docs/DEVLOG.md docs/superpowers/plans/2026-09-07-cach-viet-dia-phuong.md docs/superpowers/specs/2026-09-05-tim-kiem-alias-fuzzy-dia-phuong-design.md
