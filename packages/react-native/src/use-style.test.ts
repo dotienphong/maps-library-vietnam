@@ -31,7 +31,9 @@ const styleJson = {
 
 describe('styleUrlFor / needsTransform / transformStyle', () => {
   it('theme → styleUrl của core; chuỗi khác → giữ nguyên', () => {
-    expect(styleUrlFor(places, 'dark')).toBe('https://api.test/v1/styles/dark.json?key=mlv_live_k');
+    expect(styleUrlFor(places, 'dark')).toBe(
+      'https://api.test/v1/styles/dark.json?key=mlv_live_k&sources=osm%2Coverture%2Cfsq',
+    );
     expect(styleUrlFor(places, 'https://x.test/s.json')).toBe('https://x.test/s.json');
   });
 
@@ -64,7 +66,7 @@ describe('useResolvedStyle', () => {
     );
     expect(result.current).toEqual({
       status: 'ready',
-      mapStyle: 'https://api.test/v1/styles/light.json?key=mlv_live_k',
+      mapStyle: 'https://api.test/v1/styles/light.json?key=mlv_live_k&sources=osm%2Coverture%2Cfsq',
     });
     expect(doFetch).not.toHaveBeenCalled();
   });
@@ -76,7 +78,9 @@ describe('useResolvedStyle', () => {
     );
     expect(result.current).toEqual({ status: 'loading' });
     await waitFor(() => expect(result.current.status).toBe('ready'));
-    expect(doFetch).toHaveBeenCalledWith('https://api.test/v1/styles/light.json?key=mlv_live_k');
+    expect(doFetch).toHaveBeenCalledWith(
+      'https://api.test/v1/styles/light.json?key=mlv_live_k&sources=osm%2Coverture%2Cfsq',
+    );
     const ready = result.current as { status: 'ready'; mapStyle: StyleSpecification };
     expect(ready.mapStyle.layers[0]?.layout).toEqual({ 'text-field': nameExpression('en') });
   });

@@ -1,3 +1,4 @@
+import type { PoiSource } from '@mapslibvn/core';
 import {
   type CreateMapOptions,
   type PoiFeature,
@@ -25,6 +26,7 @@ export function MapsLibVNMap({
   zoom,
   lang,
   poiLayer,
+  poiSources,
   compactAttribution,
   className,
   containerStyle,
@@ -32,6 +34,9 @@ export function MapsLibVNMap({
   onLoad,
   children,
 }: MapsLibVNMapProps) {
+  // Hook chỉ đọc khoá chuỗi này, không đọc `poiSources`: `poiSources={['osm']}` inline đổi
+  // reference mỗi lần render, để mảng vào deps thì map bị tạo lại liên tục.
+  const poiSourcesKey = poiSources?.join(',') ?? '';
   const containerRef = useRef<HTMLDivElement>(null);
   const [map, setMap] = useState<WebMap | null>(null);
   const handlers = useRef({ onPoiClick, onLoad });
@@ -45,6 +50,7 @@ export function MapsLibVNMap({
     if (zoom !== undefined) options.zoom = zoom;
     if (lang !== undefined) options.lang = lang;
     if (poiLayer !== undefined) options.poiLayer = poiLayer;
+    if (poiSourcesKey) options.poiSources = poiSourcesKey.split(',') as PoiSource[];
     if (compactAttribution !== undefined) options.compactAttribution = compactAttribution;
 
     const nextMap = createMap(options, { maplibre: maplibregl as never });
@@ -64,6 +70,7 @@ export function MapsLibVNMap({
     zoom,
     lang,
     poiLayer,
+    poiSourcesKey,
     compactAttribution,
   ]);
 

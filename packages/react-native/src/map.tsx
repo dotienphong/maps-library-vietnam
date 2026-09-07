@@ -9,6 +9,7 @@ import {
   type Lang,
   POI_LAYER_ID,
   type PoiFeature,
+  type PoiSource,
   type Theme,
   createClient,
 } from '@mapslibvn/core';
@@ -40,6 +41,8 @@ export interface MapsLibVNMapProps {
   lang?: Lang;
   /** Hiển thị lớp POI — mặc định true */
   poiLayer?: boolean;
+  /** Tập nguồn POI cho bản đồ và Places API — mặc định cả ba; đổi sau khi mount tạo lại map. */
+  poiSources?: readonly PoiSource[];
   /** Attribution gọn (không có tuỳ chọn tắt) */
   compactAttribution?: boolean;
   /** Bundle id / application id của app → header X-Bundle-Id cho khoá mobile */
@@ -61,6 +64,7 @@ export function MapsLibVNMap({
   zoom = DEFAULT_ZOOM,
   lang = 'vi',
   poiLayer = true,
+  poiSources,
   compactAttribution = false,
   bundleId,
   containerStyle,
@@ -70,14 +74,18 @@ export function MapsLibVNMap({
   testID,
   children,
 }: MapsLibVNMapProps) {
+  // Hook chỉ đọc khoá chuỗi này, không đọc `poiSources`: `poiSources={['osm']}` inline đổi
+  // reference mỗi lần render, để mảng vào deps thì client bị tạo lại liên tục.
+  const poiSourcesKey = poiSources?.join(',') ?? '';
   const places = useMemo(
     () =>
       createClient({
         apiKey,
         baseUrl: apiBase,
         ...(bundleId ? { headers: { 'X-Bundle-Id': bundleId } } : {}),
+        ...(poiSourcesKey ? { poiSources: poiSourcesKey.split(',') as PoiSource[] } : {}),
       }),
-    [apiKey, apiBase, bundleId],
+    [apiKey, apiBase, bundleId, poiSourcesKey],
   );
   const native = useRef<MapRef | null>(null);
   const camera = useRef<CameraRef | null>(null);
@@ -112,7 +120,7 @@ export function MapsLibVNMap({
   }, [resolved]);
 
   // Đổi một trong các giá trị này → tạo lại map (như @mapslibvn/react); onLoad gọi lại một lần.
-  const mapKey = `${apiKey}|${apiBase}|${style}|${lang}|${poiLayer}`;
+  const mapKey = `${apiKey}|${apiBase}|${style}|${lang}|${poiLayer}|${poiSourcesKey}`;
   const loadedFor = useRef<string | null>(null);
 
   const onPress = async (e: NativeSyntheticEvent<PressEvent>) => {

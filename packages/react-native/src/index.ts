@@ -12,5 +12,6 @@ export type {
   MapsLibVNClient,
   Place,
   PoiFeature,
+  PoiSource,
   Theme,
 } from '@mapslibvn/core';

@@ -21,7 +21,7 @@ describe('MapsLibVNMap', () => {
   it('mặc định: mapStyle là URL light, camera khởi tạo HCM zoom 12, không logo, có attribution', () => {
     render(<MapsLibVNMap {...base} />);
     expect(screen.getByTestId('mlrn-map').dataset.style).toBe(
-      'https://api.test/v1/styles/light.json?key=mlv_live_k',
+      'https://api.test/v1/styles/light.json?key=mlv_live_k&sources=osm%2Coverture%2Cfsq',
     );
     expect(screen.getByTestId('mlrn-camera').dataset.view).toBe(
       JSON.stringify({ center: [106.7, 10.776], zoom: 12 }),
@@ -30,6 +30,20 @@ describe('MapsLibVNMap', () => {
     expect(props?.logo).toBe(false);
     expect(props?.attribution).toBe(true);
     expect(screen.getByTestId('mapslibvn-attribution')).toBeTruthy();
+  });
+
+  it('poiSources đi vào style URL và client; đổi prop tạo lại map', () => {
+    const { rerender } = render(<MapsLibVNMap {...base} poiSources={['osm']} />);
+    expect(screen.getByTestId('mlrn-map').dataset.style).toContain('sources=osm');
+    expect(screen.getByTestId('mlrn-map').dataset.style).not.toContain('overture');
+    const onLoad = vi.fn();
+    rerender(<MapsLibVNMap {...base} poiSources={['osm', 'overture', 'fsq']} onLoad={onLoad} />);
+    expect(screen.getByTestId('mlrn-map').dataset.style).toContain('sources=osm%2Coverture%2Cfsq');
+    const props = getLastMapProps() as unknown as { onDidFinishLoadingStyle: () => void };
+    act(() => props.onDidFinishLoadingStyle());
+    expect(onLoad.mock.calls[0]?.[0].places.styleUrl('light')).toContain(
+      'sources=osm%2Coverture%2Cfsq',
+    );
   });
 
   it('style dark + center/zoom truyền vào', () => {
