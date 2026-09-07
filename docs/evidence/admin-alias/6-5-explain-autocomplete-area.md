@@ -246,7 +246,46 @@ Cần điều tra riêng theo geometry; chưa quy được về hai nguyên nhâ
 phải xử lý xong mới đo được 8.6, và nguyên nhân 2 cần biên soạn lại fixture từ nghị quyết gốc —
 việc đọc văn bản pháp lý, không phải việc code.
 
-## 9. Phải đo lại khi nào
+## 9. Dựng lại cả hai phía toàn quốc (07/09/2026) — cổng gần xanh
+
+Sau khi có `bootstrapMissingProvince()`, dựng lại **cả hai phía** trên bộ toàn quốc: tải extract
+OSM hiện hành (`vietnam-latest.osm.pbf`, md5 `72d7b298f4dbae54283a2ee8506bd17f` đối chiếu độc lập
+với Geofabrik), vá chủ quyền (193 object), trích `osm_admin_raw` 9.105 ranh giới
+(L4=39, L6=3.322, L8=565 — khớp đúng ghi chú M2 T8), rồi chạy current + old + alias.
+
+Bootstrap chạy ở **cả hai** phía: current dựng L4 Khánh Hòa từ **64** đơn vị con mồ côi, old dựng
+từ **8**. Kết quả publish vào DB đo: `admin_area` 3.353 (L4 **34**, L8 3.319), `admin_area_old`
+4.972, `admin_alias` **37.246**.
+
+| Chỉ số | Trước bootstrap | Sau |
+|---|---:|---:|
+| Cổng QA pipeline | `unmatched=72, seed_miss=1` | **`unmatched=2, seed_miss=0`** |
+| Tổng failure evaluator | 223 | **84** |
+| `count_out_of_range` | 3 | **1** (chỉ còn L8) |
+| `missing_mainland_l8` | 72 | **10** |
+| `raw_coverage_gap` | 122 | **60** |
+| `fixture_district_mismatch` | 10 | **0** |
+| L4 / L6 cũ | 62 / 686 | **63 / 694** (đúng spec) |
+| Ca alias | 47/60 | **48/60** |
+
+### Bốn nhóm còn lại, đã phân giải hết nguyên nhân
+
+1. **L8 cũ 4.215 so với spec 10.000–10.700** — snapshot OSM 01/2025 chưa vẽ đủ ranh giới phường/xã.
+   Đây là độ phủ **upstream**, code không sửa được; cần snapshot mới hơn hoặc nguồn khác.
+2. **10 `missing_mainland_l8`** — tách sạch làm hai: **8 ca do `normalizeVi` gộp dấu** nên hai
+   phường khác tên lại trùng khóa và cùng bị loại vì mơ hồ (`Xã Đông Thành`/`Xã Đông Thạnh`,
+   `Xã Lộc Thành`/`Xã Lộc Thạnh`, `Xã Phú Thành`/`Xã Phú Thạnh`, `Phường Sa Pa`/`Phường Sa Pả` —
+   mỗi cặp còn **cùng huyện** nên khóa có huyện cũng không cứu được); và **2 ca đảo**
+   (`Xã Thanh Lân`, `Thị trấn Cô Tô`) có polygon gần như toàn biển nên mọi chồng lấn rơi dưới
+   ngưỡng sliver 0,05.
+3. **60 `raw_coverage_gap`** — chính là nhóm ven biển ở mục 8: mẫu số gồm lãnh hải.
+4. **Ca alias 48/60** — 12 ca còn lại cần đối chiếu nghị quyết từng ca như đã làm cho Đà Nẵng và
+   Cần Thơ ở mục 8.
+
+**Chưa publish lên production.** Trạng thái này ở DB đo dùng-một-lần; phát hành phải theo Task 9.2
+(backup → staging QA → publish data → API → SDK) và cần cổng xanh hoặc ngoại lệ có quyết định QA.
+
+## 10. Phải đo lại khi nào
 
 Số liệu ở đây đủ để trả lời câu hỏi index/row count/time của bước 6.5, nhưng **không thay thế**
 benchmark phát hành. Task 8.5/8.6 vẫn phải đo lại trên bộ dữ liệu đã qua cổng độ phủ, cùng DB

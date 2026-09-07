@@ -5,6 +5,29 @@ commit với code).
 
 ## 1. Trạng thái hiện tại
 
+- **07/09/2026 — Dựng lại CẢ HAI phía toàn quốc: cổng QA pipeline từ `unmatched=72` xuống `=2`.**
+  Tải extract OSM hiện hành `vietnam-latest.osm.pbf` (md5 `72d7b298f4dbae54283a2ee8506bd17f`, đối
+  chiếu **độc lập** với Geofabrik vì log tải có ba lần 503/502 nên không tin lần kiểm trong script),
+  vá chủ quyền (193 object), trích `osm_admin_raw` 9.105 ranh giới (L4=39, L6=3.322, L8=565 — khớp
+  đúng ghi chú M2 T8), rồi chạy current + old + alias trên DB đo.
+  `bootstrapMissingProvince()` chạy ở **cả hai** phía: current dựng L4 Khánh Hòa từ **64** đơn vị
+  con mồ côi, old dựng từ **8**. Publish vào DB đo: `admin_area` 3.353 (**L4=34**, L8 3.319),
+  `admin_area_old` 4.972, `admin_alias` **37.246**.
+  **Cổng QA pipeline: `invalid=0, unmatched=2, overlap=0, seed_miss=0`** (trước: `unmatched=72,
+  seed_miss=1`). Evaluator 8.3/8.4: tổng failure **223 → 84**; `count_out_of_range` 3 → **1**;
+  `missing_mainland_l8` 72 → **10**; `raw_coverage_gap` 122 → **60**;
+  `fixture_district_mismatch` 10 → **0**; L4/L6 cũ 62/686 → **63/694** (đúng spec); ca alias
+  47/60 → **48/60**.
+  **Bốn nhóm còn lại đã phân giải hết nguyên nhân:** (1) L8 cũ 4.215 so với spec 10.000–10.700 là
+  độ phủ **upstream** của snapshot 01/2025, code không sửa được; (2) 10 `missing_mainland_l8` tách
+  sạch thành **8 ca do `normalizeVi` gộp dấu** — `Đông Thành`/`Đông Thạnh`, `Lộc Thành`/`Lộc Thạnh`,
+  `Phú Thành`/`Phú Thạnh`, `Sa Pa`/`Sa Pả` trùng khóa nên cả cặp bị loại vì mơ hồ, mà mỗi cặp còn
+  **cùng huyện** nên khóa có huyện cũng không cứu — và **2 ca đảo** (`Thanh Lân`, `Cô Tô`) có
+  polygon gần như toàn biển nên mọi chồng lấn dưới ngưỡng sliver 0,05; (3) 60 `raw_coverage_gap`
+  chính là nhóm ven biển có mẫu số gồm lãnh hải; (4) 12 ca alias còn lại cần đối chiếu nghị quyết
+  từng ca như đã làm cho Đà Nẵng và Cần Thơ.
+  **Chưa publish lên production** — trạng thái này ở DB đo dùng-một-lần; phát hành phải theo Task 9.2.
+
 - **07/09/2026 — Ba việc PHONG yêu cầu: việc 1 và 3 xong, việc 2 sửa được một nửa quan trọng.**
 
   **Việc 1 — fixture sai ground truth.** Fetch nguyên văn NQ 1659 (Đà Nẵng) và NQ 1668 (Cần Thơ):
