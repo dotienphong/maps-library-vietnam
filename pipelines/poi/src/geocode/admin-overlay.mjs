@@ -61,6 +61,65 @@ const seedRows = () =>
     });
 
 /**
+ * Cổng độ phủ chấp nhận gap ven biển khi phần KHÔNG được phủ không có dấu hiệu là đất (quyết định
+ * PHONG 07/09/2026). Biển không có POI, nên đo mật độ POI ở phần trống và ở phần được phủ của chính
+ * vùng đó. Chỉ đo cho vùng thiếu phủ — 4.900 vùng thì quá tốn. `ST_Subdivide` để phần trống của
+ * Vân Đồn (1.311 km², nhiều đảo) không thành một polygon khổng lồ làm chỉ số GiST vô dụng.
+ *
+ * Bảng `poi` rỗng thì **không trả số nào**: mật độ 0 khi chưa có POI sẽ khiến evaluator chấp nhận
+ * mọi gap. Thà không đo còn hơn đo sai.
+ *
+ * @param {import('postgres').Sql<{}>} sql
+ * @param {'admin_area'|'admin_area_new'} currentTable
+ * @param {{id:string, level:number}[]} gaps
+ * @returns {Promise<Map<string, {uncoveredKm2:number, uncoveredPoiDensity:number,
+ *   coveredPoiDensity:number}>>}
+ */
+async function measureGapPoiDensity(sql, currentTable, gaps) {
+  /** @type {Map<string, any>} */
+  const out = new Map();
+  if (gaps.length === 0) return out;
+  const [poiRows] = await sql`SELECT count(*)::int AS n FROM poi`;
+  if (Number(poiRows?.n ?? 0) === 0) {
+    console.warn(
+      '⚠ bảng poi rỗng — bỏ phép đo mật độ POI cho vùng thiếu phủ, cổng giữ nguyên failure',
+    );
+    return out;
+  }
+  for (const gap of gaps) {
+    const [row] = await sql.unsafe(
+      `WITH o AS (SELECT id, geom FROM admin_area_old_new WHERE id = $1),
+        cov AS (SELECT ST_Union(ST_Intersection(o.geom, n.geom)) g FROM o
+          JOIN ${currentTable} n ON n.level = CASE WHEN $2::int = 4 THEN 4 ELSE 8 END
+            AND o.geom && n.geom AND ST_Intersects(o.geom, n.geom)),
+        part AS (SELECT
+            coalesce(cov.g, ST_GeomFromText('POLYGON EMPTY', 4326)) covered,
+            ST_Difference(o.geom, coalesce(cov.g, ST_GeomFromText('POLYGON EMPTY', 4326))) uncovered
+          FROM o, cov),
+        u AS (SELECT ST_Subdivide(uncovered, 128) g FROM part),
+        c AS (SELECT ST_Subdivide(covered, 128) g FROM part)
+      SELECT
+        ST_Area((SELECT uncovered FROM part)::geography) / 1e6 uncovered_km2,
+        ST_Area((SELECT covered FROM part)::geography) / 1e6 covered_km2,
+        (SELECT count(*)::int FROM u JOIN poi p ON p.geom && u.g AND ST_Intersects(p.geom, u.g)) poi_uncovered,
+        (SELECT count(*)::int FROM c JOIN poi p ON p.geom && c.g AND ST_Intersects(p.geom, c.g)) poi_covered`,
+      [gap.id, gap.level],
+    );
+    if (!row) continue;
+    const uncoveredKm2 = Number(row.uncovered_km2 ?? 0);
+    const coveredKm2 = Number(row.covered_km2 ?? 0);
+    if (!(uncoveredKm2 > 0)) continue;
+    out.set(String(gap.id), {
+      uncoveredKm2: Number(uncoveredKm2.toFixed(4)),
+      uncoveredPoiDensity: Number((Number(row.poi_uncovered) / uncoveredKm2).toFixed(4)),
+      coveredPoiDensity:
+        coveredKm2 > 0 ? Number((Number(row.poi_covered) / coveredKm2).toFixed(4)) : 0,
+    });
+  }
+  return out;
+}
+
+/**
  * @param {Sql} sql
  * @param {{currentTable:'admin_area'|'admin_area_new',fixture?:boolean,
  *   sourceStats?:{invalidGeometries?:{repaired?:number,discarded?:number}},
@@ -334,6 +393,11 @@ export async function buildOldAdmin(
     discarded: Number(sourceStats.invalidGeometries?.discarded ?? 0),
     remaining: Number(invalidRows[0]?.invalidGeometries ?? 0),
   };
+  // Số đo cho quyết định A: chỉ vùng thiếu phủ, gắn ngay vào dòng coverage để evaluator dùng.
+  const gapRows = coverage.filter((row) => row.rawCoverage < 0.95);
+  const density = await measureGapPoiDensity(sql, currentTable, gapRows);
+  for (const row of gapRows) Object.assign(row, density.get(String(row.id)) ?? {});
+
   const unmatched = coverage.filter((row) => row.targets === 0);
   const coverageGaps = coverage.filter((row) => row.rawCoverage < 0.95);
   const overlapErrors = coverage.filter((row) => row.rawCoverage > 1.01);

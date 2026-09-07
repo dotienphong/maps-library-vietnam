@@ -130,6 +130,44 @@ describe('overlay ranh giới hành chính cũ', () => {
     expect(report.osmTagSource.available).toBe(true);
   });
 
+  // Quyết định PHONG 07/09/2026 (A): cổng chấp nhận gap ven biển khi phần KHÔNG được phủ không có
+  // dấu hiệu là đất. Overlay phải cung cấp số đo đó cho evaluator — mật độ POI trong phần không phủ
+  // và trong phần được phủ của chính vùng đó. `oldIds[5]` (Phường Thiếu Phủ) có rawCoverage 0,6.
+  it('dòng coverage thiếu phủ mang theo mật độ POI của phần trống và phần được phủ', async () => {
+    // Phần được phủ là env(100, 10.6, 100.6, 10.7); phần trống là env(100.6, 10.6, 101, 10.7).
+    await sql`INSERT INTO poi(id,name,name_norm,geom,status,created_by) VALUES
+      ('t8-poi-1','Quán Phủ 1','quan phu 1',ST_SetSRID(ST_MakePoint(100.2,10.65),4326),'active','pipeline'),
+      ('t8-poi-2','Quán Phủ 2','quan phu 2',ST_SetSRID(ST_MakePoint(100.3,10.65),4326),'active','pipeline'),
+      ('t8-poi-3','Quán Phủ 3','quan phu 3',ST_SetSRID(ST_MakePoint(100.4,10.65),4326),'active','pipeline')`;
+    try {
+      const report = await buildOldAdmin(sql, { currentTable: 'admin_area', fixture: true });
+      const row = report.coverage.find((r) => Number(r.id) === oldIds[5]);
+      expect(row.rawCoverage).toBeCloseTo(0.6, 4);
+      expect(row.uncoveredKm2).toBeGreaterThan(0);
+      // Không có POI nào trong phần trống, ba POI trong phần được phủ.
+      expect(row.uncoveredPoiDensity).toBe(0);
+      expect(row.coveredPoiDensity).toBeGreaterThan(0);
+      // Vùng phủ đủ thì không cần đo — không tốn truy vấn cho 4.900 vùng.
+      expect(
+        report.coverage.find((r) => Number(r.id) === oldIds[2]).uncoveredPoiDensity,
+      ).toBeUndefined();
+    } finally {
+      await sql`DELETE FROM poi WHERE id LIKE 't8-poi-%'`;
+    }
+  });
+
+  // Nếu bảng poi rỗng thì mật độ 0 là vô nghĩa và sẽ khiến evaluator chấp nhận MỌI gap. Thà không
+  // đo còn hơn đo sai: bỏ trống số liệu để cổng giữ nguyên failure.
+  it('poi rỗng thì không gắn số đo mật độ nào', async () => {
+    const [{ n }] = await sql`SELECT count(*)::int n FROM poi`;
+    expect(n).toBe(0);
+    const report = await buildOldAdmin(sql, { currentTable: 'admin_area', fixture: true });
+    const row = report.coverage.find((r) => Number(r.id) === oldIds[5]);
+    expect(row.rawCoverage).toBeCloseTo(0.6, 4);
+    expect(row.uncoveredPoiDensity).toBeUndefined();
+    expect(row.coveredPoiDensity).toBeUndefined();
+  });
+
   // Production 07/09 mất alias của 8 vùng cũ đất liền: bốn cặp chỉ khác nhau ở dấu nên `name_norm`
   // trùng khít **kể cả ở khoá đầy đủ nhất** (Đông Thạnh/Đông Thành, Sa Pa/Sa Pả, Phú Thành/Phú
   // Thạnh, Lộc Thạnh/Lộc Thành). Bộ lọc `keyOwners.size === 1` bỏ luôn mọi khoá của cả hai chủ nên

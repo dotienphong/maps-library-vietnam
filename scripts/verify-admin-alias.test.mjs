@@ -213,6 +213,133 @@ describe('evaluateCoverage', () => {
     expect(result.warnings.map((w) => w.kind)).toContain('discarded_sliver');
     expect(result.warnings.map((w) => w.kind)).toContain('raw_coverage_outside_band');
   });
+
+  // Quyết định PHONG 07/09/2026 (A): gap ven biển được chấp nhận khi phần KHÔNG được phủ không có
+  // dấu hiệu là đất — đo bằng mật độ POI, vì biển không có POI. Mặt nạ L4 không dùng được: L4 hiện
+  // hành cũng bao lãnh hải. Bằng chứng: hồ sơ 8-3-decision-prep.
+  it('gap ven biển: phần không phủ gần như không có POI thì là cảnh báo, không phải failure', () => {
+    const result = evaluateCoverage(
+      coverageInput({
+        coverage: [
+          {
+            id: '90',
+            level: 8,
+            rawCoverage: 0.36,
+            keptCoverage: 0.36,
+            discardedShare: 0,
+            targets: 1,
+            uncoveredKm2: 197.7,
+            uncoveredPoiDensity: 0.04,
+            coveredPoiDensity: 4.2,
+          },
+        ],
+      }),
+    );
+    expect(result.failures.map((f) => f.kind)).not.toContain('raw_coverage_gap');
+    expect(result.warnings).toContainEqual(
+      expect.objectContaining({ kind: 'coastal_gap_accepted', id: '90' }),
+    );
+  });
+
+  it('gap ven biển: mật độ dưới 10% phần được phủ cũng được chấp nhận (vịnh có cầu tàu)', () => {
+    const result = evaluateCoverage(
+      coverageInput({
+        coverage: [
+          {
+            id: '91',
+            level: 8,
+            rawCoverage: 0.37,
+            keptCoverage: 0.37,
+            discardedShare: 0,
+            targets: 1,
+            uncoveredKm2: 7.2,
+            uncoveredPoiDensity: 3.04,
+            coveredPoiDensity: 152.92,
+          },
+        ],
+      }),
+    );
+    expect(result.failures.map((f) => f.kind)).not.toContain('raw_coverage_gap');
+    expect(result.warnings.map((w) => w.kind)).toContain('coastal_gap_accepted');
+  });
+
+  it('gap có mật độ POI như đất ở thì vẫn phải fail', () => {
+    const result = evaluateCoverage(
+      coverageInput({
+        coverage: [
+          {
+            id: '92',
+            level: 8,
+            rawCoverage: 0.5,
+            keptCoverage: 0.5,
+            discardedShare: 0,
+            targets: 1,
+            uncoveredKm2: 3,
+            uncoveredPoiDensity: 120,
+            coveredPoiDensity: 200,
+          },
+        ],
+      }),
+    );
+    expect(result.failures.map((f) => f.kind)).toContain('raw_coverage_gap');
+  });
+
+  it('thiếu số đo POI thì KHÔNG được chấp nhận — không có bằng chứng thì vẫn là failure', () => {
+    const result = evaluateCoverage(
+      coverageInput({
+        coverage: [
+          {
+            id: '93',
+            level: 8,
+            rawCoverage: 0.4,
+            keptCoverage: 0.4,
+            discardedShare: 0,
+            targets: 1,
+          },
+        ],
+      }),
+    );
+    expect(result.failures.map((f) => f.kind)).toContain('raw_coverage_gap');
+    expect(result.warnings.map((w) => w.kind)).not.toContain('coastal_gap_accepted');
+  });
+
+  // Quyết định PHONG 07/09/2026 (B): 11.064/12.022 cạnh bị bỏ có raw_share < 0,001; cảnh báo từ
+  // `> 0` nhặt cả nhiễu 1e-9. Chỉ cảnh báo khi phần bị bỏ đáng kể.
+  it('sliver nhỏ hơn 1% không cảnh báo; từ 1% trở lên thì cảnh báo', () => {
+    const small = evaluateCoverage(
+      coverageInput({
+        coverage: [
+          {
+            id: '94',
+            level: 8,
+            rawCoverage: 1,
+            keptCoverage: 0.996,
+            discardedShare: 0.004,
+            targets: 1,
+          },
+        ],
+      }),
+    );
+    expect(small.warnings.map((w) => w.kind)).not.toContain('discarded_sliver');
+
+    const big = evaluateCoverage(
+      coverageInput({
+        coverage: [
+          {
+            id: '95',
+            level: 8,
+            rawCoverage: 1,
+            keptCoverage: 0.99,
+            discardedShare: 0.01,
+            targets: 1,
+          },
+        ],
+      }),
+    );
+    expect(big.warnings).toContainEqual(
+      expect.objectContaining({ kind: 'discarded_sliver', id: '95' }),
+    );
+  });
 });
 
 describe('evaluateGeocode', () => {

@@ -41,7 +41,8 @@ const rankOf = (precision) =>
 
 /**
  * @typedef {{id:string, level:number, rawCoverage:number, keptCoverage:number,
- *   discardedShare:number, targets:number, normalizedShareSum?:number}} CoverageRow
+ *   discardedShare:number, targets:number, normalizedShareSum?:number,
+ *   uncoveredKm2?:number, uncoveredPoiDensity?:number, coveredPoiDensity?:number}} CoverageRow
  * @typedef {{caseId:string, split:boolean, expectedTargets:string[], actualTargets:string[]}} AliasCase
  * @typedef {{id:string, name:string, evidenceUrl?:string}} OffshoreUnit
  * @typedef {{kind:string, [key:string]:unknown}} Finding
@@ -49,6 +50,32 @@ const rankOf = (precision) =>
 
 const RAW_COVERAGE_MIN = 0.95;
 const RAW_COVERAGE_MAX = 1.05;
+// Quyết định PHONG 07/09/2026 (B): cảnh báo sliver chỉ từ 1%. Đo trên production: 11.064/12.022
+// cạnh bị bỏ có raw_share < 0,001, p90 theo vùng là 0,46% — ngưỡng `> 0` nhặt cả nhiễu 1e-9 và sinh
+// 1.970 cảnh báo, che mất 11 vùng thật sự bỏ ≥ 5%.
+const DISCARDED_SHARE_MIN = 0.01;
+// Quyết định PHONG 07/09/2026 (A): gap ven biển được chấp nhận khi phần KHÔNG được phủ không có dấu
+// hiệu là đất. Biển không có POI, nên thước đo là mật độ POI trong phần không phủ — mặt nạ L4 không
+// dùng được vì L4 hiện hành cũng bao lãnh hải (Cô Tô gap 0,961 mà "ngoài đất" = 0). Hai nhánh: mật
+// độ tuyệt đối gần không (biển trống), hoặc rất nhỏ so với phần được phủ của chính vùng đó (vịnh có
+// cầu tàu, nhà nổi). Bằng chứng: docs/evidence/admin-alias/8-3-decision-prep.md.
+const COASTAL_POI_DENSITY_MAX = 0.5;
+const COASTAL_POI_DENSITY_RATIO = 0.1;
+
+/**
+ * Phần không được phủ có đáng tin là nước không? **Thiếu số đo thì trả false** — không có bằng
+ * chứng thì không được chấp nhận, đúng nguyên tắc "không bỏ lọc những vùng thiếu để đạt số 0".
+ * @param {CoverageRow} row
+ */
+function coastalGapAccepted(row) {
+  if (typeof row.uncoveredPoiDensity !== 'number') return false;
+  if (row.uncoveredPoiDensity <= COASTAL_POI_DENSITY_MAX) return true;
+  return (
+    typeof row.coveredPoiDensity === 'number' &&
+    row.coveredPoiDensity > 0 &&
+    row.uncoveredPoiDensity < COASTAL_POI_DENSITY_RATIO * row.coveredPoiDensity
+  );
+}
 
 /**
  * Đánh giá độ phủ. Mọi thứ ở `failures` là chặn phát hành; `warnings` phải có quyết định QA
@@ -119,13 +146,27 @@ export function evaluateCoverage(input) {
   for (const row of input.coverage) {
     // Kiểm raw coverage **độc lập** với share đã chuẩn hoá: chuẩn hoá về 1 không xoá được lỗ dữ liệu.
     if (row.rawCoverage < RAW_COVERAGE_MIN) {
-      failures.push({
-        kind: 'raw_coverage_gap',
-        id: row.id,
-        level: row.level,
-        rawCoverage: row.rawCoverage,
-        normalizedShareSum: row.normalizedShareSum ?? null,
-      });
+      if (coastalGapAccepted(row)) {
+        warnings.push({
+          kind: 'coastal_gap_accepted',
+          id: row.id,
+          level: row.level,
+          rawCoverage: row.rawCoverage,
+          uncoveredKm2: row.uncoveredKm2 ?? null,
+          uncoveredPoiDensity: row.uncoveredPoiDensity ?? null,
+          coveredPoiDensity: row.coveredPoiDensity ?? null,
+        });
+      } else {
+        failures.push({
+          kind: 'raw_coverage_gap',
+          id: row.id,
+          level: row.level,
+          rawCoverage: row.rawCoverage,
+          normalizedShareSum: row.normalizedShareSum ?? null,
+          uncoveredPoiDensity: row.uncoveredPoiDensity ?? null,
+          coveredPoiDensity: row.coveredPoiDensity ?? null,
+        });
+      }
     } else if (row.rawCoverage > RAW_COVERAGE_MAX) {
       warnings.push({
         kind: 'raw_coverage_outside_band',
@@ -133,7 +174,7 @@ export function evaluateCoverage(input) {
         rawCoverage: row.rawCoverage,
       });
     }
-    if (row.discardedShare > 0) {
+    if (row.discardedShare >= DISCARDED_SHARE_MIN) {
       warnings.push({ kind: 'discarded_sliver', id: row.id, discardedShare: row.discardedShare });
     }
   }
