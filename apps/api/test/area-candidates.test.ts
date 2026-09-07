@@ -48,6 +48,47 @@ describe('areaCandidates', () => {
     expect(areaQueries(calls)).toHaveLength(1);
   });
 
+  // Smoke 9.4 trên production: "Thủ Dầu Một" là thành phố cấp huyện cũ, nhưng nó nằm trong alias
+  // tỉnh của provinces.json nên parseAddress canonicalize thành "Thành phố Hồ Chí Minh" và
+  // aliasLevel thành 4 — trong khi alias `thu dau mot` chỉ tồn tại ở level 6, nên không ra gì.
+  // Khi tỉnh được suy ra từ alias thì không khoá cấp nữa.
+  it('tỉnh suy từ alias thì không khoá cấp alias', async () => {
+    const { sql, calls } = fakeSql([{ type: 'area' }]);
+    await areaCandidates(sql, {
+      queryNorm: 'thu dau mot',
+      queryCore: 'thu dau mot',
+      prefixPattern: 'thu dau mot%',
+      near: null,
+      parsed: {
+        alleyChain: [],
+        confidence: 0.2,
+        province: 'Thành phố Hồ Chí Minh',
+        adminOriginal: { province: 'Thủ Dầu Một' },
+      },
+    });
+    const [query] = areaQueries(calls);
+    expect(query?.text).not.toMatch(/aa\.level=\$\d+/);
+    expect(query?.text).not.toMatch(/a\.level=\$\d+/);
+  });
+
+  it('tỉnh gõ đúng tên canonical thì vẫn khoá cấp 4', async () => {
+    const { sql, calls } = fakeSql([{ type: 'area' }]);
+    await areaCandidates(sql, {
+      queryNorm: 'thanh pho ho chi minh',
+      queryCore: 'ho chi minh',
+      prefixPattern: 'thanh pho ho chi minh%',
+      near: null,
+      parsed: {
+        alleyChain: [],
+        confidence: 0.2,
+        province: 'Thành phố Hồ Chí Minh',
+        adminOriginal: { province: 'Thành phố Hồ Chí Minh' },
+      },
+    });
+    const [query] = areaQueries(calls);
+    expect(query?.text).toMatch(/aa\.level=\$\d+/);
+  });
+
   // `<%` vẫn phải giữ vì nó là thứ duy nhất cứu được lỗi gõ: đo trên DB toàn quốc,
   // `quna 10` cho 0 hit tiền tố nhưng 12 hit fuzzy.
   it('bậc 1 rỗng thì leo lên bậc 2 có <% và trả kết quả bậc 2', async () => {

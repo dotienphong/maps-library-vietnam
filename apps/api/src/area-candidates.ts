@@ -1,3 +1,4 @@
+import { normalizeVi } from '@mapslibvn/core';
 import type { CandidateQueryInput, CandidateRow } from './autocomplete-sql';
 import type { getSql } from './db';
 
@@ -12,11 +13,21 @@ const point = (sql: Sql, near: CandidateQueryInput['near']) =>
  */
 function areaQuery(sql: Sql, input: CandidateQueryInput, fuzzy: boolean): Promise<CandidateRow[]> {
   const { queryNorm, queryCore, prefixPattern, near } = input;
+  // "Thủ Dầu Một" là thành phố cấp huyện cũ, nhưng nó nằm trong alias tỉnh của `provinces.json`
+  // nên `parseAddress` canonicalize thành "Thành phố Hồ Chí Minh"; khoá cấp 4 thì không bao giờ
+  // khớp vì alias `thu dau mot` chỉ tồn tại ở level 6. Khi tỉnh **suy ra từ alias** thì tên người
+  // dùng gõ có thể là đơn vị cũ ở bất kỳ cấp, nên bỏ khoá cấp và để grouping/xếp hạng quyết định.
+  const original = input.parsed.adminOriginal?.province;
+  const provinceFromAlias =
+    original !== undefined &&
+    normalizeVi(original) !== normalizeVi(input.parsed.province ?? '') &&
+    !input.parsed.ward &&
+    !input.parsed.district;
   const aliasLevel = input.parsed.ward
     ? 8
     : input.parsed.district
       ? 6
-      : input.parsed.province
+      : input.parsed.province && !provinceFromAlias
         ? 4
         : null;
   const currentPrefix = `${queryCore.replace(/[\\%_]/g, '\\$&')}%`;
