@@ -1,0 +1,26 @@
+# 20 truy vấn cách viết địa phương — spec 05/09 mục 11.6 và 6.1/6.2. Baseline đo TRƯỚC hạng mục 3.
+# Định dạng q|đích: đích là chuỗi không dấu phải nằm trong `name` của top-3 (so sau khi bỏ dấu + lowercase).
+# --- 8 biến thể chính tả địa danh (6.1) ---
+qui nhon|quy nhon
+quinhon|quy nhon
+kontum|kon tum
+dak lak|dak lak
+dac lac|dak lak
+ban me thuot|buon ma thuot
+bmt|buon ma thuot
+tan son nhut|tan son nhat
+# --- 6 phát âm vùng / i-y (6.2) ---
+mi tho|my tho
+bin than|binh thanh
+ly thuong kiet|ly thuong kiet
+li thuong kiet|ly thuong kiet
+bac can|bac kan
+plei ku|pleiku
+# --- 4 tên cũ của đường (6.3) — cần street.name_alt, kỳ vọng ĐỎ ở baseline ---
+cong ly|nam ky khoi nghia
+duong cong ly|nam ky khoi nghia
+hien vuong|vo thi sau
+truong minh giang|le van sy
+# --- 2 dính/tách từ ---
+saigon|sai gon
+hoian|hoi an
