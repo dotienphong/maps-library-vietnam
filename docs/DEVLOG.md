@@ -1464,6 +1464,17 @@ vẫn là `sleep 1` phút — `sudo pmset -a sleep 0 disksleep 0`.
   đã vá trong `52d8507`: `edit-lock.dbtest.mjs` dựng tay `poi_work_record` thiếu cột mới (CI đỏ, máy
   dev không thấy vì bộ dbtest local không gồm file đó), và role `pipeline` thiếu `SELECT` trên
   `schema_migrations` làm cổng migration của backfill ném `permission denied`
+- 2026-09-08 · Hạng mục 3 · **Đổi spec mục 5.4: ba bậc chạy song song** (`89d7fca`, PHONG duyệt
+  "cách 2") · [hồ sơ](evidence/search-keys/16-nghiem-thu-production.md) · `planStages` quyết định
+  theo dữ kiện có sẵn thay vì theo số kết quả bậc 1; `collectCandidates` phát mọi truy vấn của mọi
+  bậc trước khi chờ. **Bộ 20 biến thể 3/20 → 6/20; tiêu chí 11.6 từ 1/5 lên 2/5** (`kontum` →
+  Kon Tum hạng 3, `bin than` → Bình Thạnh hạng 1, `hoian` — cả ba đều do bậc 3). Không hồi quy bộ
+  mờ (38/40) và **không tốn thêm thời gian đo được**: p95 lạnh bộ mờ 1.742 → 1.715 ms, vì các bậc
+  song song nên phần thêm là max() chứ không phải tổng; p99 ấm bộ biến thể còn giảm 1.096 → 265 ms.
+  Chi phí từng bậc đã đo TRƯỚC khi sửa, không đoán: bậc 2 từ 0 đến 4 ms khi có ≥ 2 token, bậc 3 từ
+  1 đến 483 ms tuỳ độ phổ biến khoá; giữ điều kiện ≥ 2 token cho bậc 2 vì một token tốn 378–780 ms.
+  Còn hai ca spec trượt, nay **chỉ** do bão hoà `LIMIT 20` ở bậc 1 (`tan son nhut` thua hạng 3 đúng
+  0,003 điểm; `qui nhon` không có dòng "Quy Nhơn" nào lọt) và do OSM thiếu dữ liệu (`cong ly`)
 
 ## 5. Sự cố
 

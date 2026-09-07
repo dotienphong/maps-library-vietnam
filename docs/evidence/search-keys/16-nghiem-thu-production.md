@@ -1,5 +1,11 @@
 # Task 16 — nghiệm thu hạng mục 3 trên production (08/09/2026)
 
+> **Cập nhật 08/09 sau khi PHONG duyệt "cách 2".** Đã đổi spec mục 5.4: ba bậc chạy **song song**
+> thay vì "bậc sau chỉ khi bậc trước thiếu" (`89d7fca`). Kết quả đo lại ở mục **"Sau cách 2"** cuối
+> file. Tóm tắt: bộ 20 biến thể **3/20 → 6/20**; tiêu chí 11.6 **1/5 → 2/5**; không hồi quy bộ mờ
+> (38/40); **không tốn thêm thời gian đo được**. Hai ca spec còn trượt do nguyên nhân (b) và (c) ở
+> dưới, chưa động tới.
+
 SHA phát hành: `eb5cc76` (+ `52d8507` sửa hai lỗi lộ ra khi chạy thật).
 Production: `https://api.ai-solutions.io.vn`, DB máy chủ nội bộ qua Hyperdrive.
 
@@ -148,3 +154,59 @@ là nguồn không có dữ kiện. Ba ca còn lại cùng nhóm (`duong cong ly
 - Backup R2 trước migration: dump 07/09 (`mapslibvn-20260907-*.dump.zst`).
 - `0009_search_keys.down.sql` **chỉ** dùng SAU khi đã rollback Worker về bản trước — down xoá cột mà
   API hiện hành đang tham chiếu, chạy trước sẽ làm 503.
+
+
+---
+
+# Sau "cách 2" — ba bậc chạy song song (`89d7fca`, 08/09/2026)
+
+PHONG duyệt đổi spec mục 5.4. `planStages` nay quyết định theo **dữ kiện có sẵn** (truy vấn có ≥ 2
+token thì có bậc 2; có khoá ngữ âm thì có bậc 3), không theo số kết quả của bậc 1 nữa.
+`collectCandidates` phát mọi truy vấn của mọi bậc **trước khi chờ** bất cứ cái nào.
+
+## Kết quả đo lại trên production
+
+| Phép đo | Trước cách 2 | Sau cách 2 |
+|---|---:|---:|
+| Bộ 20 biến thể — hit@3 | 3/20 | **6/20** |
+| Tiêu chí 11.6 (5 ca spec) | 1/5 (`dak lak`) | **2/5** (`dak lak`, `kontum`) |
+| Bộ 40 truy vấn mờ — hit@3 | 38/40 | **38/40** (không hồi quy) |
+| Bộ 40 mờ — p95 lạnh | 1.742 ms | **1.715 ms** |
+| Bộ 20 biến thể — p95 ấm | 87 ms | 118 ms |
+| Bộ 20 biến thể — p99 ấm | 1.096 ms | **265 ms** |
+| `pnpm test:api-db` | 42/42 | 42/42 |
+
+**Chi phí bằng 0 trong sai số.** So cùng loại số (p95 lạnh bộ mờ) giữa hai bản của cùng ngày:
+1.742 → 1.715 ms. Đúng như dự tính khi thiết kế: các bậc chạy song song nên phần thêm vào thời gian
+tường là max() chứ không phải tổng, và bậc 1 vốn đã là bậc chậm nhất khi cache lạnh.
+
+## Ba ca đổi từ trượt sang trúng — đều là bậc 3 làm việc
+
+Với `near=10.776,106.700` (đúng như bộ đo dùng):
+
+| Truy vấn | Kết quả | Bậc |
+|---|---|---|
+| `kontum` | **Kon Tum** hạng 3 (score 0,751) | 3 — `viKey('kontum') === viKey('kon tum') === 'contum'` |
+| `bin than` | **Bình Thạnh** hạng 1 (score 0,840) | 3 — âm cuối `-nh`→`-n` |
+| `hoian` | trúng | 3 — dính/tách từ |
+
+## Hai ca spec còn trượt — nguyên nhân (b), không phải (a)
+
+Nguyên nhân (a) đã hết: bậc 3 chạy và cho kết quả đúng. Còn lại là bão hoà trong bậc 1:
+
+- **`tan son nhut`**: "Sân bay quốc tế Tân Sơn Nhất" ở hạng **4**, score 0,816 — thua hạng 3
+  (0,819) đúng **0,003**. Ba dòng chặn nó là "Tân Sơn Nhứt", tức **tên thật** của những nơi đó.
+- **`qui nhon`**: không dòng "Quy Nhơn" nào lọt vào 10 kết quả. `LIMIT 20` trong câu SQL bậc 1 bị
+  hàng nghìn dòng viết đúng "Qui Nhon" (`sim` 1,0/0,875) chiếm hết trước khi tới dòng của nhánh
+  `qAlias`.
+- **`cong ly`**: vẫn là nguyên nhân (c) — OSM không có dữ liệu, không liên quan tới cách 2.
+
+## Việc còn mở sau cách 2
+
+1. **Bão hoà `LIMIT 20` trong bậc 1** (việc số 2 trong danh sách cũ, chưa làm): tách suất riêng cho
+   nhánh `qAlias` — ví dụ UNION hai truy vấn có `LIMIT` riêng thay vì để chúng cạnh tranh trong cùng
+   một `ORDER BY`. Đây là thứ duy nhất còn chặn `qui nhon` và `tan son nhut`.
+2. **Nguồn tên đường cũ** cho `cong ly`, `hien vuong`, `truong minh giang` — cần dữ liệu ngoài OSM.
+3. Các ca còn lại của bộ 20 (`dac lac`, `ban me thuot`, `bmt`, `mi tho`, `bac can`, `plei ku`,
+   `saigon`, `li thuong kiet`) chưa phân tích từng ca; một số cần thêm mục vào từ điển địa danh
+   (phải có nguồn OSM kiểm được), một số cùng nguyên nhân bão hoà ở trên.
