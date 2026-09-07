@@ -4,6 +4,7 @@ import { mkdirSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { normalizeVi } from '@mapslibvn/core';
 import { run } from '../../../../scripts/lib/run.mjs';
+import { pgArray } from '../lib/copy-format.mjs';
 import { OSM_PBF, POI_WORK } from '../lib/env.mjs';
 import { parseOsmiumId } from '../lib/osmium-id.mjs';
 import { connect, countRows, readJsonl } from '../pg.mjs';
@@ -109,10 +110,22 @@ async function* roadRows() {
       continue;
     }
     const alley = parseAlleyName(properties.name);
+    // Tên thay thế của tuyến (spec 05/09 mục 6.3): tên cũ, tên khác, tên ngắn, tên Việt, tên chính
+    // thức. OSM gộp nhiều giá trị trong một tag bằng `;`, nên phải tách ra.
+    const alt = ['old_name', 'alt_name', 'short_name', 'name:vi', 'official_name']
+      .map((k) => properties[k])
+      .filter((v) => typeof v === 'string' && v.trim() && v !== properties.name)
+      .flatMap((/** @type {string} */ v) =>
+        v
+          .split(';')
+          .map((part) => part.trim())
+          .filter(Boolean),
+      );
     yield [
       id.id,
       properties.name,
       streetNameNorm(properties.name),
+      alt.length ? pgArray(alt) : null,
       properties.highway,
       alley?.keyword ?? null,
       alley?.number ?? null,

@@ -108,7 +108,7 @@ export async function replaceRawTables(sql, { roadRows, adminRows }) {
   try {
     await sql.unsafe('DROP TABLE IF EXISTS osm_road_raw_new, osm_admin_raw_new');
     await sql.unsafe(`CREATE TABLE osm_road_raw_new (
-      osm_way_id bigint PRIMARY KEY, name text NOT NULL, name_norm text NOT NULL,
+      osm_way_id bigint PRIMARY KEY, name text NOT NULL, name_norm text NOT NULL, name_alt text[],
       highway text NOT NULL, alley_keyword text, alley_number text, parent_norm text,
       geom geometry(LineString, 4326) NOT NULL, province_norm text)`);
     await sql.unsafe(`CREATE TABLE osm_admin_raw_new (
@@ -122,6 +122,7 @@ export async function replaceRawTables(sql, { roadRows, adminRows }) {
         'osm_way_id',
         'name',
         'name_norm',
+        'name_alt',
         'highway',
         'alley_keyword',
         'alley_number',

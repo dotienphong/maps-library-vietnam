@@ -168,6 +168,22 @@ describe('geocode tables trên fixture Quận 1', () => {
     expect(n).toBe(0);
   });
 
+  it('street có name_key khớp searchKeys tính lại bằng Node và name_alt thẳng hàng name_alt_norm', async () => {
+    const { searchKeys } = await import('@mapslibvn/core');
+    const rows = await sql`SELECT name_norm, name_alt, name_key, name_alt_norm, name_tsv
+      FROM street ORDER BY random() LIMIT 200`;
+    expect(rows.length).toBeGreaterThan(0);
+    for (const r of rows) {
+      const k = searchKeys(r.name_norm, r.name_alt);
+      expect(r.name_key, r.name_norm).toBe(k.nameKey);
+      expect(r.name_alt_norm, r.name_norm).toBe(k.nameAltNorm);
+      expect(r.name_tsv, r.name_norm).not.toBeNull();
+      // Bất biến matched_alt: hai cột cùng số phần tử.
+      if (r.name_alt_norm)
+        expect(r.name_alt_norm.split(' | '), r.name_norm).toHaveLength(r.name_alt.length);
+    }
+  });
+
   it('alley: mọi hẻm có number; ≥ 60 % có đường mẹ và entrance nằm trên đường mẹ (≤ 1 m)', async () => {
     const [summary] = await sql`SELECT count(*)::int AS n,
       count(parent_street_id)::int AS wp, count(entrance)::int AS we FROM alley`;
