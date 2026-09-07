@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { ApiError } from '../src/errors';
-import { clampInt, parseBbox, parseLatLngPair, parseTypes } from '../src/params';
+import { clampInt, parseBbox, parseLatLngPair, parseSources, parseTypes } from '../src/params';
 
 describe('params', () => {
   it('parseLatLngPair: "10.77,106.70" → {lat,lng}; undefined → null', () => {
@@ -26,6 +26,16 @@ describe('params', () => {
     expect([...parseTypes('area')]).toEqual(['area']);
     expect([...parseTypes('poi,street')].sort()).toEqual(['poi', 'street']);
     expect(() => parseTypes('poi,banana')).toThrowError(ApiError);
+  });
+
+  it('parseSources: mặc định cả ba, all → ba nguồn, chuẩn hoá thứ tự, lạ → 400', () => {
+    expect(parseSources(undefined)).toEqual(['osm', 'overture', 'fsq']);
+    expect(parseSources('')).toEqual(['osm', 'overture', 'fsq']);
+    expect(parseSources('osm')).toEqual(['osm']);
+    expect(parseSources('all')).toEqual(['osm', 'overture', 'fsq']);
+    expect(parseSources('fsq,osm')).toEqual(['osm', 'fsq']);
+    expect(() => parseSources('osm,banana')).toThrowError(ApiError);
+    expect(() => parseSources(',')).toThrowError(ApiError);
   });
 
   it('parseBbox: nhận bbox hợp lệ, từ chối biên/toạ độ/thứ tự sai', () => {
