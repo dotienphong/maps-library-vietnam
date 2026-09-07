@@ -36,7 +36,8 @@
     "server:setup": "node scripts/server-setup.mjs",
     "server:update": "node scripts/server-update.mjs",
     "db:restore": "node scripts/db-restore.mjs",
-    "db:fixture": "node scripts/db-fixture.mjs"
+    "db:fixture": "node scripts/db-fixture.mjs",
+    "poi:profile": "node scripts/poi-profile-publish.mjs"
   },
   "devDependencies": {
     "@biomejs/biome": "1.9.4",

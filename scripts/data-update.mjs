@@ -8,7 +8,7 @@ import { releaseName } from '../pipelines/tiles/src/lib/dates.mjs';
 import { hasListedFile } from '../pipelines/tiles/src/lib/manifest-state.mjs';
 import { run, sleep } from './lib/run.mjs';
 import { detectSources } from './lib/sources.mjs';
-import { probePort, waitForPort } from './lib/tunnel.mjs';
+import { openDatabaseTunnel } from './lib/tunnel.mjs';
 import { decideWork, missingLiveEnv, nextState } from './lib/update-plan.mjs';
 
 const argv = process.argv.slice(2);
@@ -76,43 +76,6 @@ const writeState = (state) =>
     input: JSON.stringify(state, null, 2),
   });
 
-// Chỉ mở Tunnel ngay trước nhánh POI; dry-run/tiles không cần DB. Trả hàm cleanup idempotent.
-const openDatabaseTunnel = async () => {
-  if (!process.env.DB_TUNNEL_HOSTNAME || !process.env.PIPELINE_DATABASE_URL) return () => {};
-  const child = spawn('cloudflared', ['access', 'tcp'], {
-    stdio: 'inherit',
-    // Dùng env cloudflared hỗ trợ để service secret không xuất hiện trong process arguments.
-    env: {
-      ...process.env,
-      TUNNEL_SERVICE_HOSTNAME: process.env.DB_TUNNEL_HOSTNAME,
-      TUNNEL_SERVICE_URL: '127.0.0.1:5433',
-      TUNNEL_SERVICE_TOKEN_ID: process.env.CF_ACCESS_CLIENT_ID ?? '',
-      TUNNEL_SERVICE_TOKEN_SECRET: process.env.CF_ACCESS_CLIENT_SECRET ?? '',
-    },
-  });
-  let spawnError;
-  child.once('error', (error) => {
-    spawnError = error;
-  });
-  const close = () => {
-    if (!child.killed && child.exitCode === null) child.kill('SIGTERM');
-  };
-  process.once('exit', close);
-  const ready = await waitForPort(() => probePort(5433), sleep, 30);
-  if (!ready) {
-    process.removeListener('exit', close);
-    close();
-    if (spawnError) throw spawnError;
-    throw new Error(`Tunnel ${process.env.DB_TUNNEL_HOSTNAME} không mở cổng 127.0.0.1:5433`);
-  }
-  process.env.DATABASE_URL = process.env.PIPELINE_DATABASE_URL;
-  log(`DB qua Tunnel ${process.env.DB_TUNNEL_HOSTNAME}`);
-  return () => {
-    process.removeListener('exit', close);
-    close();
-  };
-};
-
 const versions = await detectSources();
 const state = readState();
 const work = decideWork(state, versions, flags);
@@ -151,7 +114,7 @@ if (work.tiles) {
   log(`✓ tiles ${release}`);
 }
 if (work.poi) {
-  const closeTunnel = await openDatabaseTunnel();
+  const closeTunnel = await openDatabaseTunnel(log);
   try {
     ensurePatchedPbf();
     // Không migrate ở đây: trên máy chủ role pipeline không phải superuser; server:setup/update quản lý migration.
