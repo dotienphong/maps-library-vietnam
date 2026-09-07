@@ -1,6 +1,7 @@
 /**
  * @typedef {{ osm?: { lastModified: string, md5: string }, overture?: { release: string }, fsq?: { release: string },
- *   releases?: { vn: string | null, poi: string | null }, pending?: { tiles?: boolean, poi?: boolean } }} State
+ *   releases?: { vn: string | null, poi: string | null, poiOsm?: string | null },
+ *   pending?: { tiles?: boolean, poi?: boolean } }} State
  * @typedef {{ osm: { lastModified: string, md5: string }, overture: { release: string }, fsq: { release: string } }} Versions
  * @typedef {{ force?: boolean, onlyTiles?: boolean, onlyPoi?: boolean }} Flags
  */
@@ -46,7 +47,7 @@ export function decideWork(state, versions, flags) {
 /**
  * @param {State} state
  * @param {Versions} versions
- * @param {{ vn?: string, poi?: string }} built
+ * @param {{ vn?: string, poi?: string, poiOsm?: string }} built
  * @returns {State}
  */
 export function nextState(state, versions, built) {
@@ -67,6 +68,10 @@ export function nextState(state, versions, built) {
     releases: {
       vn: built.vn ?? state.releases?.vn ?? null,
       poi: built.poi ?? state.releases?.poi ?? null,
+      // Chỉ ghi khi có: manifest/state cũ không có khoá này, đừng bịa ra `null`.
+      ...(built.poiOsm || state.releases?.poiOsm
+        ? { poiOsm: built.poiOsm ?? state.releases?.poiOsm ?? null }
+        : {}),
     },
   };
   return pending.tiles || pending.poi ? { ...next, pending } : next;

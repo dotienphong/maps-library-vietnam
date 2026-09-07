@@ -1,8 +1,8 @@
 #!/usr/bin/env node
-// Dùng: manifest.mjs get | set --vn <release> [--poi <release>] | rollback
+// Dùng: manifest.mjs get | set --vn <release> [--poi <release>] [--poi-osm <release>] | rollback
 import { execFileSync } from 'node:child_process';
 import { requireEnv } from './lib/env.mjs';
-import { parseListedKeys, readOptionalJson } from './lib/manifest-state.mjs';
+import { nextManifest, parseListedKeys, readOptionalJson } from './lib/manifest-state.mjs';
 
 const namespaceId = requireEnv('KV_NAMESPACE_ID_META');
 requireEnv('CLOUDFLARE_ACCOUNT_ID');
@@ -34,19 +34,7 @@ const history = get('release:history') ?? [];
 if (command === 'get') {
   console.log(JSON.stringify({ current, history }, null, 2));
 } else if (command === 'set') {
-  const vnIndex = rest.indexOf('--vn');
-  const poiIndex = rest.indexOf('--poi');
-  if (vnIndex < 0 && poiIndex < 0) {
-    throw new Error('set cần ít nhất --vn <release> hoặc --poi <release>');
-  }
-  const next = {
-    vn: vnIndex >= 0 ? rest[vnIndex + 1] : current.vn,
-    poi: poiIndex >= 0 ? rest[poiIndex + 1] : current.poi,
-    updatedAt: new Date().toISOString(),
-  };
-  if ((vnIndex >= 0 && !next.vn) || (poiIndex >= 0 && !next.poi)) {
-    throw new Error('Thiếu tên release sau --vn hoặc --poi');
-  }
+  const next = nextManifest(current, rest, new Date().toISOString());
   put('release:history', [current, ...history].slice(0, 3));
   put('release:current', next);
   console.log('✓ manifest', JSON.stringify(next));
@@ -60,5 +48,7 @@ if (command === 'get') {
   put('release:history', older);
   console.log('✓ rollback về', JSON.stringify(previous));
 } else {
-  throw new Error('Dùng: manifest.mjs get | set --vn <release> [--poi <release>] | rollback');
+  throw new Error(
+    'Dùng: manifest.mjs get | set --vn <release> [--poi <release>] [--poi-osm <release>] | rollback',
+  );
 }

@@ -1,5 +1,10 @@
 import { describe, expect, it, vi } from 'vitest';
-import { hasListedFile, parseListedKeys, readOptionalJson } from './manifest-state.mjs';
+import {
+  hasListedFile,
+  nextManifest,
+  parseListedKeys,
+  readOptionalJson,
+} from './manifest-state.mjs';
 
 describe('hasListedFile', () => {
   it('khớp đúng một filename trong output rclone lsf', () => {
@@ -35,5 +40,44 @@ describe('readOptionalJson', () => {
     expect(() => readOptionalJson('release:current', new Set(['release:current']), read)).toThrow(
       'Cloudflare auth failed',
     );
+  });
+});
+
+describe('nextManifest', () => {
+  const current = { vn: 'vn-1', poi: 'poi-1', poiProfiles: { osm: 'poi-osm-1' } };
+  const at = '2026-09-10T00:00:00.000Z';
+
+  it('--vn giữ poi và poiProfiles', () => {
+    expect(nextManifest(current, ['--vn', 'vn-2'], at)).toEqual({
+      vn: 'vn-2',
+      poi: 'poi-1',
+      poiProfiles: { osm: 'poi-osm-1' },
+      updatedAt: at,
+    });
+  });
+
+  it('--poi và --poi-osm cùng lúc → cả hai profile đổi', () => {
+    expect(nextManifest(current, ['--poi', 'poi-2', '--poi-osm', 'poi-osm-2'], at)).toEqual({
+      vn: 'vn-1',
+      poi: 'poi-2',
+      poiProfiles: { osm: 'poi-osm-2' },
+      updatedAt: at,
+    });
+  });
+
+  it('manifest cũ không có poiProfiles thì không bịa ra khoá rỗng', () => {
+    expect(nextManifest({ vn: 'vn-1', poi: null }, ['--poi', 'poi-2'], at)).toEqual({
+      vn: 'vn-1',
+      poi: 'poi-2',
+      updatedAt: at,
+    });
+  });
+
+  it('thiếu giá trị sau cờ hoặc không có cờ nào → ném lỗi', () => {
+    expect(() => nextManifest(current, ['--poi'], at)).toThrowError(/Thiếu tên release/);
+    expect(() => nextManifest(current, ['--poi', '--vn', 'vn-2'], at)).toThrowError(
+      /Thiếu tên release/,
+    );
+    expect(() => nextManifest(current, [], at)).toThrowError(/set cần/);
   });
 });

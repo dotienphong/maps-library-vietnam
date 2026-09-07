@@ -32,6 +32,7 @@ const steps = [
   ['pipelines/poi/src/geocode/alleys.mjs'],
   ['pipelines/poi/src/geocode/anchors.mjs'],
   ['pipelines/poi/src/export-tiles.mjs', '--release', 'poi-fixture'],
+  ['pipelines/poi/src/export-tiles.mjs', '--release', 'poi-osm-fixture', '--sources', 'osm'],
   ['pipelines/poi/src/report.mjs'],
 ];
 const startedAt = Date.now();

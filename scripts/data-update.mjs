@@ -137,7 +137,7 @@ const ensurePatchedPbf = () => {
   ]);
 };
 
-/** @type {{ vn?: string, poi?: string }} */
+/** @type {{ vn?: string, poi?: string, poiOsm?: string }} */
 const built = {};
 if (work.tiles) {
   ensurePatchedPbf();
@@ -168,15 +168,36 @@ if (work.poi) {
     run('node', ['pipelines/poi/src/geocode/alleys.mjs']);
     run('node', ['pipelines/poi/src/geocode/anchors.mjs']);
     const release = releaseName('poi');
+    const osmRelease = releaseName('poi-osm');
     run('node', ['pipelines/poi/src/export-tiles.mjs', '--release', release]);
     run('node', ['pipelines/tiles/src/qa.mjs', `${OUT}/${release}.pmtiles`, '--skip-islands']);
+    // Profile osm (spec 07/09): cùng snapshot DB, cùng ngày. Lỗi ở đây thì KHÔNG set manifest cho
+    // cả hai, nên hai archive không bao giờ lệch ngày nhau.
+    run('node', [
+      'pipelines/poi/src/export-tiles.mjs',
+      '--release',
+      osmRelease,
+      '--sources',
+      'osm',
+    ]);
+    run('node', ['pipelines/tiles/src/qa.mjs', `${OUT}/${osmRelease}.pmtiles`, '--skip-islands']);
     run('node', ['pipelines/tiles/src/upload.mjs', release]);
+    run('node', ['pipelines/tiles/src/upload.mjs', osmRelease]);
     run('node', ['pipelines/tiles/src/smoke.mjs', release, '--set', 'poi']);
-    run('node', ['pipelines/tiles/src/manifest.mjs', 'set', '--poi', release]);
+    run('node', ['pipelines/tiles/src/smoke.mjs', osmRelease, '--set', 'poi-osm']);
+    run('node', [
+      'pipelines/tiles/src/manifest.mjs',
+      'set',
+      '--poi',
+      release,
+      '--poi-osm',
+      osmRelease,
+    ]);
     run('node', ['pipelines/poi/src/report.mjs']);
     run('rclone', ['copy', OUT, `r2:${bucket}/state/reports/`, '--include', 'poi-report-*.json']);
     built.poi = release;
-    log(`✓ POI ${release}`);
+    built.poiOsm = osmRelease;
+    log(`✓ POI ${release} + ${osmRelease}`);
   } finally {
     closeTunnel();
   }

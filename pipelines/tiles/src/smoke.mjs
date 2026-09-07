@@ -1,15 +1,17 @@
 #!/usr/bin/env node
-// Dùng: node smoke.mjs <release> [--set vn|poi] — đọc 20 tile qua đúng URL HTTP của client.
+// Dùng: node smoke.mjs <release> [--set vn|poi|poi-osm] — đọc 20 tile qua đúng URL HTTP của client.
 import { FetchSource, PMTiles } from 'pmtiles';
 import { requireEnv } from './lib/env.mjs';
 import { lonLatToTile } from './lib/qa-rules.mjs';
 
 const argv = process.argv.slice(2);
 const release = argv[0];
-if (!release) throw new Error('Dùng: node smoke.mjs <release> [--set vn|poi]');
+if (!release) throw new Error('Dùng: node smoke.mjs <release> [--set vn|poi|poi-osm]');
 const set = argv.includes('--set') ? argv[argv.indexOf('--set') + 1] : 'vn';
-const expectMaxZoom = set === 'poi' ? 16 : 14;
-const zooms = set === 'poi' ? [12, 14, 15, 16] : [10, 12, 13, 14];
+// Mọi profile POI dùng chung ngưỡng: cùng maxzoom và cùng luật mật độ 5.8.
+const isPoi = set === 'poi' || set === 'poi-osm';
+const expectMaxZoom = isPoi ? 16 : 14;
+const zooms = isPoi ? [12, 14, 15, 16] : [10, 12, 13, 14];
 
 const base = requireEnv('TILES_BASE').replace(/\/$/, '');
 const url = `${base}/tiles/${release}.pmtiles`;
@@ -42,7 +44,7 @@ for (const [lon, lat] of centers) {
     ok++;
   }
 }
-if (set === 'poi' && ok < 15) {
+if (isPoi && ok < 15) {
   throw new Error(`POI tiles: chỉ ${ok}/20 tile có dữ liệu tại trung tâm 5 thành phố`);
 }
 

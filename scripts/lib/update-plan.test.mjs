@@ -61,6 +61,24 @@ describe('nextState', () => {
     });
   });
 
+  it('ghi releases.poiOsm khi build profile osm, không bịa khoá khi không build', () => {
+    const next = nextState(state, same, { poi: 'poi-20260910', poiOsm: 'poi-osm-20260910' });
+    expect(next.releases).toEqual({
+      vn: 'vn-20260819',
+      poi: 'poi-20260910',
+      poiOsm: 'poi-osm-20260910',
+    });
+    expect(nextState(state, same, { poi: 'poi-20260910' }).releases).toEqual({
+      vn: 'vn-20260819',
+      poi: 'poi-20260910',
+    });
+    expect(
+      nextState({ ...state, releases: { ...state.releases, poiOsm: 'poi-osm-cu' } }, same, {
+        poi: 'poi-20260910',
+      }).releases?.poiOsm,
+    ).toBe('poi-osm-cu');
+  });
+
   it('--poi khi OSM đổi giữ pending tiles cho lần chạy sau', () => {
     const afterPoi = nextState(state, osmNew, { poi: 'poi-20260826' });
     expect(afterPoi.pending).toEqual({ tiles: true, poi: false });
