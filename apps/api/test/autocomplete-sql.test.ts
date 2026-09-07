@@ -82,9 +82,9 @@ describe('autocomplete-sql — bậc 1 dùng word_similarity (spec 05/09 mục 5
     const [query] = calls.filter((call) => call.text.startsWith('SELECT'));
     expect(query?.text).toContain('FROM poi p');
     expect(query?.text).toMatch(
-      /p\.primary_source = ANY\(\$\d+::text\[\]\) OR p\.created_by = 'user'/,
+      /p\.primary_source = ANY\(ARRAY\(SELECT json_array_elements_text\(\$\d+::text::json\)\)\) OR p\.created_by = 'user'/,
     );
-    expect(query?.params).toEqual(expect.arrayContaining([['osm', 'fsq']]));
+    expect(query?.params).toEqual(expect.arrayContaining(['["osm","fsq"]']));
   });
 
   it('street: truy vấn ngắn có nhánh %, truy vấn dài thì không', async () => {

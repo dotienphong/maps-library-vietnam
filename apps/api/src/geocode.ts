@@ -22,7 +22,12 @@ const nearPoint = (sql: Sql, near: LatLng | null) =>
 
 const displayName = (parts: (string | undefined | null)[]) => parts.filter(Boolean).join(', ');
 
-const textArray = (sql: Sql, values: string[]) =>
+/**
+ * Mảng text an toàn cho cả `postgres` (Node) lẫn `postgres/cf` (Workers): bản cf nối mảng JS thành
+ * "a,b,c" nên bind mảng rồi cast `::text[]` sẽ ném `malformed array literal` trên production mà
+ * unit test không DB không thấy. Đi qua JSON là idiom đã chứng minh chạy đúng.
+ */
+export const textArray = (sql: Sql, values: string[]) =>
   sql`ARRAY(SELECT json_array_elements_text(${JSON.stringify(values)}::text::json))`;
 
 /** Thang 5 bước spec 6.3 — dừng ở bước đầu tiên có kết quả. */

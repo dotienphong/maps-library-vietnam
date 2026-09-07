@@ -206,6 +206,46 @@ describe('thang geocode và các route còn lại', () => {
     expect((await get('/v1/places/khong-ton-tai')).status).toBe(404);
   });
 
+  // Postgres THẬT là tầng duy nhất bắt được lỗi này: `postgres/cf` trong Workers nối mảng JS thành
+  // "osm,overture,fsq" nên bind mảng rồi cast `::text[]` sẽ ném `malformed array literal`. Unit
+  // test dùng fakeSql nên không thấy gì.
+  it('sources= chạy thật trên 4 route, không ném malformed array literal', async () => {
+    for (const path of [
+      `/v1/search?q=${enc('Highlands')}&sources=osm`,
+      `/v1/search?q=${enc('Highlands')}&sources=all`,
+      `/v1/search?q=${enc('Highlands')}&sources=overture,fsq`,
+      '/v1/nearby?lat=10.77&lng=106.70&radius=500&sources=osm',
+      '/v1/reverse?lat=10.77&lng=106.70&sources=osm,overture',
+      `/v1/autocomplete?q=${enc('Highlands')}&near=10.77,106.70&sources=osm`,
+    ]) {
+      const { status, body } = await get(path);
+      expect(status, `${path} → ${JSON.stringify(body)}`).toBe(200);
+    }
+  });
+
+  it('sources lọc theo nguồn chính và luôn giữ POI người dùng', async () => {
+    const all = await get(`/v1/search?q=${enc('Highlands')}&sources=all&limit=50`);
+    const osm = await get(`/v1/search?q=${enc('Highlands')}&sources=osm&limit=50`);
+    expect(all.status).toBe(200);
+    expect(osm.status).toBe(200);
+    const osmIds = new Set(osm.body.items.map((item) => item.id));
+    const allIds = new Set(all.body.items.map((item) => item.id));
+    // Cả hai nhánh phải có kết quả, nếu không phép kiểm tập con dưới đây pass rỗng vô nghĩa.
+    expect(allIds.size).toBeGreaterThan(0);
+    expect(osmIds.size).toBeGreaterThan(0);
+    for (const id of osmIds) expect(allIds.has(id)).toBe(true);
+    expect(osm.body.total).toBeLessThanOrEqual(all.body.total);
+
+    // Mỗi id trả về ở nhánh osm phải thật sự có nguồn chính osm (hoặc là POI người dùng, khi đó
+    // `sources` của place details rỗng).
+    for (const id of osmIds) {
+      const details = await get(`/v1/places/${encodeURIComponent(id)}`);
+      expect(details.status).toBe(200);
+      const primary = details.body.sources.find((link) => link.role === 'primary');
+      expect(primary === undefined || primary.source === 'osm').toBe(true);
+    }
+  });
+
   it('auth DB thật trả 401 cho key thiếu hoặc không tồn tại', async () => {
     expect((await get('/v1/autocomplete?q=highlands', {})).status).toBe(401);
     const response = await get('/v1/autocomplete?q=highlands', {
