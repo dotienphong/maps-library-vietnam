@@ -1475,6 +1475,21 @@ vẫn là `sleep 1` phút — `sudo pmset -a sleep 0 disksleep 0`.
   1 đến 483 ms tuỳ độ phổ biến khoá; giữ điều kiện ≥ 2 token cho bậc 2 vì một token tốn 378–780 ms.
   Còn hai ca spec trượt, nay **chỉ** do bão hoà `LIMIT 20` ở bậc 1 (`tan son nhut` thua hạng 3 đúng
   0,003 điểm; `qui nhon` không có dòng "Quy Nhơn" nào lọt) và do OSM thiếu dữ liệu (`cong ly`)
+- 2026-09-08 · Hạng mục 3 · **Chấm điểm dòng khớp alias bằng dạng chuẩn — biến thể 6/20 → 9/20,
+  tiêu chí 11.6 lên 4/5** (`a76761a`) · [hồ sơ](evidence/search-keys/16-nghiem-thu-production.md) ·
+  lỗi thật: nhánh `qAlias` TÌM theo dạng chuẩn nhưng `sim`/`prefix` vẫn tính theo chuỗi người dùng
+  gõ, mà `ORDER BY sim DESC … LIMIT 20` dùng chính `sim` đó, nên dòng đúng vừa xếp thấp vừa bị cắt
+  khỏi tập ứng viên. Đo trước khi sửa: "Sân bay quốc tế Tân Sơn Nhất" 0,769 với `tan son nhut`
+  nhưng 1,000 với `tan son nhat`; POI "Quy Nhơn" cách near 0–1 km 0,636 với `qui nhon` nhưng 1,000
+  với `quy nhon` — chênh 0,127 và 0,200 điểm, thừa sức lật ca `tan son nhut` vốn thua hạng 3 đúng
+  0,003. Vì `ORDER BY` dùng chính biểu thức vừa sửa nên **không cần** thêm truy vấn UNION tách suất
+  như phương án ban đầu tôi nêu, đỡ một vòng SQL cho mọi request. Nay `qui nhon` → Quy Nhơn Quán
+  hạng 1, `tan son nhut` → cả top 3 đều dạng chuẩn. **Còn trượt `cong ly`** vì OSM không gắn
+  `old_name` — không nhét vào `toponym_alias.json` được, từ điển đó thay chuỗi ở mọi vị trí nên sẽ
+  phá hỏng việc tìm "Phở Công Lý". Trong 11 ca còn trượt của bộ 20 có **4 ca API trả đúng địa
+  phương nhưng tên POI viết theo cách người dùng gõ** (`dac lac`→Đắc Lắc, `bac can`→Bắc Cạn,
+  `saigon`→Saigon, `mi tho`→Bánh Mì Thổ) mà fixture đòi chuỗi đích phải nằm trong tên trả về — đây
+  là câu hỏi về tiêu chí chứ không phải về mã, và tôi không sửa bộ mẫu để làm đẹp con số
 
 ## 5. Sự cố
 

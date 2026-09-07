@@ -5,6 +5,9 @@
 > file. Tóm tắt: bộ 20 biến thể **3/20 → 6/20**; tiêu chí 11.6 **1/5 → 2/5**; không hồi quy bộ mờ
 > (38/40); **không tốn thêm thời gian đo được**. Hai ca spec còn trượt do nguyên nhân (b) và (c) ở
 > dưới, chưa động tới.
+>
+> **Cập nhật lần hai (`a76761a`).** Đã sửa nốt việc chấm điểm dòng khớp alias: bộ 20 biến thể
+> **6/20 → 9/20**, tiêu chí 11.6 **2/5 → 4/5**. Xem mục **"Sau sửa chấm điểm alias"** cuối file.
 
 SHA phát hành: `eb5cc76` (+ `52d8507` sửa hai lỗi lộ ra khi chạy thật).
 Production: `https://api.ai-solutions.io.vn`, DB máy chủ nội bộ qua Hyperdrive.
@@ -210,3 +213,75 @@ Nguyên nhân (a) đã hết: bậc 3 chạy và cho kết quả đúng. Còn l�
 3. Các ca còn lại của bộ 20 (`dac lac`, `ban me thuot`, `bmt`, `mi tho`, `bac can`, `plei ku`,
    `saigon`, `li thuong kiet`) chưa phân tích từng ca; một số cần thêm mục vào từ điển địa danh
    (phải có nguồn OSM kiểm được), một số cùng nguyên nhân bão hoà ở trên.
+
+
+---
+
+# Sau sửa chấm điểm alias (`a76761a`, 08/09/2026)
+
+## Lỗi thật là gì
+
+Nhánh `qAlias` **tìm** theo dạng chuẩn, nhưng `sim` và `prefix` vẫn tính theo **chuỗi người dùng
+gõ**. Vì `ORDER BY sim DESC ... LIMIT 20` dùng chính `sim` đó, dòng đúng vừa bị xếp thấp vừa bị cắt
+khỏi tập ứng viên trước khi tới bước xếp hạng của route. Đo trên production trước khi sửa:
+
+| Dòng | `word_similarity` với chuỗi gõ | với dạng chuẩn | Chênh về điểm |
+|---|---:|---:|---:|
+| "Sân bay quốc tế Tân Sơn Nhất" (`tan son nhut`) | 0,769 | **1,000** | 0,127 |
+| POI "Quy Nhơn" cách `near` 0–1 km (`qui nhon`) | 0,636 | **1,000** | 0,200 |
+
+`tan son nhut` khi đó chỉ thua hạng 3 đúng **0,003** điểm.
+
+Sửa: thêm `word_similarity(qAlias, name_norm)` vào `greatest(...)` và `starts_with(name_norm,
+qAlias)` vào `prefix`, chỉ sinh khi từ điển thật sự đổi được chuỗi. Vì `ORDER BY` dùng chính biểu
+thức vừa sửa nên **không cần** thêm truy vấn UNION tách suất như phương án ban đầu — đỡ một vòng SQL
+cho mọi request.
+
+## Kết quả
+
+| Phép đo | Trước cách 2 | Sau cách 2 | Sau sửa chấm điểm |
+|---|---:|---:|---:|
+| Bộ 20 biến thể — hit@3 | 3/20 | 6/20 | **9/20** |
+| Tiêu chí 11.6 (5 ca spec) | 1/5 | 2/5 | **4/5** |
+| Bộ 40 truy vấn mờ — hit@3 | 38/40 | 38/40 | **38/40** |
+| Bộ 40 mờ — p95 lạnh | 1.742 ms | 1.715 ms | 1.729 ms |
+| `pnpm test:api-db` | 42/42 | 42/42 | **42/42** |
+
+Năm ca của tiêu chí 11.6 (với `near=10.776,106.700` như bộ đo dùng):
+
+| Ca | Kết quả | Đạt |
+|---|---|---|
+| `qui nhon` | **Quy Nhơn Quán** hạng 1 (1,001) | ✓ |
+| `kontum` | **Kon Tum** hạng 3 (0,751) | ✓ |
+| `dak lak` | Bệnh Viện Mắt **Đắk Lắk** hạng 1 | ✓ |
+| `tan son nhut` | **Tan Son Nhat** Saigon Hotel hạng 1, cả top 3 đều dạng chuẩn | ✓ |
+| `cong ly` | không có Nam Kỳ Khởi Nghĩa | ✗ — OSM thiếu `old_name` |
+
+## Mười một ca còn trượt của bộ 20 — hai nhóm
+
+**Nhóm 1 — thiếu dữ liệu tên đường cũ (4 ca):** `cong ly`, `duong cong ly`, `hien vuong`,
+`truong minh giang`. Cơ chế `matched_alt` đã chứng minh chạy được trên tên thay thế OSM có thật
+(`co thanh ve` → Đường Bế Văn Đàn hạng 1), nhưng OSM Việt Nam không gắn `old_name` cho ba tuyến này.
+Cần nguồn ngoài OSM hoặc CSV seed có nguồn kiểm được. **Không nên** nhét vào
+`toponym_alias.json`: từ điển đó thay chuỗi ở **mọi** vị trí của truy vấn, nên "cong ly" → "nam ky
+khoi nghia" sẽ phá hỏng việc tìm "Phở Công Lý" hay "VP Luật sư Trần Công Ly Tao" — đều là kết quả
+đúng đang trả về hôm nay.
+
+**Nhóm 2 — API trả đúng ĐỊA PHƯƠNG nhưng viết theo cách người dùng gõ (4 ca):**
+
+| Truy vấn | Đích trong fixture | Thực tế top 3 |
+|---|---|---|
+| `dac lac` | `dak lak` | Bơ Booth **Đắc Lắc**, Cà Phê Nguyên Chất **Đắc Lắc** |
+| `bac can` | `bac kan` | Nhà Hàng Lá Cọ TP **Bắc Cạn**, Phòng khám ... **Bắc Cạn** |
+| `saigon` | `sai gon` | **Saigon** Garden, **Saigon** Europe Hotel |
+| `mi tho` | `my tho` | Bánh **Mì Thổ** Nhĩ Kỳ Kebab |
+
+Ba ca đầu trả về đúng nơi cần tìm, chỉ là tên POI viết "Đắc Lắc"/"Bắc Cạn"/"Saigon" chứ không viết
+dạng chuẩn, mà fixture đòi **chuỗi đích phải nằm trong tên trả về**. `mi tho` thì nhập nhằng thật:
+ở HCM, "mi tho" khớp "Bánh Mì Thổ Nhĩ Kỳ" là hợp lý.
+
+**Đây là câu hỏi về tiêu chí, không phải về mã.** Tôi **không** sửa bộ mẫu để làm đẹp con số — plan
+ghi rõ "không chọn lại bộ mẫu". Nếu PHONG thấy "trả đúng địa phương" là đạt thì phải sửa cách chấm
+của fixture, và đó là quyết định của PHONG.
+
+**Ba ca chưa phân tích:** `bmt` (viết tắt — cần mục từ điển), `plei ku`, `li thuong kiet`.
