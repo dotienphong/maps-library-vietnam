@@ -1372,6 +1372,49 @@ vẫn là `sleep 1` phút — `sudo pmset -a sleep 0 disksleep 0`.
   cái nó **không** chờ là workflow riêng `apitest.yml` (DB thật) — và chính bộ DB thật mới bắt được
   `malformed array literal`. Đề xuất PHONG: cho Deploy API phụ thuộc `apitest.yml`
 
+- 2026-09-07 · **HẠNG MỤC 1 (alias hành chính cũ–mới) NGHIỆM THU HOÀN TẤT — Task 0–9 đóng** ·
+  hồ sơ: [8.3/8.4](evidence/admin-alias/8-3-8-4-coverage-production.md) ·
+  [quyết định A/B/C](evidence/admin-alias/8-3-decision-prep.md) ·
+  [8.5 benchmark](evidence/admin-alias/8-5-benchmark-area-cost.md) ·
+  [9.4/9.5](evidence/admin-alias/9-4-9-5-nghiem-thu-production.md)
+
+  **Phạm vi đóng — đọc trước mọi con số:** cổng xanh **trong phạm vi snapshot Geofabrik 250101 đã
+  chứng minh** (4.215 relation `admin_level=8` cũ, **không phải** ~10.000 đơn vị pháp lý). 23 chỗ
+  thiếu do nguồn được khai báo **có bằng chứng từng ca** trong
+  `scripts/fixtures/admin-alias-known-gaps.json`; ca nào **không** khai báo vẫn chặn phát hành, và
+  khai báo hết lỗi thì bị nhắc dọn (`stale_known_gap` hiện **0**).
+
+  | Bằng chứng 9.7 | Giá trị |
+  |---|---|
+  | Cổng độ phủ production | **ok=true, 0 failure, 309 warning, exit 0** |
+  | Counts thực | `admin_area` 3.353 (L4=34, L8=3.319) · `admin_area_old` 4.972 (L4 **63**, L6 **694**, L8 **4.215**) · `admin_alias` **37.251** |
+  | Khoảng spec đã sửa | L4 [63,63] · L6 [690,710] · L8 **[4.200,4.300]** (gốc 10.000–10.700, lý do ở spec mục 11) |
+  | Coverage exceptions | `known_gap_declared` **23** = outOfSnapshotScope 10, coverageGapNeedsSource 5, provenanceCollapsedByPk 3, boundaryVintageMismatch 3, offshoreNoTarget 2 · `coastal_gap_accepted` 55 · `discarded_sliver` 229 · `distinct_differs_from_relations` 2 · `stale_known_gap` **0** |
+  | Checksum nguồn | `vietnam-250101.osm.pbf` md5 `1f0fdd199d7194e515a9c4b48b3e5835`, sha256 `01cc05f4…a566aad`, 306.547.939 B |
+  | Fixture pass | alias cases **48/60**, ca tách **4/6** (12 ca còn lại khai báo có bằng chứng) |
+  | Precision geocode | **9/10** đạt `rooftop\|alley\|interpolated`, không cặp nào kém địa chỉ mới, đều trong `expectedBbox` |
+  | p50/p95/p99 — warm client | fuzzy POI: default 77/89/99 ms so với legacy 76/87/213 → **Δp95 +2 ms**; bộ area: 67/71/75 so với 67/73/92 → **Δp95 −2 ms** |
+  | p50/p95/p99 — cold phía Worker | default 581/1.756/2.958 ms (n=164) so với legacy 488/1.919/2.950 (n=159) → **Δp95 −163 ms**; chi phí thật của `area` là **+93 ms cold p50** |
+  | hit@3 fuzzy | **37/40 = baseline** (miss: `higland`, `cho rya`, `sieu thi co op`) |
+  | Workflow | `CI` `9bccce2` ✅ [34107792243](https://github.com/dotienphong/maps-library-vietnam/actions/runs/34107792243) · `Deploy API` `bde2d35` ✅ [34106026388](https://github.com/dotienphong/maps-library-vietnam/actions/runs/34106026388) · `API tests (DB thật)` `bde2d35` ✅ [34106026398](https://github.com/dotienphong/maps-library-vietnam/actions/runs/34106026398) · `Deploy Docs` `834db37` ✅ [34105145022](https://github.com/dotienphong/maps-library-vietnam/actions/runs/34105145022) · `DB tests` `9bccce2` ✅ 10 file/62 test [34108066281](https://github.com/dotienphong/maps-library-vietnam/actions/runs/34108066281) |
+  | Artifact rollback | R2 `mapslibvn-20260907-0518.dump.zst` và `mapslibvn-20260907-1020.dump.zst`; restore + quyền `api` với bảng old đã thử trên `mapslibvn_restore_test`; Worker bản trước còn nguyên |
+  | Cập nhật lần hai | `admin-old.mjs` và `admin.mjs` cùng cho checksum mapping `84f4cedbe29495c9` → không mất alias |
+
+  **Cổng đi trong ngày: 84 → 79 → 24 → 0.** Chỉ bước 84→79 là sửa lỗi code (8 vùng cũ đất liền mất
+  sạch alias do bộ lọc khoá nhập nhằng); ba bước sau là quyết định có bằng chứng (A/B/C, rồi khai báo
+  chỗ thiếu). Commit chính: `149bb1f` (A+B), `a4a8146` (`--accept-qa` cho admin-old), `178d086`
+  (publish production), `0585eb1` (đóng 8.3/8.4), `2728347` (sửa sự cố 503), `bde2d35` (recall nhánh
+  area), `44da644` (thứ tự build), `9bccce2`/`9119f99` (hồ sơ).
+
+  **Ba việc chuyển ra ngoài hạng mục 1, đã có hồ sơ:** (1) **nguồn ranh giới cấp xã cũ** — snapshot
+  chỉ có 4.215/≈10.000, lệch cực không đều (Sơn La 1, Bắc Giang 2); (2) **ranh giới hiện hành Cát
+  Bà–Cát Hải và đầm phá Tam Giang** cho 5 vùng chưa chứng minh được là nước; (3) **cho `Deploy API`
+  phụ thuộc `apitest.yml`** — hôm nay Deploy API thành công dù bộ DB thật đỏ ~10 giây trước, và chính
+  bộ đó bắt được `malformed array literal`. Phát hành npm để sau theo quyết định PHONG.
+
+  **Điểm tiếp theo: viết plan hạng mục 3** — không tự implement phonetic, `viKey`, tsvector,
+  `matched_alt` hay migration 0009.
+
 ## 5. Sự cố
 
 ### SC-1 · Cache Rule nuốt Range của PMTiles — **ĐÃ ĐÓNG 27/08/2026**
