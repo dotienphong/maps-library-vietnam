@@ -5,7 +5,7 @@ commit với code).
 
 ## 1. Trạng thái hiện tại
 
-- **07/09/2026 — Bật/tắt nguồn POI theo profile (spec 07/09). CODE XONG, CHƯA PUBLISH DỮ LIỆU.**
+- **07/09/2026 — ĐÃ PHÁT HÀNH bật/tắt nguồn POI theo profile (spec 07/09).**
   Cổng đo trước cho kết quả bất ngờ: OSM chỉ là **nguồn chính của 7,0 %** POI (106.325/1.522.416;
   Overture 77,1 %, FSQ 15,9 %; `multiSourcePct` 3,3 %) — mặc định `['osm']` như dự định ban đầu sẽ
   làm bản đồ mất ~93 % POI, nên PHONG quyết **đảo mặc định thành `all`**, giữ profile `osm` làm tuỳ
@@ -26,7 +26,22 @@ commit với code).
   Wrangler/Hyperdrive thật.
   **Kiểm thử:** 70 file/711 test unit + 24 file/140 test API + 3 file/33 test api-db + 10 file/62
   test DB (trong container vì máy dev thiếu tippecanoe) — tất cả xanh.
-  **Còn lại:** Task 15 của plan — deploy API rồi `data:update --poi`, nghiệm thu p95 và bản đồ.
+  **Phát hành (Task 15, mức PHONG chọn: deploy API + export riêng profile osm, chỉ ĐỌC DB):**
+  Worker version `e15713e5`; `pnpm poi:profile --profile osm` (lệnh mới) publish
+  `poi-osm-20260907.pmtiles` — **54.579 POI / 16,5 MB**, thinned 51.670, smoke 16/20 tile, 39 giây.
+  Manifest `{"poi":"poi-20260904","poiProfiles":{"osm":"poi-osm-20260907"}}` — archive `all`
+  KHÔNG đổi. Bằng chứng: `docs/evidence/poi-sources/nghiem-thu-production.md`.
+  **Phân hoạch đúng trên production:** `search?q=Highlands` cho `osm`=145, `overture,fsq`=1.207,
+  `all`=1.352 (145+1.207=1.352); 8/8 mẫu nhánh osm có `primary=osm`.
+  **Cổng p95 ĐẠT:** cache ấm `osm` 95 ms so với `all` 103 ms, cùng colo SIN, đo xen kẽ — nhánh mặc
+  định không xấu đi.
+  **Phát hiện đáng ghi:** archive `osm` có **110,9 %** số feature/tile của `all` (92 → 102 trên 15
+  tile ở 5 thành phố) dù chỉ lấy từ 7 % kho POI — vì lưới progressive chạy lại trên riêng tập OSM
+  nên POI OSM trước đây thua ô giờ thắng ô. Đây là bằng chứng thực nghiệm cho việc chọn phương án
+  archive-theo-profile thay vì lọc ở client. Ngoại lệ: Đà Nẵng z16 osm=0 (tile đó không có POI OSM).
+  **Việc nên làm tiếp (chưa mở task):** `multiSourcePct` chỉ 3,3 % — "Chợ Bến Thành" (osm) và
+  "Ben Thanh Market" (fsq) là cùng một chỗ mà conflate không ghép. Nếu muốn dùng nguồn làm tín hiệu
+  chất lượng thì phải xử lý chuyện này trước.
 
 - **07/09/2026 — ĐÃ PUBLISH dữ liệu alias hành chính lên production; nghiệm thu 8.5/8.6.**
   Thứ tự theo 9.2: backup `mapslibvn-20260907-1020.dump.zst` lên R2 → `osm-roads.mjs` (9.105 ranh
@@ -439,9 +454,9 @@ commit với code).
 
 ## 2. Bước kế tiếp
 
-- **Nguồn POI:** chạy Task 15 của `docs/superpowers/plans/2026-09-07-poi-sources-profile.md`:
-  deploy API → `data:update --poi` (build `poi-*` + `poi-osm-*`) → nghiệm thu p95 `--paired-sources`,
-  smoke `--set poi-osm`, kiểm tay bản đồ 5 thành phố.
+- **Nguồn POI:** đã phát hành 07/09 (xem mục 1). Việc còn để mở: điều tra `multiSourcePct` 3,3 %
+  (conflate không ghép được POI OSM với bản sinh đôi Overture/FSQ) trước khi dùng `primary_source`
+  làm tín hiệu chất lượng; và cân nhắc profile thứ ba `osm+overture` nếu có nhu cầu.
 
 - **05/09/2026 — Tìm mờ `word_similarity`: baseline trước khi đổi code.** Đo production
   `api.ai-solutions.io.vn` bằng `scripts/perf-autocomplete.mjs --queries scripts/fixtures/fuzzy-queries.txt`
