@@ -5,11 +5,14 @@
 export const POI_SOURCES = ['osm', 'overture', 'fsq'] as const;
 export type PoiSource = (typeof POI_SOURCES)[number];
 
-export type PoiSourceProfile = 'osm' | 'all';
-export const POI_SOURCE_PROFILES: Readonly<Record<PoiSourceProfile, readonly PoiSource[]>> = {
-  osm: ['osm'],
+export const POI_SOURCE_PROFILES = {
   all: ['osm', 'overture', 'fsq'],
-};
+  osm: ['osm'],
+  'overture-fsq': ['overture', 'fsq'],
+  overture: ['overture'],
+  fsq: ['fsq'],
+} as const satisfies Readonly<Record<string, readonly PoiSource[]>>;
+export type PoiSourceProfile = keyof typeof POI_SOURCE_PROFILES;
 
 /**
  * Mặc định ở mọi bề mặt (REST và SDK): cả ba nguồn, tức đúng hành vi trước khi có tuỳ chọn này.

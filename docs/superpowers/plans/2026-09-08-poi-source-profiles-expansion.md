@@ -33,7 +33,7 @@
 - Consumes: `PoiSource = 'osm' | 'overture' | 'fsq'` và thứ tự chuẩn `POI_SOURCES`.
 - Produces: `PoiSourceProfile = keyof typeof POI_SOURCE_PROFILES`; `profileForSources()` nhận đủ năm tập archive.
 
-- [ ] **Step 1: Viết test đỏ cho ba profile mới và thứ tự chuẩn**
+- [x] **Step 1: Viết test đỏ cho ba profile mới và thứ tự chuẩn**
 
 ```ts
 it('có đủ năm profile archive và suy ra đúng tập nguồn', () => {
@@ -51,13 +51,13 @@ it('có đủ năm profile archive và suy ra đúng tập nguồn', () => {
 });
 ```
 
-- [ ] **Step 2: Chạy RED**
+- [x] **Step 2: Chạy RED**
 
 Run: `pnpm vitest run packages/core/src/poi-sources.test.ts`
 
 Expected: FAIL vì registry chưa có `overture-fsq`, `overture`, `fsq`.
 
-- [ ] **Step 3: Sửa registry và type**
+- [x] **Step 3: Sửa registry và type**
 
 ```ts
 export const POI_SOURCE_PROFILES = {
@@ -73,13 +73,13 @@ export type PoiSourceProfile = keyof typeof POI_SOURCE_PROFILES;
 
 Giữ nguyên `DEFAULT_POI_SOURCES`, parsing và SQL clause.
 
-- [ ] **Step 4: Chạy GREEN và build core**
+- [x] **Step 4: Chạy GREEN và build core**
 
 Run: `pnpm vitest run packages/core/src/poi-sources.test.ts && pnpm --filter @mapslibvn/core build`
 
 Expected: toàn bộ test file PASS; build/size-limit exit 0.
 
-- [ ] **Step 5: Commit lát core**
+- [x] **Step 5: Commit lát core**
 
 ```bash
 git add packages/core/src/poi-sources.ts packages/core/src/poi-sources.test.ts

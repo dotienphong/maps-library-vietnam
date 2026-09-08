@@ -12,8 +12,10 @@ commit với code).
   rồi một lần cập nhật manifest. Spec:
   `docs/superpowers/specs/2026-09-08-poi-source-profiles-expansion-design.md`.
   Plan: `docs/superpowers/plans/2026-09-08-poi-source-profiles-expansion.md`, gồm 10 task TDD từ
-  registry đến production. **Bắt đầu tiếp:** Task 1, viết RED test cho năm profile rồi mở registry
-  core; chưa sửa code hoặc build/publish production ở checkpoint này.
+  registry đến production. **Task 1 ĐÓNG:** core có đủ năm profile, type được suy ra từ registry;
+  RED test thiếu ba profile đã fail đúng nguyên nhân, sau sửa test 7/7 và core build/size-limit xanh.
+  **Bắt đầu tiếp:** Task 2, RED tests cho release set, manifest động, tile sets và rollback nhiều
+  profile; chưa build/publish production ở checkpoint này.
 
 - **08/09/2026 — Mở lại gate POI Sources Profile sau review.** Tính năng đã rollout
   ngày 07/09, nhưng kết luận plan hoàn tất 15/15 và tick đồng loạt 76 bước là quá sớm.

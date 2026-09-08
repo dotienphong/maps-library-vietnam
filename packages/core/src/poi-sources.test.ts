@@ -16,6 +16,20 @@ describe('poi-sources', () => {
     expect(POI_SOURCE_PROFILES.osm).toEqual(['osm']);
   });
 
+  it('có đủ năm profile archive và suy ra đúng tập nguồn', () => {
+    expect(POI_SOURCE_PROFILES).toEqual({
+      all: ['osm', 'overture', 'fsq'],
+      osm: ['osm'],
+      'overture-fsq': ['overture', 'fsq'],
+      overture: ['overture'],
+      fsq: ['fsq'],
+    });
+    expect(profileForSources(['fsq', 'overture'])).toBe('overture-fsq');
+    expect(profileForSources(['overture'])).toBe('overture');
+    expect(profileForSources(['fsq'])).toBe('fsq');
+    expect(profileForSources(['osm', 'overture'])).toBeNull();
+  });
+
   it('normalizePoiSources: bỏ trùng, sắp theo thứ tự chuẩn, sai → null', () => {
     expect(normalizePoiSources(['fsq', 'osm', 'osm'])).toEqual(['osm', 'fsq']);
     expect(normalizePoiSources([])).toBeNull();
