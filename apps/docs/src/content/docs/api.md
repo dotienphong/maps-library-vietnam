@@ -121,7 +121,7 @@ Gợi ý khi người dùng đang gõ. Trộn ba loại kết quả: POI, tên �
 | `near` | `"lat,lng"` | không | — | `lat` trong ±90, `lng` trong ±180 |
 | `limit` | số nguyên | không | `10` | 1–10 |
 | `types` | danh sách ngăn bằng dấu phẩy | không | cả ba loại | `poi`, `street`, `address` |
-| `sources` | danh sách ngăn bằng dấu phẩy | không | `all` | `osm`, `overture`, `fsq`; `all` = cả ba. Lọc POI theo **nguồn chính**; POI do người dùng đóng góp luôn có mặt |
+| `sources` | danh sách ngăn bằng dấu phẩy | không | `all` | `osm`, `overture`, `fsq`; `all` = cả ba. Lọc POI theo **nguồn chính**; POI người dùng không bị loại vì nguồn |
 
 `sources` chỉ ảnh hưởng kết quả `poi`; `street`, `address` và `area` không có nguồn.
 
@@ -190,7 +190,7 @@ Tìm POI theo tên, theo loại, theo bán kính quanh một điểm hoặc theo
 | `radius` | số nguyên, mét | không | `5000` | 1–50000 (chỉ có tác dụng khi có `near`) |
 | `limit` | số nguyên | không | `20` | 1–50 |
 | `offset` | số nguyên | không | `0` | 0–500 |
-| `sources` | danh sách ngăn bằng dấu phẩy | không | `all` | `osm`, `overture`, `fsq`; `all` = cả ba. Lọc POI theo **nguồn chính**; POI do người dùng đóng góp luôn có mặt |
+| `sources` | danh sách ngăn bằng dấu phẩy | không | `all` | `osm`, `overture`, `fsq`; `all` = cả ba. Lọc POI theo **nguồn chính**; POI người dùng không bị loại vì nguồn |
 
 Phải có **ít nhất một** trong `q`, `category`, `near`, `bbox`; thiếu cả bốn trả `400 invalid_request`. Bốn tham số này kết hợp theo kiểu "và": gửi cả `q` và `category` sẽ lọc theo cả hai.
 
@@ -235,7 +235,7 @@ Danh sách POI quanh một điểm, sắp xếp theo khoảng cách tăng dần.
 | `radius` | số nguyên, mét | không | `500` | 1–5000 |
 | `limit` | số nguyên | không | `20` | 1–100 |
 | `category` | chuỗi | không | — | một mã loại, khớp chính xác |
-| `sources` | danh sách ngăn bằng dấu phẩy | không | `all` | `osm`, `overture`, `fsq`; `all` = cả ba. Lọc POI theo **nguồn chính**; POI do người dùng đóng góp luôn có mặt |
+| `sources` | danh sách ngăn bằng dấu phẩy | không | `all` | `osm`, `overture`, `fsq`; `all` = cả ba. Lọc POI theo **nguồn chính**; POI người dùng không bị loại vì nguồn |
 
 ```bash
 curl -H "X-Api-Key: mlv_live_…" \
@@ -361,7 +361,7 @@ Toạ độ thành địa chỉ, kèm POI gần nhất.
 |---|---|---|---|---|
 | `lat` | số | có | — | ±90 |
 | `lng` | số | có | — | ±180 |
-| `sources` | danh sách ngăn bằng dấu phẩy | không | `all` | `osm`, `overture`, `fsq`; `all` = cả ba. Lọc POI theo **nguồn chính**; POI do người dùng đóng góp luôn có mặt |
+| `sources` | danh sách ngăn bằng dấu phẩy | không | `all` | `osm`, `overture`, `fsq`; `all` = cả ba. Lọc POI theo **nguồn chính**; POI người dùng không bị loại vì nguồn |
 
 Bán kính tìm kiếm cố định, không cấu hình được:
 

@@ -179,7 +179,9 @@ map.on('poiClick', async (poi) => {
 Mặc định bản đồ vẽ POI từ cả ba nguồn dữ liệu. Muốn chỉ dùng dữ liệu OpenStreetMap — ví dụ để mọi
 POI đều theo giấy phép ODbL — đặt `poiSources: ['osm']`. Lưu ý OSM là nguồn chính của khoảng 7 % POI
 Việt Nam trong kho hiện tại, nên bản đồ sẽ **thưa hẳn**. Tuỳ chọn này áp cho cả `search`, `nearby`
-và `reverse` của `map.places`, nên POI không hiện trên bản đồ cũng không xuất hiện trong ô tìm kiếm.
+và `reverse` của `map.places`. POI thuộc nguồn bị tắt bị loại khỏi tìm kiếm; POI cùng nguồn nhưng bị
+thinning khỏi tile vẫn có thể tìm thấy qua Places API. POI người dùng không bị lọc theo nguồn, nhưng
+vẫn chịu trạng thái, xếp hạng, limit và thinning bình thường.
 `<mapslibvn-autocomplete>` nhận thuộc tính `sources="osm"` tương ứng.
 
 `poiLayer: false` đặt `visibility: 'none'` cho lớp `poi` khi style tải xong. Bật lại lúc chạy:

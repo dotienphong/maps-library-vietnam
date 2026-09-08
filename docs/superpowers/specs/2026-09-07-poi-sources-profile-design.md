@@ -46,7 +46,8 @@ lại lỗ trống, không phải để OSM hiện lên thay.
 2. Mặc định `all` (cả ba nguồn) ở mọi bề mặt (REST và SDK) — một mặc định duy nhất, giữ đúng
    hành vi hiện tại nên không người tích hợp nào mất dữ liệu khi nâng cấp.
 3. Bản đồ chỉ-OSM có mật độ đúng như khi lưới progressive chạy trên riêng tập OSM; không có lỗ trống.
-4. POI do người dùng đóng góp (`created_by = 'user'`) luôn có mặt bất kể tập nguồn.
+4. POI do người dùng đóng góp (`created_by = 'user'`) không bị loại vì tập nguồn; chúng vẫn chịu
+   các điều kiện `active`/category, xếp hạng, limit và thinning như POI khác.
 5. Không thêm migration; không đổi conflate, taxonomy, quality, progressive display; không đổi
    `PoiFeature`, `poiClick`, `poiLayer`.
 6. Giữ mỗi archive POI ≤ 300 MiB, maxzoom 16.
@@ -83,8 +84,8 @@ là nền tốt để làm sau.
 
 | Profile | Tập `primary_source` | Tên archive | Vai trò |
 |---|---|---|---|
-| `all` | `{osm, overture, fsq}` | `poi-YYYYMMDD.pmtiles` | **mặc định**, archive hiện tại, giữ tên |
-| `osm` | `{osm}` | `poi-osm-YYYYMMDD.pmtiles` | tuỳ chọn (ví dụ khi chỉ muốn dữ liệu ODbL) |
+| `all` | `{osm, overture, fsq}` | `poi-<build-id>.pmtiles` | **mặc định**, archive hiện tại, giữ prefix |
+| `osm` | `{osm}` | `poi-osm-<build-id>.pmtiles` | tuỳ chọn (ví dụ khi chỉ muốn dữ liệu ODbL) |
 
 Bảng profile là một hằng dùng chung `POI_SOURCE_PROFILES` đặt ở `packages/core/src/poi-sources.ts`
 (`{ osm: ['osm'], all: ['osm','overture','fsq'] }`); API, SDK và pipeline (`pipelines/poi` đã phụ thuộc
@@ -111,25 +112,27 @@ là một so sánh trên cột đã có index `poi_primary_source_idx`.
 
 - Thêm cờ `--sources <osm|all>` (tên profile). Mặc định `all` → hành vi và tên release hiện tại không đổi.
 - `WHERE` dùng mệnh đề mục 4. Lưới progressive, `displayFields`, `priorityOrderSql`, tippecanoe giữ nguyên.
-- Tên release: `releaseName('poi-osm')` — `dates.mjs` mở rộng kiểu prefix thành
-  `'vn' | 'poi' | 'poi-osm'`.
+- Tên release: `releaseName('poi-osm', buildId)` — build ID dạng
+  `YYYYMMDD-HHmmss-<nonce>` được chốt đúng một lần cho cả hai profile; tên date-only lịch sử vẫn đọc được.
 - Log JSON cuối vẫn in `activeRead/selected/thinned/byMinZoom`; thêm `sources` để đối chiếu.
 
 ### 5.2 `data-update.mjs`
 
-Sau bước export `poi-YYYYMMDD` hiện có, chạy tiếp cho profile `osm` trên **cùng snapshot DB** (cùng
-tunnel, cùng phiên):
+`data:update --poi` đọc các hàng `poi` active đúng một lần vào file trung gian bất biến
+`snapshot-<build-id>.jsonl`, công bố atomically kèm SHA-256. Cả hai export xác thực cùng build ID và
+checksum, rồi lọc/thinning độc lập từ file đó; thay đổi DB giữa hai export không thể làm lệch dữ liệu.
 
 ```
-export-tiles --release poi-osm-YYYYMMDD --sources osm
+export-tiles --release poi-osm-<build-id> --sources osm --snapshot <snapshot>
 qa <file> --skip-islands
-upload poi-osm-YYYYMMDD
-smoke poi-osm-YYYYMMDD --set poi-osm
+upload poi-osm-<build-id>
+smoke poi-osm-<build-id> --set poi-osm
 ```
 
-rồi **một** lần `manifest.mjs set --poi poi-YYYYMMDD --poi-osm poi-osm-YYYYMMDD`. `built` và state
-R2 ghi thêm `poiOsm`. Nếu bước profile `osm` thất bại thì không set manifest cho cả hai — hai archive luôn
-cùng ngày.
+rồi **một** lần `manifest.mjs set --poi poi-<build-id> --poi-osm poi-osm-<build-id>`. Manifest là
+bước commit cuối, chỉ chạy sau export/QA/upload/smoke của cả hai profile. Archive là bất biến: upload
+lại cùng bytes được phép, khác bytes bị từ chối; mỗi archive có companion `.sha256`. Nếu bất kỳ bước
+nào lỗi thì manifest cũ giữ nguyên.
 
 ### 5.3 Manifest KV `release:current`
 
@@ -138,7 +141,8 @@ cùng ngày.
 ```
 
 - `poi` giữ nghĩa = profile `all`, nên `tiles.ts`/`style.ts`/`renderStyle` hiện tại không đổi nghĩa.
-- `manifest.mjs set` thêm `--poi-osm <release>`; `history`/`rollback` bao trọn object nên tự đúng.
+- `manifest.mjs set` thêm `--poi-osm <release>`; rollback kiểm cả `.pmtiles` và `.sha256` của từng
+  release đích trước khi đổi manifest.
 - `apps/api/src/manifest.ts`: `Manifest.poiProfiles?: Partial<Record<'osm', string>>`.
 
 ### 5.4 `tiles.ts`, `smoke.mjs`
@@ -164,7 +168,7 @@ cùng ngày.
 |---|---|---|
 | `GET /v1/search` | có | thêm mệnh đề mục 4 |
 | `GET /v1/nearby` | có | như trên |
-| `GET /v1/autocomplete` | có, chỉ `poiCandidates` | `street`/`address`/`area` không có nguồn. Cache key thêm `&s=<osm_overture_fsq>`; bump `v=admin1` → `v=src1` |
+| `GET /v1/autocomplete` | có, ở mọi nhánh POI | prefix/alias/tsvector/viKey/Telex đều lọc; `street`/`address`/`area` không có nguồn. Cache key chứa tập nguồn nên không lẫn profile |
 | `GET /v1/reverse` | có, cho `nearest_poi` | nhất quán với bản đồ |
 | `GET /v1/places/{id}` | **không** | tra theo id; POI đã bấm/đã ghim phải mở được. Response đã có `sources[]` |
 | `GET /v1/styles/{theme}.json` | có | xem 6.3 |
@@ -219,9 +223,13 @@ cùng ngày.
 
 ### dbtest
 
-- `pipeline-fixture.dbtest.mjs`: export `--sources osm` ra tập con của `all`; POI `created_by='user'`
-  có trong cả hai; không POI `primary_source` khác `osm` trong archive `osm`.
-- Search/nearby/reverse với `sources=osm` không trả POI Overture/FSQ; vẫn trả POI người dùng.
+- `pipeline-fixture.dbtest.mjs`: tập đầu vào `osm` là tập con của DB đủ điều kiện, nhưng archive sau
+  thinning độc lập không bắt buộc là tập con/nhỏ hơn `all`. Fixture cùng ô khóa Overture thắng `all`,
+  OSM được phục hồi ở `osm`, bằng ID thật trong GeoJSONSeq và tile giải mã.
+- POI user không bị lọc nguồn nhưng vẫn chịu thinning; fixture không cạnh tranh có trong cả hai archive,
+  fixture cạnh tranh có thể bị loại ở cả hai.
+- API DB khóa ID OSM/Overture/FSQ/user cho search, nearby, reverse và mọi nhánh autocomplete; cache
+  được thử cả `osm→all` và `all→osm` trên Wrangler + PostgreSQL thật.
 
 ### Nghiệm thu production
 
@@ -241,7 +249,8 @@ cùng ngày.
    header `x-poi-profile: all;fallback`) — nên vẫn nên chạy bước 1 và 2 gần nhau.
 2. `data:update --poi` build cả hai archive, `manifest set` một lần → `sources=osm` bắt đầu có archive
    riêng, mặc định `all` không đổi gì.
-3. Publish SDK; cập nhật docs: `api.md` (tham số `sources`, header `x-poi-profile`, mặc định `all`),
+3. Publish SDK chỉ sau khi hoàn tất kiểm tra nhãn hiệu/pháp lý; version trong source không chứng minh
+   package đã có trên npm. Cập nhật docs: `api.md` (tham số `sources`, header `x-poi-profile`, mặc định `all`),
    `ban-do-web.md`, `react.md`, `react-native.md` (prop `poiSources`), `sdk.md`, `tim-kiem.md`
    (search theo tập nguồn), `tinh-nang.md`; DEVLOG.
 

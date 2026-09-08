@@ -9,14 +9,14 @@ Trang này liệt kê **đúng những gì bốn gói xuất ra**, kèm mặc đ
 
 | Gói | Phiên bản | Làm gì | Peer dependency |
 |---|---|---|---|
-| `@mapslibvn/core` | 0.3.0 | client REST, kiểu dữ liệu, chuỗi ghi nguồn, chuẩn hoá tiếng Việt | không có |
-| `@mapslibvn/web` | 0.3.0 | `createMap` bọc MapLibre GL JS, web component autocomplete | `maplibre-gl@^5` |
-| `@mapslibvn/react` | 0.3.0 | component và hook cho React | `maplibre-gl@^5`, `react>=18` |
-| `@mapslibvn/react-native` | 0.3.0 | component và hook cho iOS/Android | `@maplibre/maplibre-react-native@^11.3`, `react>=19.1`, `react-native>=0.80` |
+| `@mapslibvn/core` | 0.4.0 | client REST, kiểu dữ liệu, chuỗi ghi nguồn, chuẩn hoá tiếng Việt | không có |
+| `@mapslibvn/web` | 0.4.0 | `createMap` bọc MapLibre GL JS, web component autocomplete | `maplibre-gl@^5` |
+| `@mapslibvn/react` | 0.4.0 | component và hook cho React | `maplibre-gl@^5`, `react>=18` |
+| `@mapslibvn/react-native` | 0.4.0 | component và hook cho iOS/Android | `@maplibre/maplibre-react-native@^11.3`, `react>=19.1`, `react-native>=0.80` |
 
 `@mapslibvn/web` phụ thuộc `@mapslibvn/core` và `pmtiles`; `@mapslibvn/react` phụ thuộc cả `core` và `web`. Bạn chỉ cần cài gói ngoài cùng.
 
-Cả bốn gói **chưa phát hành lên npm** trong giai đoạn nội bộ. Cách cài hiện tại — UMD qua thẻ `<script>` hoặc tarball — ở [Cài đặt](/cai-dat/).
+Cả bốn gói **chưa phát hành lên npm** trong giai đoạn nội bộ. Cách cài hiện tại — UMD qua thẻ `<script>` hoặc tarball — ở [Cài đặt](/cai-dat/). Số `0.4.0` ở bảng là version trong source/tarball hiện tại, không phải xác nhận package đã có trên npm.
 
 ### Nâng từ 0.2.x lên 0.3.0
 
@@ -31,6 +31,8 @@ chạy không phải sửa gì. Mới:
 
 Đặt `poiSources: ['osm']` nếu chỉ muốn POI có nguồn chính OpenStreetMap — lưu ý đó là khoảng 7 %
 kho POI hiện tại, nên bản đồ sẽ thưa hẳn.
+
+Source hiện ở `0.4.0`; contract `poiSources` trên vẫn giữ nguyên. Bản bump này chưa được publish npm.
 
 ### Nâng từ 0.1.x lên 0.2.0
 
@@ -79,6 +81,7 @@ const client = createClient({
 | `baseUrl` | `string` | bắt buộc | dấu `/` ở cuối được cắt bỏ |
 | `fetch` | `typeof fetch` | `globalThis.fetch` | tiêm fetch riêng cho test hoặc môi trường không có fetch toàn cục |
 | `headers` | `Record<string, string>` | `{}` | header thêm cho mọi request, ví dụ `X-Bundle-Id` với khoá `mobile`; **không ghi đè được** `X-Api-Key` |
+| `poiSources` | `PoiSource[]` | cả ba nguồn | áp cho autocomplete/search/nearby/reverse và URL style; `getPlace`/geocode không lọc |
 
 ### Phương thức client ứng với endpoint nào
 

@@ -1847,12 +1847,12 @@ git commit -m "docs(sdk,api): poiSources/sources=, SDK 0.3.0, DEVLOG"
 - [x] **Step 7 (chỉ plan, 08/09):** Mẫu SQL Task 4 chuyển sang `textArray`, tham số
   test là JSON string; bản sửa runtime đã có ở `2728347`. Không copy lại binding
   mảng JS cũ. API DB vẫn là gate bắt buộc khi sửa SQL.
-- [ ] **Step 8:** Sau sửa code, đồng bộ spec mục 5.2/9 (snapshot/tập con), contract
+- [x] **Step 8:** Sau sửa code, đồng bộ spec mục 5.2/9 (snapshot/tập con), contract
   autocomplete và docs nguồn/rollout/release ID với R1–R8. Giữ nguyên quyết định
   mặc định all. Đổi câu “POI không hiện trên bản đồ cũng không xuất hiện trong
   tìm kiếm” thành “POI thuộc nguồn bị tắt bị loại khỏi tìm kiếm”; POI bị thinning
   vẫn tìm được. Nêu giới hạn dữ liệu OSM và ngữ nghĩa user ở Task 10.
-- [ ] **Step 9:** Ghi rõ phiên bản SDK đã bump trong source khác với publish npm.
+- [x] **Step 9:** Ghi rõ phiên bản SDK đã bump trong source khác với publish npm.
   Không chạy lại lệnh hạ version 0.3.0 trong phần lịch sử. Chạy docs build/lint và
   cập nhật DEVLOG với gate còn mở, kết quả mới và điểm tiếp tục.
 

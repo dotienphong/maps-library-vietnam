@@ -66,6 +66,14 @@ commit với code).
   street/address/area không bị lọc. API unit xanh 25 file/168 test, API DB thật xanh
   3 file/51 test. **Tiếp:** R8 — đồng bộ spec/docs với snapshot, thinning độc lập,
   release bất biến và trạng thái package 0.4.0.
+  **R8 ĐÓNG:** spec và docs nay mô tả đúng snapshot JSONL chung có checksum, build ID
+  chung `YYYYMMDD-HHmmss-<nonce>`, manifest-last, archive bất biến và rollback kiểm
+  companion SHA-256. Tài liệu bỏ lời hứa sai rằng POI không vẽ thì không tìm được:
+  chỉ nguồn bị tắt mới bị lọc, còn thinning tile không lọc Places API; user chỉ được
+  miễn source filter. Trang SDK hiển thị đúng source version `0.4.0` và nói rõ bốn gói
+  chưa publish npm. Docs build xanh 20 trang; lint sạch 330 file.
+  **Tiếp:** R7/R6 — đo paired p95 có baseline tương ứng, build đôi trên staging và
+  nghiệm thu browser 5 thành phố trước khi đóng production acceptance.
 
 - **07/09/2026 — ĐÃ PHÁT HÀNH bật/tắt nguồn POI theo profile (spec 07/09).**
   Cổng đo trước cho kết quả bất ngờ: OSM chỉ là **nguồn chính của 7,0 %** POI (106.325/1.522.416;
