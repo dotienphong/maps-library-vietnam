@@ -38,6 +38,24 @@ describe('tiles fallback khi chưa có dữ liệu', () => {
     expect(present.status).not.toBe(404);
   });
 
+  it.each([
+    ['poi-overture-fsq', 'overture-fsq', 'poi-overture-fsq-20260909'],
+    ['poi-overture', 'overture', 'poi-overture-20260909'],
+    ['poi-fsq', 'fsq', 'poi-fsq-20260909'],
+  ])('set %s đọc release từ manifest.poiProfiles.%s', async (set, profile, release) => {
+    await env.META.put(
+      'release:current',
+      JSON.stringify({
+        vn: 'vn-20260826',
+        poi: 'poi-20260901',
+        poiProfiles: { [profile]: release },
+      }),
+    );
+    // Có release nhưng R2 local trống → lỗi đọc archive, không phải 404 "chưa phát hành".
+    const present = await SELF.fetch(`https://api/v1/tiles/${set}.json`);
+    expect(present.status).not.toBe(404);
+  });
+
   it('/r2/* trả 404 đúng định dạng khi R2 local trống', async () => {
     const res = await SELF.fetch('https://api/r2/tiles/none.pmtiles');
     expect(res.status).toBe(404);

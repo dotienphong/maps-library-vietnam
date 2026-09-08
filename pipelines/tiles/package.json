@@ -8,6 +8,7 @@
     "typecheck": "tsc -p tsconfig.json"
   },
   "dependencies": {
+    "@mapslibvn/core": "workspace:*",
     "@mapbox/vector-tile": "^2.0.3",
     "pbf": "^4.0.1",
     "pmtiles": "^4.3.0"

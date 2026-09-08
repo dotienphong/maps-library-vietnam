@@ -65,6 +65,41 @@ describe('nextManifest', () => {
     });
   });
 
+  it('--poi-profile lặp cập nhật nguyên tử nhiều profile và giữ profile cũ', () => {
+    expect(
+      nextManifest(
+        current,
+        [
+          '--poi-profile',
+          'overture-fsq=poi-overture-fsq-2',
+          '--poi-profile',
+          'overture=poi-overture-2',
+          '--poi-profile',
+          'fsq=poi-fsq-2',
+        ],
+        at,
+      ),
+    ).toEqual({
+      vn: 'vn-1',
+      poi: 'poi-1',
+      poiProfiles: {
+        osm: 'poi-osm-1',
+        'overture-fsq': 'poi-overture-fsq-2',
+        overture: 'poi-overture-2',
+        fsq: 'poi-fsq-2',
+      },
+      updatedAt: at,
+    });
+  });
+
+  it('--poi-profile từ chối profile lạ và cặp thiếu profile/release', () => {
+    expect(() => nextManifest(current, ['--poi-profile', 'banana=poi-banana-2'], at)).toThrowError(
+      /profile/i,
+    );
+    expect(() => nextManifest(current, ['--poi-profile', 'fsq'], at)).toThrowError(/profile/i);
+    expect(() => nextManifest(current, ['--poi-profile'], at)).toThrowError(/Thiếu/);
+  });
+
   it('manifest cũ không có poiProfiles thì không bịa ra khoá rỗng', () => {
     expect(nextManifest({ vn: 'vn-1', poi: null }, ['--poi', 'poi-2'], at)).toEqual({
       vn: 'vn-1',

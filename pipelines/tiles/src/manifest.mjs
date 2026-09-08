@@ -1,5 +1,6 @@
 #!/usr/bin/env node
-// Dùng: manifest.mjs get | set --vn <release> [--poi <release>] [--poi-osm <release>] | rollback
+// Dùng: manifest.mjs get | set --vn <release> [--poi <release>] [--poi-osm <release>]
+//   [--poi-profile <profile=release>] | rollback
 import { execFileSync } from 'node:child_process';
 import { requireEnv } from './lib/env.mjs';
 import { nextManifest, parseListedKeys, readOptionalJson } from './lib/manifest-state.mjs';
@@ -49,6 +50,6 @@ if (command === 'get') {
   console.log('✓ rollback về', JSON.stringify(previous));
 } else {
   throw new Error(
-    'Dùng: manifest.mjs get | set --vn <release> [--poi <release>] [--poi-osm <release>] | rollback',
+    'Dùng: manifest.mjs get | set --vn <release> [--poi <release>] [--poi-osm <release>] [--poi-profile <profile=release>] | rollback',
   );
 }

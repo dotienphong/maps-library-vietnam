@@ -7,9 +7,11 @@ import { lonLatToTile } from './lib/qa-rules.mjs';
 const argv = process.argv.slice(2);
 const release = argv[0];
 if (!release) throw new Error('Dùng: node smoke.mjs <release> [--set vn|poi|poi-osm]');
-const set = argv.includes('--set') ? argv[argv.indexOf('--set') + 1] : 'vn';
+const setAt = argv.indexOf('--set');
+const set = setAt < 0 ? 'vn' : argv[setAt + 1];
+if (!set) throw new Error('Thiếu tên set sau --set');
 // Mọi profile POI dùng chung ngưỡng: cùng maxzoom và cùng luật mật độ 5.8.
-const isPoi = set === 'poi' || set === 'poi-osm';
+const isPoi = set === 'poi' || set.startsWith('poi-');
 const expectMaxZoom = isPoi ? 16 : 14;
 const zooms = isPoi ? [12, 14, 15, 16] : [10, 12, 13, 14];
 

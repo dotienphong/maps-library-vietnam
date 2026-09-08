@@ -107,7 +107,7 @@ git commit -m "feat(core): bổ sung profile POI Overture và Foursquare"
 - Consumes: năm key từ `POI_SOURCE_PROFILES` và `poiReleasePrefix(profile)`.
 - Produces: `poiReleaseSet(profiles, date?, nonce?) -> { buildId, releases }`; manifest flag lặp `--poi-profile profile=release`; rollback kiểm mọi giá trị trong `poiProfiles`.
 
-- [ ] **Step 1: Viết test đỏ cho release set và giữ wrapper cũ**
+- [x] **Step 1: Viết test đỏ cho release set và giữ wrapper cũ**
 
 ```js
 expect(
@@ -124,7 +124,7 @@ expect(poiReleasePair(new Date('2026-09-08T10:00:00Z'), 'a1b2c3d4').poiOsm)
   .toBe('poi-osm-20260908-170000-a1b2c3d4');
 ```
 
-- [ ] **Step 2: Viết test đỏ cho manifest động và tương thích CLI cũ**
+- [x] **Step 2: Viết test đỏ cho manifest động và tương thích CLI cũ**
 
 ```js
 expect(
@@ -147,7 +147,7 @@ expect(() => nextManifest(current, ['--poi-profile', 'banana=poi-banana-2'], at)
   .toThrow(/profile/i);
 ```
 
-- [ ] **Step 3: Viết test đỏ cho tile set và rollback nhiều profile**
+- [x] **Step 3: Viết test đỏ cho tile set và rollback nhiều profile**
 
 ```ts
 for (const set of ['poi-overture-fsq', 'poi-overture', 'poi-fsq']) {
@@ -165,13 +165,13 @@ expect(verifyRollbackArchives({
 ]);
 ```
 
-- [ ] **Step 4: Chạy RED**
+- [x] **Step 4: Chạy RED**
 
 Run: `pnpm vitest run pipelines/tiles/src/lib/dates.test.mjs pipelines/tiles/src/lib/manifest-state.test.mjs apps/api/test/tiles.test.ts scripts/data-rollback.test.mjs`
 
 Expected: FAIL vì release/manifest/tiles/rollback còn hard-code `osm`.
 
-- [ ] **Step 5: Implement release map và parser manifest động**
+- [x] **Step 5: Implement release map và parser manifest động**
 
 ```js
 export function poiReleaseSet(profiles, date = new Date(), nonce = randomBytes(4).toString('hex')) {
@@ -188,7 +188,7 @@ Trong `nextManifest`, gom mọi lần xuất hiện của `--poi-profile`, tách
 profile qua registry và merge vào `current.poiProfiles`. Chuyển `--poi-osm value` thành entry
 `osm=value` trước khi merge; `--poi` vẫn cập nhật field top-level.
 
-- [ ] **Step 6: Tổng quát tile/smoke/rollback**
+- [x] **Step 6: Tổng quát tile/smoke/rollback**
 
 ```ts
 export interface Manifest {
@@ -208,13 +208,13 @@ const releases = [target.poi, ...Object.values(target.poiProfiles ?? {})].filter
 );
 ```
 
-- [ ] **Step 7: Chạy GREEN và static gates**
+- [x] **Step 7: Chạy GREEN và static gates**
 
 Run: `pnpm vitest run pipelines/tiles/src/lib/dates.test.mjs pipelines/tiles/src/lib/manifest-state.test.mjs apps/api/test/tiles.test.ts scripts/data-rollback.test.mjs && pnpm lint && pnpm typecheck`
 
 Expected: test PASS; lint/typecheck exit 0.
 
-- [ ] **Step 8: Commit lát release/manifest**
+- [x] **Step 8: Commit lát release/manifest**
 
 ```bash
 git add pipelines/tiles/src/lib/dates.mjs pipelines/tiles/src/lib/dates.test.mjs pipelines/tiles/src/lib/manifest-state.mjs pipelines/tiles/src/lib/manifest-state.test.mjs pipelines/tiles/src/manifest.mjs pipelines/tiles/src/smoke.mjs apps/api/src/manifest.ts apps/api/src/routes/tiles.ts apps/api/test/tiles.test.ts scripts/data-rollback.mjs scripts/data-rollback.test.mjs

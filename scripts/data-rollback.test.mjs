@@ -34,7 +34,11 @@ describe('rollback verification', () => {
   const previous = {
     vn: 'vn-old',
     poi: 'poi-old',
-    poiProfiles: { osm: 'poi-osm-old' },
+    poiProfiles: {
+      osm: 'poi-osm-old',
+      overture: 'poi-overture-old',
+      fsq: 'poi-fsq-old',
+    },
   };
 
   it('lấy đúng object history đầu tiên làm target', () => {
@@ -50,14 +54,22 @@ describe('rollback verification', () => {
       'poi-old.pmtiles.sha256',
       'poi-osm-old.pmtiles',
       'poi-osm-old.pmtiles.sha256',
+      'poi-overture-old.pmtiles',
+      'poi-overture-old.pmtiles.sha256',
+      'poi-fsq-old.pmtiles',
+      'poi-fsq-old.pmtiles.sha256',
     ]);
     const checksums = new Map([
       ['poi-old.pmtiles.sha256', 'a'.repeat(64)],
       ['poi-osm-old.pmtiles.sha256', 'b'.repeat(64)],
+      ['poi-overture-old.pmtiles.sha256', 'c'.repeat(64)],
+      ['poi-fsq-old.pmtiles.sha256', 'd'.repeat(64)],
     ]);
     expect(verifyRollbackArchives(previous, listed, (name) => checksums.get(name) ?? '')).toEqual([
       { release: 'poi-old', sha256: 'a'.repeat(64) },
       { release: 'poi-osm-old', sha256: 'b'.repeat(64) },
+      { release: 'poi-overture-old', sha256: 'c'.repeat(64) },
+      { release: 'poi-fsq-old', sha256: 'd'.repeat(64) },
     ]);
   });
 

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { poiReleasePair, releaseName, stampVN } from './dates.mjs';
+import { poiReleasePair, poiReleaseSet, releaseName, stampVN } from './dates.mjs';
 
 describe('stampVN', () => {
   it('đổi thời điểm UTC sang ngày giờ VN (UTC+7) dạng YYYYMMDD', () => {
@@ -29,5 +29,24 @@ describe('poiReleasePair', () => {
 
   it('từ chối nonce có thể làm hỏng tên object', () => {
     expect(() => poiReleasePair(new Date(), '../same-name')).toThrow(/nonce/i);
+  });
+});
+
+describe('poiReleaseSet', () => {
+  it('dùng chung build id cho batch profile bất kỳ', () => {
+    expect(
+      poiReleaseSet(
+        ['overture-fsq', 'overture', 'fsq'],
+        new Date('2026-09-08T10:00:00Z'),
+        'a1b2c3d4',
+      ),
+    ).toEqual({
+      buildId: '20260908-170000-a1b2c3d4',
+      releases: {
+        'overture-fsq': 'poi-overture-fsq-20260908-170000-a1b2c3d4',
+        overture: 'poi-overture-20260908-170000-a1b2c3d4',
+        fsq: 'poi-fsq-20260908-170000-a1b2c3d4',
+      },
+    });
   });
 });

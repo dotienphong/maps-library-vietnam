@@ -13,12 +13,12 @@ export function rollbackTarget(value) {
 }
 
 /**
- * @param {{ poi?: string | null, poiProfiles?: { osm?: string | null } }} target
+ * @param {{ poi?: string | null, poiProfiles?: Record<string, string | null> }} target
  * @param {Set<string>} listed
  * @param {(checksumName: string) => string} readChecksum
  */
 export function verifyRollbackArchives(target, listed, readChecksum) {
-  const releases = [target.poi, target.poiProfiles?.osm].filter(
+  const releases = [...new Set([target.poi, ...Object.values(target.poiProfiles ?? {})])].filter(
     (release) => typeof release === 'string' && release.length > 0,
   );
   return releases.map((release) => {

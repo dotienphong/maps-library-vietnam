@@ -14,8 +14,11 @@ commit với code).
   Plan: `docs/superpowers/plans/2026-09-08-poi-source-profiles-expansion.md`, gồm 10 task TDD từ
   registry đến production. **Task 1 ĐÓNG:** core có đủ năm profile, type được suy ra từ registry;
   RED test thiếu ba profile đã fail đúng nguyên nhân, sau sửa test 7/7 và core build/size-limit xanh.
-  **Bắt đầu tiếp:** Task 2, RED tests cho release set, manifest động, tile sets và rollback nhiều
-  profile; chưa build/publish production ở checkpoint này.
+  **Task 2 ĐÓNG:** release set dùng chung build ID; manifest nhận `--poi-profile profile=release`
+  lặp nhưng giữ `--poi-osm`; TileJSON resolve mọi profile từ registry; smoke nhận mọi `poi-*` và
+  rollback quét/checksum toàn bộ `poiProfiles`. RED 4 lỗi đúng hard-code; GREEN 21 unit + 7 API
+  tile tests, lint 331 file và typecheck 14/14. **Bắt đầu tiếp:** Task 3, batch bootstrap ba archive
+  từ một snapshot với manifest-last/fault injection; chưa build/publish production ở checkpoint này.
 
 - **08/09/2026 — Mở lại gate POI Sources Profile sau review.** Tính năng đã rollout
   ngày 07/09, nhưng kết luận plan hoàn tất 15/15 và tick đồng loạt 76 bước là quá sớm.

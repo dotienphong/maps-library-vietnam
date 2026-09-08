@@ -293,6 +293,9 @@ importers:
       '@mapbox/vector-tile':
         specifier: ^2.0.3
         version: 2.0.5
+      '@mapslibvn/core':
+        specifier: workspace:*
+        version: link:../../packages/core
       pbf:
         specifier: ^4.0.1
         version: 4.0.2

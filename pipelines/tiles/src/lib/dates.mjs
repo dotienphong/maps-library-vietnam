@@ -13,9 +13,28 @@ export function stampVNTime(date) {
   return `${iso.slice(0, 10).replace(/-/g, '')}-${iso.slice(11, 19).replace(/:/g, '')}`;
 }
 
-/** @param {'vn' | 'poi' | 'poi-osm'} prefix @param {Date} [date] */
+/** @param {string} prefix @param {Date} [date] */
 export function releaseName(prefix, date = new Date()) {
   return `${prefix}-${stampVN(date)}`;
+}
+
+/**
+ * Tạo map release dùng chung một build ID cho batch profile POI.
+ * @param {string[]} profiles
+ * @param {Date} [date]
+ * @param {string} [nonce]
+ */
+export function poiReleaseSet(profiles, date = new Date(), nonce = randomBytes(4).toString('hex')) {
+  if (!/^[a-z0-9]+$/i.test(nonce)) throw new Error('POI build nonce không hợp lệ');
+  const buildId = `${stampVNTime(date)}-${nonce}`;
+  const releases = Object.fromEntries(
+    profiles.map((profile) => {
+      if (!/^[a-z][a-z-]*$/.test(profile)) throw new Error(`POI profile không hợp lệ: ${profile}`);
+      const prefix = profile === 'all' ? 'poi' : `poi-${profile}`;
+      return [profile, `${prefix}-${buildId}`];
+    }),
+  );
+  return { buildId, releases };
 }
 
 /**
@@ -25,11 +44,13 @@ export function releaseName(prefix, date = new Date()) {
  * @param {string} [nonce]
  */
 export function poiReleasePair(date = new Date(), nonce = randomBytes(4).toString('hex')) {
-  if (!/^[a-z0-9]+$/i.test(nonce)) throw new Error('POI build nonce không hợp lệ');
-  const buildId = `${stampVNTime(date)}-${nonce}`;
+  const { buildId, releases } = poiReleaseSet(['all', 'osm'], date, nonce);
+  const poi = releases.all;
+  const poiOsm = releases.osm;
+  if (!poi || !poiOsm) throw new Error('Không tạo được cặp release POI all/osm');
   return {
     buildId,
-    poi: `poi-${buildId}`,
-    poiOsm: `poi-osm-${buildId}`,
+    poi,
+    poiOsm,
   };
 }

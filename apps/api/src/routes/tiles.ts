@@ -1,3 +1,4 @@
+import { POI_SOURCE_PROFILES, type PoiSourceProfile } from '@mapslibvn/core';
 import { Hono } from 'hono';
 import { Compression, PMTiles } from 'pmtiles';
 import type { Env } from '../env';
@@ -6,12 +7,22 @@ import { type Manifest, getManifest } from '../manifest';
 import { R2Source } from '../r2-source';
 
 export const tiles = new Hono<{ Bindings: Env }>();
-const SETS = ['vn', 'poi', 'poi-osm'] as const;
+const PROFILE_SETS = new Map<PoiSourceProfile, string>(
+  Object.keys(POI_SOURCE_PROFILES).map((profile) => [
+    profile as PoiSourceProfile,
+    profile === 'all' ? 'poi' : `poi-${profile}`,
+  ]),
+);
+const SET_PROFILES = new Map([...PROFILE_SETS].map(([profile, set]) => [set, profile]));
 
 function releaseFor(set: string, m: Manifest): string {
-  if (!(SETS as readonly string[]).includes(set))
-    throw new ApiError(404, 'not_found', `Không có bộ tiles "${set}"`);
-  const r = set === 'vn' ? m.vn : set === 'poi' ? m.poi : (m.poiProfiles?.osm ?? null);
+  const profile = SET_PROFILES.get(set);
+  if (set !== 'vn' && !profile) throw new ApiError(404, 'not_found', `Không có bộ tiles "${set}"`);
+  let r: string | null;
+  if (set === 'vn') r = m.vn;
+  else if (profile === 'all') r = m.poi;
+  else if (profile) r = m.poiProfiles?.[profile] ?? null;
+  else throw new ApiError(404, 'not_found', `Không có bộ tiles "${set}"`);
   if (!r) throw new ApiError(404, 'not_found', `Bộ tiles "${set}" chưa phát hành`);
   return r;
 }
