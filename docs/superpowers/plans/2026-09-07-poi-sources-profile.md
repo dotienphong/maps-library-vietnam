@@ -35,9 +35,9 @@ Code mẫu lịch sử phải đối chiếu source hiện tại; không chạy 
 **Thứ tự tiếp tục:** R1 → R2 → R3 → R4/R5 → R8 → R7/R6. Mỗi phần thay đổi hành vi
 phải có test chứng minh lỗi trước sửa, chạy test mục tiêu và gate liên quan sau sửa.
 Đóng từng gate bằng bằng chứng thực tế; không suy ra hoàn tất chỉ từ test suite xanh.
-**Checkpoint hiện tại:** R1 và R2/R8 (release + archive size) đã đóng bằng code/test.
-**Hành động tiếp theo:** R3 — tạo một snapshot trung gian bất biến dùng chung cho hai
-profile, rồi fault-injection trước khi manifest đổi. Các gate còn lại vẫn mở.
+**Checkpoint hiện tại:** R1, R2/R8 (release + archive size) và R3 Step 6–7 đã đóng bằng code/test.
+**Hành động tiếp theo:** R3 Step 8 — fault-injection export/upload/smoke, khóa manifest cũ.
+Các gate còn lại vẫn mở.
 
 **Architecture:** Hằng `POI_SOURCE_PROFILES` ở `@mapslibvn/core` là nguồn sự thật duy nhất cho API, SDK và pipeline. Pipeline export thêm archive `poi-osm-YYYYMMDD.pmtiles` (lưới progressive chạy lại trên riêng tập OSM) và manifest KV có `poiProfiles.osm`. API nhận `sources=` trên `search/nearby/autocomplete/reverse/styles`; style trả archive theo profile, fallback `all` khi profile chưa publish. POI `created_by='user'` luôn có mặt.
 
@@ -1271,7 +1271,7 @@ git commit -m "feat(pipeline): publish hai archive POI (all + osm) trong một l
   chứa các trường cần cho lọc nguồn và progressive selection. Hai exporter đọc
   cùng bộ này rồi lọc/chạy lưới độc lập. Ghi snapshot/build ID và checksum vào
   bằng chứng build. Dùng chung tunnel hoặc hai connection riêng không đủ.
-- [ ] **Step 7:** Test sửa DB sau khi chụp snapshot nhưng trước export OSM: cả hai
+- [x] **Step 7:** Test sửa DB sau khi chụp snapshot nhưng trước export OSM: cả hai
   profile vẫn phản ánh snapshot đã chụp; bản ghi mới chỉ xuất hiện ở lần build sau.
   Bộ trung gian chưa ghi xong không được xem là đầu vào hợp lệ.
 - [ ] **Step 8:** Fault-injection tại export OSM, upload thứ hai và từng smoke:

@@ -32,8 +32,12 @@ commit với code).
   Cả exporter `all` và `osm` xác thực cùng build ID/checksum rồi lọc từ file này;
   thay đổi DB giữa hai export không còn lọt vào archive sau. Mỗi profile vẫn chạy
   progressive selector độc lập. Unit test khóa lọc nguồn/user, DB-change mô phỏng,
-  thiếu checksum, sai checksum và metadata/build ID. **Tiếp:** R3 Step 7 DB fixture
-  thật, sau đó fault-injection Step 8–9; chưa đánh dấu các bước này hoàn tất.
+  thiếu checksum, sai checksum và metadata/build ID.
+  **R3 Step 7 ĐÓNG:** DB fixture trong pipeline container chụp snapshot thật, chèn
+  một POI người dùng sau thời điểm chụp, rồi export cả `all` và `osm` từ cùng snapshot.
+  POI muộn vắng ở cả hai archive đầu và có mặt ở cả hai archive của snapshot/build kế
+  tiếp; full `pnpm test:db` xanh 10 file/67 test. **Tiếp:** R3 Step 8 fault-injection
+  tại export OSM, upload thứ hai và từng smoke; manifest hiện hành phải giữ nguyên.
 
 - **07/09/2026 — ĐÃ PHÁT HÀNH bật/tắt nguồn POI theo profile (spec 07/09).**
   Cổng đo trước cho kết quả bất ngờ: OSM chỉ là **nguồn chính của 7,0 %** POI (106.325/1.522.416;

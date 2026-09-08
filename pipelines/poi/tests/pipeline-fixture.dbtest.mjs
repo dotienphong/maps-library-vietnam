@@ -11,6 +11,11 @@ import { CELL_PX_BY_ZOOM, globalCellKey } from '../src/display-selector.mjs';
 
 const OUT = process.env.MAPSLIBVN_OUT ?? resolve('out');
 const WORK = process.env.MAPSLIBVN_WORK ?? resolve('work');
+const LATE_USER_POI_ID = 'USERPOI0000000000000000002';
+const SNAPSHOT_BUILD_ID = `fixture-${process.pid}`;
+const NEXT_SNAPSHOT_BUILD_ID = `${SNAPSHOT_BUILD_ID}-next`;
+const snapshotFile = (/** @type {string} */ buildId) =>
+  resolve(WORK, 'poi', `snapshot-${buildId}.jsonl`);
 const sql = postgres(databaseUrlFromEnv(process.env), { max: 1, onnotice: () => {} });
 const node = (/** @type {string[]} */ ...args) =>
   execFileSync(process.execPath, args, {
@@ -39,8 +44,47 @@ beforeAll(async () => {
     VALUES ('USERPOI0000000000000000001', 'Quán thử người dùng', 'quan thu nguoi dung', 'cafe',
             ST_SetSRID(ST_MakePoint(108.5, 13.5), 4326), 60, 0.2, 'active', '{}', 'user')
     ON CONFLICT (id) DO NOTHING`;
-  node('pipelines/poi/src/export-tiles.mjs', '--release', 'poi-fixture');
-  node('pipelines/poi/src/export-tiles.mjs', '--release', 'poi-osm-fixture', '--sources', 'osm');
+  node('pipelines/poi/src/export-snapshot.mjs', '--build-id', SNAPSHOT_BUILD_ID);
+  await sql`INSERT INTO poi (id, name, name_norm, category, geom, quality_score, popularity, status, locked_fields, created_by)
+    VALUES (${LATE_USER_POI_ID}, 'Quán thêm sau snapshot', 'quan them sau snapshot', 'cafe',
+            ST_SetSRID(ST_MakePoint(109, 14), 4326), 60, 0.2, 'active', '{}', 'user')`;
+  node(
+    'pipelines/poi/src/export-tiles.mjs',
+    '--release',
+    'poi-fixture',
+    '--snapshot',
+    snapshotFile(SNAPSHOT_BUILD_ID),
+    '--build-id',
+    SNAPSHOT_BUILD_ID,
+  );
+  node(
+    'pipelines/poi/src/export-tiles.mjs',
+    '--release',
+    'poi-osm-fixture',
+    '--sources',
+    'osm',
+    '--snapshot',
+    snapshotFile(SNAPSHOT_BUILD_ID),
+    '--build-id',
+    SNAPSHOT_BUILD_ID,
+  );
+  node('pipelines/poi/src/export-snapshot.mjs', '--build-id', NEXT_SNAPSHOT_BUILD_ID);
+  for (const [release, profile] of [
+    ['poi-fixture-next', 'all'],
+    ['poi-osm-fixture-next', 'osm'],
+  ]) {
+    node(
+      'pipelines/poi/src/export-tiles.mjs',
+      '--release',
+      release,
+      '--sources',
+      profile,
+      '--snapshot',
+      snapshotFile(NEXT_SNAPSHOT_BUILD_ID),
+      '--build-id',
+      NEXT_SNAPSHOT_BUILD_ID,
+    );
+  }
   node('pipelines/poi/src/report.mjs');
 });
 afterAll(() => sql.end());
@@ -155,6 +199,21 @@ describe('pipeline POI trọn vòng trên fixture', () => {
     const file = resolve(OUT, 'poi-osm-fixture.pmtiles');
     expect(existsSync(file)).toBe(true);
     expect(() => node('pipelines/tiles/src/qa.mjs', file, '--skip-islands')).not.toThrow();
+  });
+
+  it('hai profile giữ nguyên snapshot DB và chỉ nhận bản ghi mới ở build kế tiếp', () => {
+    const readIds = (/** @type {string} */ release) =>
+      new Set(
+        readFileSync(resolve(WORK, 'poi', `${release}.geojsonseq`), 'utf8')
+          .trim()
+          .split('\n')
+          .map((line) => JSON.parse(line).properties.id),
+      );
+
+    expect(readIds('poi-fixture').has(LATE_USER_POI_ID)).toBe(false);
+    expect(readIds('poi-osm-fixture').has(LATE_USER_POI_ID)).toBe(false);
+    expect(readIds('poi-fixture-next').has(LATE_USER_POI_ID)).toBe(true);
+    expect(readIds('poi-osm-fixture-next').has(LATE_USER_POI_ID)).toBe(true);
   });
 
   it('báo cáo ghi ra out/poi-report-*.json với các khối poi/links/geocode', () => {
