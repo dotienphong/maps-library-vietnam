@@ -84,6 +84,11 @@ commit với code).
   cache namespace riêng. Cold n=120/phía: current nhanh hơn ở 3/3 batch, p95 delta
   −268/−134/−288 ms. Warm baseline n=120 p95 139 ms, current n=160 p95 155 ms,
   delta +16 ms ≤ +50 ms. Toàn bộ plan POI Sources Profile hiện không còn ô mở.
+  Commit chốt `7047ccd` đã push lên `origin/main`; smoke production `all`/`osm`
+  đều HTTP 200, đúng `x-poi-profile` và archive. GitHub Actions không khởi chạy
+  step nào do account báo payment failed/spending limit (runs `34225491887`,
+  `34225492015`), nên cần xử lý **Settings → Billing & plans** rồi rerun hai
+  workflow; đây là cổng hạ tầng ngoài repo, không mở lại task triển khai POI.
 
 - **07/09/2026 — ĐÃ PHÁT HÀNH bật/tắt nguồn POI theo profile (spec 07/09).**
   Cổng đo trước cho kết quả bất ngờ: OSM chỉ là **nguồn chính của 7,0 %** POI (106.325/1.522.416;
