@@ -4,7 +4,7 @@
 import 'dotenv/config';
 import { execFileSync, spawn } from 'node:child_process';
 import { existsSync } from 'node:fs';
-import { releaseName } from '../pipelines/tiles/src/lib/dates.mjs';
+import { poiReleasePair, releaseName } from '../pipelines/tiles/src/lib/dates.mjs';
 import { hasListedFile } from '../pipelines/tiles/src/lib/manifest-state.mjs';
 import { run, sleep } from './lib/run.mjs';
 import { detectSources } from './lib/sources.mjs';
@@ -130,12 +130,12 @@ if (work.poi) {
     run('node', ['pipelines/poi/src/geocode/streets.mjs']);
     run('node', ['pipelines/poi/src/geocode/alleys.mjs']);
     run('node', ['pipelines/poi/src/geocode/anchors.mjs']);
-    const release = releaseName('poi');
-    const osmRelease = releaseName('poi-osm');
+    const poiReleases = poiReleasePair();
+    const release = poiReleases.poi;
+    const osmRelease = poiReleases.poiOsm;
     run('node', ['pipelines/poi/src/export-tiles.mjs', '--release', release]);
     run('node', ['pipelines/tiles/src/qa.mjs', `${OUT}/${release}.pmtiles`, '--skip-islands']);
-    // Profile osm (spec 07/09): cùng snapshot DB, cùng ngày. Lỗi ở đây thì KHÔNG set manifest cho
-    // cả hai, nên hai archive không bao giờ lệch ngày nhau.
+    // Hai profile dùng chung build id. Snapshot DB chung được quản lý ở checkpoint R3 riêng.
     run('node', [
       'pipelines/poi/src/export-tiles.mjs',
       '--release',

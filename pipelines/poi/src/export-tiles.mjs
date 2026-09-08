@@ -6,7 +6,8 @@ import { resolve } from 'node:path';
 import { Readable } from 'node:stream';
 import { pipeline } from 'node:stream/promises';
 import { run } from '../../../scripts/lib/run.mjs';
-import { releaseName } from '../../tiles/src/lib/dates.mjs';
+import { assertPoiArchiveSize } from '../../tiles/src/lib/archive-guard.mjs';
+import { poiReleasePair } from '../../tiles/src/lib/dates.mjs';
 import { displayFields, priorityOrderSql } from './display-priority.mjs';
 import { createDisplaySelector } from './display-selector.mjs';
 import { OUT, POI_WORK, arg } from './lib/env.mjs';
@@ -37,9 +38,10 @@ export function featureLine(r, display, minZoom) {
 
 if (process.argv[1]?.endsWith('export-tiles.mjs')) {
   const profile = arg('--sources', 'all') ?? 'all';
+  const generated = poiReleasePair();
+  const prefix = poiReleasePrefix(profile);
   const release =
-    arg('--release', undefined) ??
-    releaseName(/** @type {'poi' | 'poi-osm'} */ (poiReleasePrefix(profile)));
+    arg('--release', undefined) ?? (prefix === 'poi' ? generated.poi : generated.poiOsm);
   mkdirSync(POI_WORK, { recursive: true });
   mkdirSync(OUT, { recursive: true });
   // Mỗi release một file seq: hai profile export liền nhau không ghi đè nhau.
@@ -133,14 +135,8 @@ if (process.argv[1]?.endsWith('export-tiles.mjs')) {
     'd',
     seq,
   ]);
-  const mb = statSync(output).size / 2 ** 20;
+  const bytes = statSync(output).size;
+  const mb = bytes / 2 ** 20;
   console.log(`✓ ${output}: ${selection.selected} POI, ${mb.toFixed(1)} MB`);
-  if (mb > 400) {
-    console.error(
-      'Vượt 400 MB — thêm --maximum-tile-bytes=300000 hoặc nâng ngưỡng q ở z12–14; xem spec 5.8 (mục tiêu ≤ 300 MB)',
-    );
-    process.exit(4);
-  }
-  if (mb > 300)
-    console.warn('⚠ vượt mục tiêu 300 MB (spec 5.8) — ghi DEVLOG, cân nhắc siết bộ lọc');
+  assertPoiArchiveSize(release, bytes);
 }

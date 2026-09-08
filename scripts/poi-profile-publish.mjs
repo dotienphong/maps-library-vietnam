@@ -6,7 +6,7 @@
 // Ngoài container: tự chạy lại trong image pipeline (cần tippecanoe, rclone, cloudflared).
 import 'dotenv/config';
 import { poiReleasePrefix } from '../pipelines/poi/src/lib/poi-filter.mjs';
-import { releaseName } from '../pipelines/tiles/src/lib/dates.mjs';
+import { poiReleasePair } from '../pipelines/tiles/src/lib/dates.mjs';
 import { profilePublishSteps } from './lib/poi-profile.mjs';
 import { run } from './lib/run.mjs';
 import { openDatabaseTunnel } from './lib/tunnel.mjs';
@@ -45,8 +45,9 @@ if (process.env.MAPSLIBVN_IN_CONTAINER !== '1') {
 }
 
 const OUT = process.env.MAPSLIBVN_OUT ?? '/app/out';
-const release =
-  arg('--release') ?? releaseName(/** @type {'poi' | 'poi-osm'} */ (poiReleasePrefix(profile)));
+const generated = poiReleasePair();
+const prefix = poiReleasePrefix(profile);
+const release = arg('--release') ?? (prefix === 'poi' ? generated.poi : generated.poiOsm);
 const steps = profilePublishSteps(profile, release, OUT);
 
 const missing = ['TILES_BASE', 'R2_BUCKET', 'KV_NAMESPACE_ID_META', 'CLOUDFLARE_API_TOKEN'].filter(

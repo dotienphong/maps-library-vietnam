@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { releaseName, stampVN } from './dates.mjs';
+import { poiReleasePair, releaseName, stampVN } from './dates.mjs';
 
 describe('stampVN', () => {
   it('đổi thời điểm UTC sang ngày giờ VN (UTC+7) dạng YYYYMMDD', () => {
@@ -15,5 +15,19 @@ describe('releaseName', () => {
 
   it('nhận tiền tố profile poi-osm', () => {
     expect(releaseName('poi-osm', new Date('2026-08-26T10:00:00Z'))).toBe('poi-osm-20260826');
+  });
+});
+
+describe('poiReleasePair', () => {
+  it('dùng chung một build id có giờ VN và nonce cho cả hai profile', () => {
+    expect(poiReleasePair(new Date('2026-08-26T10:00:00Z'), 'a1b2c3d4')).toEqual({
+      buildId: '20260826-170000-a1b2c3d4',
+      poi: 'poi-20260826-170000-a1b2c3d4',
+      poiOsm: 'poi-osm-20260826-170000-a1b2c3d4',
+    });
+  });
+
+  it('từ chối nonce có thể làm hỏng tên object', () => {
+    expect(() => poiReleasePair(new Date(), '../same-name')).toThrow(/nonce/i);
   });
 });

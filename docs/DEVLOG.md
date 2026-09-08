@@ -19,6 +19,14 @@ commit với code).
   `map.places`, nên kế thừa đúng `poiSources`; đổi/gỡ map huỷ kết quả cũ và gỡ map
   quay về client standalone. Unit test khóa cả cấu hình mâu thuẫn và request cũ;
   Chrome headless fixture trả `pass` với map client + near, không gọi endpoint standalone.
+  **R2/R8 release ĐÓNG:** mỗi lần build POI tạo một build ID
+  `YYYYMMDD-HHmmss-<nonce>` dùng chung cho `poi` và `poi-osm`; tên date-only lịch sử
+  vẫn đọc được. Uploader ghi SHA-256 companion, retry cùng bytes là idempotent và từ
+  chối release đã có bytes khác hoặc archive cũ không có checksum. Exporter lẫn uploader
+  đều chặn cứng trên `300 * 2 ** 20` bytes trước manifest; unit test khóa đúng biên
+  300 MiB/+1 byte và các trạng thái upload. Basemap `vn-*` không bị đổi contract.
+  **Bắt đầu tiếp:** R3 — xuất hai profile từ cùng một snapshot trung gian bất biến và
+  thêm fault-injection chứng minh manifest không đổi nếu bất kỳ export/upload/smoke lỗi.
 
 - **07/09/2026 — ĐÃ PHÁT HÀNH bật/tắt nguồn POI theo profile (spec 07/09).**
   Cổng đo trước cho kết quả bất ngờ: OSM chỉ là **nguồn chính của 7,0 %** POI (106.325/1.522.416;

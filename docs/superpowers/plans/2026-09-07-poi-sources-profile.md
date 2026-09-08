@@ -35,9 +35,9 @@ Code mẫu lịch sử phải đối chiếu source hiện tại; không chạy 
 **Thứ tự tiếp tục:** R1 → R2 → R3 → R4/R5 → R8 → R7/R6. Mỗi phần thay đổi hành vi
 phải có test chứng minh lỗi trước sửa, chạy test mục tiêu và gate liên quan sau sửa.
 Đóng từng gate bằng bằng chứng thực tế; không suy ra hoàn tất chỉ từ test suite xanh.
-**Hành động đầu tiên:** Task 11 Step 6 — test map OSM gắn autocomplete không có
-thuộc tính `sources`, xác nhận client hiện tại vẫn dùng `all`, rồi sửa kế thừa client.
-Lượt này chỉ sửa plan/checkpoint; các sửa chữa code và rollout là công việc kế tiếp.
+**Checkpoint hiện tại:** R1 và R2/R8 (release + archive size) đã đóng bằng code/test.
+**Hành động tiếp theo:** R3 — tạo một snapshot trung gian bất biến dùng chung cho hai
+profile, rồi fault-injection trước khi manifest đổi. Các gate còn lại vẫn mở.
 
 **Architecture:** Hằng `POI_SOURCE_PROFILES` ở `@mapslibvn/core` là nguồn sự thật duy nhất cho API, SDK và pipeline. Pipeline export thêm archive `poi-osm-YYYYMMDD.pmtiles` (lưới progressive chạy lại trên riêng tập OSM) và manifest KV có `poiProfiles.osm`. API nhận `sources=` trên `search/nearby/autocomplete/reverse/styles`; style trả archive theo profile, fallback `all` khi profile chưa publish. POI `created_by='user'` luôn có mặt.
 
@@ -1061,13 +1061,13 @@ git commit -m "feat(pipeline): export-tiles --sources theo profile, seq theo rel
 
 ### Gate sau review R2/R8 — release bất biến và giới hạn archive
 
-- [ ] **Step 6:** Chốt build ID một lần cho cả hai profile (ngày + định danh lần chạy);
+- [x] **Step 6:** Chốt build ID một lần cho cả hai profile (ngày + định danh lần chạy);
   giữ đọc được tên release lịch sử. Cập nhật dates, export, orchestrator và profile
   publisher dùng chung build ID. Kiểm toàn bộ nơi parse release/state/manifest.
-- [ ] **Step 7:** Upload phải từ chối ghi đè archive khác bytes đã tồn tại, kể cả
+- [x] **Step 7:** Upload phải từ chối ghi đè archive khác bytes đã tồn tại, kể cả
   người vận hành truyền lại `--release`. Có test rerun cùng ngày và cùng ID,
   không chỉ trông cậy vào tên mới mặc định. Đọc và khóa đúng checksum release cũ.
-- [ ] **Step 8:** Chặn archive > `300 * 2 ** 20` bytes trước upload/manifest ở cả
+- [x] **Step 8:** Chặn archive > `300 * 2 ** 20` bytes trước upload/manifest ở cả
   build đôi và publish profile riêng. Test biên 300 MiB và 300 MiB + 1 byte;
   không cần sinh file lớn thật. Bỏ chính sách chỉ warning 300–400 MiB của exporter.
   File chính: `pipelines/poi/src/export-tiles.mjs`,
