@@ -158,6 +158,53 @@ test('đổi nguồn POI tạo lại map, đồng bộ URL và mã nhúng', asyn
   await expect(page.locator('#snippet-script')).toContainText("poiSources: ['osm']");
 });
 
+test('Nguồn POI mới đồng bộ selector, URL, snippet và style request', async ({ page }) => {
+  const unexpectedErrors: string[] = [];
+  page.on('pageerror', (error) => unexpectedErrors.push(error.message));
+  page.on('console', (message) => {
+    if (
+      message.type() === 'error' &&
+      message.text() !==
+        'Failed to load resource: the server responded with a status of 404 (Not Found)'
+    ) {
+      unexpectedErrors.push(message.text());
+    }
+  });
+  page.on('response', (response) => {
+    if (response.status() < 400) return;
+    const url = new URL(response.url());
+    if (response.status() === 404 && url.pathname.startsWith('/r2/assets/fonts/')) return;
+    unexpectedErrors.push(`${response.status()} ${url.pathname}`);
+  });
+  await page.goto('/playground.html');
+  await expect(page.locator('#f-sources option')).toHaveCount(5);
+
+  for (const [profile, sources, snippet] of [
+    ['overture-fsq', 'overture,fsq', "poiSources: ['overture', 'fsq']"],
+    ['overture', 'overture', "poiSources: ['overture']"],
+    ['fsq', 'fsq', "poiSources: ['fsq']"],
+  ]) {
+    const styleRequest = page.waitForRequest((request) => {
+      const url = new URL(request.url());
+      return (
+        url.pathname === '/v1/styles/light.json' && url.searchParams.get('sources') === sources
+      );
+    });
+    await page.locator('#f-sources').selectOption(profile);
+    await page.locator('#apply').click();
+    await styleRequest;
+    await expect(page.locator('#status')).toHaveAttribute('data-state', 'loaded', {
+      timeout: 30_000,
+    });
+    expect(new URL(page.url()).searchParams.get('sources')).toBe(sources);
+    await page.locator('#tab-ma-nhung').click();
+    await expect(page.locator('#snippet-script')).toContainText(snippet);
+    await page.locator('#tab-ban-do').click();
+  }
+
+  expect(unexpectedErrors, `lỗi bất ngờ trên trang: ${unexpectedErrors.join(' | ')}`).toEqual([]);
+});
+
 test('tab Mã nhúng sinh mã theo tuỳ chọn hiện tại', async ({ page }) => {
   await page.goto('/playground.html');
 

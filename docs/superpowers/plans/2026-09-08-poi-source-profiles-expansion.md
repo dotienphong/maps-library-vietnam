@@ -521,7 +521,7 @@ Chỉ stage source thực sự thay đổi; không stage `dist`.
 - Consumes: URL `sources` dạng CSV và SDK `poiSources`.
 - Produces: selector, share URL, client/map options và snippet đồng bộ cho năm profile.
 
-- [ ] **Step 1: Viết unit tests đỏ cho parse/serialize/snippet**
+- [x] **Step 1: Viết unit tests đỏ cho parse/serialize/snippet**
 
 ```js
 it.each([
@@ -538,13 +538,13 @@ it.each([
 });
 ```
 
-- [ ] **Step 2: Chạy RED**
+- [x] **Step 2: Chạy RED**
 
 Run: `pnpm vitest run apps/docs/scripts/playground-lib.test.mjs`
 
 Expected: FAIL vì parser hiện chỉ nhận `all`/`osm`.
 
-- [ ] **Step 3: Implement mapping tập trung**
+- [x] **Step 3: Implement mapping tập trung**
 
 ```js
 export const POI_PROFILE_SOURCES = {
@@ -559,7 +559,7 @@ export const POI_PROFILE_SOURCES = {
 `parseState` đổi CSV chuẩn thành key; `toSearchParams` đổi key thành CSV; `optionLines`, `makeClient`
 và `buildMap` dùng một helper trả `poiSources` và bỏ option khi profile là `all`.
 
-- [ ] **Step 4: Thêm option UI và E2E**
+- [x] **Step 4: Thêm option UI và E2E**
 
 ```html
 <option value="overture-fsq">Overture + Foursquare</option>
@@ -570,7 +570,7 @@ và `buildMap` dùng một helper trả `poiSources` và bỏ option khi profile
 E2E chọn từng option, bấm Áp dụng, assert query string, snippet và request style có `sources` tương
 ứng; thu `page.on('console')` và assert không có error.
 
-- [ ] **Step 5: Chạy GREEN và docs E2E**
+- [x] **Step 5: Chạy GREEN và docs E2E**
 
 Run: `pnpm vitest run apps/docs/scripts/playground-lib.test.mjs`
 
@@ -578,7 +578,7 @@ Run: `pnpm --filter @mapslibvn/docs e2e -- --grep "Nguồn POI"`
 
 Expected: unit và E2E PASS.
 
-- [ ] **Step 6: Commit playground**
+- [x] **Step 6: Commit playground**
 
 ```bash
 git add apps/docs/scripts/playground-lib.test.mjs apps/docs/public/playground-lib.js apps/docs/public/playground.html apps/docs/public/playground.js apps/docs/e2e/playground.spec.ts

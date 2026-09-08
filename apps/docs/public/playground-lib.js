@@ -29,6 +29,30 @@ const PRECISION_RADIUS = { rooftop: 0, alley: 40, interpolated: 80 };
 const STYLES = ['light', 'dark'];
 const LANGS = ['vi', 'en'];
 
+/** Profile Playground → danh sách nguồn SDK/API chuẩn. */
+export const POI_PROFILE_SOURCES = {
+  all: ['osm', 'overture', 'fsq'],
+  osm: ['osm'],
+  'overture-fsq': ['overture', 'fsq'],
+  overture: ['overture'],
+  fsq: ['fsq'],
+};
+
+/** @param {string} profile @returns {string[] | undefined} */
+export function poiSourcesForProfile(profile) {
+  const sources = POI_PROFILE_SOURCES[profile];
+  return profile === 'all' || !sources ? undefined : [...sources];
+}
+
+/** @param {string | null} raw */
+function profileForSources(raw) {
+  if (!raw || raw === 'all') return 'all';
+  return (
+    Object.entries(POI_PROFILE_SOURCES).find(([, sources]) => sources.join(',') === raw)?.[0] ??
+    'all'
+  );
+}
+
 /**
  * @typedef {Object} PlaygroundState
  * @property {string} key Khoá API đang dùng.
@@ -36,7 +60,7 @@ const LANGS = ['vi', 'en'];
  * @property {string} style `light` hoặc `dark`.
  * @property {string} lang `vi` hoặc `en`.
  * @property {boolean} poi Bật lớp POI.
- * @property {'all' | 'osm'} sources Profile nguồn POI.
+ * @property {'all' | 'osm' | 'overture-fsq' | 'overture' | 'fsq'} sources Profile nguồn POI.
  * @property {boolean} compact Attribution gọn.
  * @property {[number, number]} center Tâm bản đồ `[lng, lat]`.
  * @property {number} zoom Mức zoom.
@@ -87,7 +111,7 @@ export function parseState(search, apiBase) {
     style: style && STYLES.includes(style) ? style : SDK_DEFAULTS.style,
     lang: lang && LANGS.includes(lang) ? lang : SDK_DEFAULTS.lang,
     poi: params.get('poi') !== '0',
-    sources: params.get('sources') === 'osm' ? 'osm' : 'all',
+    sources: profileForSources(params.get('sources')),
     compact: params.get('compact') === '1',
     center,
     zoom,
@@ -108,7 +132,8 @@ export function toSearchParams(state, apiBase) {
   if (state.style !== SDK_DEFAULTS.style) params.set('style', state.style);
   if (state.lang !== SDK_DEFAULTS.lang) params.set('lang', state.lang);
   if (!state.poi) params.set('poi', '0');
-  if (state.sources === 'osm') params.set('sources', 'osm');
+  const poiSources = poiSourcesForProfile(state.sources);
+  if (poiSources) params.set('sources', poiSources.join(','));
   if (state.compact) params.set('compact', '1');
   const movedCenter =
     round6(state.center[0]) !== DEFAULT_CENTER[0] || round6(state.center[1]) !== DEFAULT_CENTER[1];
@@ -136,7 +161,9 @@ function optionLines(state, indent) {
   if (state.style !== SDK_DEFAULTS.style) lines.push(`style: '${state.style}',`);
   if (state.lang !== SDK_DEFAULTS.lang) lines.push(`lang: '${state.lang}',`);
   if (state.poi !== SDK_DEFAULTS.poiLayer) lines.push(`poiLayer: ${state.poi},`);
-  if (state.sources === 'osm') lines.push("poiSources: ['osm'],");
+  const poiSources = poiSourcesForProfile(state.sources);
+  if (poiSources)
+    lines.push(`poiSources: [${poiSources.map((source) => `'${source}'`).join(', ')}],`);
   if (state.compact !== SDK_DEFAULTS.compactAttribution) {
     lines.push(`compactAttribution: ${state.compact},`);
   }

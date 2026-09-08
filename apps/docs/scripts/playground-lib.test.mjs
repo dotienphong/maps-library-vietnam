@@ -54,9 +54,22 @@ describe('parseState', () => {
     expect(state.embed).toBe(true);
   });
 
-  it('đọc sources=osm và bỏ qua profile không có archive', () => {
+  it('đọc sources=osm và bỏ qua profile không hợp lệ', () => {
     expect(parseState('?sources=osm', API).sources).toBe('osm');
-    expect(parseState('?sources=overture', API).sources).toBe('all');
+    expect(parseState('?sources=osm,overture', API).sources).toBe('all');
+  });
+
+  it.each([
+    ['?sources=overture,fsq', 'overture-fsq', "poiSources: ['overture', 'fsq']"],
+    ['?sources=overture', 'overture', "poiSources: ['overture']"],
+    ['?sources=fsq', 'fsq', "poiSources: ['fsq']"],
+  ])('đọc, serialize và sinh snippet cho %s', (search, profile, snippet) => {
+    const state = parseState(search, API);
+    expect(state.sources).toBe(profile);
+    expect(toSearchParams(state, API).get('sources')).toBe(
+      profile === 'overture-fsq' ? 'overture,fsq' : profile,
+    );
+    expect(buildSnippet(state, 'script')).toContain(snippet);
   });
 
   it('đọc c=lng,lat,zoom', () => {

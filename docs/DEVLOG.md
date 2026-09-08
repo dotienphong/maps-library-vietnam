@@ -37,8 +37,13 @@ commit với code).
   khi đổi `fsq → overture,fsq`; React Native đồng bộ style/client; `usePlaces` giữ nguyên profile
   của client. Test tập trung 5 file/39 test xanh; bốn package core/web/react/react-native build sạch,
   core/web giữ đúng size-limit. SDK đã generic nên không đổi source, không bump version và không
-  publish npm. **Bắt đầu tiếp:** Task 7, mở đủ năm lựa chọn và đồng bộ URL/snippet/request trong
-  Playground; chưa build/publish production ở checkpoint này.
+  publish npm. **Task 7 ĐÓNG:** Playground có đủ năm lựa chọn; một mapping tập trung đồng bộ
+  parse/serialize URL, client/map và snippet cho `overture-fsq`, `overture`, `fsq`. RED unit ban
+  đầu fail 3 ca đúng parser cũ; GREEN 31/31, docs build xanh và E2E tập trung 1/1 kiểm đủ selector,
+  style request, URL, snippet cho ba profile. E2E vẫn bắt page/console/HTTP error; chỉ loại đúng
+  các 404 `/r2/assets/fonts/` do fixture local vốn không seed glyph, mọi lỗi tài nguyên khác vẫn
+  làm test fail. **Bắt đầu tiếp:** Task 8, tổng quát benchmark `--paired-sources`; chưa
+  build/publish production ở checkpoint này.
 
 - **08/09/2026 — Mở lại gate POI Sources Profile sau review.** Tính năng đã rollout
   ngày 07/09, nhưng kết luận plan hoàn tất 15/15 và tick đồng loạt 76 bước là quá sớm.

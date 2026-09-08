@@ -11,6 +11,7 @@ import {
   circleGeoJson,
   maskKey,
   parseState,
+  poiSourcesForProfile,
   radiusForPrecision,
   toSearchParams,
 } from '/playground-lib.js';
@@ -139,11 +140,12 @@ function renderView() {
 }
 
 function makeClient() {
+  const poiSources = poiSourcesForProfile(state.sources);
   client = SDK
     ? SDK.createClient({
         apiKey: state.key,
         baseUrl: state.api,
-        ...(state.sources === 'osm' ? { poiSources: ['osm'] } : {}),
+        ...(poiSources ? { poiSources } : {}),
       })
     : null;
 }
@@ -272,6 +274,7 @@ function buildMap() {
     return;
   }
   try {
+    const poiSources = poiSourcesForProfile(state.sources);
     map = SDK.createMap({
       container: 'map',
       apiKey: state.key,
@@ -281,7 +284,7 @@ function buildMap() {
       zoom: state.zoom,
       lang: state.lang,
       poiLayer: state.poi,
-      ...(state.sources === 'osm' ? { poiSources: ['osm'] } : {}),
+      ...(poiSources ? { poiSources } : {}),
       compactAttribution: state.compact,
     });
   } catch (err) {
