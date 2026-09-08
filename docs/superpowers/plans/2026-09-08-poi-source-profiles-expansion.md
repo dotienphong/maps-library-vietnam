@@ -668,18 +668,18 @@ git commit -m "test(perf): đo paired cho mọi profile POI"
 - Consumes: behavior đã kiểm ở Tasks 1–8.
 - Produces: tài liệu công khai và checkpoint không tuyên bố production trước evidence.
 
-- [ ] **Step 1: Cập nhật tài liệu đúng contract**
+- [x] **Step 1: Cập nhật tài liệu đúng contract**
 
 Mỗi trang liên quan phải nêu đủ năm profile, `all` mặc định, ba snippet SDK mới, fallback style,
 POI user luôn được giữ và `/places/{id}` không lọc. Thay mọi câu “chỉ có bộ tiles cho osm và all”
 bằng bảng profile của spec. Giữ cảnh báo package source `0.4.0` chưa publish npm.
 
-- [ ] **Step 2: Cập nhật DEVLOG checkpoint pre-production**
+- [x] **Step 2: Cập nhật DEVLOG checkpoint pre-production**
 
 Ghi commit code, số test thực tế và câu rõ ràng: archive/manifest/production **chưa** phát hành tại
 checkpoint này. Hành động tiếp theo chính xác là chạy batch bootstrap ba profile.
 
-- [ ] **Step 3: Chạy full gates mới**
+- [x] **Step 3: Chạy full gates mới**
 
 Run: `pnpm lint`
 
@@ -695,7 +695,7 @@ Run: `pnpm build`
 
 Expected: mọi lệnh exit 0. Ghi số file/test từ output vào DEVLOG, không dùng số lịch sử.
 
-- [ ] **Step 4: Commit docs và checkpoint**
+- [x] **Step 4: Commit docs và checkpoint**
 
 ```bash
 git add apps/docs/src/content/docs/api.md apps/docs/src/content/docs/ban-do-web.md apps/docs/src/content/docs/react.md apps/docs/src/content/docs/react-native.md apps/docs/src/content/docs/tim-kiem.md apps/docs/src/content/docs/tinh-nang.md apps/docs/src/content/docs/sdk.md docs/DEVLOG.md

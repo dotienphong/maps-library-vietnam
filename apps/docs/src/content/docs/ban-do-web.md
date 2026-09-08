@@ -53,7 +53,7 @@ Gói chưa có trên npm — cách cài hiện tại xem [Cài đặt](/cai-dat/
 | `zoom` | `number` | `12` | Mức thu phóng ban đầu |
 | `lang` | `'vi' \| 'en'` | `'vi'` | Ngôn ngữ nhãn |
 | `poiLayer` | `boolean` | `true` | `false` ẩn lớp POI |
-| `poiSources` | `('osm' \| 'overture' \| 'fsq')[]` | cả ba | Nguồn POI cho bản đồ **và** `map.places`. Hiện chỉ có bộ tiles cho `['osm']` và cả ba; tổ hợp khác ném lỗi khi tạo map |
+| `poiSources` | `('osm' \| 'overture' \| 'fsq')[]` | cả ba (`all`) | Nguồn POI cho bản đồ **và** `map.places`; nhận đúng năm profile ở mục 8, tổ hợp khác ném lỗi khi tạo map |
 | `compactAttribution` | `boolean` | `false` | Attribution dạng gọn. Không có tuỳ chọn tắt |
 
 Phần tử chứa bản đồ phải có chiều cao thật (`height`), nếu không bản đồ cao 0 pixel.
@@ -176,13 +176,22 @@ map.on('poiClick', async (poi) => {
 
 ## 8. Lớp POI
 
-Mặc định bản đồ vẽ POI từ cả ba nguồn dữ liệu. Muốn chỉ dùng dữ liệu OpenStreetMap — ví dụ để mọi
-POI đều theo giấy phép ODbL — đặt `poiSources: ['osm']`. Lưu ý OSM là nguồn chính của khoảng 7 % POI
-Việt Nam trong kho hiện tại, nên bản đồ sẽ **thưa hẳn**. Tuỳ chọn này áp cho cả `search`, `nearby`
-và `reverse` của `map.places`. POI thuộc nguồn bị tắt bị loại khỏi tìm kiếm; POI cùng nguồn nhưng bị
-thinning khỏi tile vẫn có thể tìm thấy qua Places API. POI người dùng không bị lọc theo nguồn, nhưng
-vẫn chịu trạng thái, xếp hạng, limit và thinning bình thường.
-`<mapslibvn-autocomplete>` nhận thuộc tính `sources="osm"` tương ứng.
+Mặc định `all` vẽ cả ba nguồn. Năm profile hợp lệ là `all` (`['osm','overture','fsq']`), `osm`
+(`['osm']`), `overture-fsq` (`['overture','fsq']`), `overture` (`['overture']`) và `fsq`
+(`['fsq']`). Ba cấu hình mới:
+
+```js
+poiSources: ['overture', 'fsq'];
+poiSources: ['overture'];
+poiSources: ['fsq'];
+```
+
+Nếu archive riêng chưa phát hành, style dùng `all` và trả header `x-poi-profile: all;fallback`.
+Tuỳ chọn áp cho `search`, `nearby`, `reverse` và autocomplete của `map.places`; `getPlace(id)` không
+lọc theo profile. POI thuộc nguồn bị tắt bị loại khỏi các truy vấn danh sách; POI cùng nguồn nhưng bị
+thinning khỏi tile vẫn có thể tìm thấy. POI người dùng luôn được giữ trong mọi profile nhưng vẫn
+chịu trạng thái, xếp hạng, limit và thinning bình thường. `<mapslibvn-autocomplete>` nhận thuộc tính
+`sources="overture,fsq"`, `sources="overture"` hoặc `sources="fsq"` tương ứng.
 
 `poiLayer: false` đặt `visibility: 'none'` cho lớp `poi` khi style tải xong. Bật lại lúc chạy:
 

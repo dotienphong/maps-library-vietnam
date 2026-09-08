@@ -137,6 +137,17 @@ const client = createClient({
 `X-Api-Key`) và `poiSources` (mặc định cả ba nguồn) — tập nguồn POI áp cho `autocomplete`, `search`,
 `nearby`, `reverse` và `styleUrl`; `getPlace` và `geocode` không lọc theo nguồn.
 
+Năm profile là mặc định cả ba (`all`), `['osm']`, `['overture','fsq']`, `['overture']` và `['fsq']`:
+
+```ts
+createClient({ apiKey, baseUrl, poiSources: ['overture', 'fsq'] });
+createClient({ apiKey, baseUrl, poiSources: ['overture'] });
+createClient({ apiKey, baseUrl, poiSources: ['fsq'] });
+```
+
+POI người dùng luôn có trong mọi profile. Nếu archive riêng chưa phát hành, URL style vẫn trả được
+archive `all` với `x-poi-profile: all;fallback`; các Places list route vẫn lọc theo nguồn đã yêu cầu.
+
 ## 5. `autocomplete` — gợi ý khi đang gõ
 
 ```ts

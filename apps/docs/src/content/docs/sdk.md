@@ -29,8 +29,17 @@ chạy không phải sửa gì. Mới:
   `POI_SOURCE_PROFILES`, `DEFAULT_POI_SOURCES`, `normalizePoiSources`, `parsePoiSourcesCsv`,
   `poiSourcesKey`, `profileForSources`, `poiSourceClause`.
 
-Đặt `poiSources: ['osm']` nếu chỉ muốn POI có nguồn chính OpenStreetMap — lưu ý đó là khoảng 7 %
-kho POI hiện tại, nên bản đồ sẽ thưa hẳn.
+Năm profile là mặc định cả ba (`all`), `['osm']`, `['overture','fsq']`, `['overture']` và `['fsq']`.
+Ba cấu hình mới dùng cùng contract trên cả bốn SDK:
+
+```ts
+poiSources: ['overture', 'fsq'];
+poiSources: ['overture'];
+poiSources: ['fsq'];
+```
+
+POI người dùng luôn được giữ. Các list route lọc theo profile nhưng `getPlace(id)` không lọc; style
+fallback về archive `all` và trả `x-poi-profile: all;fallback` nếu archive riêng chưa phát hành.
 
 Source hiện ở `0.4.0`; contract `poiSources` trên vẫn giữ nguyên. Bản bump này chưa được publish npm.
 
@@ -81,7 +90,7 @@ const client = createClient({
 | `baseUrl` | `string` | bắt buộc | dấu `/` ở cuối được cắt bỏ |
 | `fetch` | `typeof fetch` | `globalThis.fetch` | tiêm fetch riêng cho test hoặc môi trường không có fetch toàn cục |
 | `headers` | `Record<string, string>` | `{}` | header thêm cho mọi request, ví dụ `X-Bundle-Id` với khoá `mobile`; **không ghi đè được** `X-Api-Key` |
-| `poiSources` | `PoiSource[]` | cả ba nguồn | áp cho autocomplete/search/nearby/reverse và URL style; `getPlace`/geocode không lọc |
+| `poiSources` | `PoiSource[]` | cả ba nguồn (`all`) | nhận năm profile nêu trên; áp cho autocomplete/search/nearby/reverse và URL style; `getPlace`/geocode không lọc |
 
 ### Phương thức client ứng với endpoint nào
 

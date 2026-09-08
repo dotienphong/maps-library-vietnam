@@ -46,8 +46,14 @@ commit với code).
   `--paired-sources [osm|overture,fsq|overture|fsq]`, thiếu giá trị vẫn mặc định `osm`; parser bỏ
   trùng, chuẩn hóa theo thứ tự registry và từ chối tổ hợp không phải profile. Cohort target được
   đo xen kẽ với `all`, giữ tách cold/warm và colo hiện hữu. RED 2/21 đúng parser boolean cũ;
-  GREEN 21/21 và typecheck 14/14. **Bắt đầu tiếp:** Task 9, đồng bộ tài liệu và chạy full gate;
-  chưa build/publish archive hay production ở checkpoint này.
+  GREEN 21/21 và typecheck 14/14. **Task 9 ĐÓNG:** bảy trang API/Web/React/React Native/Search/
+  Tính năng/SDK đã ghi đủ năm profile, ba cấu hình mới, fallback style, POI user và contract
+  `getPlace`; cảnh báo source package `0.4.0` chưa publish npm vẫn giữ nguyên. Chuỗi commit code
+  Task 1–8 là `0f01bd1` → `aa7280e`. Full gate mới: lint 332 file; typecheck 14/14; root 80 file/
+  957 test + API 25 file/175 test; API PostgreSQL 3 file/51 test; pipeline PostgreSQL 10 file/68
+  test trong 584,89s; build workspace 8/8 task. **Archive, manifest và production chưa được phát
+  hành ở checkpoint này. Bắt đầu tiếp:** Task 10, chạy dry-run rồi bootstrap batch thật
+  `overture-fsq,overture,fsq`.
 
 - **08/09/2026 — Mở lại gate POI Sources Profile sau review.** Tính năng đã rollout
   ngày 07/09, nhưng kết luận plan hoàn tất 15/15 và tick đồng loạt 76 bước là quá sớm.

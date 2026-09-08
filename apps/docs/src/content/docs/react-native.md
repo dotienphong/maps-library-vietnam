@@ -69,6 +69,19 @@ cây con của `<MapsLibVNMap>` (tự lấy client) hoặc truyền `client` ri�
 (không phải con của nó) nằm ngoài context: hãy giữ `MapHandle` mà `onLoad` trả về rồi truyền
 `client={map?.places}`, nếu không hook im lặng trả mảng rỗng.
 
+`poiSources` có đúng năm profile: mặc định cả ba (`all`), `['osm']`, `['overture','fsq']`,
+`['overture']` và `['fsq']`. Ba profile mới:
+
+```tsx
+<MapsLibVNMap poiSources={['overture', 'fsq']} {...props} />
+<MapsLibVNMap poiSources={['overture']} {...props} />
+<MapsLibVNMap poiSources={['fsq']} {...props} />
+```
+
+POI người dùng luôn được giữ. Search/nearby/reverse/autocomplete dùng profile đã chọn nhưng
+`getPlace(id)` không lọc; nếu archive profile hợp lệ chưa phát hành, style tạm dùng `all` với header
+`x-poi-profile: all;fallback`.
+
 ## 4. Khác với web
 
 | Web (`@mapslibvn/react`) | React Native |

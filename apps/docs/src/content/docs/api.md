@@ -473,11 +473,13 @@ Style MapLibre của MapsLibVN, đã điền sẵn URL bộ tiles hiện hành.
 | Tham số | Kiểu | Bắt buộc | Mặc định | Khoảng |
 |---|---|---|---|---|
 | `theme` | chuỗi trong đường dẫn | có | — | `light` hoặc `dark` |
-| `sources` | chuỗi truy vấn | không | `all` | chỉ nhận tổ hợp đã có bộ tiles: `osm` hoặc `osm,overture,fsq` (`all`); tổ hợp khác trả `400 invalid_request` |
+| `sources` | chuỗi truy vấn | không | `all` | `osm,overture,fsq` (`all`), `osm`, `overture,fsq`, `overture` hoặc `fsq`; tổ hợp khác trả `400 invalid_request` |
 
 Tên khác trả `404 not_found`. Cache 1 giờ. Route này **không kiểm khoá API**, nhưng SDK vẫn gắn `?key=` vào URL style để hành vi không đổi khi việc kiểm được bật về sau — đừng dựa vào việc endpoint hiện đang mở.
 
-Header `x-poi-profile` cho biết archive đang phục vụ: `osm`, `all`, hoặc `all;fallback` khi profile được yêu cầu chưa phát hành — lúc đó API tạm dùng archive đầy đủ thay vì trả lỗi.
+Header `x-poi-profile` cho biết archive đang phục vụ: `all`, `osm`, `overture-fsq`, `overture` hoặc
+`fsq`. Nếu archive của profile hợp lệ chưa phát hành, header là `all;fallback` và API tạm dùng
+archive đầy đủ thay vì trả lỗi. POI do người dùng đóng góp luôn được giữ trong mọi profile.
 
 Khi bộ tiles POI chưa phát hành, nguồn và lớp `poi` bị lược khỏi style để MapLibre không tải một file rỗng.
 
@@ -487,7 +489,9 @@ curl "https://api.ai-solutions.io.vn/v1/styles/light.json"
 
 ### GET /v1/tiles/{set}.json và tile `.pbf`
 
-TileJSON và tile vector, đọc trực tiếp từ archive PMTiles trên R2 bằng HTTP Range. `set` là `vn` (bản đồ nền), `poi` (lớp địa điểm, cả ba nguồn) hoặc `poi-osm` (chỉ nguồn OpenStreetMap); tên khác hoặc bộ chưa phát hành trả `404 not_found`.
+TileJSON và tile vector, đọc trực tiếp từ archive PMTiles trên R2 bằng HTTP Range. `set` là `vn`
+(bản đồ nền) hoặc một release POI mà manifest hiện hành trỏ tới. Ứng dụng nên lấy URL POI qua style
+thay vì tự ghép tên release; tên khác hoặc bộ chưa phát hành trả `404 not_found`.
 
 ```
 GET /v1/tiles/vn.json

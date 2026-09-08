@@ -46,9 +46,13 @@ Search/Nearby. Biểu tượng chọn theo nhóm.
 
 Mã `code` dùng trực tiếp làm tham số `category` của `/v1/search` và `/v1/nearby`.
 
-Mặc định bản đồ và Places API dùng **cả ba nguồn**. Người tích hợp có thể giới hạn tập nguồn bằng
-`poiSources` (SDK) hoặc `sources=` (REST) — ví dụ `['osm']` khi chỉ muốn dữ liệu ODbL. Lớp POI cho
-từng tập nguồn được build thành archive riêng nên mật độ hiển thị luôn đúng, không có lỗ trống.
+Mặc định bản đồ và Places API dùng **cả ba nguồn** (`all`). Năm profile là `all`
+(`osm,overture,fsq`), `osm`, `overture-fsq` (`overture,fsq`), `overture` và `fsq`. Trong SDK, ba
+profile mới lần lượt là `poiSources: ['overture','fsq']`, `['overture']`, `['fsq']`; REST dùng
+`sources=overture,fsq`, `sources=overture`, `sources=fsq`. Lớp POI cho từng tập nguồn được build
+thành archive riêng nên mật độ hiển thị luôn đúng, không có lỗ trống. Nếu archive hợp lệ chưa có,
+style fallback về `all` và báo `x-poi-profile: all;fallback`. POI người dùng luôn được giữ;
+`GET /v1/places/{id}` không lọc theo profile.
 Phân bố nguồn chính hiện tại: Overture 77 %, Foursquare 16 %, OpenStreetMap 7 %.
 
 Dữ liệu POI gộp từ ba nguồn mở: OpenStreetMap (ODbL), Overture Maps Places (CDLA-Permissive 2.0)
