@@ -20,6 +20,7 @@ describe('parseState', () => {
       style: 'light',
       lang: 'vi',
       poi: true,
+      sources: 'all',
       compact: false,
       center: [106.7, 10.776],
       zoom: 14,
@@ -53,6 +54,11 @@ describe('parseState', () => {
     expect(state.embed).toBe(true);
   });
 
+  it('đọc sources=osm và bỏ qua profile không có archive', () => {
+    expect(parseState('?sources=osm', API).sources).toBe('osm');
+    expect(parseState('?sources=overture', API).sources).toBe('all');
+  });
+
   it('đọc c=lng,lat,zoom', () => {
     const state = parseState('?c=105.85,21.028,11.5', API);
     expect(state.center).toEqual([105.85, 21.028]);
@@ -81,6 +87,12 @@ describe('toSearchParams', () => {
     expect(params.get('lang')).toBe('en');
     expect(params.get('poi')).toBe('0');
     expect(params.get('compact')).toBe('1');
+  });
+
+  it('in sources chỉ khi chọn OSM', () => {
+    const base = parseState('', API);
+    expect(toSearchParams(base, API).has('sources')).toBe(false);
+    expect(toSearchParams({ ...base, sources: 'osm' }, API).get('sources')).toBe('osm');
   });
 
   it('in c khi tâm hoặc zoom đổi, và giữ embed', () => {
@@ -147,6 +159,11 @@ describe('buildSnippet', () => {
     expect(code).toContain("lang: 'en'");
     expect(code).toContain('poiLayer: false');
     expect(code).toContain('compactAttribution: true');
+  });
+
+  it('in poiSources khi chọn profile OSM', () => {
+    const code = buildSnippet({ ...base, sources: 'osm' }, 'script');
+    expect(code).toContain("poiSources: ['osm']");
   });
 
   it('bản esm import @mapslibvn/web và truyền maplibre', () => {

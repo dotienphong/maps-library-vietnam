@@ -118,6 +118,7 @@ function fillForm() {
   el('f-style').value = state.style;
   el('f-lang').value = state.lang;
   el('f-poi').checked = state.poi;
+  el('f-sources').value = state.sources;
   el('f-compact').checked = state.compact;
   el('f-key').value = state.key;
   el('f-api').value = state.api;
@@ -138,7 +139,13 @@ function renderView() {
 }
 
 function makeClient() {
-  client = SDK ? SDK.createClient({ apiKey: state.key, baseUrl: state.api }) : null;
+  client = SDK
+    ? SDK.createClient({
+        apiKey: state.key,
+        baseUrl: state.api,
+        ...(state.sources === 'osm' ? { poiSources: ['osm'] } : {}),
+      })
+    : null;
 }
 
 /** Đọc tuỳ chọn từ form vào state; tâm và zoom lấy từ bản đồ đang chạy. */
@@ -152,6 +159,7 @@ function readForm() {
     style: el('f-style').value,
     lang: el('f-lang').value,
     poi: el('f-poi').checked,
+    sources: el('f-sources').value,
     compact: el('f-compact').checked,
     key: el('f-key').value.trim() || DEFAULT_KEY,
     api: el('f-api').value.trim() || apiBase,
@@ -273,6 +281,7 @@ function buildMap() {
       zoom: state.zoom,
       lang: state.lang,
       poiLayer: state.poi,
+      ...(state.sources === 'osm' ? { poiSources: ['osm'] } : {}),
       compactAttribution: state.compact,
     });
   } catch (err) {
@@ -575,7 +584,7 @@ function wirePanel() {
     el('panel-toggle-label').textContent = open ? 'Mở' : 'Thu gọn';
   });
 
-  for (const id of ['f-style', 'f-lang', 'f-poi', 'f-compact', 'f-key', 'f-api']) {
+  for (const id of ['f-style', 'f-lang', 'f-poi', 'f-sources', 'f-compact', 'f-key', 'f-api']) {
     el(id).addEventListener('change', () => {
       readForm();
       fillForm();

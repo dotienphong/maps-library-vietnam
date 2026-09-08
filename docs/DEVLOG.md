@@ -84,6 +84,9 @@ commit với code).
   cache namespace riêng. Cold n=120/phía: current nhanh hơn ở 3/3 batch, p95 delta
   −268/−134/−288 ms. Warm baseline n=120 p95 139 ms, current n=160 p95 155 ms,
   delta +16 ms ≤ +50 ms. Toàn bộ plan POI Sources Profile hiện không còn ô mở.
+  Playground bổ sung selector **Nguồn POI** (`Tất cả`/`Chỉ OpenStreetMap`): map,
+  autocomplete/Places client, URL chia sẻ `?sources=osm` và mã nhúng cùng dùng một
+  profile. Unit playground 28/28, E2E đổi profile 1/1, docs build 20 trang.
   Commit chốt `7047ccd` đã push lên `origin/main`; smoke production `all`/`osm`
   đều HTTP 200, đúng `x-poi-profile` và archive. GitHub Actions không khởi chạy
   step nào do account báo payment failed/spending limit (runs `34225491887`,

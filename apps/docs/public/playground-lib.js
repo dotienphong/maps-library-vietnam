@@ -36,6 +36,7 @@ const LANGS = ['vi', 'en'];
  * @property {string} style `light` hoặc `dark`.
  * @property {string} lang `vi` hoặc `en`.
  * @property {boolean} poi Bật lớp POI.
+ * @property {'all' | 'osm'} sources Profile nguồn POI.
  * @property {boolean} compact Attribution gọn.
  * @property {[number, number]} center Tâm bản đồ `[lng, lat]`.
  * @property {number} zoom Mức zoom.
@@ -86,6 +87,7 @@ export function parseState(search, apiBase) {
     style: style && STYLES.includes(style) ? style : SDK_DEFAULTS.style,
     lang: lang && LANGS.includes(lang) ? lang : SDK_DEFAULTS.lang,
     poi: params.get('poi') !== '0',
+    sources: params.get('sources') === 'osm' ? 'osm' : 'all',
     compact: params.get('compact') === '1',
     center,
     zoom,
@@ -106,6 +108,7 @@ export function toSearchParams(state, apiBase) {
   if (state.style !== SDK_DEFAULTS.style) params.set('style', state.style);
   if (state.lang !== SDK_DEFAULTS.lang) params.set('lang', state.lang);
   if (!state.poi) params.set('poi', '0');
+  if (state.sources === 'osm') params.set('sources', 'osm');
   if (state.compact) params.set('compact', '1');
   const movedCenter =
     round6(state.center[0]) !== DEFAULT_CENTER[0] || round6(state.center[1]) !== DEFAULT_CENTER[1];
@@ -133,6 +136,7 @@ function optionLines(state, indent) {
   if (state.style !== SDK_DEFAULTS.style) lines.push(`style: '${state.style}',`);
   if (state.lang !== SDK_DEFAULTS.lang) lines.push(`lang: '${state.lang}',`);
   if (state.poi !== SDK_DEFAULTS.poiLayer) lines.push(`poiLayer: ${state.poi},`);
+  if (state.sources === 'osm') lines.push("poiSources: ['osm'],");
   if (state.compact !== SDK_DEFAULTS.compactAttribution) {
     lines.push(`compactAttribution: ${state.compact},`);
   }

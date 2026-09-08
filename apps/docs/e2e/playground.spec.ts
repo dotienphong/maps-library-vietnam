@@ -130,13 +130,32 @@ test('?embed=1 chỉ còn bản đồ và thanh trạng thái', async ({ page })
 });
 
 test('tuỳ chọn trên URL phản ánh vào form', async ({ page }) => {
-  await page.goto('/playground.html?style=dark&lang=en&poi=0&compact=1');
+  await page.goto('/playground.html?style=dark&lang=en&poi=0&sources=osm&compact=1');
 
   await expect(page.locator('#f-style')).toHaveValue('dark');
   await expect(page.locator('#f-lang')).toHaveValue('en');
   await expect(page.locator('#f-poi')).not.toBeChecked();
+  await expect(page.locator('#f-sources')).toHaveValue('osm');
   await expect(page.locator('#f-compact')).toBeChecked();
   await expect(page.locator('#f-key')).toHaveValue('mlv_live_demo00000000000000000000');
+});
+
+test('đổi nguồn POI tạo lại map, đồng bộ URL và mã nhúng', async ({ page }) => {
+  const styleRequest = page.waitForRequest((request) => {
+    const url = new URL(request.url());
+    return url.pathname === '/v1/styles/light.json' && url.searchParams.get('sources') === 'osm';
+  });
+  await page.goto('/playground.html');
+  await page.locator('#f-sources').selectOption('osm');
+  await page.locator('#apply').click();
+  await styleRequest;
+
+  await expect(page.locator('#status')).toHaveAttribute('data-state', 'loaded', {
+    timeout: 30_000,
+  });
+  expect(new URL(page.url()).searchParams.get('sources')).toBe('osm');
+  await page.locator('#tab-ma-nhung').click();
+  await expect(page.locator('#snippet-script')).toContainText("poiSources: ['osm']");
 });
 
 test('tab Mã nhúng sinh mã theo tuỳ chọn hiện tại', async ({ page }) => {
