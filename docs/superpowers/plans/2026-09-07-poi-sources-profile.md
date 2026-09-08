@@ -1292,7 +1292,7 @@ Chạy trong image pipeline vì máy dev thiếu tippecanoe (memory `dbtest-loca
 **Files:**
 - Modify: `pipelines/poi/tests/pipeline-fixture.dbtest.mjs`
 
-- [ ] **Step 1: Sửa beforeAll và đường dẫn seq, thêm test**
+- [x] **Step 1: Sửa beforeAll và đường dẫn seq, thêm test**
 
 Trong `beforeAll`, thay dòng export bằng:
 ```js
@@ -1344,12 +1344,12 @@ Thêm test mới cuối `describe`:
   });
 ```
 
-- [ ] **Step 2: Chạy dbtest trong container**
+- [x] **Step 2: Chạy dbtest trong container**
 
 Run: `pnpm db:up && pnpm test:db -- pipelines/poi/tests/pipeline-fixture.dbtest.mjs`
 Expected: PASS (nếu `test:db` không nhận filter, chạy toàn bộ `pnpm test:db`; test khác phải giữ xanh như trước).
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 git add pipelines/poi/tests/pipeline-fixture.dbtest.mjs
@@ -1358,13 +1358,13 @@ git commit -m "test(pipeline): kiểm nguồn hợp lệ và POI người dùng 
 
 ### Gate sau review R4/R5 — sửa ý nghĩa nghiệm thu
 
-- [ ] **Step 4:** Sửa tên/assertion test hiện tại theo mẫu trên. Tập đầu vào OSM
+- [x] **Step 4:** Sửa tên/assertion test hiện tại theo mẫu trên. Tập đầu vào OSM
   là tập con của DB đủ điều kiện, nhưng archive sau thinning không nhất thiết là
   tập con của archive all; cũng không bắt buộc số lượng nhỏ hơn.
-- [ ] **Step 5:** Fixture hai POI cùng ô: nguồn FSQ/Overture ưu tiên cao thắng ở all,
+- [x] **Step 5:** Fixture hai POI cùng ô: nguồn FSQ/Overture ưu tiên cao thắng ở all,
   OSM bị thinning ở all nhưng xuất hiện trong profile osm. Assert ID thực trong
   GeoJSONSeq và tile giải mã, không chỉ đếm feature. Chạy selector unit và DB fixture.
-- [ ] **Step 6:** Giữ fixture user ở vị trí không cạnh tranh để assert ID có trong
+- [x] **Step 6:** Giữ fixture user ở vị trí không cạnh tranh để assert ID có trong
   cả hai archive. Bổ sung ca user cạnh tranh để làm rõ: “luôn giữ” nghĩa là không bị
   lọc vì nguồn; vẫn chịu active/category, ranking, limit và thinning bình thường.
   Không hứa mọi POI user luôn được vẽ ở mọi zoom.

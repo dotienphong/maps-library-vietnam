@@ -12,6 +12,9 @@ import { CELL_PX_BY_ZOOM, globalCellKey } from '../src/display-selector.mjs';
 const OUT = process.env.MAPSLIBVN_OUT ?? resolve('out');
 const WORK = process.env.MAPSLIBVN_WORK ?? resolve('work');
 const LATE_USER_POI_ID = 'USERPOI0000000000000000002';
+const THIN_ALL_WINNER_ID = 'THINOVERTURE000000000000001';
+const THIN_OSM_WINNER_ID = 'THINOSM00000000000000000001';
+const THIN_USER_ID = 'THINUSER0000000000000000001';
 const SNAPSHOT_BUILD_ID = `fixture-${process.pid}`;
 const NEXT_SNAPSHOT_BUILD_ID = `${SNAPSHOT_BUILD_ID}-next`;
 const snapshotFile = (/** @type {string} */ buildId) =>
@@ -44,6 +47,15 @@ beforeAll(async () => {
     VALUES ('USERPOI0000000000000000001', 'Quán thử người dùng', 'quan thu nguoi dung', 'cafe',
             ST_SetSRID(ST_MakePoint(108.5, 13.5), 4326), 60, 0.2, 'active', '{}', 'user')
     ON CONFLICT (id) DO NOTHING`;
+  await sql`INSERT INTO poi (id, name, name_norm, category, geom, quality_score, popularity, status,
+                            locked_fields, created_by, primary_source, primary_source_id)
+    VALUES
+      (${THIN_ALL_WINNER_ID}, 'POI Overture thắng all', 'poi overture thang all', 'cafe',
+       ST_SetSRID(ST_MakePoint(108.6, 13.6), 4326), 99, 0.99, 'active', '{}', 'pipeline', 'overture', 'thin-overture'),
+      (${THIN_OSM_WINNER_ID}, 'POI OSM phục hồi', 'poi osm phuc hoi', 'cafe',
+       ST_SetSRID(ST_MakePoint(108.6, 13.6), 4326), 70, 0.50, 'active', '{}', 'pipeline', 'osm', 'thin-osm'),
+      (${THIN_USER_ID}, 'POI user cạnh tranh', 'poi user canh tranh', 'cafe',
+       ST_SetSRID(ST_MakePoint(108.6, 13.6), 4326), 60, 0.10, 'active', '{}', 'user', NULL, NULL)`;
   node('pipelines/poi/src/export-snapshot.mjs', '--build-id', SNAPSHOT_BUILD_ID);
   await sql`INSERT INTO poi (id, name, name_norm, category, geom, quality_score, popularity, status, locked_fields, created_by)
     VALUES (${LATE_USER_POI_ID}, 'Quán thêm sau snapshot', 'quan them sau snapshot', 'cafe',
@@ -171,7 +183,7 @@ describe('pipeline POI trọn vòng trên fixture', () => {
     });
   });
 
-  it('profile osm: chỉ POI primary osm hoặc người dùng; là tập con thật của all', async () => {
+  it('profile osm: mọi POI xuất ra thuộc tập DB đủ điều kiện, không giả định tập con sau thinning', async () => {
     const readIds = (/** @type {string} */ release) =>
       new Set(
         readFileSync(resolve(WORK, 'poi', `${release}.geojsonseq`), 'utf8')
@@ -182,7 +194,6 @@ describe('pipeline POI trọn vòng trên fixture', () => {
     const osmIds = readIds('poi-osm-fixture');
     const allIds = readIds('poi-fixture');
     expect(osmIds.size).toBeGreaterThan(0);
-    expect(osmIds.size).toBeLessThan(allIds.size);
 
     const allowed = await sql`SELECT id FROM poi p
       WHERE p.status = 'active' AND (p.primary_source = 'osm' OR p.created_by = 'user')`;
@@ -199,6 +210,45 @@ describe('pipeline POI trọn vòng trên fixture', () => {
     const file = resolve(OUT, 'poi-osm-fixture.pmtiles');
     expect(existsSync(file)).toBe(true);
     expect(() => node('pipelines/tiles/src/qa.mjs', file, '--skip-islands')).not.toThrow();
+  });
+
+  it('thinning độc lập: Overture thắng all, OSM được phục hồi ở osm, user vẫn chịu thinning', () => {
+    const readFeatures = (/** @type {string} */ release) =>
+      readFileSync(resolve(WORK, 'poi', `${release}.geojsonseq`), 'utf8')
+        .trim()
+        .split('\n')
+        .map((line) => JSON.parse(line));
+    const all = readFeatures('poi-fixture');
+    const osm = readFeatures('poi-osm-fixture');
+    const allIds = new Set(all.map((feature) => feature.properties.id));
+    const osmIds = new Set(osm.map((feature) => feature.properties.id));
+
+    expect(allIds.has(THIN_ALL_WINNER_ID)).toBe(true);
+    expect(allIds.has(THIN_OSM_WINNER_ID)).toBe(false);
+    expect(osmIds.has(THIN_OSM_WINNER_ID)).toBe(true);
+    expect(osmIds.has(THIN_ALL_WINNER_ID)).toBe(false);
+    expect(allIds.has(THIN_USER_ID)).toBe(false);
+    expect(osmIds.has(THIN_USER_ID)).toBe(false);
+
+    for (const [release, features, id] of [
+      ['poi-fixture', all, THIN_ALL_WINNER_ID],
+      ['poi-osm-fixture', osm, THIN_OSM_WINNER_ID],
+    ]) {
+      const feature = features.find((item) => item.properties.id === id);
+      const zoom = feature.tippecanoe.minzoom;
+      const { x, y } = lonLatToTile(108.6, 13.6, zoom);
+      const decoded = JSON.parse(
+        execFileSync(
+          'tippecanoe-decode',
+          [resolve(OUT, `${release}.pmtiles`), String(zoom), String(x), String(y)],
+          { encoding: 'utf8' },
+        ),
+      );
+      const decodedIds = decoded.features
+        .flatMap((item) => (item.type === 'FeatureCollection' ? item.features : [item]))
+        .map((item) => item.properties?.id);
+      expect(decodedIds).toContain(id);
+    }
   });
 
   it('hai profile giữ nguyên snapshot DB và chỉ nhận bản ghi mới ở build kế tiếp', () => {

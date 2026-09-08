@@ -52,6 +52,13 @@ commit với code).
   rollback/orchestration/archive guard xanh 31/31; script typecheck và Biome sạch.
   **Tiếp:** R4/R5 — sửa ý nghĩa thinning trong DB fixture và thêm API DB semantic
   tests cho nguồn/user trên search, nearby, reverse và autocomplete.
+  **R4 ĐÓNG:** DB fixture không còn giả định archive `osm` là tập con/nhỏ hơn `all`
+  sau thinning. Ba POI cùng ô chứng minh Overture thắng ở `all`, OSM được phục hồi ở
+  `osm`, còn POI user không bị lọc theo nguồn nhưng vẫn chịu ranking/thinning; kiểm
+  đúng ID trên cả GeoJSONSeq và tile PMTiles giải mã thật. POI user không cạnh tranh
+  vẫn có trong cả hai archive. Full pipeline DB gate xanh 10 file/68 test.
+  **Tiếp:** R5 — fixture API DB biệt lập cho OSM/Overture/FSQ/user và ma trận ID trên
+  search, nearby, reverse, autocomplete, gồm cache theo hai chiều profile.
 
 - **07/09/2026 — ĐÃ PHÁT HÀNH bật/tắt nguồn POI theo profile (spec 07/09).**
   Cổng đo trước cho kết quả bất ngờ: OSM chỉ là **nguồn chính của 7,0 %** POI (106.325/1.522.416;
