@@ -112,6 +112,8 @@ const wrangler = spawn(
     `ACCESS_CERTS_URL:http://127.0.0.1:${CERTS_PORT}/certs`,
     '--var',
     `IP_HASH_PEPPER:${IP_HASH_PEPPER}`,
+    '--var',
+    'AUTOCOMPLETE_TELEX:1',
   ],
   {
     stdio: 'inherit',

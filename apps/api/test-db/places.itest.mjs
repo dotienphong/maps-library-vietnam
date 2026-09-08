@@ -223,27 +223,90 @@ describe('thang geocode và các route còn lại', () => {
     }
   });
 
-  it('sources lọc theo nguồn chính và luôn giữ POI người dùng', async () => {
-    const all = await get(`/v1/search?q=${enc('Highlands')}&sources=all&limit=50`);
-    const osm = await get(`/v1/search?q=${enc('Highlands')}&sources=osm&limit=50`);
-    expect(all.status).toBe(200);
-    expect(osm.status).toBe(200);
-    const osmIds = new Set(osm.body.items.map((item) => item.id));
-    const allIds = new Set(all.body.items.map((item) => item.id));
-    // Cả hai nhánh phải có kết quả, nếu không phép kiểm tập con dưới đây pass rỗng vô nghĩa.
-    expect(allIds.size).toBeGreaterThan(0);
-    expect(osmIds.size).toBeGreaterThan(0);
-    for (const id of osmIds) expect(allIds.has(id)).toBe(true);
-    expect(osm.body.total).toBeLessThanOrEqual(all.body.total);
+  const sourceIds = {
+    osm: 'R5SOURCEOSM000000000000001',
+    overture: 'R5SOURCEOVERTURE0000000001',
+    fsq: 'R5SOURCEFSQ000000000000001',
+    user: 'R5SOURCEUSER00000000000001',
+  };
+  const ids = (response) => new Set(response.body.items.map((item) => item.id));
+  const expectProfile = (actual, included, excluded) => {
+    for (const id of included) expect(actual.has(id), `thiếu ${id}`).toBe(true);
+    for (const id of excluded) expect(actual.has(id), `thừa ${id}`).toBe(false);
+  };
 
-    // Mỗi id trả về ở nhánh osm phải thật sự có nguồn chính osm (hoặc là POI người dùng, khi đó
-    // `sources` của place details rỗng).
-    for (const id of osmIds) {
-      const details = await get(`/v1/places/${encodeURIComponent(id)}`);
-      expect(details.status).toBe(200);
-      const primary = details.body.sources.find((link) => link.role === 'primary');
-      expect(primary === undefined || primary.source === 'osm').toBe(true);
-    }
+  it.each([
+    ['search', `/v1/search?q=${enc('r5 profile alpha')}&limit=50`],
+    ['nearby', '/v1/nearby?lat=11&lng=107&radius=100'],
+  ])('%s lọc đúng ID theo all/osm/overture,fsq và luôn giữ user', async (_route, path) => {
+    const all = ids(await get(`${path}&sources=all`));
+    const osm = ids(await get(`${path}&sources=osm`));
+    const commercial = ids(await get(`${path}&sources=overture,fsq`));
+    expectProfile(all, Object.values(sourceIds), []);
+    expectProfile(osm, [sourceIds.osm, sourceIds.user], [sourceIds.overture, sourceIds.fsq]);
+    expectProfile(commercial, [sourceIds.overture, sourceIds.fsq, sourceIds.user], [sourceIds.osm]);
+  });
+
+  it('reverse chọn lại nearest_poi sau khi lọc nguồn, user vẫn đủ điều kiện', async () => {
+    const all = await get('/v1/reverse?lat=11&lng=107&sources=all');
+    const osm = await get('/v1/reverse?lat=11&lng=107&sources=osm');
+    const fsq = await get('/v1/reverse?lat=11&lng=107&sources=fsq');
+    expect(all.body.nearest_poi.id).toBe(sourceIds.overture);
+    expect(osm.body.nearest_poi.id).toBe(sourceIds.osm);
+    expect(fsq.body.nearest_poi.id).toBe(sourceIds.fsq);
+  });
+
+  it.each([
+    ['alpha', 'osm', 'all'],
+    ['beta', 'all', 'osm'],
+  ])('autocomplete cache tách profile theo chiều %s: %s → %s', async (query, first, second) => {
+    const firstIds = ids(
+      await get(`/v1/autocomplete?q=r5%20profile%20${query}&types=poi&limit=10&sources=${first}`),
+    );
+    const secondIds = ids(
+      await get(`/v1/autocomplete?q=r5%20profile%20${query}&types=poi&limit=10&sources=${second}`),
+    );
+    const suffix = query === 'alpha' ? '1' : '2';
+    const expected = {
+      osm: `R5SOURCEOSM00000000000000${suffix}`,
+      overture: `R5SOURCEOVERTURE000000000${suffix}`,
+      fsq: `R5SOURCEFSQ00000000000000${suffix}`,
+      user: `R5SOURCEUSER0000000000000${suffix}`,
+    };
+    const assert = (profile, actual) =>
+      profile === 'all'
+        ? expectProfile(actual, Object.values(expected), [])
+        : expectProfile(actual, [expected.osm, expected.user], [expected.overture, expected.fsq]);
+    assert(first, firstIds);
+    assert(second, secondIds);
+  });
+
+  it.each([
+    ['alias địa danh', 'r5 alias qui nhon', 'R5SOURCEUSERALIAS0000001', 'R5SOURCEOVERTUREALIAS001'],
+    ['tsvector', 'r5 token branch', 'R5SOURCEUSERTOKEN0000001', 'R5SOURCEOVERTURETOKEN001'],
+    ['viKey', 'r5 can bien', 'R5SOURCEUSERKEY000000001', 'R5SOURCEOVERTUREKEY00001'],
+    [
+      'Telex fallback',
+      'thuw vieenj quoocs gia',
+      'R5SOURCEUSERTELEX0000001',
+      'R5SOURCEOVERTURETELEX001',
+    ],
+  ])('autocomplete nhánh %s lọc nguồn nhưng giữ user', async (_branch, query, user, overture) => {
+    const osm = ids(await get(`/v1/autocomplete?q=${enc(query)}&types=poi&limit=10&sources=osm`));
+    const all = ids(await get(`/v1/autocomplete?q=${enc(query)}&types=poi&limit=10&sources=all`));
+    expectProfile(osm, [user], [overture]);
+    expectProfile(all, [user, overture], []);
+  });
+
+  it('sources không lọc các nhánh street, address và area của autocomplete', async () => {
+    const street = await get(`/v1/autocomplete?q=${enc('Nguyễn Lâm')}&types=street&sources=osm`);
+    const address = await get(
+      `/v1/autocomplete?q=${enc('86 Nguyễn Lâm')}&types=address&sources=overture,fsq`,
+    );
+    const area = await get(`/v1/autocomplete?q=${enc('Quận 10')}&types=area&sources=osm`);
+    expect(street.body.items.some((item) => item.type === 'street')).toBe(true);
+    expect(address.body.items.some((item) => item.type === 'address')).toBe(true);
+    expect(area.body.items.some((item) => item.type === 'area')).toBe(true);
   });
 
   it('auth DB thật trả 401 cho key thiếu hoặc không tồn tại', async () => {

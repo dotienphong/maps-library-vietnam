@@ -133,6 +133,65 @@ DELETE FROM poi_source_link WHERE source_id LIKE 'm3test-%';
 INSERT INTO poi_source_link (poi_id, source, source_id, confidence, role) VALUES
   ('01M3TEST0000000000000SCH01', 'osm', 'm3test-sch1', 1, 'primary');
 
+-- R5: fixture nguồn biệt lập. Hai cụm tên dùng để kiểm cache theo cả hai thứ tự;
+-- cụm reverse đặt nguồn bị tắt gần điểm hỏi hơn để bắt lỗi chỉ lọc sau LIMIT 1.
+DELETE FROM poi WHERE id LIKE 'R5SOURCE%';
+INSERT INTO poi (id, name, name_norm, category, geom, ward, province, address_text,
+                 quality_score, popularity, status, primary_source, primary_source_id, created_by)
+VALUES
+  ('R5SOURCEOSM000000000000001', 'R5 Profile Alpha OSM', 'r5 profile alpha osm', 'cafe',
+   ST_SetSRID(ST_MakePoint(107.00020, 11.00000), 4326), 'R5 Ward', 'R5 Province', 'R5 OSM',
+   90, 0.9, 'active', 'osm', 'r5-osm', 'pipeline'),
+  ('R5SOURCEOVERTURE0000000001', 'R5 Profile Alpha Overture', 'r5 profile alpha overture', 'cafe',
+   ST_SetSRID(ST_MakePoint(107.00005, 11.00000), 4326), 'R5 Ward', 'R5 Province', 'R5 Overture',
+   90, 0.8, 'active', 'overture', 'r5-overture', 'pipeline'),
+  ('R5SOURCEFSQ000000000000001', 'R5 Profile Alpha Foursquare', 'r5 profile alpha foursquare', 'cafe',
+   ST_SetSRID(ST_MakePoint(107.00030, 11.00000), 4326), 'R5 Ward', 'R5 Province', 'R5 FSQ',
+   90, 0.7, 'active', 'fsq', 'r5-fsq', 'pipeline'),
+  ('R5SOURCEUSER00000000000001', 'R5 Profile Alpha User', 'r5 profile alpha user', 'cafe',
+   ST_SetSRID(ST_MakePoint(107.00040, 11.00000), 4326), 'R5 Ward', 'R5 Province', 'R5 User',
+   90, 0.6, 'active', NULL, NULL, 'user'),
+  ('R5SOURCEOSM000000000000002', 'R5 Profile Beta OSM', 'r5 profile beta osm', 'cafe',
+   ST_SetSRID(ST_MakePoint(107.00020, 11.00010), 4326), 'R5 Ward', 'R5 Province', 'R5 OSM',
+   90, 0.9, 'active', 'osm', 'r5-osm-beta', 'pipeline'),
+  ('R5SOURCEOVERTURE0000000002', 'R5 Profile Beta Overture', 'r5 profile beta overture', 'cafe',
+   ST_SetSRID(ST_MakePoint(107.00005, 11.00010), 4326), 'R5 Ward', 'R5 Province', 'R5 Overture',
+   90, 0.8, 'active', 'overture', 'r5-overture-beta', 'pipeline'),
+  ('R5SOURCEFSQ000000000000002', 'R5 Profile Beta Foursquare', 'r5 profile beta foursquare', 'cafe',
+   ST_SetSRID(ST_MakePoint(107.00030, 11.00010), 4326), 'R5 Ward', 'R5 Province', 'R5 FSQ',
+   90, 0.7, 'active', 'fsq', 'r5-fsq-beta', 'pipeline'),
+  ('R5SOURCEUSER00000000000002', 'R5 Profile Beta User', 'r5 profile beta user', 'cafe',
+   ST_SetSRID(ST_MakePoint(107.00040, 11.00010), 4326), 'R5 Ward', 'R5 Province', 'R5 User',
+   90, 0.6, 'active', NULL, NULL, 'user');
+
+INSERT INTO poi (id, name, name_norm, category, geom, ward, province, quality_score, popularity,
+                 status, primary_source, primary_source_id, created_by, name_tsv, name_key)
+VALUES
+  ('R5SOURCEOVERTUREALIAS001', 'R5 Alias Quy Nhơn Commercial', 'r5 alias quy nhon commercial',
+   'cafe', ST_SetSRID(ST_MakePoint(107.001, 11.001), 4326), 'R5 Ward', 'R5 Province', 90, 0.8,
+   'active', 'overture', 'r5-alias-commercial', 'pipeline', NULL, NULL),
+  ('R5SOURCEUSERALIAS0000001', 'R5 Alias Quy Nhơn User', 'r5 alias quy nhon user',
+   'cafe', ST_SetSRID(ST_MakePoint(107.002, 11.001), 4326), 'R5 Ward', 'R5 Province', 90, 0.7,
+   'active', NULL, NULL, 'user', NULL, NULL),
+  ('R5SOURCEOVERTURETOKEN001', 'R5 Token Commercial', 'zzqq vvxx commercial',
+   'cafe', ST_SetSRID(ST_MakePoint(107.001, 11.002), 4326), 'R5 Ward', 'R5 Province', 90, 0.8,
+   'active', 'overture', 'r5-token-commercial', 'pipeline', to_tsvector('simple', 'r5 token branch'), NULL),
+  ('R5SOURCEUSERTOKEN0000001', 'R5 Token User', 'zzqq vvxx user',
+   'cafe', ST_SetSRID(ST_MakePoint(107.002, 11.002), 4326), 'R5 Ward', 'R5 Province', 90, 0.7,
+   'active', NULL, NULL, 'user', to_tsvector('simple', 'r5 token branch'), NULL),
+  ('R5SOURCEOVERTUREKEY00001', 'R5 Key Commercial', 'wwqq zzxx commercial',
+   'cafe', ST_SetSRID(ST_MakePoint(107.001, 11.003), 4326), 'R5 Ward', 'R5 Province', 90, 0.8,
+   'active', 'overture', 'r5-key-commercial', 'pipeline', NULL, 'r5canbien'),
+  ('R5SOURCEUSERKEY000000001', 'R5 Key User', 'wwqq zzxx user',
+   'cafe', ST_SetSRID(ST_MakePoint(107.002, 11.003), 4326), 'R5 Ward', 'R5 Province', 90, 0.7,
+   'active', NULL, NULL, 'user', NULL, 'r5canbien'),
+  ('R5SOURCEOVERTURETELEX001', 'Thư Viện Quốc Gia Commercial', 'thu vien quoc gia commercial',
+   'cafe', ST_SetSRID(ST_MakePoint(107.001, 11.004), 4326), 'R5 Ward', 'R5 Province', 90, 0.8,
+   'active', 'overture', 'r5-telex-commercial', 'pipeline', NULL, NULL),
+  ('R5SOURCEUSERTELEX0000001', 'Thư Viện Quốc Gia User', 'thu vien quoc gia user',
+   'cafe', ST_SetSRID(ST_MakePoint(107.002, 11.004), 4326), 'R5 Ward', 'R5 Province', 90, 0.7,
+   'active', NULL, NULL, 'user', NULL, NULL);
+
 INSERT INTO tenant (id, name, plan)
 VALUES ('00000000-0000-4000-8000-0000000000aa', 'M3 itest', 'internal')
 ON CONFLICT (id) DO NOTHING;

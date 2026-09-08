@@ -59,6 +59,13 @@ commit với code).
   vẫn có trong cả hai archive. Full pipeline DB gate xanh 10 file/68 test.
   **Tiếp:** R5 — fixture API DB biệt lập cho OSM/Overture/FSQ/user và ma trận ID trên
   search, nearby, reverse, autocomplete, gồm cache theo hai chiều profile.
+  **R5 ĐÓNG:** fixture API DB có ID cố định cho OSM, Overture, FSQ và user/nguồn NULL.
+  Search + nearby khóa đủ ba profile; reverse đặt Overture gần nhất rồi chứng minh `osm`
+  chọn lại OSM và `fsq` chọn lại FSQ. Autocomplete khóa prefix, alias địa danh, tsvector,
+  viKey, Telex fallback bật thật trong Wrangler; cache chạy `osm→all` và `all→osm`, còn
+  street/address/area không bị lọc. API unit xanh 25 file/168 test, API DB thật xanh
+  3 file/51 test. **Tiếp:** R8 — đồng bộ spec/docs với snapshot, thinning độc lập,
+  release bất biến và trạng thái package 0.4.0.
 
 - **07/09/2026 — ĐÃ PHÁT HÀNH bật/tắt nguồn POI theo profile (spec 07/09).**
   Cổng đo trước cho kết quả bất ngờ: OSM chỉ là **nguồn chính của 7,0 %** POI (106.325/1.522.416;

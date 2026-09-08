@@ -577,12 +577,12 @@ git commit -m "feat(api): search/nearby/reverse lọc POI theo sources (mặc đ
 
 ### Gate sau review R5 — chưa đóng phần kiểm DB
 
-- [ ] **Step 6:** Bổ sung fixture biệt lập có ID xác định cho OSM, Overture, FSQ và
+- [x] **Step 6:** Bổ sung fixture biệt lập có ID xác định cho OSM, Overture, FSQ và
   `created_by='user'`/`primary_source=NULL`; tên/vị trí phải đủ điều kiện truy vấn.
   Kiểm search và nearby với `osm/all/overture,fsq`: ID đúng được giữ, ID nguồn tắt bị
   loại, POI user luôn thuộc tập đủ điều kiện. Với reverse, dùng vị trí có POI nguồn
   tắt gần hơn và OSM/user phía sau để chứng minh nearest_poi chọn lại đúng nguồn.
-- [ ] **Step 7:** Chạy `pnpm test:api-db` trên DB test đã migrate; lưu kết quả ngữ nghĩa.
+- [x] **Step 7:** Chạy `pnpm test:api-db` trên DB test đã migrate; lưu kết quả ngữ nghĩa.
   Test chỉ HTTP 200 hoặc cho phép primary undefined không chứng minh giữ POI user.
   File chính: `apps/api/test-db/places.itest.mjs` và fixture của bộ API DB hiện tại.
 
@@ -687,10 +687,10 @@ git commit -m "feat(api): autocomplete lọc poi theo sources, cache key v=src1"
 
 ### Gate sau review R5 — autocomplete và cache
 
-- [ ] **Step 6:** Dùng fixture R5 cho autocomplete: từng nhánh POI hiện có (prefix,
+- [x] **Step 6:** Dùng fixture R5 cho autocomplete: từng nhánh POI hiện có (prefix,
   alias, tsvector, viKey và Telex fallback khi bật) đều giữ user/loại nguồn tắt.
   Query phải thực sự chạm nhánh tương ứng; assert ID và nguồn thay vì chỉ HTTP 200.
-- [ ] **Step 7:** Gọi cùng query lần lượt osm/all rồi ngược lại để kiểm cache không
+- [x] **Step 7:** Gọi cùng query lần lượt osm/all rồi ngược lại để kiểm cache không
   lẫn nguồn; xác nhận street/address/area không bị bộ lọc POI loại bỏ. Chạy API unit
   và `pnpm test:api-db`; lưu số test và kết quả, không chỉ snapshot chuỗi SQL.
 
@@ -1368,7 +1368,7 @@ git commit -m "test(pipeline): kiểm nguồn hợp lệ và POI người dùng 
   cả hai archive. Bổ sung ca user cạnh tranh để làm rõ: “luôn giữ” nghĩa là không bị
   lọc vì nguồn; vẫn chịu active/category, ranking, limit và thinning bình thường.
   Không hứa mọi POI user luôn được vẽ ở mọi zoom.
-- [ ] **Step 7:** Hoàn tất gate API DB của Task 5/6; kiểm danh sách ID nguồn tắt và
+- [x] **Step 7:** Hoàn tất gate API DB của Task 5/6; kiểm danh sách ID nguồn tắt và
   ID user bắt buộc ở từng endpoint. Lưu kết quả `pnpm test:db` và
   `pnpm test:api-db` trên fixture đã migrate, kèm SHA.
 
