@@ -462,7 +462,7 @@ Chỉ stage các file source trong danh sách nếu chúng thực sự thay đ�
 - Consumes: `ClientOptions.poiSources?: PoiSource[]` hiện hữu.
 - Produces: URL/API/style và wrapper map nhận ba cấu hình mới, không đổi option hay default.
 
-- [ ] **Step 1: Viết test table cho client URL**
+- [x] **Step 1: Viết test table cho client URL**
 
 ```ts
 it.each([
@@ -478,26 +478,26 @@ it.each([
 });
 ```
 
-- [ ] **Step 2: Mở rộng wrapper tests**
+- [x] **Step 2: Mở rộng wrapper tests**
 
 Web assert `createMap({ poiSources: ['overture', 'fsq'] })` không ném và style URL có
 `overture,fsq`; tổ hợp `['osm','overture']` vẫn ném. React/React Native assert prop `['fsq']` đi vào
 client/style và đổi prop tạo lại đúng như behavior hiện hữu.
 
-- [ ] **Step 3: Chạy tests**
+- [x] **Step 3: Chạy tests**
 
 Run: `pnpm vitest run packages/core/src/client.test.ts packages/web/src/map.test.ts packages/react/src/map.test.tsx packages/react/src/use-places.test.ts packages/react-native/src/map.test.tsx`
 
 Expected: PASS sau Task 1 nếu SDK đã hoàn toàn generic; bất kỳ FAIL nào chỉ được sửa tại nhánh
 hard-code được test chỉ ra.
 
-- [ ] **Step 4: Build bốn package SDK**
+- [x] **Step 4: Build bốn package SDK**
 
 Run: `pnpm --filter @mapslibvn/core build && pnpm --filter @mapslibvn/web build && pnpm --filter @mapslibvn/react build && pnpm --filter @mapslibvn/react-native build`
 
 Expected: build và size-limit exit 0; không bump version, không publish npm.
 
-- [ ] **Step 5: Commit SDK tests/source cần thiết**
+- [x] **Step 5: Commit SDK tests/source cần thiết**
 
 ```bash
 git add packages/core/src/client.test.ts packages/web/src/map.test.ts packages/react/src/map.test.tsx packages/react/src/use-places.test.ts packages/react-native/src/map.test.tsx packages/core/src/client.ts packages/web/src/map.ts packages/react/src/map.tsx packages/react-native/src/map.tsx

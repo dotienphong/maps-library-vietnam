@@ -32,8 +32,13 @@ commit với code).
   khóa đủ năm profile trên search/nearby/reverse/autocomplete, luôn giữ POI user và tách cache theo
   hai chiều `overture → fsq` / `fsq → overture-fsq`. Registry/manifest/filter generic từ Task 1–2
   đã đáp ứng nên test acceptance xanh ngay, không cần đổi runtime API. Gate: API unit 25 file/175
-  test, API DB 3 file/51 test, typecheck 14/14, Biome sạch. **Bắt đầu tiếp:** Task 6, khóa contract
-  SDK Web/React/React Native cho ba cấu hình mới; chưa build/publish production ở checkpoint này.
+  test, API DB 3 file/51 test, typecheck 14/14, Biome sạch. **Task 6 ĐÓNG:** core chuẩn hóa
+  `['fsq','overture']` thành `overture,fsq`; Web truyền profile vào style/client; React recreate map
+  khi đổi `fsq → overture,fsq`; React Native đồng bộ style/client; `usePlaces` giữ nguyên profile
+  của client. Test tập trung 5 file/39 test xanh; bốn package core/web/react/react-native build sạch,
+  core/web giữ đúng size-limit. SDK đã generic nên không đổi source, không bump version và không
+  publish npm. **Bắt đầu tiếp:** Task 7, mở đủ năm lựa chọn và đồng bộ URL/snippet/request trong
+  Playground; chưa build/publish production ở checkpoint này.
 
 - **08/09/2026 — Mở lại gate POI Sources Profile sau review.** Tính năng đã rollout
   ngày 07/09, nhưng kết luận plan hoàn tất 15/15 và tick đồng loạt 76 bước là quá sớm.

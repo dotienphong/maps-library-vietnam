@@ -33,17 +33,15 @@ describe('MapsLibVNMap', () => {
   });
 
   it('poiSources đi vào style URL và client; đổi prop tạo lại map', () => {
-    const { rerender } = render(<MapsLibVNMap {...base} poiSources={['osm']} />);
-    expect(screen.getByTestId('mlrn-map').dataset.style).toContain('sources=osm');
+    const { rerender } = render(<MapsLibVNMap {...base} poiSources={['fsq']} />);
+    expect(screen.getByTestId('mlrn-map').dataset.style).toContain('sources=fsq');
     expect(screen.getByTestId('mlrn-map').dataset.style).not.toContain('overture');
     const onLoad = vi.fn();
-    rerender(<MapsLibVNMap {...base} poiSources={['osm', 'overture', 'fsq']} onLoad={onLoad} />);
-    expect(screen.getByTestId('mlrn-map').dataset.style).toContain('sources=osm%2Coverture%2Cfsq');
+    rerender(<MapsLibVNMap {...base} poiSources={['overture', 'fsq']} onLoad={onLoad} />);
+    expect(screen.getByTestId('mlrn-map').dataset.style).toContain('sources=overture%2Cfsq');
     const props = getLastMapProps() as unknown as { onDidFinishLoadingStyle: () => void };
     act(() => props.onDidFinishLoadingStyle());
-    expect(onLoad.mock.calls[0]?.[0].places.styleUrl('light')).toContain(
-      'sources=osm%2Coverture%2Cfsq',
-    );
+    expect(onLoad.mock.calls[0]?.[0].places.styleUrl('light')).toContain('sources=overture%2Cfsq');
   });
 
   it('style dark + center/zoom truyền vào', () => {

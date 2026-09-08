@@ -103,6 +103,15 @@ describe('createMap', () => {
     ).toThrowError(/osm,overture,fsq/);
   });
 
+  it('profile Overture + Foursquare đi vào map style và client Places', () => {
+    const { ml } = fakeMaplibre();
+    const m = createMap({ ...base, poiSources: ['overture', 'fsq'] }, { maplibre: ml as never });
+    expect((m.gl as unknown as { options: Record<string, unknown> }).options.style).toContain(
+      'sources=overture%2Cfsq',
+    );
+    expect(m.places.styleUrl('dark')).toContain('sources=overture%2Cfsq');
+  });
+
   it('style là URL tuỳ biến thì giữ nguyên', () => {
     const { ml } = fakeMaplibre();
     const m = createMap({ ...base, style: 'https://x/style.json' }, { maplibre: ml as never });

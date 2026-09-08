@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import type { AutocompleteItem, MapsLibVNClient } from '@mapslibvn/core';
+import { type AutocompleteItem, type MapsLibVNClient, createClient } from '@mapslibvn/core';
 import { act, renderHook } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { usePlaces } from './use-places';
@@ -47,6 +47,20 @@ describe('usePlaces', () => {
     expect(client.autocomplete).toHaveBeenCalledWith('highlands', { near: [10.776, 106.7] });
     expect(result.current.items).toEqual([highlands]);
     expect(result.current.loading).toBe(false);
+  });
+
+  it('giữ profile nguồn của client khi gọi autocomplete', async () => {
+    const fetch = vi.fn(async () => new Response(JSON.stringify({ items: [highlands] })));
+    const client = createClient({
+      apiKey: 'k',
+      baseUrl: 'https://api.test',
+      poiSources: ['fsq'],
+      fetch,
+    });
+    const { result } = renderHook(() => usePlaces('highlands', { client }));
+    await advance(200);
+    expect(result.current.items).toEqual([highlands]);
+    expect((fetch.mock.calls[0] as unknown as [URL])[0].searchParams.get('sources')).toBe('fsq');
   });
 
   it('đổi query trước debounce chỉ gọi query cuối', async () => {

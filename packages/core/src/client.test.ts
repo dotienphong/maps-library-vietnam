@@ -126,6 +126,18 @@ describe('createClient', () => {
     expect((fetch.mock.calls[1] as unknown as [URL])[0].searchParams.has('sources')).toBe(false);
   });
 
+  it.each([
+    [['fsq', 'overture'], 'overture,fsq'],
+    [['overture'], 'overture'],
+    [['fsq'], 'fsq'],
+  ] as const)('chuẩn hoá poiSources %j cho REST và style', async (poiSources, expected) => {
+    const fetch = okFetch({ items: [] });
+    const client = createClient({ apiKey: 'k', baseUrl: 'https://api.test', fetch, poiSources });
+    await client.search('cafe');
+    expect((fetch.mock.calls[0] as unknown as [URL])[0].searchParams.get('sources')).toBe(expected);
+    expect(new URL(client.styleUrl('light')).searchParams.get('sources')).toBe(expected);
+  });
+
   it('poiSources rỗng hoặc lạ → ném Error lúc tạo client', () => {
     expect(() => createClient({ apiKey: 'k', baseUrl: 'https://x', poiSources: [] })).toThrowError(
       /poiSources/,
