@@ -393,7 +393,7 @@ git commit -m "feat(pipeline): dựng năm profile POI từ cùng snapshot"
 - Consumes: registry/profile mapping Task 1 và manifest generic Task 2.
 - Produces: style headers/archive đúng cho ba profile; Places API partition đúng và cache không lẫn.
 
-- [ ] **Step 1: Viết test style đỏ dạng table**
+- [x] **Step 1: Viết test style đỏ dạng table**
 
 ```ts
 it.each([
@@ -410,14 +410,14 @@ it.each([
 
 Manifest fixture chứa đủ ba key. Thêm một test thiếu key `fsq` trả `all;fallback`.
 
-- [ ] **Step 2: Mở rộng DB matrix**
+- [x] **Step 2: Mở rộng DB matrix**
 
 Với fixture ID cố định hiện hữu, assert search/nearby/autocomplete cho `overture,fsq` bằng hợp của
 hai nguồn cộng POI user; `overture` và `fsq` chỉ có nguồn tương ứng cộng user. Reverse phải chọn lại
 POI gần nhất trong từng profile. Chạy cache theo `overture -> fsq` và `fsq -> overture-fsq` để khóa
 namespace.
 
-- [ ] **Step 3: Chạy RED**
+- [x] **Step 3: Chạy RED**
 
 Run: `pnpm --filter @mapslibvn/core build && pnpm vitest run apps/api/test/styles.test.ts`
 
@@ -426,18 +426,18 @@ Run: `pnpm test:api-db`
 Expected: style test FAIL trước registry/manifest implementation; DB assertions ghi nhận baseline và
 phải PASS nếu filter generic hiện tại đúng. Nếu DB test PASS ngay, giữ test làm acceptance evidence.
 
-- [ ] **Step 4: Implement tối thiểu nếu test còn đỏ**
+- [x] **Step 4: Implement tối thiểu nếu test còn đỏ**
 
 Không thêm switch profile. `styles.ts` tiếp tục dùng `profileForSources`; `poiReleaseFor` index trực
 tiếp `m.poiProfiles?.[profile]`. Chỉ sửa code nếu lỗi test chứng minh có nhánh hard-code.
 
-- [ ] **Step 5: Chạy GREEN**
+- [x] **Step 5: Chạy GREEN**
 
 Run: `pnpm --filter @mapslibvn/api test && pnpm test:api-db`
 
 Expected: API unit và API PostgreSQL thật đều 0 failure.
 
-- [ ] **Step 6: Commit API contract**
+- [x] **Step 6: Commit API contract**
 
 ```bash
 git add apps/api/test/styles.test.ts apps/api/test-db/places.itest.mjs apps/api/src/routes/styles.ts apps/api/src/manifest.ts

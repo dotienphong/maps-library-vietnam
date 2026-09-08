@@ -108,6 +108,36 @@ describe('GET /v1/styles/:theme.json', () => {
     );
   });
 
+  it.each([
+    ['overture,fsq', 'overture-fsq', 'poi-overture-fsq-20260909'],
+    ['overture', 'overture', 'poi-overture-20260909'],
+    ['fsq', 'fsq', 'poi-fsq-20260909'],
+  ])('sources=%s dùng profile %s và đúng archive', async (sources, profile, release) => {
+    await env.META.put(
+      'release:current',
+      JSON.stringify({
+        vn: 'vn-20260826',
+        poi: 'poi-20260901',
+        poiProfiles: { [profile]: release },
+      }),
+    );
+    const res = await SELF.fetch(`https://api/v1/styles/light.json?sources=${sources}`);
+    expect(res.status).toBe(200);
+    expect(res.headers.get('x-poi-profile')).toBe(profile);
+    expect(JSON.stringify(await res.json())).toContain(`/tiles/${release}.pmtiles`);
+  });
+
+  it('profile hợp lệ nhưng chưa có release → dùng all và đánh dấu fallback', async () => {
+    await env.META.put(
+      'release:current',
+      JSON.stringify({ vn: 'vn-20260826', poi: 'poi-20260901', poiProfiles: {} }),
+    );
+    const res = await SELF.fetch('https://api/v1/styles/light.json?sources=fsq');
+    expect(res.status).toBe(200);
+    expect(res.headers.get('x-poi-profile')).toBe('all;fallback');
+    expect(JSON.stringify(await res.json())).toContain('/tiles/poi-20260901.pmtiles');
+  });
+
   it('tập nguồn chưa có profile → 400 kèm danh sách profile; giá trị lạ → 400', async () => {
     const res = await SELF.fetch('https://api/v1/styles/light.json?sources=osm,overture');
     expect(res.status).toBe(400);

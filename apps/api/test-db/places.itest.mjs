@@ -234,31 +234,47 @@ describe('thang geocode và các route còn lại', () => {
     for (const id of included) expect(actual.has(id), `thiếu ${id}`).toBe(true);
     for (const id of excluded) expect(actual.has(id), `thừa ${id}`).toBe(false);
   };
+  const expectedIdsFor = (profile, fixture = sourceIds) => {
+    const selected =
+      profile === 'all'
+        ? ['osm', 'overture', 'fsq']
+        : profile === 'overture,fsq'
+          ? ['overture', 'fsq']
+          : [profile];
+    const included = [...selected.map((source) => fixture[source]), fixture.user];
+    const excluded = ['osm', 'overture', 'fsq']
+      .filter((source) => !selected.includes(source))
+      .map((source) => fixture[source]);
+    return { included, excluded };
+  };
 
   it.each([
     ['search', `/v1/search?q=${enc('r5 profile alpha')}&limit=50`],
     ['nearby', '/v1/nearby?lat=11&lng=107&radius=100'],
-  ])('%s lọc đúng ID theo all/osm/overture,fsq và luôn giữ user', async (_route, path) => {
-    const all = ids(await get(`${path}&sources=all`));
-    const osm = ids(await get(`${path}&sources=osm`));
-    const commercial = ids(await get(`${path}&sources=overture,fsq`));
-    expectProfile(all, Object.values(sourceIds), []);
-    expectProfile(osm, [sourceIds.osm, sourceIds.user], [sourceIds.overture, sourceIds.fsq]);
-    expectProfile(commercial, [sourceIds.overture, sourceIds.fsq, sourceIds.user], [sourceIds.osm]);
+  ])('%s lọc đúng ID theo đủ năm profile và luôn giữ user', async (_route, path) => {
+    for (const profile of ['all', 'osm', 'overture,fsq', 'overture', 'fsq']) {
+      const actual = ids(await get(`${path}&sources=${profile}`));
+      const expected = expectedIdsFor(profile);
+      expectProfile(actual, expected.included, expected.excluded);
+    }
   });
 
   it('reverse chọn lại nearest_poi sau khi lọc nguồn, user vẫn đủ điều kiện', async () => {
     const all = await get('/v1/reverse?lat=11&lng=107&sources=all');
     const osm = await get('/v1/reverse?lat=11&lng=107&sources=osm');
+    const overtureFsq = await get('/v1/reverse?lat=11&lng=107&sources=overture,fsq');
+    const overture = await get('/v1/reverse?lat=11&lng=107&sources=overture');
     const fsq = await get('/v1/reverse?lat=11&lng=107&sources=fsq');
     expect(all.body.nearest_poi.id).toBe(sourceIds.overture);
     expect(osm.body.nearest_poi.id).toBe(sourceIds.osm);
+    expect(overtureFsq.body.nearest_poi.id).toBe(sourceIds.overture);
+    expect(overture.body.nearest_poi.id).toBe(sourceIds.overture);
     expect(fsq.body.nearest_poi.id).toBe(sourceIds.fsq);
   });
 
   it.each([
-    ['alpha', 'osm', 'all'],
-    ['beta', 'all', 'osm'],
+    ['alpha', 'overture', 'fsq'],
+    ['beta', 'fsq', 'overture,fsq'],
   ])('autocomplete cache tách profile theo chiều %s: %s → %s', async (query, first, second) => {
     const firstIds = ids(
       await get(`/v1/autocomplete?q=r5%20profile%20${query}&types=poi&limit=10&sources=${first}`),
@@ -273,12 +289,13 @@ describe('thang geocode và các route còn lại', () => {
       fsq: `R5SOURCEFSQ00000000000000${suffix}`,
       user: `R5SOURCEUSER0000000000000${suffix}`,
     };
-    const assert = (profile, actual) =>
-      profile === 'all'
-        ? expectProfile(actual, Object.values(expected), [])
-        : expectProfile(actual, [expected.osm, expected.user], [expected.overture, expected.fsq]);
-    assert(first, firstIds);
-    assert(second, secondIds);
+    for (const [profile, actual] of [
+      [first, firstIds],
+      [second, secondIds],
+    ]) {
+      const expectation = expectedIdsFor(profile, expected);
+      expectProfile(actual, expectation.included, expectation.excluded);
+    }
   });
 
   it.each([
