@@ -285,3 +285,63 @@ ghi rõ "không chọn lại bộ mẫu". Nếu PHONG thấy "trả đúng đị
 của fixture, và đó là quyết định của PHONG.
 
 **Ba ca chưa phân tích:** `bmt` (viết tắt — cần mục từ điển), `plei ku`, `li thuong kiet`.
+
+
+---
+
+# Ba ca cuối và hai quyết định của PHONG (08/09/2026)
+
+## Phân tích `bmt`, `plei ku`, `li thuong kiet` — ba nguyên nhân KHÁC NHAU
+
+| Ca | `viKey` truy vấn | `viKey` đích | Nguyên nhân |
+|---|---|---|---|
+| `bmt` | `bmc` | `buonmathuoc` | **Viết tắt.** Khoá ngữ âm không thể nối viết tắt với tên đầy đủ. Muốn khớp phải có mục từ điển, mà mục từ điển bắt buộc có nguồn kiểm được. (Ghi chú: `viKey('bmt')` ra `bmc` vì luật âm cuối `t → c`.) |
+| `plei ku` | `pleicu` | `pleiku` | **Lỗ hổng thật của bảng luật.** Luật `k + a/o/u → c` là luật **đầu từ**. Ở `plei ku` thì `ku` là một từ nên luật chạy; ở `pleiku` thì `k` nằm giữa từ nên luật không chạy. Hai dạng dính/tách của cùng một tên cho khoá khác nhau. |
+| `li thuong kiet` | `lithuonkiec` | `lithuonkiec` — **trùng** | Khoá đúng, bậc 3 có tìm ra. Nhưng dòng bậc 1 khớp trực tiếp `Lí Thường Kiệt` chiếm hết top 3, và 620 POI tên chứa `Lý Thường Kiệt` bị `STAGE_PENALTY` đẩy xuống. |
+
+Cả ba đều trả **đúng địa phương** — đã kiểm vị trí trên production, không suy đoán:
+
+| Ca | Hạng 1 | Ở đâu |
+|---|---|---|
+| `bmt` | Khu CN Tân An BMT | tỉnh **Đắk Lắk** (Buôn Ma Thuột là thủ phủ) |
+| `plei ku` | THẨM MỸ KIỀU LINH - Plei Ku | tỉnh **Gia Lai** (Pleiku là thủ phủ) |
+| `li thuong kiet` | ACB Li Thuong Kiet Q11 | **đúng đường**, HCM |
+
+## Quyết định 1 — tên đường cũ: **BỎ QUA**
+
+Bốn ca `cong ly`, `duong cong ly`, `hien vuong`, `truong minh giang` giữ nguyên trong bộ mẫu như 4
+ca trượt **đã biết lý do** (OSM VN không có `old_name`), không đi tìm nguồn khác. Nếu sau này có
+nguồn thì con số tự phản ánh.
+
+## Quyết định 2 — "trả đúng địa phương là đạt"
+
+Đã cài bằng cách cho fixture nhận **nhiều cách viết**, ngăn bằng `;`, mỗi cách viết **liệt kê tường
+minh** cho từng dòng kèm bằng chứng vị trí. Cố ý **không** so bằng khoá ngữ âm: làm thế thì "Bánh Mì
+Thổ Nhĩ Kỳ" tính là trúng cho `mi tho`, mà đó là tiệm kebab ở HCM chứ không phải Mỹ Tho.
+
+Sáu dòng được thêm cách viết: `dac lac`, `bac can`, `saigon` (PHONG nêu) và `bmt`, `plei ku`,
+`li thuong kiet` (cùng nguyên tắc, đã kiểm vị trí như bảng trên).
+
+## Kết quả cuối
+
+| Phép đo | Baseline 07/09 | Sau tất cả |
+|---|---:|---:|
+| Bộ 20 biến thể — hit@3 | 3/20 | **15/20** |
+| Bỏ 4 ca tên đường cũ đã quyết bỏ qua | — | **15/16** |
+| Tiêu chí 11.6 (5 ca spec) | 1/5 | **4/5** |
+| Bộ 40 truy vấn mờ — hit@3 | 37/40 | **38/40** |
+| Bộ 40 mờ — p95 lạnh | 1.621 ms | 1.751 ms |
+
+Đường đi của con số: **3 → 6** (ba bậc song song) **→ 9** (chấm điểm alias bằng dạng chuẩn)
+**→ 15** (chấp nhận cách viết thay thế, có liệt kê tường minh).
+
+## Ca duy nhất còn trượt ngoài nhóm đã bỏ qua: `mi tho`
+
+Không có Mỹ Tho nào trong **10** kết quả. Hàng trăm tiệm "Bánh Mì Thổ Nhĩ Kỳ" khớp trực tiếp ở bậc 1
+và áp đảo hoàn toàn; bậc 3 có khoá đúng (`viKey('mi tho') === viKey('my tho') === 'mitho'`) nhưng bị
+`STAGE_PENALTY` đẩy xuống dưới.
+
+Tôi **không** thêm `mi tho` vào danh sách cách viết chấp nhận, vì trả về tiệm kebab không phải là
+"trả đúng địa phương". Đây là truy vấn **nhập nhằng thật** trong tiếng Việt: với `near` ở HCM, tiệm
+bánh mì có lẽ mới là câu trả lời người dùng muốn. Nếu PHONG thấy vậy thì nên **bỏ dòng này khỏi bộ
+mẫu** kèm lý do, chứ không nên nới cách chấm.

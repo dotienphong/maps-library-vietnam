@@ -20,9 +20,17 @@ const fold = (/** @type {string} */ s) =>
   s.normalize('NFD').replace(/\p{M}/gu, '').replace(/đ/g, 'd').replace(/Đ/g, 'D').toLowerCase();
 
 /**
- * Đọc fixture "q|đích" (dòng # và rỗng bị bỏ).
+ * Đọc fixture `q|đích` (dòng `#` và rỗng bị bỏ). Nhiều cách viết được chấp nhận thì ngăn bằng `;`
+ * — dòng trúng khi **bất kỳ** cách viết nào nằm trong top 3.
+ *
+ * Danh sách nhiều đích có từ 08/09/2026 (PHONG duyệt): với một số địa danh, API trả **đúng địa
+ * phương** nhưng tên POI viết theo cách người dùng gõ (`Đắc Lắc`, `Bắc Cạn`, `Saigon`) chứ không
+ * viết dạng chuẩn. Mỗi cách viết thêm phải được liệt kê **tường minh** cho từng dòng, không suy
+ * bằng luật — nếu so bằng khoá ngữ âm thì "Bánh Mì Thổ Nhĩ Kỳ" sẽ tính là trúng cho `mi tho`,
+ * mà đó là tiệm kebab chứ không phải Mỹ Tho.
+ *
  * @param {string} text
- * @returns {{ q: string, expect: string }[]}
+ * @returns {{ q: string, expect: string[] }[]}
  */
 export function parseQueryFixture(text) {
   return text
@@ -32,7 +40,13 @@ export function parseQueryFixture(text) {
     .map((line) => {
       const [q, expect = ''] = line.split('|').map((part) => part.trim());
       if (!q) throw new Error(`Dòng fixture thiếu q: "${line}"`);
-      return { q, expect };
+      return {
+        q,
+        expect: expect
+          .split(';')
+          .map((part) => part.trim())
+          .filter(Boolean),
+      };
     });
 }
 
@@ -41,7 +55,7 @@ export function parseQueryFixture(text) {
  * @param {string} base
  * @param {string} key
  * @param {{ count?: number, fetchImpl?: typeof fetch, now?: () => number,
- *   queries?: { q: string, expect: string }[], near?: string, types?: string }} [options]
+ *   queries?: { q: string, expect: string | string[] }[], near?: string, types?: string }} [options]
  */
 export async function measureAutocomplete(
   base,
@@ -77,12 +91,13 @@ export async function measureAutocomplete(
     const body = await res.text();
     const elapsed = now() - t0;
     if (!res.ok) throw new Error(`lần ${i + 1}: HTTP ${res.status}`);
-    if (entry.expect && i < queries.length) {
+    const expects = Array.isArray(entry.expect) ? entry.expect : entry.expect ? [entry.expect] : [];
+    if (expects.length > 0 && i < queries.length) {
       judged++;
       /** @type {{ items?: { name: string }[] }} */
       const json = JSON.parse(body);
       const top3 = (json.items ?? []).slice(0, 3).map((item) => fold(item.name));
-      if (top3.some((name) => name.includes(fold(entry.expect)))) hit++;
+      if (top3.some((name) => expects.some((want) => name.includes(fold(want))))) hit++;
       else misses.push(entry.q);
     }
     samples.push({
@@ -157,7 +172,7 @@ function summarizeBy(samples, keyOf) {
  * @param {string} base
  * @param {string} key
  * @param {{ cohorts: { label: string, types?: string, sources?: string }[],
- *   queries: { q: string, expect: string }[], rounds?: number,
+ *   queries: { q: string, expect: string | string[] }[], rounds?: number,
  *   fetchImpl?: typeof fetch, now?: () => number, near?: string }} options
  */
 export async function measurePairedCohorts(

@@ -1881,7 +1881,7 @@ docker exec mapslibvn-server-pipeline-1 sh -c 'cd /app && node pipelines/poi/src
 ```
 Expected: `✓ street_new name_key/name_alt_norm/name_tsv: N dòng` rồi publish street+alley. Ghi số `street` có `name_alt` khác `{}`.
 
-- [ ] **Bước 7: Nghiệm thu tiêu chí 11.6 trên production** (bộ Task 0): **CHƯA ĐẠT — 9/20 sau hai vòng sửa (3/20 → 6/20 → 9/20), mốc 18/20. Tiêu chí 11.6 đạt 4/5.** Giữ mở theo đúng chỉ dẫn của chính bước này ("nếu trượt ca nào, giữ task mở với ca cụ thể, không chọn lại bộ mẫu"). Ca trượt và nguyên nhân từng ca: `docs/evidence/search-keys/16-nghiem-thu-production.md`. Đã đổi spec mục 5.4 (`89d7fca`) và sửa chấm điểm nhánh alias (`a76761a`). Còn lại là (1) thiếu dữ liệu tên đường cũ trong OSM và (2) câu hỏi tiêu chí: 4 ca API trả đúng địa phương nhưng tên viết theo cách người dùng gõ, fixture đòi dạng chuẩn. Không tự sửa bộ mẫu.
+- [ ] **Bước 7: Nghiệm thu tiêu chí 11.6 trên production** (bộ Task 0): **15/20 sau ba vòng (3 → 6 → 9 → 15), mốc 18/20. Tiêu chí 11.6 đạt 4/5.** Bỏ 4 ca tên đường cũ mà PHONG quyết bỏ qua thì là 15/16. Giữ mở theo đúng chỉ dẫn của chính bước này ("nếu trượt ca nào, giữ task mở với ca cụ thể, không chọn lại bộ mẫu"). Ca trượt và nguyên nhân từng ca: `docs/evidence/search-keys/16-nghiem-thu-production.md`. Đã đổi spec mục 5.4 (`89d7fca`), sửa chấm điểm nhánh alias (`a76761a`), và cho fixture nhận nhiều cách viết theo quyết định của PHONG. Còn trượt: 4 ca tên đường cũ (PHONG quyết BỎ QUA — OSM không có `old_name`) và `mi tho` (nhập nhằng thật: hàng trăm tiệm Bánh Mì Thổ Nhĩ Kỳ áp đảo; không nới cách chấm cho ca này).
 
 ```bash
 set -a; . ./.env; set +a

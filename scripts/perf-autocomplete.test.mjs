@@ -77,7 +77,39 @@ describe('measureAutocomplete', () => {
   });
 });
 
+describe('parseQueryFixture — nhiều cách viết được chấp nhận', () => {
+  it('tách đích bằng ";" thành danh sách, giữ nguyên một đích khi không có ";"', () => {
+    const rows = parseQueryFixture(
+      ['# ghi chú', '', 'dac lac|dak lak;dac lac', 'qui nhon|quy nhon'].join('\n'),
+    );
+    expect(rows).toEqual([
+      { q: 'dac lac', expect: ['dak lak', 'dac lac'] },
+      { q: 'qui nhon', expect: ['quy nhon'] },
+    ]);
+  });
+
+  it('bỏ phần tử rỗng và khoảng trắng thừa quanh mỗi đích', () => {
+    expect(parseQueryFixture('a| b ; ;c ')).toEqual([{ q: 'a', expect: ['b', 'c'] }]);
+  });
+
+  it('không có đích thì danh sách rỗng — dòng đó không bị chấm', () => {
+    expect(parseQueryFixture('chi do do')).toEqual([{ q: 'chi do do', expect: [] }]);
+  });
+});
+
 describe('measureAutocomplete với bộ truy vấn có đích', () => {
+  it('trúng khi BẤT KỲ cách viết nào được chấp nhận nằm trong top 3', async () => {
+    const result = await measureAutocomplete('https://api.test', 'k', {
+      count: 1,
+      queries: [{ q: 'dac lac', expect: ['dak lak', 'dac lac'] }],
+      fetchImpl: async () =>
+        new Response(JSON.stringify({ items: [{ name: 'Bơ Booth Đắc Lắc' }] }), {
+          headers: { 'content-type': 'application/json' },
+        }),
+    });
+    expect(result.hit3).toEqual({ hit: 1, total: 1, misses: [] });
+  });
+
   it('tính hit@3: đích khớp (không dấu, lowercase) trong 3 item đầu', async () => {
     const queries = [
       { q: 'higland', expect: 'highlands' },
@@ -109,8 +141,8 @@ describe('measureAutocomplete với bộ truy vấn có đích', () => {
     expect(
       parseQueryFixture('# chú thích\nhigland|highlands\n\ncoffee highlands|highlands\n'),
     ).toEqual([
-      { q: 'higland', expect: 'highlands' },
-      { q: 'coffee highlands', expect: 'highlands' },
+      { q: 'higland', expect: ['highlands'] },
+      { q: 'coffee highlands', expect: ['highlands'] },
     ]);
   });
 });

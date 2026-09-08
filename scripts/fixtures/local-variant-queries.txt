@@ -1,26 +1,43 @@
-# 20 truy vấn cách viết địa phương — spec 05/09 mục 11.6 và 6.1/6.2. Baseline đo TRƯỚC hạng mục 3.
-# Định dạng q|đích: đích là chuỗi không dấu phải nằm trong `name` của top-3 (so sau khi bỏ dấu + lowercase).
+# 20 truy vấn cách viết địa phương — spec 05/09 mục 11.6 và 6.1/6.2.
+# Định dạng q|đích1;đích2: đích là chuỗi không dấu phải nằm trong `name` của top-3 (so sau khi bỏ
+# dấu + lowercase). Nhiều đích ngăn bằng `;` — trúng khi BẤT KỲ đích nào khớp.
+#
+# Cách viết thay thế được chấp nhận (PHONG duyệt 08/09/2026): API trả **đúng địa phương** nhưng tên
+# POI viết theo cách người dùng gõ chứ không viết dạng chuẩn. Đã kiểm vị trí từng ca trên
+# production trước khi thêm, không suy bằng luật — xem cột "bằng chứng" dưới. Cố ý KHÔNG so bằng
+# khoá ngữ âm: làm thế thì "Bánh Mì Thổ Nhĩ Kỳ" sẽ tính là trúng cho `mi tho`, mà đó là tiệm kebab
+# ở HCM chứ không phải Mỹ Tho.
+#
+#   dac lac        → "Đắc Lắc"      cách viết cũ của Đắk Lắk
+#   bac can        → "Bắc Cạn"      cách viết cũ của Bắc Kạn
+#   saigon         → "Saigon"       dạng không dấu, dính từ của Sài Gòn
+#   bmt            → "BMT"          hạng 1 "Khu CN Tân An BMT" ở tỉnh Đắk Lắk
+#   plei ku        → "plei ku"      hạng 1–2 ở tỉnh Gia Lai (Pleiku là thủ phủ)
+#   li thuong kiet → "li thuong kiet"  hạng 1 "ACB Li Thuong Kiet Q11" — đúng đường, ở HCM
+#
 # --- 8 biến thể chính tả địa danh (6.1) ---
 qui nhon|quy nhon
 quinhon|quy nhon
 kontum|kon tum
 dak lak|dak lak
-dac lac|dak lak
+dac lac|dak lak;dac lac
 ban me thuot|buon ma thuot
-bmt|buon ma thuot
+bmt|buon ma thuot;bmt
 tan son nhut|tan son nhat
 # --- 6 phát âm vùng / i-y (6.2) ---
 mi tho|my tho
 bin than|binh thanh
 ly thuong kiet|ly thuong kiet
-li thuong kiet|ly thuong kiet
-bac can|bac kan
-plei ku|pleiku
-# --- 4 tên cũ của đường (6.3) — cần street.name_alt, kỳ vọng ĐỎ ở baseline ---
+li thuong kiet|ly thuong kiet;li thuong kiet
+bac can|bac kan;bac can
+plei ku|pleiku;plei ku
+# --- 4 tên cũ của đường (6.3) — cần street.name_alt từ OSM, mà OSM VN KHÔNG có old_name cho ba
+# tuyến này. PHONG quyết 08/09/2026: BỎ QUA, không đi tìm nguồn khác. Giữ trong bộ mẫu để nếu sau
+# này có nguồn thì con số tự phản ánh; hiện là 4 ca trượt đã biết lý do.
 cong ly|nam ky khoi nghia
 duong cong ly|nam ky khoi nghia
 hien vuong|vo thi sau
 truong minh giang|le van sy
 # --- 2 dính/tách từ ---
-saigon|sai gon
+saigon|sai gon;saigon
 hoian|hoi an
