@@ -146,9 +146,27 @@ cùng colo HKG:
 | all | miss | 40 | 897 ms | 2.467 ms | 4.271 ms |
 
 Warm p95 chênh 1 ms và mỗi cohort có ≥100 mẫu, nên phép so **osm với all hiện tại đạt**. Cold được
-ghi riêng nhưng chỉ có 40 mẫu/cohort nên không dùng để kết luận. Chưa có baseline `all` trước/sau
-cùng DB snapshot, query, limit, vị trí và concurrency; vì vậy **chưa chứng minh được không hồi quy
-lịch sử**. Gate p95 tổng vẫn mở, không thay p95 bằng p50.
+ghi riêng nhưng chỉ có 40 mẫu/cohort nên không dùng để kết luận ở phép đo production này.
+
+### Baseline A/B cùng snapshot — ĐẠT
+
+Để tách đúng chi phí của source predicate khỏi các thay đổi search-key sau 07/09, hai remote preview
+được chạy tuần tự trên cùng production Hyperdrive: baseline là chính SHA `67c785c` nhưng thay riêng
+predicate profile `all` bằng `TRUE`; current giữ nguyên predicate và dùng cache namespace đo riêng.
+Cả hai dùng cùng 40 query, limit/types mặc định, concurrency 1, colo SIN và ba giá trị `near`.
+
+| near | baseline cold all p95 | current cold all p95 | delta |
+|---|---:|---:|---:|
+| 11.456,107.456 | 2.191 ms | 1.923 ms | −268 ms |
+| 14.456,108.456 | 2.154 ms | 2.020 ms | −134 ms |
+| 20.456,105.456 | 2.252 ms | 1.964 ms | −288 ms |
+
+Tổng cold là 120 mẫu mỗi phía; current không xấu hơn ở 3/3 batch. Warm baseline n=120 p95 139 ms,
+current n=160 p95 155 ms, delta **+16 ms**, dưới gate +50 ms. Một lượt current trước khi hạ tải
+cho cả `osm` và `all` cùng tăng ~6,8 giây đã bị loại vì bão hòa do benchmark; retry sau khi dừng tải
+trở về 1,9–2,0 giây. JSON kết quả: [`p95-ab-20260908.json`](p95-ab-20260908.json).
+
+Kết luận: **cổng p95 trước/sau ĐẠT**, cả cold và warm đều có ≥100 mẫu mỗi phía; không dùng p50 thay p95.
 
 ### Browser production tại 5 thành phố
 

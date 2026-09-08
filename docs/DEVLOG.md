@@ -78,9 +78,12 @@ commit với code).
   fault/rollback giữ manifest và checksum. Benchmark production 40 query × 5 vòng tại
   HKG: warm `osm` n=160 p95 116 ms, `all` n=160 p95 115 ms; cold ghi riêng n=40,
   không dùng kết luận. Chromium kiểm `all`/`osm` ở 5 thành phố × z12/14/16: 30/30
-  đúng `x-poi-profile`, console không error; ảnh đã lưu. **Còn đúng một gate:** chưa
-  có baseline `all` trước/sau trên cùng snapshot và điều kiện, nên chưa thể chứng minh
-  không hồi quy lịch sử; plan bắt buộc giữ Task 15 Step 4 mở.
+  đúng `x-poi-profile`, console không error; ảnh đã lưu.
+  **R7 CỔNG CUỐI ĐÓNG:** A/B remote preview trên cùng production Hyperdrive, 40 query,
+  ba vị trí, concurrency 1. Baseline chỉ bỏ predicate `all`; current giữ nguyên và dùng
+  cache namespace riêng. Cold n=120/phía: current nhanh hơn ở 3/3 batch, p95 delta
+  −268/−134/−288 ms. Warm baseline n=120 p95 139 ms, current n=160 p95 155 ms,
+  delta +16 ms ≤ +50 ms. Toàn bộ plan POI Sources Profile hiện không còn ô mở.
 
 - **07/09/2026 — ĐÃ PHÁT HÀNH bật/tắt nguồn POI theo profile (spec 07/09).**
   Cổng đo trước cho kết quả bất ngờ: OSM chỉ là **nguồn chính của 7,0 %** POI (106.325/1.522.416;

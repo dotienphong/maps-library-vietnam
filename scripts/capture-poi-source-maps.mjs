@@ -2,6 +2,7 @@
 import 'dotenv/config';
 import { mkdir } from 'node:fs/promises';
 import { resolve } from 'node:path';
+// @ts-expect-error pnpm đặt Playwright dưới package docs; entry runtime này vẫn export chromium.
 import { chromium } from '../apps/docs/node_modules/@playwright/test/index.mjs';
 
 const key = process.env.KEY_EXAMPLE_EMBED;
@@ -20,8 +21,9 @@ await mkdir(out, { recursive: true });
 const browser = await chromium.launch({ headless: true });
 try {
   const page = await browser.newPage({ viewport: { width: 1280, height: 720 } });
+  /** @type {string[]} */
   const consoleErrors = [];
-  page.on('console', (message) => {
+  page.on('console', (/** @type {{ type(): string, text(): string }} */ message) => {
     if (message.type() === 'error') consoleErrors.push(message.text());
   });
 
@@ -29,12 +31,17 @@ try {
     for (const profile of ['all', 'osm']) {
       for (const zoom of [12, 14, 16]) {
         let observedProfile = '';
-        page.on('response', function capture(response) {
-          if (response.url().includes('/v1/styles/light.json')) {
-            observedProfile = response.headers()['x-poi-profile'] ?? '';
-            page.off('response', capture);
-          }
-        });
+        page.on(
+          'response',
+          function capture(
+            /** @type {{ url(): string, headers(): Record<string, string> }} */ response,
+          ) {
+            if (response.url().includes('/v1/styles/light.json')) {
+              observedProfile = response.headers()['x-poi-profile'] ?? '';
+              page.off('response', capture);
+            }
+          },
+        );
         const query = new URLSearchParams({
           key,
           center: `${lng},${lat}`,

@@ -1905,7 +1905,7 @@ curl -s "https://api.ai-solutions.io.vn/v1/styles/light.json" | node -e 'let s="
 ```
 Expected: dòng một `osm` (hết fallback); dòng hai chứa `poi-osm-YYYYMMDD.pmtiles`; dòng ba — mặc định — vẫn chứa `poi-YYYYMMDD.pmtiles`. Nếu header còn `all;fallback` sau 60 s (KV `cacheTtl: 60`), kiểm `manifest.mjs get` trong container.
 
-- [ ] **Step 4: Cổng p95 (MỞ LẠI — thiếu baseline p95 tương ứng)**
+- [x] **Step 4: Cổng p95**
 
 Run (production URL và khoá thật; chờ ≥ 11 phút sau bước 2 để cache autocomplete cũ hết hạn):
 ```bash

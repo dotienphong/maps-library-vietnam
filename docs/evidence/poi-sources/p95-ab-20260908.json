@@ -1,0 +1,33 @@
+{
+  "date": "2026-09-08",
+  "sha": "67c785c",
+  "method": "wrangler remote preview, production Hyperdrive, sequential concurrency=1, 40 fuzzy queries per batch",
+  "baseline": "current code with only the all-profile source predicate replaced by TRUE",
+  "current": "current code with a separate temporary cache namespace",
+  "warm": {
+    "baseline_all": { "n": 120, "p50": 101, "p95": 139, "p99": 199, "colo": "SIN" },
+    "current_all": { "n": 160, "p50": 99, "p95": 155, "p99": 195, "colo": "SIN" }
+  },
+  "cold_batches": [
+    {
+      "near": "11.456,107.456",
+      "baseline_all": { "n": 40, "p50": 601, "p95": 2191, "p99": 3737 },
+      "current_all": { "n": 40, "p50": 585, "p95": 1923, "p99": 5395 }
+    },
+    {
+      "near": "14.456,108.456",
+      "baseline_all": { "n": 40, "p50": 684, "p95": 2154, "p99": 3740 },
+      "current_all": { "n": 40, "p50": 639, "p95": 2020, "p99": 3352 }
+    },
+    {
+      "near": "20.456,105.456",
+      "baseline_all": { "n": 40, "p50": 617, "p95": 2252, "p99": 3734 },
+      "current_all": { "n": 40, "p50": 574, "p95": 1964, "p99": 3182 }
+    }
+  ],
+  "cold_total_per_side": 120,
+  "p95_deltas_ms_current_minus_baseline": [-268, -134, -288],
+  "warm_p95_delta_ms": 16,
+  "gate_ms": 50,
+  "result": "PASS"
+}
