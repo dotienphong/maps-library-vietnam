@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import type { AutocompleteItem } from '@mapslibvn/core';
+import type { AutocompleteItem, MapsLibVNClient } from '@mapslibvn/core';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { MapsLibVNAutocomplete, defineAutocomplete } from './autocomplete-element';
 
@@ -91,6 +91,82 @@ describe('MapsLibVNAutocomplete — vùng hành chính', () => {
     });
     expect(warn).toHaveBeenCalled();
     warn.mockRestore();
+  });
+
+  it('gắn map thì dùng map.places và cùng near, không tạo client riêng mặc định all', async () => {
+    const mapAutocomplete = vi.fn().mockResolvedValue({ items: [poi] });
+    const element = new MapsLibVNAutocomplete();
+    element.setAttribute('api-key', 'mlv_test');
+    element.setAttribute('api-base', 'https://api.test');
+    element.setAttribute('sources', 'fsq');
+    element.map = {
+      gl: { getCenter: () => ({ lat: 10.77, lng: 106.7 }) },
+      places: { autocomplete: mapAutocomplete } as unknown as MapsLibVNClient,
+    };
+    document.body.append(element);
+    const input = element.shadowRoot?.querySelector('input');
+    if (!input) throw new Error('không dựng được input');
+
+    createClientMock.mockClear();
+    input.value = 'high';
+    input.dispatchEvent(new Event('input', { bubbles: true }));
+    await vi.advanceTimersByTimeAsync(200);
+
+    expect(createClientMock).not.toHaveBeenCalled();
+    expect(mapAutocomplete).toHaveBeenCalledWith('high', { near: [10.77, 106.7] });
+    expect(element.shadowRoot?.querySelector('li')?.textContent).toContain(poi.name);
+  });
+
+  it('đổi map bỏ kết quả đang chờ; gỡ map quay về client standalone', async () => {
+    let resolveOld: ((value: { items: AutocompleteItem[] }) => void) | undefined;
+    const oldAutocomplete = vi.fn(
+      () =>
+        new Promise<{ items: AutocompleteItem[] }>((resolve) => {
+          resolveOld = resolve;
+        }),
+    );
+    const newAutocomplete = vi.fn().mockResolvedValue({ items: [area] });
+    const element = new MapsLibVNAutocomplete();
+    element.setAttribute('api-key', 'mlv_test');
+    element.setAttribute('api-base', 'https://api.test');
+    element.map = {
+      gl: { getCenter: () => ({ lat: 10, lng: 106 }) },
+      places: { autocomplete: oldAutocomplete } as unknown as MapsLibVNClient,
+    };
+    document.body.append(element);
+    const input = element.shadowRoot?.querySelector('input');
+    if (!input) throw new Error('không dựng được input');
+
+    input.value = 'old query';
+    input.dispatchEvent(new Event('input', { bubbles: true }));
+    await vi.advanceTimersByTimeAsync(200);
+    expect(oldAutocomplete).toHaveBeenCalledOnce();
+
+    element.map = {
+      gl: { getCenter: () => ({ lat: 11, lng: 107 }) },
+      places: { autocomplete: newAutocomplete } as unknown as MapsLibVNClient,
+    };
+    input.value = 'new query';
+    input.dispatchEvent(new Event('input', { bubbles: true }));
+    await vi.advanceTimersByTimeAsync(200);
+    expect(newAutocomplete).toHaveBeenCalledWith('new query', { near: [11, 107] });
+    expect(element.shadowRoot?.querySelector('li')?.textContent).toContain(area.name);
+
+    resolveOld?.({ items: [poi] });
+    await Promise.resolve();
+    expect(element.shadowRoot?.querySelector('li')?.textContent).toContain(area.name);
+
+    element.map = null;
+    autocomplete.mockResolvedValue({ items: [poi] });
+    createClientMock.mockClear();
+    input.value = 'standalone';
+    input.dispatchEvent(new Event('input', { bubbles: true }));
+    await vi.advanceTimersByTimeAsync(200);
+    expect(createClientMock).toHaveBeenCalledWith({
+      apiKey: 'mlv_test',
+      baseUrl: 'https://api.test',
+    });
+    expect(element.shadowRoot?.querySelector('li')?.textContent).toContain(poi.name);
   });
 
   it('click phát select giữ nguyên object area kèm bbox', async () => {

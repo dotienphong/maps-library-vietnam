@@ -6,9 +6,10 @@ import {
   parsePoiSourcesCsv,
 } from '@mapslibvn/core';
 
-/** Đối tượng tối thiểu để lấy tâm bản đồ làm tham số near. */
+/** Map cung cấp cả tâm và Places client để bản đồ/tìm kiếm luôn dùng cùng tập nguồn POI. */
 interface NearSource {
   gl: { getCenter(): { lat: number; lng: number } };
+  places?: MapsLibVNClient;
 }
 
 const STYLE = `
@@ -45,8 +46,20 @@ const TYPE_ICON: Record<AutocompleteType, string> = {
 export class MapsLibVNAutocomplete extends HTMLElement {
   static observedAttributes = ['api-key', 'api-base', 'placeholder', 'near', 'sources'];
 
-  /** Gán map trả về từ createMap để dùng tâm bản đồ làm near. */
-  map: NearSource | null = null;
+  #map: NearSource | null = null;
+
+  /** Gán map trả về từ createMap để dùng cùng Places client và tâm bản đồ. */
+  get map(): NearSource | null {
+    return this.#map;
+  }
+
+  set map(value: NearSource | null) {
+    if (value === this.#map) return;
+    this.#map = value;
+    clearTimeout(this.#timer);
+    this.#seq++;
+    this.#render([]);
+  }
 
   #client: MapsLibVNClient | null = null;
   #input: HTMLInputElement | null = null;
@@ -139,6 +152,7 @@ export class MapsLibVNAutocomplete extends HTMLElement {
   };
 
   #getClient(): MapsLibVNClient | null {
+    if (this.#map?.places) return this.#map.places;
     if (this.#client) return this.#client;
     const apiKey = this.getAttribute('api-key');
     const baseUrl = this.getAttribute('api-base');
@@ -159,8 +173,8 @@ export class MapsLibVNAutocomplete extends HTMLElement {
   }
 
   #near(): [number, number] | undefined {
-    if (this.map) {
-      const center = this.map.gl.getCenter();
+    if (this.#map) {
+      const center = this.#map.gl.getCenter();
       return [center.lat, center.lng];
     }
     const parts = this.getAttribute('near')?.split(',').map(Number);

@@ -1549,14 +1549,14 @@ git commit -m "feat(web): poiSources cho createMap và thuộc tính sources c�
 
 ### Gate sau review R1 — một cấu hình nguồn cho map và autocomplete
 
-- [ ] **Step 6:** Viết regression test gắn `element.map = createMap({ ...,
+- [x] **Step 6:** Viết regression test gắn `element.map = createMap({ ...,
   poiSources: ['osm'] })` mà không đặt `sources` trên element; phải gọi
   `map.places.autocomplete`, không tạo client all riêng.
-- [ ] **Step 7:** Khi có map, dùng `map.places` cho request và map center cho near.
+- [x] **Step 7:** Khi có map, dùng `map.places` cho request và map center cho near.
   Khi không có map, giữ chế độ standalone dùng attributes. Map client được ưu tiên
   khi attributes khác nguồn; document rõ quy tắc này. Đổi/gỡ map phải vô hiệu hóa
   kết quả request cũ để không hiển thị gợi ý từ nguồn trước.
-- [ ] **Step 8:** Test map osm/all, đổi map, tháo map quay về standalone và attributes
+- [x] **Step 8:** Test map osm/all, đổi map, tháo map quay về standalone và attributes
   mâu thuẫn. Cập nhật NearSource/type public và docs tích hợp. Chạy Web SDK tests,
   typecheck; kiểm browser thật map osm + autocomplete cho cùng nguồn.
 

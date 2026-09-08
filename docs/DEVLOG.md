@@ -15,6 +15,10 @@ commit với code).
   **Bắt đầu tiếp:** Task 11 Step 6 — regression test autocomplete gắn map OSM nhưng
   không có thuộc tính sources; sau đó sửa kế thừa map.places. Gate đã chạy trước
   review (905 unit + 168 API, lint/typecheck/docs build) không thay thế gate mới.
+  **R1 ĐÓNG:** `<mapslibvn-autocomplete>.map` nay dùng
+  `map.places`, nên kế thừa đúng `poiSources`; đổi/gỡ map huỷ kết quả cũ và gỡ map
+  quay về client standalone. Unit test khóa cả cấu hình mâu thuẫn và request cũ;
+  Chrome headless fixture trả `pass` với map client + near, không gọi endpoint standalone.
 
 - **07/09/2026 — ĐÃ PHÁT HÀNH bật/tắt nguồn POI theo profile (spec 07/09).**
   Cổng đo trước cho kết quả bất ngờ: OSM chỉ là **nguồn chính của 7,0 %** POI (106.325/1.522.416;

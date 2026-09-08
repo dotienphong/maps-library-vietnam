@@ -28,7 +28,7 @@ Bản UMD tự gọi `defineAutocomplete()` khi nạp, nên chỉ cần đặt t
     apiBase: 'https://api.ai-solutions.io.vn',
   });
   const ac = document.getElementById('ac');
-  ac.map = map; // lấy tâm bản đồ làm `near`
+  ac.map = map; // dùng cùng Places client/poiSources và lấy tâm bản đồ làm `near`
   ac.addEventListener('select', (event) => {
     const item = event.detail;
     map.flyTo([item.lng, item.lat], 16);
@@ -55,13 +55,17 @@ vẫn an toàn.
 | `api-base` | có | Gốc API |
 | `placeholder` | không | Mặc định `Tìm địa điểm…` |
 | `near` | không | Chuỗi `"lat,lng"` — **vĩ độ trước**, khác thứ tự `center` của bản đồ |
+| `sources` | không | Nguồn POI cho chế độ standalone. Khi đã gán `.map`, component dùng `map.places` nên tự kế thừa `poiSources` của map |
 
 Đổi `api-key` hoặc `api-base` lúc chạy sẽ tạo lại client và huỷ truy vấn đang chờ. Nếu thiếu một
 trong hai, component thông báo "Thiếu cấu hình API." và không gọi mạng.
 
 | Thuộc tính JS | Ý nghĩa |
 |---|---|
-| `.map` | Gán đối tượng trả về từ `createMap`. Khi có `.map`, `near` lấy từ `map.gl.getCenter()` ở **mỗi lần truy vấn** và **ghi đè** thuộc tính `near` |
+| `.map` | Gán đối tượng trả về từ `createMap`. Component dùng `map.places` để bản đồ và autocomplete có cùng `poiSources`; `near` lấy từ `map.gl.getCenter()` ở **mỗi lần truy vấn**. Cấu hình của map được ưu tiên hơn `api-key`, `api-base`, `sources` và `near` trên element |
+
+Đổi hoặc gỡ `.map` sẽ huỷ kết quả truy vấn đang chờ. Khi `.map = null`, component quay lại client
+standalone lấy từ các thuộc tính HTML.
 
 | Sự kiện | `detail` |
 |---|---|
