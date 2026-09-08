@@ -1,13 +1,19 @@
 #!/usr/bin/env node
-// Publish MỘT archive profile nguồn POI từ dữ liệu đã có trong Postgres (spec 07/09 mục 5).
+// Publish một hoặc nhiều archive profile nguồn POI từ dữ liệu đã có trong Postgres.
 // Chỉ ĐỌC bảng poi; không ingest, không đụng archive `all`. Dùng khi thêm profile mới giữa hai
 // lần `pnpm data:update --poi`.
 // Dùng: pnpm poi:profile --profile osm [--release poi-osm-YYYYMMDD] [--dry-run]
+//   hoặc pnpm poi:profile --profiles overture-fsq,overture,fsq [--dry-run]
 // Ngoài container: tự chạy lại trong image pipeline (cần tippecanoe, rclone, cloudflared).
 import 'dotenv/config';
 import { poiReleasePrefix } from '../pipelines/poi/src/lib/poi-filter.mjs';
-import { poiReleasePair } from '../pipelines/tiles/src/lib/dates.mjs';
-import { profilePublishSteps } from './lib/poi-profile.mjs';
+import { poiReleaseSet } from '../pipelines/tiles/src/lib/dates.mjs';
+import {
+  missingProfileEnv,
+  profileBatchSteps,
+  profilePublishSteps,
+  runProfileBatchSteps,
+} from './lib/poi-profile.mjs';
 import { run } from './lib/run.mjs';
 import { openDatabaseTunnel } from './lib/tunnel.mjs';
 
@@ -18,8 +24,15 @@ const arg = (flag) => {
   return at >= 0 ? argv[at + 1] : undefined;
 };
 const profile = arg('--profile');
+const profilesRaw = arg('--profiles');
 const dryRun = argv.includes('--dry-run');
-if (!profile) throw new Error('Dùng: poi-profile-publish.mjs --profile <osm> [--release <name>]');
+if (Boolean(profile) === Boolean(profilesRaw)) {
+  throw new Error('Dùng đúng một trong --profile <name> hoặc --profiles <name,name>');
+}
+const profiles = profilesRaw
+  ?.split(',')
+  .map((value) => value.trim())
+  .filter(Boolean);
 
 const compose = [
   'compose',
@@ -30,7 +43,7 @@ const compose = [
   '--profile',
   'pipeline',
 ];
-if (process.env.MAPSLIBVN_IN_CONTAINER !== '1') {
+if (process.env.MAPSLIBVN_IN_CONTAINER !== '1' && !dryRun) {
   run('docker', [...compose, 'build', 'pipeline']);
   run('docker', [
     ...compose,
@@ -45,14 +58,32 @@ if (process.env.MAPSLIBVN_IN_CONTAINER !== '1') {
 }
 
 const OUT = process.env.MAPSLIBVN_OUT ?? '/app/out';
-const generated = poiReleasePair();
-const prefix = poiReleasePrefix(profile);
-const release = arg('--release') ?? (prefix === 'poi' ? generated.poi : generated.poiOsm);
-const steps = profilePublishSteps(profile, release, OUT);
+const WORK = process.env.MAPSLIBVN_WORK ?? '/app/work';
+const releaseSet = poiReleaseSet(profiles ?? [/** @type {string} */ (profile)]);
+const singleProfile = profile;
+const singleRelease = singleProfile
+  ? (arg('--release') ?? releaseSet.releases[singleProfile])
+  : undefined;
+if (singleProfile && !singleRelease) throw new Error(`Không tạo được release cho ${singleProfile}`);
+const snapshot = `${WORK}/poi/snapshot-${releaseSet.buildId}.jsonl`;
+const batchSteps = profiles
+  ? profileBatchSteps({
+      profiles,
+      releases: releaseSet.releases,
+      buildId: releaseSet.buildId,
+      snapshot,
+      out: OUT,
+    })
+  : null;
+const singleSteps = singleProfile
+  ? profilePublishSteps(
+      /** @type {string} */ (singleProfile),
+      /** @type {string} */ (singleRelease),
+      OUT,
+    )
+  : null;
 
-const missing = ['TILES_BASE', 'R2_BUCKET', 'KV_NAMESPACE_ID_META', 'CLOUDFLARE_API_TOKEN'].filter(
-  (name) => !process.env[name]?.trim(),
-);
+const missing = missingProfileEnv(process.env);
 if (missing.length > 0 && !dryRun) {
   throw new Error(`Thiếu credentials: ${missing.join(', ')}`);
 }
@@ -60,19 +91,33 @@ if (missing.length > 0 && !dryRun) {
 const startedAt = Date.now();
 const log = (/** @type {string} */ message) =>
   console.log(`[${Math.round((Date.now() - startedAt) / 1000)}s] ${message}`);
-log(`profile ${profile} → ${release}`);
+log(
+  profiles
+    ? `profiles ${profiles.join(',')} → build ${releaseSet.buildId}`
+    : `profile ${singleProfile} → ${singleRelease}`,
+);
 if (dryRun) {
-  for (const step of steps) console.log(`  ${step.label}: node ${step.args.join(' ')}`);
+  if (profiles) console.log(`  snapshot: ${snapshot}`);
+  for (const step of batchSteps ?? singleSteps ?? [])
+    console.log(`  ${'id' in step ? step.id : step.label}: node ${step.args.join(' ')}`);
   process.exit(0);
 }
 
 const closeTunnel = await openDatabaseTunnel(log);
 try {
-  for (const step of steps) {
-    log(`▶ ${step.label}`);
-    run('node', step.args);
+  if (batchSteps) {
+    run('node', ['pipelines/poi/src/export-snapshot.mjs', '--build-id', releaseSet.buildId]);
+    runProfileBatchSteps(batchSteps, (step) => {
+      log(`▶ ${step.id}`);
+      run(step.command, step.args);
+    });
+  } else if (singleSteps) {
+    for (const step of singleSteps) {
+      log(`▶ ${step.label}`);
+      run('node', step.args);
+    }
   }
 } finally {
   closeTunnel();
 }
-log(`✓ publish ${release} xong`);
+log(`✓ publish ${profiles?.join(',') ?? singleRelease} xong`);

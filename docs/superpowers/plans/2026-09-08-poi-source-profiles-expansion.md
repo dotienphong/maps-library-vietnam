@@ -235,7 +235,7 @@ git commit -m "refactor(pipeline): tổng quát release và manifest profile POI
 - Consumes: `poiReleaseSet()`, `sourcesForProfile()`, `poiReleasePrefix()`.
 - Produces: `profileBatchSteps({ profiles, releases, buildId, snapshot, out })`; CLI `pnpm poi:profile --profiles overture-fsq,overture,fsq`.
 
-- [ ] **Step 1: Viết test đỏ cho thứ tự batch và manifest-last**
+- [x] **Step 1: Viết test đỏ cho thứ tự batch và manifest-last**
 
 ```js
 const steps = profileBatchSteps({
@@ -265,13 +265,13 @@ expect(steps.at(-1)).toEqual({
 Thêm test fault injection: ném tại `export-fsq`, `upload-overture`, `smoke-overture-fsq`; trong từng
 ca, executor chưa bao giờ nhận step `manifest`.
 
-- [ ] **Step 2: Chạy RED**
+- [x] **Step 2: Chạy RED**
 
 Run: `pnpm vitest run scripts/lib/poi-profile.test.mjs`
 
 Expected: FAIL vì chưa có `profileBatchSteps`.
 
-- [ ] **Step 3: Implement step generator thuần**
+- [x] **Step 3: Implement step generator thuần**
 
 Với mỗi profile sinh `export-${profile}` và `qa-${profile}`; sau khi toàn bộ export/QA xong mới sinh
 toàn bộ upload, toàn bộ smoke, cuối cùng đúng một step manifest. Export args luôn có:
@@ -286,20 +286,20 @@ toàn bộ upload, toàn bộ smoke, cuối cùng đúng một step manifest. Ex
 ]
 ```
 
-- [ ] **Step 4: Sửa CLI thành batch an toàn**
+- [x] **Step 4: Sửa CLI thành batch an toàn**
 
 CLI parse `--profiles` thành danh sách bỏ trùng, từ chối `all`, `osm`, profile lạ hoặc danh sách
 rỗng trong bootstrap này. Ở trong container: mở tunnel, tạo release set, chạy
 `export-snapshot.mjs --build-id`, rồi chạy tuần tự `profileBatchSteps`. `--dry-run` chỉ in JSON kế
 hoạch và không mở tunnel/ghi remote. Giữ `--profile osm` làm đường tương thích một-profile cũ.
 
-- [ ] **Step 5: Chạy GREEN và dry-run**
+- [x] **Step 5: Chạy GREEN và dry-run**
 
 Run: `pnpm vitest run scripts/lib/poi-profile.test.mjs && pnpm poi:profile --profiles overture-fsq,overture,fsq --dry-run`
 
 Expected: test PASS; JSON dry-run có một snapshot, 3 export, 3 QA, 3 upload, 3 smoke, 1 manifest.
 
-- [ ] **Step 6: Commit batch bootstrap**
+- [x] **Step 6: Commit batch bootstrap**
 
 ```bash
 git add package.json scripts/lib/poi-profile.mjs scripts/lib/poi-profile.test.mjs scripts/poi-profile-publish.mjs

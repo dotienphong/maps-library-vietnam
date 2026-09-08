@@ -17,8 +17,12 @@ commit với code).
   **Task 2 ĐÓNG:** release set dùng chung build ID; manifest nhận `--poi-profile profile=release`
   lặp nhưng giữ `--poi-osm`; TileJSON resolve mọi profile từ registry; smoke nhận mọi `poi-*` và
   rollback quét/checksum toàn bộ `poiProfiles`. RED 4 lỗi đúng hard-code; GREEN 21 unit + 7 API
-  tile tests, lint 331 file và typecheck 14/14. **Bắt đầu tiếp:** Task 3, batch bootstrap ba archive
-  từ một snapshot với manifest-last/fault injection; chưa build/publish production ở checkpoint này.
+  tile tests, lint 331 file và typecheck 14/14. **Task 3 ĐÓNG:** `poi:profile --profiles` chụp một
+  snapshot rồi chạy 3 export/QA, 3 upload, 3 smoke và đúng một manifest cuối; fault injection tại
+  export/upload/smoke đều không chạm manifest; preflight chặn thiếu DB/R2/KV/Cloudflare trước build.
+  Test 9/9, batch và lệnh cũ `--profile osm` dry-run
+  đúng, lint sạch và typecheck 14/14. **Bắt đầu tiếp:** Task 4, đưa đủ năm profile vào
+  `data:update --poi` và DB fixture; chưa build/publish production ở checkpoint này.
 
 - **08/09/2026 — Mở lại gate POI Sources Profile sau review.** Tính năng đã rollout
   ngày 07/09, nhưng kết luận plan hoàn tất 15/15 và tick đồng loạt 76 bước là quá sớm.
