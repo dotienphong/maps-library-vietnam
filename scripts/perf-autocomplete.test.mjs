@@ -298,9 +298,33 @@ describe('parseCliArgs', () => {
     });
   });
 
-  it('đọc --paired-sources cho cặp cohort osm/all', () => {
-    expect(parseCliArgs(['https://a', 'k', '--paired-sources']).pairedSources).toBe(true);
-    expect(parseCliArgs(['https://a', 'k']).pairedSources).toBe(false);
+  it('đọc target động của --paired-sources và giữ mặc định osm khi thiếu giá trị', () => {
+    expect(
+      parseCliArgs([
+        'https://api.test',
+        'mlv_live_test',
+        '--paired-sources',
+        'overture,fsq',
+        '--rounds',
+        '5',
+      ]),
+    ).toMatchObject({
+      base: 'https://api.test',
+      key: 'mlv_live_test',
+      pairedSources: 'overture,fsq',
+      rounds: 5,
+    });
+    expect(parseCliArgs(['https://a', 'k', '--paired-sources']).pairedSources).toBe('osm');
+    expect(parseCliArgs(['https://a', 'k']).pairedSources).toBeUndefined();
+  });
+
+  it('chuẩn hóa thứ tự, bỏ trùng và từ chối source ngoài registry', () => {
+    expect(
+      parseCliArgs(['https://a', 'k', '--paired-sources', 'fsq,overture,fsq']).pairedSources,
+    ).toBe('overture,fsq');
+    expect(() => parseCliArgs(['https://a', 'k', '--paired-sources', 'osm,unknown'])).toThrow(
+      'sources không hợp lệ',
+    );
   });
 
   it('đọc --paired và --rounds cho chế độ đo hai cohort xen kẽ', () => {

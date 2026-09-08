@@ -15,6 +15,25 @@ const QUERIES = [
   'coop mart',
 ];
 
+const POI_SOURCE_ORDER = ['osm', 'overture', 'fsq'];
+const PAIRED_SOURCE_PROFILES = new Set(['osm', 'overture,fsq', 'overture', 'fsq']);
+
+/** @param {string} raw */
+function normalizePairedSources(raw) {
+  const requested = new Set(
+    raw
+      .split(',')
+      .map((source) => source.trim())
+      .filter(Boolean),
+  );
+  const invalid = [...requested].filter((source) => !POI_SOURCE_ORDER.includes(source));
+  const normalized = POI_SOURCE_ORDER.filter((source) => requested.has(source)).join(',');
+  if (invalid.length > 0 || !PAIRED_SOURCE_PROFILES.has(normalized)) {
+    throw new Error(`sources không hợp lệ: ${raw}`);
+  }
+  return normalized;
+}
+
 /** Bỏ dấu + lowercase để so đích (không import @mapslibvn/core: script chạy trước khi build). */
 const fold = (/** @type {string} */ s) =>
   s.normalize('NFD').replace(/\p{M}/gu, '').replace(/đ/g, 'd').replace(/Đ/g, 'D').toLowerCase();
@@ -264,13 +283,25 @@ export function parseCliArgs(args) {
     consumed.add(at);
     return true;
   };
+  /** @param {string} flag @param {string} fallback */
+  const optionalFlagValue = (flag, fallback) => {
+    const at = args.indexOf(flag);
+    if (at < 0) return undefined;
+    consumed.add(at);
+    const value = args[at + 1];
+    if (value === undefined || value.startsWith('--')) return fallback;
+    consumed.add(at + 1);
+    return value;
+  };
 
   const queriesFile = flagValue('--queries');
   const types = flagValue('--types');
   const roundsArg = flagValue('--rounds');
   const near = flagValue('--near');
   const paired = hasFlag('--paired');
-  const pairedSources = hasFlag('--paired-sources');
+  const pairedSourcesArg = optionalFlagValue('--paired-sources', 'osm');
+  const pairedSources =
+    pairedSourcesArg === undefined ? undefined : normalizePairedSources(pairedSourcesArg);
   const [base, key] = args.filter((_, i) => !consumed.has(i));
   const rounds = roundsArg === undefined ? undefined : Number(roundsArg);
   return {
@@ -299,7 +330,7 @@ if (isMain) {
   } = parseCliArgs(process.argv.slice(2));
   if (!base || !key) {
     console.error(
-      'Cách dùng: node scripts/perf-autocomplete.mjs <base-url> <api-key> [--queries scripts/fixtures/fuzzy-queries.txt] [--types poi,street,address] [--paired | --paired-sources [--rounds N]] [--near lat,lng]',
+      'Cách dùng: node scripts/perf-autocomplete.mjs <base-url> <api-key> [--queries scripts/fixtures/fuzzy-queries.txt] [--types poi,street,address] [--paired | --paired-sources [osm|overture,fsq|overture|fsq] [--rounds N]] [--near lat,lng]',
     );
     process.exitCode = 1;
   } else {
@@ -307,12 +338,12 @@ if (isMain) {
       const queries = queriesFile
         ? parseQueryFixture(readFileSync(queriesFile, 'utf8'))
         : undefined;
-      if (paired || pairedSources) {
+      if (paired || pairedSources !== undefined) {
         // Cohort mặc định (có `area`) so với bộ loại trước khi có `area`, xen kẽ từng query.
         const result = await measurePairedCohorts(base, key, {
           cohorts: pairedSources
             ? [
-                { label: 'osm', sources: 'osm' },
+                { label: pairedSources, sources: pairedSources },
                 { label: 'all', sources: 'all' },
               ]
             : [

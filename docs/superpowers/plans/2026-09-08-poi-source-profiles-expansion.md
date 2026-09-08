@@ -598,7 +598,7 @@ git commit -m "feat(docs): mở ba profile POI mới trong playground"
 - Produces: CLI `--paired-sources <csv>` so target với `all`; cờ không có giá trị vẫn mặc định `osm`
   để tương thích runbook cũ.
 
-- [ ] **Step 1: Viết test đỏ cho CLI target động**
+- [x] **Step 1: Viết test đỏ cho CLI target động**
 
 ```js
 expect(parseCliArgs([
@@ -612,13 +612,13 @@ expect(parseCliArgs([
 expect(parseCliArgs(['https://api.test', 'k', '--paired-sources']).pairedSources).toBe('osm');
 ```
 
-- [ ] **Step 2: Chạy RED**
+- [x] **Step 2: Chạy RED**
 
 Run: `pnpm vitest run scripts/perf-autocomplete.test.mjs`
 
 Expected: FAIL vì parser hiện chỉ trả boolean.
 
-- [ ] **Step 3: Implement optional flag value và cohort động**
+- [x] **Step 3: Implement optional flag value và cohort động**
 
 Parser tiêu thụ token sau `--paired-sources` khi token đó tồn tại và không bắt đầu bằng `--`; nếu
 không có thì dùng `osm`. Validate CSV chỉ nhận `osm`, `overture`, `fsq`, bỏ trùng và serialize theo
@@ -637,13 +637,13 @@ Cập nhật help thành:
 --paired-sources [osm|overture,fsq|overture|fsq] [--rounds N]
 ```
 
-- [ ] **Step 4: Chạy GREEN và typecheck script**
+- [x] **Step 4: Chạy GREEN và typecheck script**
 
 Run: `pnpm vitest run scripts/perf-autocomplete.test.mjs && pnpm typecheck`
 
 Expected: test PASS; typecheck exit 0.
 
-- [ ] **Step 5: Commit benchmark harness**
+- [x] **Step 5: Commit benchmark harness**
 
 ```bash
 git add scripts/perf-autocomplete.mjs scripts/perf-autocomplete.test.mjs

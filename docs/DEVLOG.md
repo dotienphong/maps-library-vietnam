@@ -42,8 +42,12 @@ commit với code).
   đầu fail 3 ca đúng parser cũ; GREEN 31/31, docs build xanh và E2E tập trung 1/1 kiểm đủ selector,
   style request, URL, snippet cho ba profile. E2E vẫn bắt page/console/HTTP error; chỉ loại đúng
   các 404 `/r2/assets/fonts/` do fixture local vốn không seed glyph, mọi lỗi tài nguyên khác vẫn
-  làm test fail. **Bắt đầu tiếp:** Task 8, tổng quát benchmark `--paired-sources`; chưa
-  build/publish production ở checkpoint này.
+  làm test fail. **Task 8 ĐÓNG:** benchmark nhận
+  `--paired-sources [osm|overture,fsq|overture|fsq]`, thiếu giá trị vẫn mặc định `osm`; parser bỏ
+  trùng, chuẩn hóa theo thứ tự registry và từ chối tổ hợp không phải profile. Cohort target được
+  đo xen kẽ với `all`, giữ tách cold/warm và colo hiện hữu. RED 2/21 đúng parser boolean cũ;
+  GREEN 21/21 và typecheck 14/14. **Bắt đầu tiếp:** Task 9, đồng bộ tài liệu và chạy full gate;
+  chưa build/publish archive hay production ở checkpoint này.
 
 - **08/09/2026 — Mở lại gate POI Sources Profile sau review.** Tính năng đã rollout
   ngày 07/09, nhưng kết luận plan hoàn tất 15/15 và tick đồng loạt 76 bước là quá sớm.
