@@ -26,6 +26,18 @@ const ANYWHERE = compile(RULES.anywhere);
  * → `nhatran` (tr nằm giữa từ). Tương tự `plei ku` → `pleicu` nhưng `pleiku` → `pleiku`. Fixture
  * `vi-key.csv` ghi rõ hai nhóm này.
  *
+ * **Giới hạn thứ hai, nặng hơn, đo trên production 08/09/2026:** vì nối không khoảng trắng, khoá
+ * của một tên NHIỀU TỪ là một cục (`Hủ Tiếu Mỹ Tho Thanh Xuân` → `hutieumithothanhxuan`). Bậc 3
+ * lọc bằng `word_similarity(qKey, name_key)`, mà `word_similarity` so theo **ranh giới từ** trong
+ * chuỗi đích — với khoá một cục thì không còn ranh giới nào, nên `mitho` gần như không khớp. Hệ
+ * quả: bậc 3 chỉ cứu được tên **ngắn** (`kontum` → Kon Tum, `bin than` → Bình Thạnh) và bất lực
+ * với mọi tên dài. Đối chứng: `my tho` gõ ĐÚNG chính tả cũng chỉ đưa `area Phường Mỹ Tho` lên
+ * hạng 10, và đó là do `withAreaSlot` nhét vào suất cuối chứ không phải do điểm.
+ *
+ * Sửa gốc là sinh khoá **giữ ranh giới từ**, nhưng việc đó đổi cột `name_key`/`alias_key` nên phải
+ * migration + backfill lại 1,52 triệu POI và đo lại bộ mờ 40 truy vấn. Chưa làm; ghi ở đây để lần
+ * sau có căn cứ. Xem docs/evidence/search-keys/16-nghiem-thu-production.md.
+ *
  * Dùng ở **bậc 3** của autocomplete, sau các bậc chính xác hơn, nên việc luật gộp hơi rộng
  * (`gi/r/d`, `tr/ch`, âm cuối miền Nam) chỉ ảnh hưởng thứ tự trong nhóm mờ.
  */

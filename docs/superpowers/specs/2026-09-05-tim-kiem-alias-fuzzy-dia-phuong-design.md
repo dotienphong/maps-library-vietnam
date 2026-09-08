@@ -326,6 +326,27 @@ từ sau nguyên âm, bỏ chữ số 1–9 dính cuối từ (VNI). Chỉ chạ
 liệu, chỉ cho truy vấn. Mặc định **tắt** ở lần phát hành đầu; bật sau khi có số liệu từ log
 truy vấn rỗng (mục 5.7).
 
+> **Trạng thái 08/09/2026: cài xong, đã đo, PHONG quyết CHƯA BẬT.** Cờ `AUTOCOMPLETE_TELEX` không
+> có trong `vars` của khối `[env.production]`, tức tắt trên production. (Chú thích trong `[vars]`
+> chỉ tác dụng cho dev — khối `[env.production]` ghi đè **toàn bộ** `vars`.)
+>
+> Thay vì chờ phân bố `stage_hit` như mục 5.7 đề ra, đã đo thẳng thứ cần biết và ghi thành fixture
+> `scripts/fixtures/telex-queries.txt` (bộ đo A/B, chạy lại được): trong 14 chuỗi telex thật,
+> **5 chuỗi đang trả 0 item** — `ddoongf khowir`, `ddaf laatj`, `ddaf nawngx`, `chowj beenf thanhf`,
+> `ddieenj bieenj` — và `foldTelex` gập đúng cả năm (`dong khoi`, `da lat`, `da nang`,
+> `cho ben thanh`, `dien bien`). Số "trước" là hit@3 = 0/5.
+>
+> Hai điều đã kiểm, để lần quyết định sau không phải đo lại:
+> 1. **Cờ này không có đường hồi quy.** `telexFallback` bỏ qua ngay khi `have > 0`, nên bậc 3b chỉ
+>    chạy đúng lúc API đang trả rỗng — nó chỉ có thể biến 0 kết quả thành có.
+> 2. **Điều kiện "các bậc trước rỗng" của mục này là đúng cỡ**, khác với điều kiện của bậc 2/3 mà
+>    ta đã phải sửa ở mục 5.4. Lý do: chuỗi telex chứa `dd`/`aa`/`ee` nên trigram không khớp gì cả.
+>
+> **Hai lỗ hổng của `foldTelex`, chưa sửa** (sửa là sửa chính mục này):
+> `traanf hwng ddaoj` → `tran hwng dao` vì chữ `w` **trơ** (telex của `ư`) không nằm trong danh
+> sách `aw`/`ow`/`uw`; `beexn thanhf` → `bexn thanh` vì dấu telex đứng **trước** phụ âm cuối
+> (`beexn` = "bễn") mà luật bỏ dấu chỉ với tới cuối **từ**.
+
 ### 5.7 Xếp hạng và đo lường
 
 - `ranking.ts`: thêm `STAGE_PENALTY = 0.05` nhân `(stage − 1)`; giữ `COEFF`. Kết quả bậc 1 luôn có
@@ -523,20 +544,34 @@ Phiên bản SDK: bump minor cho 4 gói (thêm API, không phá).
    đơn vị mới.
 6. "qui nhon", "kontum", "dak lak", "tan son nhut", "cong ly" (đường) đều trả đúng đích trong top 3.
 
-   > **Trạng thái 08/09/2026: KHÔNG ĐẠT — 1/5 (`dak lak`).** Đã phát hành đủ mã hạng mục 3 lên
-   > production và đo. Ba nguyên nhân tách bạch, hồ sơ
-   > `docs/evidence/search-keys/16-nghiem-thu-production.md`:
-   > (a) **mục 5.4 tự mâu thuẫn với tiêu chí này ở quy mô thật.** "Bậc 2 chỉ khi bậc 1 trả
-   > < `limit`" khiến bậc 2/3 **không bao giờ chạy** trên 1,52 triệu POI — bậc 1 luôn lấp đủ 10 suất.
-   > Trên DB dev 79.775 POI thì bậc 3 có chạy và `kontum`/`bin than` đều đúng, nên cơ chế đúng còn
-   > điều kiện kích hoạt sai. Sửa được tiêu chí này đòi **đổi mục 5.4**, ví dụ đổi điều kiện sang
-   > "bậc 1 không có dòng nào đạt ngưỡng `sim`", hoặc luôn chạy song song rồi để `STAGE_PENALTY`
-   > xếp hạng (đo được: bậc 2 tốn 2,6 ms, bậc 3 tốn 206 ms trên chỉ số).
+   > **Trạng thái cuối 08/09/2026: ĐẠT 4/5, ca thứ năm PHONG quyết BỎ QUA — tiêu chí này ĐÓNG.**
+   > Hồ sơ đầy đủ và số đo từng vòng: `docs/evidence/search-keys/16-nghiem-thu-production.md`.
+   >
+   > | Ca | Kết quả | |
+   > |---|---|---|
+   > | `qui nhon` | Quy Nhơn Quán hạng 1 | ✓ |
+   > | `kontum` | Kon Tum hạng 3 (bậc 3) | ✓ |
+   > | `dak lak` | Bệnh Viện Mắt Đắk Lắk hạng 1 | ✓ |
+   > | `tan son nhut` | Tan Son Nhat Saigon Hotel hạng 1, cả top 3 dạng chuẩn | ✓ |
+   > | `cong ly` | không có Nam Kỳ Khởi Nghĩa | ✗ — **BỎ QUA theo quyết định PHONG** |
+   >
+   > Ba nguyên nhân đo được lúc mới phát hành, và số phận từng cái:
+   > (a) **mục 5.4 tự mâu thuẫn với tiêu chí này ở quy mô thật** — "bậc 2 chỉ khi bậc 1 trả
+   > < `limit`" khiến bậc 2/3 không bao giờ chạy trên 1,52 triệu POI. **Đã sửa spec** (mục 5.4, ba
+   > bậc song song, `89d7fca`).
    > (b) trong bậc 1, `LIMIT 20` bị bão hoà bởi các dòng hoà `sim` nên dòng của nhánh `qAlias` bị
-   > cắt trước khi xếp hạng — cần tách suất riêng cho nhánh alias.
+   > cắt trước khi xếp hạng. **Đã sửa** (`a76761a`) — nhưng không bằng UNION tách suất như đề xuất
+   > ban đầu, mà bằng cách tính `sim`/`prefix` theo **dạng chuẩn**; vì `ORDER BY` dùng chính biểu
+   > thức đó nên đỡ hẳn một vòng SQL cho mọi request.
    > (c) `cong ly` là thiếu **dữ liệu**, không phải mã: OSM VN không gắn `old_name=Công Lý` cho Nam
-   > Kỳ Khởi Nghĩa. Cơ chế đã chứng minh chạy được trên tên thay thế OSM có thật.
-   > Ba việc trên chờ PHONG quyết; không tự đổi spec.
+   > Kỳ Khởi Nghĩa. Cơ chế đã chứng minh chạy được trên tên thay thế OSM có thật (`co thanh ve` →
+   > Đường Bế Văn Đàn hạng 1). **PHONG quyết bỏ qua**, không đi tìm nguồn ngoài OSM; ca này giữ
+   > nguyên trong bộ mẫu để nếu sau này có nguồn thì con số tự phản ánh.
+   >
+   > Bộ 20 truy vấn cách viết địa phương đi kèm tiêu chí này: **3/20 → 15/19** (bộ còn 19 dòng sau
+   > khi PHONG quyết bỏ `mi tho`), tức **15/15 trên phần khả thi** — bốn ca trượt còn lại đều là
+   > tên đường cũ thuộc nhóm (c).
+
 7. CI xanh 4 gói; test `apps/api` vẫn chạy không cần Postgres; `export:odbl` có `admin_area_old`;
    docs 3 trang cập nhật và link check xanh.
 
@@ -549,7 +584,19 @@ Phiên bản SDK: bump minor cho 4 gói (thêm API, không phá).
 - Gợi ý sửa lỗi phía UI ("Có phải bạn muốn tìm…") từ từ điển token có tần suất.
 - Alias khu vực không chính thức có ranh giới mờ (Chợ Lớn, Hàng Xanh, Bảy Hiền) dưới dạng điểm/
   vùng do người dùng đóng góp qua `poi_edit`.
-- Bật bậc 3b (Telex/VNI) sau khi log `stage_hit` cho thấy tỷ lệ truy vấn rỗng khớp mẫu telex đáng kể.
+- Bật bậc 3b (Telex/VNI). Điều kiện gốc là "sau khi log `stage_hit` cho thấy tỷ lệ đáng kể"; số đo
+  trực tiếp đã có (mục 5.6: 5/14 chuỗi telex thật đang trả rỗng, `foldTelex` gập đúng cả năm) và
+  PHONG quyết **chưa bật** ngày 08/09/2026. Bật là thêm `AUTOCOMPLETE_TELEX = "1"` vào `vars` của
+  khối `[env.production]` trong `apps/api/wrangler.toml`, rồi chạy lại
+  `scripts/fixtures/telex-queries.txt` để lấy số "sau".
+- Sửa hai lỗ hổng `foldTelex` (mục 5.6): chữ `w` trơ, và dấu telex đứng trước phụ âm cuối.
+- **Sinh khoá ngữ âm giữ ranh giới từ.** `viKey` hiện nối cả tên thành **một cục**
+  (`Hủ Tiếu Mỹ Tho Thanh Xuân` → `hutieumithothanhxuan`), còn bậc 3 lọc bằng
+  `word_similarity(qKey, name_key)` — hàm này so theo ranh giới từ, nên khoá một cục làm bậc 3 chỉ
+  cứu được tên **ngắn**. Đối chứng đo 08/09/2026: `my tho` gõ đúng chính tả cũng chỉ đưa
+  `area Phường Mỹ Tho` lên hạng 10, và hạng đó do `withAreaSlot` nhét vào suất cuối chứ không do
+  điểm. Sửa gốc đổi cột `name_key`/`alias_key` nên phải migration + backfill lại 1,52 triệu POI và
+  đo lại bộ mờ 40. Đã ghi ở JSDoc `viKey`.
 
 ---
 

@@ -5,6 +5,11 @@ Công cụ: `scripts/perf-autocomplete.mjs` (đã dùng cho 8.5).
 
 ## Bộ 20 truy vấn cách viết địa phương (`scripts/fixtures/local-variant-queries.txt`)
 
+> **So sánh về sau, đọc kỹ:** bộ mẫu này còn **20 dòng** ở thời điểm baseline. Ngày 08/09/2026
+> PHONG quyết bỏ dòng `mi tho`, nên bộ cuối là **19 dòng** và mọi số sau đó có mẫu số 19. Muốn so
+> cùng loại số thì `mi tho` trượt ở cả hai đầu, nên 3/20 → 15/19 tương đương 3/19 → 15/19. Lý do bỏ
+> ghi trong fixture và ở `16-nghiem-thu-production.md`.
+
 | | |
 |---|---:|
 | **hit@3** | **3/20** |

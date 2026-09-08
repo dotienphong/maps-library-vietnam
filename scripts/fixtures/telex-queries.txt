@@ -1,0 +1,33 @@
+# Bộ đo A/B cho cờ AUTOCOMPLETE_TELEX (bậc 3b, spec 05/09 mục 5.6).
+# Định dạng `q|đích1;đích2` giống các fixture khác: đích là chuỗi không dấu phải nằm trong `name`
+# của top-3 (so sau khi bỏ dấu + lowercase). Chạy bằng:
+#   node scripts/perf-autocomplete.mjs <base> "$KEY_EXAMPLE_EMBED" --queries scripts/fixtures/telex-queries.txt
+#
+# VÌ SAO BỘ NÀY TỒN TẠI. Plan đặt điều kiện bật cờ là "chờ phân bố stage_hit sau 24 giờ". Số đo
+# trực tiếp tốt hơn suy từ phân bố đó, nên bộ này đo thẳng thứ cần biết: có bao nhiêu chuỗi telex
+# thật mà API đang trả **rỗng**, và bậc 3b có cứu được chúng không.
+#
+# CỜ HIỆN TẮT trên production (PHONG quyết 08/09/2026: chưa bật). Nên hôm nay bộ này phải ra
+# **0/5** — đó là số "trước", không phải lỗi. Khi nào bật cờ thì chạy lại để lấy số "sau".
+#
+# Năm dòng dưới đây đều đã đo trên https://api.ai-solutions.io.vn ngày 08/09/2026 và đều trả
+# **n=0 item**. Chọn đúng những ca rỗng là có chủ đích: bậc 3b chỉ chạy khi mọi bậc trước rỗng
+# (`telexFallback` bỏ qua khi `have > 0`), nên nó không có đường nào làm hồi quy — chỉ có thể biến
+# 0 kết quả thành có. Cột cuối là kết quả `foldTelex`, đã kiểm bằng packages/core/dist.
+#
+ddoongf khowir|dong khoi
+ddaf laatj|da lat
+ddaf nawngx|da nang
+chowj beenf thanhf|ben thanh
+ddieenj bieenj|dien bien
+#
+# foldTelex của năm dòng trên: `dong khoi`, `da lat`, `da nang`, `cho ben thanh`, `dien bien`.
+#
+# HAI LỖ HỔNG ĐÃ ĐO CỦA foldTelex — cố ý KHÔNG đưa vào bộ mẫu, vì bật cờ cũng không cứu được,
+# và để chúng trong bộ thì con số nói sai về giá trị của cờ:
+#   traanf hwng ddaoj → `tran hwng dao`  chữ `w` TRƠ (telex của `ư`) không được gập. Spec 5.6 chỉ
+#                                        liệt kê `aw`/`ow`/`uw`, không có `w` đứng một mình.
+#   beexn thanhf      → `bexn thanh`     dấu telex đứng TRƯỚC phụ âm cuối (`beexn` = "bễn"). Luật
+#                                        bỏ dấu chỉ với tới cuối TỪ, nên `x` giữa từ còn nguyên.
+# Cả hai đều trả n=0 hôm nay và vẫn trả n=0 sau khi bật cờ. Muốn cứu thì phải sửa foldTelex, tức
+# sửa spec 5.6 — chưa làm.

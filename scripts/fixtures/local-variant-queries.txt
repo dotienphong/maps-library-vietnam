@@ -1,4 +1,4 @@
-# 20 truy vấn cách viết địa phương — spec 05/09 mục 11.6 và 6.1/6.2.
+# 19 truy vấn cách viết địa phương — spec 05/09 mục 11.6 và 6.1/6.2.
 # Định dạng q|đích1;đích2: đích là chuỗi không dấu phải nằm trong `name` của top-3 (so sau khi bỏ
 # dấu + lowercase). Nhiều đích ngăn bằng `;` — trúng khi BẤT KỲ đích nào khớp.
 #
@@ -15,6 +15,20 @@
 #   plei ku        → "plei ku"      hạng 1–2 ở tỉnh Gia Lai (Pleiku là thủ phủ)
 #   li thuong kiet → "li thuong kiet"  hạng 1 "ACB Li Thuong Kiet Q11" — đúng đường, ở HCM
 #
+# ĐÃ BỎ khỏi bộ mẫu (PHONG quyết 08/09/2026): dòng `mi tho|my tho`. Hai lý do, cả hai đo được
+# trên production, không suy đoán:
+#   1. Nhập nhằng thật. Với near=HCM, cả 10 kết quả là "Bánh Mì Thổ Nhĩ Kỳ" — và đó có lẽ đúng là
+#      thứ người gõ muốn. Trả về tiệm kebab KHÔNG phải "trả đúng địa phương", nên không được thêm
+#      nó vào danh sách cách viết chấp nhận; mà giữ dòng lại thì nó là một tiêu chí đòi API đoán
+#      sai ý người dùng.
+#   2. Bậc 3 không thể cứu ca này. `viKey` nối cả tên thành MỘT từ (`Hủ Tiếu Mỹ Tho Thanh Xuân` →
+#      `hutieumithothanhxuan`), còn bậc 3 lọc bằng `word_similarity(qKey, name_key)` — hàm này cắt
+#      theo ranh giới từ, nên với khoá một cục thì `mitho` gần như không khớp. Bậc 3 vì thế chỉ cứu
+#      được tên NGẮN (`kontum`→Kon Tum, `bin than`→Bình Thạnh). Bằng chứng đối chứng: `my tho` gõ
+#      ĐÚNG chính tả cũng chỉ đưa `area Phường Mỹ Tho` lên hạng 10, và đó là do `withAreaSlot` nhét
+#      vào suất cuối chứ không phải do điểm. Xem JSDoc `viKey` và
+#      docs/evidence/search-keys/16-nghiem-thu-production.md.
+#
 # --- 8 biến thể chính tả địa danh (6.1) ---
 qui nhon|quy nhon
 quinhon|quy nhon
@@ -24,8 +38,7 @@ dac lac|dak lak;dac lac
 ban me thuot|buon ma thuot
 bmt|buon ma thuot;bmt
 tan son nhut|tan son nhat
-# --- 6 phát âm vùng / i-y (6.2) ---
-mi tho|my tho
+# --- 5 phát âm vùng / i-y (6.2) ---
 bin than|binh thanh
 ly thuong kiet|ly thuong kiet
 li thuong kiet|ly thuong kiet;li thuong kiet

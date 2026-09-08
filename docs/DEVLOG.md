@@ -1490,6 +1490,41 @@ vẫn là `sleep 1` phút — `sudo pmset -a sleep 0 disksleep 0`.
   phương nhưng tên POI viết theo cách người dùng gõ** (`dac lac`→Đắc Lắc, `bac can`→Bắc Cạn,
   `saigon`→Saigon, `mi tho`→Bánh Mì Thổ) mà fixture đòi chuỗi đích phải nằm trong tên trả về — đây
   là câu hỏi về tiêu chí chứ không phải về mã, và tôi không sửa bộ mẫu để làm đẹp con số
+- 2026-09-08 · Hạng mục 3 · **Fixture nhận nhiều cách viết — biến thể 9/20 → 15/20** (`6de84f9`,
+  PHONG duyệt "trả đúng địa phương là đạt") ·
+  [hồ sơ](evidence/search-keys/16-nghiem-thu-production.md) · định dạng fixture mở rộng thành
+  `q|đích1;đích2`, trúng khi **bất kỳ** đích nào nằm trong top 3. Sáu dòng được thêm cách viết
+  (`dac lac`, `bac can`, `saigon` do PHONG nêu; `bmt`, `plei ku`, `li thuong kiet` cùng nguyên tắc),
+  **mỗi cách viết liệt kê tường minh** và **đã kiểm vị trí trên production** trước khi thêm: hạng 1
+  của `bmt` ở tỉnh Đắk Lắk, của `plei ku` ở Gia Lai, của `li thuong kiet` đúng đường ở HCM. Cố ý
+  **không** so bằng khoá ngữ âm — làm thế thì "Bánh Mì Thổ Nhĩ Kỳ" sẽ tính là trúng cho `mi tho`.
+  Ba ca cuối cũng đã phân tích xong với **ba nguyên nhân khác nhau**: `bmt` là viết tắt (khoá ngữ âm
+  không nối viết tắt với tên đầy đủ); `plei ku` là lỗ hổng thật của bảng luật (`k+u → c` là luật đầu
+  từ, nên `plei ku` → `pleicu` mà `pleiku` → `pleiku`); `li thuong kiet` có khoá đúng nhưng 620 POI
+  tên chứa "Lý Thường Kiệt" bị `STAGE_PENALTY` đẩy xuống dưới dòng bậc 1 khớp trực tiếp "Lí Thường
+  Kiệt"
+- 2026-09-08 · Hạng mục 3 · **ĐÓNG hạng mục 3 — bộ mẫu 19 dòng, 15/19 và 15/15 trên phần khả thi** ·
+  [hồ sơ](evidence/search-keys/16-nghiem-thu-production.md) · vòng này **không đổi hành vi API**:
+  chỉ bỏ `mi tho` khỏi bộ mẫu, thêm fixture đo A/B cho cờ telex, và ghi hai khiếm khuyết đã đo vào
+  tài liệu. Bốn ca trượt còn lại **trùng khít** bốn ca tên đường cũ mà PHONG quyết bỏ qua, nên tiêu
+  chí đóng bước 7 đổi từ con số "≥ 18/20" sang **"mọi ca trượt đều có nguyên nhân đo được và có
+  quyết định của PHONG"** — với 4 ca trần cứng thì 18/20 là bất khả thi về **dữ liệu**, không phải
+  nợ mã; con số 18/20 không bị sửa lại cho khớp và bốn ca vẫn giữ trong bộ mẫu để nếu sau này có
+  nguồn thì con số tự phản ánh. **Cờ `AUTOCOMPLETE_TELEX` vẫn TẮT** theo quyết định của PHONG,
+  nhưng đã đo thẳng thứ mà plan định suy từ phân bố `stage_hit` và ghi thành fixture
+  `scripts/fixtures/telex-queries.txt`: 5 trong 14 chuỗi telex thật đang trả **0 item**
+  (`ddoongf khowir`, `ddaf laatj`, `ddaf nawngx`, `chowj beenf thanhf`, `ddieenj bieenj`) và
+  `foldTelex` gập đúng cả năm. Đáng ghi cho lần quyết định sau: cờ này **không có đường hồi quy**
+  vì `telexFallback` bỏ qua ngay khi `have > 0`, tức bậc 3b chỉ chạy đúng lúc API đang rỗng; và
+  điều kiện `have === 0` của spec 5.6 **đúng cỡ** — khác với điều kiện của bậc 2/3 đã phải sửa —
+  vì chuỗi telex chứa `dd`/`aa`/`ee` thì trigram không khớp gì cả. **Hai khiếm khuyết đo được, chưa
+  sửa, cả hai đòi sửa spec:** (1) `viKey` nối cả tên thành một cục nên `word_similarity` mất ranh
+  giới từ và bậc 3 chỉ cứu được tên **ngắn** — đối chứng là `my tho` gõ ĐÚNG chính tả cũng chỉ đưa
+  `area Phường Mỹ Tho` lên hạng 10, và hạng đó do `withAreaSlot` nhét vào suất cuối chứ không do
+  điểm; sửa gốc phải migration + backfill lại 1,52 triệu POI (đã ghi ở JSDoc `viKey`); (2)
+  `foldTelex` không gập chữ `w` trơ (`traanf hwng ddaoj` → `tran hwng dao`) và không với tới dấu
+  telex đứng trước phụ âm cuối (`beexn thanhf` → `bexn thanh`). Không hồi quy: bộ mờ 40 vẫn
+  **38/40**, p95 lạnh 1.630 ms (lần trước 1.751 ms)
 
 ## 5. Sự cố
 

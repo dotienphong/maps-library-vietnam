@@ -345,3 +345,100 @@ Tôi **không** thêm `mi tho` vào danh sách cách viết chấp nhận, vì t
 "trả đúng địa phương". Đây là truy vấn **nhập nhằng thật** trong tiếng Việt: với `near` ở HCM, tiệm
 bánh mì có lẽ mới là câu trả lời người dùng muốn. Nếu PHONG thấy vậy thì nên **bỏ dòng này khỏi bộ
 mẫu** kèm lý do, chứ không nên nới cách chấm.
+
+
+---
+
+# Đóng bước 7 — hai quyết định của PHONG và số đo cuối (08/09/2026)
+
+Không có mã nào đổi hành vi API ở vòng này: chỉ sửa bộ mẫu, thêm một fixture đo, và ghi hai khiếm
+khuyết đã đo vào tài liệu. Số dưới đây đo trên `https://api.ai-solutions.io.vn`, SHA `6de84f9`.
+
+## Quyết định 3 — cờ `AUTOCOMPLETE_TELEX`: **CHƯA BẬT**
+
+PHONG quyết không bật ở vòng này. Cờ giữ nguyên trạng thái: **không có** trong `vars` của khối
+`[env.production]`, tức tắt. (Chú thích trong `[vars]` chỉ có tác dụng cho dev — khối
+`[env.production]` ghi đè **toàn bộ** `vars`, nên muốn bật thì phải thêm dòng vào đúng khối đó.)
+
+Nhân dịp này đã đo thẳng thứ mà plan định suy từ phân bố `stage_hit`, và ghi lại thành fixture
+`scripts/fixtures/telex-queries.txt` để lần sau chỉ việc chạy lại:
+
+| Truy vấn telex | Kết quả hôm nay | `foldTelex` ra |
+|---|---:|---|
+| `ddoongf khowir` | **0 item** | `dong khoi` |
+| `ddaf laatj` | **0 item** | `da lat` |
+| `ddaf nawngx` | **0 item** | `da nang` |
+| `chowj beenf thanhf` | **0 item** | `cho ben thanh` |
+| `ddieenj bieenj` | **0 item** | `dien bien` |
+
+Đo bằng `perf-autocomplete` trên bộ này: **hit@3 = 0/5**, p50 81 ms. Đây là số **"trước"**.
+
+Hai điều đáng ghi cho lần quyết định sau:
+
+1. **Cờ này không có đường hồi quy.** `telexFallback` bỏ qua ngay khi `have > 0`, nên bậc 3b chỉ
+   chạy đúng vào lúc API đang trả rỗng — nó chỉ có thể biến 0 kết quả thành có. Mối lo "bật cờ làm
+   xấu kết quả đang tốt" là không có cơ sở về mặt mã.
+2. **Điều kiện `have === 0` của spec 5.6 là đúng cỡ**, khác với điều kiện của bậc 2/3 mà ta đã phải
+   sửa. Lý do: chuỗi telex thật chứa `dd`/`aa`/`ee` nên trigram không khớp gì cả. Đo 14 chuỗi telex
+   thì 5 chuỗi trả rỗng; các chuỗi còn lại (`hoof chis minh`, `haif phongf`, `vungx tauf`…) trả 10
+   item vì phần không dấu của chúng đủ giống tên thật.
+
+Đồng thời lộ ra **hai lỗ hổng của `foldTelex`** mà bật cờ cũng không cứu được (đã ghi trong fixture,
+cố ý không đưa vào bộ mẫu để con số không nói sai về giá trị của cờ):
+
+| Truy vấn | `foldTelex` ra | Vì sao |
+|---|---|---|
+| `traanf hwng ddaoj` | `tran hwng dao` | chữ `w` **trơ** (telex của `ư`) không được gập. Spec 5.6 chỉ liệt kê `aw`/`ow`/`uw` |
+| `beexn thanhf` | `bexn thanh` | dấu telex đứng **trước** phụ âm cuối (`beexn` = "bễn"); luật bỏ dấu chỉ với tới cuối **từ** |
+
+Sửa hai ca này là sửa spec 5.6, chưa làm.
+
+## Quyết định 4 — `mi tho`: **BỎ khỏi bộ mẫu**
+
+Đúng khuyến nghị đã ghi ở mục trên. Bộ mẫu còn **19 dòng**; lý do bỏ ghi ngay trong
+`scripts/fixtures/local-variant-queries.txt` để người đọc bộ mẫu không phải đi tìm.
+
+Lý do thứ hai (mới, đo ở vòng này) quan trọng hơn lý do "nhập nhằng": **bậc 3 về mặt cấu trúc không
+thể cứu ca này.** `viKey` nối cả tên thành **một từ** — `Hủ Tiếu Mỹ Tho Thanh Xuân` →
+`hutieumithothanhxuan` — còn bậc 3 lọc bằng `word_similarity(qKey, name_key)`, hàm này so theo
+**ranh giới từ** trong chuỗi đích. Khoá một cục thì không còn ranh giới nào, nên `mitho` gần như
+không khớp. Đây là lý do bậc 3 chỉ từng cứu được tên **ngắn** (`kontum` → Kon Tum, `bin than` →
+Bình Thạnh).
+
+Đối chứng để chắc đây là giới hạn của khoá chứ không phải của cách viết: **`my tho` gõ ĐÚNG chính
+tả** cũng chỉ đưa `area Phường Mỹ Tho` lên hạng **10** (score 0,635), và hạng 10 đó là do
+`withAreaSlot` nhét vào suất cuối, không phải do điểm. Chín hạng trên đều là POI "Hủ Tiếu Mỹ Tho".
+
+Đã ghi giới hạn này vào JSDoc của `viKey` kèm giá sửa gốc (sinh khoá giữ ranh giới từ ⇒ migration +
+backfill lại 1,52 triệu POI + đo lại bộ mờ 40). Chưa làm.
+
+## Số đo cuối trên bộ 19
+
+| Phép đo | Kết quả |
+|---|---:|
+| Bộ 19 biến thể — hit@3 | **15/19** |
+| Ca trượt | `cong ly`, `duong cong ly`, `hien vuong`, `truong minh giang` |
+| **Trên phần khả thi** (trừ 4 ca tên đường cũ đã quyết bỏ qua) | **15/15** |
+| Bộ 40 truy vấn mờ — hit@3 | **38/40** (không hồi quy; miss vẫn là `higland`, `sieu thi co op`) |
+| Bộ 40 mờ — p95 lạnh | 1.630 ms (lần trước 1.751 ms) |
+| Bộ telex — hit@3 | 0/5 (cờ tắt; số "trước") |
+
+**Bốn ca trượt trùng khít bốn ca PHONG đã quyết bỏ qua.** Không còn ca nào trượt mà chưa có nguyên
+nhân đo được và chưa có quyết định. Đây là căn cứ đóng bước 7.
+
+## Vì sao đóng bước 7 dù không đạt mốc 18/20
+
+Mốc 18/20 đặt ra ở Task 0, khi chưa biết hai điều mà giờ đã đo xong:
+
+1. OSM Việt Nam **không có** `old_name` cho ba tuyến của 4 ca tên đường cũ. PHONG quyết bỏ qua,
+   không đi tìm nguồn ngoài OSM. Bốn ca này vì thế là **trần cứng** của bộ mẫu, không phải nợ mã.
+2. `mi tho` là ca mà đòi API trúng thì chính là đòi nó đoán sai ý người dùng.
+
+Với 4 ca trần cứng trong 19 dòng, mốc khả thi cao nhất là 15/19. Đổi tiêu chí đóng bước 7 thành
+**"mọi ca trượt đều có nguyên nhân đo được và có quyết định của PHONG"** — tiêu chí này đạt. Con số
+18/20 **không** được sửa lại cho khớp, và bốn ca tên đường cũ **giữ nguyên trong bộ mẫu**: nếu sau
+này có nguồn tên đường cũ thì con số tự phản ánh mà không ai phải sửa fixture.
+
+Đường đi của con số qua cả hạng mục: **3/20 → 6/20** (ba bậc song song, `89d7fca`) **→ 9/20** (chấm
+điểm alias bằng dạng chuẩn, `a76761a`) **→ 15/20** (chấp nhận cách viết thay thế có liệt kê tường
+minh, `6de84f9`) **→ 15/19** (bỏ `mi tho`).
