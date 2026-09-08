@@ -5,6 +5,17 @@ commit với code).
 
 ## 1. Trạng thái hiện tại
 
+- **08/09/2026 — Mở lại gate POI Sources Profile sau review.** Tính năng đã rollout
+  ngày 07/09, nhưng kết luận plan hoàn tất 15/15 và tick đồng loạt 76 bước là quá sớm.
+  Plan `docs/superpowers/plans/2026-09-07-poi-sources-profile.md` đã bổ sung R1–R8:
+  kế thừa client map cho autocomplete, release bất biến, snapshot chung, sửa test
+  thinning/tập con, API DB test nguồn/user, gate 300 MiB và nghiệm thu p95/browser.
+  Rollout ban đầu chỉ publish OSM theo lựa chọn PHONG, không phải build đôi.
+  Lượt này chỉ cập nhật plan/checkpoint; chưa implement các sửa chữa sau review.
+  **Bắt đầu tiếp:** Task 11 Step 6 — regression test autocomplete gắn map OSM nhưng
+  không có thuộc tính sources; sau đó sửa kế thừa map.places. Gate đã chạy trước
+  review (905 unit + 168 API, lint/typecheck/docs build) không thay thế gate mới.
+
 - **07/09/2026 — ĐÃ PHÁT HÀNH bật/tắt nguồn POI theo profile (spec 07/09).**
   Cổng đo trước cho kết quả bất ngờ: OSM chỉ là **nguồn chính của 7,0 %** POI (106.325/1.522.416;
   Overture 77,1 %, FSQ 15,9 %; `multiSourcePct` 3,3 %) — mặc định `['osm']` như dự định ban đầu sẽ

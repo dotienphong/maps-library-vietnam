@@ -4,6 +4,41 @@
 
 **Goal:** Người tích hợp chọn tập nguồn POI (`osm` | `overture` | `fsq`) một lần khi khởi tạo SDK; bản đồ dùng archive tile build riêng cho tập đó và Places API lọc cùng tập. Mặc định là **cả ba nguồn** (`all`) ở mọi bề mặt — giữ đúng hành vi hiện tại.
 
+**Trạng thái sau review 08/09/2026: CHƯA ĐÓNG PLAN.** Core/API/SDK và profile OSM đã
+được triển khai, rollout ngày 07/09; còn các sửa chữa và gate nghiệm thu bên dưới.
+Rút lại kết luận hoàn tất 15/15 và việc tick đồng loạt 76 bước ở lượt đối soát trước.
+
+Bằng chứng rollout lịch sử: `docs/evidence/poi-sources/nghiem-thu-production.md`.
+Các số đo ngày 07/09 không phải số đo lại ngày 08/09. Kiểm tra ngày 08/09 đã xác nhận
+905 unit + 168 API test xanh, lint/typecheck/docs build thành công và endpoint style
+OSM hoạt động; chưa chạy lại DB test, benchmark hoặc kiểm bản đồ đủ 5 thành phố.
+
+## Checkpoint sau review — đọc trước khi thực thi
+
+Giữ 15 task gốc để truy vết. Checkbox đã tick ở phần lịch sử chỉ ghi nhận phần có
+implementation/evidence; không thay thế các gate mở dưới đây. Các bước xác nhận RED
+lịch sử không có log riêng được ghi là hướng dẫn, không khẳng định đã kiểm chứng.
+Code mẫu lịch sử phải đối chiếu source hiện tại; không chạy lại bump SDK 0.3.0
+(vì source đã là 0.4.0) hoặc các lệnh publish lịch sử để “hoàn thành checkbox”.
+
+| Review | Task liên quan | Việc còn phải hoàn tất |
+|---|---|---|
+| R1 | 11 | Autocomplete gắn map kế thừa đúng client/nguồn của map |
+| R2 | 8–9 | Release bất biến, không ghi đè khi chạy lại cùng ngày; test lỗi publish/rollback |
+| R3 | 9 | Hai profile đọc cùng snapshot dữ liệu thật |
+| R4 | 10 | Sửa tiêu chí tập con; kiểm POI OSM được phục hồi sau thinning |
+| R5 | 5–6, 10 | DB test ngữ nghĩa nguồn và POI user trên cả bốn endpoint |
+| R6 | 15 | Ghi đúng ngoại lệ rollout; bổ sung nghiệm thu bản đồ và bằng chứng |
+| R7 | 13, 15 | Cổng p95 có baseline phù hợp, tách cold/warm, giữ số liệu thô |
+| R8 | 4, 8, 14 | Mẫu SQL dùng textArray; gate cứng 300 MiB; đồng bộ tài liệu |
+
+**Thứ tự tiếp tục:** R1 → R2 → R3 → R4/R5 → R8 → R7/R6. Mỗi phần thay đổi hành vi
+phải có test chứng minh lỗi trước sửa, chạy test mục tiêu và gate liên quan sau sửa.
+Đóng từng gate bằng bằng chứng thực tế; không suy ra hoàn tất chỉ từ test suite xanh.
+**Hành động đầu tiên:** Task 11 Step 6 — test map OSM gắn autocomplete không có
+thuộc tính `sources`, xác nhận client hiện tại vẫn dùng `all`, rồi sửa kế thừa client.
+Lượt này chỉ sửa plan/checkpoint; các sửa chữa code và rollout là công việc kế tiếp.
+
 **Architecture:** Hằng `POI_SOURCE_PROFILES` ở `@mapslibvn/core` là nguồn sự thật duy nhất cho API, SDK và pipeline. Pipeline export thêm archive `poi-osm-YYYYMMDD.pmtiles` (lưới progressive chạy lại trên riêng tập OSM) và manifest KV có `poiProfiles.osm`. API nhận `sources=` trên `search/nearby/autocomplete/reverse/styles`; style trả archive theo profile, fallback `all` khi profile chưa publish. POI `created_by='user'` luôn có mặt.
 
 **Tech Stack:** TypeScript (Hono trên Cloudflare Workers, postgres.js, vitest + `@cloudflare/vitest-pool-workers`), Node ESM `.mjs` cho pipeline (tippecanoe, rclone, wrangler KV), MapLibre GL JS / maplibre-react-native.
@@ -13,7 +48,7 @@
 **Quy ước chung cho mọi task**
 - Chạy lệnh từ gốc repo. Test unit: `pnpm vitest run <file>`; test API: `pnpm --filter @mapslibvn/api test`; typecheck toàn repo: `pnpm typecheck`; lint: `pnpm lint` (biome). Trước khi commit một task: `pnpm lint && pnpm typecheck`.
 - `exactOptionalPropertyTypes` đang bật: không gán `undefined` vào thuộc tính tuỳ chọn — dùng spread có điều kiện `...(x ? { x } : {})`.
-- Test tầng API **không được cần Postgres** (Hyperdrive trỏ cổng đóng): test route chỉ kiểm auth/validate → 400, còn request hợp lệ → 503. SQL kiểm bằng `test/helpers/fake-sql.ts`.
+- API unit test không cần Postgres (Hyperdrive trỏ cổng đóng): kiểm auth/validate và SQL shape bằng fake SQL. API integration test **phải chạy Postgres thật** qua `pnpm test:api-db` để kiểm binding và ngữ nghĩa nguồn; unit test không thay thế gate này.
 - Commit message tiếng Việt, tiền tố `feat/fix/test/docs/chore(scope)`.
 
 ---
@@ -29,7 +64,7 @@ Spec mục 9 nghiệm thu 1. Máy dev không có `psql`/`cloudflared`; dùng bá
 
 **Files:** không sửa code. Ghi kết quả vào `docs/evidence/poi-sources/do-truoc-primary-source.md` (tạo mới).
 
-- [ ] **Step 1: Lấy tên báo cáo mới nhất trên R2**
+- [x] **Step 1: Lấy tên báo cáo mới nhất trên R2**
 
 Run:
 ```bash
@@ -38,7 +73,7 @@ docker compose --env-file .env -f infra/dev/compose.yml --profile pipeline run -
 ```
 Expected: một dòng dạng `poi-report-20260907.json`.
 
-- [ ] **Step 2: Đọc báo cáo và tính tỷ lệ**
+- [x] **Step 2: Đọc báo cáo và tính tỷ lệ**
 
 Run (thay `<FILE>` bằng tên ở bước 1):
 ```bash
@@ -53,14 +88,14 @@ console.log("active:", r.poi.active, "total:", r.poi.total);
 ```
 Expected: ba dòng `osm/overture/fsq` (và có thể `user/null`) với phần trăm.
 
-- [ ] **Step 3: Quyết định cổng**
+- [x] **Step 3: Quyết định cổng**
 
 Nếu `osm` **≥ 40 %** tổng → tiếp tục plan, mặc định `osm` giữ nguyên.
 Nếu **< 40 %** → DỪNG plan, báo PHONG kèm số liệu; không tự đổi mặc định (spec mục 9).
 
 (Thực tế: 7,0 % → đã dừng và PHONG chọn đảo mặc định thành `all`.)
 
-- [ ] **Step 4: Ghi bằng chứng**
+- [x] **Step 4: Ghi bằng chứng**
 
 Tạo `docs/evidence/poi-sources/do-truoc-primary-source.md`:
 ```markdown
@@ -79,7 +114,7 @@ POI active: …; tổng: ….
 Kết luận cổng (≥ 40 % OSM): ĐẠT / KHÔNG ĐẠT → mặc định `osm` giữ / cần PHONG quyết.
 ```
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add docs/evidence/poi-sources/do-truoc-primary-source.md
@@ -95,7 +130,7 @@ git commit -m "docs(evidence): đo phân bố primary_source trước khi chốt
 - Create: `packages/core/src/poi-sources.test.ts`
 - Modify: `packages/core/src/index.ts`
 
-- [ ] **Step 1: Viết test đỏ**
+- [x] **Step 1: Viết test đỏ**
 
 `packages/core/src/poi-sources.test.ts`:
 ```ts
@@ -150,12 +185,12 @@ describe('poi-sources', () => {
 });
 ```
 
-- [ ] **Step 2: Chạy test, xác nhận đỏ**
+- Hướng dẫn RED lịch sử (chưa có log riêng để xác nhận): **Step 2: Chạy test, xác nhận đỏ**
 
 Run: `pnpm vitest run packages/core/src/poi-sources.test.ts`
 Expected: FAIL — `Failed to resolve import "./poi-sources"`.
 
-- [ ] **Step 3: Viết implementation**
+- [x] **Step 3: Viết implementation**
 
 `packages/core/src/poi-sources.ts`:
 ```ts
@@ -229,12 +264,12 @@ Thêm vào cuối `packages/core/src/index.ts`:
 export * from './poi-sources';
 ```
 
-- [ ] **Step 4: Chạy test xanh + build core**
+- [x] **Step 4: Chạy test xanh + build core**
 
 Run: `pnpm vitest run packages/core/src/poi-sources.test.ts && pnpm --filter @mapslibvn/core build`
 Expected: 6 tests PASS; build xong, `size-limit` không báo vượt.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add packages/core/src/poi-sources.ts packages/core/src/poi-sources.test.ts packages/core/src/index.ts
@@ -249,7 +284,7 @@ git commit -m "feat(core): hằng profile nguồn POI và hàm chuẩn hoá sour
 - Modify: `packages/core/src/client.ts`
 - Modify: `packages/core/src/client.test.ts`
 
-- [ ] **Step 1: Sửa test hiện có và thêm test đỏ**
+- [x] **Step 1: Sửa test hiện có và thêm test đỏ**
 
 Trong `packages/core/src/client.test.ts`, test `'styleUrl mang theme và key'` đổi kỳ vọng:
 ```ts
@@ -306,12 +341,12 @@ Thêm cuối `describe('createClient', …)`:
   });
 ```
 
-- [ ] **Step 2: Chạy test, xác nhận đỏ**
+- Hướng dẫn RED lịch sử (chưa có log riêng để xác nhận): **Step 2: Chạy test, xác nhận đỏ**
 
 Run: `pnpm vitest run packages/core/src/client.test.ts`
 Expected: FAIL — `styleUrl` thiếu `&sources=…`; `searchParams.get('sources')` là `null`; không ném lỗi.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 Trong `packages/core/src/client.ts`:
 
@@ -354,12 +389,12 @@ Trong `createClient`, ngay sau `const baseUrl = …`:
 `reverse`: `get<ReverseResponse>('/v1/reverse', { lat, lng, sources })`.
 `geocode`, `getPlace`, `attribution`, `suggestEdit`: không đổi.
 
-- [ ] **Step 4: Chạy test xanh**
+- [x] **Step 4: Chạy test xanh**
 
 Run: `pnpm vitest run packages/core/src/client.test.ts`
 Expected: PASS toàn bộ.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add packages/core/src/client.ts packages/core/src/client.test.ts
@@ -376,7 +411,7 @@ git commit -m "feat(core): client nhận poiSources, gắn sources= cho Places A
 - Modify: `apps/api/test/params.test.ts`
 - Create: `apps/api/test/poi-sources.test.ts`
 
-- [ ] **Step 1: Test đỏ**
+- [x] **Step 1: Test đỏ**
 
 Thêm vào `apps/api/test/params.test.ts` (import thêm `parseSources`):
 ```ts
@@ -405,19 +440,19 @@ describe('poiSourceFilter', () => {
     // fakeSql ghi cả fragment lồng vào `calls`, nên lấy câu SELECT ngoài cùng.
     const query = calls.find((call) => call.text.startsWith('SELECT'));
     expect(query?.text).toBe(
-      `SELECT 1 FROM poi p WHERE p.status = 'active' AND ${poiSourceClause('$1::text[]')}`,
+      `SELECT 1 FROM poi p WHERE p.status = 'active' AND ${poiSourceClause('ARRAY(SELECT json_array_elements_text($1::text::json))')}`,
     );
-    expect(query?.params).toEqual([['osm']]);
+    expect(query?.params).toEqual(['["osm"]']);
   });
 });
 ```
 
-- [ ] **Step 2: Chạy, xác nhận đỏ**
+- Hướng dẫn RED lịch sử (chưa có log riêng để xác nhận): **Step 2: Chạy, xác nhận đỏ**
 
 Run: `pnpm --filter @mapslibvn/api test -- params poi-sources`
 Expected: FAIL — `parseSources` không export; `../src/poi-sources` không tồn tại.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 `apps/api/src/params.ts` — import và hàm mới:
 ```ts
@@ -438,25 +473,26 @@ export function parseSources(raw: string | undefined): PoiSource[] {
 ```ts
 import type { PoiSource } from '@mapslibvn/core';
 import type { getSql } from './db';
+import { textArray } from './geocode';
 
 type Sql = ReturnType<typeof getSql>;
 
 /**
  * Fragment lọc theo nguồn cho mọi truy vấn đọc `poi` (alias bắt buộc là `p`). Văn bản phải khớp
- * `poiSourceClause('$n::text[]')` của core — test `poi-sources.test.ts` khoá điều đó để pipeline và
+ * `poiSourceClause(arrayExpr)` của core — test `poi-sources.test.ts` khoá điều đó để pipeline và
  * API không lệch nhau. POI người dùng (`created_by='user'`, primary_source NULL) luôn được giữ.
  */
 export function poiSourceFilter(sql: Sql, sources: readonly PoiSource[]) {
-  return sql`(p.primary_source = ANY(${[...sources]}::text[]) OR p.created_by = 'user')`;
+  return sql`(p.primary_source = ANY(${textArray(sql, [...sources])}) OR p.created_by = 'user')`;
 }
 ```
 
-- [ ] **Step 4: Chạy xanh**
+- [x] **Step 4: Chạy xanh**
 
 Run: `pnpm --filter @mapslibvn/api test -- params poi-sources`
 Expected: PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add apps/api/src/params.ts apps/api/src/poi-sources.ts apps/api/test/params.test.ts apps/api/test/poi-sources.test.ts
@@ -474,7 +510,7 @@ git commit -m "feat(api): parseSources và fragment lọc primary_source dùng c
 - Modify: `apps/api/test/places-routes.test.ts`
 - Modify: `apps/api/test/geocode-routes.test.ts` (reverse validate)
 
-- [ ] **Step 1: Test đỏ (validate, không DB)**
+- [x] **Step 1: Test đỏ (validate, không DB)**
 
 Thêm vào `describe('validation search/nearby/places (không DB)')` trong `apps/api/test/places-routes.test.ts`:
 ```ts
@@ -493,12 +529,12 @@ Thêm vào `apps/api/test/geocode-routes.test.ts` (dùng cùng khuôn `fetchApi`
   });
 ```
 
-- [ ] **Step 2: Chạy, xác nhận đỏ**
+- Hướng dẫn RED lịch sử (chưa có log riêng để xác nhận): **Step 2: Chạy, xác nhận đỏ**
 
 Run: `pnpm --filter @mapslibvn/api test -- places-routes geocode-routes`
 Expected: FAIL — `sources=banana` hiện trả 503 thay vì 400.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 `search.ts`: import `parseSources` từ `'../params'` (thêm vào import có sẵn) và `import { poiSourceFilter } from '../poi-sources';`. Sau `const offset = …`:
 ```ts
@@ -527,17 +563,28 @@ Trong truy vấn `poiRow`, sau `WHERE p.status = 'active'`:
         AND ${poiSourceFilter(sql, sources)}
 ```
 
-- [ ] **Step 4: Chạy xanh**
+- [x] **Step 4: Chạy xanh**
 
 Run: `pnpm --filter @mapslibvn/api test`
 Expected: PASS toàn bộ.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add apps/api/src/routes/search.ts apps/api/src/routes/nearby.ts apps/api/src/routes/reverse.ts apps/api/test/places-routes.test.ts apps/api/test/geocode-routes.test.ts
 git commit -m "feat(api): search/nearby/reverse lọc POI theo sources (mặc định cả ba nguồn)"
 ```
+
+### Gate sau review R5 — chưa đóng phần kiểm DB
+
+- [ ] **Step 6:** Bổ sung fixture biệt lập có ID xác định cho OSM, Overture, FSQ và
+  `created_by='user'`/`primary_source=NULL`; tên/vị trí phải đủ điều kiện truy vấn.
+  Kiểm search và nearby với `osm/all/overture,fsq`: ID đúng được giữ, ID nguồn tắt bị
+  loại, POI user luôn thuộc tập đủ điều kiện. Với reverse, dùng vị trí có POI nguồn
+  tắt gần hơn và OSM/user phía sau để chứng minh nearest_poi chọn lại đúng nguồn.
+- [ ] **Step 7:** Chạy `pnpm test:api-db` trên DB test đã migrate; lưu kết quả ngữ nghĩa.
+  Test chỉ HTTP 200 hoặc cho phép primary undefined không chứng minh giữ POI user.
+  File chính: `apps/api/test-db/places.itest.mjs` và fixture của bộ API DB hiện tại.
 
 ---
 
@@ -549,7 +596,7 @@ git commit -m "feat(api): search/nearby/reverse lọc POI theo sources (mặc đ
 - Modify: `apps/api/test/autocomplete-sql.test.ts`
 - Modify: `apps/api/test/autocomplete.test.ts`
 
-- [ ] **Step 1: Test đỏ**
+- [x] **Step 1: Test đỏ**
 
 `apps/api/test/autocomplete-sql.test.ts`: thêm `sources: ['osm']` vào hằng `input` (sau `parsed: …`), và thêm test:
 ```ts
@@ -578,12 +625,12 @@ git commit -m "feat(api): search/nearby/reverse lọc POI theo sources (mặc đ
 ```
 và trong test `'q < 2 ký tự → 400; …'` thêm `'q=highlands&sources=banana'` vào mảng query.
 
-- [ ] **Step 2: Chạy, xác nhận đỏ**
+- Hướng dẫn RED lịch sử (chưa có log riêng để xác nhận): **Step 2: Chạy, xác nhận đỏ**
 
 Run: `pnpm --filter @mapslibvn/api test -- autocomplete`
 Expected: FAIL — typecheck `sources` không có trong `CandidateQueryInput`; cache key thiếu `s=`.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 `autocomplete-sql.ts`:
 ```ts
@@ -626,17 +673,26 @@ Truyền vào `collectCandidates`: `{ queryNorm, queryCore, prefixPattern, near,
 
 Cập nhật chú thích cache: `// Cache 10 phút theo (q_norm, lưới near, types, sources, limit); stale-if-error 1 giờ.`
 
-- [ ] **Step 4: Chạy xanh + typecheck**
+- [x] **Step 4: Chạy xanh + typecheck**
 
 Run: `pnpm --filter @mapslibvn/api test && pnpm --filter @mapslibvn/api typecheck`
 Expected: PASS; không lỗi TS (mọi nơi tạo `CandidateQueryInput` đã có `sources`).
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add apps/api/src/autocomplete-sql.ts apps/api/src/routes/autocomplete.ts apps/api/test/autocomplete-sql.test.ts apps/api/test/autocomplete.test.ts
 git commit -m "feat(api): autocomplete lọc poi theo sources, cache key v=src1"
 ```
+
+### Gate sau review R5 — autocomplete và cache
+
+- [ ] **Step 6:** Dùng fixture R5 cho autocomplete: từng nhánh POI hiện có (prefix,
+  alias, tsvector, viKey và Telex fallback khi bật) đều giữ user/loại nguồn tắt.
+  Query phải thực sự chạm nhánh tương ứng; assert ID và nguồn thay vì chỉ HTTP 200.
+- [ ] **Step 7:** Gọi cùng query lần lượt osm/all rồi ngược lại để kiểm cache không
+  lẫn nguồn; xác nhận street/address/area không bị bộ lọc POI loại bỏ. Chạy API unit
+  và `pnpm test:api-db`; lưu số test và kết quả, không chỉ snapshot chuỗi SQL.
 
 ---
 
@@ -650,7 +706,7 @@ git commit -m "feat(api): autocomplete lọc poi theo sources, cache key v=src1"
 - Modify: `apps/api/test/styles.test.ts`
 - Modify: `apps/api/test/tiles.test.ts`
 
-- [ ] **Step 1: Test đỏ**
+- [x] **Step 1: Test đỏ**
 
 Thêm vào `describe('GET /v1/styles/:theme.json')` trong `apps/api/test/styles.test.ts`:
 ```ts
@@ -731,12 +787,12 @@ Thêm vào `apps/api/test/tiles.test.ts`:
   });
 ```
 
-- [ ] **Step 2: Chạy, xác nhận đỏ**
+- Hướng dẫn RED lịch sử (chưa có log riêng để xác nhận): **Step 2: Chạy, xác nhận đỏ**
 
 Run: `pnpm --filter @mapslibvn/api test -- styles tiles`
 Expected: FAIL — không có header `x-poi-profile`; `sources=osm,overture` trả 200; set `poi-osm` trả 404 "Không có bộ tiles".
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 `apps/api/src/manifest.ts`:
 ```ts
@@ -870,12 +926,12 @@ function releaseFor(set: string, m: Manifest): string {
 }
 ```
 
-- [ ] **Step 4: Chạy xanh + typecheck**
+- [x] **Step 4: Chạy xanh + typecheck**
 
 Run: `pnpm --filter @mapslibvn/api test && pnpm --filter @mapslibvn/api typecheck`
 Expected: PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add apps/api/src/manifest.ts apps/api/src/style.ts apps/api/src/routes/styles.ts apps/api/src/routes/tiles.ts apps/api/test/styles.test.ts apps/api/test/tiles.test.ts
@@ -893,7 +949,7 @@ git commit -m "feat(api): style theo profile nguồn POI, fallback all, tiles se
 - Create: `pipelines/poi/src/lib/poi-filter.test.mjs`
 - Modify: `pipelines/poi/src/export-tiles.mjs`
 
-- [ ] **Step 1: Test đỏ**
+- [x] **Step 1: Test đỏ**
 
 `pipelines/tiles/src/lib/dates.test.mjs` — thêm vào `describe('releaseName')`:
 ```js
@@ -928,12 +984,12 @@ describe('poi-filter', () => {
 });
 ```
 
-- [ ] **Step 2: Chạy, xác nhận đỏ**
+- Hướng dẫn RED lịch sử (chưa có log riêng để xác nhận): **Step 2: Chạy, xác nhận đỏ**
 
 Run: `pnpm vitest run pipelines/tiles/src/lib/dates.test.mjs pipelines/poi/src/lib/poi-filter.test.mjs`
 Expected: FAIL — `./poi-filter.mjs` không tồn tại (dates test vẫn xanh vì JS không kiểm kiểu; typecheck sẽ bắt ở bước 4).
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 `pipelines/tiles/src/lib/dates.mjs` — đổi JSDoc:
 ```js
@@ -991,17 +1047,32 @@ export function poiReleasePrefix(profile) {
 ```
 - Trong `console.log(JSON.stringify({ … }))` cuối, thêm trường đầu tiên `sources: profile,`.
 
-- [ ] **Step 4: Chạy xanh + typecheck scripts**
+- [x] **Step 4: Chạy xanh + typecheck scripts**
 
 Run: `pnpm vitest run pipelines/tiles/src/lib/dates.test.mjs pipelines/poi/src/lib/poi-filter.test.mjs && pnpm typecheck`
 Expected: PASS; typecheck sạch (`checkJs` cho `.mjs` — kiểu prefix mới được chấp nhận).
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add pipelines/tiles/src/lib/dates.mjs pipelines/tiles/src/lib/dates.test.mjs pipelines/poi/src/lib/poi-filter.mjs pipelines/poi/src/lib/poi-filter.test.mjs pipelines/poi/src/export-tiles.mjs
 git commit -m "feat(pipeline): export-tiles --sources theo profile, seq theo release"
 ```
+
+### Gate sau review R2/R8 — release bất biến và giới hạn archive
+
+- [ ] **Step 6:** Chốt build ID một lần cho cả hai profile (ngày + định danh lần chạy);
+  giữ đọc được tên release lịch sử. Cập nhật dates, export, orchestrator và profile
+  publisher dùng chung build ID. Kiểm toàn bộ nơi parse release/state/manifest.
+- [ ] **Step 7:** Upload phải từ chối ghi đè archive khác bytes đã tồn tại, kể cả
+  người vận hành truyền lại `--release`. Có test rerun cùng ngày và cùng ID,
+  không chỉ trông cậy vào tên mới mặc định. Đọc và khóa đúng checksum release cũ.
+- [ ] **Step 8:** Chặn archive > `300 * 2 ** 20` bytes trước upload/manifest ở cả
+  build đôi và publish profile riêng. Test biên 300 MiB và 300 MiB + 1 byte;
+  không cần sinh file lớn thật. Bỏ chính sách chỉ warning 300–400 MiB của exporter.
+  File chính: `pipelines/poi/src/export-tiles.mjs`,
+  `pipelines/tiles/src/lib/dates.mjs`, `pipelines/tiles/src/upload.mjs`,
+  `scripts/poi-profile-publish.mjs` và test tương ứng.
 
 ---
 
@@ -1017,7 +1088,7 @@ git commit -m "feat(pipeline): export-tiles --sources theo profile, seq theo rel
 - Modify: `scripts/data-update.mjs`
 - Modify: `scripts/db-fixture.mjs`
 
-- [ ] **Step 1: Test đỏ**
+- [x] **Step 1: Test đỏ**
 
 `pipelines/tiles/src/lib/manifest-state.test.mjs` — import thêm `nextManifest` và thêm:
 ```js
@@ -1070,12 +1141,12 @@ describe('nextManifest', () => {
 ```
 (đặt trong `describe` có sẵn của `nextState`; nếu file chưa có, tạo `describe('nextState', …)` bọc test này.)
 
-- [ ] **Step 2: Chạy, xác nhận đỏ**
+- Hướng dẫn RED lịch sử (chưa có log riêng để xác nhận): **Step 2: Chạy, xác nhận đỏ**
 
 Run: `pnpm vitest run pipelines/tiles/src/lib/manifest-state.test.mjs scripts/lib/update-plan.test.mjs`
 Expected: FAIL — `nextManifest` không export; `releases.poiOsm` undefined.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 `pipelines/tiles/src/lib/manifest-state.mjs` — thêm cuối file:
 ```js
@@ -1154,7 +1225,7 @@ và `if (isPoi && ok < 15) {` (dòng kiểm cuối); thông điệp usage ở d�
     const osmRelease = releaseName('poi-osm');
     run('node', ['pipelines/poi/src/export-tiles.mjs', '--release', release]);
     run('node', ['pipelines/tiles/src/qa.mjs', `${OUT}/${release}.pmtiles`, '--skip-islands']);
-    // Profile osm (spec 07/09): cùng snapshot DB, cùng ngày; lỗi ở đây thì không set manifest cho cả hai.
+    // Luồng lịch sử: hai process riêng CHƯA bảo đảm cùng snapshot hoặc release bất biến; xem R2/R3.
     run('node', ['pipelines/poi/src/export-tiles.mjs', '--release', osmRelease, '--sources', 'osm']);
     run('node', ['pipelines/tiles/src/qa.mjs', `${OUT}/${osmRelease}.pmtiles`, '--skip-islands']);
     run('node', ['pipelines/tiles/src/upload.mjs', release]);
@@ -1182,21 +1253,39 @@ và đổi typedef `built`: `/** @type {{ vn?: string, poi?: string, poiOsm?: st
   ['pipelines/poi/src/export-tiles.mjs', '--release', 'poi-osm-fixture', '--sources', 'osm'],
 ```
 
-- [ ] **Step 4: Chạy xanh + lint + typecheck**
+- [x] **Step 4: Chạy xanh + lint + typecheck**
 
 Run: `pnpm vitest run pipelines/tiles/src/lib/manifest-state.test.mjs scripts/lib/update-plan.test.mjs && pnpm lint && pnpm typecheck`
 Expected: PASS, lint sạch, typecheck sạch.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add pipelines/tiles/src/lib/manifest-state.mjs pipelines/tiles/src/lib/manifest-state.test.mjs pipelines/tiles/src/manifest.mjs pipelines/tiles/src/smoke.mjs scripts/lib/update-plan.mjs scripts/lib/update-plan.test.mjs scripts/data-update.mjs scripts/db-fixture.mjs
 git commit -m "feat(pipeline): publish hai archive POI (all + osm) trong một lần set manifest"
 ```
 
+### Gate sau review R2/R3 — tính nhất quán khi build và publish
+
+- [ ] **Step 6:** Tạo một bộ dữ liệu trung gian bất biến từ một lần đọc snapshot DB,
+  chứa các trường cần cho lọc nguồn và progressive selection. Hai exporter đọc
+  cùng bộ này rồi lọc/chạy lưới độc lập. Ghi snapshot/build ID và checksum vào
+  bằng chứng build. Dùng chung tunnel hoặc hai connection riêng không đủ.
+- [ ] **Step 7:** Test sửa DB sau khi chụp snapshot nhưng trước export OSM: cả hai
+  profile vẫn phản ánh snapshot đã chụp; bản ghi mới chỉ xuất hiện ở lần build sau.
+  Bộ trung gian chưa ghi xong không được xem là đầu vào hợp lệ.
+- [ ] **Step 8:** Fault-injection tại export OSM, upload thứ hai và từng smoke:
+  manifest hiện hành không đổi; checksum các archive cũ không đổi. Chỉ publish
+  manifest chứa đủ hai release sau khi cả hai QA/smoke đạt.
+- [ ] **Step 9:** Kiểm rollback bằng ID + checksum, không chỉ so object manifest.
+  Kiểm lỗi report/state sau manifest để retry không ghi đè release đã phát hành.
+  Chạy test orchestration không external writes và DB fixture trong môi trường
+  biệt lập. File chính: `scripts/data-update.mjs`, `scripts/lib/update-plan.*`,
+  `scripts/lib/poi-profile.*`, exporter và manifest/rollback tests.
+
 ---
 
-## Task 10: dbtest — fixture export profile `osm` là tập con và giữ POI người dùng
+## Task 10: dbtest — nguồn hợp lệ, thinning theo profile và POI người dùng
 
 Chạy trong image pipeline vì máy dev thiếu tippecanoe (memory `dbtest-local-thieu-tippecanoe`): `pnpm test:db` tự chạy trong container.
 
@@ -1224,7 +1313,7 @@ Trong test `'GeoJSON và PMTiles giữ contract progressive display…'`, đổi
 
 Thêm test mới cuối `describe`:
 ```js
-  it('profile osm: chỉ POI primary osm hoặc người dùng; là tập con thật của all', async () => {
+  it('profile osm: chỉ POI primary osm hoặc người dùng; kiểm tập DB được phép', async () => {
     const readIds = (/** @type {string} */ release) =>
       new Set(
         readFileSync(resolve(WORK, 'poi', `${release}.geojsonseq`), 'utf8')
@@ -1235,7 +1324,7 @@ Thêm test mới cuối `describe`:
     const osmIds = readIds('poi-osm-fixture');
     const allIds = readIds('poi-fixture');
     expect(osmIds.size).toBeGreaterThan(0);
-    expect(osmIds.size).toBeLessThan(allIds.size);
+    // Không so kích thước/tập con với archive all: hai lưới thinning độc lập.
 
     const allowed = await sql`SELECT id FROM poi p
       WHERE p.status = 'active' AND (p.primary_source = 'osm' OR p.created_by = 'user')`;
@@ -1264,12 +1353,32 @@ Expected: PASS (nếu `test:db` không nhận filter, chạy toàn bộ `pnpm te
 
 ```bash
 git add pipelines/poi/tests/pipeline-fixture.dbtest.mjs
-git commit -m "test(pipeline): dbtest profile osm là tập con và giữ POI người dùng"
+git commit -m "test(pipeline): kiểm nguồn hợp lệ và POI người dùng theo profile"
 ```
+
+### Gate sau review R4/R5 — sửa ý nghĩa nghiệm thu
+
+- [ ] **Step 4:** Sửa tên/assertion test hiện tại theo mẫu trên. Tập đầu vào OSM
+  là tập con của DB đủ điều kiện, nhưng archive sau thinning không nhất thiết là
+  tập con của archive all; cũng không bắt buộc số lượng nhỏ hơn.
+- [ ] **Step 5:** Fixture hai POI cùng ô: nguồn FSQ/Overture ưu tiên cao thắng ở all,
+  OSM bị thinning ở all nhưng xuất hiện trong profile osm. Assert ID thực trong
+  GeoJSONSeq và tile giải mã, không chỉ đếm feature. Chạy selector unit và DB fixture.
+- [ ] **Step 6:** Giữ fixture user ở vị trí không cạnh tranh để assert ID có trong
+  cả hai archive. Bổ sung ca user cạnh tranh để làm rõ: “luôn giữ” nghĩa là không bị
+  lọc vì nguồn; vẫn chịu active/category, ranking, limit và thinning bình thường.
+  Không hứa mọi POI user luôn được vẽ ở mọi zoom.
+- [ ] **Step 7:** Hoàn tất gate API DB của Task 5/6; kiểm danh sách ID nguồn tắt và
+  ID user bắt buộc ở từng endpoint. Lưu kết quả `pnpm test:db` và
+  `pnpm test:api-db` trên fixture đã migrate, kèm SHA.
 
 ---
 
 ## Task 11: `@mapslibvn/web` — `poiSources` ở `createMap` và thuộc tính `sources` của web component
+
+**Trạng thái:** phần standalone bên dưới đã có code; contract gắn map chưa hoàn tất.
+Khi thực thi tiếp, bổ sung Step 6–8 sau review; mẫu `#getClient` lịch sử bên dưới
+chỉ mô tả nhánh standalone, không phải toàn bộ implementation đích.
 
 **Files:**
 - Modify: `packages/web/src/map.ts`
@@ -1278,7 +1387,7 @@ git commit -m "test(pipeline): dbtest profile osm là tập con và giữ POI ng
 - Modify: `packages/web/src/autocomplete-element.test.ts`
 - Modify: `packages/web/src/index.ts`
 
-- [ ] **Step 1: Test đỏ**
+- [x] **Step 1: Test đỏ**
 
 `packages/web/src/map.test.ts`: trong test đầu đổi kỳ vọng
 ```ts
@@ -1358,12 +1467,12 @@ và test mới (đặt trong `describe` có sẵn):
 ```
 (Đọc hàm `typeQuery` trong file để khớp cách gắn element/gõ; nếu `typeQuery` đã gắn vào `document.body` và trả element, dùng lại nó thay cho khối thủ công.)
 
-- [ ] **Step 2: Chạy, xác nhận đỏ**
+- Hướng dẫn RED lịch sử (chưa có log riêng để xác nhận): **Step 2: Chạy, xác nhận đỏ**
 
 Run: `pnpm vitest run packages/web/src/map.test.ts packages/web/src/autocomplete-element.test.ts`
 Expected: FAIL — style URL thiếu `sources`; `poiSources` không có trong `CreateMapOptions` (lỗi TS trong test); element không truyền `poiSources`.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 `packages/web/src/map.ts`:
 ```ts
@@ -1426,17 +1535,30 @@ Trong `createMap`, thay dòng `const places = createClient(…)`:
 export type { AttributionResponse, ClientOptions, MapsLibVNClient, PoiSource, Theme } from '@mapslibvn/core';
 ```
 
-- [ ] **Step 4: Chạy xanh**
+- [x] **Step 4: Chạy xanh**
 
 Run: `pnpm vitest run packages/web && pnpm --filter @mapslibvn/web typecheck`
 Expected: PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add packages/web/src/map.ts packages/web/src/map.test.ts packages/web/src/autocomplete-element.ts packages/web/src/autocomplete-element.test.ts packages/web/src/index.ts
 git commit -m "feat(web): poiSources cho createMap và thuộc tính sources của autocomplete"
 ```
+
+### Gate sau review R1 — một cấu hình nguồn cho map và autocomplete
+
+- [ ] **Step 6:** Viết regression test gắn `element.map = createMap({ ...,
+  poiSources: ['osm'] })` mà không đặt `sources` trên element; phải gọi
+  `map.places.autocomplete`, không tạo client all riêng.
+- [ ] **Step 7:** Khi có map, dùng `map.places` cho request và map center cho near.
+  Khi không có map, giữ chế độ standalone dùng attributes. Map client được ưu tiên
+  khi attributes khác nguồn; document rõ quy tắc này. Đổi/gỡ map phải vô hiệu hóa
+  kết quả request cũ để không hiển thị gợi ý từ nguồn trước.
+- [ ] **Step 8:** Test map osm/all, đổi map, tháo map quay về standalone và attributes
+  mâu thuẫn. Cập nhật NearSource/type public và docs tích hợp. Chạy Web SDK tests,
+  typecheck; kiểm browser thật map osm + autocomplete cho cùng nguồn.
 
 ---
 
@@ -1450,7 +1572,7 @@ git commit -m "feat(web): poiSources cho createMap và thuộc tính sources c�
 - Modify: `packages/react-native/src/map.test.tsx`
 - Modify: `packages/react-native/src/use-style.test.ts`
 
-- [ ] **Step 1: Test đỏ (RN)**
+- [x] **Step 1: Test đỏ (RN)**
 
 `packages/react-native/src/map.test.tsx`: test đầu đổi kỳ vọng
 ```ts
@@ -1474,12 +1596,12 @@ Thêm:
 ```
 `packages/react-native/src/use-style.test.ts`: kỳ vọng `styleUrlFor(places, 'dark')` đổi thành `'https://api.test/v1/styles/dark.json?key=mlv_live_k&sources=osm%2Coverture%2Cfsq'`.
 
-- [ ] **Step 2: Chạy, xác nhận đỏ**
+- Hướng dẫn RED lịch sử (chưa có log riêng để xác nhận): **Step 2: Chạy, xác nhận đỏ**
 
 Run: `pnpm vitest run packages/react-native`
 Expected: FAIL — prop `poiSources` không tồn tại; URL thiếu `sources`.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 `packages/react/src/map.tsx`: thêm `poiSources,` vào destructure props (sau `poiLayer,`); trong effect thêm:
 ```tsx
@@ -1518,12 +1640,12 @@ export type { AutocompleteItem, MapsLibVNClient, Place, PoiSource } from '@mapsl
 
 `packages/react-native/src/index.ts` — thêm `PoiSource,` vào khối `export type { … } from '@mapslibvn/core'`.
 
-- [ ] **Step 4: Chạy xanh + typecheck**
+- [x] **Step 4: Chạy xanh + typecheck**
 
 Run: `pnpm vitest run packages/react packages/react-native && pnpm --filter @mapslibvn/react typecheck && pnpm --filter @mapslibvn/react-native typecheck && pnpm lint`
 Expected: PASS; nếu biome không cần dòng `biome-ignore` (rule tắt) thì xoá dòng đó để lint không báo "unused suppression".
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add packages/react/src/map.tsx packages/react/src/index.ts packages/react-native/src/map.tsx packages/react-native/src/index.ts packages/react-native/src/map.test.tsx packages/react-native/src/use-style.test.ts
@@ -1538,7 +1660,7 @@ git commit -m "feat(react,react-native): prop poiSources truyền xuống client
 - Modify: `scripts/perf-autocomplete.mjs`
 - Modify: `scripts/perf-autocomplete.test.mjs`
 
-- [ ] **Step 1: Test đỏ**
+- [x] **Step 1: Test đỏ**
 
 Thêm vào `describe` của `measurePairedCohorts` trong `scripts/perf-autocomplete.test.mjs`:
 ```js
@@ -1570,12 +1692,12 @@ Thêm vào `describe('parseCliArgs')`:
   });
 ```
 
-- [ ] **Step 2: Chạy, xác nhận đỏ**
+- Hướng dẫn RED lịch sử (chưa có log riêng để xác nhận): **Step 2: Chạy, xác nhận đỏ**
 
 Run: `pnpm vitest run scripts/perf-autocomplete.test.mjs`
 Expected: FAIL — `pairedSources` undefined; cohort không có `types` làm URL thiếu `sources`.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 Trong `measurePairedCohorts`:
 - JSDoc cohorts: `cohorts: { label: string, types?: string, sources?: string }[]`.
@@ -1604,12 +1726,12 @@ Trong khối `isMain`: destructure `pairedSources`; đổi `if (paired) {` thàn
 ```
 Cập nhật chuỗi "Cách dùng" thêm `[--paired-sources]`.
 
-- [ ] **Step 4: Chạy xanh + typecheck**
+- [x] **Step 4: Chạy xanh + typecheck**
 
 Run: `pnpm vitest run scripts/perf-autocomplete.test.mjs && pnpm typecheck`
 Expected: PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add scripts/perf-autocomplete.mjs scripts/perf-autocomplete.test.mjs
@@ -1625,7 +1747,7 @@ git commit -m "test(perf): cohort --paired-sources so p95 osm với all"
 - Modify: `apps/docs/src/content/docs/api.md`, `ban-do-web.md`, `react.md`, `react-native.md`, `sdk.md`, `tim-kiem.md`, `tinh-nang.md`
 - Modify: `docs/DEVLOG.md`
 
-- [ ] **Step 1: Bump phiên bản**
+- [x] **Step 1: Bump phiên bản**
 
 Run:
 ```bash
@@ -1636,7 +1758,7 @@ grep -n '"version"' packages/{core,web,react,react-native}/package.json
 ```
 Expected: bốn dòng `"version": "0.3.0"`. Kiểm các gói có peer/dependency `workspace:*` không cần đổi.
 
-- [ ] **Step 2: `api.md`**
+- [x] **Step 2: `api.md`**
 
 Bảng tham số `GET /v1/autocomplete`, `GET /v1/search`, `GET /v1/nearby`, `GET /v1/reverse` — thêm dòng:
 ```markdown
@@ -1656,7 +1778,7 @@ yêu cầu chưa được phát hành (API tạm dùng archive đầy đủ thay
 ```
 Mục `GET /v1/tiles/{set}.json`: `set` là `vn`, `poi` (đầy đủ) hoặc `poi-osm`.
 
-- [ ] **Step 3: `ban-do-web.md`, `react.md`, `react-native.md`, `tim-kiem.md`, `tinh-nang.md`, `sdk.md`**
+- [x] **Step 3: `ban-do-web.md`, `react.md`, `react-native.md`, `tim-kiem.md`, `tinh-nang.md`, `sdk.md`**
 
 `ban-do-web.md` bảng `CreateMapOptions` thêm sau `poiLayer`:
 ```markdown
@@ -1693,7 +1815,7 @@ Native) và `createClient`, thuộc tính `sources` cho `<mapslibvn-autocomplete
 ```
 Bảng export `@mapslibvn/core` thêm nhóm "Nguồn POI" với các export trên.
 
-- [ ] **Step 4: DEVLOG**
+- [x] **Step 4: DEVLOG**
 
 Thêm đầu mục "## 1. Trạng thái hiện tại" một gạch đầu dòng (ngày thực tế):
 ```markdown
@@ -1708,17 +1830,31 @@ Thêm đầu mục "## 1. Trạng thái hiện tại" một gạch đầu dòng 
 ```
 Thêm vào "## 2. Bước kế tiếp": "Chạy Task 15 của plan `2026-09-07-poi-sources-profile.md`: deploy API → `data:update --poi` → nghiệm thu."
 
-- [ ] **Step 5: Kiểm tra docs build, lint, test toàn bộ**
+- [x] **Step 5: Kiểm tra docs build, lint, test toàn bộ**
 
 Run: `pnpm lint && pnpm typecheck && pnpm test && pnpm --filter @mapslibvn/docs build`
 Expected: tất cả xanh (docs build có thể mất vài phút).
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add packages/core/package.json packages/web/package.json packages/react/package.json packages/react-native/package.json apps/docs/src/content/docs docs/DEVLOG.md
 git commit -m "docs(sdk,api): poiSources/sources=, SDK 0.3.0, DEVLOG"
 ```
+
+### Gate sau review R8 — đồng bộ tài liệu với hành vi thực
+
+- [x] **Step 7 (chỉ plan, 08/09):** Mẫu SQL Task 4 chuyển sang `textArray`, tham số
+  test là JSON string; bản sửa runtime đã có ở `2728347`. Không copy lại binding
+  mảng JS cũ. API DB vẫn là gate bắt buộc khi sửa SQL.
+- [ ] **Step 8:** Sau sửa code, đồng bộ spec mục 5.2/9 (snapshot/tập con), contract
+  autocomplete và docs nguồn/rollout/release ID với R1–R8. Giữ nguyên quyết định
+  mặc định all. Đổi câu “POI không hiện trên bản đồ cũng không xuất hiện trong
+  tìm kiếm” thành “POI thuộc nguồn bị tắt bị loại khỏi tìm kiếm”; POI bị thinning
+  vẫn tìm được. Nêu giới hạn dữ liệu OSM và ngữ nghĩa user ở Task 10.
+- [ ] **Step 9:** Ghi rõ phiên bản SDK đã bump trong source khác với publish npm.
+  Không chạy lại lệnh hạ version 0.3.0 trong phần lịch sử. Chạy docs build/lint và
+  cập nhật DEVLOG với gate còn mở, kết quả mới và điểm tiếp tục.
 
 ---
 
@@ -1732,7 +1868,7 @@ gần nhau. Không có migration DB.
 - Create: `docs/evidence/poi-sources/nghiem-thu-production.md`
 - Modify: `docs/DEVLOG.md`
 
-- [ ] **Step 1: Deploy API**
+- [x] **Step 1: Deploy API**
 
 Run (từ `apps/api`, wrangler đọc `.env` gốc repo — memory `wrangler-doc-env-goc-repo`):
 ```bash
@@ -1743,12 +1879,23 @@ curl -sI "https://api.ai-solutions.io.vn/v1/styles/light.json?sources=osm" | gre
 Expected: dòng một `x-poi-profile: all` (mặc định, không đổi gì); dòng hai `all;fallback` vì profile
 `osm` chưa publish. Kiểm `curl -s "https://api.ai-solutions.io.vn/v1/search?q=pho&sources=banana" -H "X-Api-Key: $KEY"` → 400.
 
-- [ ] **Step 2: Build và publish hai archive**
+- [x] **Step 2: Rollout ban đầu theo ngoại lệ PHONG đã duyệt — chỉ publish OSM**
 
-Run: `pnpm data:update --poi --force`
-Expected: log có `✓ POI poi-YYYYMMDD + poi-osm-YYYYMMDD`; hai dòng JSON của export-tiles với `sources:"all"` và `sources:"osm"`; smoke `poi-osm` in `✓ smoke ≥15 tile`. Ghi lại `selected`/`thinned` của cả hai và kích thước MB của `poi-osm-*.pmtiles` (phải ≤ 300).
+Thực tế 07/09 chạy `pnpm poi:profile --profile osm`, giữ archive `all` là
+`poi-20260904` và thêm `poi-osm-20260907`. Xem evidence mục 3. Không ghi nhận
+bước này là đã chạy build đôi hoặc cùng snapshot; không chạy lại
+`data:update --poi --force` chỉ để khớp hướng dẫn cũ.
 
-- [ ] **Step 3: Xác nhận style đã chuyển profile**
+- [ ] **Step 2b: Nghiệm thu luồng build đôi sau R2/R3/R8 trên môi trường thử**
+
+Dùng fixture/staging biệt lập: hai archive có cùng build ID/snapshot, mỗi file
+≤ 300 MiB, đủ log `activeRead/selected/thinned/byMinZoom`, QA/smoke đạt và một lần
+cập nhật manifest. Mô phỏng lỗi giữa các bước upload/smoke: manifest cũ và checksum
+archive đang phục vụ phải nguyên vẹn; rollback khôi phục đúng bytes.
+Rollout production tiếp theo phải được ghi riêng với phạm vi đã duyệt; ngoại lệ
+07/09 không phải bằng chứng nghiệm thu luồng build đôi.
+
+- [x] **Step 3: Xác nhận style đã chuyển profile**
 
 Run:
 ```bash
@@ -1758,24 +1905,32 @@ curl -s "https://api.ai-solutions.io.vn/v1/styles/light.json" | node -e 'let s="
 ```
 Expected: dòng một `osm` (hết fallback); dòng hai chứa `poi-osm-YYYYMMDD.pmtiles`; dòng ba — mặc định — vẫn chứa `poi-YYYYMMDD.pmtiles`. Nếu header còn `all;fallback` sau 60 s (KV `cacheTtl: 60`), kiểm `manifest.mjs get` trong container.
 
-- [ ] **Step 4: Cổng p95 (Task 8.6 phải giữ)**
+- [ ] **Step 4: Cổng p95 (MỞ LẠI — thiếu baseline p95 tương ứng)**
 
 Run (production URL và khoá thật; chờ ≥ 11 phút sau bước 2 để cache autocomplete cũ hết hạn):
 ```bash
 node scripts/perf-autocomplete.mjs https://api.ai-solutions.io.vn "$KEY" \
   --queries scripts/fixtures/fuzzy-queries.txt --paired-sources --rounds 2 | tee /tmp/perf-sources.txt
 ```
-Expected: ở `cache=hit` (warm), chênh p95 giữa hai cohort trong ±50 ms; ghi cả `byColo`. Cohort `osm` quét ít dòng hơn nên thường nhanh hơn — điều cần canh là cohort `all` (mặc định) **không** xấu đi so với cổng Task 8.6. Nếu xấu hơn → ghi vào bằng chứng và báo PHONG, không kết luận ĐẠT.
+Gate: ghi p50/p95/p99 và n theo cache/colo; ít nhất 100 mẫu cho mỗi cohort/trạng thái
+cache được dùng để kết luận. Chênh warm p95 osm/all trong ±50 ms là phép so profile,
+**không** tự chứng minh không hồi quy. Phải thêm baseline p95 của all trước/sau dưới
+cùng DB snapshot, query, limit, vị trí và concurrency; lưu SHA, thời điểm và JSON thô
+vào `docs/evidence/poi-sources/`. Có thể so hai bản API trên staging cùng snapshot.
+Nếu không tái lập baseline trước thay đổi thì ghi rõ chưa chứng minh hồi quy lịch sử,
+không dùng p50 thay p95; giữ gate mở. Ghi riêng cold/warm và đối chiếu đúng cổng
+Task 8.6 (kể cả cold phía Worker khi áp dụng). Lệnh rounds 2 ở trên chỉ là probe,
+cần tăng lượt cho đủ mẫu; không suy ra tốc độ DB từ thời gian cache hit.
 
-- [ ] **Step 5: Kiểm tay bản đồ**
+- [ ] **Step 5: Kiểm tay bản đồ (MỞ LẠI — chưa có screenshot nghiệm thu)**
 
-Mở playground docs (hoặc `examples/`) với `poiSources` mặc định (cả ba) và với `['osm']`, so 5 thành phố `[106.7,10.77] [105.85,21.03] [108.2,16.05] [106.35,9.99] [109.19,12.24]` ở z12/z14/z16. Chụp ảnh màn hình vào `docs/evidence/poi-sources/`. Kỳ vọng: bản đồ mặc định **giống trước thay đổi**; bản đồ `['osm']` thưa hơn nhiều (OSM chỉ 7 % kho) nhưng phân bố đều, không có ô trống bất thường cạnh POI dày, nhãn major vẫn có ở z12.
+Mở playground docs (hoặc `examples/`) với `poiSources` mặc định (cả ba) và với `['osm']`, so 5 thành phố `[106.7,10.77] [105.85,21.03] [108.2,16.05] [106.35,9.99] [109.19,12.24]` ở z12/z14/z16. Chụp ảnh màn hình vào `docs/evidence/poi-sources/`. Kỳ vọng: bản đồ mặc định **giống trước thay đổi**; bản đồ `['osm']` dùng đúng archive và nhãn/icon đúng style. Không suy ra mật độ mỗi tile từ tỷ lệ 7 % toàn kho. Vùng trống phải đối chiếu dữ liệu nguồn/thinning, không tự kết luận lỗi hoặc thiếu dữ liệu chỉ từ ảnh.
 
-- [ ] **Step 6: Ghi bằng chứng và DEVLOG**
+- [ ] **Step 6: Bổ sung bằng chứng và DEVLOG sau review**
 
 Tạo `docs/evidence/poi-sources/nghiem-thu-production.md` gồm: ngày; tên hai archive; `activeRead/selected/thinned/byMinZoom` của cả hai profile; MB; kết quả smoke; header `x-poi-profile` ba trường hợp; bảng p95 theo cache/colo từ `/tmp/perf-sources.txt`; kết luận từng tiêu chí mục 11 spec (ĐẠT/KHÔNG). Cập nhật gạch đầu dòng DEVLOG của Task 14 thành "ĐÃ PUBLISH <ngày>" kèm số liệu chính; xoá dòng ở "Bước kế tiếp".
 
-- [ ] **Step 7: Commit và push**
+- [ ] **Step 7: Commit và push bản nghiệm thu sau review**
 
 ```bash
 git add docs/evidence/poi-sources docs/DEVLOG.md
@@ -1788,6 +1943,11 @@ git push
 ---
 
 ## Self-review
+
+**Cập nhật 08/09:** các mapping bên dưới mô tả phạm vi thiết kế ban đầu, không phải
+bằng chứng nghiệm thu. Chỉ đóng plan khi toàn bộ gate mở ở Task 5/6/8/9/10/11/14/15
+được kiểm chứng và spec/docs được đồng bộ. Test xanh không thay thế browser, DB,
+fault-injection hoặc baseline p95. Bản sửa plan này chưa thực thi các gate mới.
 
 - **Mặc định:** sau Task 1 (OSM 7 %), PHONG chốt mặc định `all`; Task 2–15 đã cập nhật theo, spec cũng đã sửa. `profileForSources` vẫn nhận cả `['osm']` và cả ba nên profile `osm` được giao đầy đủ.
 - **Spec coverage:** mục 4 (hằng profile, mệnh đề chung) → Task 2, 4, 8; 5.1–5.4 (export, data-update, manifest, tiles/smoke) → Task 8, 9, 7; 6.1–6.3 (API) → Task 4–7; 7 (SDK) → Task 3, 11, 12; 8 (lỗi/an toàn: fallback, 400, rollback) → Task 7, 15; 9 (unit/dbtest/nghiệm thu) → mọi task + Task 10, 13, 15; 10 (rollout, docs) → Task 14, 15; 11 (tiêu chí) → Task 15 bước 6. Ngoài phạm vi giữ đúng: không thêm property tile, không đổi conflate.
