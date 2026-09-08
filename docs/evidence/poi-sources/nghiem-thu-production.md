@@ -112,3 +112,48 @@ nghìn POI toàn quốc: chọn `poiSources: ['osm']` thì có vùng trống th�
 `pnpm data:rollback` → `manifest rollback` đưa `release:current` về object trước (không có
 `poiProfiles`), khi đó `sources=osm` tự quay lại `all;fallback`. API không cần rollback code vì
 mặc định `all` giữ nguyên hành vi. Không có migration DB.
+
+## 8. Nghiệm thu lại sau review — 08/09/2026
+
+Phần này thay thế các kết luận quá sớm ở trên; rollout production 07/09 vẫn giữ nguyên.
+
+### Luồng build đôi trên fixture biệt lập
+
+Trên SHA `4017097`, pipeline container dùng một snapshot `fixture-1409` có companion SHA-256 cho
+cả hai export. Kết quả dựng lại từ đúng snapshot đó:
+
+| profile | activeRead | selected | thinned | byMinZoom 10→16 | archive |
+|---|---:|---:|---:|---|---:|
+| all | 78.123 | 2.137 | 75.986 | 5 / 2 / 8 / 10 / 21 / 981 / 1.110 | 0,4 MB |
+| osm | 5.318 | 2.029 | 3.289 | 5 / 2 / 8 / 10 / 22 / 972 / 1.010 | 0,4 MB |
+
+QA PMTiles và full DB gate đạt 10 file/68 test. Test giải mã tile khóa đúng ID Overture thắng
+`all` và OSM được phục hồi ở `osm`. Orchestration trên SHA `76f114f` khóa manifest là bước cuối;
+fault tại export/upload/smoke giữ manifest + checksum cũ, retry cùng bytes idempotent, khác bytes
+bị từ chối, rollback kiểm archive + `.sha256` đích trước khi đổi manifest. Đây là nghiệm thu fixture,
+không được ghi thành một rollout production build đôi.
+
+### Paired p95 production
+
+Đo ngày 08/09 trên SHA `5148125`, 40 query × 5 vòng, hai cohort xen kẽ và đảo thứ tự từng cặp,
+cùng colo HKG:
+
+| cohort | cache | n | p50 | p95 | p99 |
+|---|---|---:|---:|---:|---:|
+| osm | hit | 160 | 83 ms | 116 ms | 141 ms |
+| all | hit | 160 | 84 ms | 115 ms | 167 ms |
+| osm | miss | 40 | 774 ms | 3.129 ms | 3.449 ms |
+| all | miss | 40 | 897 ms | 2.467 ms | 4.271 ms |
+
+Warm p95 chênh 1 ms và mỗi cohort có ≥100 mẫu, nên phép so **osm với all hiện tại đạt**. Cold được
+ghi riêng nhưng chỉ có 40 mẫu/cohort nên không dùng để kết luận. Chưa có baseline `all` trước/sau
+cùng DB snapshot, query, limit, vị trí và concurrency; vì vậy **chưa chứng minh được không hồi quy
+lịch sử**. Gate p95 tổng vẫn mở, không thay p95 bằng p50.
+
+### Browser production tại 5 thành phố
+
+Chromium headless tải trang nhúng thật cho `all` và `osm`, ở TP.HCM, Hà Nội, Đà Nẵng, Cần Thơ,
+Nha Trang, đủ z12/z14/z16: **30/30 lượt** nhận đúng header `x-poi-profile`, map load thành công và
+console không có error. Ảnh nằm trong [`browser/`](browser/). Cặp Đà Nẵng z16 xác nhận dữ liệu thật:
+`all` có nhãn POI quanh sân bay, `osm` không có; đây khớp phép đếm tile 07/09 và là giới hạn nguồn,
+không phải lỗi render/thinning.

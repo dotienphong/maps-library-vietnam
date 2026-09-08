@@ -31,7 +31,11 @@
     //
     // Khoá lấy từ query string để KHÔNG nằm trong repo.
     const log = document.getElementById('log');
-    const key = new URLSearchParams(location.search).get('key') || '';
+    const params = new URLSearchParams(location.search);
+    const key = params.get('key') || '';
+    const sources = params.get('sources') === 'osm' ? ['osm'] : undefined;
+    const center = (params.get('center') || '106.70,10.776').split(',').map(Number);
+    const zoom = Number(params.get('zoom') || 13);
     document.getElementById('k').textContent = key
       ? key.slice(0, 13) + '…' + key.slice(-4)
       : '(thiếu ?key=… trên URL)';
@@ -41,15 +45,17 @@
         container: 'map',
         apiKey: key,
         apiBase: 'https://api.ai-solutions.io.vn',
-        center: [106.70, 10.776],
-        zoom: 13,
+        center,
+        zoom,
+        ...(sources ? { poiSources: sources } : {}),
       });
       map.addMarker({ lng: 106.6981, lat: 10.7725, popupHtml: '<b>Chợ Bến Thành</b>' });
       map.on('poiClick', (poi) => {
         log.textContent = 'POI: ' + poi.name + ' · ' + poi.category;
       });
       map.gl.on('load', () => {
-        log.textContent += '\nbản đồ đã tải · origin ' + location.origin;
+        log.textContent += '\nbản đồ đã tải · profile ' + (sources ? 'osm' : 'all') +
+          ' · z' + zoom + ' · origin ' + location.origin;
       });
       map.gl.on('error', (e) => {
         log.textContent += '\nLỖI: ' + (e && e.error ? e.error.message : 'không rõ');

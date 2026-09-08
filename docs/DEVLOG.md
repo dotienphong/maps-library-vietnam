@@ -74,6 +74,13 @@ commit với code).
   chưa publish npm. Docs build xanh 20 trang; lint sạch 330 file.
   **Tiếp:** R7/R6 — đo paired p95 có baseline tương ứng, build đôi trên staging và
   nghiệm thu browser 5 thành phố trước khi đóng production acceptance.
+  **R6/R7 phần có thể tái lập ĐÓNG:** fixture build đôi chung snapshot đạt QA/DB 68/68,
+  fault/rollback giữ manifest và checksum. Benchmark production 40 query × 5 vòng tại
+  HKG: warm `osm` n=160 p95 116 ms, `all` n=160 p95 115 ms; cold ghi riêng n=40,
+  không dùng kết luận. Chromium kiểm `all`/`osm` ở 5 thành phố × z12/14/16: 30/30
+  đúng `x-poi-profile`, console không error; ảnh đã lưu. **Còn đúng một gate:** chưa
+  có baseline `all` trước/sau trên cùng snapshot và điều kiện, nên chưa thể chứng minh
+  không hồi quy lịch sử; plan bắt buộc giữ Task 15 Step 4 mở.
 
 - **07/09/2026 — ĐÃ PHÁT HÀNH bật/tắt nguồn POI theo profile (spec 07/09).**
   Cổng đo trước cho kết quả bất ngờ: OSM chỉ là **nguồn chính của 7,0 %** POI (106.325/1.522.416;

@@ -1886,7 +1886,7 @@ Thực tế 07/09 chạy `pnpm poi:profile --profile osm`, giữ archive `all` l
 bước này là đã chạy build đôi hoặc cùng snapshot; không chạy lại
 `data:update --poi --force` chỉ để khớp hướng dẫn cũ.
 
-- [ ] **Step 2b: Nghiệm thu luồng build đôi sau R2/R3/R8 trên môi trường thử**
+- [x] **Step 2b: Nghiệm thu luồng build đôi sau R2/R3/R8 trên môi trường thử**
 
 Dùng fixture/staging biệt lập: hai archive có cùng build ID/snapshot, mỗi file
 ≤ 300 MiB, đủ log `activeRead/selected/thinned/byMinZoom`, QA/smoke đạt và một lần
@@ -1922,15 +1922,15 @@ không dùng p50 thay p95; giữ gate mở. Ghi riêng cold/warm và đối chi�
 Task 8.6 (kể cả cold phía Worker khi áp dụng). Lệnh rounds 2 ở trên chỉ là probe,
 cần tăng lượt cho đủ mẫu; không suy ra tốc độ DB từ thời gian cache hit.
 
-- [ ] **Step 5: Kiểm tay bản đồ (MỞ LẠI — chưa có screenshot nghiệm thu)**
+- [x] **Step 5: Kiểm tay bản đồ**
 
 Mở playground docs (hoặc `examples/`) với `poiSources` mặc định (cả ba) và với `['osm']`, so 5 thành phố `[106.7,10.77] [105.85,21.03] [108.2,16.05] [106.35,9.99] [109.19,12.24]` ở z12/z14/z16. Chụp ảnh màn hình vào `docs/evidence/poi-sources/`. Kỳ vọng: bản đồ mặc định **giống trước thay đổi**; bản đồ `['osm']` dùng đúng archive và nhãn/icon đúng style. Không suy ra mật độ mỗi tile từ tỷ lệ 7 % toàn kho. Vùng trống phải đối chiếu dữ liệu nguồn/thinning, không tự kết luận lỗi hoặc thiếu dữ liệu chỉ từ ảnh.
 
-- [ ] **Step 6: Bổ sung bằng chứng và DEVLOG sau review**
+- [x] **Step 6: Bổ sung bằng chứng và DEVLOG sau review**
 
 Tạo `docs/evidence/poi-sources/nghiem-thu-production.md` gồm: ngày; tên hai archive; `activeRead/selected/thinned/byMinZoom` của cả hai profile; MB; kết quả smoke; header `x-poi-profile` ba trường hợp; bảng p95 theo cache/colo từ `/tmp/perf-sources.txt`; kết luận từng tiêu chí mục 11 spec (ĐẠT/KHÔNG). Cập nhật gạch đầu dòng DEVLOG của Task 14 thành "ĐÃ PUBLISH <ngày>" kèm số liệu chính; xoá dòng ở "Bước kế tiếp".
 
-- [ ] **Step 7: Commit và push bản nghiệm thu sau review**
+- [x] **Step 7: Commit và push bản nghiệm thu sau review**
 
 ```bash
 git add docs/evidence/poi-sources docs/DEVLOG.md
