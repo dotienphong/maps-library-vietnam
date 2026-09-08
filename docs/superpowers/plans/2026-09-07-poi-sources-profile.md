@@ -35,8 +35,8 @@ Code mẫu lịch sử phải đối chiếu source hiện tại; không chạy 
 **Thứ tự tiếp tục:** R1 → R2 → R3 → R4/R5 → R8 → R7/R6. Mỗi phần thay đổi hành vi
 phải có test chứng minh lỗi trước sửa, chạy test mục tiêu và gate liên quan sau sửa.
 Đóng từng gate bằng bằng chứng thực tế; không suy ra hoàn tất chỉ từ test suite xanh.
-**Checkpoint hiện tại:** R1, R2/R8 (release + archive size) và R3 Step 6–8 đã đóng bằng code/test.
-**Hành động tiếp theo:** R3 Step 9 — rollback bằng ID/checksum và retry lỗi sau manifest.
+**Checkpoint hiện tại:** R1, R2/R8 (release + archive size) và R3 Step 6–9 đã đóng bằng code/test.
+**Hành động tiếp theo:** R4/R5 — sửa fixture thinning và API DB semantic tests.
 Các gate còn lại vẫn mở.
 
 **Architecture:** Hằng `POI_SOURCE_PROFILES` ở `@mapslibvn/core` là nguồn sự thật duy nhất cho API, SDK và pipeline. Pipeline export thêm archive `poi-osm-YYYYMMDD.pmtiles` (lưới progressive chạy lại trên riêng tập OSM) và manifest KV có `poiProfiles.osm`. API nhận `sources=` trên `search/nearby/autocomplete/reverse/styles`; style trả archive theo profile, fallback `all` khi profile chưa publish. POI `created_by='user'` luôn có mặt.
@@ -1277,7 +1277,7 @@ git commit -m "feat(pipeline): publish hai archive POI (all + osm) trong một l
 - [x] **Step 8:** Fault-injection tại export OSM, upload thứ hai và từng smoke:
   manifest hiện hành không đổi; checksum các archive cũ không đổi. Chỉ publish
   manifest chứa đủ hai release sau khi cả hai QA/smoke đạt.
-- [ ] **Step 9:** Kiểm rollback bằng ID + checksum, không chỉ so object manifest.
+- [x] **Step 9:** Kiểm rollback bằng ID + checksum, không chỉ so object manifest.
   Kiểm lỗi report/state sau manifest để retry không ghi đè release đã phát hành.
   Chạy test orchestration không external writes và DB fixture trong môi trường
   biệt lập. File chính: `scripts/data-update.mjs`, `scripts/lib/update-plan.*`,

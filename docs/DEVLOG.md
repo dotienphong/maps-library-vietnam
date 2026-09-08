@@ -45,6 +45,13 @@ commit với code).
   Unit boundary liên quan xanh 32/32; script typecheck và Biome tập trung sạch.
   **Tiếp:** R3 Step 9 — rollback theo release ID + checksum và retry khi report/state
   lỗi sau manifest mà không ghi đè release bất biến.
+  **R3 Step 9 ĐÓNG:** `data:rollback` trong container nay đọc target đầu lịch sử,
+  bắt buộc từng release POI đích có cả archive và companion SHA-256 hợp lệ trên R2,
+  log đúng ID+checksum rồi mới đổi manifest. Test retry sau lỗi report/state khóa hai
+  nhánh: cùng bytes được reuse, bytes khác bị uploader bất biến từ chối. Nhóm test
+  rollback/orchestration/archive guard xanh 31/31; script typecheck và Biome sạch.
+  **Tiếp:** R4/R5 — sửa ý nghĩa thinning trong DB fixture và thêm API DB semantic
+  tests cho nguồn/user trên search, nearby, reverse và autocomplete.
 
 - **07/09/2026 — ĐÃ PHÁT HÀNH bật/tắt nguồn POI theo profile (spec 07/09).**
   Cổng đo trước cho kết quả bất ngờ: OSM chỉ là **nguồn chính của 7,0 %** POI (106.325/1.522.416;

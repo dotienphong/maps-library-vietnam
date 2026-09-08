@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { immutableUploadAction } from '../../pipelines/tiles/src/lib/archive-guard.mjs';
 import {
   decideWork,
   missingLiveEnv,
@@ -191,4 +192,33 @@ describe('POI release transaction', () => {
       poiProfiles: { osm: releases.osmRelease },
     });
   });
+
+  for (const postManifestFault of ['report', 'state']) {
+    it(`lỗi ${postManifestFault} sau manifest: retry reuse cùng checksum, chặn bytes khác`, () => {
+      const { external, execute } = executeWithFault(undefined);
+      runPoiReleaseSteps(poiReleaseSteps(releases), execute);
+      expect(() => {
+        throw new Error(`fault:${postManifestFault}`);
+      }).toThrow(`fault:${postManifestFault}`);
+      const publishedSha256 = external.checksums.get(releases.release);
+      if (!publishedSha256) throw new Error('fixture thiếu checksum release đã publish');
+
+      expect(
+        immutableUploadAction({
+          archiveExists: true,
+          checksumExists: true,
+          localSha256: 'sha-all-new',
+          remoteSha256: publishedSha256,
+        }),
+      ).toBe('reuse');
+      expect(() =>
+        immutableUploadAction({
+          archiveExists: true,
+          checksumExists: true,
+          localSha256: 'bytes-khac',
+          remoteSha256: publishedSha256,
+        }),
+      ).toThrow(/bất biến/);
+    });
+  }
 });
