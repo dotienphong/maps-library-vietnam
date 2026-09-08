@@ -5,14 +5,15 @@ commit với code).
 
 ## 1. Trạng thái hiện tại
 
-- **08/09/2026 — Đã duyệt thiết kế mở rộng ba profile POI, chờ duyệt spec trước implementation.**
+- **08/09/2026 — Đã duyệt spec và viết plan mở rộng ba profile POI, chờ chọn cách thực thi.**
   Profile mới là `overture-fsq`, `overture`, `fsq`; cả ba vẫn giữ POI người dùng, `all` tiếp tục
   mặc định và `all`/`osm` production hiện tại không bị thay thế trong bootstrap. Thiết kế chọn
   registry dùng chung và batch phát hành nguyên tử: một snapshot/checksum, ba export/QA/upload/smoke,
   rồi một lần cập nhật manifest. Spec:
   `docs/superpowers/specs/2026-09-08-poi-source-profiles-expansion-design.md`.
-  **Bắt đầu tiếp sau khi PHONG duyệt spec:** viết implementation plan bằng TDD, lát đầu là core
-  registry + contract tests; chưa build/publish production ở checkpoint này.
+  Plan: `docs/superpowers/plans/2026-09-08-poi-source-profiles-expansion.md`, gồm 10 task TDD từ
+  registry đến production. **Bắt đầu tiếp:** Task 1, viết RED test cho năm profile rồi mở registry
+  core; chưa sửa code hoặc build/publish production ở checkpoint này.
 
 - **08/09/2026 — Mở lại gate POI Sources Profile sau review.** Tính năng đã rollout
   ngày 07/09, nhưng kết luận plan hoàn tất 15/15 và tick đồng loạt 76 bước là quá sớm.
