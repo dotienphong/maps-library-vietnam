@@ -27,6 +27,13 @@ commit với code).
   300 MiB/+1 byte và các trạng thái upload. Basemap `vn-*` không bị đổi contract.
   **Bắt đầu tiếp:** R3 — xuất hai profile từ cùng một snapshot trung gian bất biến và
   thêm fault-injection chứng minh manifest không đổi nếu bất kỳ export/upload/smoke lỗi.
+  **R3 Step 6 ĐÓNG:** `data:update --poi` nay stream bảng `poi` active đúng một lần
+  thành `snapshot-<buildId>.jsonl`, chỉ công bố file sau khi ghi xong và kèm SHA-256.
+  Cả exporter `all` và `osm` xác thực cùng build ID/checksum rồi lọc từ file này;
+  thay đổi DB giữa hai export không còn lọt vào archive sau. Mỗi profile vẫn chạy
+  progressive selector độc lập. Unit test khóa lọc nguồn/user, DB-change mô phỏng,
+  thiếu checksum, sai checksum và metadata/build ID. **Tiếp:** R3 Step 7 DB fixture
+  thật, sau đó fault-injection Step 8–9; chưa đánh dấu các bước này hoàn tất.
 
 - **07/09/2026 — ĐÃ PHÁT HÀNH bật/tắt nguồn POI theo profile (spec 07/09).**
   Cổng đo trước cho kết quả bất ngờ: OSM chỉ là **nguồn chính của 7,0 %** POI (106.325/1.522.416;

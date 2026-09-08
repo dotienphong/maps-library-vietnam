@@ -1267,7 +1267,7 @@ git commit -m "feat(pipeline): publish hai archive POI (all + osm) trong một l
 
 ### Gate sau review R2/R3 — tính nhất quán khi build và publish
 
-- [ ] **Step 6:** Tạo một bộ dữ liệu trung gian bất biến từ một lần đọc snapshot DB,
+- [x] **Step 6:** Tạo một bộ dữ liệu trung gian bất biến từ một lần đọc snapshot DB,
   chứa các trường cần cho lọc nguồn và progressive selection. Hai exporter đọc
   cùng bộ này rồi lọc/chạy lưới độc lập. Ghi snapshot/build ID và checksum vào
   bằng chứng build. Dùng chung tunnel hoặc hai connection riêng không đủ.

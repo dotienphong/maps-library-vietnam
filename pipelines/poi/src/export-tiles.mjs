@@ -10,6 +10,7 @@ import { assertPoiArchiveSize } from '../../tiles/src/lib/archive-guard.mjs';
 import { poiReleasePair } from '../../tiles/src/lib/dates.mjs';
 import { displayFields, priorityOrderSql } from './display-priority.mjs';
 import { createDisplaySelector } from './display-selector.mjs';
+import { readSnapshotRows, snapshotRowIncluded } from './export-snapshot.mjs';
 import { OUT, POI_WORK, arg } from './lib/env.mjs';
 import { activePoiWhereSql, poiReleasePrefix } from './lib/poi-filter.mjs';
 import { connect } from './pg.mjs';
@@ -42,55 +43,69 @@ if (process.argv[1]?.endsWith('export-tiles.mjs')) {
   const prefix = poiReleasePrefix(profile);
   const release =
     arg('--release', undefined) ?? (prefix === 'poi' ? generated.poi : generated.poiOsm);
+  const snapshotFile = arg('--snapshot', undefined);
+  const snapshotBuildId = arg('--build-id', undefined);
+  if (snapshotFile && !snapshotBuildId) throw new Error('--snapshot cần --build-id');
   mkdirSync(POI_WORK, { recursive: true });
   mkdirSync(OUT, { recursive: true });
   // Mỗi release một file seq: hai profile export liền nhau không ghi đè nhau.
   const seq = resolve(POI_WORK, `${release}.geojsonseq`);
   const output = resolve(OUT, `${release}.pmtiles`);
-  const sql = connect();
+  const sql = snapshotFile ? undefined : connect();
   const selector = createDisplaySelector();
   let activeRead = 0;
   let rankFallback = 0;
   let invalidCoordinates = 0;
   try {
-    async function* lines() {
-      const query = `SELECT p.id, p.name, p.category AS cat, c.group_code AS grp,
+    async function* sourceRows() {
+      if (snapshotFile && snapshotBuildId) {
+        yield* readSnapshotRows(snapshotFile, snapshotBuildId);
+        return;
+      }
+      async function* lines() {
+        const query = `SELECT p.id, p.name, p.category AS cat, c.group_code AS grp,
           c.rank, p.popularity, p.quality_score,
           ST_X(p.geom) AS lon, ST_Y(p.geom) AS lat
         FROM poi p
         JOIN category c ON c.code = p.category
         WHERE ${activePoiWhereSql(profile)}
         ORDER BY ${priorityOrderSql}`;
-      for await (const rows of sql.unsafe(query).cursor(5000)) {
-        for (const r of rows) {
-          activeRead++;
-          const row = /** @type {any} */ (r);
-          const display = displayFields({
-            id: row.id,
-            rank: row.rank,
-            popularity: row.popularity,
-            qualityScore: row.quality_score,
-          });
-          if (display.rankFallback) rankFallback++;
-          let minZoom;
-          const lon = Number(row.lon);
-          const lat = Number(row.lat);
-          try {
-            minZoom = selector.select({ lon, lat, earliestZoom: display.earliestZoom });
-          } catch (error) {
-            invalidCoordinates++;
-            console.error(
-              `POI ${row.id}: ${error instanceof Error ? error.message : String(error)}`,
-            );
-            continue;
-          }
-          if (minZoom !== null) yield featureLine({ ...row, lon, lat }, display, minZoom);
+        for await (const rows of /** @type {NonNullable<typeof sql>} */ (sql)
+          .unsafe(query)
+          .cursor(5000)) {
+          yield* rows;
         }
+      }
+      yield* lines();
+    }
+    async function* lines() {
+      for await (const r of sourceRows()) {
+        if (snapshotFile && !snapshotRowIncluded(r, profile)) continue;
+        activeRead++;
+        const row = /** @type {any} */ (r);
+        const display = displayFields({
+          id: row.id,
+          rank: row.rank,
+          popularity: row.popularity,
+          qualityScore: row.quality_score,
+        });
+        if (display.rankFallback) rankFallback++;
+        let minZoom;
+        const lon = Number(row.lon);
+        const lat = Number(row.lat);
+        try {
+          minZoom = selector.select({ lon, lat, earliestZoom: display.earliestZoom });
+        } catch (error) {
+          invalidCoordinates++;
+          console.error(`POI ${row.id}: ${error instanceof Error ? error.message : String(error)}`);
+          continue;
+        }
+        if (minZoom !== null) yield featureLine({ ...row, lon, lat }, display, minZoom);
       }
     }
     await pipeline(Readable.from(lines()), createWriteStream(seq));
   } finally {
-    await sql.end();
+    await sql?.end();
   }
   const selection = selector.snapshot();
   console.log(

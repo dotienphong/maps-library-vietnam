@@ -133,7 +133,17 @@ if (work.poi) {
     const poiReleases = poiReleasePair();
     const release = poiReleases.poi;
     const osmRelease = poiReleases.poiOsm;
-    run('node', ['pipelines/poi/src/export-tiles.mjs', '--release', release]);
+    const snapshot = `${WORK}/poi/snapshot-${poiReleases.buildId}.jsonl`;
+    run('node', ['pipelines/poi/src/export-snapshot.mjs', '--build-id', poiReleases.buildId]);
+    run('node', [
+      'pipelines/poi/src/export-tiles.mjs',
+      '--release',
+      release,
+      '--snapshot',
+      snapshot,
+      '--build-id',
+      poiReleases.buildId,
+    ]);
     run('node', ['pipelines/tiles/src/qa.mjs', `${OUT}/${release}.pmtiles`, '--skip-islands']);
     // Hai profile dùng chung build id. Snapshot DB chung được quản lý ở checkpoint R3 riêng.
     run('node', [
@@ -142,6 +152,10 @@ if (work.poi) {
       osmRelease,
       '--sources',
       'osm',
+      '--snapshot',
+      snapshot,
+      '--build-id',
+      poiReleases.buildId,
     ]);
     run('node', ['pipelines/tiles/src/qa.mjs', `${OUT}/${osmRelease}.pmtiles`, '--skip-islands']);
     run('node', ['pipelines/tiles/src/upload.mjs', release]);
