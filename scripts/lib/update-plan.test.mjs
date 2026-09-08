@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { decideWork, missingLiveEnv, nextState } from './update-plan.mjs';
+import {
+  decideWork,
+  missingLiveEnv,
+  nextState,
+  poiReleaseSteps,
+  runPoiReleaseSteps,
+} from './update-plan.mjs';
 
 const state = {
   osm: { lastModified: 'Mon, 18 Aug 2026 20:00:00 GMT', md5: 'aaa' },
@@ -117,5 +123,72 @@ describe('missingLiveEnv', () => {
       'RCLONE_CONFIG_R2_NO_CHECK_BUCKET',
       'HF_TOKEN',
     ]);
+  });
+});
+
+describe('POI release transaction', () => {
+  const releases = {
+    release: 'poi-20260908-120000-abcd',
+    osmRelease: 'poi-osm-20260908-120000-abcd',
+    buildId: '20260908-120000-abcd',
+    snapshot: '/app/work/poi/snapshot-20260908-120000-abcd.jsonl',
+    out: '/app/out',
+  };
+
+  const makeExternalState = () => ({
+    current: { vn: 'vn-old', poi: 'poi-old', poiProfiles: { osm: 'poi-osm-old' } },
+    checksums: new Map([
+      ['poi-old', 'sha-all-old'],
+      ['poi-osm-old', 'sha-osm-old'],
+    ]),
+  });
+
+  const executeWithFault = (/** @type {string | undefined} */ faultAt) => {
+    const external = makeExternalState();
+    const oldChecksums = new Map(external.checksums);
+    const execute = (/** @type {import('./update-plan.mjs').PoiReleaseStep} */ step) => {
+      if (step.id === faultAt) throw new Error(`fault:${faultAt}`);
+      const uploadedRelease = step.args.at(-1);
+      if (step.id === 'upload-all' || step.id === 'upload-osm') {
+        if (!uploadedRelease) throw new Error(`thiếu release cho ${step.id}`);
+        external.checksums.set(
+          uploadedRelease,
+          step.id === 'upload-all' ? 'sha-all-new' : 'sha-osm-new',
+        );
+      }
+      if (step.id === 'manifest') {
+        external.current = {
+          ...external.current,
+          poi: releases.release,
+          poiProfiles: { osm: releases.osmRelease },
+        };
+      }
+    };
+    return { external, oldChecksums, execute };
+  };
+
+  for (const faultAt of ['export-osm', 'upload-osm', 'smoke-all', 'smoke-osm']) {
+    it(`lỗi ${faultAt} giữ manifest hiện hành và checksum archive cũ`, () => {
+      const { external, oldChecksums, execute } = executeWithFault(faultAt);
+      const current = structuredClone(external.current);
+
+      expect(() => runPoiReleaseSteps(poiReleaseSteps(releases), execute)).toThrow(
+        `fault:${faultAt}`,
+      );
+      expect(external.current).toEqual(current);
+      for (const [release, checksum] of oldChecksums) {
+        expect(external.checksums.get(release)).toBe(checksum);
+      }
+    });
+  }
+
+  it('chỉ commit manifest sau khi hai upload và hai smoke đều thành công', () => {
+    const { external, execute } = executeWithFault(undefined);
+    runPoiReleaseSteps(poiReleaseSteps(releases), execute);
+    expect(external.current).toEqual({
+      vn: 'vn-old',
+      poi: releases.release,
+      poiProfiles: { osm: releases.osmRelease },
+    });
   });
 });

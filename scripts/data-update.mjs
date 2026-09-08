@@ -9,7 +9,13 @@ import { hasListedFile } from '../pipelines/tiles/src/lib/manifest-state.mjs';
 import { run, sleep } from './lib/run.mjs';
 import { detectSources } from './lib/sources.mjs';
 import { openDatabaseTunnel } from './lib/tunnel.mjs';
-import { decideWork, missingLiveEnv, nextState } from './lib/update-plan.mjs';
+import {
+  decideWork,
+  missingLiveEnv,
+  nextState,
+  poiReleaseSteps,
+  runPoiReleaseSteps,
+} from './lib/update-plan.mjs';
 
 const argv = process.argv.slice(2);
 const flags = {
@@ -135,41 +141,17 @@ if (work.poi) {
     const osmRelease = poiReleases.poiOsm;
     const snapshot = `${WORK}/poi/snapshot-${poiReleases.buildId}.jsonl`;
     run('node', ['pipelines/poi/src/export-snapshot.mjs', '--build-id', poiReleases.buildId]);
-    run('node', [
-      'pipelines/poi/src/export-tiles.mjs',
-      '--release',
-      release,
-      '--snapshot',
-      snapshot,
-      '--build-id',
-      poiReleases.buildId,
-    ]);
-    run('node', ['pipelines/tiles/src/qa.mjs', `${OUT}/${release}.pmtiles`, '--skip-islands']);
-    // Hai profile dùng chung build id. Snapshot DB chung được quản lý ở checkpoint R3 riêng.
-    run('node', [
-      'pipelines/poi/src/export-tiles.mjs',
-      '--release',
-      osmRelease,
-      '--sources',
-      'osm',
-      '--snapshot',
-      snapshot,
-      '--build-id',
-      poiReleases.buildId,
-    ]);
-    run('node', ['pipelines/tiles/src/qa.mjs', `${OUT}/${osmRelease}.pmtiles`, '--skip-islands']);
-    run('node', ['pipelines/tiles/src/upload.mjs', release]);
-    run('node', ['pipelines/tiles/src/upload.mjs', osmRelease]);
-    run('node', ['pipelines/tiles/src/smoke.mjs', release, '--set', 'poi']);
-    run('node', ['pipelines/tiles/src/smoke.mjs', osmRelease, '--set', 'poi-osm']);
-    run('node', [
-      'pipelines/tiles/src/manifest.mjs',
-      'set',
-      '--poi',
-      release,
-      '--poi-osm',
-      osmRelease,
-    ]);
+    // Manifest là bước commit cuối: mọi export/QA/upload/smoke phải xanh cho cả hai profile.
+    runPoiReleaseSteps(
+      poiReleaseSteps({
+        release,
+        osmRelease,
+        buildId: poiReleases.buildId,
+        snapshot,
+        out: OUT,
+      }),
+      (step) => run(step.command, step.args),
+    );
     run('node', ['pipelines/poi/src/report.mjs']);
     run('rclone', ['copy', OUT, `r2:${bucket}/state/reports/`, '--include', 'poi-report-*.json']);
     built.poi = release;

@@ -99,3 +99,81 @@ export function missingLiveEnv(env, flags) {
   if (flags.dryRun) return [];
   return LIVE_ENV.filter((name) => !env[name]?.trim());
 }
+
+/**
+ * @typedef {{ id: string, command: string, args: string[] }} PoiReleaseStep
+ * @param {{ release: string, osmRelease: string, buildId: string, snapshot: string, out: string }} input
+ * @returns {PoiReleaseStep[]}
+ */
+export function poiReleaseSteps({ release, osmRelease, buildId, snapshot, out }) {
+  return [
+    {
+      id: 'export-all',
+      command: 'node',
+      args: [
+        'pipelines/poi/src/export-tiles.mjs',
+        '--release',
+        release,
+        '--snapshot',
+        snapshot,
+        '--build-id',
+        buildId,
+      ],
+    },
+    {
+      id: 'qa-all',
+      command: 'node',
+      args: ['pipelines/tiles/src/qa.mjs', `${out}/${release}.pmtiles`, '--skip-islands'],
+    },
+    {
+      id: 'export-osm',
+      command: 'node',
+      args: [
+        'pipelines/poi/src/export-tiles.mjs',
+        '--release',
+        osmRelease,
+        '--sources',
+        'osm',
+        '--snapshot',
+        snapshot,
+        '--build-id',
+        buildId,
+      ],
+    },
+    {
+      id: 'qa-osm',
+      command: 'node',
+      args: ['pipelines/tiles/src/qa.mjs', `${out}/${osmRelease}.pmtiles`, '--skip-islands'],
+    },
+    {
+      id: 'upload-all',
+      command: 'node',
+      args: ['pipelines/tiles/src/upload.mjs', release],
+    },
+    {
+      id: 'upload-osm',
+      command: 'node',
+      args: ['pipelines/tiles/src/upload.mjs', osmRelease],
+    },
+    {
+      id: 'smoke-all',
+      command: 'node',
+      args: ['pipelines/tiles/src/smoke.mjs', release, '--set', 'poi'],
+    },
+    {
+      id: 'smoke-osm',
+      command: 'node',
+      args: ['pipelines/tiles/src/smoke.mjs', osmRelease, '--set', 'poi-osm'],
+    },
+    {
+      id: 'manifest',
+      command: 'node',
+      args: ['pipelines/tiles/src/manifest.mjs', 'set', '--poi', release, '--poi-osm', osmRelease],
+    },
+  ];
+}
+
+/** @param {PoiReleaseStep[]} steps @param {(step: PoiReleaseStep) => void} execute */
+export function runPoiReleaseSteps(steps, execute) {
+  for (const step of steps) execute(step);
+}

@@ -38,6 +38,13 @@ commit với code).
   POI muộn vắng ở cả hai archive đầu và có mặt ở cả hai archive của snapshot/build kế
   tiếp; full `pnpm test:db` xanh 10 file/67 test. **Tiếp:** R3 Step 8 fault-injection
   tại export OSM, upload thứ hai và từng smoke; manifest hiện hành phải giữ nguyên.
+  **R3 Step 8 ĐÓNG:** orchestration POI nay là danh sách bước có ID và manifest là
+  commit cuối sau export/QA/upload/smoke của cả `all` lẫn `osm`. Fault-injection tại
+  export OSM, upload OSM và từng smoke đều chứng minh manifest hiện hành không đổi;
+  fake external state dùng đúng argument upload để khóa checksum hai archive cũ.
+  Unit boundary liên quan xanh 32/32; script typecheck và Biome tập trung sạch.
+  **Tiếp:** R3 Step 9 — rollback theo release ID + checksum và retry khi report/state
+  lỗi sau manifest mà không ghi đè release bất biến.
 
 - **07/09/2026 — ĐÃ PHÁT HÀNH bật/tắt nguồn POI theo profile (spec 07/09).**
   Cổng đo trước cho kết quả bất ngờ: OSM chỉ là **nguồn chính của 7,0 %** POI (106.325/1.522.416;
