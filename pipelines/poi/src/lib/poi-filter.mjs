@@ -2,6 +2,8 @@
 // pipeline và API không lệch nhau.
 import { POI_SOURCE_PROFILES, poiSourceClause } from '@mapslibvn/core';
 
+export { POI_SOURCE_PROFILES };
+
 /** @param {string} profile @returns {readonly ('osm' | 'overture' | 'fsq')[]} */
 export function sourcesForProfile(profile) {
   const sources = /** @type {Record<string, readonly ('osm' | 'overture' | 'fsq')[]>} */ (

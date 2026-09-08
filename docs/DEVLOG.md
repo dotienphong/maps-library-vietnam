@@ -21,8 +21,14 @@ commit với code).
   snapshot rồi chạy 3 export/QA, 3 upload, 3 smoke và đúng một manifest cuối; fault injection tại
   export/upload/smoke đều không chạm manifest; preflight chặn thiếu DB/R2/KV/Cloudflare trước build.
   Test 9/9, batch và lệnh cũ `--profile osm` dry-run
-  đúng, lint sạch và typecheck 14/14. **Bắt đầu tiếp:** Task 4, đưa đủ năm profile vào
-  `data:update --poi` và DB fixture; chưa build/publish production ở checkpoint này.
+  đúng, lint sạch và typecheck 14/14. **Task 4 ĐÓNG:** `data:update --poi` lấy năm profile
+  trực tiếp từ registry, tạo chung một build ID/snapshot, chạy 5 export/QA/upload/smoke rồi mới
+  commit manifest một lần; state mới ghi `poiProfiles` nhưng vẫn giữ/nâng `poiOsm` lịch sử.
+  DB fixture dựng 10 archive (5 profile × 2 snapshot), kiểm whitelist nguồn theo ID, POI user
+  trong cả năm và tính bất biến snapshot; full PostgreSQL gate xanh 10 file/68 test trong 587,9s.
+  RED unit ban đầu 10 lỗi đúng hard-code; GREEN 29 test orchestration, Biome sạch và typecheck
+  14/14. **Bắt đầu tiếp:** Task 5, khóa contract API/style và semantic Places DB cho ba profile
+  mới; chưa build/publish production ở checkpoint này.
 
 - **08/09/2026 — Mở lại gate POI Sources Profile sau review.** Tính năng đã rollout
   ngày 07/09, nhưng kết luận plan hoàn tất 15/15 và tick đồng loạt 76 bước là quá sớm.

@@ -69,11 +69,26 @@ describe('nextState', () => {
   });
 
   it('ghi releases.poiOsm khi build profile osm, không bịa khoá khi không build', () => {
-    const next = nextState(state, same, { poi: 'poi-20260910', poiOsm: 'poi-osm-20260910' });
+    const next = nextState(state, same, {
+      poi: 'poi-20260910',
+      poiOsm: 'poi-osm-20260910',
+      poiProfiles: {
+        osm: 'poi-osm-20260910',
+        'overture-fsq': 'poi-overture-fsq-20260910',
+        overture: 'poi-overture-20260910',
+        fsq: 'poi-fsq-20260910',
+      },
+    });
     expect(next.releases).toEqual({
       vn: 'vn-20260819',
       poi: 'poi-20260910',
       poiOsm: 'poi-osm-20260910',
+      poiProfiles: {
+        osm: 'poi-osm-20260910',
+        'overture-fsq': 'poi-overture-fsq-20260910',
+        overture: 'poi-overture-20260910',
+        fsq: 'poi-fsq-20260910',
+      },
     });
     expect(nextState(state, same, { poi: 'poi-20260910' }).releases).toEqual({
       vn: 'vn-20260819',
@@ -84,6 +99,16 @@ describe('nextState', () => {
         poi: 'poi-20260910',
       }).releases?.poiOsm,
     ).toBe('poi-osm-cu');
+  });
+
+  it('nâng state cũ poiOsm vào poiProfiles mà vẫn giữ khoá tương thích', () => {
+    const legacy = { ...state, releases: { ...state.releases, poiOsm: 'poi-osm-cu' } };
+    expect(nextState(legacy, same, { poi: 'poi-moi' }).releases).toEqual({
+      vn: 'vn-20260819',
+      poi: 'poi-moi',
+      poiOsm: 'poi-osm-cu',
+      poiProfiles: { osm: 'poi-osm-cu' },
+    });
   });
 
   it('--poi khi OSM đổi giữ pending tiles cho lần chạy sau', () => {
@@ -128,16 +153,25 @@ describe('missingLiveEnv', () => {
 });
 
 describe('POI release transaction', () => {
-  const releases = {
-    release: 'poi-20260908-120000-abcd',
-    osmRelease: 'poi-osm-20260908-120000-abcd',
+  const releaseInput = {
+    releases: {
+      all: 'poi-20260908-120000-abcd',
+      osm: 'poi-osm-20260908-120000-abcd',
+      'overture-fsq': 'poi-overture-fsq-20260908-120000-abcd',
+      overture: 'poi-overture-20260908-120000-abcd',
+      fsq: 'poi-fsq-20260908-120000-abcd',
+    },
     buildId: '20260908-120000-abcd',
     snapshot: '/app/work/poi/snapshot-20260908-120000-abcd.jsonl',
     out: '/app/out',
   };
 
   const makeExternalState = () => ({
-    current: { vn: 'vn-old', poi: 'poi-old', poiProfiles: { osm: 'poi-osm-old' } },
+    current: {
+      vn: 'vn-old',
+      poi: 'poi-old',
+      poiProfiles: /** @type {Record<string, string>} */ ({ osm: 'poi-osm-old' }),
+    },
     checksums: new Map([
       ['poi-old', 'sha-all-old'],
       ['poi-osm-old', 'sha-osm-old'],
@@ -150,30 +184,43 @@ describe('POI release transaction', () => {
     const execute = (/** @type {import('./update-plan.mjs').PoiReleaseStep} */ step) => {
       if (step.id === faultAt) throw new Error(`fault:${faultAt}`);
       const uploadedRelease = step.args.at(-1);
-      if (step.id === 'upload-all' || step.id === 'upload-osm') {
+      if (step.id.startsWith('upload-')) {
         if (!uploadedRelease) throw new Error(`thiếu release cho ${step.id}`);
-        external.checksums.set(
-          uploadedRelease,
-          step.id === 'upload-all' ? 'sha-all-new' : 'sha-osm-new',
-        );
+        external.checksums.set(uploadedRelease, `sha-${step.id.slice('upload-'.length)}-new`);
       }
       if (step.id === 'manifest') {
         external.current = {
           ...external.current,
-          poi: releases.release,
-          poiProfiles: { osm: releases.osmRelease },
+          poi: releaseInput.releases.all,
+          poiProfiles: Object.fromEntries(
+            Object.entries(releaseInput.releases).filter(([profile]) => profile !== 'all'),
+          ),
         };
       }
     };
     return { external, oldChecksums, execute };
   };
 
-  for (const faultAt of ['export-osm', 'upload-osm', 'smoke-all', 'smoke-osm']) {
+  it('dựng đủ năm profile từ cùng snapshot và chỉ commit manifest ở bước cuối', () => {
+    const steps = poiReleaseSteps(releaseInput);
+    expect(steps.filter((step) => step.id.startsWith('export-'))).toHaveLength(5);
+    expect(steps.filter((step) => step.id.startsWith('qa-'))).toHaveLength(5);
+    expect(steps.filter((step) => step.id.startsWith('upload-'))).toHaveLength(5);
+    expect(steps.filter((step) => step.id.startsWith('smoke-'))).toHaveLength(5);
+    expect(steps.at(-1)?.id).toBe('manifest');
+    expect(
+      steps.filter((step) => step.id.startsWith('export-')).map((step) => step.args.slice(-4)),
+    ).toEqual(
+      Array(5).fill(['--snapshot', releaseInput.snapshot, '--build-id', releaseInput.buildId]),
+    );
+  });
+
+  for (const faultAt of ['export-fsq', 'upload-overture-fsq', 'smoke-all', 'smoke-overture']) {
     it(`lỗi ${faultAt} giữ manifest hiện hành và checksum archive cũ`, () => {
       const { external, oldChecksums, execute } = executeWithFault(faultAt);
       const current = structuredClone(external.current);
 
-      expect(() => runPoiReleaseSteps(poiReleaseSteps(releases), execute)).toThrow(
+      expect(() => runPoiReleaseSteps(poiReleaseSteps(releaseInput), execute)).toThrow(
         `fault:${faultAt}`,
       );
       expect(external.current).toEqual(current);
@@ -183,24 +230,26 @@ describe('POI release transaction', () => {
     });
   }
 
-  it('chỉ commit manifest sau khi hai upload và hai smoke đều thành công', () => {
+  it('chỉ commit manifest sau khi năm upload và năm smoke đều thành công', () => {
     const { external, execute } = executeWithFault(undefined);
-    runPoiReleaseSteps(poiReleaseSteps(releases), execute);
+    runPoiReleaseSteps(poiReleaseSteps(releaseInput), execute);
     expect(external.current).toEqual({
       vn: 'vn-old',
-      poi: releases.release,
-      poiProfiles: { osm: releases.osmRelease },
+      poi: releaseInput.releases.all,
+      poiProfiles: Object.fromEntries(
+        Object.entries(releaseInput.releases).filter(([profile]) => profile !== 'all'),
+      ),
     });
   });
 
   for (const postManifestFault of ['report', 'state']) {
     it(`lỗi ${postManifestFault} sau manifest: retry reuse cùng checksum, chặn bytes khác`, () => {
       const { external, execute } = executeWithFault(undefined);
-      runPoiReleaseSteps(poiReleaseSteps(releases), execute);
+      runPoiReleaseSteps(poiReleaseSteps(releaseInput), execute);
       expect(() => {
         throw new Error(`fault:${postManifestFault}`);
       }).toThrow(`fault:${postManifestFault}`);
-      const publishedSha256 = external.checksums.get(releases.release);
+      const publishedSha256 = external.checksums.get(releaseInput.releases.all);
       if (!publishedSha256) throw new Error('fixture thiếu checksum release đã publish');
 
       expect(

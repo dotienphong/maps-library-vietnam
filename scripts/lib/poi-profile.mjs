@@ -67,15 +67,23 @@ export function profilePublishSteps(profile, release, out) {
 /**
  * Các bước phát hành nguyên tử nhiều profile từ cùng snapshot. Manifest luôn là bước cuối.
  * @param {{ profiles: string[], releases: Record<string, string>, buildId: string,
- *   snapshot: string, out: string }} input
+ *   snapshot: string, out: string, includeAll?: boolean }} input
  * @returns {{ id: string, command: 'node', args: string[] }[]}
  */
-export function profileBatchSteps({ profiles, releases, buildId, snapshot, out }) {
+export function profileBatchSteps({
+  profiles,
+  releases,
+  buildId,
+  snapshot,
+  out,
+  includeAll = false,
+}) {
   if (profiles.length === 0) throw new Error('Batch profile rỗng');
   if (new Set(profiles).size !== profiles.length) throw new Error('Batch profile bị trùng');
   for (const profile of profiles) {
     sourcesForProfile(profile);
-    if (profile === 'all') throw new Error('Profile all không thuộc batch bootstrap');
+    if (profile === 'all' && !includeAll)
+      throw new Error('Profile all không thuộc batch bootstrap');
     if (!releases[profile]) throw new Error(`Thiếu release cho profile ${profile}`);
   }
 
@@ -130,10 +138,11 @@ export function profileBatchSteps({ profiles, releases, buildId, snapshot, out }
     args: [
       'pipelines/tiles/src/manifest.mjs',
       'set',
-      ...profiles.flatMap((profile) => [
-        '--poi-profile',
-        `${profile}=${/** @type {string} */ (releases[profile])}`,
-      ]),
+      ...profiles.flatMap((profile) =>
+        profile === 'all'
+          ? ['--poi', /** @type {string} */ (releases[profile])]
+          : ['--poi-profile', `${profile}=${/** @type {string} */ (releases[profile])}`],
+      ),
     ],
   });
   return steps;

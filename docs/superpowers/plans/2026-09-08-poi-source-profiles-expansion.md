@@ -320,7 +320,7 @@ git commit -m "feat(pipeline): phát hành nguyên tử batch profile POI"
 - Consumes: `poiReleaseSet(Object.keys(POI_SOURCE_PROFILES))` và batch step contract Task 3.
 - Produces: mọi `data:update --poi` sau này publish năm profile từ một snapshot; state mới có `releases.poiProfiles` và vẫn đọc `poiOsm` cũ.
 
-- [ ] **Step 1: Viết test đỏ cho năm profile và manifest-last**
+- [x] **Step 1: Viết test đỏ cho năm profile và manifest-last**
 
 ```js
 const steps = poiReleaseSteps({
@@ -336,13 +336,13 @@ expect(steps.at(-1)?.id).toBe('manifest');
 
 Thêm test `nextState` chuyển `poiOsm` lịch sử thành `poiProfiles.osm` mà không mất release.
 
-- [ ] **Step 2: Mở rộng DB fixture trước implementation**
+- [x] **Step 2: Mở rộng DB fixture trước implementation**
 
 Tạo archive fixture cho `overture-fsq`, `overture`, `fsq` từ cùng snapshot hiện hữu. Assert theo ID:
 POI primary tương ứng có mặt, primary khác vắng, POI user không cạnh tranh có mặt trong cả năm;
 không assert archive này là tập con archive kia vì thinning chạy độc lập.
 
-- [ ] **Step 3: Chạy RED unit và DB**
+- [x] **Step 3: Chạy RED unit và DB**
 
 Run: `pnpm vitest run scripts/lib/update-plan.test.mjs`
 
@@ -350,7 +350,7 @@ Run: `docker compose --env-file .env -f infra/dev/compose.yml --profile pipeline
 
 Expected: unit và fixture mới FAIL vì orchestration chỉ dựng `all`/`osm`.
 
-- [ ] **Step 4: Implement orchestration registry-driven**
+- [x] **Step 4: Implement orchestration registry-driven**
 
 Trong `data-update.mjs`, tạo một release set cho `Object.keys(POI_SOURCE_PROFILES)`, chụp một
 snapshot, truyền release map vào `poiReleaseSteps`, rồi ghi state:
@@ -364,7 +364,7 @@ built.poiProfiles = Object.fromEntries(
 
 `nextState` merge map mới và vẫn expose/read `poiOsm` trong state cũ khi cần tương thích.
 
-- [ ] **Step 5: Chạy GREEN**
+- [x] **Step 5: Chạy GREEN**
 
 Run: `pnpm vitest run scripts/lib/update-plan.test.mjs scripts/lib/poi-profile.test.mjs`
 
@@ -372,7 +372,7 @@ Run: `docker compose --env-file .env -f infra/dev/compose.yml --profile pipeline
 
 Expected: unit PASS; DB gate 0 failure và đủ năm archive fixture.
 
-- [ ] **Step 6: Commit data-update**
+- [x] **Step 6: Commit data-update**
 
 ```bash
 git add scripts/data-update.mjs scripts/lib/update-plan.mjs scripts/lib/update-plan.test.mjs pipelines/poi/tests/pipeline-fixture.dbtest.mjs

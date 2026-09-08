@@ -1,6 +1,9 @@
+import { profileBatchSteps } from './poi-profile.mjs';
+
 /**
  * @typedef {{ osm?: { lastModified: string, md5: string }, overture?: { release: string }, fsq?: { release: string },
- *   releases?: { vn: string | null, poi: string | null, poiOsm?: string | null },
+ *   releases?: { vn: string | null, poi: string | null, poiOsm?: string | null,
+ *     poiProfiles?: Record<string, string> },
  *   pending?: { tiles?: boolean, poi?: boolean } }} State
  * @typedef {{ osm: { lastModified: string, md5: string }, overture: { release: string }, fsq: { release: string } }} Versions
  * @typedef {{ force?: boolean, onlyTiles?: boolean, onlyPoi?: boolean }} Flags
@@ -47,13 +50,19 @@ export function decideWork(state, versions, flags) {
 /**
  * @param {State} state
  * @param {Versions} versions
- * @param {{ vn?: string, poi?: string, poiOsm?: string }} built
+ * @param {{ vn?: string, poi?: string, poiOsm?: string, poiProfiles?: Record<string, string> }} built
  * @returns {State}
  */
 export function nextState(state, versions, built) {
   const osmChanged = !state.osm || state.osm.md5 !== versions.osm.md5;
   const overtureChanged = !state.overture || state.overture.release !== versions.overture.release;
   const fsqChanged = !state.fsq || state.fsq.release !== versions.fsq.release;
+  const legacyOsm = built.poiOsm ?? state.releases?.poiOsm;
+  const poiProfiles = {
+    ...(legacyOsm ? { osm: legacyOsm } : {}),
+    ...state.releases?.poiProfiles,
+    ...built.poiProfiles,
+  };
   const pending = {
     tiles: built.vn ? false : Boolean(state.pending?.tiles || osmChanged),
     poi: built.poi
@@ -72,6 +81,7 @@ export function nextState(state, versions, built) {
       ...(built.poiOsm || state.releases?.poiOsm
         ? { poiOsm: built.poiOsm ?? state.releases?.poiOsm ?? null }
         : {}),
+      ...(Object.keys(poiProfiles).length > 0 ? { poiProfiles } : {}),
     },
   };
   return pending.tiles || pending.poi ? { ...next, pending } : next;
@@ -102,75 +112,20 @@ export function missingLiveEnv(env, flags) {
 
 /**
  * @typedef {{ id: string, command: string, args: string[] }} PoiReleaseStep
- * @param {{ release: string, osmRelease: string, buildId: string, snapshot: string, out: string }} input
+ * @param {{ releases: Record<string, string>, buildId: string, snapshot: string, out: string }} input
  * @returns {PoiReleaseStep[]}
  */
-export function poiReleaseSteps({ release, osmRelease, buildId, snapshot, out }) {
-  return [
-    {
-      id: 'export-all',
-      command: 'node',
-      args: [
-        'pipelines/poi/src/export-tiles.mjs',
-        '--release',
-        release,
-        '--snapshot',
-        snapshot,
-        '--build-id',
-        buildId,
-      ],
-    },
-    {
-      id: 'qa-all',
-      command: 'node',
-      args: ['pipelines/tiles/src/qa.mjs', `${out}/${release}.pmtiles`, '--skip-islands'],
-    },
-    {
-      id: 'export-osm',
-      command: 'node',
-      args: [
-        'pipelines/poi/src/export-tiles.mjs',
-        '--release',
-        osmRelease,
-        '--sources',
-        'osm',
-        '--snapshot',
-        snapshot,
-        '--build-id',
-        buildId,
-      ],
-    },
-    {
-      id: 'qa-osm',
-      command: 'node',
-      args: ['pipelines/tiles/src/qa.mjs', `${out}/${osmRelease}.pmtiles`, '--skip-islands'],
-    },
-    {
-      id: 'upload-all',
-      command: 'node',
-      args: ['pipelines/tiles/src/upload.mjs', release],
-    },
-    {
-      id: 'upload-osm',
-      command: 'node',
-      args: ['pipelines/tiles/src/upload.mjs', osmRelease],
-    },
-    {
-      id: 'smoke-all',
-      command: 'node',
-      args: ['pipelines/tiles/src/smoke.mjs', release, '--set', 'poi'],
-    },
-    {
-      id: 'smoke-osm',
-      command: 'node',
-      args: ['pipelines/tiles/src/smoke.mjs', osmRelease, '--set', 'poi-osm'],
-    },
-    {
-      id: 'manifest',
-      command: 'node',
-      args: ['pipelines/tiles/src/manifest.mjs', 'set', '--poi', release, '--poi-osm', osmRelease],
-    },
-  ];
+export function poiReleaseSteps({ releases, buildId, snapshot, out }) {
+  const profiles = Object.keys(releases);
+  if (!releases.all) throw new Error('Thiếu release POI profile all');
+  return profileBatchSteps({
+    profiles,
+    releases,
+    buildId,
+    snapshot,
+    out,
+    includeAll: true,
+  });
 }
 
 /** @param {PoiReleaseStep[]} steps @param {(step: PoiReleaseStep) => void} execute */

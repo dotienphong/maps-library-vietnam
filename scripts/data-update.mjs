@@ -4,7 +4,8 @@
 import 'dotenv/config';
 import { execFileSync, spawn } from 'node:child_process';
 import { existsSync } from 'node:fs';
-import { poiReleasePair, releaseName } from '../pipelines/tiles/src/lib/dates.mjs';
+import { POI_SOURCE_PROFILES } from '../pipelines/poi/src/lib/poi-filter.mjs';
+import { poiReleaseSet, releaseName } from '../pipelines/tiles/src/lib/dates.mjs';
 import { hasListedFile } from '../pipelines/tiles/src/lib/manifest-state.mjs';
 import { run, sleep } from './lib/run.mjs';
 import { detectSources } from './lib/sources.mjs';
@@ -106,7 +107,7 @@ const ensurePatchedPbf = () => {
   ]);
 };
 
-/** @type {{ vn?: string, poi?: string, poiOsm?: string }} */
+/** @type {{ vn?: string, poi?: string, poiOsm?: string, poiProfiles?: Record<string, string> }} */
 const built = {};
 if (work.tiles) {
   ensurePatchedPbf();
@@ -136,16 +137,16 @@ if (work.poi) {
     run('node', ['pipelines/poi/src/geocode/streets.mjs']);
     run('node', ['pipelines/poi/src/geocode/alleys.mjs']);
     run('node', ['pipelines/poi/src/geocode/anchors.mjs']);
-    const poiReleases = poiReleasePair();
-    const release = poiReleases.poi;
-    const osmRelease = poiReleases.poiOsm;
+    const profiles = Object.keys(POI_SOURCE_PROFILES);
+    const poiReleases = poiReleaseSet(profiles);
+    const release = poiReleases.releases.all;
+    if (!release) throw new Error('Không tạo được release POI profile all');
     const snapshot = `${WORK}/poi/snapshot-${poiReleases.buildId}.jsonl`;
     run('node', ['pipelines/poi/src/export-snapshot.mjs', '--build-id', poiReleases.buildId]);
-    // Manifest là bước commit cuối: mọi export/QA/upload/smoke phải xanh cho cả hai profile.
+    // Manifest là bước commit cuối: mọi export/QA/upload/smoke phải xanh cho cả năm profile.
     runPoiReleaseSteps(
       poiReleaseSteps({
-        release,
-        osmRelease,
+        releases: poiReleases.releases,
         buildId: poiReleases.buildId,
         snapshot,
         out: OUT,
@@ -155,8 +156,11 @@ if (work.poi) {
     run('node', ['pipelines/poi/src/report.mjs']);
     run('rclone', ['copy', OUT, `r2:${bucket}/state/reports/`, '--include', 'poi-report-*.json']);
     built.poi = release;
-    built.poiOsm = osmRelease;
-    log(`✓ POI ${release} + ${osmRelease}`);
+    built.poiProfiles = Object.fromEntries(
+      Object.entries(poiReleases.releases).filter(([profile]) => profile !== 'all'),
+    );
+    if (built.poiProfiles.osm) built.poiOsm = built.poiProfiles.osm;
+    log(`✓ POI ${Object.values(poiReleases.releases).join(' + ')}`);
   } finally {
     closeTunnel();
   }

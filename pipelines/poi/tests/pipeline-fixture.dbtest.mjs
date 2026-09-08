@@ -17,6 +17,13 @@ const THIN_OSM_WINNER_ID = 'THINOSM00000000000000000001';
 const THIN_USER_ID = 'THINUSER0000000000000000001';
 const SNAPSHOT_BUILD_ID = `fixture-${process.pid}`;
 const NEXT_SNAPSHOT_BUILD_ID = `${SNAPSHOT_BUILD_ID}-next`;
+const PROFILE_FIXTURES = [
+  ['poi-fixture', 'all'],
+  ['poi-osm-fixture', 'osm'],
+  ['poi-overture-fsq-fixture', 'overture-fsq'],
+  ['poi-overture-fixture', 'overture'],
+  ['poi-fsq-fixture', 'fsq'],
+];
 const snapshotFile = (/** @type {string} */ buildId) =>
   resolve(WORK, 'poi', `snapshot-${buildId}.jsonl`);
 const sql = postgres(databaseUrlFromEnv(process.env), { max: 1, onnotice: () => {} });
@@ -60,35 +67,25 @@ beforeAll(async () => {
   await sql`INSERT INTO poi (id, name, name_norm, category, geom, quality_score, popularity, status, locked_fields, created_by)
     VALUES (${LATE_USER_POI_ID}, 'Quán thêm sau snapshot', 'quan them sau snapshot', 'cafe',
             ST_SetSRID(ST_MakePoint(109, 14), 4326), 60, 0.2, 'active', '{}', 'user')`;
-  node(
-    'pipelines/poi/src/export-tiles.mjs',
-    '--release',
-    'poi-fixture',
-    '--snapshot',
-    snapshotFile(SNAPSHOT_BUILD_ID),
-    '--build-id',
-    SNAPSHOT_BUILD_ID,
-  );
-  node(
-    'pipelines/poi/src/export-tiles.mjs',
-    '--release',
-    'poi-osm-fixture',
-    '--sources',
-    'osm',
-    '--snapshot',
-    snapshotFile(SNAPSHOT_BUILD_ID),
-    '--build-id',
-    SNAPSHOT_BUILD_ID,
-  );
-  node('pipelines/poi/src/export-snapshot.mjs', '--build-id', NEXT_SNAPSHOT_BUILD_ID);
-  for (const [release, profile] of [
-    ['poi-fixture-next', 'all'],
-    ['poi-osm-fixture-next', 'osm'],
-  ]) {
+  for (const [release, profile] of PROFILE_FIXTURES) {
     node(
       'pipelines/poi/src/export-tiles.mjs',
       '--release',
       release,
+      '--sources',
+      profile,
+      '--snapshot',
+      snapshotFile(SNAPSHOT_BUILD_ID),
+      '--build-id',
+      SNAPSHOT_BUILD_ID,
+    );
+  }
+  node('pipelines/poi/src/export-snapshot.mjs', '--build-id', NEXT_SNAPSHOT_BUILD_ID);
+  for (const [release, profile] of PROFILE_FIXTURES) {
+    node(
+      'pipelines/poi/src/export-tiles.mjs',
+      '--release',
+      `${release}-next`,
       '--sources',
       profile,
       '--snapshot',
@@ -183,7 +180,7 @@ describe('pipeline POI trọn vòng trên fixture', () => {
     });
   });
 
-  it('profile osm: mọi POI xuất ra thuộc tập DB đủ điều kiện, không giả định tập con sau thinning', async () => {
+  it('năm profile chỉ xuất đúng nguồn cho phép và luôn giữ POI user không cạnh tranh', async () => {
     const readIds = (/** @type {string} */ release) =>
       new Set(
         readFileSync(resolve(WORK, 'poi', `${release}.geojsonseq`), 'utf8')
@@ -191,25 +188,41 @@ describe('pipeline POI trọn vòng trên fixture', () => {
           .split('\n')
           .map((line) => JSON.parse(line).properties.id),
       );
-    const osmIds = readIds('poi-osm-fixture');
-    const allIds = readIds('poi-fixture');
-    expect(osmIds.size).toBeGreaterThan(0);
+    const active =
+      await sql`SELECT id, primary_source, created_by FROM poi WHERE status = 'active'`;
+    const sourceSets = {
+      all: new Set(['osm', 'overture', 'fsq']),
+      osm: new Set(['osm']),
+      'overture-fsq': new Set(['overture', 'fsq']),
+      overture: new Set(['overture']),
+      fsq: new Set(['fsq']),
+    };
 
-    const allowed = await sql`SELECT id FROM poi p
-      WHERE p.status = 'active' AND (p.primary_source = 'osm' OR p.created_by = 'user')`;
-    const allowedIds = new Set(allowed.map((row) => row.id));
-    for (const id of osmIds) expect(allowedIds.has(id), `POI ${id} không phải osm/user`).toBe(true);
+    for (const [release, profile] of PROFILE_FIXTURES) {
+      const ids = readIds(release);
+      const expectedSources = sourceSets[profile];
+      expect(ids.size, `${profile} rỗng`).toBeGreaterThan(0);
+      expect(ids.has('USERPOI0000000000000000001'), `${profile} thiếu POI user`).toBe(true);
 
-    expect(osmIds.has('USERPOI0000000000000000001')).toBe(true);
-    expect(allIds.has('USERPOI0000000000000000001')).toBe(true);
+      const exportedRows = active.filter((row) => ids.has(row.id));
+      expect(exportedRows).toHaveLength(ids.size);
+      for (const row of exportedRows) {
+        expect(
+          row.created_by === 'user' || expectedSources.has(row.primary_source),
+          `${profile} chứa ${row.id} nguồn ${row.primary_source}`,
+        ).toBe(true);
+      }
+      const seenSources = new Set(
+        exportedRows.filter((row) => row.created_by !== 'user').map((row) => row.primary_source),
+      );
+      for (const source of expectedSources) {
+        expect(seenSources.has(source), `${profile} thiếu POI ${source}`).toBe(true);
+      }
 
-    const [other] = await sql`SELECT count(*)::int AS n FROM poi
-      WHERE status = 'active' AND primary_source IN ('overture', 'fsq')`;
-    expect(other.n).toBeGreaterThan(0);
-
-    const file = resolve(OUT, 'poi-osm-fixture.pmtiles');
-    expect(existsSync(file)).toBe(true);
-    expect(() => node('pipelines/tiles/src/qa.mjs', file, '--skip-islands')).not.toThrow();
+      const file = resolve(OUT, `${release}.pmtiles`);
+      expect(existsSync(file)).toBe(true);
+      expect(() => node('pipelines/tiles/src/qa.mjs', file, '--skip-islands')).not.toThrow();
+    }
   });
 
   it('thinning độc lập: Overture thắng all, OSM được phục hồi ở osm, user vẫn chịu thinning', () => {
@@ -251,7 +264,7 @@ describe('pipeline POI trọn vòng trên fixture', () => {
     }
   });
 
-  it('hai profile giữ nguyên snapshot DB và chỉ nhận bản ghi mới ở build kế tiếp', () => {
+  it('năm profile giữ nguyên snapshot DB và chỉ nhận bản ghi mới ở build kế tiếp', () => {
     const readIds = (/** @type {string} */ release) =>
       new Set(
         readFileSync(resolve(WORK, 'poi', `${release}.geojsonseq`), 'utf8')
@@ -260,10 +273,13 @@ describe('pipeline POI trọn vòng trên fixture', () => {
           .map((line) => JSON.parse(line).properties.id),
       );
 
-    expect(readIds('poi-fixture').has(LATE_USER_POI_ID)).toBe(false);
-    expect(readIds('poi-osm-fixture').has(LATE_USER_POI_ID)).toBe(false);
-    expect(readIds('poi-fixture-next').has(LATE_USER_POI_ID)).toBe(true);
-    expect(readIds('poi-osm-fixture-next').has(LATE_USER_POI_ID)).toBe(true);
+    for (const [release] of PROFILE_FIXTURES) {
+      expect(readIds(release).has(LATE_USER_POI_ID), `${release} lọt POI sau snapshot`).toBe(false);
+      expect(
+        readIds(`${release}-next`).has(LATE_USER_POI_ID),
+        `${release}-next thiếu POI mới`,
+      ).toBe(true);
+    }
   });
 
   it('báo cáo ghi ra out/poi-report-*.json với các khối poi/links/geocode', () => {
