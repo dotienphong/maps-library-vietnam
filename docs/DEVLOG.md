@@ -25,8 +25,13 @@ commit với code).
   từng gói trả 404 tạm thời rồi mới khả dụng. App sạch cài trực tiếp từ registry: Web/React có 30
   package, audit 0; React Native 0.86.3 + MapLibre RN 11.3.10 có 249 package, audit 0. RN 0.81.0
   và 0.87.1 hiện có advisory upstream `metro → image-size`, không đến từ SDK MapsLibVN.
-  **Bắt đầu tiếp:** push checkpoint này và deploy docs để nội dung public khớp registry; chưa cần
-  tên miền riêng hay chuyển datacenter.
+  Commit `e0ac1fb` đã push lên `origin/main`; direct Cloudflare Pages deployment
+  `a747e2bf-d1cf-4967-9f7b-7b1de7d4274a` là Production/main/source `e0ac1fb`. Browser canonical
+  `/cai-dat/` trả 200, hiện “Bốn gói npm đã public”, `latest`/`0.4.0`, không còn cảnh báo chưa
+  publish và console sạch. GitHub Actions Deploy Docs `34337872074` và CI `34337871875` bị chặn
+  trước mọi step vì payment/spending limit; bỏ qua theo quyết định PHONG, direct deployment là bằng
+  chứng production. **Bắt đầu tiếp:** không còn việc npm bắt buộc; khi có máy Windows thì nghiệm thu
+  `pnpm run setup`. Mọi bản sửa package tiếp theo phải bump version mới trước khi publish.
 
 - **09/09/2026 — Profile POI `osm-fsq` đã phát hành và nghiệm thu production.**
   Registry có profile thứ sáu `osm-fsq` ánh xạ `osm,fsq`; API style/TileJSON, Web/React/React
