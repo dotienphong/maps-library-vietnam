@@ -5,8 +5,10 @@ Ngày nghiệm thu: 09/09/2026 (Asia/Ho_Chi_Minh).
 ## 1. Code và deploy
 
 - Source đã push lên `origin/main`: `7de69539a12c57049df3bebd122211eba08ba7b4`.
-- `gh auth status` báo token hết hạn; repo private nên GitHub public API trả 404. Vì vậy trạng thái
-  GitHub Actions của SHA này **chưa xác minh và không được gọi là green**.
+- `gh auth` ban đầu hết hạn nhưng đã được phục hồi. Truy vấn sau đó xác nhận cả năm workflow của
+  source `7de6953` đều fail trước khi có bất kỳ step nào: GitHub annotation báo payment gần đây thất
+  bại hoặc spending limit cần tăng. CI của evidence `63f9294` cũng bị chặn cùng nguyên nhân. Đây
+  không phải test failure, nhưng các workflow **không được gọi là green**.
 - Deploy trực tiếp theo workflow hiện hành sau full gate local:
   - API Worker version `d4004b85-a6de-4180-b729-c0a2448943f3`.
   - Docs Pages deployment `https://ae4a40e6.mapslibvn-docs.pages.dev`;
@@ -124,6 +126,8 @@ chỉ bổ sung `.sha256` (không sửa archive, không đổi manifest):
 ## 7. Kết luận và điểm còn mở
 
 Production archive/manifest/API/SDK/Playground đạt các cổng chức năng, partition, browser và warm
-performance. npm không được publish vì bốn package source `0.4.0` vẫn chờ rà soát nhãn hiệu theo
-phạm vi đã duyệt. Điểm duy nhất chưa xác minh là GitHub Actions do `gh` hết hạn; cần đăng nhập lại
-`gh` rồi query workflow theo SHA evidence cuối trước khi gọi CI green.
+performance. Sau khi push evidence, smoke lại ba style đều HTTP 200, header đúng profile và trỏ
+đúng ba release của build chung. Full test mới nhất đạt 80 file/957 test cùng API 25 file/175 test.
+npm không được publish vì bốn package source `0.4.0` vẫn chờ rà soát nhãn hiệu theo phạm vi đã
+duyệt. Điểm duy nhất còn mở là GitHub Actions bị Billing chặn trước khi runner khởi động; cần xử lý
+`Billing & plans`, rerun các workflow theo SHA source/evidence rồi xác nhận green.

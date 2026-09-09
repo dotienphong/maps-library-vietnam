@@ -63,10 +63,14 @@ commit với code).
   88/67/89 ms so với `all` 95/65/89 ms; cold p95 được báo riêng 2.889/2.974/1.607 ms. Rollback
   history từng thiếu checksum companion cho `poi-20260904` và `poi-osm-20260907`; đã băm object R2,
   chỉ thêm hai companion và helper xác minh đạt, không đổi archive/manifest, không gọi rollback.
-  Evidence: `docs/evidence/poi-sources/nghiem-thu-overture-fsq-production.md`. **Chưa đóng toàn bộ
-  Task 10:** `gh auth` hết hạn và repo private nên chưa query được CI của SHA source/evidence;
-  production được deploy trực tiếp và nghiệm thu, nhưng không gọi CI green. **Bắt đầu tiếp:** chạy
-  verification/commit/push evidence, sau đó đăng nhập lại `gh` và query workflows theo SHA cuối.
+  Evidence commit `63f9294` đã push: `docs/evidence/poi-sources/nghiem-thu-overture-fsq-production.md`.
+  Auth `gh` đã phục hồi và xác định đúng blocker: cả năm workflow source `7de6953` cùng CI evidence
+  `63f9294` fail trước khi có step vì GitHub báo payment gần đây thất bại hoặc spending limit cần
+  tăng; đây không phải test failure. Full test sau evidence vẫn xanh 80 file/957 test + API 25
+  file/175 test; smoke sau push của ba style đều HTTP 200, header/release đúng. **Chưa gọi CI green
+  và chưa đóng toàn bộ Task 10. Bắt đầu tiếp:** xử lý GitHub `Billing & plans`, rerun các workflow
+  bị chặn theo SHA source/evidence, xác nhận green rồi đóng plan; production hiện đã nghiệm thu trực
+  tiếp và không cần publish lại archive/manifest.
 
 - **08/09/2026 — Mở lại gate POI Sources Profile sau review.** Tính năng đã rollout
   ngày 07/09, nhưng kết luận plan hoàn tất 15/15 và tick đồng loạt 76 bước là quá sớm.

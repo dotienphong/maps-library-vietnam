@@ -714,7 +714,7 @@ git commit -m "docs(poi): hướng dẫn năm profile nguồn"
 - Consumes: code/gates Tasks 1–9 và credentials chỉ đọc từ `.env`.
 - Produces: manifest production có ba key mới, evidence production, commit/push cuối và resume point.
 
-- [ ] **Step 1: Preflight local/remote không ghi**
+- [x] **Step 1: Preflight local/remote không ghi**
 
 Run: `git status --short --branch`
 
@@ -727,7 +727,7 @@ Run: `gh auth status`
 Expected: worktree sạch; dry-run đúng 13 bước sau snapshot; Wrangler v4; GitHub auth hợp lệ. Không
 in nội dung `.env` hoặc secret.
 
-- [ ] **Step 2: Push code và quan sát deploy**
+- [x] **Step 2: Push code và quan sát deploy**
 
 Run: `git push origin main`
 
@@ -818,7 +818,7 @@ smoke count, style/API results, browser matrix, cold/warm benchmark, rollback ve
 ngoại lệ. DEVLOG chỉ ghi “đã nghiệm thu production” khi toàn bộ cổng trên đạt; nếu còn blocker, ghi
 đúng cổng mở và resume action.
 
-- [ ] **Step 11: Chạy verification cuối, commit và push evidence**
+- [x] **Step 11: Chạy verification cuối, commit và push evidence**
 
 Run: `pnpm lint && pnpm typecheck && pnpm --filter @mapslibvn/docs build`
 
@@ -831,3 +831,9 @@ git push origin main
 Sau push, query CI/deploy theo SHA evidence và smoke lại ba style trên public URL. Chỉ đóng plan khi
 Git, CI/deploy, manifest, runtime và tài liệu khớp nhau; nếu GitHub billing vẫn chặn, ghi rõ CI chưa
 green dù production đã được nghiệm thu trực tiếp.
+
+Kết quả 09/09/2026: evidence `63f9294` đã push; full test đạt 80 file/957 test + API 25 file/175
+test; ba style smoke lại đều HTTP 200, header và release đúng. `gh` đã xác thực lại, nhưng cả năm
+workflow source `7de6953` và CI evidence đều fail tức thời, không có step, do GitHub annotation báo
+payment thất bại hoặc spending limit cần tăng. Step đã thực thi đầy đủ nhưng plan chưa được đóng cho
+đến khi sửa `Billing & plans`, rerun các workflow và xác nhận green.
