@@ -5,18 +5,28 @@ commit với code).
 
 ## 1. Trạng thái hiện tại
 
-- **09/09/2026 — Profile POI `osm-fsq` đã hoàn tất source và local gates, chờ phát hành production.**
+- **09/09/2026 — Profile POI `osm-fsq` đã phát hành và nghiệm thu production.**
   Registry có profile thứ sáu `osm-fsq` ánh xạ `osm,fsq`; API style/TileJSON, Web/React/React
   Native SDK, Playground (selector/URL/snippet), benchmark và tài liệu đều dùng cùng contract.
   `all` vẫn là mặc định, tổ hợp `osm,overture` vẫn không có archive, POI người dùng luôn được giữ.
   TDD RED ghi nhận 5 lỗi đúng contract cũ; GREEN: focused 120 test, API Worker 24 test, full root
   80 file/960 test + API 25 file/177 test, API PostgreSQL 3 file/52 test, pipeline container 10
   file/68 test với 12 archive fixture (6 profile × 2 snapshot), browser E2E 30/30, lint 332 file,
-  typecheck 14/14 và workspace build 8/8. Dry-run `poi:profile --profiles osm-fsq` tạo một
-  snapshot, export/QA/upload/smoke rồi mới ghi manifest. Lần chạy DB trên host thất bại vì thiếu
-  `tippecanoe`; chạy lại trong image pipeline đã xanh, không phải lỗi code. Không capture màn hình
-  theo yêu cầu. **Bắt đầu tiếp:** commit/push source, deploy API/docs, chạy batch thật
-  `pnpm poi:profile --profiles osm-fsq`, rồi nghiệm thu production và ghi evidence.
+  typecheck 14/14 và workspace build 8/8. Lần chạy DB trên host thất bại vì thiếu `tippecanoe`;
+  chạy lại trong image pipeline đã xanh, không phải lỗi code. Source `5a16951` đã push; API Worker
+  version `c4b6a18d-ef29-4df2-ace9-6a66249adac6` và Docs deployment `1bee6441` đã deploy trực tiếp.
+  Trước manifest, API trả `all;fallback` đúng contract. Batch production build
+  `20260909-105543-b198022f` chụp snapshot 1.515.984 dòng, SHA-256 `2ac7bbd…8d4`, xuất 88.378 POI
+  thành archive 25.447.237 byte, SHA-256 `c4a35ba…5300`; QA, upload và remote smoke 18 tile đạt rồi
+  manifest mới được cập nhật. Light/dark, TileJSON z10–16, Range 206, search/nearby/reverse/
+  autocomplete, detail không lọc và Playground public đều đạt; selector có 6 profile, URL/snippet
+  đồng bộ, console/HTTP error 0. Warm p95 `osm,fsq` và `all` cùng 155 ms; cold p95 báo riêng
+  1.773/1.991 ms. Không capture màn hình theo yêu cầu. GitHub Actions của `5a16951` vẫn fail trước
+  mọi step vì payment/spending limit, không phải test failure; full local gates và deploy trực tiếp
+  là bằng chứng phát hành hiện tại. Evidence:
+  `docs/evidence/poi-sources/nghiem-thu-osm-fsq-production.md`. **Bắt đầu tiếp:** xử lý GitHub
+  `Billing & plans`, rerun 5 workflow theo SHA source/evidence và xác nhận green; không cần publish
+  lại archive/manifest.
 
 - **08/09/2026 — Đã duyệt spec và viết plan mở rộng ba profile POI, chờ chọn cách thực thi.**
   Profile mới là `overture-fsq`, `overture`, `fsq`; cả ba vẫn giữ POI người dùng, `all` tiếp tục
