@@ -1,14 +1,13 @@
 import { existsSync, readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
-
-const packageDirs = ['packages/core', 'packages/web', 'packages/react', 'packages/react-native'];
+import { SDK_PACKAGE_DIRS } from './npm-sdk-release.mjs';
 
 /** @param {string} path */
 const readJson = (path) => JSON.parse(readFileSync(path, 'utf8'));
 
 describe('npm release contract', () => {
   it('mọi gói SDK public đều có README trong tarball', () => {
-    for (const dir of packageDirs) {
+    for (const dir of SDK_PACKAGE_DIRS) {
       const manifest = readJson(`${dir}/package.json`);
       expect(existsSync(`${dir}/README.md`), `${dir}/README.md`).toBe(true);
       expect(manifest.files, `${dir}/package.json files`).toContain('README.md');

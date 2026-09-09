@@ -5,6 +5,18 @@ commit với code).
 
 ## 1. Trạng thái hiện tại
 
+- **09/09/2026 — Một lệnh phát hành toàn bộ SDK npm.** Root có `pnpm sdk:publish`: chạy lint,
+  typecheck, test, build, dry-run đủ bốn package rồi publish tuần tự core → web → react →
+  react-native với public access và git checks trên nhánh main. Có thể chạy
+  `pnpm sdk:publish --dry-run` để dừng trước publish thật. Danh sách tập trung tại
+  `SDK_PACKAGE_DIRS`; khi thêm SDK npm mới (Kotlin, Swift hoặc ngôn ngữ khác), bắt buộc thêm SDK đó
+  vào danh sách theo dependency order để lệnh tổng và release-contract test cùng bao phủ. Lệnh tự
+  chặn package public mới chưa được phân loại; `@mapslibvn/style` là ngoại lệ nội bộ khai báo rõ.
+  Không publish lại 0.4.0 trong task này. TDD 9 test release + 2 test package contract xanh; typecheck
+  14/14, root 82 file/977 test + API 27 file/186 test và workspace build 8/8 xanh; dry-run tarball
+  riêng cả bốn package đạt. Sau khi sửa hai lỗi format backup có sẵn, chính lệnh tổng
+  `pnpm sdk:publish --dry-run` đã chạy end-to-end thành công; không package nào được publish thật.
+
 - **09/09/2026 — Bốn package SDK 0.4.0 đã public thành công lên npm.** Đã nâng MapLibre GL JS
   từ 5.24.0 lên 6.8.0; peer Web/React chặn mọi bản trước `6.4.1`, là bản vá tối thiểu cho
   `GHSA-jrc7-96c5-q579`. Source và snippet dùng namespace import ESM của v6. UMD giữ API một script

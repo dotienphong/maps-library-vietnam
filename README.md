@@ -26,6 +26,31 @@ pnpm dev
 `pnpm dev` chạy các app trong monorepo ở chế độ phát triển. Nhấn `Ctrl+C` để
 dừng; khi không dùng database nữa, chạy `pnpm db:down`.
 
+## Phát hành toàn bộ SDK lên npm
+
+Kiểm tra trước mà không publish:
+
+```bash
+pnpm sdk:publish --dry-run
+```
+
+Sau khi đã bump cùng version cho bốn SDK và đăng nhập npm, phát hành bằng đúng
+một lệnh:
+
+```bash
+pnpm sdk:publish
+```
+
+Lệnh chạy lint, typecheck, test, build và dry-run toàn bộ package trước khi
+publish tuần tự core → web → react → react-native với public access.
+
+> Khi thêm SDK npm mới (Kotlin, Swift hoặc ngôn ngữ khác), bắt buộc thêm thư mục
+> của SDK vào `SDK_PACKAGE_DIRS` trong `scripts/lib/npm-sdk-release.mjs` theo
+> dependency order. Đây là source of truth của `pnpm sdk:publish` và release
+> contract test; không được publish SDK mới bằng một lệnh rời rồi bỏ sót lệnh tổng.
+> Lệnh sẽ tự dừng nếu phát hiện package public mới chưa được phân loại. `@mapslibvn/style`
+> hiện là ngoại lệ nội bộ có tên rõ trong `NON_SDK_PACKAGE_DIRS`.
+
 ## Cập nhật dữ liệu bản đồ và POI
 
 Nên kiểm tra trước xem OSM, Overture hoặc Foursquare có phiên bản mới hay không:
