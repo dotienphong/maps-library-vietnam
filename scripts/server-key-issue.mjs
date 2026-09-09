@@ -1,8 +1,8 @@
 #!/usr/bin/env node
-// Chỉ áp migration lên DB máy chủ (superuser, trong image pipeline) — KHÔNG pull/up như server:update,
-// nên không chạm tới container postgres đang phục vụ. Dùng khi migration phải đi TRƯỚC deploy Worker.
-// Mount db/ của working tree vào container: image có thể cũ hơn repo (09/09: 0011 vừa viết chưa có
-// trong image nên `run` báo "Không có migration mới").
+// Cấp API key trên DB MÁY CHỦ (superuser, trong image pipeline). Tham số y như scripts/api-key-issue.mjs:
+//   node scripts/server-key-issue.mjs --tenant <uuid> --label "..." --kind web|mobile|server \
+//     [--origins http://a,https://*.b] [--scopes places:read,edits:write]
+// Khoá in đúng một lần — lưu vào password manager. DB chỉ giữ sha256 + tiền tố.
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { run } from './lib/run.mjs';
@@ -15,14 +15,12 @@ run('docker', [
   ...compose,
   'run',
   '--rm',
-  '-v',
-  `${resolve('db')}:/app/db:ro`,
   '-e',
   'POSTGRES_USER=mapslibvn',
   '-e',
   `POSTGRES_PASSWORD=${env.POSTGRES_SUPER_PASSWORD}`,
   'pipeline',
   'node',
-  'scripts/db-migrate.mjs',
+  'scripts/api-key-issue.mjs',
+  ...process.argv.slice(2),
 ]);
-console.log('✔ server:migrate xong');

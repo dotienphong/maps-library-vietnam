@@ -24,7 +24,7 @@ Người thực hiện: Claude (Fable 5.1) theo yêu cầu PHONG; PHONG duyệt 
 - Thêm `BACKUP_PASSPHRASE` (48 ký tự) vào `infra/server/.env`. `BACKUP_BUCKET` để comment cho tới khi token S3 có quyền trên bucket mới.
 - Build lại image `mapslibvn/pipeline:local` (có backup.mjs mới). Container `backup` **chưa** recreate.
 - Áp migration 0010 lên dev và production (PHONG chạy `node scripts/server-migrate.mjs`). Worker mới deploy thủ công bằng wrangler (Actions bị chặn billing). Bản backup mã hoá đầu tiên `mapslibvn-20260909-2109.dump.zst.enc` đã giải mã + `zstd -t` OK; URL công khai 403.
-- Đã thu hồi 4 khoá plaintext cũ (server, freetest, embed-web, embed-rn); chỉ demo (chỉ đọc) còn active. **Khoá mới CHƯA cấp** tại thời điểm ghi — bước D.2.
+- Đã thu hồi 4 khoá plaintext cũ (server, freetest, embed-web, embed-rn); cấp 3 khoá mới (server nội bộ, embed-web, embed-rn); demo chỉ đọc. Migration 0011 đã áp: DB không còn cột `key`.
 - Đã xoá bản dump plaintext tạm trên máy dev.
 
 ## 3. Thay đổi code (commit kèm file này)
@@ -74,7 +74,7 @@ $ISSUE --tenant 00000000-0000-4000-8000-000000000002 --label "embed-rn thử đ�
 # thu hồi khoá cũ (mọi khoá còn cột key plaintext, trừ demo):
 $C exec -T postgres psql -U mapslibvn -d mapslibvn -c "UPDATE api_key SET active=false, revoked_at=now() WHERE key IS NOT NULL AND key <> 'mlv_live_demo00000000000000000000' AND active"
 ```
-**D.3 đã chạy 09/09 (khoá cũ đã thu hồi); D.2 (cấp khoá mới) chưa.** Sau D.2: áp migration `0011_api_key_drop_plain.sql` (đã có trong repo) bằng `node scripts/server-migrate.mjs` → `/healthz/db` báo 0011.
+**D ĐÃ XONG 09/09 ~21:45:** 3 khoá mới cấp bằng `node scripts/server-key-issue.mjs …`, khoá cũ thu hồi, `.env` máy dev cập nhật; migration 0011 đã áp (`/healthz/db` = 0011) — bảng `api_key` không còn cột `key`.
 
 **E. Backup mã hoá + bucket riêng:**
 1. Cloudflare → R2 → Manage API tokens → token S3 mà máy chủ đang dùng (`RCLONE_CONFIG_R2_ACCESS_KEY_ID` trong `infra/server/.env`) → sửa scope thêm bucket `mapslibvn-backups` (Object Read & Write). Hoặc tạo token mới và thay hai biến RCLONE.
@@ -86,5 +86,7 @@ $C exec -T postgres psql -U mapslibvn -d mapslibvn -c "UPDATE api_key SET active
 **F. Cloudflare — ĐÃ LÀM qua API 09/09:** Access app `MapsLibVN Admin` SameSite=Lax; WAF custom rule (ruleset version 34) Block
 `(http.host eq "tiles.ai-solutions.io.vn" and (starts_with(http.request.uri.path, "/backups/") or starts_with(http.request.uri.path, "/state/")))`
 — `HEAD /backups/…` giờ trả 403 dù object còn.
+
+**Còn lại duy nhất: bước E** (token S3 cho bucket `mapslibvn-backups`, bật `BACKUP_BUCKET`, recreate backup).
 
 **G. Cân nhắc:** xoay `API_PASSWORD`/`PIPELINE_PASSWORD` (pg_dump không chứa mật khẩu role và DB chỉ tới được qua Tunnel + service token, nên không bắt buộc); bật `QUOTA_ENABLED=1` trên production.
