@@ -87,6 +87,6 @@ $C exec -T postgres psql -U mapslibvn -d mapslibvn -c "UPDATE api_key SET active
 `(http.host eq "tiles.ai-solutions.io.vn" and (starts_with(http.request.uri.path, "/backups/") or starts_with(http.request.uri.path, "/state/")))`
 — `HEAD /backups/…` giờ trả 403 dù object còn.
 
-**Còn lại duy nhất: bước E** (token S3 cho bucket `mapslibvn-backups`, bật `BACKUP_BUCKET`, recreate backup).
+**Bước E, 09/09 ~22:00, không cần dashboard:** khoá S3 suy từ `CLOUDFLARE_API_TOKEN` của máy chủ (id token + sha256) đọc/ghi được cả hai bucket (đã thử trong container). File mã hoá 21:09 đã `rclone moveto` sang `mapslibvn-backups/backups/daily/`; bucket tiles không còn `backups/`. Việc còn lại PHONG chạy: `node scripts/server-r2-creds.mjs` (thay `RCLONE_CONFIG_R2_*`, giữ giá trị cũ dạng comment `OLD_`, bật `BACKUP_BUCKET`) → `up -d --force-recreate --no-deps backup pipeline` → `backup.mjs --once` → `rclone lsf r2:mapslibvn-backups/backups/daily`. Ghi chú: bản upload plaintext 20:30 vào bucket riêng bằng wrangler đã KHÔNG thành công (file quá lớn), và bản tạm trên máy dev đã xoá — bản backup còn lại là file mã hoá. Token S3 cũ (chỉ bucket tiles) nên xoá trên dashboard khi tiện.
 
 **G. Cân nhắc:** xoay `API_PASSWORD`/`PIPELINE_PASSWORD` (pg_dump không chứa mật khẩu role và DB chỉ tới được qua Tunnel + service token, nên không bắt buộc); bật `QUOTA_ENABLED=1` trên production.

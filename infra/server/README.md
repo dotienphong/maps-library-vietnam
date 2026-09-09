@@ -51,7 +51,9 @@ pnpm server:setup
   tải được không cần xác thực. Nay: (1) object luôn mã hoá AES-256 bằng `BACKUP_PASSPHRASE` trong
   `infra/server/.env` — mất passphrase là mất backup, lưu vào password manager; (2) ghi vào bucket riêng
   `BACKUP_BUCKET=mapslibvn-backups`, KHÔNG gắn custom domain. Token S3 (`RCLONE_CONFIG_R2_*`) phải có quyền
-  Object Read & Write trên cả hai bucket (R2 → Manage API tokens → sửa bucket scope). Chưa đặt `BACKUP_BUCKET`
+  Object Read & Write trên cả hai bucket. Cách nhanh không cần dashboard: khoá S3 của R2 suy được từ một API token có
+  quyền R2 — `ACCESS_KEY_ID` = `id` trong `GET /user/tokens/verify`, `SECRET_ACCESS_KEY` = `sha256(token)` hex; máy chủ
+  đang dùng khoá suy từ `CLOUDFLARE_API_TOKEN` (R2 Edit toàn tài khoản) từ 09/09/2026. Chưa đặt `BACKUP_BUCKET`
   thì script vẫn ghi vào bucket tiles kèm cảnh báo — chỉ tạm chấp nhận vì file đã mã hoá.
 - Cron: `docker compose … logs pipeline | tail -2` → dòng `[cron] <job> kế tiếp <ISO> (thứ Hai HH:MM VN)`
   cho job gần nhất trong hai job: `data:update` 02:00 và `report:weekly` 08:00 (giờ VN).
