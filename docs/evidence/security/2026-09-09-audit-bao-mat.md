@@ -7,10 +7,10 @@ Người thực hiện: Claude (Fable 5.1) theo yêu cầu PHONG; PHONG duyệt 
 | # | Mức | Phát hiện | Trạng thái |
 |---|---|---|---|
 | 1 | **Nghiêm trọng** | pg_dump production (superuser, ~948 MB) tải được công khai qua `https://tiles.ai-solutions.io.vn/backups/daily/mapslibvn-YYYYMMDD-0300.dump.zst` — backup ghi vào bucket `mapslibvn-tiles` có custom domain; tên file suy từ ngày. Dump chứa `api_key` plaintext, `tenant`, `poi_edit`. | **Đã chặn**: xoá cả 8 object (7 daily + 1 weekly) khỏi bucket công khai lúc 20:30 09/09; bản mới nhất đã chuyển vào bucket riêng `mapslibvn-backups` (không domain). Code: backup mã hoá AES-256 + bucket riêng (mục 3). |
-| 2 | **Nghiêm trọng** | Khoá demo công khai `mlv_live_demo…` (kind web, tenant `internal`) có `edits:write` → ai cũng POST `/v1/edits` từ curl (không Origin thì cho qua) và edit **tự duyệt ngay** (plan internal). Khoá `mlv_live_server000…` cố định trong seed (đoán được) cũng vậy. | Code + seed đã sửa. **DB production chưa sửa** — lệnh ở mục 4 bước A. |
+| 2 | **Nghiêm trọng** | Khoá demo công khai `mlv_live_demo…` (kind web, tenant `internal`) có `edits:write` → ai cũng POST `/v1/edits` từ curl (không Origin thì cho qua) và edit **tự duyệt ngay** (plan internal). Khoá `mlv_live_server000…` cố định trong seed (đoán được) cũng vậy. | **Đã sửa trên DB production 09/09 (bước A)**: demo chỉ `places:read`; `server000…`, `freetest…` đã thu hồi. |
 | 3 | Cao | Khoá API lưu plaintext trong `api_key.key` và `poi_edit.api_key` → lộ DB = lộ toàn bộ khoá (đã xảy ra ở #1). | Migration 0010 chuyển sang `sha256`; Worker băm rồi tra. Cần áp migration TRƯỚC khi deploy. |
 | 4 | Trung bình | Đồng thuận (2 end-user cùng thay đổi → tự duyệt) giả được vì `end_user_token` do client tự đặt. | Chỉ tính phiếu từ tenant khác. |
-| 5 | Trung bình | POST `/v1/admin/*` không chống CSRF; Access app chưa đặt SameSite cho cookie. | Worker chặn `Sec-Fetch-Site: cross-site`/`Origin` lạ. Access SameSite=Lax: việc tay (mục 4 bước F). |
+| 5 | Trung bình | POST `/v1/admin/*` không chống CSRF; Access app chưa đặt SameSite cho cookie. | Worker chặn `Sec-Fetch-Site: cross-site`/`Origin` lạ. Access app đã đặt SameSite=Lax qua API 09/09. |
 | 6 | Thấp | Khoá nhận qua `?key=`; khoá thô ghi vào Analytics Engine; KV cache theo khoá thô. | Chỉ nhận header; analytics/KV/quota dùng hash. |
 | 7 | Thấp | `/healthz/db` lộ user DB, phiên bản PG, tên migration. | Giữ (đang dùng để đối chiếu sau deploy). |
 
@@ -42,7 +42,7 @@ Người thực hiện: Claude (Fable 5.1) theo yêu cầu PHONG; PHONG duyệt 
 C="docker compose --env-file infra/server/.env -f infra/server/compose.yml"
 ```
 
-**A. Vá DB production ngay (chưa cần code mới):**
+**A. Vá DB production — ĐÃ CHẠY 09/09 (giữ lại để tham chiếu):**
 ```bash
 $C exec -T postgres psql -U mapslibvn -d mapslibvn -v ON_ERROR_STOP=1 \
   -c "UPDATE api_key SET scopes='{places:read}' WHERE key='mlv_live_demo00000000000000000000'" \
@@ -50,7 +50,8 @@ $C exec -T postgres psql -U mapslibvn -d mapslibvn -v ON_ERROR_STOP=1 \
 ```
 (KV cache khoá 5 phút — hiệu lực sau ≤ 5 phút.)
 
-**B. Áp migration 0010 (cộng thêm cột, Worker cũ vẫn chạy):**
+**B. Áp migration 0010 (cộng thêm cột, Worker cũ vẫn chạy)** — hoặc gọn hơn: `node scripts/server-migrate.mjs`
+(chỉ migrate, không pull/up như `server:update`):
 ```bash
 { cat db/migrations/0010_api_key_hash.sql; echo "INSERT INTO schema_migrations (name) VALUES ('0010_api_key_hash.sql');"; } \
   | $C exec -T postgres psql -U mapslibvn -d mapslibvn -v ON_ERROR_STOP=1 -1
@@ -80,10 +81,8 @@ Sau đó thêm migration `0011_api_key_drop_plain.sql` (`ALTER TABLE api_key DRO
 4. Thử restore theo `infra/server/README.md` mục Kiểm tra (đã cập nhật lệnh giải mã).
 5. Xoá bản dump plaintext tạm trên máy dev: `rm /private/tmp/claude-502/*/c800d017-*/scratchpad/mapslibvn-20260909-0300.dump.zst`.
 
-**F. Cloudflare dashboard (không làm được qua API bằng phiên hiện tại):**
-- Zero Trust → Access → Applications → `MapsLibVN Admin` → Settings → Cookie → **SameSite = Lax**.
-- WAF (zone ai-solutions.io.vn) → Custom rules → thêm rule Block:
-  `(http.host eq "tiles.ai-solutions.io.vn" and (starts_with(http.request.uri.path, "/backups/") or starts_with(http.request.uri.path, "/state/")))`
-  — phòng khi còn/thêm object không phải tiles trong bucket public.
+**F. Cloudflare — ĐÃ LÀM qua API 09/09:** Access app `MapsLibVN Admin` SameSite=Lax; WAF custom rule (ruleset version 34) Block
+`(http.host eq "tiles.ai-solutions.io.vn" and (starts_with(http.request.uri.path, "/backups/") or starts_with(http.request.uri.path, "/state/")))`
+— `HEAD /backups/…` giờ trả 403 dù object còn.
 
 **G. Cân nhắc:** xoay `API_PASSWORD`/`PIPELINE_PASSWORD` (pg_dump không chứa mật khẩu role và DB chỉ tới được qua Tunnel + service token, nên không bắt buộc); bật `QUOTA_ENABLED=1` trên production.
