@@ -32,10 +32,7 @@ export const plainName = (name) => name.replace(/\.enc$/, '');
  * @param {string} outFile đường dẫn file .dump.zst.enc
  */
 export function dumpCommand(outFile) {
-  return (
-    'pg_dump -Fc --no-owner --no-privileges "$DATABASE_URL" | zstd -T0 -3 -q | ' +
-    `openssl enc -aes-256-cbc -pbkdf2 -iter 600000 -salt -pass env:BACKUP_PASSPHRASE -out "${outFile}"`
-  );
+  return `pg_dump -Fc --no-owner --no-privileges "$DATABASE_URL" | zstd -T0 -3 -q | openssl enc -aes-256-cbc -pbkdf2 -iter 600000 -salt -pass env:BACKUP_PASSPHRASE -out "${outFile}"`;
 }
 
 /** Lệnh sh giải mã file .enc về .dump.zst. @param {string} encFile @param {string} outFile */

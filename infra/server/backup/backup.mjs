@@ -23,8 +23,7 @@ import { nextRun } from '../../../scripts/lib/schedule.mjs';
 const { bucket, shared } = backupBucket(process.env);
 if (shared) {
   console.warn(
-    `[backup] CẢNH BÁO: BACKUP_BUCKET chưa đặt — backup ghi vào ${bucket} (bucket tiles có custom domain). ` +
-      'Chỉ tạm chấp nhận vì object đã mã hoá; tạo bucket riêng + token S3 có quyền trên nó rồi đặt BACKUP_BUCKET.',
+    `[backup] CẢNH BÁO: BACKUP_BUCKET chưa đặt — backup ghi vào ${bucket} (bucket tiles có custom domain). Chỉ tạm chấp nhận vì object đã mã hoá; tạo bucket riêng + token S3 có quyền trên nó rồi đặt BACKUP_BUCKET.`,
   );
 }
 const work = process.env.MAPSLIBVN_WORK ?? resolve('work');
