@@ -473,12 +473,12 @@ Style MapLibre của MapsLibVN, đã điền sẵn URL bộ tiles hiện hành.
 | Tham số | Kiểu | Bắt buộc | Mặc định | Khoảng |
 |---|---|---|---|---|
 | `theme` | chuỗi trong đường dẫn | có | — | `light` hoặc `dark` |
-| `sources` | chuỗi truy vấn | không | `all` | `osm,overture,fsq` (`all`), `osm`, `overture,fsq`, `overture` hoặc `fsq`; tổ hợp khác trả `400 invalid_request` |
+| `sources` | chuỗi truy vấn | không | `all` | `osm,overture,fsq` (`all`), `osm`, `osm,fsq`, `overture,fsq`, `overture` hoặc `fsq`; tổ hợp khác trả `400 invalid_request` |
 
 Tên khác trả `404 not_found`. Cache 1 giờ. Route này **không kiểm khoá API**, nhưng SDK vẫn gắn `?key=` vào URL style để hành vi không đổi khi việc kiểm được bật về sau — đừng dựa vào việc endpoint hiện đang mở.
 
-Header `x-poi-profile` cho biết archive đang phục vụ: `all`, `osm`, `overture-fsq`, `overture` hoặc
-`fsq`. Nếu archive của profile hợp lệ chưa phát hành, header là `all;fallback` và API tạm dùng
+Header `x-poi-profile` cho biết archive đang phục vụ: `all`, `osm`, `osm-fsq`, `overture-fsq`,
+`overture` hoặc `fsq`. Nếu archive của profile hợp lệ chưa phát hành, header là `all;fallback` và API tạm dùng
 archive đầy đủ thay vì trả lỗi. POI do người dùng đóng góp luôn được giữ trong mọi profile.
 
 Khi bộ tiles POI chưa phát hành, nguồn và lớp `poi` bị lược khỏi style để MapLibre không tải một file rỗng.

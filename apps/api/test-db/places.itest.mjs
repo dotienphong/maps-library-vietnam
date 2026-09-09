@@ -238,9 +238,11 @@ describe('thang geocode và các route còn lại', () => {
     const selected =
       profile === 'all'
         ? ['osm', 'overture', 'fsq']
-        : profile === 'overture,fsq'
-          ? ['overture', 'fsq']
-          : [profile];
+        : profile === 'osm,fsq'
+          ? ['osm', 'fsq']
+          : profile === 'overture,fsq'
+            ? ['overture', 'fsq']
+            : [profile];
     const included = [...selected.map((source) => fixture[source]), fixture.user];
     const excluded = ['osm', 'overture', 'fsq']
       .filter((source) => !selected.includes(source))
@@ -251,8 +253,8 @@ describe('thang geocode và các route còn lại', () => {
   it.each([
     ['search', `/v1/search?q=${enc('r5 profile alpha')}&limit=50`],
     ['nearby', '/v1/nearby?lat=11&lng=107&radius=100'],
-  ])('%s lọc đúng ID theo đủ năm profile và luôn giữ user', async (_route, path) => {
-    for (const profile of ['all', 'osm', 'overture,fsq', 'overture', 'fsq']) {
+  ])('%s lọc đúng ID theo đủ sáu profile và luôn giữ user', async (_route, path) => {
+    for (const profile of ['all', 'osm', 'osm,fsq', 'overture,fsq', 'overture', 'fsq']) {
       const actual = ids(await get(`${path}&sources=${profile}`));
       const expected = expectedIdsFor(profile);
       expectProfile(actual, expected.included, expected.excluded);
@@ -262,17 +264,20 @@ describe('thang geocode và các route còn lại', () => {
   it('reverse chọn lại nearest_poi sau khi lọc nguồn, user vẫn đủ điều kiện', async () => {
     const all = await get('/v1/reverse?lat=11&lng=107&sources=all');
     const osm = await get('/v1/reverse?lat=11&lng=107&sources=osm');
+    const osmFsq = await get('/v1/reverse?lat=11&lng=107&sources=osm,fsq');
     const overtureFsq = await get('/v1/reverse?lat=11&lng=107&sources=overture,fsq');
     const overture = await get('/v1/reverse?lat=11&lng=107&sources=overture');
     const fsq = await get('/v1/reverse?lat=11&lng=107&sources=fsq');
     expect(all.body.nearest_poi.id).toBe(sourceIds.overture);
     expect(osm.body.nearest_poi.id).toBe(sourceIds.osm);
+    expect(osmFsq.body.nearest_poi.id).toBe(sourceIds.osm);
     expect(overtureFsq.body.nearest_poi.id).toBe(sourceIds.overture);
     expect(overture.body.nearest_poi.id).toBe(sourceIds.overture);
     expect(fsq.body.nearest_poi.id).toBe(sourceIds.fsq);
   });
 
   it.each([
+    ['alpha', 'osm', 'osm,fsq'],
     ['alpha', 'overture', 'fsq'],
     ['beta', 'fsq', 'overture,fsq'],
   ])('autocomplete cache tách profile theo chiều %s: %s → %s', async (query, first, second) => {

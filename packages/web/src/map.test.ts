@@ -112,6 +112,15 @@ describe('createMap', () => {
     expect(m.places.styleUrl('dark')).toContain('sources=overture%2Cfsq');
   });
 
+  it('profile OSM + Foursquare đi vào map style và client Places', () => {
+    const { ml } = fakeMaplibre();
+    const m = createMap({ ...base, poiSources: ['fsq', 'osm'] }, { maplibre: ml as never });
+    expect((m.gl as unknown as { options: Record<string, unknown> }).options.style).toContain(
+      'sources=osm%2Cfsq',
+    );
+    expect(m.places.styleUrl('dark')).toContain('sources=osm%2Cfsq');
+  });
+
   it('style là URL tuỳ biến thì giữ nguyên', () => {
     const { ml } = fakeMaplibre();
     const m = createMap({ ...base, style: 'https://x/style.json' }, { maplibre: ml as never });

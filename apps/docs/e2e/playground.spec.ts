@@ -177,9 +177,10 @@ test('Nguồn POI mới đồng bộ selector, URL, snippet và style request', 
     unexpectedErrors.push(`${response.status()} ${url.pathname}`);
   });
   await page.goto('/playground.html');
-  await expect(page.locator('#f-sources option')).toHaveCount(5);
+  await expect(page.locator('#f-sources option')).toHaveCount(6);
 
   for (const [profile, sources, snippet] of [
+    ['osm-fsq', 'osm,fsq', "poiSources: ['osm', 'fsq']"],
     ['overture-fsq', 'overture,fsq', "poiSources: ['overture', 'fsq']"],
     ['overture', 'overture', "poiSources: ['overture']"],
     ['fsq', 'fsq', "poiSources: ['fsq']"],

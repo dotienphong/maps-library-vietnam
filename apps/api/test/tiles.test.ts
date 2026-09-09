@@ -39,6 +39,7 @@ describe('tiles fallback khi chưa có dữ liệu', () => {
   });
 
   it.each([
+    ['poi-osm-fsq', 'osm-fsq', 'poi-osm-fsq-20260909'],
     ['poi-overture-fsq', 'overture-fsq', 'poi-overture-fsq-20260909'],
     ['poi-overture', 'overture', 'poi-overture-20260909'],
     ['poi-fsq', 'fsq', 'poi-fsq-20260909'],

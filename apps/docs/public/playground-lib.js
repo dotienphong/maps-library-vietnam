@@ -33,6 +33,7 @@ const LANGS = ['vi', 'en'];
 export const POI_PROFILE_SOURCES = {
   all: ['osm', 'overture', 'fsq'],
   osm: ['osm'],
+  'osm-fsq': ['osm', 'fsq'],
   'overture-fsq': ['overture', 'fsq'],
   overture: ['overture'],
   fsq: ['fsq'],
@@ -60,7 +61,7 @@ function profileForSources(raw) {
  * @property {string} style `light` hoặc `dark`.
  * @property {string} lang `vi` hoặc `en`.
  * @property {boolean} poi Bật lớp POI.
- * @property {'all' | 'osm' | 'overture-fsq' | 'overture' | 'fsq'} sources Profile nguồn POI.
+ * @property {'all' | 'osm' | 'osm-fsq' | 'overture-fsq' | 'overture' | 'fsq'} sources Profile nguồn POI.
  * @property {boolean} compact Attribution gọn.
  * @property {[number, number]} center Tâm bản đồ `[lng, lat]`.
  * @property {number} zoom Mức zoom.

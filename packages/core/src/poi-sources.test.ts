@@ -16,14 +16,16 @@ describe('poi-sources', () => {
     expect(POI_SOURCE_PROFILES.osm).toEqual(['osm']);
   });
 
-  it('có đủ năm profile archive và suy ra đúng tập nguồn', () => {
+  it('có đủ sáu profile archive và suy ra đúng tập nguồn', () => {
     expect(POI_SOURCE_PROFILES).toEqual({
       all: ['osm', 'overture', 'fsq'],
       osm: ['osm'],
+      'osm-fsq': ['osm', 'fsq'],
       'overture-fsq': ['overture', 'fsq'],
       overture: ['overture'],
       fsq: ['fsq'],
     });
+    expect(profileForSources(['fsq', 'osm'])).toBe('osm-fsq');
     expect(profileForSources(['fsq', 'overture'])).toBe('overture-fsq');
     expect(profileForSources(['overture'])).toBe('overture');
     expect(profileForSources(['fsq'])).toBe('fsq');
@@ -52,6 +54,7 @@ describe('poi-sources', () => {
   it('profileForSources: chỉ tập có archive mới có profile', () => {
     expect(profileForSources(['osm'])).toBe('osm');
     expect(profileForSources(['fsq', 'overture', 'osm'])).toBe('all');
+    expect(profileForSources(['osm', 'fsq'])).toBe('osm-fsq');
     expect(profileForSources(['osm', 'overture'])).toBeNull();
   });
 

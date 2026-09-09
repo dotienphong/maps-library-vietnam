@@ -8,6 +8,7 @@ export type PoiSource = (typeof POI_SOURCES)[number];
 export const POI_SOURCE_PROFILES = {
   all: ['osm', 'overture', 'fsq'],
   osm: ['osm'],
+  'osm-fsq': ['osm', 'fsq'],
   'overture-fsq': ['overture', 'fsq'],
   overture: ['overture'],
   fsq: ['fsq'],

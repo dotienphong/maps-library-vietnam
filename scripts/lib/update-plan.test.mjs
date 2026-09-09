@@ -157,6 +157,7 @@ describe('POI release transaction', () => {
     releases: {
       all: 'poi-20260908-120000-abcd',
       osm: 'poi-osm-20260908-120000-abcd',
+      'osm-fsq': 'poi-osm-fsq-20260908-120000-abcd',
       'overture-fsq': 'poi-overture-fsq-20260908-120000-abcd',
       overture: 'poi-overture-20260908-120000-abcd',
       fsq: 'poi-fsq-20260908-120000-abcd',
@@ -201,17 +202,17 @@ describe('POI release transaction', () => {
     return { external, oldChecksums, execute };
   };
 
-  it('dựng đủ năm profile từ cùng snapshot và chỉ commit manifest ở bước cuối', () => {
+  it('dựng đủ sáu profile từ cùng snapshot và chỉ commit manifest ở bước cuối', () => {
     const steps = poiReleaseSteps(releaseInput);
-    expect(steps.filter((step) => step.id.startsWith('export-'))).toHaveLength(5);
-    expect(steps.filter((step) => step.id.startsWith('qa-'))).toHaveLength(5);
-    expect(steps.filter((step) => step.id.startsWith('upload-'))).toHaveLength(5);
-    expect(steps.filter((step) => step.id.startsWith('smoke-'))).toHaveLength(5);
+    expect(steps.filter((step) => step.id.startsWith('export-'))).toHaveLength(6);
+    expect(steps.filter((step) => step.id.startsWith('qa-'))).toHaveLength(6);
+    expect(steps.filter((step) => step.id.startsWith('upload-'))).toHaveLength(6);
+    expect(steps.filter((step) => step.id.startsWith('smoke-'))).toHaveLength(6);
     expect(steps.at(-1)?.id).toBe('manifest');
     expect(
       steps.filter((step) => step.id.startsWith('export-')).map((step) => step.args.slice(-4)),
     ).toEqual(
-      Array(5).fill(['--snapshot', releaseInput.snapshot, '--build-id', releaseInput.buildId]),
+      Array(6).fill(['--snapshot', releaseInput.snapshot, '--build-id', releaseInput.buildId]),
     );
   });
 

@@ -143,7 +143,7 @@ if (work.poi) {
     if (!release) throw new Error('Không tạo được release POI profile all');
     const snapshot = `${WORK}/poi/snapshot-${poiReleases.buildId}.jsonl`;
     run('node', ['pipelines/poi/src/export-snapshot.mjs', '--build-id', poiReleases.buildId]);
-    // Manifest là bước commit cuối: mọi export/QA/upload/smoke phải xanh cho cả năm profile.
+    // Manifest là bước commit cuối: mọi export/QA/upload/smoke phải xanh cho mọi profile registry.
     runPoiReleaseSteps(
       poiReleaseSteps({
         releases: poiReleases.releases,

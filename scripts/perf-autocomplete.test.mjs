@@ -319,6 +319,9 @@ describe('parseCliArgs', () => {
   });
 
   it('chuẩn hóa thứ tự, bỏ trùng và từ chối source ngoài registry', () => {
+    expect(parseCliArgs(['https://a', 'k', '--paired-sources', 'fsq,osm,fsq']).pairedSources).toBe(
+      'osm,fsq',
+    );
     expect(
       parseCliArgs(['https://a', 'k', '--paired-sources', 'fsq,overture,fsq']).pairedSources,
     ).toBe('overture,fsq');

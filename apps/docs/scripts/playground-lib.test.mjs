@@ -60,6 +60,7 @@ describe('parseState', () => {
   });
 
   it.each([
+    ['?sources=osm,fsq', 'osm-fsq', "poiSources: ['osm', 'fsq']"],
     ['?sources=overture,fsq', 'overture-fsq', "poiSources: ['overture', 'fsq']"],
     ['?sources=overture', 'overture', "poiSources: ['overture']"],
     ['?sources=fsq', 'fsq', "poiSources: ['fsq']"],
@@ -67,7 +68,7 @@ describe('parseState', () => {
     const state = parseState(search, API);
     expect(state.sources).toBe(profile);
     expect(toSearchParams(state, API).get('sources')).toBe(
-      profile === 'overture-fsq' ? 'overture,fsq' : profile,
+      profile === 'osm-fsq' ? 'osm,fsq' : profile === 'overture-fsq' ? 'overture,fsq' : profile,
     );
     expect(buildSnippet(state, 'script')).toContain(snippet);
   });

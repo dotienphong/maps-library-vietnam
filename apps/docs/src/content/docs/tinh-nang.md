@@ -46,10 +46,11 @@ Search/Nearby. Biểu tượng chọn theo nhóm.
 
 Mã `code` dùng trực tiếp làm tham số `category` của `/v1/search` và `/v1/nearby`.
 
-Mặc định bản đồ và Places API dùng **cả ba nguồn** (`all`). Năm profile là `all`
-(`osm,overture,fsq`), `osm`, `overture-fsq` (`overture,fsq`), `overture` và `fsq`. Trong SDK, ba
-profile mới lần lượt là `poiSources: ['overture','fsq']`, `['overture']`, `['fsq']`; REST dùng
-`sources=overture,fsq`, `sources=overture`, `sources=fsq`. Lớp POI cho từng tập nguồn được build
+Mặc định bản đồ và Places API dùng **cả ba nguồn** (`all`). Sáu profile là `all`
+(`osm,overture,fsq`), `osm`, `osm-fsq` (`osm,fsq`), `overture-fsq` (`overture,fsq`), `overture` và
+`fsq`. Trong SDK, các profile riêng dùng `poiSources: ['osm','fsq']`, `['overture','fsq']`,
+`['overture']`, `['fsq']`; REST dùng `sources=osm,fsq`, `sources=overture,fsq`, `sources=overture`,
+`sources=fsq`. Lớp POI cho từng tập nguồn được build
 thành archive riêng nên mật độ hiển thị luôn đúng, không có lỗ trống. Nếu archive hợp lệ chưa có,
 style fallback về `all` và báo `x-poi-profile: all;fallback`. POI người dùng luôn được giữ;
 `GET /v1/places/{id}` không lọc theo profile.

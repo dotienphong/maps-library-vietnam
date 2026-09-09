@@ -57,7 +57,7 @@ Props nhận **toàn bộ `CreateMapOptions` trừ `container`**, cộng năm pr
 | `zoom` | `number` | `12` | — |
 | `lang` | `'vi' \| 'en'` | `'vi'` | — |
 | `poiLayer` | `boolean` | `true` | — |
-| `poiSources` | `PoiSource[]` | cả ba (`all`) | Năm profile: cả ba, `['osm']`, `['overture','fsq']`, `['overture']`, `['fsq']`. Đổi prop là tạo lại map |
+| `poiSources` | `PoiSource[]` | cả ba (`all`) | Sáu profile: cả ba, `['osm']`, `['osm','fsq']`, `['overture','fsq']`, `['overture']`, `['fsq']`. Đổi prop là tạo lại map |
 | `compactAttribution` | `boolean` | `false` | — |
 | `className` | `string` | — | class của khung bao |
 | `containerStyle` | `CSSProperties` | — | CSS của khung bao. Đây mới là chỗ đặt kiểu, vì `style` đã mang nghĩa theme |
@@ -68,9 +68,10 @@ Props nhận **toàn bộ `CreateMapOptions` trừ `container`**, cộng năm pr
 Khung bao mặc định `width: 100%; height: 100%; position: relative`, nên **phần tử cha phải có chiều
 cao thật**. `containerStyle` ghi đè được cả `position`.
 
-Ba profile mới dùng trực tiếp trên component:
+Các profile riêng dùng trực tiếp trên component:
 
 ```tsx
+<MapsLibVNMap poiSources={['osm', 'fsq']} {...props} />
 <MapsLibVNMap poiSources={['overture', 'fsq']} {...props} />
 <MapsLibVNMap poiSources={['overture']} {...props} />
 <MapsLibVNMap poiSources={['fsq']} {...props} />

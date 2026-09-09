@@ -5,6 +5,19 @@ commit với code).
 
 ## 1. Trạng thái hiện tại
 
+- **09/09/2026 — Profile POI `osm-fsq` đã hoàn tất source và local gates, chờ phát hành production.**
+  Registry có profile thứ sáu `osm-fsq` ánh xạ `osm,fsq`; API style/TileJSON, Web/React/React
+  Native SDK, Playground (selector/URL/snippet), benchmark và tài liệu đều dùng cùng contract.
+  `all` vẫn là mặc định, tổ hợp `osm,overture` vẫn không có archive, POI người dùng luôn được giữ.
+  TDD RED ghi nhận 5 lỗi đúng contract cũ; GREEN: focused 120 test, API Worker 24 test, full root
+  80 file/960 test + API 25 file/177 test, API PostgreSQL 3 file/52 test, pipeline container 10
+  file/68 test với 12 archive fixture (6 profile × 2 snapshot), browser E2E 30/30, lint 332 file,
+  typecheck 14/14 và workspace build 8/8. Dry-run `poi:profile --profiles osm-fsq` tạo một
+  snapshot, export/QA/upload/smoke rồi mới ghi manifest. Lần chạy DB trên host thất bại vì thiếu
+  `tippecanoe`; chạy lại trong image pipeline đã xanh, không phải lỗi code. Không capture màn hình
+  theo yêu cầu. **Bắt đầu tiếp:** commit/push source, deploy API/docs, chạy batch thật
+  `pnpm poi:profile --profiles osm-fsq`, rồi nghiệm thu production và ghi evidence.
+
 - **08/09/2026 — Đã duyệt spec và viết plan mở rộng ba profile POI, chờ chọn cách thực thi.**
   Profile mới là `overture-fsq`, `overture`, `fsq`; cả ba vẫn giữ POI người dùng, `all` tiếp tục
   mặc định và `all`/`osm` production hiện tại không bị thay thế trong bootstrap. Thiết kế chọn

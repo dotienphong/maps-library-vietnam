@@ -127,6 +127,7 @@ describe('createClient', () => {
   });
 
   it.each([
+    [['fsq', 'osm'], 'osm,fsq'],
     [['fsq', 'overture'], 'overture,fsq'],
     [['overture'], 'overture'],
     [['fsq'], 'fsq'],

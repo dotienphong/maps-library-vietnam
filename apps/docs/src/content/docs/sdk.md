@@ -29,10 +29,12 @@ chạy không phải sửa gì. Mới:
   `POI_SOURCE_PROFILES`, `DEFAULT_POI_SOURCES`, `normalizePoiSources`, `parsePoiSourcesCsv`,
   `poiSourcesKey`, `profileForSources`, `poiSourceClause`.
 
-Năm profile là mặc định cả ba (`all`), `['osm']`, `['overture','fsq']`, `['overture']` và `['fsq']`.
-Ba cấu hình mới dùng cùng contract trên cả bốn SDK:
+Sáu profile là mặc định cả ba (`all`), `['osm']`, `['osm','fsq']`, `['overture','fsq']`,
+`['overture']` và `['fsq']`.
+Các cấu hình riêng dùng cùng contract trên cả bốn SDK:
 
 ```ts
+poiSources: ['osm', 'fsq'];
 poiSources: ['overture', 'fsq'];
 poiSources: ['overture'];
 poiSources: ['fsq'];
@@ -90,7 +92,7 @@ const client = createClient({
 | `baseUrl` | `string` | bắt buộc | dấu `/` ở cuối được cắt bỏ |
 | `fetch` | `typeof fetch` | `globalThis.fetch` | tiêm fetch riêng cho test hoặc môi trường không có fetch toàn cục |
 | `headers` | `Record<string, string>` | `{}` | header thêm cho mọi request, ví dụ `X-Bundle-Id` với khoá `mobile`; **không ghi đè được** `X-Api-Key` |
-| `poiSources` | `PoiSource[]` | cả ba nguồn (`all`) | nhận năm profile nêu trên; áp cho autocomplete/search/nearby/reverse và URL style; `getPlace`/geocode không lọc |
+| `poiSources` | `PoiSource[]` | cả ba nguồn (`all`) | nhận sáu profile nêu trên; áp cho autocomplete/search/nearby/reverse và URL style; `getPlace`/geocode không lọc |
 
 ### Phương thức client ứng với endpoint nào
 

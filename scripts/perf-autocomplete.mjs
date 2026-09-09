@@ -16,7 +16,7 @@ const QUERIES = [
 ];
 
 const POI_SOURCE_ORDER = ['osm', 'overture', 'fsq'];
-const PAIRED_SOURCE_PROFILES = new Set(['osm', 'overture,fsq', 'overture', 'fsq']);
+const PAIRED_SOURCE_PROFILES = new Set(['osm', 'osm,fsq', 'overture,fsq', 'overture', 'fsq']);
 
 /** @param {string} raw */
 function normalizePairedSources(raw) {
@@ -330,7 +330,7 @@ if (isMain) {
   } = parseCliArgs(process.argv.slice(2));
   if (!base || !key) {
     console.error(
-      'Cách dùng: node scripts/perf-autocomplete.mjs <base-url> <api-key> [--queries scripts/fixtures/fuzzy-queries.txt] [--types poi,street,address] [--paired | --paired-sources [osm|overture,fsq|overture|fsq] [--rounds N]] [--near lat,lng]',
+      'Cách dùng: node scripts/perf-autocomplete.mjs <base-url> <api-key> [--queries scripts/fixtures/fuzzy-queries.txt] [--types poi,street,address] [--paired | --paired-sources [osm|osm,fsq|overture,fsq|overture|fsq] [--rounds N]] [--near lat,lng]',
     );
     process.exitCode = 1;
   } else {

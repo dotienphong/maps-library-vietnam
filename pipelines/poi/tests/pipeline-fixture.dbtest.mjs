@@ -20,6 +20,7 @@ const NEXT_SNAPSHOT_BUILD_ID = `${SNAPSHOT_BUILD_ID}-next`;
 const PROFILE_FIXTURES = [
   ['poi-fixture', 'all'],
   ['poi-osm-fixture', 'osm'],
+  ['poi-osm-fsq-fixture', 'osm-fsq'],
   ['poi-overture-fsq-fixture', 'overture-fsq'],
   ['poi-overture-fixture', 'overture'],
   ['poi-fsq-fixture', 'fsq'],
@@ -180,7 +181,7 @@ describe('pipeline POI trọn vòng trên fixture', () => {
     });
   });
 
-  it('năm profile chỉ xuất đúng nguồn cho phép và luôn giữ POI user không cạnh tranh', async () => {
+  it('sáu profile chỉ xuất đúng nguồn cho phép và luôn giữ POI user không cạnh tranh', async () => {
     const readIds = (/** @type {string} */ release) =>
       new Set(
         readFileSync(resolve(WORK, 'poi', `${release}.geojsonseq`), 'utf8')
@@ -193,6 +194,7 @@ describe('pipeline POI trọn vòng trên fixture', () => {
     const sourceSets = {
       all: new Set(['osm', 'overture', 'fsq']),
       osm: new Set(['osm']),
+      'osm-fsq': new Set(['osm', 'fsq']),
       'overture-fsq': new Set(['overture', 'fsq']),
       overture: new Set(['overture']),
       fsq: new Set(['fsq']),
@@ -264,7 +266,7 @@ describe('pipeline POI trọn vòng trên fixture', () => {
     }
   });
 
-  it('năm profile giữ nguyên snapshot DB và chỉ nhận bản ghi mới ở build kế tiếp', () => {
+  it('sáu profile giữ nguyên snapshot DB và chỉ nhận bản ghi mới ở build kế tiếp', () => {
     const readIds = (/** @type {string} */ release) =>
       new Set(
         readFileSync(resolve(WORK, 'poi', `${release}.geojsonseq`), 'utf8')

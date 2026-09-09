@@ -35,11 +35,17 @@ describe('MapsLibVNMap', () => {
     await waitFor(() => expect(createMapMock).toHaveBeenCalledTimes(1));
     expect(createMapMock.mock.calls[0]?.[0]).toMatchObject({ poiSources: ['fsq'] });
 
+    rerender(<MapsLibVNMap apiKey="k" apiBase="https://api.test" poiSources={['osm', 'fsq']} />);
+    await waitFor(() => expect(createMapMock).toHaveBeenCalledTimes(2));
+    expect(createMapMock.mock.calls[1]?.[0]).toMatchObject({
+      poiSources: ['osm', 'fsq'],
+    });
+
     rerender(
       <MapsLibVNMap apiKey="k" apiBase="https://api.test" poiSources={['overture', 'fsq']} />,
     );
-    await waitFor(() => expect(createMapMock).toHaveBeenCalledTimes(2));
-    expect(createMapMock.mock.calls[1]?.[0]).toMatchObject({
+    await waitFor(() => expect(createMapMock).toHaveBeenCalledTimes(3));
+    expect(createMapMock.mock.calls[2]?.[0]).toMatchObject({
       poiSources: ['overture', 'fsq'],
     });
   });

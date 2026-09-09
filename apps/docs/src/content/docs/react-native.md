@@ -69,10 +69,11 @@ cây con của `<MapsLibVNMap>` (tự lấy client) hoặc truyền `client` ri�
 (không phải con của nó) nằm ngoài context: hãy giữ `MapHandle` mà `onLoad` trả về rồi truyền
 `client={map?.places}`, nếu không hook im lặng trả mảng rỗng.
 
-`poiSources` có đúng năm profile: mặc định cả ba (`all`), `['osm']`, `['overture','fsq']`,
-`['overture']` và `['fsq']`. Ba profile mới:
+`poiSources` có đúng sáu profile: mặc định cả ba (`all`), `['osm']`, `['osm','fsq']`,
+`['overture','fsq']`, `['overture']` và `['fsq']`. Các profile riêng:
 
 ```tsx
+<MapsLibVNMap poiSources={['osm', 'fsq']} {...props} />
 <MapsLibVNMap poiSources={['overture', 'fsq']} {...props} />
 <MapsLibVNMap poiSources={['overture']} {...props} />
 <MapsLibVNMap poiSources={['fsq']} {...props} />

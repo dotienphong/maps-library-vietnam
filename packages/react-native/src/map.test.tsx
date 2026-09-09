@@ -36,6 +36,8 @@ describe('MapsLibVNMap', () => {
     const { rerender } = render(<MapsLibVNMap {...base} poiSources={['fsq']} />);
     expect(screen.getByTestId('mlrn-map').dataset.style).toContain('sources=fsq');
     expect(screen.getByTestId('mlrn-map').dataset.style).not.toContain('overture');
+    rerender(<MapsLibVNMap {...base} poiSources={['osm', 'fsq']} />);
+    expect(screen.getByTestId('mlrn-map').dataset.style).toContain('sources=osm%2Cfsq');
     const onLoad = vi.fn();
     rerender(<MapsLibVNMap {...base} poiSources={['overture', 'fsq']} onLoad={onLoad} />);
     expect(screen.getByTestId('mlrn-map').dataset.style).toContain('sources=overture%2Cfsq');

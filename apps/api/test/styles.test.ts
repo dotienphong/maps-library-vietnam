@@ -109,6 +109,7 @@ describe('GET /v1/styles/:theme.json', () => {
   });
 
   it.each([
+    ['osm,fsq', 'osm-fsq', 'poi-osm-fsq-20260909'],
     ['overture,fsq', 'overture-fsq', 'poi-overture-fsq-20260909'],
     ['overture', 'overture', 'poi-overture-20260909'],
     ['fsq', 'fsq', 'poi-fsq-20260909'],
