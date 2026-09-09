@@ -19,8 +19,9 @@ commit với code).
   Commit lint `0086df6` và code `dc74e4c` đã push lên `origin/main`. Năm workflow của `dc74e4c`
   (Deploy API `34360198254`, API DB `34360197895`, DB tests `34360197857`, CI `34360197918`,
   Deploy Docs `34360197873`) đều bị GitHub chặn trước mọi step vì account payment/spending limit,
-  không phải test failure. **Bắt đầu tiếp:** xử lý GitHub Billing & plans rồi rerun năm workflow;
-  không cần publish lại npm 0.4.0.
+  không phải test failure. Rerun attempt 2 của cả năm vẫn fail với `steps: []`; CI checkpoint
+  `162313e` (`34360492628`) cũng bị chặn tương tự. **Bắt đầu tiếp:** xử lý GitHub Billing & plans
+  rồi rerun năm workflow; không cần publish lại npm 0.4.0.
 
 - **09/09/2026 — Bốn package SDK 0.4.0 đã public thành công lên npm.** Đã nâng MapLibre GL JS
   từ 5.24.0 lên 6.8.0; peer Web/React chặn mọi bản trước `6.4.1`, là bản vá tối thiểu cho
