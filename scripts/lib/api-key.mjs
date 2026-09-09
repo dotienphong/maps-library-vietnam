@@ -2,7 +2,7 @@ import { createHash, randomBytes } from 'node:crypto';
 
 const ALPHABET = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz';
 const KEY_LEN = 24;
-/** Ràng buộc CHECK của api_key.key (db/migrations/0005_tenant.sql). */
+/** Dạng khoá cấp ra (từ 0010 DB chỉ lưu sha256 + key_prefix, xem db/migrations/0010_api_key_hash.sql). */
 export const KEY_RE = /^mlv_live_[0-9A-Za-z]{24}$/;
 export const KINDS = ['web', 'mobile', 'server'];
 
