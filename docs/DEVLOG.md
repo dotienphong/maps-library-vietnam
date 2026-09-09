@@ -54,6 +54,19 @@ commit với code).
   test trong 584,89s; build workspace 8/8 task. **Archive, manifest và production chưa được phát
   hành ở checkpoint này. Bắt đầu tiếp:** Task 10, chạy dry-run rồi bootstrap batch thật
   `overture-fsq,overture,fsq`.
+  **Task 10 runtime production ĐẠT, CI còn chờ xác minh:** source `7de6953` đã push; API deploy trực
+  tiếp Worker version `d4004b85-a6de-4180-b729-c0a2448943f3`, Docs deployment `ae4a40e6` và health
+  xanh. Batch chung build `20260909-074253-c3f26595`, snapshot 1.515.984 dòng, phát hành nguyên tử
+  ba release; manifest, checksum/byte size, smoke archive, style light/dark, bốn Places route và
+  detail không lọc đều đạt. Browser public không dùng `?api=` dev override đạt 45/45 ảnh (3 profile
+  × 5 thành phố × z12/14/16), header đúng, Range 206, console/HTTP error 0. Warm p95 lần lượt
+  88/67/89 ms so với `all` 95/65/89 ms; cold p95 được báo riêng 2.889/2.974/1.607 ms. Rollback
+  history từng thiếu checksum companion cho `poi-20260904` và `poi-osm-20260907`; đã băm object R2,
+  chỉ thêm hai companion và helper xác minh đạt, không đổi archive/manifest, không gọi rollback.
+  Evidence: `docs/evidence/poi-sources/nghiem-thu-overture-fsq-production.md`. **Chưa đóng toàn bộ
+  Task 10:** `gh auth` hết hạn và repo private nên chưa query được CI của SHA source/evidence;
+  production được deploy trực tiếp và nghiệm thu, nhưng không gọi CI green. **Bắt đầu tiếp:** chạy
+  verification/commit/push evidence, sau đó đăng nhập lại `gh` và query workflows theo SHA cuối.
 
 - **08/09/2026 — Mở lại gate POI Sources Profile sau review.** Tính năng đã rollout
   ngày 07/09, nhưng kết luận plan hoàn tất 15/15 và tick đồng loạt 76 bước là quá sớm.

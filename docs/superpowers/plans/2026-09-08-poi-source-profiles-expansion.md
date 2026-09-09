@@ -750,14 +750,14 @@ pnpm --filter @mapslibvn/docs exec wrangler pages deploy dist --project-name map
 
 Không gọi CI green khi không truy vấn được hoặc không có job chạy.
 
-- [ ] **Step 3: Xác nhận code fallback đã lên production trước dữ liệu**
+- [x] **Step 3: Xác nhận code fallback đã lên production trước dữ liệu**
 
 Run: `curl -sS -D /tmp/poi-fsq-before.headers 'https://api.ai-solutions.io.vn/v1/styles/light.json?sources=fsq' -o /tmp/poi-fsq-before.json`
 
 Expected: HTTP 200 và `x-poi-profile: all;fallback`. Nếu production chưa nhận profile, dừng trước
 build/publish manifest và sửa deploy.
 
-- [ ] **Step 4: Build và publish batch thật**
+- [x] **Step 4: Build và publish batch thật**
 
 Run: `pnpm poi:profile --profiles overture-fsq,overture,fsq`
 
@@ -765,7 +765,7 @@ Expected: một snapshot/checksum; từng profile export, QA, upload, smoke thà
 một lần cuối. Lưu stdout đầy đủ vào evidence bằng cách sao chép số liệu sau khi lệnh kết thúc, không
 redirect log có thể chứa thông tin nhạy cảm.
 
-- [ ] **Step 5: Xác minh manifest, checksum và archive**
+- [x] **Step 5: Xác minh manifest, checksum và archive**
 
 Run: `docker compose --env-file .env -f infra/dev/compose.yml --profile pipeline run --rm pipeline node pipelines/tiles/src/manifest.mjs get`
 
@@ -775,7 +775,7 @@ Run: `docker compose --env-file .env -f infra/dev/compose.yml --profile pipeline
 `rclone cat` đọc checksum và xác thực regex 64 hex, dùng `rclone size` ghi byte size. Không in access
 key/token.
 
-- [ ] **Step 6: Smoke API/style và partition production**
+- [x] **Step 6: Smoke API/style và partition production**
 
 Run style light/dark với `sources=overture%2Cfsq`, `sources=overture`, `sources=fsq`. Mỗi response
 phải HTTP 200, header đúng profile và body trỏ đúng release manifest.
@@ -784,7 +784,7 @@ Run search/nearby/reverse/autocomplete bằng API demo cho từng profile; với
 `primary_source` thuộc tập được chọn hoặc record là POI user. Kiểm một ID qua `/v1/places/{id}` vẫn
 mở được bất kể profile.
 
-- [ ] **Step 7: Nghiệm thu browser 5 thành phố**
+- [x] **Step 7: Nghiệm thu browser 5 thành phố**
 
 Mở public playground không dùng `?api=` dev override. Với từng profile mới, kiểm Hà Nội, Hải Phòng,
 Đà Nẵng, TP.HCM, Cần Thơ tại z12/14/16; lưu screenshot vào
@@ -792,7 +792,7 @@ Mở public playground không dùng `?api=` dev override. Với từng profile m
 `2026-09-09-overture-hcm-z12.png` (đổi ba phần profile, thành phố và zoom tương ứng). Ghi request style/tile,
 header profile và console; không chấp nhận console error.
 
-- [ ] **Step 8: Đo autocomplete cold/warm riêng**
+- [x] **Step 8: Đo autocomplete cold/warm riêng**
 
 Run ba lệnh, dùng API key từ biến shell đã nạp an toàn từ `.env` mà không in giá trị:
 
@@ -805,13 +805,13 @@ node scripts/perf-autocomplete.mjs https://api.ai-solutions.io.vn "$MAPSLIBVN_AP
 Lưu raw JSON; báo riêng cold và warm. Mỗi warm p95 profile mới phải không chậm hơn `all` quá 50 ms;
 nếu vượt, chưa đóng acceptance.
 
-- [ ] **Step 9: Kiểm rollback target read-only**
+- [x] **Step 9: Kiểm rollback target read-only**
 
 Dùng output `manifest.mjs get` lấy history đầu, chạy helper `verifyRollbackArchives` hoặc lệnh
 read-only tương đương để xác minh mọi target có archive/checksum. Không gọi `data:rollback` khi
 production đang đúng.
 
-- [ ] **Step 10: Ghi evidence và DEVLOG**
+- [x] **Step 10: Ghi evidence và DEVLOG**
 
 Evidence phải có commit SHA, CI/deploy state, release IDs, checksum, byte size, selected/thinned,
 smoke count, style/API results, browser matrix, cold/warm benchmark, rollback verification và mọi
