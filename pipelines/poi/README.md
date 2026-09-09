@@ -9,8 +9,8 @@ Chạy trong image (`PIPE pipeline …`, xem plan M2). Mọi bước idempotent:
   PMTiles/QA/upload/smoke/manifest/report. Ngoài máy chủ, lệnh mở Cloudflare Access
   Tunnel khi có `DB_TUNNEL_HOSTNAME` và `PIPELINE_DATABASE_URL`.
 - `pnpm db:fixture`: nạp toàn pipeline fixture Quận 1 vào DB dev.
-- `pnpm test:db`: tự tạo lại DB local cô lập `mapslibvn_task8_test`; không sửa DB dev
-  `mapslibvn`. Cần image pipeline vì test dùng osmium/tippecanoe.
+- `pnpm test:db`: tự chạy trong image pipeline rồi tạo lại DB local cô lập
+  `mapslibvn_task8_test`; không sửa DB dev `mapslibvn`. Image cung cấp osmium/tippecanoe.
 
 | Bước | Lệnh | Đầu vào → đầu ra |
 |---|---|---|

@@ -75,10 +75,17 @@ describe('migration 0008 admin old', () => {
         env: process.env,
         encoding: 'utf8',
       });
-    // 0009 nằm trên 0008, mà `--down` chỉ revert ĐÚNG MỘT migration cuối. Phải hạ 0009 trước mới
-    // tới được down của 0008 — đó mới là cái test này kiểm.
-    const first = down();
-    expect(first.status, `hạ 0009 phải thành công: ${first.stdout}${first.stderr}`).toBe(0);
+    // `--down` chỉ revert ĐÚNG MỘT migration cuối. Hạ mọi migration mới hơn 0008 trước để test
+    // vẫn chạm đúng 0008 khi schema có thêm migration trong tương lai.
+    const newer = await sql`SELECT name FROM schema_migrations
+      WHERE name > '0008_admin_old.sql' ORDER BY name DESC`;
+    for (const migration of newer) {
+      const step = down();
+      expect(
+        step.status,
+        `hạ ${migration.name} phải thành công: ${step.stdout}${step.stderr}`,
+      ).toBe(0);
+    }
     try {
       const result = down();
       expect(result.status).not.toBe(0);

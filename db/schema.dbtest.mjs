@@ -97,7 +97,7 @@ describe('lược đồ spec 5.2', () => {
     }
   });
 
-  it('ràng buộc: status, created_by, plan, api_key format', async () => {
+  it('ràng buộc: status, created_by, plan, api_key hash format', async () => {
     await expect(
       sql`INSERT INTO poi (id, name, name_norm, geom, status, created_by)
           VALUES ('x', 'A', 'a', ST_SetSRID(ST_MakePoint(106.7, 10.77), 4326), 'weird', 'pipeline')`,
@@ -107,8 +107,14 @@ describe('lược đồ spec 5.2', () => {
     );
     const [t] = await sql`INSERT INTO tenant (name, plan) VALUES ('t', 'internal') RETURNING id`;
     await expect(
-      sql`INSERT INTO api_key (key, tenant_id, kind) VALUES ('bad', ${t.id}, 'web')`,
-    ).rejects.toThrow(/api_key_key_check/);
+      sql`INSERT INTO api_key (key_hash, key_prefix, tenant_id, kind)
+          VALUES ('bad', 'mlv_live_12345678', ${t.id}, 'web')`,
+    ).rejects.toThrow(/api_key_key_hash_chk/);
+    const columns = (
+      await sql`SELECT column_name FROM information_schema.columns
+        WHERE table_schema = 'public' AND table_name = 'api_key'`
+    ).map((row) => row.column_name);
+    expect(columns).not.toContain('key');
     await sql`DELETE FROM tenant WHERE id = ${t.id}`;
   });
 
@@ -207,7 +213,7 @@ describe('lược đồ spec 5.2', () => {
   });
 
   it('--down revert từng migration rồi migrate lại về đủ bảng', async () => {
-    // 0002…0009: tám migration sau 0001; 0008 chỉ down khi dữ liệu alias còn 1–1.
+    // 0008 chỉ down khi dữ liệu alias còn 1–1.
     // Các file DB chạy tuần tự nhưng dùng chung DB; geocode có thể đã publish cạnh 1–n hợp lệ.
     // Test từ chối mất dữ liệu 1–n nằm ở admin-old.dbtest, còn test vòng đời này cần fixture 1–1.
     await sql.unsafe(`WITH ranked AS (
@@ -216,7 +222,9 @@ describe('lược đồ spec 5.2', () => {
       ) position FROM admin_alias
     ) DELETE FROM admin_alias target USING ranked
       WHERE target.ctid=ranked.ctid AND ranked.position>1`);
-    for (let i = 0; i < 8; i++) migrate('--down');
+    const applied =
+      await sql`SELECT name FROM schema_migrations WHERE name <> '0001_extensions.sql'`;
+    for (const _migration of applied) migrate('--down');
     expect(await tables()).toEqual(['schema_migrations']);
     expect((await sql`SELECT name FROM schema_migrations`).map((r) => r.name)).toEqual([
       '0001_extensions.sql',

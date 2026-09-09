@@ -1,7 +1,8 @@
 // Toàn chuỗi trên fixture Quận 1 → poi hợp lý, poi.pmtiles sinh ra và qua QA. Chạy trong image.
 import 'dotenv/config';
 import { execFileSync } from 'node:child_process';
-import { existsSync, readFileSync, statSync } from 'node:fs';
+import { randomUUID } from 'node:crypto';
+import { existsSync, readFileSync, rmSync, statSync } from 'node:fs';
 import { resolve } from 'node:path';
 import postgres from 'postgres';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
@@ -15,7 +16,8 @@ const LATE_USER_POI_ID = 'USERPOI0000000000000000002';
 const THIN_ALL_WINNER_ID = 'THINOVERTURE000000000000001';
 const THIN_OSM_WINNER_ID = 'THINOSM00000000000000000001';
 const THIN_USER_ID = 'THINUSER0000000000000000001';
-const SNAPSHOT_BUILD_ID = `fixture-${process.pid}`;
+// /app/work là Docker volume bền vững và PID container có thể lặp lại giữa các lần chạy.
+const SNAPSHOT_BUILD_ID = `fixture-${randomUUID()}`;
 const NEXT_SNAPSHOT_BUILD_ID = `${SNAPSHOT_BUILD_ID}-next`;
 const PROFILE_FIXTURES = [
   ['poi-fixture', 'all'],
@@ -97,7 +99,11 @@ beforeAll(async () => {
   }
   node('pipelines/poi/src/report.mjs');
 });
-afterAll(() => sql.end());
+afterAll(async () => {
+  await sql.end();
+  rmSync(snapshotFile(SNAPSHOT_BUILD_ID), { force: true });
+  rmSync(snapshotFile(NEXT_SNAPSHOT_BUILD_ID), { force: true });
+});
 
 describe('pipeline POI trọn vòng trên fixture', () => {
   it('số POI active hợp lý so với record nguồn, ≥ 90 % không rơi vào bare other', async () => {

@@ -4,6 +4,25 @@ import { spawnSync } from 'node:child_process';
 import postgres from 'postgres';
 import { DBTEST_DATABASE, isolatedDbUrl } from './lib/db-test.mjs';
 import { databaseUrlFromEnv } from './lib/migrations.mjs';
+import { run } from './lib/run.mjs';
+
+if (process.env.MAPSLIBVN_IN_CONTAINER !== '1') {
+  run('docker', [
+    'compose',
+    '--env-file',
+    '.env',
+    '-f',
+    'infra/dev/compose.yml',
+    '--profile',
+    'pipeline',
+    'run',
+    '--rm',
+    'pipeline',
+    'pnpm',
+    'test:db',
+  ]);
+  process.exit(0);
+}
 
 const target = isolatedDbUrl(databaseUrlFromEnv(process.env));
 const admin = new URL(target);
