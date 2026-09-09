@@ -8,18 +8,16 @@ tenant và một plan. Trang này nói khoá hoạt động thế nào và làm 
 
 ## 1. Cách truyền khoá
 
-Hai cách, chọn một:
+Một cách duy nhất — header:
 
 ```bash
-# header (khuyến nghị)
 curl -H "X-Api-Key: mlv_live_…" "https://api.ai-solutions.io.vn/v1/search?q=cà+phê"
-
-# query string — dùng khi không đặt được header (thẻ <img>, style URL của MapLibre)
-curl "https://api.ai-solutions.io.vn/v1/search?q=cà+phê&key=mlv_live_…"
 ```
 
-Máy chủ đọc header `X-Api-Key` trước; không có thì đọc `?key=`. Thiếu cả hai trả
-`401 missing_key`. Khoá sai hoặc đã thu hồi trả `401 invalid_key`.
+Máy chủ chỉ đọc header `X-Api-Key`; từ 09/09/2026 **không** còn nhận `?key=` trên URL của route có
+kiểm khoá (khoá trên URL lọt vào log, `Referer`, cache). Thiếu header trả `401 missing_key`. Khoá sai
+hoặc đã thu hồi trả `401 invalid_key`. Phía máy chủ chỉ lưu `sha256(khoá)`: khoá gốc được in đúng
+một lần khi cấp, mất là phải cấp lại.
 
 SDK tự làm việc này: `createClient({ apiKey, baseUrl })` gắn header `X-Api-Key` vào mọi request, còn
 URL style bản đồ thì gắn `?key=` vì MapLibre tải style bằng `fetch` riêng.
@@ -49,8 +47,10 @@ Máy chủ lấy header `Origin`, không có thì lấy `Referer`, rồi so vớ
 - Wildcard subdomain `https://*.vidu.vn` khớp `https://app.vidu.vn`, `https://a.b.vidu.vn` và khớp
   **cả** `https://vidu.vn`.
 - `allowed_origins` rỗng nghĩa là không giới hạn origin.
-- **Không có `Origin` lẫn `Referer` thì cho qua.** Đây là chủ ý của giai đoạn MVP (`curl` và gọi
-  từ máy chủ vẫn chạy được), sẽ siết lại khi mở cho developer bên ngoài.
+- Request **đọc** không có `Origin` lẫn `Referer` thì cho qua (chủ ý giai đoạn MVP: `curl` và gọi
+  từ máy chủ vẫn chạy được). Request **ghi** (`POST /v1/edits`, scope `edits:write`) thì bắt buộc
+  có `Origin`/`Referer` hợp lệ, thiếu trả `403 origin_required` — khoá web nằm trong HTML nên ai
+  cũng lấy được, không thể cho gửi edit từ máy lạ.
 
 Không khớp thì trả `403 origin_not_allowed`. Trên trình duyệt lỗi này hiện ra dưới dạng bản đồ
 trắng và một dòng đỏ trong console — xem [Cài đặt](/cai-dat/) mục 5.
@@ -94,7 +94,8 @@ Vượt hạn mức trả `429 quota_exceeded` kèm header `retry-after: 3600`. 
 mlv_live_demo00000000000000000000
 ```
 
-Đây là khoá `kind=web` của tenant nội bộ, có cả `places:read` và `edits:write`, `allowed_origins`:
+Đây là khoá `kind=web` của tenant nội bộ, **chỉ đọc** (`places:read`; từ 09/09/2026 không còn
+`edits:write` — thử đóng góp thì xin khoá riêng ở mục 7), `allowed_origins`:
 
 | Origin cho phép | Ghi chú |
 |---|---|

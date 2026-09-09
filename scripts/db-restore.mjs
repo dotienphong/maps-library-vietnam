@@ -2,9 +2,15 @@
 // Phục hồi DB từ backup R2. Dùng: pnpm db:restore --latest | --file <tên.dump.zst> [--yes].
 // Ngoài container: tự chạy trong image (pg_restore, zstd, rclone). Chỉ DB local nếu không có --yes.
 import 'dotenv/config';
-import { execFileSync } from 'node:child_process';
+import { execFileSync, spawnSync } from 'node:child_process';
 import { mkdirSync, rmSync } from 'node:fs';
 import { basename, resolve } from 'node:path';
+import {
+  backupBucket,
+  decryptCommand,
+  plainName,
+  requireBackupPassphrase,
+} from './lib/backup-plan.mjs';
 import { databaseUrlFromEnv } from './lib/migrations.mjs';
 import { run } from './lib/run.mjs';
 
@@ -23,7 +29,7 @@ if (process.env.MAPSLIBVN_IN_CONTAINER !== '1') {
   process.exit(0);
 }
 
-const bucket = process.env.R2_BUCKET ?? 'mapslibvn-tiles';
+const { bucket } = backupBucket(process.env);
 const url = databaseUrlFromEnv(process.env);
 const host = new URL(url).hostname;
 if (!['localhost', '127.0.0.1', 'postgres'].includes(host) && !argv.includes('--yes')) {
@@ -49,16 +55,27 @@ if (argv.includes('--latest') || !argv.includes('--file')) {
     .at(-1);
   if (!name) throw new Error('Không có backup nào trong backups/daily');
 }
-if (!name || name !== basename(name) || !name.endsWith('.dump.zst')) {
+if (!name || name !== basename(name) || !/\.dump\.zst(\.enc)?$/.test(name)) {
   throw new Error(`Tên backup không hợp lệ: ${name}`);
 }
 
 const work = resolve(process.env.MAPSLIBVN_WORK ?? 'work', 'restore');
 mkdirSync(work, { recursive: true });
-const zst = resolve(work, name);
+const downloaded = resolve(work, name);
+const zst = resolve(work, plainName(name));
 const dump = zst.replace(/\.zst$/, '');
 console.log(`Tải ${name} …`);
-run('rclone', ['copyto', `r2:${bucket}/backups/daily/${name}`, zst]);
+run('rclone', ['copyto', `r2:${bucket}/backups/daily/${name}`, downloaded]);
+if (name.endsWith('.enc')) {
+  // Backup từ 09/09/2026 là AES-256; passphrase nằm trong infra/server/.env (BACKUP_PASSPHRASE).
+  const passphrase = requireBackupPassphrase(process.env);
+  const dec = spawnSync('sh', ['-c', decryptCommand(downloaded, zst)], {
+    stdio: 'inherit',
+    env: { ...process.env, BACKUP_PASSPHRASE: passphrase },
+  });
+  if (dec.status !== 0)
+    throw new Error(`openssl giải mã thoát mã ${dec.status} — sai BACKUP_PASSPHRASE?`);
+}
 run('zstd', ['-d', '-f', '-q', zst, '-o', dump]);
 
 // Restore vào DB mới rồi đổi tên: DB đang phục vụ không bị bỏ trống nếu restore lỗi giữa chừng.

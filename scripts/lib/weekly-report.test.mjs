@@ -69,6 +69,8 @@ describe('maskKey', () => {
   it('giữ tiền tố + 4 đầu + 4 cuối', () => {
     expect(maskKey('mlv_live_demo00000000000000000000')).toBe('mlv_live_demo…0000');
     expect(maskKey('anon')).toBe('anon');
+    // Từ 09/09/2026 analytics ghi sha256(khoá): rút còn 8 hex đầu cho báo cáo đọc được.
+    expect(maskKey('a'.repeat(64))).toBe('aaaaaaaa…');
     expect(maskKey('')).toBe('(không key)');
   });
 });

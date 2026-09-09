@@ -62,8 +62,9 @@ if (!noDb) {
     for (const t of await sql`SELECT id::text AS id, name FROM tenant`) {
       labels.tenants[t.id] = t.name;
     }
-    for (const k of await sql`SELECT key, coalesce(label, '') AS label FROM api_key`) {
-      labels.keys[k.key] = k.label;
+    // Analytics ghi sha256(khoá); nhãn hiển thị = tiền tố nhận diện + label (audit 09/09/2026).
+    for (const k of await sql`SELECT key_hash, key_prefix, coalesce(label, '') AS label FROM api_key`) {
+      labels.keys[k.key_hash] = `${k.key_prefix}… ${k.label}`.trim();
     }
   } catch (e) {
     console.warn(

@@ -1,23 +1,12 @@
-import { SELF, env } from 'cloudflare:test';
+import { SELF } from 'cloudflare:test';
 import { beforeAll, describe, expect, it } from 'vitest';
+import type { AuthInfo } from '../src/auth';
 import { autocompleteCacheUrl } from '../src/routes/autocomplete';
+import { seedKey as seedHashedKey } from './helpers/seed-key';
 
 // Khoá giả nạp thẳng vào KV cache của auth — tầng test này không có Postgres.
 const KEY = 'mlv_live_test00000000000000000000';
-const seedKey = (overrides: Record<string, unknown> = {}) =>
-  env.META.put(
-    `apikey:${KEY}`,
-    JSON.stringify({
-      key: KEY,
-      tenantId: '00000000-0000-4000-8000-0000000000aa',
-      plan: 'internal',
-      kind: 'server',
-      scopes: ['places:read'],
-      allowedOrigins: [],
-      quotaPlacesPerDay: null,
-      ...overrides,
-    }),
-  );
+const seedKey = (overrides: Partial<AuthInfo> = {}) => seedHashedKey(KEY, overrides);
 const url = (query: string) => `https://api/v1/autocomplete?${query}`;
 const code = async (response: Response) =>
   ((await response.json()) as { error: { code: string } }).error.code;

@@ -1,21 +1,22 @@
--- Tenant nội bộ + khoá demo/server. Idempotent — chạy lại không đổi gì.
--- Khoá demo là kind=web: chỉ chấp nhận Origin localhost/docs (so hostname, mọi port).
+-- Tenant nội bộ + khoá demo. Idempotent — chạy lại không đổi gì.
+-- Khoá demo là kind=web, CÔNG KHAI trong docs/playground: chỉ Origin localhost/docs và CHỈ đọc.
+-- Audit 09/09/2026: trước đây khoá demo có edits:write trên tenant internal → ai cũng gửi được edit
+-- tự duyệt. Khoá server nội bộ KHÔNG seed nữa (giá trị cố định trong git = đoán được); cấp bằng
+-- `pnpm key:issue --tenant 00000000-0000-4000-8000-000000000001 --kind server --scopes places:read,edits:write`.
 -- Domain docs lấy từ apps/docs/astro.config.mjs (site: mapslibvn-docs.pages.dev).
 INSERT INTO tenant (id, name, plan)
 VALUES ('00000000-0000-4000-8000-000000000001', 'MapsLibVN nội bộ', 'internal')
 ON CONFLICT (id) DO NOTHING;
 
-INSERT INTO api_key (key, tenant_id, label, kind, allowed_origins, scopes)
+INSERT INTO api_key (key_hash, key_prefix, tenant_id, label, kind, allowed_origins, scopes)
 VALUES
-  ('mlv_live_demo00000000000000000000', '00000000-0000-4000-8000-000000000001',
+  (encode(sha256(convert_to('mlv_live_demo00000000000000000000', 'UTF8')), 'hex'), 'mlv_live_demo0000', '00000000-0000-4000-8000-000000000001',
    'demo docs/playground', 'web',
    '{http://localhost,http://127.0.0.1,https://mapslibvn-docs.pages.dev,https://*.mapslibvn-docs.pages.dev}',
-   '{places:read,edits:write}'),
-  ('mlv_live_server000000000000000000', '00000000-0000-4000-8000-000000000001',
-   'server nội bộ (curl/test)', 'server', '{}', '{places:read,edits:write}')
-ON CONFLICT (key) DO NOTHING;
+   '{places:read}')
+ON CONFLICT (key_hash) DO NOTHING;
 
--- M4: bổ sung scope edits:write cho khoá nội bộ đã tồn tại từ M3 (INSERT trên không cập nhật
--- hàng cũ vì DO NOTHING). Chỉ tenant internal — tenant free/paid cấp scope riêng khi phát hành.
-UPDATE api_key SET scopes = '{places:read,edits:write}'
-WHERE key IN ('mlv_live_demo00000000000000000000', 'mlv_live_server000000000000000000');
+-- Audit 09/09/2026: khoá demo chỉ đọc, dù hàng cũ từ M4 từng có edits:write (INSERT DO NOTHING không sửa hàng cũ).
+UPDATE api_key SET scopes = '{places:read}'
+WHERE key_hash = encode(sha256(convert_to('mlv_live_demo00000000000000000000', 'UTF8')), 'hex')
+  AND scopes <> '{places:read}';

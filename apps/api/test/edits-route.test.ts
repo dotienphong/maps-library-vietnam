@@ -1,22 +1,12 @@
-import { SELF, env } from 'cloudflare:test';
+import { SELF } from 'cloudflare:test';
 import { beforeAll, describe, expect, it } from 'vitest';
+import type { AuthInfo } from '../src/auth';
+import { seedKey as seedHashedKey } from './helpers/seed-key';
 
 // Khoá giả nạp thẳng vào KV cache của auth — tầng test này không có Postgres.
 const KEY = 'mlv_live_test00000000000000000000';
-const seedKey = (overrides: Record<string, unknown> = {}) =>
-  env.META.put(
-    `apikey:${KEY}`,
-    JSON.stringify({
-      key: KEY,
-      tenantId: '00000000-0000-4000-8000-0000000000aa',
-      plan: 'internal',
-      kind: 'server',
-      scopes: ['places:read', 'edits:write'],
-      allowedOrigins: [],
-      quotaPlacesPerDay: null,
-      ...overrides,
-    }),
-  );
+const seedKey = (overrides: Partial<AuthInfo> = {}) =>
+  seedHashedKey(KEY, { scopes: ['places:read', 'edits:write'], ...overrides });
 const post = (body: unknown, headers: Record<string, string> = { 'X-Api-Key': KEY }) =>
   SELF.fetch('https://api/v1/edits', {
     method: 'POST',
@@ -67,6 +57,26 @@ describe('POST /v1/edits — auth + validation (không DB)', () => {
     });
     expect(response.status).toBe(503);
     expect(await code(response)).toBe('upstream_unavailable');
+  });
+
+  it('khoá web có edits:write nhưng request không mang Origin/Referer → 403 origin_required', async () => {
+    // Khoá web nằm trong HTML của khách nên coi như công khai; với quyền GHI phải chứng minh
+    // request đến từ trang được phép, không cho gọi từ curl/server lạ (audit 09/09/2026).
+    await seedKey({ kind: 'web', allowedOrigins: ['https://app.test'] });
+    const response = await post({ kind: 'close', poi_id: 'x', end_user_token: 'u' });
+    expect(response.status).toBe(403);
+    expect(await code(response)).toBe('origin_required');
+    await seedKey();
+  });
+
+  it('khoá web có edits:write + Origin hợp lệ → qua auth, chết ở DB đóng = 503', async () => {
+    await seedKey({ kind: 'web', allowedOrigins: ['https://app.test'] });
+    const response = await post(
+      { kind: 'close', poi_id: 'x', end_user_token: 'u' },
+      { 'X-Api-Key': KEY, Origin: 'https://app.test' },
+    );
+    expect(response.status).toBe(503);
+    await seedKey();
   });
 
   it('route places cũ vẫn giữ scope places:read', async () => {

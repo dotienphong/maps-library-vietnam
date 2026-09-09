@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { KEY_RE, generateKey, parseIssueArgs } from './api-key.mjs';
+import { KEY_RE, generateKey, hashKey, keyPrefix, parseIssueArgs } from './api-key.mjs';
 
 describe('generateKey', () => {
   it('khớp ràng buộc DB ^mlv_live_[0-9A-Za-z]{24}$ và khác nhau mỗi lần', () => {
@@ -59,5 +59,19 @@ describe('parseIssueArgs', () => {
       origins: [],
       scopes: ['places:read', 'edits:write'],
     });
+  });
+});
+
+describe('hashKey / keyPrefix (khoá lưu DB dạng băm, spec bảo mật 09/09/2026)', () => {
+  it('hashKey là sha256 hex của khoá, ổn định', () => {
+    const key = 'mlv_live_test00000000000000000000';
+    const h = hashKey(key);
+    expect(h).toMatch(/^[0-9a-f]{64}$/);
+    expect(hashKey(key)).toBe(h);
+    expect(hashKey('mlv_live_test00000000000000000001')).not.toBe(h);
+  });
+
+  it('keyPrefix giữ mlv_live_ + 8 ký tự đầu để nhận diện, không đủ để dùng', () => {
+    expect(keyPrefix('mlv_live_AbCdEfGh1234567890abcdef')).toBe('mlv_live_AbCdEfGh');
   });
 });

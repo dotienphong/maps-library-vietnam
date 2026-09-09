@@ -3,7 +3,7 @@ INSERT INTO tenant (id, name, plan)
 VALUES ('00000000-0000-4000-8000-0000000000bb', 'Free thử nghiệm', 'free')
 ON CONFLICT (id) DO NOTHING;
 
-INSERT INTO api_key (key, tenant_id, label, kind, scopes, quota_places_per_day)
-VALUES ('mlv_live_freetest0000000000000000', '00000000-0000-4000-8000-0000000000bb',
+INSERT INTO api_key (key_hash, key_prefix, tenant_id, label, kind, scopes, quota_places_per_day)
+VALUES (encode(sha256(convert_to('mlv_live_freetest0000000000000000', 'UTF8')), 'hex'), 'mlv_live_freetest', '00000000-0000-4000-8000-0000000000bb',
         'free test 429', 'server', '{places:read}', 25)
-ON CONFLICT (key) DO NOTHING;
+ON CONFLICT (key_hash) DO NOTHING;

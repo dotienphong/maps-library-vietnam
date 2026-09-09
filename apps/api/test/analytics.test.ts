@@ -12,8 +12,10 @@ interface DataPoint {
 describe('analyticsMiddleware', () => {
   it('ghi tenant, key, endpoint, status và thời gian sau request', async () => {
     const points: DataPoint[] = [];
+    // Analytics chỉ nhận sha256(khoá) — khoá plaintext không được ghi ra Analytics Engine.
     const auth = {
-      key: 'mlv_live_test00000000000000000000',
+      keyHash: 'a'.repeat(64),
+      keyPrefix: 'mlv_live_test0000',
       tenantId: 'tenant-test',
       plan: 'free',
       kind: 'server',
@@ -40,16 +42,12 @@ describe('analyticsMiddleware', () => {
     await analyticsMiddleware()(context, next);
 
     expect(points).toHaveLength(1);
-    expect(points[0]?.blobs).toEqual([
-      'tenant-test',
-      'mlv_live_test00000000000000000000',
-      '/v1/autocomplete',
-    ]);
+    expect(points[0]?.blobs).toEqual(['tenant-test', 'a'.repeat(64), '/v1/autocomplete']);
     expect(points[0]?.doubles?.[0]).toBe(204);
     expect(points[0]?.doubles?.[1]).toBeGreaterThanOrEqual(0);
     // stage_hit là chiều thứ ba: -1 khi route không phải autocomplete (đây là preflight OPTIONS).
     expect(points[0]?.doubles).toHaveLength(3);
     expect(points[0]?.doubles?.[2]).toBe(-1);
-    expect(points[0]?.indexes).toEqual(['mlv_live_test00000000000000000000']);
+    expect(points[0]?.indexes).toEqual(['a'.repeat(64)]);
   });
 });

@@ -18,7 +18,7 @@ export function sharedBuffersFor(totalMemBytes) {
 
 /**
  * @param {{ superPassword: string, apiPassword: string, pipelinePassword: string, sharedBuffers: string,
- *   tunnelToken: string, pipelineImage: string }} v
+ *   tunnelToken: string, pipelineImage: string, backupPassphrase: string }} v
  */
 export function renderServerEnv(v) {
   return [
@@ -30,6 +30,10 @@ export function renderServerEnv(v) {
     '# Token Tunnel: Cloudflare Zero Trust → Networks → Tunnels → tạo tunnel "mapslibvn-db" → copy token',
     `TUNNEL_TOKEN=${v.tunnelToken}`,
     `PIPELINE_IMAGE=${v.pipelineImage}`,
+    '# Backup DB (audit 09/09/2026): dump mã hoá AES-256 bằng passphrase này rồi mới lên R2. Mất passphrase = mất backup — lưu vào password manager.',
+    `BACKUP_PASSPHRASE=${v.backupPassphrase}`,
+    '# Bucket RIÊNG cho backup, KHÔNG gắn custom domain. Token S3 bên dưới phải có quyền trên cả hai bucket.',
+    'BACKUP_BUCKET=mapslibvn-backups',
     '# Các biến Cloudflare/R2 cho backup và data:update — chép từ .env máy dev (xem .env.example gốc repo).',
     '# CLOUDFLARE_API_TOKEN ở đây dùng token RIÊNG cho pipeline (Workers KV Edit + Workers R2 Edit), không dùng token deploy.',
     'TILES_BASE=',

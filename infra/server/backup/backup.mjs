@@ -1,15 +1,32 @@
 #!/usr/bin/env node
-// pg_dump -Fc | zstd → R2 backups/daily (giữ 7) và backups/weekly vào Chủ nhật (giữ 4). Dùng: --once | --daemon
+// pg_dump -Fc | zstd | openssl enc → R2 <BACKUP_BUCKET>/backups/daily (giữ 7) và backups/weekly vào
+// Chủ nhật (giữ 4). Dùng: --once | --daemon
+// Audit 09/09/2026: dump plaintext nằm trong bucket tiles (custom domain công khai) tải được không cần
+// xác thực → từ nay (1) object luôn mã hoá AES-256 bằng BACKUP_PASSPHRASE, (2) ghi vào bucket riêng
+// BACKUP_BUCKET không gắn domain. Thiếu passphrase thì dừng, không upload dump trần.
 import 'dotenv/config';
 import { execFileSync, spawnSync } from 'node:child_process';
 import { mkdirSync, rmSync, statSync } from 'node:fs';
 import { resolve } from 'node:path';
-import { backupName, retentionPlan } from '../../../scripts/lib/backup-plan.mjs';
+import {
+  backupBucket,
+  backupName,
+  dumpCommand,
+  encryptedName,
+  requireBackupPassphrase,
+  retentionPlan,
+} from '../../../scripts/lib/backup-plan.mjs';
 import { databaseUrlFromEnv } from '../../../scripts/lib/migrations.mjs';
 import { run, sleep } from '../../../scripts/lib/run.mjs';
 import { nextRun } from '../../../scripts/lib/schedule.mjs';
 
-const bucket = process.env.R2_BUCKET ?? 'mapslibvn-tiles';
+const { bucket, shared } = backupBucket(process.env);
+if (shared) {
+  console.warn(
+    `[backup] CẢNH BÁO: BACKUP_BUCKET chưa đặt — backup ghi vào ${bucket} (bucket tiles có custom domain). ` +
+      'Chỉ tạm chấp nhận vì object đã mã hoá; tạo bucket riêng + token S3 có quyền trên nó rồi đặt BACKUP_BUCKET.',
+  );
+}
 const work = process.env.MAPSLIBVN_WORK ?? resolve('work');
 
 /** @param {string} prefix */
@@ -26,21 +43,19 @@ function listNames(prefix) {
 }
 
 async function backupOnce(now = new Date()) {
+  const passphrase = requireBackupPassphrase(process.env);
   mkdirSync(work, { recursive: true });
-  const name = backupName(now);
+  const name = encryptedName(backupName(now));
   const file = resolve(work, name);
-  const dump = spawnSync(
-    'sh',
-    [
-      '-c',
-      `pg_dump -Fc --no-owner --no-privileges "$DATABASE_URL" | zstd -T0 -3 -q -f -o "${file}"`,
-    ],
-    {
-      stdio: 'inherit',
-      env: { ...process.env, DATABASE_URL: databaseUrlFromEnv(process.env) },
+  const dump = spawnSync('sh', ['-c', dumpCommand(file)], {
+    stdio: 'inherit',
+    env: {
+      ...process.env,
+      DATABASE_URL: databaseUrlFromEnv(process.env),
+      BACKUP_PASSPHRASE: passphrase,
     },
-  );
-  if (dump.status !== 0) throw new Error(`pg_dump/zstd thoát mã ${dump.status}`);
+  });
+  if (dump.status !== 0) throw new Error(`pg_dump/zstd/openssl thoát mã ${dump.status}`);
   const mb = (statSync(file).size / 2 ** 20).toFixed(1);
   run('rclone', ['copyto', file, `r2:${bucket}/backups/daily/${name}`]);
   const vnWeekday = new Date(now.getTime() + 7 * 3600 * 1000).getUTCDay();

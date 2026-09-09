@@ -46,7 +46,13 @@ pnpm server:setup
   ```
   Kỳ vọng: `api | t`. Với `sslmode=disable` phải bị từ chối (`no pg_hba.conf entry … SSL off`).
 - Worker: `cd apps/api && pnpm exec wrangler dev --remote` → `curl localhost:8787/healthz/db` → `{"ok":true,"user":"api",…}`.
-- Backup tay: `docker compose --env-file infra/server/.env -f infra/server/compose.yml exec backup node infra/server/backup/backup.mjs --once` → `rclone ls r2:mapslibvn-tiles/backups/daily` có file.
+- Backup tay: `docker compose --env-file infra/server/.env -f infra/server/compose.yml exec backup node infra/server/backup/backup.mjs --once` → `rclone ls r2:mapslibvn-backups/backups/daily` có file `.dump.zst.enc`.
+  **Audit 09/09/2026:** dump từng nằm plaintext trong bucket `mapslibvn-tiles` (có custom domain công khai) và
+  tải được không cần xác thực. Nay: (1) object luôn mã hoá AES-256 bằng `BACKUP_PASSPHRASE` trong
+  `infra/server/.env` — mất passphrase là mất backup, lưu vào password manager; (2) ghi vào bucket riêng
+  `BACKUP_BUCKET=mapslibvn-backups`, KHÔNG gắn custom domain. Token S3 (`RCLONE_CONFIG_R2_*`) phải có quyền
+  Object Read & Write trên cả hai bucket (R2 → Manage API tokens → sửa bucket scope). Chưa đặt `BACKUP_BUCKET`
+  thì script vẫn ghi vào bucket tiles kèm cảnh báo — chỉ tạm chấp nhận vì file đã mã hoá.
 - Cron: `docker compose … logs pipeline | tail -2` → dòng `[cron] <job> kế tiếp <ISO> (thứ Hai HH:MM VN)`
   cho job gần nhất trong hai job: `data:update` 02:00 và `report:weekly` 08:00 (giờ VN).
 - Báo cáo tuần: `docker compose --env-file infra/server/.env -f infra/server/compose.yml exec pipeline
@@ -57,9 +63,11 @@ pnpm server:setup
   `DATABASE_URL`; dựng URL từ các biến `POSTGRES_*` của chính container:
   ```bash
   C="docker compose --env-file infra/server/.env -f infra/server/compose.yml"
-  F=$($C exec -T backup rclone lsf r2:mapslibvn-tiles/backups/daily | sort | tail -1 | tr -d '\r')
+  F=$($C exec -T backup rclone lsf r2:mapslibvn-backups/backups/daily | sort | tail -1 | tr -d '\r')
   $C exec -T postgres psql -U mapslibvn -d postgres -c "DROP DATABASE IF EXISTS restore_smoke" -c "CREATE DATABASE restore_smoke"
-  $C exec -T backup sh -c "rclone cat r2:mapslibvn-tiles/backups/daily/$F | zstd -dc | \
+  # .enc → giải mã bằng BACKUP_PASSPHRASE (container backup đọc từ env_file) rồi mới zstd/pg_restore
+  $C exec -T backup sh -c "rclone cat r2:mapslibvn-backups/backups/daily/$F | \
+    openssl enc -d -aes-256-cbc -pbkdf2 -iter 600000 -pass env:BACKUP_PASSPHRASE | zstd -dc | \
     pg_restore --no-owner --no-privileges -d \"postgres://\$POSTGRES_USER:\$POSTGRES_PASSWORD@\$POSTGRES_HOST:5432/restore_smoke?sslmode=require\""
   $C exec -T postgres psql -U mapslibvn -d restore_smoke -tAc "select count(*) from schema_migrations"
   $C exec -T postgres psql -U mapslibvn -d postgres -c "DROP DATABASE restore_smoke"

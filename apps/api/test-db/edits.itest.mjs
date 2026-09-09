@@ -5,6 +5,7 @@ import { afterAll, describe, expect, it } from 'vitest';
 const base = process.env.PLACES_API_BASE ?? 'http://127.0.0.1:8799';
 const INTERNAL_KEY = 'mlv_live_test00000000000000000000';
 const FREE_KEY = 'mlv_live_edit00000000000000000000';
+const FREE_KEY_2 = 'mlv_live_edit20000000000000000000'; // tenant free khác (dd)
 const FREE_TENANT = '00000000-0000-4000-8000-0000000000cc';
 const sql = postgres(process.env.DATABASE_URL ?? '', { max: 1, onnotice: () => {} });
 afterAll(() => sql.end({ timeout: 5 }));
@@ -85,7 +86,28 @@ describe('POST /v1/edits với DB thật', () => {
     expect(body.status).toBe('pending');
   });
 
-  it('2 end-user khác nhau cùng thay đổi → phiếu thứ hai auto_approved kéo theo phiếu đầu', async () => {
+  it('2 end-user CÙNG tenant cùng thay đổi → vẫn pending (end_user_token do client tự đặt, không tính đồng thuận)', async () => {
+    const changes = { hours: 'Mo-Su 10:00-20:00' };
+    const first = await post(FREE_KEY, {
+      poi_id: '01M4TEST0000000000000CON01',
+      kind: 'update',
+      changes,
+      end_user_token: 'same-tenant-1',
+    });
+    expect(first.body.status).toBe('pending');
+    const second = await post(FREE_KEY, {
+      poi_id: '01M4TEST0000000000000CON01',
+      kind: 'update',
+      changes,
+      end_user_token: 'same-tenant-2',
+    });
+    expect(second.status).toBe(200);
+    expect(second.body.status).toBe('pending');
+    await sql`UPDATE poi_edit SET status = 'rejected', reviewer = 'itest-cleanup'
+      WHERE poi_id = '01M4TEST0000000000000CON01' AND status = 'pending'`;
+  });
+
+  it('2 end-user từ 2 TENANT khác nhau cùng thay đổi → phiếu thứ hai auto_approved kéo theo phiếu đầu', async () => {
     const changes = { hours: 'Mo-Su 09:00-18:00' };
     const first = await post(FREE_KEY, {
       poi_id: '01M4TEST0000000000000CON01',
@@ -94,7 +116,7 @@ describe('POST /v1/edits với DB thật', () => {
       end_user_token: 'voter-1',
     });
     expect(first.body.status).toBe('pending'); // quality 40 < 60 → không auto theo luật quality
-    const second = await post(FREE_KEY, {
+    const second = await post(FREE_KEY_2, {
       poi_id: '01M4TEST0000000000000CON01',
       kind: 'update',
       changes,
@@ -118,7 +140,7 @@ describe('POST /v1/edits với DB thật', () => {
     if (!pepper) throw new Error('Thiếu IP_HASH_PEPPER — chạy qua pnpm test:api-db');
     const hash = createHash('sha256').update(`${pepper}:${FREE_TENANT}:${token}`).digest('hex');
     await sql`INSERT INTO poi_edit (poi_id, tenant_id, end_user_hash, kind, changes, status, api_key)
-      SELECT '01M3TEST0000000000000CAF01', ${FREE_TENANT}, ${hash}, 'report', '{}'::jsonb, 'pending', ${FREE_KEY}
+      SELECT '01M3TEST0000000000000CAF01', ${FREE_TENANT}, ${hash}, 'report', '{}'::jsonb, 'pending', encode(sha256(convert_to(${FREE_KEY}, 'UTF8')), 'hex')
       FROM generate_series(1, 20)`;
     const { status, body } = await post(FREE_KEY, {
       poi_id: '01M3TEST0000000000000CAF01',

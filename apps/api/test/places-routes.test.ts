@@ -1,21 +1,9 @@
-import { SELF, env } from 'cloudflare:test';
+import { SELF } from 'cloudflare:test';
 import { beforeAll, describe, expect, it } from 'vitest';
+import { seedKey } from './helpers/seed-key';
 
 const KEY = 'mlv_live_test00000000000000000000';
-beforeAll(() =>
-  env.META.put(
-    `apikey:${KEY}`,
-    JSON.stringify({
-      key: KEY,
-      tenantId: '00000000-0000-4000-8000-0000000000aa',
-      plan: 'internal',
-      kind: 'server',
-      scopes: ['places:read'],
-      allowedOrigins: [],
-      quotaPlacesPerDay: null,
-    }),
-  ),
-);
+beforeAll(() => seedKey(KEY));
 const fetchApi = (path: string) =>
   SELF.fetch(`https://api${path}`, { headers: { 'X-Api-Key': KEY } });
 const code = async (response: Response) =>

@@ -48,6 +48,7 @@ if (!existsSync(envPath)) {
       sharedBuffers: sharedBuffersFor(totalmem()),
       tunnelToken: '',
       pipelineImage: process.env.PIPELINE_IMAGE ?? 'ghcr.io/dotienphong/mapslibvn-pipeline:latest',
+      backupPassphrase: generatePassword(48),
     }),
   );
   console.log(

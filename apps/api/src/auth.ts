@@ -1,10 +1,18 @@
 import type { Context, Next } from 'hono';
 import { getSql } from './db';
+import { sha256Hex } from './edits/hash';
 import type { AppEnv } from './env';
 import { ApiError } from './errors';
 
+/**
+ * Audit 09/09/2026: DB, KV, analytics và `poi_edit.api_key` chỉ giữ `sha256(khoá)`. Khoá plaintext
+ * chỉ tồn tại ở client và trong header của request; lộ dump DB không còn kéo theo lộ khoá.
+ */
 export interface AuthInfo {
-  key: string;
+  /** sha256 hex của khoá — định danh khoá ở mọi nơi phía máy chủ. */
+  keyHash: string;
+  /** `mlv_live_` + 8 ký tự đầu: chỉ để nhận diện trong báo cáo/thu hồi. */
+  keyPrefix: string;
   tenantId: string;
   plan: 'internal' | 'free' | 'paid';
   kind: 'web' | 'mobile' | 'server';
@@ -57,7 +65,8 @@ export function originAllowed(origin: string, allowed: string[]): boolean {
 }
 
 async function loadAuth(c: Context<AppEnv>, key: string): Promise<AuthInfo | null> {
-  const kvKey = `apikey:${key}`;
+  const keyHash = await sha256Hex(key);
+  const kvKey = `apikey:${keyHash}`;
   const cached = await c.env.META.get<AuthInfo>(kvKey, 'json');
   if (cached)
     return {
@@ -70,7 +79,8 @@ async function loadAuth(c: Context<AppEnv>, key: string): Promise<AuthInfo | nul
   try {
     const [row] = await sql<
       {
-        key: string;
+        key_hash: string;
+        key_prefix: string;
         kind: AuthInfo['kind'];
         scopes: string[] | string;
         allowed_origins: string[] | string;
@@ -78,14 +88,15 @@ async function loadAuth(c: Context<AppEnv>, key: string): Promise<AuthInfo | nul
         tenant_id: string;
         plan: AuthInfo['plan'];
       }[]
-    >`SELECT k.key, k.kind, k.scopes, k.allowed_origins, k.quota_places_per_day,
+    >`SELECT k.key_hash, k.key_prefix, k.kind, k.scopes, k.allowed_origins, k.quota_places_per_day,
         t.id AS tenant_id, t.plan
       FROM api_key k JOIN tenant t ON t.id = k.tenant_id
-      WHERE k.key = ${key} AND k.active AND k.revoked_at IS NULL`;
+      WHERE k.key_hash = ${keyHash} AND k.active AND k.revoked_at IS NULL`;
     if (!row) return null;
 
     const info: AuthInfo = {
-      key: row.key,
+      keyHash: row.key_hash,
+      keyPrefix: row.key_prefix,
       tenantId: row.tenant_id,
       plan: row.plan,
       kind: row.kind,
@@ -105,9 +116,10 @@ async function loadAuth(c: Context<AppEnv>, key: string): Promise<AuthInfo | nul
 /** Middleware cho các route places/edits: 401 thiếu/sai khoá, 403 sai origin/scope. */
 export function requireAuth(scope = 'places:read') {
   return async (c: Context<AppEnv>, next: Next) => {
-    const key = c.req.header('X-Api-Key') ?? c.req.query('key');
+    // Chỉ nhận header: khoá trên URL lọt vào log CDN, Referer và cache trung gian.
+    const key = c.req.header('X-Api-Key');
     if (!key) {
-      throw new ApiError(401, 'missing_key', 'Thiếu khoá API (header X-Api-Key hoặc ?key=)');
+      throw new ApiError(401, 'missing_key', 'Thiếu khoá API (header X-Api-Key)');
     }
 
     let info: AuthInfo | null;
@@ -125,7 +137,12 @@ export function requireAuth(scope = 'places:read') {
     }
     if (info.kind === 'web') {
       const origin = c.req.header('Origin') ?? c.req.header('Referer') ?? '';
-      // Không có Origin (curl, server-side) thì cho qua ở MVP — khoá web vốn không phải bí mật.
+      // Khoá web nằm trong HTML của khách nên coi như công khai. Đọc: không có Origin (curl,
+      // server-side) vẫn cho qua ở MVP. GHI (edits:write): bắt buộc Origin hợp lệ — nếu không, ai
+      // lấy khoá từ trang nhúng cũng gửi được edit từ máy lạ (audit 09/09/2026).
+      if (!origin && scope === 'edits:write') {
+        throw new ApiError(403, 'origin_required', 'Khoá web ghi edit phải gửi từ trang có Origin');
+      }
       if (origin && !originAllowed(origin, info.allowedOrigins)) {
         throw new ApiError(403, 'origin_not_allowed', 'Origin không nằm trong allowed_origins');
       }

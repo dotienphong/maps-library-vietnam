@@ -75,6 +75,8 @@ FORMAT JSON`;
 /** @param {string} key */
 export function maskKey(key) {
   if (!key) return '(không key)';
+  // Analytics từ 09/09/2026 ghi sha256(khoá) — rút còn 8 hex đầu cho dễ đọc.
+  if (/^[0-9a-f]{64}$/.test(key)) return `${key.slice(0, 8)}…`;
   if (!key.startsWith('mlv_live_')) return key;
   const body = key.slice('mlv_live_'.length);
   return `mlv_live_${body.slice(0, 4)}…${body.slice(-4)}`;

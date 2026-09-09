@@ -1,4 +1,4 @@
-import { randomBytes } from 'node:crypto';
+import { createHash, randomBytes } from 'node:crypto';
 
 const ALPHABET = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz';
 const KEY_LEN = 24;
@@ -23,6 +23,20 @@ export function generateKey(random = randomBytes) {
     }
   }
   return `mlv_live_${out}`;
+}
+
+/**
+ * DB chỉ lưu sha256(khoá) — audit 09/09/2026: dump DB bị lộ kéo theo toàn bộ khoá plaintext.
+ * Worker băm khoá nhận được rồi tra `api_key.key_hash`; khoá gốc chỉ in ra một lần khi cấp.
+ * @param {string} key
+ */
+export function hashKey(key) {
+  return createHash('sha256').update(key, 'utf8').digest('hex');
+}
+
+/** Phần nhận diện lưu cùng hash cho báo cáo/thu hồi: `mlv_live_` + 8 ký tự đầu. @param {string} key */
+export function keyPrefix(key) {
+  return key.slice(0, 'mlv_live_'.length + 8);
 }
 
 /** @param {string} s */

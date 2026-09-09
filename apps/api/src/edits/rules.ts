@@ -6,7 +6,7 @@ export const EDITS_PER_KEY_PER_DAY = 500;
 /** update chỉ đổi các trường này trên POI quality ≥ 60 thì tự duyệt. */
 export const AUTO_UPDATE_FIELDS = ['hours', 'contact'] as const;
 export const AUTO_MIN_QUALITY = 60;
-/** ≥ 2 end-user khác nhau gửi cùng thay đổi trong 30 ngày → tự duyệt. */
+/** ≥ 2 end-user từ tenant KHÁC NHAU gửi cùng thay đổi trong 30 ngày → tự duyệt (route đếm theo tenant). */
 export const CONSENSUS_USERS = 2;
 
 export interface DecideInput {
@@ -16,7 +16,7 @@ export interface DecideInput {
   changedFields: string[];
   /** quality_score của POI đích; null cho create hoặc POI không có điểm. */
   qualityScore: number | null;
-  /** Số end-user khác nhau (kể cả người này) đã gửi cùng thay đổi trong 30 ngày. */
+  /** Số end-user khác nhau (kể cả người này), chỉ tính tenant khác, đã gửi cùng thay đổi trong 30 ngày. */
   consensusUsers: number;
 }
 

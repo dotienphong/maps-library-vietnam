@@ -33,8 +33,11 @@ describe('renderServerEnv / parseEnv', () => {
       sharedBuffers: '2048MB',
       tunnelToken: '',
       pipelineImage: 'ghcr.io/dotienphong/mapslibvn-pipeline:latest',
+      backupPassphrase: 'B'.repeat(48),
     });
     const env = parseEnv(text);
+    expect(env.BACKUP_PASSPHRASE).toBe('B'.repeat(48));
+    expect(env.BACKUP_BUCKET).toBe('mapslibvn-backups');
     expect(env.POSTGRES_SUPER_PASSWORD).toBe('S');
     expect(env.API_PASSWORD).toBe('A');
     expect(env.PIPELINE_PASSWORD).toBe('P');

@@ -53,7 +53,7 @@ edits.post('/v1/edits', requireAuth('edits:write'), async (c) => {
     const dayStart = vnDayStartUtc();
     const [counts] = await sql<{ by_user: number; by_key: number }[]>`
       SELECT count(*) FILTER (WHERE end_user_hash = ${userHash})::int AS by_user,
-             count(*) FILTER (WHERE api_key = ${auth.key})::int       AS by_key
+             count(*) FILTER (WHERE api_key = ${auth.keyHash})::int   AS by_key
       FROM poi_edit
       WHERE tenant_id = ${auth.tenantId} AND created_at >= ${dayStart}`;
     if (
@@ -63,14 +63,16 @@ edits.post('/v1/edits', requireAuth('edits:write'), async (c) => {
       throw new ApiError(429, 'quota_exceeded', 'Vượt giới hạn edit theo ngày');
     }
 
-    // 3) Phiếu trùng trong 30 ngày (spec 6.5) — đẳng thức jsonb.
+    // 3) Phiếu trùng trong 30 ngày (spec 6.5) — đẳng thức jsonb. Audit 09/09/2026: `end_user_token`
+    // do client tự đặt nên hai "người dùng" cùng tenant có thể là một kẻ với hai token; đồng thuận
+    // chỉ tính phiếu từ TENANT KHÁC (khoá khác, khách khác) — điều kẻ cầm một khoá không giả được.
     let consensusUsers = 1;
     if (edit.kind !== 'create' && edit.kind !== 'report') {
       const [dup] = await sql<{ n: number }[]>`
         SELECT count(DISTINCT end_user_hash)::int AS n FROM poi_edit
         WHERE poi_id = ${edit.poiId} AND kind = ${edit.kind} AND status = 'pending'
           AND changes = ${changesParam}
-          AND end_user_hash <> ${userHash} AND created_at > now() - interval '30 days'`;
+          AND tenant_id <> ${auth.tenantId} AND created_at > now() - interval '30 days'`;
       consensusUsers = 1 + (dup?.n ?? 0);
     }
 
@@ -80,7 +82,7 @@ edits.post('/v1/edits', requireAuth('edits:write'), async (c) => {
       INSERT INTO poi_edit (poi_id, tenant_id, end_user_hash, kind, changes, photo_url, note,
                             status, ip_hash, api_key, new_poi_id)
       VALUES (${edit.poiId}, ${auth.tenantId}, ${userHash}, ${edit.kind}, ${changesParam},
-              ${edit.photoUrl}, ${edit.note}, 'pending', ${ipH}, ${auth.key}, ${newPoiId})
+              ${edit.photoUrl}, ${edit.note}, 'pending', ${ipH}, ${auth.keyHash}, ${newPoiId})
       RETURNING id::int AS id`;
     if (!row) throw new ApiError(503, 'upstream_unavailable', 'Không ghi được edit');
     if (edit.kind === 'create') await sql`SELECT stage_poi_create(${row.id}::bigint)`;

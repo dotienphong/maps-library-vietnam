@@ -195,22 +195,31 @@ VALUES
 INSERT INTO tenant (id, name, plan)
 VALUES ('00000000-0000-4000-8000-0000000000aa', 'M3 itest', 'internal')
 ON CONFLICT (id) DO NOTHING;
-INSERT INTO api_key (key, tenant_id, label, kind, scopes)
-VALUES ('mlv_live_test00000000000000000000', '00000000-0000-4000-8000-0000000000aa',
+INSERT INTO api_key (key_hash, key_prefix, tenant_id, label, kind, scopes)
+VALUES (encode(sha256(convert_to('mlv_live_test00000000000000000000', 'UTF8')), 'hex'), 'mlv_live_test0000', '00000000-0000-4000-8000-0000000000aa',
         'itest server', 'server', '{places:read}')
-ON CONFLICT (key) DO NOTHING;
+ON CONFLICT (key_hash) DO NOTHING;
 
 -- M4: khoá itest nội bộ thêm edits:write; tenant free để test luồng pending/duyệt.
 UPDATE api_key SET scopes = '{places:read,edits:write}'
-WHERE key = 'mlv_live_test00000000000000000000';
+WHERE key_hash = encode(sha256(convert_to('mlv_live_test00000000000000000000', 'UTF8')), 'hex');
 
 INSERT INTO tenant (id, name, plan)
 VALUES ('00000000-0000-4000-8000-0000000000cc', 'M4 itest free', 'free')
 ON CONFLICT (id) DO NOTHING;
-INSERT INTO api_key (key, tenant_id, label, kind, scopes)
-VALUES ('mlv_live_edit00000000000000000000', '00000000-0000-4000-8000-0000000000cc',
+INSERT INTO api_key (key_hash, key_prefix, tenant_id, label, kind, scopes)
+VALUES (encode(sha256(convert_to('mlv_live_edit00000000000000000000', 'UTF8')), 'hex'), 'mlv_live_edit0000', '00000000-0000-4000-8000-0000000000cc',
         'itest edits free', 'server', '{places:read,edits:write}')
-ON CONFLICT (key) DO NOTHING;
+ON CONFLICT (key_hash) DO NOTHING;
+
+-- Tenant free thứ hai: đồng thuận chỉ tính phiếu từ TENANT KHÁC (audit 09/09/2026).
+INSERT INTO tenant (id, name, plan)
+VALUES ('00000000-0000-4000-8000-0000000000dd', 'M4 itest free 2', 'free')
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO api_key (key_hash, key_prefix, tenant_id, label, kind, scopes)
+VALUES (encode(sha256(convert_to('mlv_live_edit20000000000000000000', 'UTF8')), 'hex'), 'mlv_live_edit2000',
+        '00000000-0000-4000-8000-0000000000dd', 'itest edits free 2', 'server', '{places:read,edits:write}')
+ON CONFLICT (key_hash) DO NOTHING;
 
 -- POI quality thấp (< 60) cho test luật đồng thuận: update hours KHÔNG auto theo luật quality.
 INSERT INTO poi (id, name, name_norm, category, geom, ward, province,

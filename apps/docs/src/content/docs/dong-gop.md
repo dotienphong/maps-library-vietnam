@@ -4,7 +4,14 @@ description: Gửi sửa giờ mở cửa, thêm địa điểm mới qua POST /
 ---
 
 Người dùng cuối của app nhúng có thể sửa thông tin địa điểm hoặc thêm địa điểm mới.
-Khoá API phải có scope `edits:write`.
+Khoá API phải có scope `edits:write`. Với khoá `web`, request phải đi từ trình duyệt trên một
+origin trong `allowed_origins` (thiếu `Origin` trả `403 origin_required`); gọi từ máy chủ thì dùng
+khoá `server`.
+
+Cách duyệt: tenant `internal` tự duyệt; sửa `hours`/`contact` trên POI chất lượng ≥ 60 tự duyệt;
+cùng một thay đổi được người dùng của **hai tenant khác nhau** gửi trong 30 ngày tự duyệt; còn lại
+chờ quản trị duyệt. `end_user_token` do app tự đặt nên hai token cùng một tenant **không** được
+tính là hai người khi xét đồng thuận.
 
 ## Gửi một sửa đổi
 

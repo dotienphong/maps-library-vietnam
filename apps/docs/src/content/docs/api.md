@@ -15,18 +15,17 @@ https://api.ai-solutions.io.vn
 
 Endpoint này là **tạm thời** và sẽ đổi khi MapsLibVN có tên miền riêng. Nếu bạn tự host, hãy thay bằng tên miền của mình, xem [Tự host](/tu-host/).
 
-Khoá API truyền theo một trong hai cách — header là cách nên dùng, còn `?key=` dành cho những nơi không đặt được header (thẻ `<img>`, `style` của MapLibre):
+Khoá API chỉ truyền qua header `X-Api-Key`. Từ 09/09/2026 máy chủ **không** còn đọc `?key=` trên URL của các route `/v1/*` có kiểm khoá — khoá trên URL lọt vào log CDN, `Referer` và cache trung gian. (`?key=` trên URL style vẫn vô hại vì `/v1/styles/*` không kiểm khoá.)
 
 ```bash
 curl -H "X-Api-Key: mlv_live_…" "https://api.ai-solutions.io.vn/v1/autocomplete?q=ben%20thanh"
-curl "https://api.ai-solutions.io.vn/v1/autocomplete?q=ben%20thanh&key=mlv_live_…"
 ```
 
 ### Ba loại khoá
 
 | `kind` | Kiểm gì | Dùng cho |
 |---|---|---|
-| `web` | so `Origin`, không có thì so `Referer`, với danh sách `allowed_origins` của khoá | trang web trong trình duyệt |
+| `web` | so `Origin`, không có thì so `Referer`, với danh sách `allowed_origins` của khoá; request **ghi** (`edits:write`) bắt buộc phải có `Origin`/`Referer` | trang web trong trình duyệt |
 | `mobile` | không kiểm origin; header `X-Bundle-Id` nếu có chỉ được ghi log theo tenant | app iOS/Android |
 | `server` | không kiểm origin — khoá là **bí mật**, chỉ đặt ở phía máy chủ của bạn | backend, script, cron |
 

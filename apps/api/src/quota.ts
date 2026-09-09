@@ -25,7 +25,7 @@ export function quotaMiddleware(group: 'places') {
     const auth = c.get('auth');
     if (c.env.QUOTA_ENABLED !== '1' || !auth || auth.plan === 'internal') return next();
     const limit = auth.quotaPlacesPerDay ?? FREE_PLACES_PER_DAY;
-    const key = `quota:${auth.key}:${vnDay()}:${group}`;
+    const key = `quota:${auth.keyHash}:${vnDay()}:${group}`;
     const count = Number((await c.env.META.get(key)) ?? 0);
     if (count >= limit * 2) {
       throw new ApiError(429, 'quota_exceeded', `Vượt quota ${group} theo ngày`);

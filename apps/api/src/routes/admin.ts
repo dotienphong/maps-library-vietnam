@@ -8,6 +8,27 @@ import { ApiError } from '../errors';
 const STATUSES = ['pending', 'approved', 'rejected', 'auto_approved'];
 
 export const admin = new Hono<AppEnv>();
+
+/**
+ * Chống CSRF cho POST (audit 09/09/2026): Access chèn JWT từ cookie, nên một trang lạ có thể ép
+ * trình duyệt của người duyệt gửi POST approve/reject nếu cookie đi cross-site. Chặn khi trình duyệt
+ * khai `Sec-Fetch-Site: cross-site` hoặc `Origin` không khớp origin của API. Đứng TRƯỚC requireAccess.
+ */
+admin.use('/v1/admin/*', async (c, next) => {
+  if (c.req.method === 'POST') {
+    const site = c.req.header('Sec-Fetch-Site');
+    const origin = c.req.header('Origin');
+    const self = new URL(c.req.url).origin;
+    if (site === 'cross-site' || (origin && origin !== self)) {
+      throw new ApiError(
+        403,
+        'cross_site_request',
+        'POST admin phải xuất phát từ chính trang admin',
+      );
+    }
+  }
+  await next();
+});
 admin.use('/v1/admin/*', requireAccess());
 
 admin.get('/v1/admin/edits', async (c) => {
