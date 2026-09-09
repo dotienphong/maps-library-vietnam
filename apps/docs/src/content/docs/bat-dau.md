@@ -31,9 +31,9 @@ Chưa có khoá? Dùng [khoá demo](/khoa-api/) và chạy trên `http://localho
 ## 2. npm
 
 :::caution[Gói `@mapslibvn/*` chưa publish lên npm]
-Đang rà soát nhãn hiệu tên "MapsLibVN" trước khi publish (checklist pháp lý B3). Hôm nay hãy dùng
-bản UMD ở mục 1, hoặc dựng tarball bằng `pnpm pack` nếu bạn có quyền truy cập repo — xem
-[Cài đặt](/cai-dat/) mục 3.
+Scope `@mapslibvn` đã thuộc tài khoản dự án và bốn tarball `0.4.0` đã qua kiểm tra phát hành, nhưng
+chưa chạy lệnh publish. Cho tới lúc đó, hãy dùng bản UMD ở mục 1 hoặc dựng tarball bằng `pnpm pack`
+nếu bạn có quyền truy cập repo — xem [Cài đặt](/cai-dat/) mục 3.
 :::
 
 ```bash
@@ -42,7 +42,7 @@ pnpm add @mapslibvn/web maplibre-gl
 
 ```ts
 import 'maplibre-gl/dist/maplibre-gl.css';
-import maplibregl from 'maplibre-gl';
+import * as maplibregl from 'maplibre-gl';
 import { createMap } from '@mapslibvn/web';
 
 const map = createMap(
@@ -53,7 +53,7 @@ map.addMarker({ lng: 106.7, lat: 10.776, popupHtml: '<b>Chợ Bến Thành</b>' 
 map.on('poiClick', (poi) => console.log(poi.name));
 ```
 
-`maplibre-gl@^5` là peer dependency và bản ESM không gộp nó, nên phải truyền
+`maplibre-gl@^6.4.1` là peer dependency và bản ESM không gộp nó, nên phải truyền
 `{ maplibre: maplibregl }`. `map.gl` là đối tượng `maplibregl.Map` — mọi API của MapLibre đều dùng
 được.
 

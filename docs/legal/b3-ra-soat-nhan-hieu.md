@@ -7,8 +7,9 @@ PHONG gửi luật sư và gửi MapLibre; kết luận cuối cùng phải do n
 
 Rủi ro **thấp đến trung bình**, và điểm yếu **không nằm ở bản thân cái tên** mà ở cách trình bày:
 nếu tài liệu để người đọc hiểu MapsLibVN là sản phẩm chính thức hay có liên kết với MapLibre thì
-đó mới là chỗ dễ bị phản đối. Hai việc còn lại bắt buộc phải do người làm: **tra cứu cơ sở dữ
-liệu nhãn hiệu** và **gửi thư hỏi MapLibre** (mẫu ở mục 5).
+đó mới là chỗ dễ bị phản đối. Tra cứu cơ sở dữ liệu đã xong. Ngày 09/09/2026, PHONG chấp nhận rủi
+ro còn lại và cho phép publish npm; thư hỏi MapLibre ở mục 5 vẫn được khuyến nghị nhưng không còn
+là điều kiện chặn phát hành.
 
 ## 2. Sự thật đã xác minh (04/09/2026)
 
@@ -60,7 +61,7 @@ Cục Sở hữu trí tuệ Việt Nam, từ khoá "MapsLibVN", "MapsLib", "MapL
 **Kết quả: không có đơn trùng hoặc tương tự ở cả hai nơi** — xem bảng mục 2. Đây là căn cứ tốt để
 gửi thư hỏi MapLibre ở bước 5.2, vì không có xung đột đăng ký nào cần xử lý trước.
 
-**5.2 Gửi thư hỏi MapLibre** — địa chỉ `team@maplibre.org`. Mẫu:
+**5.2 Gửi thư hỏi MapLibre — khuyến nghị, không chặn npm** — địa chỉ `team@maplibre.org`. Mẫu:
 
 ```
 Subject: Trademark question — naming an open-source library "MapsLibVN" built on MapLibre
@@ -87,12 +88,12 @@ Thank you,
 Đỗ Tiến Phong — MapsLibVN
 ```
 
-**5.3 Quyết định sau khi có trả lời**
+**5.3 Quyết định của chủ dự án ngày 09/09/2026**
 
-- Không phản đối → đánh dấu B3 xong, publish 4 gói npm.
-- Có phản đối → đổi tên **trước khi publish**. Chi phí đổi lúc này còn rẻ: chưa có gói nào trên
-  npm, chưa có tên miền riêng (B6 chưa làm), người dùng ngoài chưa có. Việc phải đổi nếu xảy ra:
-  scope npm, `package.json` 5 gói, chuỗi attribution, tiêu đề docs, tên biến `MapsLibVN*` trong SDK.
+- Cho phép publish bốn gói npm trước khi có phản hồi MapLibre; B3 được xem là hoàn tất theo quyết
+  định chấp nhận rủi ro của chủ dự án, không phải ý kiến pháp lý hay sự đồng ý của MapLibre.
+- Nếu MapLibre phản đối sau đó, dừng phát hành bản mới, deprecate các version liên quan và lập kế
+  hoạch đổi scope/package, attribution, tiêu đề docs và tên public API trước major version kế tiếp.
 
 ## 6. Cần hỏi luật sư cùng lúc (gộp với B1/B2/B4)
 

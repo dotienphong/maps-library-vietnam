@@ -5,7 +5,7 @@ import {
   type MapsLibVNMap as WebMap,
   createMap,
 } from '@mapslibvn/web';
-import maplibregl from 'maplibre-gl';
+import * as maplibregl from 'maplibre-gl';
 import { type CSSProperties, type ReactNode, useContext, useEffect, useRef, useState } from 'react';
 import { MapContext } from './context';
 

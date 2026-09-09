@@ -183,7 +183,7 @@ describe('buildSnippet', () => {
   it('bản esm import @mapslibvn/web và truyền maplibre', () => {
     const code = buildSnippet(base, 'esm');
     expect(code).toContain("from '@mapslibvn/web'");
-    expect(code).toContain("import maplibregl from 'maplibre-gl'");
+    expect(code).toContain("import * as maplibregl from 'maplibre-gl'");
     expect(code).toContain('{ maplibre: maplibregl }');
     expect(code).not.toContain('MapsLibVN.createMap');
   });

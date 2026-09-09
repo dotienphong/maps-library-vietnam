@@ -15,7 +15,7 @@ Cập nhật: 04/09/2026.
 
 | Thành phần | Phiên bản đã kiểm | Giấy phép | Vai trò |
 |---|---|---|---|
-| maplibre-gl | 5.24.0 (peer, các gói web) | BSD-3-Clause | bộ vẽ bản đồ |
+| maplibre-gl | 6.8.0 (peer, các gói web) | BSD-3-Clause | bộ vẽ bản đồ |
 | pmtiles | 4.5.0 (dependency) | BSD-3-Clause | đọc tiles PMTiles qua HTTP Range |
 | react, react-dom | 18.3.1 (peer, chỉ `@mapslibvn/react`) | MIT | |
 | @maplibre/maplibre-react-native | 11.3.8 (peer, chỉ `@mapslibvn/react-native`) | MIT | bộ vẽ bản đồ native iOS/Android |

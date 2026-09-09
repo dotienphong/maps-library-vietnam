@@ -4,7 +4,7 @@ import { cleanup, render, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { MapsLibVNMap } from './map';
 
-vi.mock('maplibre-gl', () => ({ default: {} }));
+vi.mock('maplibre-gl', () => ({}));
 vi.mock('@mapslibvn/web', async (importOriginal) => ({
   ...(await importOriginal<typeof import('@mapslibvn/web')>()),
   createMap: vi.fn(),

@@ -10,8 +10,8 @@ Trang này liệt kê **đúng những gì bốn gói xuất ra**, kèm mặc đ
 | Gói | Phiên bản | Làm gì | Peer dependency |
 |---|---|---|---|
 | `@mapslibvn/core` | 0.4.0 | client REST, kiểu dữ liệu, chuỗi ghi nguồn, chuẩn hoá tiếng Việt | không có |
-| `@mapslibvn/web` | 0.4.0 | `createMap` bọc MapLibre GL JS, web component autocomplete | `maplibre-gl@^5` |
-| `@mapslibvn/react` | 0.4.0 | component và hook cho React | `maplibre-gl@^5`, `react>=18` |
+| `@mapslibvn/web` | 0.4.0 | `createMap` bọc MapLibre GL JS, web component autocomplete | `maplibre-gl@^6.4.1` |
+| `@mapslibvn/react` | 0.4.0 | component và hook cho React | `maplibre-gl@^6.4.1`, `react>=18` |
 | `@mapslibvn/react-native` | 0.4.0 | component và hook cho iOS/Android | `@maplibre/maplibre-react-native@^11.3`, `react>=19.1`, `react-native>=0.80` |
 
 `@mapslibvn/web` phụ thuộc `@mapslibvn/core` và `pmtiles`; `@mapslibvn/react` phụ thuộc cả `core` và `web`. Bạn chỉ cần cài gói ngoài cùng.
@@ -161,7 +161,7 @@ Export của `packages/web/src/index.ts`: `createMap`, `applyLanguage`, `nameExp
 
 ```ts
 import 'maplibre-gl/dist/maplibre-gl.css';
-import maplibregl from 'maplibre-gl';
+import * as maplibregl from 'maplibre-gl';
 import { createMap } from '@mapslibvn/web';
 
 const map = createMap(

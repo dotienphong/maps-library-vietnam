@@ -14,6 +14,7 @@
   },
   "files": [
     "dist",
+    "README.md",
     "LICENSE",
     "THIRD_PARTY_NOTICES.md"
   ],
@@ -23,7 +24,7 @@
     "typecheck": "tsc --noEmit"
   },
   "peerDependencies": {
-    "maplibre-gl": "^5.0.0",
+    "maplibre-gl": "^6.4.1",
     "react": ">=18"
   },
   "dependencies": {
@@ -32,7 +33,7 @@
   },
   "devDependencies": {
     "@types/react": "^18.3.0",
-    "maplibre-gl": "^5.0.0",
+    "maplibre-gl": "^6.8.0",
     "react": "^18.3.0",
     "tsup": "^8.3.0",
     "typescript": "^5.6.0"

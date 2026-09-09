@@ -10,8 +10,8 @@ component), `@mapslibvn/react` và `@mapslibvn/react-native`. Trang này chỉ n
 dùng nằm ở [Bản đồ web](/ban-do-web/) và [Tìm kiếm & autocomplete](/tim-kiem/).
 
 <Aside type="caution" title="Bốn gói `@mapslibvn/*` chưa publish lên npm">
-Đang rà soát nhãn hiệu tên "MapsLibVN" trước khi publish (checklist pháp lý B3). Vì vậy hiện có
-**hai cách dùng**:
+Scope `@mapslibvn` đã thuộc tài khoản dự án và bốn tarball `0.4.0` đã qua pack, quét secret, audit
+và cài thử độc lập. Chưa chạy lệnh publish, nên hiện có **hai cách dùng**:
 
 1. **Bản UMD phục vụ sẵn** từ `https://mapslibvn-docs.pages.dev/sdk/` — không cần npm, chạy được
    ngay (tab "Script tag" bên dưới). Đây là cách khuyến nghị lúc này.
@@ -61,6 +61,9 @@ Global `MapsLibVN` gồm: `createMap`, `maplibregl`, `createClient`, `MapsLibVNE
 `mapslibvn.css` là CSS của MapLibre đóng gói kèm — thiếu nó thì bản đồ hiện sai (điều khiển chồng
 lên nhau, popup không có khung).
 
+MapLibre 6 chạy worker ESM riêng. Khi tự host SDK, phải đặt `maplibre-gl-worker.mjs` và
+`maplibre-gl-shared.mjs` cạnh `mapslibvn.umd.js`; thư mục `/sdk/` phát hành sẵn đã chứa đủ ba file.
+
 Nếu bạn tự host SDK, hãy thay tên miền: cả `mapslibvn-docs.pages.dev` lẫn `api.ai-solutions.io.vn`
 đều là endpoint **tạm thời** của giai đoạn nội bộ. Xem [Tự host](/tu-host/).
 
@@ -68,7 +71,7 @@ Nếu bạn tự host SDK, hãy thay tên miền: cả `mapslibvn-docs.pages.dev
 <TabItem label="npm (ESM)">
 
 <Aside type="caution">
-`@mapslibvn/web` **chưa có trên npm**. Lệnh dưới đây chỉ chạy được sau khi publish (checklist B3).
+`@mapslibvn/web` **chưa có trên npm**. Lệnh dưới đây chỉ chạy được sau khi publish.
 Muốn dùng ngay: chọn tab "Script tag (UMD)", hoặc dựng tarball từ repo — xem mục 3 bên dưới.
 </Aside>
 
@@ -76,12 +79,12 @@ Muốn dùng ngay: chọn tab "Script tag (UMD)", hoặc dựng tarball từ rep
 pnpm add @mapslibvn/web maplibre-gl
 ```
 
-`maplibre-gl@^5` là **peer dependency** — bạn phải tự cài. Bản ESM không gộp maplibre, nên phải
+`maplibre-gl@^6.4.1` là **peer dependency** — bạn phải tự cài. Bản ESM không gộp maplibre, nên phải
 truyền vào qua `deps`:
 
 ```ts
 import 'maplibre-gl/dist/maplibre-gl.css';
-import maplibregl from 'maplibre-gl';
+import * as maplibregl from 'maplibre-gl';
 import { createMap, defineAutocomplete } from '@mapslibvn/web';
 
 defineAutocomplete(); // bản ESM KHÔNG tự đăng ký <mapslibvn-autocomplete>
@@ -105,14 +108,14 @@ Hai khác biệt so với bản UMD: bạn tự import CSS của MapLibre, và b
 <TabItem label="React">
 
 <Aside type="caution">
-`@mapslibvn/react` cũng **chưa có trên npm** (checklist B3). Xem mục 3 để dựng tarball từ repo.
+`@mapslibvn/react` cũng **chưa có trên npm**. Xem mục 3 để dựng tarball từ repo.
 </Aside>
 
 ```bash
 pnpm add @mapslibvn/react maplibre-gl
 ```
 
-Peer dependencies: `maplibre-gl@^5` và `react>=18`. Gói tự import `maplibre-gl` bên trong, bạn
+Peer dependencies: `maplibre-gl@^6.4.1` và `react>=18`. Gói tự import `maplibre-gl` bên trong, bạn
 không cần truyền `deps`.
 
 ```tsx
@@ -163,13 +166,13 @@ Toàn bộ hướng dẫn: [React Native](/react-native/).
 | Môi trường | Tối thiểu |
 |---|---|
 | Trình duyệt | 2 bản mới nhất của Chrome, Edge, Firefox, Safari; iOS Safari 16+ |
-| `maplibre-gl` (bản ESM và React) | `^5.0.0`, peer dependency — bản UMD đã gộp sẵn |
+| `maplibre-gl` (bản ESM và React) | `^6.4.1`, peer dependency; cần WebGL2 — bản UMD đã gộp sẵn |
 | React (`@mapslibvn/react`) | `>=18` |
 | React Native (`@mapslibvn/react-native`) | RN `>=0.80` New Architecture, React `>=19.1`, `@maplibre/maplibre-react-native` `^11.3.0`, Android API 23, Expo SDK 54+ |
 | Node (chỉ khi dựng SDK từ repo) | 22+, pnpm 9.15 |
 | Khoá API | kind `web` cho trang web, kind `mobile` cho app — xem [Khoá API](/khoa-api/) |
 
-Bản đồ dùng WebGL. Máy không có WebGL thì MapLibre không khởi tạo được và `createMap` ném lỗi.
+Bản đồ dùng WebGL2. Máy không có WebGL2 thì MapLibre không khởi tạo được và `createMap` ném lỗi.
 
 ## 3. Cài từ tarball khi có quyền repo
 
@@ -214,7 +217,7 @@ Ba dấu hiệu cài đúng:
 | Không có bản đồ, console báo `403` với `origin_not_allowed` | Khoá kind `web` nhưng origin của trang không nằm trong `allowed_origins` | Xin bổ sung origin, hoặc thử bằng khoá demo trên `localhost` — xem [Khoá API](/khoa-api/) |
 | `401 missing_key` / `401 invalid_key` | Chưa truyền khoá, hoặc khoá đã bị thu hồi | Truyền qua header `X-Api-Key` hoặc `?key=` |
 | Bản đồ hiện nhưng điều khiển vỡ, popup không có khung | Thiếu CSS | Bản UMD: thêm `mapslibvn.css`. Bản ESM: `import 'maplibre-gl/dist/maplibre-gl.css'` |
-| `Error: Cần maplibre-gl…` | Bản ESM thiếu peer `maplibre-gl`, hoặc quên truyền `{ maplibre: maplibregl }` | Cài `maplibre-gl@^5` và truyền vào `createMap` |
+| `Error: Cần maplibre-gl…` | Bản ESM thiếu peer `maplibre-gl`, hoặc quên truyền `{ maplibre: maplibregl }` | Cài `maplibre-gl@^6.4.1` và truyền vào `createMap` |
 | `<mapslibvn-autocomplete>` không hiện gì | Bản ESM chưa gọi `defineAutocomplete()` | Gọi một lần lúc khởi động ứng dụng |
 | Ô autocomplete có nhưng không gợi ý | Thiếu `api-key` hoặc `api-base`, hoặc gõ dưới 2 ký tự | Đặt đủ hai thuộc tính; component chỉ gọi API từ 2 ký tự trở lên |
 | Khung bản đồ cao 0px | Thẻ chứa map không có chiều cao | Đặt `height` cho `#map` (hoặc `containerStyle` ở React) |

@@ -134,7 +134,7 @@ Vì tiles không chạm Worker, lượt tải bản đồ không tính vào hạ
 
 ## 9. Trạng thái và giới hạn hiện tại
 
-- **Bốn gói `@mapslibvn/*` chưa publish lên npm** (đang rà soát nhãn hiệu). Hôm nay nhúng bằng bản
+- **Bốn gói `@mapslibvn/*` chưa publish lên npm** (đã sẵn sàng, chưa chạy publish). Hôm nay nhúng bằng bản
   UMD, hoặc cài từ tarball `pnpm pack` nếu có quyền repo. Xem [Cài đặt](/cai-dat/).
 - Endpoint `https://api.ai-solutions.io.vn` và `https://mapslibvn-docs.pages.dev` là **tạm thời**
   trong giai đoạn nội bộ, sẽ đổi khi MapsLibVN có tên miền riêng.

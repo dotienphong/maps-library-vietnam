@@ -10,7 +10,7 @@ import {
   isPoiStyleLayer,
   profileForSources,
 } from '@mapslibvn/core';
-import type maplibregl from 'maplibre-gl';
+import type * as maplibregl from 'maplibre-gl';
 import { type Lang, applyLanguage } from './language';
 import { type ProtocolHost, ensurePmtilesProtocol } from './protocol';
 

@@ -27,7 +27,7 @@ Bản ESM — `maplibre-gl` là **peer dependency**, phải truyền vào qua th
 
 ```ts
 import 'maplibre-gl/dist/maplibre-gl.css';
-import maplibregl from 'maplibre-gl';
+import * as maplibregl from 'maplibre-gl';
 import { createMap } from '@mapslibvn/web';
 
 const map = createMap(

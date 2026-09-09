@@ -5,6 +5,23 @@ commit với code).
 
 ## 1. Trạng thái hiện tại
 
+- **09/09/2026 — Bốn package SDK đã sẵn sàng để public npm, chưa publish.** Đã nâng MapLibre GL JS
+  từ 5.24.0 lên 6.8.0; peer Web/React chặn mọi bản trước `6.4.1`, là bản vá tối thiểu cho
+  `GHSA-jrc7-96c5-q579`. Source và snippet dùng namespace import ESM của v6. UMD giữ API một script
+  nhưng phát hành kèm `maplibre-gl-worker.mjs` + `maplibre-gl-shared.mjs`. Browser từng bắt đúng hai
+  404 worker/shared và trạng thái loading bị kẹt; sau sửa E2E đạt 30/30, tiles 206/200, marker và
+  attribution hiện. Core/Web/React có README
+  mới; React Native README được hoàn thiện; test release contract bắt buộc README trong cả bốn gói
+  và peer MapLibre an toàn. `pnpm pack` mới chứa đúng dist/README/LICENSE/notices, quét mẫu secret
+  không có match. Hai app sạch ngoài workspace cài đủ tarball: Web TypeScript + Vite build đạt,
+  React Native typecheck đạt; cả hai `pnpm audit --prod` không có advisory. SHA-256 tarball lần lượt:
+  core `22e94d1d…8acacd`, web `467caf9f…76a9f`, react `f4fed0b0…42801`, react-native
+  `8980e6c4…f06c9`. Full gate: lint 333 file, typecheck 14/14, root 81 file/962 test + API 25
+  file/177 test, workspace build 8/8. npm xác minh `dotienphong1993` là owner scope `@mapslibvn`;
+  scope hiện chưa có package. PHONG chấp thuận B3 và cho public; GitHub Billing tiếp tục bỏ qua theo
+  quyết định hiện tại. **Bắt đầu tiếp:** chạy `npm publish --dry-run` rồi publish theo thứ tự core →
+  web → react → react-native với `--access public`; chưa cần tên miền riêng hay chuyển datacenter.
+
 - **09/09/2026 — Profile POI `osm-fsq` đã phát hành và nghiệm thu production.**
   Registry có profile thứ sáu `osm-fsq` ánh xạ `osm,fsq`; API style/TileJSON, Web/React/React
   Native SDK, Playground (selector/URL/snippet), benchmark và tài liệu đều dùng cùng contract.

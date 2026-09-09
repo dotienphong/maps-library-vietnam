@@ -1,5 +1,5 @@
 import 'maplibre-gl/dist/maplibre-gl.css';
-import maplibregl from 'maplibre-gl';
+import * as maplibregl from 'maplibre-gl';
 import { defineAutocomplete } from './autocomplete-element';
 import { type CreateMapOptions, createMap as createMapWithDeps } from './map';
 

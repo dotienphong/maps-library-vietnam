@@ -81,7 +81,7 @@ import { Aside, Card, CardGrid, LinkCard, TabItem, Tabs } from '@astrojs/starlig
 
 ```ts
 import 'maplibre-gl/dist/maplibre-gl.css';
-import maplibregl from 'maplibre-gl';
+import * as maplibregl from 'maplibre-gl';
 import { createMap } from '@mapslibvn/web';
 
 const map = createMap(
@@ -135,7 +135,7 @@ MapsLibVN đang ở **giai đoạn nội bộ**: đã có tiles nền phủ Vi�
 autocomplete, search, nearby, geocode, reverse và đóng góp, cùng SDK cho web, React và React Native.
 Chưa thu phí, chưa mở đăng ký tự phục vụ.
 
-- Bốn gói `@mapslibvn/*` **chưa publish lên npm** (đang rà soát nhãn hiệu). Hôm nay nhúng bằng bản
+- Bốn gói `@mapslibvn/*` **chưa publish lên npm** (đã sẵn sàng, chưa chạy publish). Hôm nay nhúng bằng bản
   UMD phục vụ sẵn, hoặc cài từ tarball nếu có quyền repo — xem [Cài đặt](/cai-dat/).
 - `https://api.ai-solutions.io.vn` và `https://mapslibvn-docs.pages.dev` là endpoint **tạm thời**,
   sẽ đổi khi có tên miền riêng.

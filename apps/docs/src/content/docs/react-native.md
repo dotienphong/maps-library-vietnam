@@ -102,7 +102,7 @@ báo cáo (chưa chặn — xem [Điều khoản tenant](/dieu-khoan/)). Khoá v
 
 ## 6. Giới hạn hiện tại
 
-- Chưa publish npm (đang rà soát nhãn hiệu). Cài từ tarball do `pnpm --filter @mapslibvn/react-native pack`
+- Chưa publish npm (đã sẵn sàng, chưa chạy publish). Cài từ tarball do `pnpm --filter @mapslibvn/react-native pack`
   sinh ra — app thử `examples/embed-rn` trong repo minh hoạ trọn quy trình bằng `pnpm example:rn`.
 - Chưa có tiles offline; MapLibre Native đọc được PMTiles `file://` nên có thể thêm sau.
 - `onPoiClick` truy vấn đúng một điểm chạm: lệch khỏi biểu tượng POI vài pixel là không có kết quả.
