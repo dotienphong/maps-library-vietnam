@@ -35,6 +35,13 @@ export function dumpCommand(outFile) {
   return `pg_dump -Fc --no-owner --no-privileges "$DATABASE_URL" | zstd -T0 -3 -q | openssl enc -aes-256-cbc -pbkdf2 -iter 600000 -salt -pass env:BACKUP_PASSPHRASE -out "${outFile}"`;
 }
 
+/**
+ * Tên file tạm trên đĩa kèm pid: hai lần chạy trùng phút (09/09/2026: `--once` gõ hai lần) ghi cùng một
+ * tên, lần xong trước xoá file làm lần sau "no such file". Object trên R2 vẫn mang tên chuẩn.
+ * @param {string} name @param {number} pid
+ */
+export const localTempName = (name, pid) => `${name}.${pid}.tmp`;
+
 /** Lệnh sh giải mã file .enc về .dump.zst. @param {string} encFile @param {string} outFile */
 export function decryptCommand(encFile, outFile) {
   return `openssl enc -d -aes-256-cbc -pbkdf2 -iter 600000 -pass env:BACKUP_PASSPHRASE -in "${encFile}" -out "${outFile}"`;

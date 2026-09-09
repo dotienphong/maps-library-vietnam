@@ -13,6 +13,7 @@ import {
   backupName,
   dumpCommand,
   encryptedName,
+  localTempName,
   requireBackupPassphrase,
   retentionPlan,
 } from '../../../scripts/lib/backup-plan.mjs';
@@ -45,7 +46,7 @@ async function backupOnce(now = new Date()) {
   const passphrase = requireBackupPassphrase(process.env);
   mkdirSync(work, { recursive: true });
   const name = encryptedName(backupName(now));
-  const file = resolve(work, name);
+  const file = resolve(work, localTempName(name, process.pid));
   const dump = spawnSync('sh', ['-c', dumpCommand(file)], {
     stdio: 'inherit',
     env: {

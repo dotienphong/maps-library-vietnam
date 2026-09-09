@@ -4,6 +4,7 @@ import {
   backupName,
   dumpCommand,
   encryptedName,
+  localTempName,
   plainName,
   requireBackupPassphrase,
   retentionPlan,
@@ -80,5 +81,13 @@ describe('backupBucket', () => {
       bucket: 'mapslibvn-tiles',
       shared: true,
     });
+  });
+});
+
+describe('localTempName', () => {
+  it('file tạm trên đĩa mang pid để hai lần chạy trùng phút không ghi/xoá lẫn nhau', () => {
+    expect(localTempName('mapslibvn-20260909-2201.dump.zst.enc', 4242)).toBe(
+      'mapslibvn-20260909-2201.dump.zst.enc.4242.tmp',
+    );
   });
 });
