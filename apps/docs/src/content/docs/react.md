@@ -15,8 +15,7 @@ pnpm add @mapslibvn/react maplibre-gl react
 `maplibre-gl@^6.4.1` và `react>=18` là **peer dependency** — bạn tự cài. Gói `@mapslibvn/react` import
 `maplibre-gl` trực tiếp nên **không** phải truyền `{ maplibre }` như bản web thuần.
 
-Bốn gói `@mapslibvn/*` **chưa có trên npm** (đã sẵn sàng, chưa chạy publish), nên lệnh trên chưa chạy được.
-Cách cài hiện tại — tarball `pnpm pack` hoặc bản UMD — xem [Cài đặt](/cai-dat/).
+Bản `0.4.0` đã public trên npm; lệnh trên cài trực tiếp từ registry.
 
 Nhớ nạp CSS của MapLibre một lần ở điểm vào ứng dụng:
 

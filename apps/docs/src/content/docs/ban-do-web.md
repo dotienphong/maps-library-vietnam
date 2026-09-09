@@ -39,7 +39,7 @@ const map = createMap(
 Nếu không truyền `{ maplibre }`, `createMap` tìm `globalThis.maplibregl`; không thấy thì ném
 `Error('Cần maplibre-gl: import maplibre-gl hoặc dùng bản UMD @mapslibvn/web/umd')`.
 
-Gói chưa có trên npm — cách cài hiện tại xem [Cài đặt](/cai-dat/).
+Gói `@mapslibvn/web@0.4.0` đã public trên npm; các cách cài xem [Cài đặt](/cai-dat/).
 
 ## 2. Tuỳ chọn `CreateMapOptions`
 

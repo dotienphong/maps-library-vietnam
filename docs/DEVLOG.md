@@ -5,7 +5,7 @@ commit với code).
 
 ## 1. Trạng thái hiện tại
 
-- **09/09/2026 — Bốn package SDK đã sẵn sàng để public npm, chưa publish.** Đã nâng MapLibre GL JS
+- **09/09/2026 — Bốn package SDK 0.4.0 đã public thành công lên npm.** Đã nâng MapLibre GL JS
   từ 5.24.0 lên 6.8.0; peer Web/React chặn mọi bản trước `6.4.1`, là bản vá tối thiểu cho
   `GHSA-jrc7-96c5-q579`. Source và snippet dùng namespace import ESM của v6. UMD giữ API một script
   nhưng phát hành kèm `maplibre-gl-worker.mjs` + `maplibre-gl-shared.mjs`. Browser từng bắt đúng hai
@@ -18,9 +18,15 @@ commit với code).
   core `22e94d1d…8acacd`, web `467caf9f…76a9f`, react `f4fed0b0…42801`, react-native
   `8980e6c4…f06c9`. Full gate: lint 333 file, typecheck 14/14, root 81 file/962 test + API 25
   file/177 test, workspace build 8/8. npm xác minh `dotienphong1993` là owner scope `@mapslibvn`;
-  scope hiện chưa có package. PHONG chấp thuận B3 và cho public; GitHub Billing tiếp tục bỏ qua theo
-  quyết định hiện tại. **Bắt đầu tiếp:** chạy `npm publish --dry-run` rồi publish theo thứ tự core →
-  web → react → react-native với `--access public`; chưa cần tên miền riêng hay chuyển datacenter.
+  PHONG chấp thuận B3 và cho public; GitHub Billing tiếp tục bỏ qua theo quyết định hiện tại. Đã
+  `pnpm publish --access public` theo thứ tự core → web → react → react-native, xác thực từng gói
+  bằng WebAuthn/2FA. Registry xác nhận cả bốn package là public, `latest=0.4.0`; dependency nội bộ
+  của web/react được chuyển từ `workspace:*` thành đúng `0.4.0`. npm quét malware sau publish nên
+  từng gói trả 404 tạm thời rồi mới khả dụng. App sạch cài trực tiếp từ registry: Web/React có 30
+  package, audit 0; React Native 0.86.3 + MapLibre RN 11.3.10 có 249 package, audit 0. RN 0.81.0
+  và 0.87.1 hiện có advisory upstream `metro → image-size`, không đến từ SDK MapsLibVN.
+  **Bắt đầu tiếp:** push checkpoint này và deploy docs để nội dung public khớp registry; chưa cần
+  tên miền riêng hay chuyển datacenter.
 
 - **09/09/2026 — Profile POI `osm-fsq` đã phát hành và nghiệm thu production.**
   Registry có profile thứ sáu `osm-fsq` ánh xạ `osm,fsq`; API style/TileJSON, Web/React/React

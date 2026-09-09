@@ -30,10 +30,8 @@ Chưa có khoá? Dùng [khoá demo](/khoa-api/) và chạy trên `http://localho
 
 ## 2. npm
 
-:::caution[Gói `@mapslibvn/*` chưa publish lên npm]
-Scope `@mapslibvn` đã thuộc tài khoản dự án và bốn tarball `0.4.0` đã qua kiểm tra phát hành, nhưng
-chưa chạy lệnh publish. Cho tới lúc đó, hãy dùng bản UMD ở mục 1 hoặc dựng tarball bằng `pnpm pack`
-nếu bạn có quyền truy cập repo — xem [Cài đặt](/cai-dat/) mục 3.
+:::note[Gói npm đã public]
+Bốn gói `@mapslibvn/*` đã phát hành công khai; dist-tag `latest` hiện trỏ tới `0.4.0`.
 :::
 
 ```bash

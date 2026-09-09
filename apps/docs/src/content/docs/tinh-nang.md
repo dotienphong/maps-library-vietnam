@@ -134,8 +134,8 @@ Vì tiles không chạm Worker, lượt tải bản đồ không tính vào hạ
 
 ## 9. Trạng thái và giới hạn hiện tại
 
-- **Bốn gói `@mapslibvn/*` chưa publish lên npm** (đã sẵn sàng, chưa chạy publish). Hôm nay nhúng bằng bản
-  UMD, hoặc cài từ tarball `pnpm pack` nếu có quyền repo. Xem [Cài đặt](/cai-dat/).
+- **Bốn gói `@mapslibvn/*` đã public trên npm**; dist-tag `latest` hiện trỏ tới `0.4.0`. Bản UMD
+  vẫn dùng được cho ứng dụng không có bundler. Xem [Cài đặt](/cai-dat/).
 - Endpoint `https://api.ai-solutions.io.vn` và `https://mapslibvn-docs.pages.dev` là **tạm thời**
   trong giai đoạn nội bộ, sẽ đổi khi MapsLibVN có tên miền riêng.
 - Dữ liệu ngoài các đô thị lớn thưa hơn Thành phố Hồ Chí Minh và Hà Nội, nên tỷ lệ geocode đạt mức

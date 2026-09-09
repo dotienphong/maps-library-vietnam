@@ -9,17 +9,10 @@ MapsLibVN có bốn gói: `@mapslibvn/core` (client REST thuần), `@mapslibvn/w
 component), `@mapslibvn/react` và `@mapslibvn/react-native`. Trang này chỉ nói về **cài đặt**; cách
 dùng nằm ở [Bản đồ web](/ban-do-web/) và [Tìm kiếm & autocomplete](/tim-kiem/).
 
-<Aside type="caution" title="Bốn gói `@mapslibvn/*` chưa publish lên npm">
-Scope `@mapslibvn` đã thuộc tài khoản dự án và bốn tarball `0.4.0` đã qua pack, quét secret, audit
-và cài thử độc lập. Chưa chạy lệnh publish, nên hiện có **hai cách dùng**:
-
-1. **Bản UMD phục vụ sẵn** từ `https://mapslibvn-docs.pages.dev/sdk/` — không cần npm, chạy được
-   ngay (tab "Script tag" bên dưới). Đây là cách khuyến nghị lúc này.
-2. **Tarball `pnpm pack`** dựng từ repo — chỉ dành cho người đã có quyền truy cập repo (repo còn
-   private, xin quyền theo [Điều khoản tenant](/dieu-khoan/) mục 10).
-
-Các lệnh `pnpm add @mapslibvn/…` trong tab npm/React là dạng sẽ dùng **sau khi** publish; hôm nay
-chúng chưa chạy được.
+<Aside type="note" title="Bốn gói npm đã public">
+`@mapslibvn/core`, `@mapslibvn/web`, `@mapslibvn/react` và `@mapslibvn/react-native` đã phát hành
+công khai; dist-tag `latest` hiện trỏ tới `0.4.0`. Các lệnh npm/pnpm bên dưới chạy trực tiếp từ
+registry. Bản UMD vẫn được phục vụ sẵn cho ứng dụng không dùng bundler.
 </Aside>
 
 ## 1. Bốn cách nhúng
@@ -70,11 +63,6 @@ Nếu bạn tự host SDK, hãy thay tên miền: cả `mapslibvn-docs.pages.dev
 </TabItem>
 <TabItem label="npm (ESM)">
 
-<Aside type="caution">
-`@mapslibvn/web` **chưa có trên npm**. Lệnh dưới đây chỉ chạy được sau khi publish.
-Muốn dùng ngay: chọn tab "Script tag (UMD)", hoặc dựng tarball từ repo — xem mục 3 bên dưới.
-</Aside>
-
 ```bash
 pnpm add @mapslibvn/web maplibre-gl
 ```
@@ -106,10 +94,6 @@ Hai khác biệt so với bản UMD: bạn tự import CSS của MapLibre, và b
 
 </TabItem>
 <TabItem label="React">
-
-<Aside type="caution">
-`@mapslibvn/react` cũng **chưa có trên npm**. Xem mục 3 để dựng tarball từ repo.
-</Aside>
 
 ```bash
 pnpm add @mapslibvn/react maplibre-gl
@@ -174,10 +158,10 @@ Toàn bộ hướng dẫn: [React Native](/react-native/).
 
 Bản đồ dùng WebGL2. Máy không có WebGL2 thì MapLibre không khởi tạo được và `createMap` ném lỗi.
 
-## 3. Cài từ tarball khi có quyền repo
+## 3. Cài từ tarball để kiểm thử bản source
 
-Chưa publish npm nên cách duy nhất dùng bản ESM là đóng gói từ repo. `pnpm pack` không nhận
-`--filter`, phải chạy trong thư mục gói:
+Bản npm là cách cài mặc định. Nếu cần kiểm thử thay đổi local trước lần phát hành tiếp theo,
+`pnpm pack` không nhận `--filter`, nên phải chạy trong thư mục gói:
 
 ```bash
 pnpm --filter @mapslibvn/core --filter @mapslibvn/web build
@@ -185,13 +169,13 @@ cd packages/core && pnpm pack --pack-destination /tmp/mlv && cd -
 cd packages/web  && pnpm pack --pack-destination /tmp/mlv && cd -
 
 # trong dự án của bạn
-npm install /tmp/mlv/mapslibvn-core-0.1.0.tgz /tmp/mlv/mapslibvn-web-0.1.0.tgz maplibre-gl
+npm install /tmp/mlv/mapslibvn-core-0.4.0.tgz /tmp/mlv/mapslibvn-web-0.4.0.tgz maplibre-gl
 ```
 
-Phải cài **cả hai** tarball: `@mapslibvn/web` để `@mapslibvn/core` ở dạng dependency ngoài
-(`dist/index.js` vẫn `import … from '@mapslibvn/core'`), chưa publish nên npm không tự tải được.
-Dùng React thì cần ba tarball: `core`, `web`, `react`. Riêng `@mapslibvn/react-native` gộp sẵn
-`core` vào `dist`, chỉ cần một tarball.
+Khi cài tarball Web local, npm có thể tự tải `@mapslibvn/core@0.4.0` từ registry. Muốn kiểm thử
+đồng thời source local của cả hai thì cài cả hai tarball như ví dụ. Dùng React local tương tự với
+ba tarball `core`, `web`, `react`. Riêng `@mapslibvn/react-native` gộp sẵn `core` vào `dist`, chỉ
+cần một tarball.
 
 ## 4. Kiểm tra đã cài đúng
 

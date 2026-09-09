@@ -16,7 +16,8 @@ Trang này liệt kê **đúng những gì bốn gói xuất ra**, kèm mặc đ
 
 `@mapslibvn/web` phụ thuộc `@mapslibvn/core` và `pmtiles`; `@mapslibvn/react` phụ thuộc cả `core` và `web`. Bạn chỉ cần cài gói ngoài cùng.
 
-Cả bốn gói **chưa phát hành lên npm** trong giai đoạn nội bộ. Cách cài hiện tại — UMD qua thẻ `<script>` hoặc tarball — ở [Cài đặt](/cai-dat/). Số `0.4.0` ở bảng là version trong source/tarball hiện tại, không phải xác nhận package đã có trên npm.
+Cả bốn gói đã phát hành công khai lên npm với dist-tag `latest` trỏ tới `0.4.0`. Cách cài npm,
+UMD hoặc tarball được mô tả ở [Cài đặt](/cai-dat/).
 
 ### Nâng từ 0.2.x lên 0.3.0
 
@@ -43,7 +44,7 @@ poiSources: ['fsq'];
 POI người dùng luôn được giữ. Các list route lọc theo profile nhưng `getPlace(id)` không lọc; style
 fallback về archive `all` và trả `x-poi-profile: all;fallback` nếu archive riêng chưa phát hành.
 
-Source hiện ở `0.4.0`; contract `poiSources` trên vẫn giữ nguyên. Bản bump này chưa được publish npm.
+Source và bản npm `latest` hiện ở `0.4.0`; contract `poiSources` trên vẫn giữ nguyên.
 
 ### Nâng từ 0.1.x lên 0.2.0
 
