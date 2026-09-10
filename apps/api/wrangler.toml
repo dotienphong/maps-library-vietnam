@@ -39,9 +39,10 @@ localConnectionString = "postgres://mapslibvn:mapslibvn@localhost:5432/mapslibvn
 enabled = true
 
 [env.production]
-vars = { TILES_BASE = "https://tiles.ai-solutions.io.vn", ENVIRONMENT = "production", QUOTA_ENABLED = "0", ACCESS_TEAM_DOMAIN = "snowy-credit-f444.cloudflareaccess.com", ACCESS_AUD = "26088029373e358f9a24e68f66fe85ccc0c771e53cde538638a54151969cc6f5" }
+vars = { TILES_BASE = "https://tiles.ai-solutions.io.vn", ENVIRONMENT = "production", QUOTA_ENABLED = "1", ACCESS_TEAM_DOMAIN = "snowy-credit-f444.cloudflareaccess.com", ACCESS_AUD = "26088029373e358f9a24e68f66fe85ccc0c771e53cde538638a54151969cc6f5" }
 kv_namespaces = [{ binding = "META", id = "a50e778ff63a4ad7956f783eba456ed5" }]
 r2_buckets = [{ binding = "TILES", bucket_name = "mapslibvn-tiles" }]
 hyperdrive = [{ binding = "DB", id = "71d7a62b89e9462e91bb0094af1f750f" }]
 analytics_engine_datasets = [{ binding = "ANALYTICS", dataset = "mapslibvn_api" }]
+ratelimits = [{ name = "PLACES_RATE_LIMITER", namespace_id = "1001", simple = { limit = 60, period = 60 } }]
 assets = { directory = "../admin/dist" }

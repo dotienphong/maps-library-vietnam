@@ -72,16 +72,21 @@ Khoá thiếu scope cần thiết trả `403` với code `scope` và message nê
 
 | Giới hạn | Giá trị | Áp cho |
 |---|---|---|
+| Burst Places | 60 lượt / phút / điểm Cloudflare | mỗi cặp khoá + IP, gộp 6 endpoint `places:read` |
 | Lượt gọi Places | 20.000 / ngày (plan `free`) | mỗi khoá, gộp cả 6 endpoint `places:read` |
 | Đóng góp theo người dùng cuối | 20 / ngày | mỗi `end_user_token` |
 | Đóng góp theo khoá | 500 / ngày | mỗi khoá API |
 
-Ba điều cần biết:
+Bốn điều cần biết:
 
+- Burst limit chạy tại edge theo hash của cặp khoá + IP, kể cả tenant `internal`; vượt ngưỡng trả
+  `429 rate_limit_exceeded` với `retry-after: 60`. Bộ đếm theo từng điểm Cloudflare và cập nhật bất
+  đồng bộ, nên đây là lớp chống spam chứ không phải số liệu tính cước chính xác; IP thô không được
+  đưa vào counter key.
 - **Ngày tính theo giờ Việt Nam** (UTC+7, không có giờ mùa hè). Bộ đếm về 0 lúc 00:00 giờ VN.
 - Bộ đếm lượt Places là **đếm xấp xỉ** (ghi bất đồng bộ vào KV), nên máy chủ chỉ trả `429` khi vượt
   **2 lần** hạn mức — để không chặn nhầm vì đếm trễ. Đừng dựa vào đó: hãy coi 20.000 là mức thật.
-- Tenant nội bộ (plan `internal`) không bị đếm, kể cả khoá demo.
+- Tenant nội bộ (plan `internal`) không bị quota ngày, kể cả khoá demo; burst limit vẫn áp dụng.
 
 Vượt hạn mức trả `429 quota_exceeded` kèm header `retry-after: 3600`. Giới hạn đóng góp cũng trả
 `429 quota_exceeded` nhưng theo bộ đếm riêng của `/v1/edits`.

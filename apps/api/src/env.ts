@@ -4,6 +4,8 @@ export interface Env {
   META: KVNamespace;
   TILES: R2Bucket;
   DB: Hyperdrive;
+  /** Chống burst theo key tại edge: 60 request/phút/colo. */
+  PLACES_RATE_LIMITER?: RateLimit;
   TILES_BASE: string;
   ENVIRONMENT: string;
   /** '1' = bật đếm quota KV cho tenant free/paid (spec 6.4). Mặc định '0'. */

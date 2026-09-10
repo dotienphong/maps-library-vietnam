@@ -23,7 +23,15 @@ export function vnDayStartUtc(now: Date = new Date()): Date {
 export function quotaMiddleware(group: 'places') {
   return async (c: Context<AppEnv>, next: Next) => {
     const auth = c.get('auth');
-    if (c.env.QUOTA_ENABLED !== '1' || !auth || auth.plan === 'internal') return next();
+    if (!auth) return next();
+    if (c.env.PLACES_RATE_LIMITER) {
+      const actor = await rateLimitActor(
+        auth.keyHash,
+        c.req.header('cf-connecting-ip') ?? 'unknown',
+      );
+      await enforceBurstLimit(c.env.PLACES_RATE_LIMITER, actor);
+    }
+    if (c.env.QUOTA_ENABLED !== '1' || auth.plan === 'internal') return next();
     const limit = auth.quotaPlacesPerDay ?? FREE_PLACES_PER_DAY;
     const key = `quota:${auth.keyHash}:${vnDay()}:${group}`;
     const count = Number((await c.env.META.get(key)) ?? 0);
@@ -33,4 +41,19 @@ export function quotaMiddleware(group: 'places') {
     c.executionCtx.waitUntil(c.env.META.put(key, String(count + 1), { expirationTtl: 2 * 86_400 }));
     await next();
   };
+}
+
+/** Tách boundary để kiểm thử quyết định allow/deny mà không dùng bộ đếm dùng chung của Miniflare. */
+export async function enforceBurstLimit(limiter: RateLimit, keyHash: string): Promise<void> {
+  const burst = await limiter.limit({ key: keyHash });
+  if (!burst.success) {
+    throw new ApiError(429, 'rate_limit_exceeded', 'Gửi quá nhiều request trong một phút', 60);
+  }
+}
+
+/** Không đưa IP thô vào counter key; cùng một người vẫn bị giới hạn riêng trong từng tenant. */
+export async function rateLimitActor(keyHash: string, ip: string): Promise<string> {
+  const bytes = new TextEncoder().encode(`${keyHash}:${ip}`);
+  const digest = await crypto.subtle.digest('SHA-256', bytes);
+  return [...new Uint8Array(digest)].map((byte) => byte.toString(16).padStart(2, '0')).join('');
 }

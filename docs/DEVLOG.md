@@ -5,6 +5,21 @@ commit với code).
 
 ## 1. Trạng thái hiện tại
 
+- **10/09/2026 — Chống burst Places và load-test an toàn.** Sáu route Places dùng Rate Limiting
+  binding của Cloudflare theo hash `key_hash + IP`, ngưỡng production 60 request/phút/colo; mọi
+  plan kể cả `internal` đều chịu burst limit, trả `429 rate_limit_exceeded` + `Retry-After: 60`. Quota ngày
+  KV cho plan free được bật trên production (`QUOTA_ENABLED=1`), vẫn chặn xấp xỉ ở 2× hạn mức
+  20.000/ngày và tenant internal vẫn được miễn quota ngày. Root có `pnpm load:api` chạy wave
+  10→25→50→100 VU, tách 429 khỏi 5xx/timeout, đo RPS/p50/p95/p99/cache-hit và dừng ngay khi có lỗi
+  hạ tầng hoặc lỗi 4xx bất ngờ; production bắt buộc `--confirm-production`, khoá chỉ đọc từ biến
+  môi trường để không lộ trong process list. TDD: quota/burst 6 test và load harness 4 test xanh;
+  root 83 file/984 test, API 27 file/188 test, typecheck 14/14 và build 8/8 xanh. Wrangler production
+  dry-run nhận đúng binding `PLACES_RATE_LIMITER (60 requests/60s)`. **Chưa deploy ở checkpoint
+  này; cần commit/push hoặc direct deploy có source được ghi nhận.** Baseline trước deploy tự dừng:
+  10 VU đạt 10/10, p95 5.738 ms;
+  25 VU đạt 25/25, p95 5.921 ms; 50 VU chỉ 42/50, p95 chạm timeout 10 giây; không chạy 100 VU.
+  Vì vậy chưa được cam kết quá 25 Places request cold đồng thời, và p95 cold vẫn là rủi ro cần tối ưu.
+
 - **09/09/2026 — Một lệnh phát hành toàn bộ SDK npm.** Root có `pnpm sdk:publish`: chạy lint,
   typecheck, test, build, dry-run đủ bốn package rồi publish tuần tự core → web → react →
   react-native với public access và git checks trên nhánh main. Có thể chạy

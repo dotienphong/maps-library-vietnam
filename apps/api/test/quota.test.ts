@@ -1,6 +1,6 @@
 import { SELF, env } from 'cloudflare:test';
 import { describe, expect, it } from 'vitest';
-import { vnDay } from '../src/quota';
+import { enforceBurstLimit, rateLimitActor, vnDay } from '../src/quota';
 import { seedKey, sha256Hex } from './helpers/seed-key';
 
 const FREE_KEY = 'mlv_live_freetest0000000000000000';
@@ -46,5 +46,27 @@ describe('quota (QUOTA_ENABLED=1 trong vitest.config)', () => {
       headers: { 'X-Api-Key': key },
     });
     expect(res.status).toBe(503);
+  });
+
+  it('burst limit cho qua khi binding success và ném 429/60 giây khi binding deny', async () => {
+    await expect(
+      enforceBurstLimit({ limit: async () => ({ success: true }) }, 'hash-allow'),
+    ).resolves.toBeUndefined();
+    await expect(
+      enforceBurstLimit({ limit: async () => ({ success: false }) }, 'hash-deny'),
+    ).rejects.toMatchObject({
+      status: 429,
+      code: 'rate_limit_exceeded',
+      retryAfter: 60,
+    });
+  });
+
+  it('burst actor tách theo key + IP nhưng không chứa IP thô', async () => {
+    const first = await rateLimitActor('key-hash', '203.0.113.8');
+    const same = await rateLimitActor('key-hash', '203.0.113.8');
+    const otherIp = await rateLimitActor('key-hash', '203.0.113.9');
+    expect(first).toBe(same);
+    expect(first).not.toBe(otherIp);
+    expect(first).not.toContain('203.0.113.8');
   });
 });
