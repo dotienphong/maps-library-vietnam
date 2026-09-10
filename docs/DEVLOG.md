@@ -5,6 +5,17 @@ commit với code).
 
 ## 1. Trạng thái hiện tại
 
+- **10/09/2026 — Dẫn đường (routing) spec A: đã brainstorm, viết spec + plan, review bảo mật; CHƯA thực thi
+  task nào, CHƯA push.** Hướng PHONG chốt: Valhalla tự host trên máy chủ nội bộ (không phải engine JS trên
+  client), xe máy/ô tô/đi bộ, chỉ endpoint `GET /v1/directions`, một container tự build graph. Spec
+  `docs/superpowers/specs/2026-09-10-dan-duong-engine-api-design.md`; plan 19 task
+  `docs/superpowers/plans/2026-09-10-dan-duong-engine-api.md` (commit cuối `670f0d3`). Ba quyết định
+  bảo mật đã chốt 10/09: trần 100/phút theo khoá (Rate Limiting) cho khoá web/mobile mọi plan ở directions
+  thay quota ngày KV (Workers Free chỉ 1.000 ghi KV/ngày); limiter burst riêng 20/phút; riêng tư toạ độ
+  trong log Workers chỉ ghi điều khoản tenant (phương án 1). Chuỗi spec: A engine+API → B core nav + SDK web
+  (GPS) → C React Native. Việc tay PHONG trước khi tới Task 17: tắt auto-sleep máy chủ; Task 17: service
+  token `routing` → Access app `mapslibvn-route` → hostname `maps-route`; `wrangler secret put` hai secret.
+
 - **10/09/2026 — Dọn sạch toàn bộ advisory production của workspace.** `pnpm audit --prod
   --audit-level=high` từ 15 advisory (1 critical, 6 high, 5 moderate, 3 low) về
   `No known vulnerabilities found`. Docs đã nâng Astro 5.18.2 → 7.3.2, Starlight 0.30.6 →
@@ -728,6 +739,10 @@ commit với code).
   **PENDING Windows** (chờ PHONG có máy để kiểm)
 
 ## 2. Bước kế tiếp
+
+- **Dẫn đường spec A (10/09/2026):** thực thi plan `docs/superpowers/plans/2026-09-10-dan-duong-engine-api.md`
+  từ **Task 1 Step 1** (core polyline6). Cách khuyến nghị: subagent-driven-development, review giữa các task.
+  Task 16 mới push; Task 17 cần PHONG làm việc tay trên máy chủ và Cloudflare.
 
 - **Nguồn POI:** đã phát hành 07/09 (xem mục 1). Profile thứ ba `osm+overture` chỉ làm khi có nhu
   cầu thật (thêm một dòng vào `POI_SOURCE_PROFILES` + một lần `pnpm poi:profile`).
