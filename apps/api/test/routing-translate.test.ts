@@ -1,0 +1,93 @@
+import { decodePolyline6 } from '@mapslibvn/core';
+import { describe, expect, it } from 'vitest';
+import { mergeLegShapes, translateDirections } from '../src/routing/translate';
+import type { ValhallaRouteResponse } from '../src/routing/valhalla';
+import fixture from './fixtures/valhalla/two-legs.json';
+
+const json = fixture as unknown as ValhallaRouteResponse;
+
+describe('mergeLegShapes', () => {
+  it('bỏ điểm trùng giữa hai leg và ghi offset', () => {
+    const merged = mergeLegShapes(json.trip.legs);
+    expect(merged.coords).toEqual([
+      [106.699, 10.7798],
+      [106.6985, 10.778],
+      [106.698, 10.776],
+      [106.6975, 10.7745],
+      [106.6981, 10.7725],
+    ]);
+    expect(merged.offsets).toEqual([0, 2]);
+  });
+});
+
+describe('translateDirections', () => {
+  const out = translateDirections(json, 'motorbike', '2026-09-15');
+  const route = out.routes[0];
+
+  it('tuyến: mét/giây nguyên, bbox [minLng,minLat,maxLng,maxLat], flags, geometry nối', () => {
+    expect(out.routes).toHaveLength(1);
+    expect(route).toMatchObject({
+      mode: 'motorbike',
+      distance_m: 820,
+      duration_s: 110,
+      bbox: [106.6975, 10.7725, 106.699, 10.7798],
+      flags: { toll: true, highway: false, ferry: false },
+    });
+    expect(decodePolyline6(route?.geometry ?? '')).toHaveLength(5);
+    expect(route?.geometry).toBe('oh}pSonkojEnoBf^~{Bf^v|Af^~{Bod@');
+  });
+
+  it('leg và bước: offset, chỉ số shape đã dịch, kind, verbal, roundabout_exit, location', () => {
+    const [leg0, leg1] = route?.legs ?? [];
+    expect(leg0).toMatchObject({ distance_m: 450, duration_s: 75, shape_offset: 0 });
+    expect(leg1).toMatchObject({ distance_m: 370, duration_s: 35, shape_offset: 2 });
+    expect(leg0?.steps.map((s) => s.kind)).toEqual(['depart', 'turn_left', 'arrive']);
+    expect(leg0?.steps[0]).toMatchObject({
+      verbal_pre: 'Đi về hướng nam trên Đồng Khởi trong 200 mét.',
+      verbal_post: 'Đi tiếp 200 mét.',
+      street_names: ['Đồng Khởi'],
+      distance_m: 200,
+      duration_s: 30,
+      shape_begin: 0,
+      shape_end: 1,
+      location: [106.699, 10.7798],
+      roundabout_exit: null,
+    });
+    expect(leg0?.steps[1]).toMatchObject({ verbal_post: null, distance_m: 250, duration_s: 45 });
+    expect(leg0?.steps[2]).toMatchObject({ street_names: [], shape_begin: 2, shape_end: 2 });
+    expect(leg1?.steps[0]).toMatchObject({ kind: 'continue', shape_begin: 2, shape_end: 3 });
+    expect(leg1?.steps[1]).toMatchObject({
+      kind: 'roundabout_enter',
+      roundabout_exit: 2,
+      shape_begin: 3,
+      shape_end: 4,
+      location: [106.6975, 10.7745],
+    });
+    expect(leg1?.steps[2]).toMatchObject({ kind: 'arrive', location: [106.6981, 10.7725] });
+  });
+
+  it('waypoints: location gốc, snapped = đầu leg / cuối tuyến, name null', () => {
+    expect(out.waypoints).toEqual([
+      { location: [106.699, 10.7798], snapped: [106.699, 10.7798], name: null },
+      { location: [106.698, 10.776], snapped: [106.698, 10.776], name: null },
+      { location: [106.6981, 10.7725], snapped: [106.6981, 10.7725], name: null },
+    ]);
+  });
+
+  it('attribution và engine', () => {
+    expect(out.attribution).toBe('© OpenStreetMap contributors');
+    expect(out.engine).toEqual({ name: 'valhalla', graph: '2026-09-15' });
+    expect(translateDirections(json, 'car', null).engine).toEqual({
+      name: 'valhalla',
+      graph: null,
+    });
+  });
+
+  it('alternates → routes[1], cùng mode', () => {
+    const withAlt = { ...json, alternates: [{ trip: json.trip }] };
+    const alt = translateDirections(withAlt, 'car', null);
+    expect(alt.routes).toHaveLength(2);
+    expect(alt.routes[1]?.mode).toBe('car');
+    expect(alt.routes[1]?.distance_m).toBe(820);
+  });
+});

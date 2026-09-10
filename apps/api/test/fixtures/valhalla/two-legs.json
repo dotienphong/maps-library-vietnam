@@ -1,0 +1,114 @@
+{
+  "trip": {
+    "locations": [
+      { "type": "break", "lat": 10.7798, "lon": 106.699, "original_index": 0 },
+      { "type": "break", "lat": 10.776, "lon": 106.698, "original_index": 1 },
+      { "type": "break", "lat": 10.7725, "lon": 106.6981, "original_index": 2 }
+    ],
+    "legs": [
+      {
+        "maneuvers": [
+          {
+            "type": 1,
+            "instruction": "Đi về hướng nam trên Đồng Khởi.",
+            "verbal_pre_transition_instruction": "Đi về hướng nam trên Đồng Khởi trong 200 mét.",
+            "verbal_post_transition_instruction": "Đi tiếp 200 mét.",
+            "street_names": ["Đồng Khởi"],
+            "time": 30,
+            "length": 0.2,
+            "begin_shape_index": 0,
+            "end_shape_index": 1
+          },
+          {
+            "type": 15,
+            "instruction": "Rẽ trái vào Lê Lợi.",
+            "verbal_pre_transition_instruction": "Rẽ trái vào Lê Lợi.",
+            "street_names": ["Lê Lợi"],
+            "time": 45.4,
+            "length": 0.25,
+            "begin_shape_index": 1,
+            "end_shape_index": 2
+          },
+          {
+            "type": 4,
+            "instruction": "Bạn đã đến điểm dừng.",
+            "time": 0,
+            "length": 0,
+            "begin_shape_index": 2,
+            "end_shape_index": 2
+          }
+        ],
+        "summary": {
+          "has_toll": false,
+          "has_highway": false,
+          "has_ferry": false,
+          "min_lat": 10.776,
+          "min_lon": 106.698,
+          "max_lat": 10.7798,
+          "max_lon": 106.699,
+          "time": 75.4,
+          "length": 0.45
+        },
+        "shape": "oh}pSonkojEnoBf^~{Bf^"
+      },
+      {
+        "maneuvers": [
+          {
+            "type": 8,
+            "instruction": "Đi tiếp trên Lê Lợi.",
+            "street_names": ["Lê Lợi"],
+            "time": 20,
+            "length": 0.17,
+            "begin_shape_index": 0,
+            "end_shape_index": 1
+          },
+          {
+            "type": 26,
+            "instruction": "Vào vòng xuyến và đi lối ra thứ 2.",
+            "roundabout_exit_count": 2,
+            "time": 15,
+            "length": 0.2,
+            "begin_shape_index": 1,
+            "end_shape_index": 2
+          },
+          {
+            "type": 6,
+            "instruction": "Điểm đến ở bên trái.",
+            "time": 0,
+            "length": 0,
+            "begin_shape_index": 2,
+            "end_shape_index": 2
+          }
+        ],
+        "summary": {
+          "has_toll": true,
+          "has_highway": false,
+          "has_ferry": false,
+          "min_lat": 10.7725,
+          "min_lon": 106.6975,
+          "max_lat": 10.776,
+          "max_lon": 106.6981,
+          "time": 35,
+          "length": 0.37
+        },
+        "shape": "_{upS_piojEv|Af^~{Bod@"
+      }
+    ],
+    "summary": {
+      "has_toll": true,
+      "has_highway": false,
+      "has_ferry": false,
+      "min_lat": 10.7725,
+      "min_lon": 106.6975,
+      "max_lat": 10.7798,
+      "max_lon": 106.699,
+      "time": 110.4,
+      "length": 0.82
+    },
+    "status_message": "Found route between points",
+    "status": 0,
+    "units": "kilometers",
+    "language": "vi-VN"
+  },
+  "id": "test-request"
+}
