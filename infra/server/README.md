@@ -4,6 +4,10 @@ Máy ≥ 8 GB RAM, SSD ≥ 50 GB, Docker (Linux ưu tiên; macOS qua Docker Desk
 
 ## Dựng lần đầu
 
+Onboarding Windows/WSL2 xem `Setup_Local_Guide.md` ở thư mục gốc. `server:setup` chỉ dựng stack và
+migration; để khôi phục full production data trên máy mới, chuẩn bị file `infra/server/.env` của máy
+cũ rồi chạy `pnpm server:restore`.
+
 ```bash
 git clone git@github.com-dotienphong:dotienphong/maps-library-vietnam.git && cd maps-library-vietnam
 corepack enable && pnpm install
@@ -79,8 +83,10 @@ pnpm server:setup
 ## Vận hành
 
 - Cập nhật mã/image: `pnpm server:update`.
-- Chuyển máy: trên máy mới `pnpm server:setup` → `pnpm db:restore --latest` → dán lại
-  `TUNNEL_TOKEN` (hoặc tạo tunnel mới rồi trỏ hostname) → xong < 1 giờ. Restore nạp vào
+- Chuyển máy: trên máy mới chép `infra/server/.env` an toàn từ password manager rồi chạy
+  `pnpm server:restore` → dán lại `TUNNEL_TOKEN` (hoặc tạo tunnel mới rồi trỏ hostname) → xong
+  < 1 giờ. Lệnh dùng đúng `infra/server/compose.yml`; không gọi nhầm restore của dev compose.
+  Restore nạp vào
   DB tạm, đổi tên nguyên tử, chạy migration còn thiếu và reconcile lại owner/grant
   `api`/`pipeline` vì archive portable cố ý dùng `--no-owner --no-privileges`.
 - Kiểm restore: `SELECT count(*) FROM poi;` và xác nhận `poi.tableowner = pipeline`,

@@ -5,6 +5,9 @@ Nền tảng bản đồ nhúng cho web và mobile, dựng trên MapLibre GL và
 
 ## Bắt đầu (máy mới)
 
+Hướng dẫn đầy đủ cho Windows 11/WSL2 và hai chế độ dev/full production data:
+[`Setup_Local_Guide.md`](./Setup_Local_Guide.md).
+
 Cài Docker Desktop và Node 22 (khuyên dùng `fnm`), rồi:
 
 ```bash
@@ -12,6 +15,13 @@ corepack enable
 pnpm install
 pnpm run setup  # tạo .env, dựng Postgres, migrate, cấu hình Git local cá nhân
 pnpm dev
+```
+
+Khôi phục máy chủ mới từ backup production mã hóa (sau khi quản trị viên cấp
+`infra/server/.env` qua password manager):
+
+```bash
+pnpm server:restore
 ```
 
 ## Start app hằng ngày

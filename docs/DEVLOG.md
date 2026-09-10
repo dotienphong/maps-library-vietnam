@@ -5,6 +5,16 @@ commit với code).
 
 ## 1. Trạng thái hiện tại
 
+- **10/09/2026 — Một lệnh khôi phục full data trên máy mới + Windows onboarding.** Root có
+  `pnpm server:restore`: fail-closed nếu thiếu `infra/server/.env` hoặc bí mật backup/R2, dựng đúng
+  server compose, restore backup production mới nhất vào DB tạm rồi swap nguyên tử và nghiệm thu
+  migration, số POI, owner `pipeline`, quyền chỉ đọc của role `api`. Secrets chỉ truyền qua env,
+  không nằm trong command line. `Setup_Local_Guide.md` hướng dẫn Windows 11 + WSL2/Docker Desktop,
+  tách rõ dev fixture (`pnpm run setup` + `pnpm db:fixture`) và full data, yêu cầu cập nhật guide
+  trong cùng commit khi setup thay đổi. Contract test bao phủ entrypoint, server compose, required
+  secrets, SQL nghiệm thu và nội dung guide. **Bắt đầu tiếp:** thử disaster recovery thật trên một
+  laptop/VM sạch với bản backup R2 hiện tại trước khi dùng lệnh để chuyển production.
+
 - **10/09/2026 — Chống burst Places và load-test an toàn.** Sáu route Places dùng Rate Limiting
   binding của Cloudflare theo hash `key_hash + IP`, ngưỡng production 60 request/phút/colo; mọi
   plan kể cả `internal` đều chịu burst limit, trả `429 rate_limit_exceeded` + `Retry-After: 60`. Quota ngày
