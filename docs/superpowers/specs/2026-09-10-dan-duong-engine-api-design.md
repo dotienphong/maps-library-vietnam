@@ -71,7 +71,10 @@ dẫn đường cùng lúc không tạo tải cho máy chủ.
 ## 2. Tiền đề kỹ thuật đã xác minh (10/09/2026)
 
 - Valhalla có file ngôn ngữ `locales/vi-VN.json` (kèm `.po`). Chất lượng bản dịch **chưa kiểm**; spec B quyết có sửa hay không.
-- Image chính thức: `ghcr.io/valhalla/valhalla-scripted` (entrypoint kịch bản, gộp từ dự án `docker-valhalla` đã archive 03/2026) và `ghcr.io/valhalla/valhalla` (thuần), có tag phiên bản (`3.8.x`) và tag `-arm64`. Cổng 8002. Volume `/custom_files` chứa PBF, `valhalla.json`, `valhalla_tiles.tar`. Biến môi trường chính: `tile_urls`, `serve_tiles`, `use_tiles_ignore_pbf` (mặc định `True`: có tar thì dùng, bỏ qua PBF), `force_rebuild`, `server_threads`, `build_elevation`, `build_admins`, `build_time_zones`, `build_tar`, `tileset_name`. Đổi PBF được phát hiện bằng hash file khi container khởi động lại.
+- Image chính thức: `ghcr.io/valhalla/valhalla-scripted:3.8.3` (entrypoint kịch bản `/valhalla/scripts/docker-entrypoint.sh build_tiles`, gộp từ dự án `docker-valhalla` đã archive 03/2026); manifest có cả `amd64` và `arm64` (kiểm bằng `docker manifest inspect` 10/09). Cổng 8002. Volume `/custom_files` chứa PBF, `valhalla.json`, `valhalla_tiles.tar`, thư mục tile `valhalla_tiles/`, `admins.sqlite`, `timezones.sqlite`, `file_hashes.txt`. Biến môi trường chính: `serve_tiles`, `use_tiles_ignore_pbf` (mặc định `True`: có tar hoặc thư mục tile thì phục vụ ngay, bỏ qua PBF), `force_rebuild`, `server_threads`, `build_elevation`, `build_admins`, `build_time_zones`, `build_tar`, `tileset_name`. **Lưu ý đã đọc mã `configure_valhalla.sh`:** "hash" trong `file_hashes.txt` là sha256 của **đường dẫn file**, không phải nội dung — ghi đè PBF cùng tên không kích hoạt build lại. Build lại chỉ xảy ra khi không có tar **và** thư mục tile rỗng, hoặc `force_rebuild=True`. `build_tar=True` chỉ tạo tar khi chưa có tar. Vì vậy cách kích hoạt build lại tin cậy là **đổi tên tar hiện tại đi (giữ làm bản trước) và xoá thư mục tile**, rồi khởi động lại entrypoint (mục 4.4).
+- `/status` (không cần `verbose`) trả `version`, `tileset_last_modified` (UNIX giây) và `available_actions`; `verbose=true` mới cần `service_limits.status.allow_verbose`. Không cần verbose cho nhu cầu của spec này.
+- JSON gốc của `/route`: `legs[].shape` luôn là polyline6; `shape_format` chỉ áp dụng cho `format=osrm`. `alternates` không hỗ trợ khi có hơn 2 điểm. `trip.locations[]` trả lại toạ độ **gốc** kèm `original_index`/`side_of_street`, không có toạ độ đã bám và không có tên đường trừ khi request gửi `street`.
+- Fixture PBF có sẵn: `pipelines/poi/fixtures/q1.osm.pbf` (2,1 MB, cắt `-s smart` từ PBF Việt Nam, 13.436 way có `highway`, kiểm bằng `osmium tags-filter` 10/09) — đủ để build graph mini cho test tích hợp, không cần cắt fixture mới.
 - Costing có sẵn: `auto`, `motor_scooter`, `motorcycle`, `pedestrian`, `bicycle`, `truck`, `bus`, `taxi`… Xe máy dùng `motor_scooter` (tránh cao tốc, ưu tiên đường nhỏ, đúng luật VN cấm xe máy lên cao tốc).
 - Mã maneuver Valhalla: số nguyên 0–43 (`kNone`…`kBuildingExit`). Không có đường → HTTP 400 với `error_code` 442; điểm quá xa mạng đường → 171; vượt khoảng cách → 154.
 - Máy chủ: 16 GB RAM, Postgres `shared_buffers` = 25 % RAM (4 GB). File PBF Việt Nam đã có tại `pipeline-work:/app/work/data/sources/vietnam.osm.pbf` (`pipelines/tiles/src/lib/env.mjs`). Image pipeline có `osmium-tool` để cắt fixture.
@@ -103,10 +106,10 @@ Nguyên tắc: SDK **không bao giờ** gọi thẳng Valhalla; mọi thứ đi 
 
 Thêm vào `infra/server/compose.yml`:
 
-- `image: ghcr.io/valhalla/valhalla-scripted:<phiên bản ghim>` (plan chọn tag mới nhất lúc làm, ghi vào DEVLOG).
+- `image: ghcr.io/valhalla/valhalla-scripted:3.8.3` (bản phát hành 25/07/2026, mới nhất lúc viết spec).
 - `volumes: valhalla-data:/custom_files` và `./valhalla/run.sh:/opt/mapslibvn/run.sh:ro`.
-- `command: ["/bin/bash", "/opt/mapslibvn/run.sh"]` (kịch bản bọc, mục 4.3).
-- `environment`: `serve_tiles=True`, `use_tiles_ignore_pbf=False` (để hash PBF quyết định build lại), `force_rebuild=False`, `server_threads=4`, `build_elevation=False`, `build_admins=True`, `build_time_zones=True`, `build_tar=True`, `tileset_name=valhalla_tiles`.
+- `entrypoint: ["/bin/bash", "/opt/mapslibvn/run.sh"]` (kịch bản bọc, mục 4.3; phải ghi đè `entrypoint`, không phải `command`, vì ENTRYPOINT gốc của image nhận `command` làm tham số).
+- `environment`: `serve_tiles=True`, `use_tiles_ignore_pbf=True` (mặc định: có tar thì phục vụ ngay; build lại do mục 4.4 kích hoạt bằng cách dời tar và xoá thư mục tile), `force_rebuild=False`, `server_threads=4`, `build_elevation=False`, `build_admins=True`, `build_time_zones=True`, `build_tar=True`, `tileset_name=valhalla_tiles`.
 - `restart: unless-stopped`; `healthcheck` gọi `curl -f http://localhost:8002/status`.
 - **Không có `ports:`**, cùng nguyên tắc với Postgres. Chỉ `cloudflared` nối tới `valhalla:8002` trong mạng compose.
 - `mem_limit` không đặt ở bản đầu; đo trước rồi quyết ở plan (mục 9).
@@ -128,15 +131,16 @@ Lý do: entrypoint gốc chỉ kiểm tra hash PBF **lúc khởi động**; pipe
 3. Thấy cờ: xoá cờ, gửi TERM cho tiến trình entrypoint và `valhalla_service`, chờ thoát, quay lại bước 1. Entrypoint thấy hash PBF đổi thì build lại rồi phục vụ; không đổi thì phục vụ ngay (trường hợp rollback, mục 4.4).
 4. Ghi log ra stdout theo dạng `[run.sh] …` để `docker compose logs valhalla` đọc được.
 
-Kịch bản ~40 dòng bash. Không viết test tự động cho nó; kiểm bằng checklist tay trong plan (tạo cờ, xem log, `/status` quay lại 200). Sau khi entrypoint sinh `valhalla.json`, kịch bản dùng `jq` đặt `service_limits.status.allow_verbose = true` để `/status?verbose=true` trả `tileset_last_modified` (mục 5.6). Nếu entrypoint gốc không hợp tác (ví dụ không tôn trọng TERM hoặc ghi hash ở chỗ khác), phương án dự phòng là `tecnativa/docker-socket-proxy` chỉ cho phép `POST /containers/{id}/restart` — quyết định ở plan nếu rơi vào ca này, ghi DEVLOG.
+Kịch bản ~40 dòng bash. Không viết test tự động cho nó; kiểm bằng checklist tay trong plan (tạo cờ, xem log, `/status` quay lại 200). Nếu entrypoint thoát mà **không** có cờ (build lỗi, crash), kịch bản thoát cùng mã lỗi để Docker `restart: unless-stopped` khởi động lại. Nếu entrypoint gốc không hợp tác (ví dụ không tôn trọng TERM hoặc ghi hash ở chỗ khác), phương án dự phòng là `tecnativa/docker-socket-proxy` chỉ cho phép `POST /containers/{id}/restart` — quyết định ở plan nếu rơi vào ca này, ghi DEVLOG.
 
 ### 4.4 Cập nhật và rollback
 
 `scripts/routing-graph.mjs` (chạy trong container pipeline, checkJs như mọi script) có ba lệnh:
 
-- `prepare`: chép PBF từ `MAPSLIBVN_WORK/data/sources/vietnam.osm.pbf` sang `/app/valhalla/vietnam.osm.pbf` nếu hash khác; giữ bản tar hiện có thành `valhalla_tiles.prev.tar` (xoá `.prev` cũ hơn); ghi `/app/valhalla/reload.request`. Ghi `/app/valhalla/graph.json` `{ pbfMd5, pbfDate, requestedAt }`.
-- `rollback`: nếu có `valhalla_tiles.prev.tar` thì đổi chỗ tar hiện tại và tar prev, khôi phục PBF/hash tương ứng (lưu kèm trong `graph.json` `previous`), ghi cờ reload. Không có prev → lỗi rõ.
+- `prepare`: tính md5 PBF nguồn `MAPSLIBVN_WORK/data/sources/vietnam.osm.pbf`; nếu trùng `graph.json.pbfMd5` và đã có tar thì dừng (idempotent, trừ `--force`). Ngược lại: dời `valhalla_tiles.tar` hiện có sang `prev/valhalla_tiles.tar` (ghi đè bản prev cũ hơn) cùng `prev/graph.json`, xoá thư mục tile `valhalla_tiles/`, chép PBF sang `/app/valhalla/vietnam.osm.pbf`, ghi `graph.json` `{ pbfMd5, pbfDate, requestedAt, previous }`, ghi cờ `reload.request` nội dung `rebuild`. Container thấy cờ → khởi động lại entrypoint → không có tar và thư mục tile rỗng → build → tar (mục 2). Dời tar (rename) trong khi `valhalla_service` còn chạy là an toàn vì file đã mở vẫn đọc được.
+- `rollback`: cần `prev/valhalla_tiles.tar`; đổi chỗ tar hiện tại ↔ prev (và `graph.json` ↔ `prev/graph.json`), ghi cờ `reload.request` nội dung `rollback`. Container khởi động lại → có tar → phục vụ ngay không build (`use_tiles_ignore_pbf=True`). Không có prev → lỗi rõ. Không giữ PBF cũ (graph đã đủ trong tar).
 - `status`: in `graph.json` và kích cỡ tar; dùng cho checklist và evidence.
+- `admins.sqlite`/`timezones.sqlite` chỉ build lần đầu (`build_admins=True` không rebuild khi file đã có); ranh giới hành chính đổi rất hiếm, chấp nhận. Muốn làm lại thì xoá hai file đó trước khi `prepare`.
 
 `scripts/data-update.mjs`: sau khối tiles (khi `work.tiles` và PBF thật sự đổi), thêm bước `run('node', ['scripts/routing-graph.mjs', 'prepare'])`. Cờ `--tiles`/`--poi` giữ nguyên nghĩa; thêm `--skip-routing` để bỏ qua. Manifest KV `release:current` **không** ghi graph (graph không phải file trên R2; SDK không cần biết phiên bản graph). Phiên bản graph xem qua `/healthz/routing`.
 
@@ -182,11 +186,12 @@ Gọi Valhalla `POST {ROUTING_BASE}/route` body:
   "locations": [{"lat":…,"lon":…,"type":"break"}, …],
   "costing": "motor_scooter" | "auto" | "pedestrian",
   "directions_options": {"language":"vi-VN","units":"kilometers"},
-  "alternates": 0 | 1,
-  "shape_format": "polyline6",
+  "alternates": 1,
   "id": "<request_id của Worker>"
 }
 ```
+
+`alternates` chỉ gửi khi `alternatives=1` **và** không có `via`. Không gửi `shape_format` (chỉ dành cho `format=osrm`; JSON gốc luôn polyline6).
 
 Header `CF-Access-Client-Id`/`CF-Access-Client-Secret` khi hai secret có mặt (production); dev không có → gọi thẳng `http://localhost:8002`. Timeout **10 s** bằng `AbortSignal.timeout`.
 
@@ -262,7 +267,7 @@ Quy ước:
 
 - `roundabout_exit`: số lối ra khi `kind = roundabout_enter` (Valhalla `roundabout_exit_count`), còn lại `null`.
 - `verbal_pre`/`verbal_post` lấy từ `verbal_pre_transition_instruction`/`verbal_post_transition_instruction`; thiếu → `null`. Spec B dùng để đọc bằng giọng nói.
-- `waypoints[].name` từ `locations[].street` của Valhalla nếu có, không → `null`.
+- `waypoints[].location` là toạ độ người dùng gửi; `waypoints[].snapped` là điểm đầu leg tương ứng trong polyline đã nối (điểm cuối tuyến cho waypoint cuối) — Valhalla không trả toạ độ đã bám riêng. `waypoints[].name` luôn `null` ở bản này (Valhalla không trả tên đường cho location); giữ trường để sau điền bằng reverse geocode nếu cần.
 - `engine.graph` là ngày build graph (`graph_built_at` của mục 5.6, cắt còn `YYYY-MM-DD`), Worker lấy từ `/status` và cache 5 phút trong `caches.default`; không có → `null`. Trường `engine` là thông tin chẩn đoán, docs ghi rõ **không phải hợp đồng ổn định**.
 - `alternatives=1` → `routes` có tối đa 2 phần tử, phần tử đầu là tuyến chính. Khi có `via`, `alternatives` bị bỏ qua (Valhalla chỉ tính tuyến thay thế cho hai điểm); docs ghi rõ.
 - Nối shape các leg: điểm cuối leg i trùng điểm đầu leg i+1, Worker bỏ điểm trùng và dịch chỉ số theo đó.
@@ -272,9 +277,9 @@ Quy ước:
 | Tình huống | HTTP | `code` | Ghi chú |
 |---|---|---|---|
 | Thiếu/sai tham số, ngoài hộp VN, vượt khoảng cách, quá điểm | 400 | `invalid_request` | message nói rõ giới hạn |
-| Valhalla `error_code` 442 (không có đường), 170/171 (điểm quá xa mạng đường) | 404 | `no_route` | body có `detail: "no_path" \| "no_edges_near_location"` |
-| Valhalla 400 khác (154 vượt max distance của engine, v.v.) | 400 | `invalid_request` | không lộ message Valhalla thô; log server có |
-| Valhalla không trả lời, timeout 10 s, 5xx, Access 403 (secret sai), đang build | 503 | `upstream_unavailable` | `retry-after: 30` (đã có sẵn trong `errorResponse`) |
+| Valhalla HTTP 400 với `error_code` 442 (không có đường), 170/171 (vùng không kết nối, điểm quá xa mạng đường) | 404 | `no_route` | `message` tiếng Việt phân biệt hai ca; không thêm trường mới vào body lỗi |
+| Valhalla 4xx khác (154 vượt max distance của engine, v.v.) | 400 | `invalid_request` | message ghi mã Valhalla, không lộ message thô; log server có |
+| Valhalla không trả lời, timeout 10 s, 5xx, Access 403 (secret sai), đang build, chưa cấu hình `ROUTING_BASE` | 503 | `upstream_unavailable` | `retry-after: 30` (đã có sẵn trong `errorResponse`) |
 | Quota ngày / burst | 429 | `quota_exceeded` / `rate_limit_exceeded` | cơ chế sẵn có |
 
 `no_route` là mã lỗi mới trong `apps/api/src/errors.ts` và trong bảng lỗi docs `api.md` mục 2.
@@ -286,13 +291,13 @@ Dùng `cachedJson()` sẵn có (`apps/api/src/cache.ts`): khoá `https://cache.m
 ### 5.5 Quota, giới hạn, đo lường
 
 - `quotaMiddleware` mở rộng nhận `group: 'places' | 'directions'`; giới hạn lấy từ `auth.quotaDirectionsPerDay ?? FREE_DIRECTIONS_PER_DAY` với `FREE_DIRECTIONS_PER_DAY = 2_000`. Tenant `internal` không đếm (như hiện tại). Khoá KV `quota:<keyHash>:<ngày VN>:directions`.
-- Migration `0012_api_key_quota_directions.sql` (+ `.down.sql`): `ALTER TABLE api_key ADD COLUMN quota_directions_per_day int;` `loadAuth` đọc thêm cột; `scripts/api-key-issue.mjs` thêm cờ `--quota-directions`. `loadAuth` **không** chịu được khi cột chưa có (mọi endpoint có khoá sẽ 503), nên theo bài học "deploy trước migration làm chết API", plan bắt buộc thứ tự: áp migration lên production → đối chiếu `/healthz/db` trả `schema_migration = 0012…` → mới deploy Worker.
+- Migration `0012_api_key_quota_directions.sql` (+ `.down.sql`): `ALTER TABLE api_key ADD COLUMN IF NOT EXISTS quota_directions_per_day int;` `scripts/api-key-issue.mjs` thêm cờ `--quota-directions`. `loadAuth` đọc cột mới bằng `(to_jsonb(k) ->> 'quota_directions_per_day')::int` thay vì tham chiếu cột trực tiếp, nên câu SQL **chạy được cả khi cột chưa tồn tại** (trả NULL → dùng mặc định plan). Nhờ vậy deploy Worker và áp migration độc lập thứ tự, tránh lặp lại sự cố 06–07/09 "deploy trước migration làm chết API"; migration được áp ở lần `pnpm server:update` kế tiếp. `test:api-db` (Postgres thật) phải có ca kiểm câu SQL này ở cả hai trạng thái không thực tế được, nên chỉ kiểm sau migration; trạng thái "chưa có cột" kiểm bằng unit test SQL shape (fake sql) xác nhận không có chuỗi `k.quota_directions_per_day`.
 - Burst: dùng lại `PLACES_RATE_LIMITER` (60 request/phút/colo theo khoá). Không tạo limiter mới ở bản này.
 - Analytics: `analyticsMiddleware` sẵn có ghi pathname `/v1/directions`; thêm `stageHit` = -1 (route khác) như hiện tại. Không thêm cột.
 
 ### 5.6 `GET /healthz/routing`
 
-Không cần khoá (như `/healthz/db`). Gọi `{ROUTING_BASE}/status?verbose=true` với header Access; trả `{ ok, version, graph_built_at, bbox, ms }`, trong đó `graph_built_at` là ISO của `tileset_last_modified` mà Valhalla trả (mục 4.3 bật `allow_verbose`). Valhalla không trả lời → 503. Nếu `tileset_last_modified` vắng ở phiên bản ghim, `graph_built_at` là `null` và plan ghi DEVLOG; không tìm cách khác ở bản đầu. `pbfDate` trong `graph.json` (mục 4.4) chỉ dùng cho lệnh `status` trên máy chủ và evidence, Worker không đọc file đó.
+Không cần khoá (như `/healthz/db`). Gọi `{ROUTING_BASE}/status` (không verbose) với header Access, timeout 5 s; trả `{ ok, version, graph_built_at, ms }`, trong đó `graph_built_at` là ISO của `tileset_last_modified` (UNIX giây) mà Valhalla trả; vắng → `null`. Valhalla không trả lời hoặc chưa cấu hình → 503. `pbfDate` trong `graph.json` (mục 4.4) chỉ dùng cho lệnh `status` trên máy chủ và evidence, Worker không đọc file đó.
 
 ### 5.7 Biến môi trường và secret (`apps/api/src/env.ts`)
 
@@ -379,7 +384,7 @@ Bảng ánh xạ `ManeuverKind` (mục 5.2) đặt ở core (`maneuver.ts`, `VAL
 
 1. **Unit Worker** (`apps/api/test`, vitest, không cần dịch vụ ngoài theo quy tắc test API không được cần Postgres): fixture JSON Valhalla ghi sẵn cho ba mode + một ca `alternates` + ca lỗi 442/171/154; test `translate()` (ánh xạ kind, nối shape và dịch chỉ số, làm tròn, bbox, waypoints), validate tham số (hộp VN, khoảng cách theo mode, số điểm), ánh xạ lỗi, khoá cache chuẩn hoá, header Access chỉ gửi khi có secret, timeout → 503. Mock `fetch` bằng `vi.stubGlobal`.
 2. **Core**: `decodePolyline6` với chuỗi đã biết; `directions()` ghép tham số đúng (`[lat,lng]` → `lat,lng`).
-3. **Fixture PBF một quận**: cắt một lần bằng `osmium extract --bbox` trong image pipeline từ PBF Việt Nam (quận 1 và quận 3, TP.HCM, ~vài MB), commit `pipelines/routing/fixtures/q1q3.osm.pbf`. `infra/dev/compose.yml` thêm service `valhalla` (profile `routing`, không bật mặc định) gắn fixture → build graph mini dưới ~2 phút. Script `scripts/routing-test.mjs` (`pnpm test:routing`): dựng compose profile, chờ `/status`, gọi API dev `/v1/directions` cho 3 tuyến trong quận với cả 3 mode, kiểm `routes[0].distance_m` trong khoảng, `steps[0].kind = depart`, bước cuối `arrive`, câu `instruction` có dấu tiếng Việt. Chạy tay và trong job **DB tests** trên CI (job đã chạy 20 phút, thêm ~3 phút chấp nhận được), **không** đưa vào job CI nhanh.
+3. **Fixture PBF Quận 1 có sẵn** `pipelines/poi/fixtures/q1.osm.pbf` (mục 2), không cắt mới. `infra/dev/compose.yml` thêm service `valhalla` (profile `routing`, không bật mặc định) đọc thư mục `work/valhalla-dev/` (gitignore) mà script chép fixture vào → build graph mini vài phút. Script `scripts/routing-test.mjs` (`pnpm test:routing`): dựng compose profile, chờ `/status`, chạy `wrangler dev` với `ROUTING_BASE` trỏ container và khoá test seed vào KV local, rồi chạy bộ `apps/api/test-routing/*.rtest.mjs`: tuyến Nhà thờ Đức Bà → Chợ Bến Thành cho cả 3 mode, kiểm `routes[0].distance_m` trong khoảng, `steps[0].kind = depart`, bước cuối `arrive`, câu `instruction` có dấu tiếng Việt, điểm ngoài Quận 1 → `404 no_route`, `/healthz/routing` trả `graph_built_at`. Cờ `--capture` ghi JSON Valhalla thô làm fixture `apps/api/test/fixtures/valhalla/q1-motorbike.json` cho unit test. Trên CI chạy trong **workflow riêng `Routing tests`** trên `ubuntu-latest` (job DB tests chạy trong container image pipeline nên không có Docker), kích hoạt khi chạm mã routing hoặc chạy tay; **không** đưa vào job CI nhanh.
 4. **Smoke production** `scripts/smoke-directions.mjs` (`pnpm smoke:directions`): ba tuyến cố định — nội thành TP.HCM xe máy (~10 km), liên tỉnh TP.HCM → Cần Thơ ô tô, đi bộ 2 km quanh Hồ Gươm; in `distance_m`, `duration_s`, số bước, thời gian phản hồi; lần đầu chạy 20 lượt để lấy p95 ghi vào evidence, sau đó ngưỡng p95 ghi cứng vào script (đo rồi mới chốt số, không đoán).
 5. **Kịch bản bọc**: kiểm tay theo checklist trong plan: tạo cờ → log "reload" → `/status` không trả lời → build → 200; rollback → `/healthz/routing` trả `graph_built_at` cũ và `routing-graph.mjs status` trả `pbfDate` cũ.
 
@@ -402,7 +407,8 @@ Bảng ánh xạ `ManeuverKind` (mục 5.2) đặt ở core (`maneuver.ts`, `VAL
 | Dữ liệu một chiều/cấm rẽ OSM Việt Nam thiếu → tuyến sai nội thành | Không giải trong spec này; là bài toán dữ liệu OSM. Ghi vào docs "độ chính xác"; cơ chế đóng góp POI không áp dụng cho đường |
 | Xe máy lên cao tốc do costing chưa chuẩn | Kiểm smoke liên tỉnh: `flags.highway` phải `false` với `mode=motorbike`; nếu sai chỉnh `costing_options.motor_scooter.use_highways = 0` ở plan |
 | Đo ở dev rồi kết luận (bài học tìm kiếm) | Mọi ngưỡng p95 và RAM chốt bằng số đo production, ghi evidence |
-| Worker deploy trước migration 0012 | Thứ tự bắt buộc trong plan: migration → deploy → đối chiếu `/healthz/db` |
+| Worker deploy trước migration 0012 | `loadAuth` đọc cột qua `to_jsonb(k) ->> …` nên không phụ thuộc thứ tự (mục 5.5); vẫn đối chiếu `/healthz/db` sau `server:update` |
+| Gói core vượt trần size-limit 10 kB gzip (hiện 9,5 kB) khi thêm polyline + bảng maneuver | Nâng trần lên 12 kB trong `.size-limit.json` kèm ghi DEVLOG; đo lại sau build |
 
 ## 10. Đường nâng cấp đã dự trù
 
@@ -415,7 +421,7 @@ Bảng ánh xạ `ManeuverKind` (mục 5.2) đặt ở core (`maneuver.ts`, `VAL
 1. `pnpm server:setup` trên máy chủ dựng `valhalla`, graph Việt Nam build xong, `/healthz/routing` production trả 200 kèm `graph_built_at`.
 2. `pnpm smoke:directions` production: ba tuyến trả 200, `mode=motorbike` liên tỉnh có `flags.highway=false`, câu chỉ dẫn tiếng Việt có dấu; p95 ghi evidence.
 3. `pnpm test` xanh (unit Worker + core), `pnpm test:routing` xanh trên dev với fixture, job DB tests xanh trên CI.
-4. `data:update --tiles` trên máy chủ (hoặc chạy tay `routing-graph.mjs prepare`) làm graph build lại và phục vụ lại không cần tay; `routing-graph.mjs rollback` quay về graph trước.
+4. `routing-graph.mjs prepare --force` trên máy chủ làm graph build lại và phục vụ lại không cần tay (đường đi `data:update` gọi cùng lệnh khi OSM đổi); `routing-graph.mjs rollback` quay về graph trước và `/healthz/routing` trả `graph_built_at` cũ.
 5. Quota `directions` đếm được với khoá `free` (kiểm bằng KV), tenant `internal` không đếm.
 6. Docs site có trang directions; THIRD_PARTY_NOTICES có Valhalla; README máy chủ có mục 4.5; evidence có số đo build và p95.
 7. Trạng thái mốc và DEVLOG cập nhật.
