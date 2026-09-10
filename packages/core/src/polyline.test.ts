@@ -9,6 +9,16 @@ const LEG1_COORDS: [number, number][] = [
   [106.698, 10.776],
 ];
 
+// Fixture sinh bằng reference implementation Google polyline6 độc lập (standalone
+// Node script, 10/09/2026), không dùng @mapslibvn/core để tránh test đối xứng.
+const NEGATIVE_FIXTURE = '_izlhA~rlgdF_{geC~ywl@_kwzCn`{nI~{cbrCo_rqpO';
+const NEGATIVE_COORDS: [number, number][] = [
+  [-120.2, 38.5],
+  [-120.95, 40.7],
+  [-126.453, 43.252],
+  [151.2, -33.87],
+];
+
 describe('polyline6', () => {
   it('giải mã ra [lng, lat] theo thứ tự GeoJSON', () => {
     expect(decodePolyline6(LEG1)).toEqual(LEG1_COORDS);
@@ -27,12 +37,7 @@ describe('polyline6', () => {
   });
 
   it('toạ độ âm (tây bán cầu, nam bán cầu) đi vòng đúng', () => {
-    const coords: [number, number][] = [
-      [-120.2, 38.5],
-      [-120.95, 40.7],
-      [-126.453, 43.252],
-      [151.2, -33.87],
-    ];
-    expect(decodePolyline6(encodePolyline6(coords))).toEqual(coords);
+    expect(decodePolyline6(NEGATIVE_FIXTURE)).toEqual(NEGATIVE_COORDS);
+    expect(encodePolyline6(NEGATIVE_COORDS)).toBe(NEGATIVE_FIXTURE);
   });
 });
