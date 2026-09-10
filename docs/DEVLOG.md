@@ -5,6 +5,21 @@ commit với code).
 
 ## 1. Trạng thái hiện tại
 
+- **10/09/2026 — Dọn sạch toàn bộ advisory production của workspace.** `pnpm audit --prod
+  --audit-level=high` từ 15 advisory (1 critical, 6 high, 5 moderate, 3 low) về
+  `No known vulnerabilities found`. Docs đã nâng Astro 5.18.2 → 7.3.2, Starlight 0.30.6 →
+  0.42.0, React integration 4.4.2 → 6.0.5 và Sharp 0.33.5 → 0.35.4; thêm peer trực tiếp
+  `@astrojs/markdown-remark` 7.3.1 theo contract Starlight mới và nâng Node tối thiểu lên 22.12
+  theo Astro 7. Full gate sau migration: lint 349 file, root 85 file/994 test + API 27 file/188
+  test, typecheck 14/14 và build 8/8 (docs 20 trang) đều xanh. Bộ E2E docs/link 18 test xanh;
+  full E2E có 27 xanh/3 lỗi Playground autocomplete vì fixture local gọi API không mang key và
+  nhận 401, không phải hồi quy build Astro hay advisory production. `pnpm audit` không có
+  `--prod` vẫn còn advisory trong dev toolchain cũ (`@cloudflare/vitest-pool-workers`/Vitest/
+  Wrangler); việc chuyển sang `@cloudflare/vitest-plugin` + Vitest 4 là migration test riêng,
+  không dùng `audit --fix --force` để âm thầm tạo breaking change. **Bắt đầu tiếp:** migrate
+  Cloudflare Vitest integration ở một task riêng nếu cần dọn sạch cả dev audit; checkpoint vận
+  hành chính vẫn là disaster-recovery thật trên laptop/VM sạch.
+
 - **10/09/2026 — Một lệnh khôi phục full data trên máy mới + Windows onboarding.** Root có
   `pnpm server:restore`: fail-closed nếu thiếu `infra/server/.env` hoặc bí mật backup/R2, dựng đúng
   server compose, restore backup production mới nhất vào DB tạm rồi swap nguyên tử và nghiệm thu
