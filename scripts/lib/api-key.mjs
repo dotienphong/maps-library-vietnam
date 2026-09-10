@@ -80,7 +80,8 @@ export function parseIssueArgs(argv) {
   let quotaDirections = null;
   if (opt['quota-directions'] !== undefined) {
     const n = Number(opt['quota-directions']);
-    if (!Number.isInteger(n) || n <= 0) throw new Error('--quota-directions phải là số nguyên dương');
+    if (!Number.isInteger(n) || n <= 0)
+      throw new Error('--quota-directions phải là số nguyên dương');
     quotaDirections = n;
   }
   return { tenant, label: opt.label ?? '', kind, origins, scopes, quotaDirections };

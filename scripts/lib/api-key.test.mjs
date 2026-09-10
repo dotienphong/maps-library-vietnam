@@ -67,8 +67,12 @@ describe('parseIssueArgs', () => {
     const base = ['--tenant', 't', '--kind', 'server'];
     expect(parseIssueArgs(base).quotaDirections).toBeNull();
     expect(parseIssueArgs([...base, '--quota-directions', '500']).quotaDirections).toBe(500);
-    expect(() => parseIssueArgs([...base, '--quota-directions', 'abc'])).toThrow(/--quota-directions/);
-    expect(() => parseIssueArgs([...base, '--quota-directions', '0'])).toThrow(/--quota-directions/);
+    expect(() => parseIssueArgs([...base, '--quota-directions', 'abc'])).toThrow(
+      /--quota-directions/,
+    );
+    expect(() => parseIssueArgs([...base, '--quota-directions', '0'])).toThrow(
+      /--quota-directions/,
+    );
   });
 });
 

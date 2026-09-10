@@ -10,7 +10,9 @@ import postgres from 'postgres';
 import { generateKey, hashKey, keyPrefix, parseIssueArgs } from './lib/api-key.mjs';
 import { databaseUrlFromEnv } from './lib/migrations.mjs';
 
-const { tenant, label, kind, origins, scopes, quotaDirections } = parseIssueArgs(process.argv.slice(2));
+const { tenant, label, kind, origins, scopes, quotaDirections } = parseIssueArgs(
+  process.argv.slice(2),
+);
 const key = generateKey();
 const sql = postgres(databaseUrlFromEnv(process.env), { max: 1, onnotice: () => {} });
 try {
