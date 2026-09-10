@@ -11,3 +11,4 @@ export * from './search-keys';
 export * from './telex';
 export * from './toponym';
 export * from './vi-key';
+export * from './polyline';
