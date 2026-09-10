@@ -49,6 +49,12 @@ Tạo một thư mục trống, đặt file `index.html` với nội dung sau. K
     const say = (line) => { log.textContent += (log.textContent ? '\n' : '') + line; };
     log.textContent = 'key: ' + key.slice(0, 13) + '…' + key.slice(-4);
 
+    // file:// làm web worker của maplibre chết im lặng: bản đồ trắng mà không một sự kiện lỗi nào
+    // nổ. Bắt sớm ở đây, vì không lớp nào phía dưới báo được ca này.
+    if (location.protocol === 'file:') {
+      say('LỖI: đang mở bằng file:// — bản đồ sẽ trắng. Phải chạy qua HTTP, xem mục 2.');
+    }
+
     const map = MapsLibVN.createMap({
       container: 'map',
       apiKey: key,
@@ -72,7 +78,15 @@ Tạo một thư mục trống, đặt file `index.html` với nội dung sau. K
       say('đã chọn: ' + item.name);
     });
 
-    map.on('load', () => say('bản đồ đã tải · origin ' + location.origin));
+    let loaded = false;
+    map.on('load', () => {
+      loaded = true;
+      say('bản đồ đã tải · origin ' + location.origin);
+    });
+    // Worker chết không phát 'error'; im lặng quá 15 s là dấu hiệu duy nhất còn lại.
+    setTimeout(() => {
+      if (!loaded) say('LỖI: quá 15 s chưa tải xong — xem hàng "Worker" ở mục 3.');
+    }, 15000);
     map.on('poiClick', (poi) => {
       console.log('poiClick', poi);
       say('POI: ' + poi.name + ' · ' + poi.category + ' · ' + poi.group);
@@ -88,16 +102,23 @@ Không có bước build nào. Bản UMD đã gói sẵn `maplibre-gl` và `pmti
 
 ## 2. Chạy một máy chủ tĩnh
 
-Mở trực tiếp bằng `file://` **không chạy được** — origin của file cục bộ không khớp khoá nào. Phải
-phục vụ qua HTTP:
+Mở trực tiếp bằng `file://` **không chạy được**, và lý do không phải khoá: ở `file://` thì
+`/v1/styles/light.json` vẫn trả 200 và hai file `.pmtiles` vẫn trả 206. Bản UMD dựng web worker của
+maplibre bằng `new Worker(URL.createObjectURL(blob), { type: 'module' })`; ở `file://` blob mang
+origin rỗng (`blob:null/…`) nên lệnh `import` tới `maplibre-gl-worker.mjs` bên trong worker bị chặn.
+Worker chết im lặng — không request nào fail, `map.gl.on('error')` cũng không nổ — nên không còn
+luồng giải mã tile, maplibre không vẽ xong khung đầu tiên, `load` không bao giờ nổ và khung bản đồ
+trắng mà không báo gì. Phải phục vụ qua HTTP:
 
 ```bash
 # Python có sẵn trên macOS và hầu hết Linux
-python3 -m http.server 5500
+python3 -m http.server 5500 --bind 127.0.0.1
 
 # hoặc Node
 npx serve -l 5500
 ```
+
+`--bind 127.0.0.1` để thư mục chỉ mở cho chính máy này; thiếu nó, `http.server` mở ra cả mạng LAN.
 
 Rồi mở `http://localhost:5500`. Port nào cũng được — khoá `web` so protocol và hostname, bỏ qua
 port.
@@ -109,7 +130,8 @@ Có khoá riêng rồi thì không cần sửa file: mở `http://localhost:5500
 | Kiểm | Dấu hiệu đúng | Sai thì là gì |
 |---|---|---|
 | Tiles | Tab Network: các request `.pmtiles` trả **206** (hoặc 200) | Toàn 403/404 → sai `apiBase`, hoặc tiles chưa phát hành |
-| Style | Dòng "bản đồ đã tải" hiện trong khung log | Không hiện → `/v1/styles/light.json` lỗi, xem console |
+| Style | Tab Network: `/v1/styles/light.json` trả **200** | 401/403 → xem hai dòng dưới bảng |
+| Worker | Tab Network có `maplibre-gl-worker.mjs`, và dòng "bản đồ đã tải" hiện trong khung log | Thiếu cả hai **trong khi** style vẫn 200 → worker chết, gần như chắc là đang mở bằng `file://` |
 | Ghi nguồn | Góc dưới phải có `© OpenStreetMap contributors` | Không có → thiếu `mapslibvn.css` hoặc SDK chưa khởi tạo |
 | Autocomplete | Gõ 2 ký tự trở lên, gợi ý hiện sau ~200 ms | Im lặng → thiếu `api-key`/`api-base` trên thẻ |
 | POI | Bấm vào biểu tượng POI: console in `poiClick` | Không có → phải bấm **đúng** biểu tượng |
