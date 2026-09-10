@@ -605,24 +605,41 @@ Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>"
 
 Thêm vào cuối `apps/api/test/quota.test.ts` (trong `describe` hiện có, sau test cuối):
 ```ts
-  it('dailyLimit: nhóm directions dùng cột riêng và mặc định 2.000 (spec A mục 5.5)', async () => {
-    const base = {
-      keyHash: 'h',
-      keyPrefix: 'mlv_live_x',
-      tenantId: 't',
-      plan: 'free' as const,
-      kind: 'server' as const,
-      scopes: ['places:read'],
-      allowedOrigins: [],
-    };
-    expect(dailyLimit({ ...base, quotaPlacesPerDay: null, quotaDirectionsPerDay: null }, 'places')).toBe(
-      FREE_PLACES_PER_DAY,
-    );
-    expect(
-      dailyLimit({ ...base, quotaPlacesPerDay: 5, quotaDirectionsPerDay: null }, 'directions'),
-    ).toBe(FREE_DIRECTIONS_PER_DAY);
+  const base = {
+    keyHash: 'h',
+    keyPrefix: 'mlv_live_x',
+    tenantId: 't',
+    plan: 'free' as const,
+    kind: 'server' as const,
+    scopes: ['places:read'],
+    allowedOrigins: [],
+    quotaPlacesPerDay: null,
+    quotaDirectionsPerDay: null,
+  };
+
+  it('dailyLimit: nhóm directions dùng cột riêng và mặc định 2.000 (spec A mục 5.5)', () => {
+    expect(dailyLimit(base, 'places')).toBe(FREE_PLACES_PER_DAY);
+    expect(dailyLimit({ ...base, quotaPlacesPerDay: 5 }, 'directions')).toBe(FREE_DIRECTIONS_PER_DAY);
     expect(dailyLimit({ ...base, quotaPlacesPerDay: 5, quotaDirectionsPerDay: 7 }, 'directions')).toBe(7);
     expect(FREE_DIRECTIONS_PER_DAY).toBe(2_000);
+  });
+
+  it('burst theo khoá+IP: directions có binding riêng; trần theo khoá chỉ áp cho khoá web/mobile ở directions', () => {
+    const places = { limit: async () => ({ success: true }) };
+    const directions = { limit: async () => ({ success: true }) };
+    const cap = { limit: async () => ({ success: true }) };
+    const env = {
+      PLACES_RATE_LIMITER: places,
+      DIRECTIONS_RATE_LIMITER: directions,
+      DIRECTIONS_KEY_RATE_LIMITER: cap,
+    };
+    expect(burstLimiterFor(env, 'places')).toBe(places);
+    expect(burstLimiterFor(env, 'directions')).toBe(directions);
+    expect(burstLimiterFor({ PLACES_RATE_LIMITER: places }, 'directions')).toBeUndefined();
+    expect(keyCapLimiterFor(env, { ...base, kind: 'web' }, 'directions')).toBe(cap);
+    expect(keyCapLimiterFor(env, { ...base, kind: 'mobile', plan: 'internal' }, 'directions')).toBe(cap);
+    expect(keyCapLimiterFor(env, { ...base, kind: 'server', plan: 'internal' }, 'directions')).toBeUndefined();
+    expect(keyCapLimiterFor(env, { ...base, kind: 'web' }, 'places')).toBeUndefined();
   });
 ```
 Sửa dòng import của file thành:
@@ -630,8 +647,10 @@ Sửa dòng import của file thành:
 import {
   FREE_DIRECTIONS_PER_DAY,
   FREE_PLACES_PER_DAY,
+  burstLimiterFor,
   dailyLimit,
   enforceBurstLimit,
+  keyCapLimiterFor,
   rateLimitActor,
   vnDay,
 } from '../src/quota';
@@ -670,6 +689,15 @@ Thêm vào interface `Env` (sau `AUTOCOMPLETE_TELEX`):
   /** Service token Cloudflare Access cho hostname routing; production đặt bằng `wrangler secret put`. */
   ROUTING_ACCESS_CLIENT_ID?: string;
   ROUTING_ACCESS_CLIENT_SECRET?: string;
+  /** Burst riêng cho /v1/directions: 20 request/phút/colo theo khoá+IP (Valhalla đắt hơn Postgres). */
+  DIRECTIONS_RATE_LIMITER?: RateLimit;
+  /**
+   * Trần tổng theo KHOÁ (mọi IP cộng lại) cho khoá web/mobile ở /v1/directions: 100 request/phút/colo.
+   * Khoá web/mobile nằm công khai trong HTML/app (vd khoá demo docs của tenant internal) — không có trần
+   * này thì ai lấy được khoá là dùng Valhalla không giới hạn. Dùng Rate Limiting thay KV vì Workers Free
+   * chỉ cho 1.000 ghi KV/ngày (quyết định PHONG 10/09/2026).
+   */
+  DIRECTIONS_KEY_RATE_LIMITER?: RateLimit;
 ```
 
 - [ ] **Step 4: `auth.ts`**
@@ -712,28 +740,77 @@ Trong `loadAuth` thay khối `const [row] = await sql<{…}[]>\`SELECT …\`` b�
 
 - [ ] **Step 5: `quota.ts`**
 
-Thay đầu file:
+Thay đầu file (import + hằng + ba hàm thuần):
 ```ts
+import type { Context, Next } from 'hono';
+import type { AuthInfo } from './auth';
+import type { AppEnv, Env } from './env';
+import { ApiError } from './errors';
+
 /** Mặc định plan free (spec 6.4): 20.000 places/ngày. */
 export const FREE_PLACES_PER_DAY = 20_000;
 /** Mặc định plan free cho /v1/directions (spec dẫn đường A mục 5.5): một lượt tính tuyến đắt hơn một lượt tìm. */
 export const FREE_DIRECTIONS_PER_DAY = 2_000;
 export type QuotaGroup = 'places' | 'directions';
+type LimiterEnv = Pick<
+  Env,
+  'PLACES_RATE_LIMITER' | 'DIRECTIONS_RATE_LIMITER' | 'DIRECTIONS_KEY_RATE_LIMITER'
+>;
 
 export function dailyLimit(auth: AuthInfo, group: QuotaGroup): number {
   if (group === 'directions') return auth.quotaDirectionsPerDay ?? FREE_DIRECTIONS_PER_DAY;
   return auth.quotaPlacesPerDay ?? FREE_PLACES_PER_DAY;
 }
+
+/** Burst theo khoá+IP tại edge: directions có binding riêng, ngưỡng thấp hơn Places. */
+export function burstLimiterFor(env: LimiterEnv, group: QuotaGroup): RateLimit | undefined {
+  return group === 'directions' ? env.DIRECTIONS_RATE_LIMITER : env.PLACES_RATE_LIMITER;
+}
+
+/**
+ * Trần tổng theo khoá (mọi IP cộng lại) cho khoá `web`/`mobile` ở directions. Khoá loại này nằm công
+ * khai trong HTML/app nên plan internal cũng không được miễn (quyết định PHONG 10/09/2026 sau review
+ * bảo mật); khoá `server` (app của chính PHONG) không chịu trần. Dùng Rate Limiting thay KV: không tốn
+ * write KV (Workers Free 1.000 ghi/ngày) và kẻ tấn công không làm cạn được ngân sách KV của tài khoản.
+ */
+export function keyCapLimiterFor(
+  env: LimiterEnv,
+  auth: AuthInfo,
+  group: QuotaGroup,
+): RateLimit | undefined {
+  if (group !== 'directions' || auth.kind === 'server') return undefined;
+  return env.DIRECTIONS_KEY_RATE_LIMITER;
+}
 ```
-Import `AuthInfo`: `import type { AuthInfo } from './auth';`. Đổi chữ ký `quotaMiddleware(group: 'places')` → `quotaMiddleware(group: QuotaGroup)` và dòng `const limit = …` → `const limit = dailyLimit(auth, group);`.
+Đổi chữ ký `quotaMiddleware(group: 'places')` → `quotaMiddleware(group: QuotaGroup)` và thay khối từ `if (c.env.PLACES_RATE_LIMITER) {` tới dòng `const limit = …` bằng:
+```ts
+    const burst = burstLimiterFor(c.env, group);
+    if (burst) {
+      const actor = await rateLimitActor(auth.keyHash, c.req.header('cf-connecting-ip') ?? 'unknown');
+      await enforceBurstLimit(burst, actor);
+    }
+    const cap = keyCapLimiterFor(c.env, auth, group);
+    if (cap) await enforceBurstLimit(cap, auth.keyHash); // khoá theo keyHash thuần: gộp mọi IP
+    if (c.env.QUOTA_ENABLED !== '1' || auth.plan === 'internal') return next();
+    const limit = dailyLimit(auth, group);
+```
+Phần còn lại của middleware (đếm KV, 429 `quota_exceeded`) giữ nguyên. Tenant internal vẫn không đọc/ghi KV.
 
 - [ ] **Step 6: helper, wrangler, vitest**
 
 `apps/api/test/helpers/seed-key.ts`: thêm `quotaDirectionsPerDay: null,` sau `quotaPlacesPerDay: null,`. Các test khác dựng `AuthInfo` tay (`analytics.test.ts:24`, `auth-hash.test.ts:31`) sẽ báo lỗi typecheck → thêm `quotaDirectionsPerDay: null,` vào từng chỗ.
 
-`apps/api/wrangler.toml`: trong `[vars]` thêm `ROUTING_BASE = "http://127.0.0.1:8002"`; trong `[env.production] vars = { … }` thêm `ROUTING_BASE = "https://maps-route.ai-solutions.io.vn"` (hostname theo mẫu `maps-db.<domain>` hiện có).
+`apps/api/wrangler.toml`: trong `[vars]` thêm `ROUTING_BASE = "http://127.0.0.1:8002"`; trong `[env.production] vars = { … }` thêm `ROUTING_BASE = "https://maps-route.ai-solutions.io.vn"` (hostname theo mẫu `maps-db.<domain>` hiện có). Thay dòng `ratelimits = [...]` của `[env.production]` bằng ba binding (`namespace_id` phải khác nhau trong tài khoản; `period` chỉ nhận 10 hoặc 60):
+```toml
+ratelimits = [
+  { name = "PLACES_RATE_LIMITER", namespace_id = "20260910", simple = { limit = 60, period = 60 } },
+  { name = "DIRECTIONS_RATE_LIMITER", namespace_id = "20260911", simple = { limit = 20, period = 60 } },
+  { name = "DIRECTIONS_KEY_RATE_LIMITER", namespace_id = "20260912", simple = { limit = 100, period = 60 } },
+]
+```
+Kiểm bằng `pnpm --filter @mapslibvn/api exec wrangler deploy --dry-run --env production` → dòng binding liệt kê đủ ba limiter.
 
-`apps/api/vitest.config.ts` `bindings`: thêm `ROUTING_BASE: 'https://routing.test',`.
+`apps/api/vitest.config.ts` `bindings`: thêm `ROUTING_BASE: 'https://routing.test',`; `ratelimits`: thêm `DIRECTIONS_RATE_LIMITER: { simple: { limit: 10_000, period: 60 } }` và `DIRECTIONS_KEY_RATE_LIMITER: { simple: { limit: 10_000, period: 60 } }` (ngưỡng cao để test không 429 chéo; quyết định deny đã test bằng fake ở `quota.test.ts`).
 
 - [ ] **Step 7: Chạy test và typecheck**
 
@@ -3136,6 +3213,7 @@ describe('smoke directions', () => {
 
   it('gom mẫu theo tuyến: status, p95, cờ highway, có dấu tiếng Việt', async () => {
     const summary = await runDirectionsSmoke('https://api.test', 'k', 2, {
+      intervalMs: 0,
       fetchImpl: async (url) => {
         const mode = new URL(url).searchParams.get('mode');
         return reply(200, ok(mode, mode === 'car'));
@@ -3175,7 +3253,9 @@ Expected: FAIL — module không tồn tại.
 ```js
 #!/usr/bin/env node
 // Smoke chỉ đường trên production (spec dẫn đường A mục 7.4): bốn tuyến chuẩn, N lượt mỗi tuyến, p95.
-//   pnpm smoke:directions -- --confirm-production [--requests=5] [--p95-max=1500] [--base=https://…]
+//   pnpm smoke:directions -- --confirm-production [--requests=5] [--p95-max=1500] [--interval-ms=3500] [--base=https://…]
+// /v1/directions có burst 20 request/phút/khoá+IP nên smoke tự cách 3,5 s giữa các lượt (~17/phút):
+// 20 lượt × 4 tuyến ≈ 4,7 phút. Không hạ interval khi chạy production, nếu không sẽ tự gây 429.
 // Khoá đọc từ MAPSLIBVN_API_KEY hoặc KEY_EXAMPLE_EMBED (.env). Lần đầu chạy --requests=20 để lấy p95 ghi
 // evidence, sau đó chốt --p95-max theo số đo (không đoán).
 import 'dotenv/config';
@@ -3208,13 +3288,16 @@ export function percentile(values, p) {
  * @typedef {{ name: string, mode: string, ok: number, failed: number, highway: boolean | null,
  *   vietnamese: boolean, distance_m: number | null, p95_ms: number | null, codes: string[] }} RouteSummary
  * @param {string} base @param {string} key @param {number} requests
- * @param {{ fetchImpl?: typeof fetch, timeoutMs?: number }} [options]
+ * @param {{ fetchImpl?: typeof fetch, timeoutMs?: number, intervalMs?: number }} [options]
  * @returns {Promise<RouteSummary[]>}
  */
 export async function runDirectionsSmoke(base, key, requests, options = {}) {
   const fetchImpl = options.fetchImpl ?? fetch;
   const timeoutMs = options.timeoutMs ?? 15_000;
+  const intervalMs = options.intervalMs ?? 3_500;
   const root = base.replace(/\/+$/, '');
+  const total = SMOKE_ROUTES.length * requests;
+  let sent = 0;
   /** @type {RouteSummary[]} */
   const summary = [];
   for (const route of SMOKE_ROUTES) {
@@ -3224,6 +3307,9 @@ export async function runDirectionsSmoke(base, key, requests, options = {}) {
     /** @type {RouteSummary} */
     const row = { name: route.name, mode: route.mode, ok: 0, failed: 0, highway: null, vietnamese: false, distance_m: null, p95_ms: null, codes: [] };
     for (let i = 0; i < requests; i++) {
+      // Cách đều mọi lượt (kể cả giữa hai tuyến và sau lượt lỗi) để không tự vướng burst limiter.
+      if (sent > 0 && intervalMs > 0) await new Promise((resolve) => setTimeout(resolve, intervalMs));
+      sent += 1;
       const t0 = Date.now();
       try {
         const response = await fetchImpl(url, { headers: { 'X-Api-Key': key }, signal: AbortSignal.timeout(timeoutMs) });
@@ -3288,7 +3374,10 @@ async function main() {
   const p95Raw = arg('p95-max');
   const p95Max = p95Raw === undefined ? null : Number(p95Raw);
   if (p95Max !== null && !(p95Max > 0)) throw new Error('--p95-max phải là số dương (ms)');
-  const summary = await runDirectionsSmoke(base, key, requests);
+  const intervalMs = Number(arg('interval-ms') ?? 3500);
+  if (!Number.isInteger(intervalMs) || intervalMs < 0) throw new Error('--interval-ms phải là số nguyên ≥ 0');
+  console.log(`${SMOKE_ROUTES.length * requests} lượt, cách ${intervalMs} ms — ước ${Math.ceil((SMOKE_ROUTES.length * requests * intervalMs) / 60_000)} phút`);
+  const summary = await runDirectionsSmoke(base, key, requests, { intervalMs });
   console.table(summary.map(({ codes, ...row }) => ({ ...row, codes: codes.join(',') })));
   validateDirectionsSmoke(summary, p95Max);
   console.log(`✓ smoke directions ${base} — ${requests} lượt/tuyến`);
@@ -3323,6 +3412,7 @@ Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>"
 - Modify: `apps/docs/src/content/docs/api.md`
 - Modify: `apps/docs/src/content/docs/tinh-nang.md`
 - Modify: `apps/docs/src/content/docs/sdk.md`
+- Modify: `apps/docs/src/content/docs/khoa-api.md` (bảng giới hạn)
 - Modify: `THIRD_PARTY_NOTICES.md` (+ chạy `node scripts/notices-sync.mjs`)
 - Modify: `infra/server/README.md`
 
@@ -3336,7 +3426,12 @@ Sửa dòng `upstream_unavailable` thành: `| `upstream_unavailable` | 503 | kh�
 
 Mục 3, sau đoạn "**Quota Places.**…" thêm đoạn:
 ```
-**Quota Chỉ đường.** `GET /v1/directions` có quota **riêng**, cũng theo ngày Việt Nam và cũng chặn ở 2× hạn mức: plan `free` mặc định **2.000** lượt/ngày, khoá có thể được đặt hạn riêng (`quota_directions_per_day`). Tenant `internal` không bị đếm. Giới hạn burst 60 request/phút dùng chung với Places.
+**Quota Chỉ đường.** `GET /v1/directions` có quota **riêng**, cũng theo ngày Việt Nam và cũng chặn ở 2× hạn mức: plan `free` mặc định **2.000** lượt/ngày, khoá có thể được đặt hạn riêng (`quota_directions_per_day`). Tenant `internal` không bị đếm theo ngày. Burst **20 request/phút** cho mỗi cặp khoá + IP (riêng, không dùng chung 60 của Places). Ngoài ra khoá `web` và `mobile` — kể cả của tenant `internal`, vì khoá loại này nằm công khai trong trang/app — chịu **trần 100 request/phút cho cả khoá** (mọi IP cộng lại); khoá `server` không chịu trần này. Vượt trả `429 rate_limit_exceeded` với `retry-after: 60`.
+```
+`khoa-api.md` bảng giới hạn (sau dòng `Burst Places`) thêm hai dòng:
+```
+| Burst Chỉ đường | 20 lượt / phút / điểm Cloudflare | mỗi cặp khoá + IP, riêng `GET /v1/directions` |
+| Trần theo khoá Chỉ đường | 100 lượt / phút / điểm Cloudflare | mọi IP cộng lại; chỉ khoá `web` và `mobile` (kể cả tenant internal), khoá `server` không chịu |
 ```
 Bảng cache thêm dòng `| `/v1/directions` | 60 giây | 5 phút |` và sửa câu "Với `/v1/autocomplete` và `/v1/places/{id}`" → "Với `/v1/autocomplete`, `/v1/places/{id}` và `/v1/directions`".
 
@@ -3471,7 +3566,7 @@ Run: `pnpm --filter @mapslibvn/core build && pnpm --filter @mapslibvn/docs build
 Expected: docs build xong (số trang không đổi), notices khớp, lint sạch.
 
 ```bash
-git add apps/docs/src/content/docs/api.md apps/docs/src/content/docs/tinh-nang.md apps/docs/src/content/docs/sdk.md THIRD_PARTY_NOTICES.md packages/*/THIRD_PARTY_NOTICES.md infra/server/README.md
+git add apps/docs/src/content/docs/api.md apps/docs/src/content/docs/tinh-nang.md apps/docs/src/content/docs/sdk.md apps/docs/src/content/docs/khoa-api.md THIRD_PARTY_NOTICES.md packages/*/THIRD_PARTY_NOTICES.md infra/server/README.md
 git commit -m "docs: tài liệu GET /v1/directions, client.directions, Valhalla trong notices và README máy chủ
 
 Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>"
@@ -3612,7 +3707,7 @@ Expected: `{"ok":true,"version":"3.8.3","graph_built_at":"…","ms":…}`; `sche
 - [ ] **Step 2: Smoke 20 lượt/tuyến**
 
 Run: `pnpm smoke:directions -- --confirm-production --requests=20`
-Expected: bảng 4 tuyến `failed 0`, `lien-tinh-xe-may` `highway false`, `vietnamese true`, p95 từng tuyến.
+Expected: in `80 lượt, cách 3500 ms — ước 5 phút`, rồi bảng 4 tuyến `failed 0`, `lien-tinh-xe-may` `highway false`, `vietnamese true`, p95 từng tuyến. Không thấy 429 (nếu có → kiểm ba binding ratelimit trên production bằng `wrangler deploy --dry-run --env production`).
 
 Nếu `lien-tinh-xe-may` có `highway: true`: thêm vào `valhallaBody` khi `p.mode === 'motorbike'` trường `costing_options: { motor_scooter: { use_highways: 0 } }` (Valhalla: mọi tuỳ chọn auto áp cho motor_scooter, `use_highways` 0–1), kèm test trong `routing-valhalla.test.ts`; commit `fix(api): xe máy không dùng cao tốc`; đợi Deploy API; chạy lại smoke. Ghi DEVLOG.
 
@@ -3682,6 +3777,6 @@ git push origin main
 - Service token Access nằm trong `wrangler secret`, chỉ gửi khi đích là https, không bao giờ ghi log; `redirect: 'manual'` để Access 302 không kéo Worker tới URL lạ.
 - Valhalla không mở `ports:`; đường vào duy nhất là Tunnel + Access application (tạo Access **trước** hostname). Dev compose chỉ bind `127.0.0.1`.
 - Image ghim digest; graph build từ PBF Geofabrik đã kiểm md5 (pipeline có sẵn); `default_speeds.json` tải từ GitHub OpenStreetMapSpeeds lần đầu (đầu vào ngoài duy nhất của build — chấp nhận, ghi ở đây).
-- `/v1/directions` bắt buộc khoá; quota ngày riêng cho plan free; burst 60/phút/khoá+IP dùng chung. `/healthz/routing` không cần khoá và gọi `/status` (rẻ) — cùng mô hình `/healthz/db`.
+- `/v1/directions` bắt buộc khoá; quota ngày riêng cho plan free (KV); burst riêng 20/phút/khoá+IP; trần 100/phút theo khoá cho mọi khoá `web`/`mobile` kể cả tenant internal (khoá công khai, vd khoá demo docs) — dùng Rate Limiting binding, không KV, vì Workers Free chỉ cho 1.000 ghi KV/ngày và ngân sách đó dùng chung với auth cache và manifest. `/healthz/routing` không cần khoá và gọi `/status` (rẻ) — cùng mô hình `/healthz/db`.
 - Toạ độ `from/to` của người dùng cuối nằm trong URL nên xuất hiện trong log Workers (như `/v1/nearby`, `/v1/reverse` hiện tại); Analytics Engine chỉ ghi pathname. Không ghi thêm gì mới.
-- Việc CHƯA làm, chờ PHONG quyết (xem thông điệp review 10/09): khoá `web` plan `internal` (khoá demo docs) không bị quota ngày → có thể bị lấy làm backend routing miễn phí; cân nhắc limiter burst riêng cho directions.
+- PHONG quyết 10/09/2026: (1) khoá `web`/`mobile` mọi plan chịu trần theo khoá 100/phút ở directions (thay cho quota ngày KV — không khả thi trên Workers Free với khoá công khai); (2) limiter burst riêng 20/phút cho directions. Điểm (3) riêng tư toạ độ trong log Workers: đang chờ PHONG chọn phương án.

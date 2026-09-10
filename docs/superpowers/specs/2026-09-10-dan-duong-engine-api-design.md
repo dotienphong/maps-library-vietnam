@@ -65,7 +65,7 @@ dẫn đường cùng lúc không tạo tải cho máy chủ.
 | Build graph | Một container tự build rồi phục vụ | Ít mã nhất; gián đoạn vài chục phút lúc 02:00 thứ Hai chấp nhận được ở giai đoạn nội bộ |
 | Định dạng trả về | Schema riêng MapsLibVN, Worker dịch | Mục tiêu 5 của spec gốc: không phụ thuộc nhà cung cấp |
 | Hình tuyến | polyline6 | Nhẹ hơn GeoJSON nhiều lần; core có hàm giải mã |
-| Quota | Nhóm riêng `directions`, cột riêng trong `api_key` | Một lượt tính tuyến đắt hơn một lượt tìm kiếm; không trộn vào `places` |
+| Quota | Nhóm riêng `directions`, cột riêng trong `api_key`; burst riêng 20/phút/khoá+IP; trần 100/phút theo khoá cho mọi khoá `web`/`mobile` kể cả plan internal (quyết định 10/09 sau review bảo mật) | Một lượt tính tuyến đắt hơn một lượt tìm kiếm; khoá web/mobile nằm công khai trong HTML/app (khoá demo docs) nên không được miễn; dùng Rate Limiting thay KV vì Workers Free chỉ 1.000 ghi KV/ngày |
 | Scope | Dùng lại `places:read` | Không thêm scope ở bản này để không đụng quy trình cấp khoá; tách khi thương mại hoá |
 
 ## 2. Tiền đề kỹ thuật đã xác minh (10/09/2026)
@@ -290,9 +290,9 @@ Dùng `cachedJson()` sẵn có (`apps/api/src/cache.ts`): khoá `https://cache.m
 
 ### 5.5 Quota, giới hạn, đo lường
 
-- `quotaMiddleware` mở rộng nhận `group: 'places' | 'directions'`; giới hạn lấy từ `auth.quotaDirectionsPerDay ?? FREE_DIRECTIONS_PER_DAY` với `FREE_DIRECTIONS_PER_DAY = 2_000`. Tenant `internal` không đếm (như hiện tại). Khoá KV `quota:<keyHash>:<ngày VN>:directions`.
+- `quotaMiddleware` mở rộng nhận `group: 'places' | 'directions'`; giới hạn ngày lấy từ `auth.quotaDirectionsPerDay ?? FREE_DIRECTIONS_PER_DAY` với `FREE_DIRECTIONS_PER_DAY = 2_000`. Tenant `internal` không đếm KV (như hiện tại — Workers Free chỉ cho 1.000 ghi KV/ngày, ngân sách dùng chung với auth cache và manifest; đếm KV cho một khoá công khai là để kẻ tấn công làm cạn ngân sách đó). Khoá KV `quota:<keyHash>:<ngày VN>:directions`.
 - Migration `0012_api_key_quota_directions.sql` (+ `.down.sql`): `ALTER TABLE api_key ADD COLUMN IF NOT EXISTS quota_directions_per_day int;` `scripts/api-key-issue.mjs` thêm cờ `--quota-directions`. `loadAuth` đọc cột mới bằng `(to_jsonb(k) ->> 'quota_directions_per_day')::int` thay vì tham chiếu cột trực tiếp, nên câu SQL **chạy được cả khi cột chưa tồn tại** (trả NULL → dùng mặc định plan). Nhờ vậy deploy Worker và áp migration độc lập thứ tự, tránh lặp lại sự cố 06–07/09 "deploy trước migration làm chết API"; migration được áp ở lần `pnpm server:update` kế tiếp. `test:api-db` (Postgres thật) phải có ca kiểm câu SQL này ở cả hai trạng thái không thực tế được, nên chỉ kiểm sau migration; trạng thái "chưa có cột" kiểm bằng unit test SQL shape (fake sql) xác nhận không có chuỗi `k.quota_directions_per_day`.
-- Burst: dùng lại `PLACES_RATE_LIMITER` (60 request/phút/colo theo khoá). Không tạo limiter mới ở bản này.
+- Burst và trần theo khoá (quyết định PHONG 10/09/2026 sau review bảo mật, thay cho ý ban đầu "dùng lại `PLACES_RATE_LIMITER`"): hai Rate Limiting binding mới trong `[env.production]` — `DIRECTIONS_RATE_LIMITER` 20 request/phút/colo theo khoá+IP (Valhalla đắt hơn Postgres), và `DIRECTIONS_KEY_RATE_LIMITER` 100 request/phút/colo theo **khoá thuần** (mọi IP cộng lại) áp cho mọi khoá `web`/`mobile` **kể cả plan internal**; khoá `server` không chịu trần này. Lý do: khoá web/mobile nằm công khai trong HTML/app (khoá demo docs là khoá web của tenant internal), không có trần thì ai lấy được là dùng Valhalla không giới hạn. Vượt → `429 rate_limit_exceeded`, `retry-after: 60` (cơ chế sẵn có). Dev/test không có binding → bỏ qua.
 - Analytics: `analyticsMiddleware` sẵn có ghi pathname `/v1/directions`; thêm `stageHit` = -1 (route khác) như hiện tại. Không thêm cột.
 
 ### 5.6 `GET /healthz/routing`
@@ -301,7 +301,8 @@ Không cần khoá (như `/healthz/db`). Gọi `{ROUTING_BASE}/status` (không v
 
 ### 5.7 Biến môi trường và secret (`apps/api/src/env.ts`)
 
-- `ROUTING_BASE: string` (var; dev `http://localhost:8002`, production `https://maps-route.<domain>`).
+- `ROUTING_BASE: string` (var; dev `http://127.0.0.1:8002`, production `https://maps-route.<domain>`).
+- `DIRECTIONS_RATE_LIMITER?`, `DIRECTIONS_KEY_RATE_LIMITER?` (Rate Limiting binding, chỉ production; `namespace_id` khác nhau: 20260911, 20260912).
 - `ROUTING_ACCESS_CLIENT_ID?`, `ROUTING_ACCESS_CLIENT_SECRET?` (secret production; vắng cả hai → gọi không header, dành cho dev/test).
 - Vắng `ROUTING_BASE` → `/v1/directions` và `/healthz/routing` trả `503 upstream_unavailable` "Chưa cấu hình routing". API còn lại không ảnh hưởng.
 - Header Access **chỉ gửi khi `ROUTING_BASE` là https** (không bao giờ đưa service token qua http dù cấu hình nhầm); fetch tới Valhalla dùng `redirect: 'manual'` để 302 của Access không kéo Worker tới URL khác rồi parse HTML.
@@ -386,7 +387,7 @@ Bảng ánh xạ `ManeuverKind` (mục 5.2) đặt ở core (`maneuver.ts`, `VAL
 1. **Unit Worker** (`apps/api/test`, vitest, không cần dịch vụ ngoài theo quy tắc test API không được cần Postgres): fixture JSON Valhalla ghi sẵn cho ba mode + một ca `alternates` + ca lỗi 442/171/154; test `translate()` (ánh xạ kind, nối shape và dịch chỉ số, làm tròn, bbox, waypoints), validate tham số (hộp VN, khoảng cách theo mode, số điểm), ánh xạ lỗi, khoá cache chuẩn hoá, header Access chỉ gửi khi có secret, timeout → 503. Mock `fetch` bằng `vi.stubGlobal`.
 2. **Core**: `decodePolyline6` với chuỗi đã biết; `directions()` ghép tham số đúng (`[lat,lng]` → `lat,lng`).
 3. **Fixture PBF Quận 1 có sẵn** `pipelines/poi/fixtures/q1.osm.pbf` (mục 2), không cắt mới. `infra/dev/compose.yml` thêm service `valhalla` (profile `routing`, không bật mặc định) đọc thư mục `work/valhalla-dev/` (gitignore) mà script chép fixture vào → build graph mini vài phút. Script `scripts/routing-test.mjs` (`pnpm test:routing`): dựng compose profile, chờ `/status`, chạy `wrangler dev` với `ROUTING_BASE` trỏ container và khoá test seed vào KV local, rồi chạy bộ `apps/api/test-routing/*.rtest.mjs`: tuyến Nhà thờ Đức Bà → Chợ Bến Thành cho cả 3 mode, kiểm `routes[0].distance_m` trong khoảng, `steps[0].kind = depart`, bước cuối `arrive`, câu `instruction` có dấu tiếng Việt, điểm ngoài Quận 1 → `404 no_route`, `/healthz/routing` trả `graph_built_at`. Cờ `--capture` ghi JSON Valhalla thô làm fixture `apps/api/test/fixtures/valhalla/q1-motorbike.json` cho unit test. Trên CI chạy trong **workflow riêng `Routing tests`** trên `ubuntu-latest` (job DB tests chạy trong container image pipeline nên không có Docker), kích hoạt khi chạm mã routing hoặc chạy tay; **không** đưa vào job CI nhanh.
-4. **Smoke production** `scripts/smoke-directions.mjs` (`pnpm smoke:directions`): bốn tuyến cố định — nội thành TP.HCM xe máy (~8 km), liên tỉnh xe máy TP.HCM → Vũng Tàu (kiểm `flags.highway = false`), liên tỉnh ô tô TP.HCM → Cần Thơ, đi bộ ~2,5 km Hồ Gươm → Lăng Bác; in `distance_m`, số lượt lỗi, cờ highway, có dấu tiếng Việt, p95; lần đầu chạy 20 lượt để lấy p95 ghi vào evidence, sau đó ngưỡng p95 ghi vào script (đo rồi mới chốt số, không đoán); production bắt buộc `--confirm-production`.
+4. **Smoke production** `scripts/smoke-directions.mjs` (`pnpm smoke:directions`): bốn tuyến cố định — nội thành TP.HCM xe máy (~8 km), liên tỉnh xe máy TP.HCM → Vũng Tàu (kiểm `flags.highway = false`), liên tỉnh ô tô TP.HCM → Cần Thơ, đi bộ ~2,5 km Hồ Gươm → Lăng Bác; in `distance_m`, số lượt lỗi, cờ highway, có dấu tiếng Việt, p95; các lượt cách nhau 3,5 s để không vướng burst 20/phút (20 lượt × 4 tuyến ≈ 5 phút); lần đầu chạy 20 lượt để lấy p95 ghi vào evidence, sau đó ngưỡng p95 ghi vào script (đo rồi mới chốt số, không đoán); production bắt buộc `--confirm-production`.
 5. **Kịch bản bọc**: kiểm tay theo checklist trong plan: tạo cờ → log "reload" → `/status` không trả lời → build → 200; rollback → `/healthz/routing` trả `graph_built_at` cũ và `routing-graph.mjs status` trả `pbfDate` cũ.
 
 ## 8. Docs, thông báo bên thứ ba, attribution
@@ -412,7 +413,7 @@ Bảng ánh xạ `ManeuverKind` (mục 5.2) đặt ở core (`maneuver.ts`, `VAL
 | Gói core vượt trần size-limit 10 kB gzip (hiện 9,5 kB) khi thêm polyline + bảng maneuver | Nâng trần lên 12 kB trong `.size-limit.json` kèm ghi DEVLOG; đo lại sau build |
 | Build graph lỗi/OOM → Docker khởi động lại và build lại liên tục | `run.sh` ngủ 10 phút trước khi thoát; `rollback` quay về tar cũ; xem log trước khi build lại |
 | Máy chủ là macOS: container chạy trong VM Docker Desktop, RAM của VM (không phải 16 GB của máy) mới là trần thật cho Postgres + Valhalla | Kiểm `docker info` MemTotal ≥ 12 GB trước khi build lần đầu; chỉnh Settings → Resources; hạ `PG_SHARED_BUFFERS` nếu VM nhỏ |
-| Khoá `web` của tenant plan `internal` (khoá demo trong docs/playground) công khai trong HTML và không có quota ngày → người ngoài dùng làm backend chỉ đường miễn phí | **Chờ PHONG quyết** (review 10/09): áp quota ngày `directions` cho mọi khoá `web`/`mobile` kể cả plan internal, hoặc chuyển tenant demo sang plan `free`, hoặc thêm limiter burst riêng 20 request/phút cho directions |
+| Khoá `web` của tenant plan `internal` (khoá demo trong docs/playground) công khai trong HTML và không có quota ngày → người ngoài dùng làm backend chỉ đường miễn phí | **Đã quyết 10/09** (mục 5.5): trần 100/phút theo khoá bằng Rate Limiting cho mọi khoá web/mobile + burst riêng 20/phút. Không dùng quota ngày KV cho khoá công khai: Workers Free chỉ 1.000 ghi KV/ngày, kẻ tấn công có thể làm cạn ngân sách KV của cả tài khoản (auth cache, manifest) |
 
 ## 10. Đường nâng cấp đã dự trù
 
