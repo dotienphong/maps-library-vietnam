@@ -394,6 +394,7 @@ Bảng ánh xạ `ManeuverKind` (mục 5.2) đặt ở core (`maneuver.ts`, `VAL
 
 - `apps/docs/src/content/docs/api.md`: mục 4 thêm `GET /v1/directions` (tham số, ví dụ curl, response mẫu, bảng `kind`, lưu ý `[lat,lng]` vào / `[lng,lat]` ra), mục 2 thêm `no_route`, mục 3 thêm quota `directions`, mục 6 thêm `/healthz/routing`, mục 7 thêm kiểu `Route`… `tinh-nang.md` thêm dòng "Chỉ đường xe máy/ô tô/đi bộ (bước rẽ tiếng Việt)". `sdk.md` thêm ví dụ `client.directions()`.
 - `THIRD_PARTY_NOTICES.md` mục 5 (công cụ máy chủ, không phân phối) thêm Valhalla — MIT. Không thêm nghĩa vụ attribution UI: dữ liệu đường là OSM, đã ghi nguồn.
+- Riêng tư (quyết định PHONG 10/09/2026, phương án 1 — chỉ tài liệu, không đổi mã): `docs/legal/dieu-khoan-tenant.md` mục 5 nói rõ log request Workers có toạ độ trong URL (`near`, `lat`/`lng`, `from`/`to`/`via`) kèm khoá tenant, không kèm định danh người dùng cuối, chỉ dùng chẩn đoán, không ghép thành hành trình; trang API nhắc lại ở mục directions. Phương án kỹ thuật (hạ `head_sampling_rate`/tắt invocation logs) ghi vào `docs/legal/checklist-phap-ly.md` C6 để sau.
 - `infra/server/README.md`: mục 4.5, cách xem log build, cách rollback, mục "Không bao giờ thêm `ports:` cho `valhalla`".
 - `docs/evidence/routing/`: số đo build (thời gian, RAM đỉnh qua `docker stats`, dung lượng tar), p95 ba tuyến, ảnh/log smoke.
 
@@ -413,6 +414,7 @@ Bảng ánh xạ `ManeuverKind` (mục 5.2) đặt ở core (`maneuver.ts`, `VAL
 | Gói core vượt trần size-limit 10 kB gzip (hiện 9,5 kB) khi thêm polyline + bảng maneuver | Nâng trần lên 12 kB trong `.size-limit.json` kèm ghi DEVLOG; đo lại sau build |
 | Build graph lỗi/OOM → Docker khởi động lại và build lại liên tục | `run.sh` ngủ 10 phút trước khi thoát; `rollback` quay về tar cũ; xem log trước khi build lại |
 | Máy chủ là macOS: container chạy trong VM Docker Desktop, RAM của VM (không phải 16 GB của máy) mới là trần thật cho Postgres + Valhalla | Kiểm `docker info` MemTotal ≥ 12 GB trước khi build lần đầu; chỉnh Settings → Resources; hạ `PG_SHARED_BUFFERS` nếu VM nhỏ |
+| Toạ độ điểm đi/đến của người dùng cuối nằm trong URL → có trong log Workers vài ngày (cùng tình trạng `nearby`/`reverse` hiện có, nhưng chỉ đường lộ cả hành trình) | Phương án 1 (PHONG 10/09): minh bạch trong điều khoản tenant mục 5 và trang API; không đổi mã. Phương án 2 (hạ sampling log) ghi checklist C6 |
 | Khoá `web` của tenant plan `internal` (khoá demo trong docs/playground) công khai trong HTML và không có quota ngày → người ngoài dùng làm backend chỉ đường miễn phí | **Đã quyết 10/09** (mục 5.5): trần 100/phút theo khoá bằng Rate Limiting cho mọi khoá web/mobile + burst riêng 20/phút. Không dùng quota ngày KV cho khoá công khai: Workers Free chỉ 1.000 ghi KV/ngày, kẻ tấn công có thể làm cạn ngân sách KV của cả tài khoản (auth cache, manifest) |
 
 ## 10. Đường nâng cấp đã dự trù

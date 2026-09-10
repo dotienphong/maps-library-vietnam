@@ -3413,6 +3413,8 @@ Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>"
 - Modify: `apps/docs/src/content/docs/tinh-nang.md`
 - Modify: `apps/docs/src/content/docs/sdk.md`
 - Modify: `apps/docs/src/content/docs/khoa-api.md` (bảng giới hạn)
+- Modify: `docs/legal/dieu-khoan-tenant.md` mục 5 (toạ độ trong log — quyết định PHONG 10/09, phương án 1)
+- Modify: `docs/legal/checklist-phap-ly.md` mục C (C6: phương án 2 để sau)
 - Modify: `THIRD_PARTY_NOTICES.md` (+ chạy `node scripts/notices-sync.mjs`)
 - Modify: `infra/server/README.md`
 
@@ -3512,6 +3514,7 @@ curl -H "X-Api-Key: mlv_live_…" \
 - `verbal_pre`/`verbal_post` dành cho đọc bằng giọng nói; có thể `null`.
 - `waypoints[].snapped` là điểm trên tuyến gần điểm bạn gửi; `name` hiện luôn `null`.
 - `engine` là thông tin chẩn đoán (`graph` = ngày build dữ liệu đường), **không phải hợp đồng ổn định**.
+- Toạ độ `from`/`to`/`via` nằm trong URL nên có trong log request của Cloudflare Workers (giữ vài ngày, chỉ để chẩn đoán; xem [Điều khoản tenant](/dieu-khoan/) mục 5). Tenant là bên kiểm soát dữ liệu vị trí của người dùng cuối.
 - Không có đường → `404 no_route`. Dịch vụ đang build lại dữ liệu (thứ Hai ~02:00 giờ VN, vài chục phút) → `503 upstream_unavailable` với `retry-after: 30`; bản cache còn trong 5 phút vẫn được trả.
 ````
 
@@ -3540,7 +3543,24 @@ Bảng "Kiểu dữ liệu API" thêm vào cuối ô: `, `TravelMode`, `Directio
 
 Bảng "Phương thức client": thêm `| `directions(opts)` | `GET /v1/directions` | `DirectionsResponse` |` sau dòng `reverse`. Bảng `opts`: thêm `| `directions` | `from`, `to` (bắt buộc, `[lat, lng]`), `via`, `mode`, `lang`, `alternatives` |`. Sau đoạn "Lưu ý về thứ tự toạ độ" thêm câu: `Với `directions`, tham số vào là `[lat, lng]` nhưng mọi toạ độ trong `DirectionsResponse` là `[lng, lat]`; giải mã `Route.geometry` bằng `decodePolyline6`.`
 
-- [ ] **Step 5: THIRD_PARTY_NOTICES và README máy chủ**
+- [ ] **Step 5: Điều khoản tenant và checklist pháp lý (riêng tư toạ độ — PHONG chọn phương án 1 ngày 10/09/2026)**
+
+`docs/legal/dieu-khoan-tenant.md`, mục 5, thay điểm 5 hiện có:
+```
+5. Log request của MapsLibVN giữ tối đa 30 ngày; số liệu tổng hợp (Analytics Engine) không chứa định danh người dùng cuối.
+```
+bằng:
+```
+5. Log request của MapsLibVN (Cloudflare Workers Logs) giữ tối đa 30 ngày và chỉ dùng để chẩn đoán lỗi. Vì tham số nằm trong URL, log này có **toạ độ mà ứng dụng gửi lên** — `near`, `lat`/`lng` của tìm kiếm và reverse geocode, `from`/`to`/`via` của chỉ đường — kèm định danh khoá API của tenant, không kèm định danh người dùng cuối. MapsLibVN không trích xuất, không ghép các toạ độ này thành hành trình hay hồ sơ người dùng, không chuyển cho bên thứ ba. Số liệu tổng hợp (Analytics Engine) chỉ có đường dẫn endpoint, không có tham số. Tenant có nghĩa vụ nêu việc này trong thông báo xử lý dữ liệu với người dùng cuối của mình (điểm 3).
+```
+Trang `dieu-khoan.md` của docs site sinh từ file này lúc prebuild (`apps/docs/scripts/copy-legal.mjs`), không sửa trực tiếp trong `apps/docs`.
+
+`docs/legal/checklist-phap-ly.md`, bảng mục C thêm dòng sau C5:
+```
+| C6 | Giảm dấu vết toạ độ trong log Workers: hạ `head_sampling_rate` (ví dụ 0,1) hoặc tắt invocation logs production trong `[observability]` của `apps/api/wrangler.toml` | Review bảo mật spec dẫn đường A 10/09/2026: PHONG chọn chỉ ghi điều khoản (phương án 1), để phương án kỹ thuật này lại; đổi lại khi làm là khó tra lỗi hiếm |
+```
+
+- [ ] **Step 6: THIRD_PARTY_NOTICES và README máy chủ**
 
 `THIRD_PARTY_NOTICES.md` mục 5: thêm `Valhalla (MIT — engine chỉ đường, chạy như dịch vụ riêng trên máy chủ, không liên kết mã)` vào danh sách sau `PostGIS (…)`. Chạy `node scripts/notices-sync.mjs` để đồng bộ bản sao vào 4 gói SDK (CI có `--check`).
 
@@ -3560,13 +3580,13 @@ Mục "Kiểm tra": sửa "4 dịch vụ `running`" → "5 dịch vụ `running`
 ```
 Mục "Vận hành" thêm: `- Không bao giờ thêm `ports:` cho `valhalla`. Đường vào duy nhất là Tunnel + Access.`, `- `pnpm server:update` kéo cả image `valhalla`; sau cập nhật lần đầu chạy `routing-graph.mjs prepare` nếu volume `valhalla-data` còn rỗng (container sẽ khởi động lại liên tục cho tới khi có PBF).`, `- Sau `pnpm server:restore` trên máy mới, graph không nằm trong backup: chạy `routing-graph.mjs prepare` để build lại (volume `valhalla-data` cần ~5 GB: PBF + thư mục tile + tar + tar prev).` và `- Build lỗi/OOM: container ngủ 10 phút rồi Docker khởi động lại; xem `docker compose … logs valhalla`, quay về graph cũ bằng `routing-graph.mjs rollback`.`
 
-- [ ] **Step 6: Build docs, kiểm link, commit**
+- [ ] **Step 7: Build docs, kiểm link, commit**
 
 Run: `pnpm --filter @mapslibvn/core build && pnpm --filter @mapslibvn/docs build && node scripts/notices-sync.mjs --check && pnpm lint`
 Expected: docs build xong (số trang không đổi), notices khớp, lint sạch.
 
 ```bash
-git add apps/docs/src/content/docs/api.md apps/docs/src/content/docs/tinh-nang.md apps/docs/src/content/docs/sdk.md apps/docs/src/content/docs/khoa-api.md THIRD_PARTY_NOTICES.md packages/*/THIRD_PARTY_NOTICES.md infra/server/README.md
+git add apps/docs/src/content/docs/api.md apps/docs/src/content/docs/tinh-nang.md apps/docs/src/content/docs/sdk.md apps/docs/src/content/docs/khoa-api.md docs/legal/dieu-khoan-tenant.md docs/legal/checklist-phap-ly.md THIRD_PARTY_NOTICES.md packages/*/THIRD_PARTY_NOTICES.md infra/server/README.md
 git commit -m "docs: tài liệu GET /v1/directions, client.directions, Valhalla trong notices và README máy chủ
 
 Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>"
@@ -3778,5 +3798,5 @@ git push origin main
 - Valhalla không mở `ports:`; đường vào duy nhất là Tunnel + Access application (tạo Access **trước** hostname). Dev compose chỉ bind `127.0.0.1`.
 - Image ghim digest; graph build từ PBF Geofabrik đã kiểm md5 (pipeline có sẵn); `default_speeds.json` tải từ GitHub OpenStreetMapSpeeds lần đầu (đầu vào ngoài duy nhất của build — chấp nhận, ghi ở đây).
 - `/v1/directions` bắt buộc khoá; quota ngày riêng cho plan free (KV); burst riêng 20/phút/khoá+IP; trần 100/phút theo khoá cho mọi khoá `web`/`mobile` kể cả tenant internal (khoá công khai, vd khoá demo docs) — dùng Rate Limiting binding, không KV, vì Workers Free chỉ cho 1.000 ghi KV/ngày và ngân sách đó dùng chung với auth cache và manifest. `/healthz/routing` không cần khoá và gọi `/status` (rẻ) — cùng mô hình `/healthz/db`.
-- Toạ độ `from/to` của người dùng cuối nằm trong URL nên xuất hiện trong log Workers (như `/v1/nearby`, `/v1/reverse` hiện tại); Analytics Engine chỉ ghi pathname. Không ghi thêm gì mới.
-- PHONG quyết 10/09/2026: (1) khoá `web`/`mobile` mọi plan chịu trần theo khoá 100/phút ở directions (thay cho quota ngày KV — không khả thi trên Workers Free với khoá công khai); (2) limiter burst riêng 20/phút cho directions. Điểm (3) riêng tư toạ độ trong log Workers: đang chờ PHONG chọn phương án.
+- Toạ độ `from/to` của người dùng cuối nằm trong URL nên xuất hiện trong log Workers (như `/v1/nearby`, `/v1/reverse` hiện tại); Analytics Engine chỉ ghi pathname. Không ghi thêm gì mới. PHONG chọn phương án 1 (10/09): ghi rõ trong điều khoản tenant mục 5 và trang API (Task 15 Step 5); phương án hạ sampling log ghi vào checklist pháp lý C6 để sau.
+- PHONG quyết 10/09/2026: (1) khoá `web`/`mobile` mọi plan chịu trần theo khoá 100/phút ở directions (thay cho quota ngày KV — không khả thi trên Workers Free với khoá công khai); (2) limiter burst riêng 20/phút cho directions. Điểm (3) riêng tư toạ độ trong log Workers: PHONG chọn phương án 1 — chỉ ghi điều khoản tenant + trang API, không đổi mã (Task 15 Step 5).
