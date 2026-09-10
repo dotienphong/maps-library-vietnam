@@ -1,7 +1,7 @@
-import { decodePolyline6 } from '@mapslibvn/core';
+import { decodePolyline6, encodePolyline6 } from '@mapslibvn/core';
 import { describe, expect, it } from 'vitest';
-import { mergeLegShapes, translateDirections } from '../src/routing/translate';
-import type { ValhallaRouteResponse } from '../src/routing/valhalla';
+import { mergeLegShapes, translateDirections, translateTrip } from '../src/routing/translate';
+import type { ValhallaLeg, ValhallaRouteResponse, ValhallaTrip } from '../src/routing/valhalla';
 import fixture from './fixtures/valhalla/two-legs.json';
 
 const json = fixture as unknown as ValhallaRouteResponse;
@@ -17,6 +17,78 @@ describe('mergeLegShapes', () => {
       [106.6981, 10.7725],
     ]);
     expect(merged.offsets).toEqual([0, 2]);
+  });
+
+  it('nối tuyến 200.000 điểm mà không vượt giới hạn đối số và giữ chỉ số global', () => {
+    const firstCoords: [number, number][] = Array.from({ length: 200_000 }, (_, i) => [
+      106 + i / 1_000_000,
+      10,
+    ]);
+    const legs: ValhallaLeg[] = [
+      {
+        shape: encodePolyline6(firstCoords),
+        summary: {
+          time: 1,
+          length: 200,
+          min_lat: 10,
+          min_lon: 106,
+          max_lat: 10,
+          max_lon: 106.199999,
+        },
+        maneuvers: [],
+      },
+      {
+        shape: encodePolyline6([
+          [106.199999, 10],
+          [106.2, 10],
+        ]),
+        summary: {
+          time: 1,
+          length: 0.001,
+          min_lat: 10,
+          min_lon: 106.199999,
+          max_lat: 10,
+          max_lon: 106.2,
+        },
+        maneuvers: [
+          {
+            type: 8,
+            instruction: 'Đi tiếp.',
+            time: 1,
+            length: 0.001,
+            begin_shape_index: 0,
+            end_shape_index: 1,
+          },
+        ],
+      },
+    ];
+    const merged = mergeLegShapes(legs);
+
+    expect(merged.coords).toHaveLength(200_001);
+    expect(merged.coords[0]).toEqual([106, 10]);
+    expect(merged.coords[199_999]).toEqual([106.199999, 10]);
+    expect(merged.coords[200_000]).toEqual([106.2, 10]);
+    expect(merged.offsets).toEqual([0, 199_999]);
+
+    const trip: ValhallaTrip = {
+      legs,
+      locations: [],
+      summary: {
+        time: 2,
+        length: 200.001,
+        min_lat: 10,
+        min_lon: 106,
+        max_lat: 10,
+        max_lon: 106.2,
+      },
+    };
+    const route = translateTrip(trip, 'car', merged);
+    expect(route.legs[1]).toMatchObject({ shape_offset: 199_999 });
+    expect(route.legs[1]?.steps[0]).toMatchObject({
+      shape_begin: 199_999,
+      shape_end: 200_000,
+      location: [106.199999, 10],
+    });
   });
 });
 

@@ -36,7 +36,10 @@ export function mergeLegShapes(legs: readonly ValhallaLeg[]): MergedShape {
     const points = decodePolyline6(leg.shape);
     const drop = coords.length > 0 && points.length > 0 ? 1 : 0;
     offsets.push(coords.length - drop);
-    coords.push(...points.slice(drop));
+    for (let i = drop; i < points.length; i++) {
+      const point = points[i];
+      if (point) coords.push(point);
+    }
   }
   return { coords, offsets };
 }
