@@ -11,6 +11,18 @@ const HCM = { lat: 10.7769, lng: 106.7009 };
 const HN = { lat: 21.0285, lng: 105.8542 };
 const base = { from: '10.7798,106.6990', to: '10.7725,106.6980' };
 
+function expectInvalidRequest(action: () => unknown, message?: RegExp): void {
+  try {
+    action();
+    throw new Error('phải ném');
+  } catch (error) {
+    expect(error).toBeInstanceOf(ApiError);
+    expect((error as ApiError).status).toBe(400);
+    expect((error as ApiError).code).toBe('invalid_request');
+    if (message) expect((error as ApiError).message).toMatch(message);
+  }
+}
+
 describe('routing params', () => {
   it('haversine HCM→HN ≈ 1.137 km', () => {
     const d = haversineM(HCM, HN);
@@ -35,7 +47,12 @@ describe('routing params', () => {
     const p = parseDirectionsParams({ ...base, via: '10.776,106.698;10.775,106.699' });
     expect(p.locations.map((l) => l.lat)).toEqual([10.7798, 10.776, 10.775, 10.7725]);
     const six = Array.from({ length: 6 }, (_, i) => `10.77${i},106.69`).join(';');
-    expect(() => parseDirectionsParams({ ...base, via: six })).toThrowError(ApiError);
+    expectInvalidRequest(() => parseDirectionsParams({ ...base, via: six }), /tối đa 5 điểm/);
+    const sixMalformed = Array.from({ length: 6 }, () => 'not-a-coordinate').join(';');
+    expectInvalidRequest(
+      () => parseDirectionsParams({ ...base, via: sixMalformed }),
+      /tối đa 5 điểm/,
+    );
   });
 
   it('thiếu from/to, mode/lang/alternatives lạ → 400 invalid_request', () => {
@@ -60,14 +77,16 @@ describe('routing params', () => {
   });
 
   it('điểm ngoài hộp Việt Nam → 400 có chữ "Việt Nam"', () => {
-    expect(() => parseDirectionsParams({ from: base.from, to: '13.75,100.50' })).toThrowError(
+    expectInvalidRequest(
+      () => parseDirectionsParams({ from: base.from, to: '13.75,100.50' }),
       /Việt Nam/,
     );
   });
 
   it('vượt giới hạn đường chim bay theo mode → 400 nêu giới hạn', () => {
     const canTho = '10.0341,105.7841';
-    expect(() => parseDirectionsParams({ from: base.from, to: canTho, mode: 'walk' })).toThrowError(
+    expectInvalidRequest(
+      () => parseDirectionsParams({ from: base.from, to: canTho, mode: 'walk' }),
       /50 km/,
     );
     expect(parseDirectionsParams({ from: base.from, to: canTho, mode: 'car' }).mode).toBe('car');
