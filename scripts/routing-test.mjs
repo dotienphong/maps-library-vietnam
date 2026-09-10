@@ -10,7 +10,16 @@ import { spawn, spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { copyFileSync, existsSync, mkdirSync, rmSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
-import { TEST_KEY, parseRoutingTestArgs, testAuthInfo, waitForOk } from './lib/routing-test.mjs';
+import {
+  TEST_KEY,
+  assertPortAvailable,
+  createProcessStopper,
+  createRoutingCleanup,
+  parseRoutingTestArgs,
+  testAuthInfo,
+  waitForOk,
+  waitForProcessOk,
+} from './lib/routing-test.mjs';
 import { run } from './lib/run.mjs';
 
 const opts = parseRoutingTestArgs(process.argv.slice(2), process.env);
@@ -27,98 +36,115 @@ const compose = [
 ];
 const log = (/** @type {string} */ message) => console.log(`[routing-test] ${message}`);
 
-if (opts.compose) {
-  mkdirSync(DEV_DIR, { recursive: true });
-  if (!existsSync(resolve(DEV_DIR, 'valhalla_tiles.tar'))) {
-    copyFileSync(FIXTURE_PBF, resolve(DEV_DIR, 'q1.osm.pbf'));
-    log(`chép fixture Quận 1 vào ${DEV_DIR} — lần đầu Valhalla build graph vài phút`);
-  }
-  run('docker', [...compose, 'up', '-d', 'valhalla'], {
-    env: { ...process.env, MAPSLIBVN_VALHALLA_DEV: DEV_DIR },
-  });
-}
-await waitForOk(`${opts.valhallaBase}/status`, 15 * 60_000, {
-  onTick: (ms) => log(`chờ Valhalla /status… ${Math.round(ms / 1000)}s`),
-});
-log(`Valhalla sẵn sàng tại ${opts.valhallaBase}`);
-
-if (opts.capture) {
-  const body = {
-    locations: [
-      { lat: 10.7798, lon: 106.699, type: 'break' },
-      { lat: 10.7725, lon: 106.698, type: 'break' },
-    ],
-    costing: 'motor_scooter',
-    directions_options: { language: 'vi-VN', units: 'kilometers' },
-    id: 'capture-q1-motorbike',
-  };
-  const response = await fetch(`${opts.valhallaBase}/route`, {
-    method: 'POST',
-    headers: { 'content-type': 'application/json' },
-    body: JSON.stringify(body),
-  });
-  if (!response.ok) throw new Error(`capture: Valhalla trả ${response.status}`);
-  const target = resolve('apps/api/test/fixtures/valhalla/q1-motorbike.json');
-  writeFileSync(target, `${JSON.stringify(await response.json(), null, 2)}\n`);
-  log(`đã ghi ${target}`);
-}
-
-// wrangler.toml khai báo [assets] trỏ apps/admin/dist — thiếu thì wrangler dev không lên.
-if (!existsSync('apps/admin/dist/admin/index.html')) {
-  run('pnpm', ['--filter', '@mapslibvn/admin', 'build']);
-}
-// Cache local của wrangler sống qua nhiều phiên (bài học api-db-test 07/09/2026): xoá để tuyến không
-// bị trả từ bản cache của lần chạy trước.
-rmSync('apps/api/.wrangler/state/v3/cache', { recursive: true, force: true });
-const keyHash = createHash('sha256').update(TEST_KEY, 'utf8').digest('hex');
-run('pnpm', [
-  '--filter',
-  '@mapslibvn/api',
-  'exec',
-  'wrangler',
-  'kv',
-  'key',
-  'put',
-  `apikey:${keyHash}`,
-  JSON.stringify(testAuthInfo(keyHash)),
-  '--binding',
-  'META',
-  '--local',
-]);
-
 const detached = process.platform !== 'win32';
-const wrangler = spawn(
-  'pnpm',
-  [
+let valhallaStarted = false;
+let stopWrangler = async () => {};
+const cleanup = createRoutingCleanup({
+  stopWrangler: () => stopWrangler(),
+  stopValhalla: async () => {
+    if (valhallaStarted && opts.compose && opts.down) {
+      run('docker', [...compose, 'stop', 'valhalla']);
+    }
+  },
+});
+let terminating = false;
+const terminate = (/** @type {number} */ status) => {
+  if (terminating) return;
+  terminating = true;
+  void cleanup()
+    .catch(/** @param {unknown} error */ (error) => console.error(error))
+    .finally(() => process.exit(status));
+};
+process.once('SIGINT', () => terminate(130));
+process.once('SIGTERM', () => terminate(143));
+
+let status = 1;
+try {
+  if (opts.compose) {
+    mkdirSync(DEV_DIR, { recursive: true });
+    if (!existsSync(resolve(DEV_DIR, 'valhalla_tiles.tar'))) {
+      copyFileSync(FIXTURE_PBF, resolve(DEV_DIR, 'q1.osm.pbf'));
+      log(`chép fixture Quận 1 vào ${DEV_DIR} — lần đầu Valhalla build graph vài phút`);
+    }
+    run('docker', [...compose, 'up', '-d', 'valhalla'], {
+      env: { ...process.env, MAPSLIBVN_VALHALLA_DEV: DEV_DIR },
+    });
+    valhallaStarted = true;
+  }
+  await waitForOk(`${opts.valhallaBase}/status`, 15 * 60_000, {
+    onTick: (ms) => log(`chờ Valhalla /status… ${Math.round(ms / 1000)}s`),
+  });
+  log(`Valhalla sẵn sàng tại ${opts.valhallaBase}`);
+
+  if (opts.capture) {
+    const body = {
+      locations: [
+        { lat: 10.7798, lon: 106.699, type: 'break' },
+        { lat: 10.7725, lon: 106.698, type: 'break' },
+      ],
+      costing: 'motor_scooter',
+      directions_options: { language: 'vi-VN', units: 'kilometers' },
+      id: 'capture-q1-motorbike',
+    };
+    const response = await fetch(`${opts.valhallaBase}/route`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+    if (!response.ok) throw new Error(`capture: Valhalla trả ${response.status}`);
+    const target = resolve('apps/api/test/fixtures/valhalla/q1-motorbike.json');
+    writeFileSync(target, `${JSON.stringify(await response.json(), null, 2)}\n`);
+    log(`đã ghi ${target}`);
+  }
+
+  // wrangler.toml khai báo [assets] trỏ apps/admin/dist — thiếu thì wrangler dev không lên.
+  if (!existsSync('apps/admin/dist/admin/index.html')) {
+    run('pnpm', ['--filter', '@mapslibvn/admin', 'build']);
+  }
+  // Cache local của wrangler sống qua nhiều phiên (bài học api-db-test 07/09/2026): xoá để tuyến không
+  // bị trả từ bản cache của lần chạy trước.
+  rmSync('apps/api/.wrangler/state/v3/cache', { recursive: true, force: true });
+  const keyHash = createHash('sha256').update(TEST_KEY, 'utf8').digest('hex');
+  run('pnpm', [
     '--filter',
     '@mapslibvn/api',
     'exec',
     'wrangler',
-    'dev',
-    '--port',
-    String(opts.apiPort),
-    '--var',
-    `ROUTING_BASE:${opts.valhallaBase}`,
-  ],
-  { stdio: 'inherit', detached },
-);
-const stopWrangler = () => {
-  try {
-    if (detached && wrangler.pid) process.kill(-wrangler.pid, 'SIGTERM');
-    else wrangler.kill('SIGTERM');
-  } catch (error) {
-    if (!(error instanceof Error) || !('code' in error) || error.code !== 'ESRCH') throw error;
-  }
-};
-process.once('exit', stopWrangler);
-process.once('SIGINT', () => {
-  stopWrangler();
-  process.exit(130);
-});
+    'kv',
+    'key',
+    'put',
+    `apikey:${keyHash}`,
+    JSON.stringify(testAuthInfo(keyHash)),
+    '--binding',
+    'META',
+    '--local',
+  ]);
 
-let status = 1;
-try {
-  await waitForOk(`http://127.0.0.1:${opts.apiPort}/healthz`, 90_000, { intervalMs: 1_000 });
+  await assertPortAvailable(opts.apiPort);
+  const wrangler = spawn(
+    'pnpm',
+    [
+      '--filter',
+      '@mapslibvn/api',
+      'exec',
+      'wrangler',
+      'dev',
+      '--port',
+      String(opts.apiPort),
+      '--var',
+      `ROUTING_BASE:${opts.valhallaBase}`,
+    ],
+    { stdio: 'inherit', detached },
+  );
+  stopWrangler = createProcessStopper(wrangler);
+  /** @type {Error | undefined} */
+  let spawnError;
+  wrangler.once('error', (/** @type {Error} */ error) => {
+    spawnError = error;
+  });
+  await waitForProcessOk(`http://127.0.0.1:${opts.apiPort}/healthz`, wrangler, 90_000, {
+    getError: () => spawnError,
+  });
   const result = spawnSync(
     'pnpm',
     ['exec', 'vitest', 'run', '--config', 'apps/api/vitest.routing.config.ts'],
@@ -133,7 +159,6 @@ try {
   );
   status = result.status ?? 1;
 } finally {
-  stopWrangler();
-  if (opts.compose && opts.down) run('docker', [...compose, 'stop', 'valhalla']);
+  await cleanup();
 }
-process.exit(status);
+process.exitCode = status;

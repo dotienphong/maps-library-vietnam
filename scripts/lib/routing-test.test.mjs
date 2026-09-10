@@ -1,5 +1,14 @@
+import { EventEmitter } from 'node:events';
 import { describe, expect, it } from 'vitest';
-import { TEST_KEY, parseRoutingTestArgs, testAuthInfo } from './routing-test.mjs';
+import {
+  TEST_KEY,
+  assertPortAvailable,
+  createProcessStopper,
+  createRoutingCleanup,
+  parseRoutingTestArgs,
+  testAuthInfo,
+  waitForProcessOk,
+} from './routing-test.mjs';
 
 describe('parseRoutingTestArgs', () => {
   it('mặc định máy dev: dựng compose, valhalla 8002, api 8798', () => {
@@ -45,5 +54,86 @@ describe('testAuthInfo', () => {
       quotaPlacesPerDay: null,
       quotaDirectionsPerDay: null,
     });
+  });
+});
+
+describe('routing harness lifecycle', () => {
+  it('chặn cổng API đã có tiến trình lắng nghe trước khi spawn Wrangler', async () => {
+    /** @type {(error: { code: string }) => void} */
+    let onError = () => {
+      throw new Error('server không đăng ký error handler');
+    };
+    /** @type {any} */
+    const server = {
+      once(/** @type {string} */ event, /** @type {any} */ callback) {
+        if (event === 'error') onError = callback;
+        return this;
+      },
+      listen() {
+        queueMicrotask(() => onError({ code: 'EADDRINUSE' }));
+        return this;
+      },
+    };
+
+    const createServerImpl = /** @type {typeof import('node:net').createServer} */ (
+      /** @type {unknown} */ (() => server)
+    );
+    await expect(assertPortAvailable(8798, { createServerImpl })).rejects.toThrow(
+      /8798.*đang được dùng/,
+    );
+  });
+
+  it('dừng đúng cây tiến trình Windows một lần và chờ child đóng', async () => {
+    /** @type {any} */
+    const child = new EventEmitter();
+    child.pid = 4321;
+    child.exitCode = null;
+    /** @type {[string, string[]][]} */
+    const calls = [];
+    const stop = createProcessStopper(child, {
+      platform: 'win32',
+      spawnSyncImpl: (command, args) => {
+        calls.push([command, args]);
+        queueMicrotask(() => {
+          child.exitCode = 0;
+          child.emit('close');
+        });
+        return { status: 0 };
+      },
+    });
+
+    await stop();
+    await stop();
+
+    expect(calls).toEqual([['taskkill', ['/PID', '4321', '/T', '/F']]]);
+  });
+
+  it('không chấp nhận healthz của tiến trình cũ khi Wrangler vừa thoát', async () => {
+    const child = { exitCode: 1 };
+    const fetchImpl = async () => {
+      throw new Error('không được fetch healthz khi child đã thoát');
+    };
+
+    await expect(
+      waitForProcessOk('http://127.0.0.1:8798/healthz', child, 10, { fetchImpl }),
+    ).rejects.toThrow(/wrangler dev thoát sớm/);
+  });
+
+  it('cleanup ngoài cùng chỉ dừng Wrangler và Valhalla một lần sau lỗi sớm', async () => {
+    let wranglerStops = 0;
+    let valhallaStops = 0;
+    const cleanup = createRoutingCleanup({
+      stopWrangler: async () => {
+        wranglerStops += 1;
+      },
+      stopValhalla: async () => {
+        valhallaStops += 1;
+      },
+    });
+
+    await Promise.all([cleanup(), cleanup()]);
+
+    expect(wranglerStops).toBe(1);
+    expect(valhallaStops).toBe(1);
   });
 });
