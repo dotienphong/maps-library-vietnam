@@ -8,12 +8,15 @@ import {
 import type {
   AutocompleteItem,
   AutocompleteType,
+  DirectionsLang,
+  DirectionsResponse,
   GeocodeItem,
   Place,
   PlaceDetails,
   ReverseResponse,
   SuggestEditRequest,
   SuggestEditResponse,
+  TravelMode,
 } from './types';
 
 export type Theme = 'light' | 'dark';
@@ -42,6 +45,22 @@ export interface AttributionResponse {
   html: string;
   links: { text: string; href: string; license?: string }[];
 }
+
+export interface DirectionsOptions {
+  /** [lat, lng] — vĩ độ trước, cùng quy ước với `near`. */
+  from: [number, number];
+  to: [number, number];
+  /** Tối đa 5 điểm dừng, mỗi điểm [lat, lng]. */
+  via?: [number, number][];
+  /** Mặc định máy chủ: `motorbike`. */
+  mode?: TravelMode;
+  /** Mặc định máy chủ: `vi`. */
+  lang?: DirectionsLang;
+  /** Xin thêm một tuyến thay thế (bị bỏ qua khi có `via`). */
+  alternatives?: boolean;
+}
+
+const latLng = ([lat, lng]: readonly [number, number]): string => `${lat},${lng}`;
 
 interface ErrorBody {
   error?: { code?: string; message?: string; request_id?: string };
@@ -163,6 +182,16 @@ export function createClient(options: ClientOptions) {
       }),
     reverse: (lat: number, lng: number) =>
       get<ReverseResponse>('/v1/reverse', { lat, lng, sources }),
+    /** Chỉ đường (spec dẫn đường A). Response dùng [lng, lat]; tham số vào dùng [lat, lng]. */
+    directions: (opts: DirectionsOptions) =>
+      get<DirectionsResponse>('/v1/directions', {
+        from: latLng(opts.from),
+        to: latLng(opts.to),
+        via: opts.via && opts.via.length > 0 ? opts.via.map(latLng).join(';') : undefined,
+        mode: opts.mode,
+        lang: opts.lang,
+        alternatives: opts.alternatives === undefined ? undefined : opts.alternatives ? 1 : 0,
+      }),
     /** Gửi đóng góp/sửa POI (spec 6.1). Khoá phải có scope edits:write. */
     suggestEdit: (edit: SuggestEditRequest) => post<SuggestEditResponse>('/v1/edits', edit),
   };

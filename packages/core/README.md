@@ -27,7 +27,7 @@ const { items } = await places.autocomplete('cho ben thanh', {
 });
 ```
 
-API gồm autocomplete, search, nearby, geocode, reverse geocode, chi tiết địa điểm, style URL và
+API gồm autocomplete, search, nearby, geocode, reverse geocode, chi tiết địa điểm, chỉ đường (directions), style URL và
 gửi đề xuất chỉnh sửa. Không đưa khóa bí mật vào mã nguồn hoặc commit; khóa trình duyệt phải giới
 hạn đúng origin.
 
