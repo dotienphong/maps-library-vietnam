@@ -5,6 +5,29 @@ commit với code).
 
 ## 1. Trạng thái hiện tại
 
+- **10/09/2026 — Sửa `/react-demo/` trên production: bản đồ trống vì worker MapLibre 404.** PHONG báo
+  trang chỉ hiện nền trắng. Đo trên production: HTML, `_astro/ReactDemo.*.js`, `client.*.js`, CSS, style
+  JSON, sprite và pmtiles đều 200/206 — chỉ `/_astro/maplibre-gl-worker.mjs` trả **404 →
+  `net::ERR_FAILED` → 0 worker sống**, nên maplibre không parse được vector tile và canvas trống trơn
+  (header với ô tìm kiếm vẫn render, vì vậy nhìn cả trang gần như trắng). Nguyên nhân gốc: MapLibre 6
+  chạy worker ESM riêng và tự suy URL lúc chạy bằng `new URL('./maplibre-gl-worker.mjs',
+  import.meta.url)`; Vite gộp maplibre vào chunk trong `_astro/` nhưng không phát ra worker cạnh đó.
+  Sửa: `apps/docs/astro.config.mjs` thêm integration `copyMaplibreWorker()` copy
+  `maplibre-gl-worker.mjs` + `maplibre-gl-shared.mjs` (worker `import` shared) vào `_astro/` ở hook
+  `astro:build:done` — cùng khuôn mẫu plugin `closeBundle` mà `packages/web/vite.umd.config.ts` đã dùng
+  cho bundle UMD, đó cũng là lý do `/playground.html` không bị lỗi này. **Hai bài học:** (1) `astro dev`
+  luôn xanh vì Vite phục vụ maplibre từ `node_modules` nên worker nằm ngay cạnh — chỉ bản build mới
+  hỏng, lại thêm một ca "đo ở dev rồi kết luận là sai"; (2) `e2e/docs.spec.ts` chỉ kiểm status 200, `h1`
+  và link `<a href>` nên **không thể** thấy asset do JS tải lúc chạy. Test hồi quy mới
+  `apps/docs/e2e/react-demo-worker.spec.ts` (2 test kiểm hai file có mặt + 1 test bắt response worker
+  khi mở trang) đo được 9/9 đỏ khi thiếu file và 9/9 xanh sau khi sửa. Lưu ý khi viết loại test này:
+  phải `waitForResponse` **trước** `goto`, vì `canvas` hiện xong trước khi response worker về —
+  bắt bằng `page.on` là đua tiến trình và đỏ ngẫu nhiên. Gate: `astro check` 0 lỗi, biome sạch, full
+  E2E 30 xanh/3 đỏ Playground autocomplete (đỏ sẵn trên code gốc, đã `git stash` đối chiếu — chính là
+  3 ca 401 fixture local đã ghi ở mục dưới). **Còn hở:** `@mapslibvn/react` để `maplibre-gl` là
+  peer/external nên người dùng npm bundle bằng Vite/webpack đụng đúng bẫy này; `cai-dat.mdx` mới chỉ
+  hướng dẫn cho đường tự host bundle UMD.
+
 - **10/09/2026 — Dẫn đường (routing) spec A: đã brainstorm, viết spec + plan, review bảo mật; CHƯA thực thi
   task nào, CHƯA push.** Hướng PHONG chốt: Valhalla tự host trên máy chủ nội bộ (không phải engine JS trên
   client), xe máy/ô tô/đi bộ, chỉ endpoint `GET /v1/directions`, một container tự build graph. Spec
