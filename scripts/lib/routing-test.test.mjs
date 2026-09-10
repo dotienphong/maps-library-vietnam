@@ -6,6 +6,7 @@ import {
   createProcessStopper,
   createRoutingCleanup,
   parseRoutingTestArgs,
+  shouldStopAttemptedValhalla,
   testAuthInfo,
   waitForProcessOk,
 } from './routing-test.mjs';
@@ -108,6 +109,25 @@ describe('routing harness lifecycle', () => {
     expect(calls).toEqual([['taskkill', ['/PID', '4321', '/T', '/F']]]);
   });
 
+  it('không bỏ lỡ close khi taskkill báo nonzero sau khi child vừa thoát', async () => {
+    /** @type {any} */
+    const child = new EventEmitter();
+    child.pid = 9876;
+    child.exitCode = null;
+    const stop = createProcessStopper(child, {
+      platform: 'win32',
+      spawnSyncImpl: () => {
+        queueMicrotask(() => {
+          child.exitCode = 0;
+          child.emit('close');
+        });
+        return { status: 1 };
+      },
+    });
+
+    await expect(stop()).resolves.toBeUndefined();
+  });
+
   it('không chấp nhận healthz của tiến trình cũ khi Wrangler vừa thoát', async () => {
     const child = { exitCode: 1 };
     const fetchImpl = async () => {
@@ -115,8 +135,75 @@ describe('routing harness lifecycle', () => {
     };
 
     await expect(
-      waitForProcessOk('http://127.0.0.1:8798/healthz', child, 10, { fetchImpl }),
+      waitForProcessOk('http://127.0.0.1:8798/healthz', child, 10, {
+        expectedEnvironment: 'routing-test-current',
+        fetchImpl,
+      }),
     ).rejects.toThrow(/wrangler dev thoát sớm/);
+  });
+
+  it('bỏ qua healthz 2xx cũ có environment khác rồi báo child đã thoát', async () => {
+    /** @type {{ exitCode: number | null }} */
+    const child = { exitCode: null };
+    const fetchImpl = /** @type {typeof fetch} */ (
+      async () => {
+        child.exitCode = 1;
+        return /** @type {Response} */ (
+          /** @type {unknown} */ ({
+            ok: true,
+            json: async () => ({ ok: true, environment: 'routing-test-stale' }),
+          })
+        );
+      }
+    );
+
+    await expect(
+      waitForProcessOk('http://127.0.0.1:8798/healthz', child, 10, {
+        expectedEnvironment: 'routing-test-current',
+        fetchImpl,
+        intervalMs: 0,
+      }),
+    ).rejects.toThrow(/wrangler dev thoát sớm/);
+  });
+
+  it('không coi healthz 2xx environment cũ là ready khi child vẫn sống', async () => {
+    /** @type {{ exitCode: number | null }} */
+    const child = { exitCode: null };
+
+    await expect(
+      waitForProcessOk('http://127.0.0.1:8798/healthz', child, 0, {
+        expectedEnvironment: 'routing-test-current',
+        fetchImpl: /** @type {typeof fetch} */ (
+          async () =>
+            /** @type {Response} */ (
+              /** @type {unknown} */ ({
+                ok: true,
+                json: async () => ({ ok: true, environment: 'routing-test-stale' }),
+              })
+            )
+        ),
+        intervalMs: 0,
+      }),
+    ).rejects.toThrow(/không lên/);
+  });
+
+  it('chỉ sẵn sàng khi healthz trả environment của chính run này', async () => {
+    /** @type {{ exitCode: number | null }} */
+    const child = { exitCode: null };
+    await expect(
+      waitForProcessOk('http://127.0.0.1:8798/healthz', child, 10, {
+        expectedEnvironment: 'routing-test-current',
+        fetchImpl: /** @type {typeof fetch} */ (
+          async () =>
+            /** @type {Response} */ (
+              /** @type {unknown} */ ({
+                ok: true,
+                json: async () => ({ ok: true, environment: 'routing-test-current' }),
+              })
+            )
+        ),
+      }),
+    ).resolves.toBeUndefined();
   });
 
   it('cleanup ngoài cùng chỉ dừng Wrangler và Valhalla một lần sau lỗi sớm', async () => {
@@ -135,5 +222,11 @@ describe('routing harness lifecycle', () => {
 
     expect(wranglerStops).toBe(1);
     expect(valhallaStops).toBe(1);
+  });
+
+  it('dừng Valhalla khi --down đã thử compose start, kể cả up thất bại một phần', () => {
+    expect(shouldStopAttemptedValhalla({ compose: true, down: true }, true)).toBe(true);
+    expect(shouldStopAttemptedValhalla({ compose: true, down: true }, false)).toBe(false);
+    expect(shouldStopAttemptedValhalla({ compose: false, down: true }, true)).toBe(false);
   });
 });

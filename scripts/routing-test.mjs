@@ -7,7 +7,7 @@
 //   node scripts/routing-test.mjs --capture        ghi JSON Valhalla thô → apps/api/test/fixtures/valhalla/q1-motorbike.json
 import 'dotenv/config';
 import { spawn, spawnSync } from 'node:child_process';
-import { createHash } from 'node:crypto';
+import { createHash, randomUUID } from 'node:crypto';
 import { copyFileSync, existsSync, mkdirSync, rmSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import {
@@ -16,6 +16,7 @@ import {
   createProcessStopper,
   createRoutingCleanup,
   parseRoutingTestArgs,
+  shouldStopAttemptedValhalla,
   testAuthInfo,
   waitForOk,
   waitForProcessOk,
@@ -35,14 +36,15 @@ const compose = [
   'routing',
 ];
 const log = (/** @type {string} */ message) => console.log(`[routing-test] ${message}`);
+const runEnvironment = `routing-test-${randomUUID()}`;
 
 const detached = process.platform !== 'win32';
-let valhallaStarted = false;
+let valhallaStartAttempted = false;
 let stopWrangler = async () => {};
 const cleanup = createRoutingCleanup({
   stopWrangler: () => stopWrangler(),
   stopValhalla: async () => {
-    if (valhallaStarted && opts.compose && opts.down) {
+    if (shouldStopAttemptedValhalla(opts, valhallaStartAttempted)) {
       run('docker', [...compose, 'stop', 'valhalla']);
     }
   },
@@ -59,6 +61,10 @@ process.once('SIGINT', () => terminate(130));
 process.once('SIGTERM', () => terminate(143));
 
 let status = 1;
+/** @type {unknown} */
+let runError;
+/** @type {unknown} */
+let cleanupFailure;
 try {
   if (opts.compose) {
     mkdirSync(DEV_DIR, { recursive: true });
@@ -66,10 +72,10 @@ try {
       copyFileSync(FIXTURE_PBF, resolve(DEV_DIR, 'q1.osm.pbf'));
       log(`chép fixture Quận 1 vào ${DEV_DIR} — lần đầu Valhalla build graph vài phút`);
     }
+    valhallaStartAttempted = true;
     run('docker', [...compose, 'up', '-d', 'valhalla'], {
       env: { ...process.env, MAPSLIBVN_VALHALLA_DEV: DEV_DIR },
     });
-    valhallaStarted = true;
   }
   await waitForOk(`${opts.valhallaBase}/status`, 15 * 60_000, {
     onTick: (ms) => log(`chờ Valhalla /status… ${Math.round(ms / 1000)}s`),
@@ -133,6 +139,8 @@ try {
       String(opts.apiPort),
       '--var',
       `ROUTING_BASE:${opts.valhallaBase}`,
+      '--var',
+      `ENVIRONMENT:${runEnvironment}`,
     ],
     { stdio: 'inherit', detached },
   );
@@ -143,6 +151,7 @@ try {
     spawnError = error;
   });
   await waitForProcessOk(`http://127.0.0.1:${opts.apiPort}/healthz`, wrangler, 90_000, {
+    expectedEnvironment: runEnvironment,
     getError: () => spawnError,
   });
   const result = spawnSync(
@@ -158,7 +167,16 @@ try {
     },
   );
   status = result.status ?? 1;
+} catch (error) {
+  runError = error;
+  throw error;
 } finally {
-  await cleanup();
+  try {
+    await cleanup();
+  } catch (cleanupError) {
+    if (runError) console.error('routing cleanup failed after test failure', cleanupError);
+    else cleanupFailure = cleanupError;
+  }
 }
+if (cleanupFailure) throw cleanupFailure;
 process.exitCode = status;

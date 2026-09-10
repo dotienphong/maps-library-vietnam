@@ -110,9 +110,9 @@ function assertProcessRunning(child) {
  * @param {string} url
  * @param {{ exitCode: number | null }} child
  * @param {number} timeoutMs
- * @param {{ fetchImpl?: typeof fetch, intervalMs?: number, getError?: () => Error | undefined }} [options]
+ * @param {{ expectedEnvironment: string, fetchImpl?: typeof fetch, intervalMs?: number, getError?: () => Error | undefined }} options
  */
-export async function waitForProcessOk(url, child, timeoutMs, options = {}) {
+export async function waitForProcessOk(url, child, timeoutMs, options) {
   const fetchImpl = options.fetchImpl ?? fetch;
   const interval = options.intervalMs ?? 1_000;
   const started = Date.now();
@@ -123,10 +123,11 @@ export async function waitForProcessOk(url, child, timeoutMs, options = {}) {
     try {
       const response = await fetchImpl(url, { signal: AbortSignal.timeout(3_000) });
       if (response.ok) {
+        const health = await response.json();
         const afterFetchError = options.getError?.();
         if (afterFetchError) throw afterFetchError;
         assertProcessRunning(child);
-        return;
+        if (health?.environment === options.expectedEnvironment) return;
       }
     } catch {
       const afterFetchError = options.getError?.();
@@ -139,6 +140,65 @@ export async function waitForProcessOk(url, child, timeoutMs, options = {}) {
     }
     await new Promise((resolve) => setTimeout(resolve, interval));
   }
+}
+
+/**
+ * `docker compose up` có thể tạo container rồi mới trả lỗi; khi `--down`, luôn thử stop lại.
+ * @param {{ compose: boolean, down: boolean }} opts
+ * @param {boolean} startAttempted
+ */
+export function shouldStopAttemptedValhalla(opts, startAttempted) {
+  return opts.compose && opts.down && startAttempted;
+}
+
+/** @param {import('node:child_process').ChildProcess} child */
+function observeChildClose(child) {
+  let closed = false;
+  /** @type {(value: void | PromiseLike<void>) => void} */
+  let resolve;
+  /** @type {(reason?: unknown) => void} */
+  let reject;
+  /** @type {Promise<void>} */
+  const completion = new Promise((done, fail) => {
+    resolve = done;
+    reject = fail;
+  });
+  const onClose = () => {
+    closed = true;
+    resolve();
+  };
+  const onError = (/** @type {unknown} */ error) => {
+    closed = true;
+    reject(error);
+  };
+  child.once('close', onClose);
+  child.once('error', onError);
+  return {
+    closed: () => closed,
+    detach: () => {
+      child.removeListener('close', onClose);
+      child.removeListener('error', onError);
+    },
+    wait: async () => {
+      if (closed) return;
+      /** @type {ReturnType<typeof setTimeout> | undefined} */
+      let timeoutId;
+      /** @type {Promise<void>} */
+      const timeout = new Promise((_, timeoutReject) => {
+        timeoutId = setTimeout(
+          () => timeoutReject(new Error('wrangler dev không dừng trong 5 giây')),
+          5_000,
+        );
+      });
+      try {
+        await Promise.race([completion, timeout]);
+      } finally {
+        if (timeoutId) clearTimeout(timeoutId);
+        child.removeListener('close', onClose);
+        child.removeListener('error', onError);
+      }
+    },
+  };
 }
 
 /**
@@ -158,39 +218,40 @@ export function createProcessStopper(child, options = {}) {
     if (stopped) return;
     stopped = true;
     if (child.exitCode !== null) return;
+    const observed = observeChildClose(child);
+    if (child.exitCode !== null) {
+      observed.detach();
+      return;
+    }
+    /** @type {Error | undefined} */
+    let taskkillError;
     try {
       if (platform === 'win32' && child.pid) {
         const result = spawnSyncImpl('taskkill', ['/PID', String(child.pid), '/T', '/F'], {
           stdio: 'ignore',
         });
         if (result.error) throw result.error;
-        if (result.status !== 0) throw new Error(`taskkill thoát mã ${result.status}`);
+        if (result.status !== 0) taskkillError = new Error(`taskkill thoát mã ${result.status}`);
       } else if (child.pid) {
         killProcessGroup(-child.pid, 'SIGTERM');
       } else {
         child.kill('SIGTERM');
       }
     } catch (error) {
-      if (!(error instanceof Error) || !('code' in error) || error.code !== 'ESRCH') throw error;
+      if (!(error instanceof Error) || !('code' in error) || error.code !== 'ESRCH') {
+        observed.detach();
+        throw error;
+      }
     }
-    if (child.exitCode !== null) return;
-    /** @type {Promise<void>} */
-    const closed = new Promise((resolve, reject) => {
-      const timeout = setTimeout(
-        () => reject(new Error('wrangler dev không dừng trong 5 giây')),
-        5_000,
-      );
-      const done = () => {
-        clearTimeout(timeout);
-        resolve();
-      };
-      child.once('close', done);
-      child.once('error', (error) => {
-        clearTimeout(timeout);
-        reject(error);
-      });
-    });
-    await closed;
+    if (child.exitCode !== null || observed.closed()) {
+      observed.detach();
+      return;
+    }
+    if (taskkillError && platform !== 'win32') {
+      observed.detach();
+      throw taskkillError;
+    }
+    await observed.wait();
   };
 }
 
