@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { nextJob, nextRun } from './schedule.mjs';
+import { nextJob, nextRun, waitUntil } from './schedule.mjs';
 
 describe('nextRun (giờ VN, UTC+7)', () => {
   it('hằng ngày 03:00 VN: từ 26/08 01:00 VN → 26/08 03:00 VN', () => {
@@ -45,5 +45,55 @@ describe('nextJob', () => {
 
   it('ném lỗi khi danh sách job rỗng', () => {
     expect(() => nextJob(new Date(), [])).toThrow(/job/);
+  });
+});
+
+describe('waitUntil — chờ theo giờ thật, không tin một setTimeout dài (máy chủ Mac ngủ đêm 09→10/09)', () => {
+  /** Đồng hồ giả: sleep tua đúng số ms và ghi lại các lần gọi. @param {number} start */
+  const clock = (start) => {
+    let now = start;
+    /** @type {number[]} */
+    const calls = [];
+    return {
+      now: () => now,
+      calls,
+      /** @param {number} ms */
+      sleep: async (ms) => {
+        now += ms;
+        calls.push(ms);
+      },
+      /** @param {number} ms */
+      jump: (ms) => {
+        now += ms;
+      },
+    };
+  };
+
+  it('ngủ từng bước ≤ stepMs cho tới khi tới mốc, không ngủ quá mốc', async () => {
+    const c = clock(0);
+    await waitUntil(new Date(150_000), { now: c.now, sleep: c.sleep, stepMs: 60_000 });
+    expect(c.calls).toEqual([60_000, 60_000, 30_000]);
+    expect(c.now()).toBe(150_000);
+  });
+
+  it('đồng hồ nhảy vọt (máy vừa thức) → lần kiểm kế tiếp thấy đã quá mốc và trả về ngay', async () => {
+    const c = clock(0);
+    let jumped = false;
+    /** @param {number} ms */
+    const sleep = async (ms) => {
+      await c.sleep(ms);
+      if (!jumped) {
+        jumped = true;
+        c.jump(8 * 3600_000); // máy ngủ 8 giờ trong lúc "sleep"
+      }
+    };
+    await waitUntil(new Date(3 * 3600_000), { now: c.now, sleep, stepMs: 60_000 });
+    expect(c.calls.length).toBe(1); // một bước ngủ, không chờ hết 3 giờ
+  });
+
+  it('mốc đã qua → không ngủ', async () => {
+    const c = clock(5_000);
+    await waitUntil(new Date(1_000), { now: c.now, sleep: c.sleep });
+    expect(c.calls).toEqual([]);
   });
 });

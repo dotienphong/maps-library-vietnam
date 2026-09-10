@@ -18,8 +18,8 @@ import {
   retentionPlan,
 } from '../../../scripts/lib/backup-plan.mjs';
 import { databaseUrlFromEnv } from '../../../scripts/lib/migrations.mjs';
-import { run, sleep } from '../../../scripts/lib/run.mjs';
-import { nextRun } from '../../../scripts/lib/schedule.mjs';
+import { run } from '../../../scripts/lib/run.mjs';
+import { nextRun, waitUntil } from '../../../scripts/lib/schedule.mjs';
 
 const { bucket, shared } = backupBucket(process.env);
 if (shared) {
@@ -82,7 +82,7 @@ if (mode === '--once') {
   for (;;) {
     const at = nextRun(new Date(), { hour: 3, minute: 0 });
     console.log(`[backup] lần kế tiếp ${at.toISOString()} (03:00 giờ VN)`);
-    await sleep(at.getTime() - Date.now());
+    await waitUntil(at); // kiểm giờ thật mỗi phút — máy ngủ không làm trượt mốc
     try {
       await backupOnce();
     } catch (e) {

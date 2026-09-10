@@ -4,8 +4,8 @@
 //   thứ Hai 08:00  báo cáo tuần   (spec 11.3 — Analytics Engine → email)
 import { existsSync, rmSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
-import { run, sleep } from './lib/run.mjs';
-import { nextJob } from './lib/schedule.mjs';
+import { run } from './lib/run.mjs';
+import { nextJob, waitUntil } from './lib/schedule.mjs';
 
 const work = process.env.MAPSLIBVN_WORK ?? 'work';
 const JOBS = [
@@ -36,7 +36,7 @@ for (;;) {
   const { job, at } = nextJob(new Date(), JOBS);
   const hhmm = `${String(job.schedule.hour).padStart(2, '0')}:${String(job.schedule.minute).padStart(2, '0')}`;
   console.log(`[cron] ${job.name} kế tiếp ${at.toISOString()} (thứ Hai ${hhmm} VN)`);
-  await sleep(at.getTime() - Date.now());
+  await waitUntil(at); // kiểm giờ thật mỗi phút — máy ngủ không làm trượt mốc
   const lock = lockFor(job.name);
   writeFileSync(lock, String(process.pid));
   try {
