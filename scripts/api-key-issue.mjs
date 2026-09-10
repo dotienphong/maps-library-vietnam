@@ -2,6 +2,7 @@
 // Cấp API key ngẫu nhiên cho một tenant đã seed. In key đúng một lần — lưu vào password manager.
 //   pnpm key:issue --tenant 00000000-0000-4000-8000-000000000002 --label "trang nhúng thử" \
 //     --kind web --origins http://localhost:5500 [--scopes places:read]
+//     [--quota-directions 500]   (hạn /v1/directions mỗi ngày; vắng = mặc định plan 2.000)
 // DB: DATABASE_URL hoặc POSTGRES_* (dev). Production: DATABASE_URL trỏ qua Tunnel
 // (xem infra/server/README.md mục Kiểm tra).
 import 'dotenv/config';
@@ -9,7 +10,7 @@ import postgres from 'postgres';
 import { generateKey, hashKey, keyPrefix, parseIssueArgs } from './lib/api-key.mjs';
 import { databaseUrlFromEnv } from './lib/migrations.mjs';
 
-const { tenant, label, kind, origins, scopes } = parseIssueArgs(process.argv.slice(2));
+const { tenant, label, kind, origins, scopes, quotaDirections } = parseIssueArgs(process.argv.slice(2));
 const key = generateKey();
 const sql = postgres(databaseUrlFromEnv(process.env), { max: 1, onnotice: () => {} });
 try {
@@ -21,11 +22,11 @@ try {
   }
   // DB chỉ lưu sha256(khoá) + tiền tố (audit 09/09/2026); khoá gốc in đúng một lần bên dưới.
   await sql`
-    INSERT INTO api_key (key_hash, key_prefix, tenant_id, label, kind, allowed_origins, scopes)
-    VALUES (${hashKey(key)}, ${keyPrefix(key)}, ${tenant}, ${label}, ${kind}, ${origins}, ${scopes})`;
+    INSERT INTO api_key (key_hash, key_prefix, tenant_id, label, kind, allowed_origins, scopes, quota_directions_per_day)
+    VALUES (${hashKey(key)}, ${keyPrefix(key)}, ${tenant}, ${label}, ${kind}, ${origins}, ${scopes}, ${quotaDirections})`;
   console.log(`tenant : ${row.name} (${row.plan})`);
   console.log(
-    `kind   : ${kind}  scopes: ${scopes.join(',')}  origins: ${origins.join(',') || '(không kiểm)'}`,
+    `kind   : ${kind}  scopes: ${scopes.join(',')}  origins: ${origins.join(',') || '(không kiểm)'}  quota directions: ${quotaDirections ?? 'mặc định'}`,
   );
   console.log(`KEY    : ${key}`);
   console.log(`prefix : ${keyPrefix(key)}  (DB không giữ khoá gốc — chỉ sha256 + tiền tố này)`);

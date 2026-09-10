@@ -44,7 +44,7 @@ const isOrigin = (s) => /^https?:\/\/[A-Za-z0-9*.-]+(:\d+)?$/.test(s);
 
 /**
  * @param {string[]} argv
- * @returns {{ tenant: string, label: string, kind: string, origins: string[], scopes: string[] }}
+ * @returns {{ tenant: string, label: string, kind: string, origins: string[], scopes: string[], quotaDirections: number | null }}
  */
 export function parseIssueArgs(argv) {
   /** @type {Record<string, string>} */
@@ -76,5 +76,12 @@ export function parseIssueArgs(argv) {
     .split(',')
     .map((s) => s.trim())
     .filter(Boolean);
-  return { tenant, label: opt.label ?? '', kind, origins, scopes };
+  /** @type {number | null} */
+  let quotaDirections = null;
+  if (opt['quota-directions'] !== undefined) {
+    const n = Number(opt['quota-directions']);
+    if (!Number.isInteger(n) || n <= 0) throw new Error('--quota-directions phải là số nguyên dương');
+    quotaDirections = n;
+  }
+  return { tenant, label: opt.label ?? '', kind, origins, scopes, quotaDirections };
 }

@@ -37,6 +37,7 @@ describe('parseIssueArgs', () => {
       kind: 'web',
       origins: ['https://ungdung.example.vn', 'https://*.ungdung.example.vn'],
       scopes: ['places:read'],
+      quotaDirections: null,
     });
   });
 
@@ -58,7 +59,16 @@ describe('parseIssueArgs', () => {
       kind: 'server',
       origins: [],
       scopes: ['places:read', 'edits:write'],
+      quotaDirections: null,
     });
+  });
+
+  it('--quota-directions là số nguyên dương; vắng → null; sai → lỗi', () => {
+    const base = ['--tenant', 't', '--kind', 'server'];
+    expect(parseIssueArgs(base).quotaDirections).toBeNull();
+    expect(parseIssueArgs([...base, '--quota-directions', '500']).quotaDirections).toBe(500);
+    expect(() => parseIssueArgs([...base, '--quota-directions', 'abc'])).toThrow(/--quota-directions/);
+    expect(() => parseIssueArgs([...base, '--quota-directions', '0'])).toThrow(/--quota-directions/);
   });
 });
 
