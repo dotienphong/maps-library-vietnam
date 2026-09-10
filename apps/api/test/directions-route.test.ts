@@ -16,6 +16,8 @@ const mockStatus = () =>
     .intercept({ path: '/status', method: 'GET' })
     .reply(200, { version: '3.8.3', tileset_last_modified: 1789430400 })
     .persist();
+const mockStatusFailure = () =>
+  origin().intercept({ path: '/status', method: 'GET' }).reply(500, 'down');
 const call = (query: string, key = KEY) =>
   SELF.fetch(`https://api/v1/directions?${query}`, { headers: { 'X-Api-Key': key } });
 const code = async (r: Response) => ((await r.json()) as { error: { code: string } }).error.code;
@@ -29,7 +31,6 @@ beforeAll(() => {
 });
 beforeEach(async () => {
   await seedKey(KEY);
-  mockStatus();
 });
 
 describe('GET /v1/directions', () => {
@@ -41,8 +42,18 @@ describe('GET /v1/directions', () => {
     expect((await call('from=10.77,106.70&to=10.0341,105.7841&mode=walk')).status).toBe(400);
   });
 
+  it('Valhalla route thành công nhưng /status lỗi → 200 với engine.graph null', async () => {
+    mockRoute(200, fixture);
+    mockStatusFailure();
+    const res = await call(q(8));
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as { engine: { name: string; graph: string | null } };
+    expect(body.engine).toEqual({ name: 'valhalla', graph: null });
+  });
+
   it('tuyến hợp lệ → 200 theo schema MapsLibVN, engine.graph từ /status', async () => {
     mockRoute(200, fixture);
+    mockStatus();
     const res = await call(q(1));
     expect(res.status).toBe(200);
     const body = (await res.json()) as {
@@ -72,6 +83,7 @@ describe('GET /v1/directions', () => {
   });
 
   it('Valhalla 400+442 → 404 no_route (không cache); 500 → 503 có retry-after 30', async () => {
+    mockStatus();
     mockRoute(400, { error_code: 442, error: 'No path could be found for input' });
     const notFound = await call(q(3));
     expect(notFound.status).toBe(404);
@@ -88,6 +100,7 @@ describe('GET /v1/directions', () => {
     // cache.put chạy trong waitUntil nên có thể chưa xong khi request đầu trả về: cho phép Valhalla
     // được gọi lại (persist) và chờ tới khi thấy bản cache, tối đa ~1 s.
     mockRoute(200, fixture).persist();
+    mockStatus();
     const first = await call(q(5));
     expect(first.status).toBe(200);
     await first.arrayBuffer();
@@ -111,6 +124,7 @@ describe('GET /v1/directions', () => {
     const hash = await sha256Hex(FREE_KEY);
     await env.META.put(`quota:${hash}:${vnDay()}:places`, '999999');
     mockRoute(200, fixture);
+    mockStatus();
     const allowed = await call(q(6), FREE_KEY);
     expect(allowed.status).toBe(200);
     await allowed.arrayBuffer();
@@ -123,6 +137,7 @@ describe('GET /v1/directions', () => {
 
 describe('GET /healthz/routing', () => {
   it('Valhalla trả lời → ok + graph_built_at ISO; không cần khoá', async () => {
+    mockStatus();
     const res = await SELF.fetch('https://api/healthz/routing');
     expect(res.status).toBe(200);
     expect(await res.json()).toMatchObject({
