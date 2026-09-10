@@ -139,3 +139,94 @@ export interface PoiFeature {
   group: string;
   lngLat: [number, number];
 }
+
+/** Phương tiện cho `GET /v1/directions` (spec dẫn đường A). */
+export type TravelMode = 'motorbike' | 'car' | 'walk';
+export type DirectionsLang = 'vi' | 'en';
+
+/** Loại bước rẽ theo tập cố định của MapsLibVN — không phụ thuộc engine. */
+export type ManeuverKind =
+  | 'depart'
+  | 'arrive'
+  | 'continue'
+  | 'slight_right'
+  | 'slight_left'
+  | 'turn_right'
+  | 'turn_left'
+  | 'sharp_right'
+  | 'sharp_left'
+  | 'uturn_right'
+  | 'uturn_left'
+  | 'ramp_straight'
+  | 'ramp_right'
+  | 'ramp_left'
+  | 'exit_right'
+  | 'exit_left'
+  | 'keep_right'
+  | 'keep_left'
+  | 'merge'
+  | 'merge_right'
+  | 'merge_left'
+  | 'roundabout_enter'
+  | 'roundabout_exit'
+  | 'ferry_enter'
+  | 'ferry_exit'
+  | 'elevator'
+  | 'steps'
+  | 'escalator'
+  | 'building_enter'
+  | 'building_exit'
+  | 'other';
+
+export interface RouteStep {
+  kind: ManeuverKind;
+  instruction: string;
+  verbal_pre: string | null;
+  verbal_post: string | null;
+  street_names: string[];
+  distance_m: number;
+  duration_s: number;
+  /** Chỉ số điểm trong polyline của CẢ tuyến (đã dịch qua các leg). */
+  shape_begin: number;
+  shape_end: number;
+  /** [lng, lat] điểm bắt đầu bước. */
+  location: [number, number];
+  /** Số lối ra khi `kind = roundabout_enter`, còn lại null. */
+  roundabout_exit: number | null;
+}
+
+export interface RouteLeg {
+  distance_m: number;
+  duration_s: number;
+  /** Chỉ số điểm đầu của leg trong polyline tuyến. */
+  shape_offset: number;
+  steps: RouteStep[];
+}
+
+export interface Route {
+  mode: TravelMode;
+  distance_m: number;
+  duration_s: number;
+  /** [minLng, minLat, maxLng, maxLat] */
+  bbox: [number, number, number, number];
+  /** polyline6 của cả tuyến — giải mã bằng `decodePolyline6` → `[lng, lat][]`. */
+  geometry: string;
+  legs: RouteLeg[];
+  flags: { toll: boolean; highway: boolean; ferry: boolean };
+}
+
+export interface Waypoint {
+  /** [lng, lat] điểm người dùng gửi. */
+  location: [number, number];
+  /** [lng, lat] điểm trên tuyến gần nhất (đầu leg tương ứng). */
+  snapped: [number, number];
+  name: string | null;
+}
+
+export interface DirectionsResponse {
+  routes: Route[];
+  waypoints: Waypoint[];
+  attribution: string;
+  /** Thông tin chẩn đoán, không phải hợp đồng ổn định. */
+  engine?: { name: string; graph: string | null };
+}

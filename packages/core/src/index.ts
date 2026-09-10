@@ -12,3 +12,4 @@ export * from './telex';
 export * from './toponym';
 export * from './vi-key';
 export * from './polyline';
+export * from './maneuver';
