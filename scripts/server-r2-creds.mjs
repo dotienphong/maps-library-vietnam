@@ -32,8 +32,7 @@ if (env.RCLONE_CONFIG_R2_ACCESS_KEY_ID === accessKeyId) {
   text = text.replace(
     /^RCLONE_CONFIG_R2_ACCESS_KEY_ID=.*$/m,
     (line) =>
-      '# Khoá S3 suy từ CLOUDFLARE_API_TOKEN (audit 09/09/2026); token S3 cũ giữ dạng comment OLD_ để quay lại nếu cần.\n' +
-      `# OLD_${line}\nRCLONE_CONFIG_R2_ACCESS_KEY_ID=${accessKeyId}`,
+      `# Khoá S3 suy từ CLOUDFLARE_API_TOKEN (audit 09/09/2026); token S3 cũ giữ dạng comment OLD_ để quay lại nếu cần.\n# OLD_${line}\nRCLONE_CONFIG_R2_ACCESS_KEY_ID=${accessKeyId}`,
   );
   text = text.replace(
     /^RCLONE_CONFIG_R2_SECRET_ACCESS_KEY=.*$/m,
