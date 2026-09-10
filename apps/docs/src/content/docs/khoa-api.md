@@ -88,6 +88,19 @@ Bốn điều cần biết:
   **2 lần** hạn mức — để không chặn nhầm vì đếm trễ. Đừng dựa vào đó: hãy coi 20.000 là mức thật.
 - Tenant nội bộ (plan `internal`) không bị quota ngày, kể cả khoá demo; burst limit vẫn áp dụng.
 
+Người vận hành có thể nghiệm thu burst limit bằng một URL autocomplete đã warm cache, không biến
+smoke test thành load test DB lạnh:
+
+```bash
+pnpm smoke:rate-limit --confirm-production
+```
+
+Lệnh tự đọc `KEY_EXAMPLE_EMBED` từ `.env`; có thể override bằng biến môi trường
+`MAPSLIBVN_API_KEY`. Lệnh fail nếu không thấy `429`, nếu có timeout/4xx/5xx bất ngờ, hoặc nếu
+response không đúng `rate_limit_exceeded` + `Retry-After: 60`. Do bộ đếm permissive/bất đồng bộ,
+request 61 có thể còn được cho qua; tiêu chí là quan sát được 429 trong 75 request, không phải dùng
+số thứ tự bị chặn để tính cước.
+
 Vượt hạn mức trả `429 quota_exceeded` kèm header `retry-after: 3600`. Giới hạn đóng góp cũng trả
 `429 quota_exceeded` nhưng theo bộ đếm riêng của `/v1/edits`.
 

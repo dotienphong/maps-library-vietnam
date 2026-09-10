@@ -31,12 +31,15 @@ commit với code).
   10 VU đạt 10/10, p95 5.738 ms;
   25 VU đạt 25/25, p95 5.921 ms; 50 VU chỉ 42/50, p95 chạm timeout 10 giây; không chạy 100 VU.
   Vì vậy chưa được cam kết quá 25 Places request cold đồng thời, và p95 cold vẫn là rủi ro cần tối ưu.
-  **Burst gate chưa đạt:** 75 request có nhịp vẫn không có 429; hạ tạm ngưỡng xuống 1/phút và đổi
-  namespace riêng cũng vẫn trả 400 validation. Tail xác nhận custom domain chạy đúng
-  `mapslibvn-api-production` và actor hash ổn định. Đã bỏ log chẩn đoán, khôi phục 60/phút và giữ
-  namespace riêng `20260910`; chưa được quảng bá native binding này là chống spam đã nghiệm thu.
-  **Bắt đầu tiếp:** thay bằng cơ chế có tính nhất quán mạnh (Durable Object) hoặc Cloudflare WAF
-  rate-limit rule, rồi bắt buộc thấy 429 + `Retry-After: 60` trên production trước khi đóng gate.
+  Lần kiểm tra đầu 75 request có nhịp chưa thấy 429; nguyên nhân thiết kế là Rate Limiting API
+  permissive/eventually consistent, không bảo đảm request thứ 61 bị chặn chính xác. **Burst gate nay
+  ĐẠT production 10/09 10:05 VN:** sau một request warm cache, 75 request tuần tự trả 60×200,
+  15×429, không timeout/4xx/5xx bất ngờ; 429 đầu tiên ở request 61, mọi 429 đều có
+  `rate_limit_exceeded` + `Retry-After: 60`. Root thêm `pnpm smoke:rate-limit` (production bắt buộc
+  `--confirm-production`, tự nạp `.env` và không in khoá) cùng 5 test contract để kiểm lại mà không
+  tạo wave DB lạnh. Native binding được chấp nhận cho chống spam có overshoot nhỏ; quota/tính cước
+  chính xác không được dựa vào nó. Không thêm Durable Object/WAF vì gate hiện đã đạt đúng mục đích.
+  **Bắt đầu tiếp:** disaster-recovery thật trên laptop/VM sạch theo checkpoint mới hơn ở trên.
 
 - **09/09/2026 — Một lệnh phát hành toàn bộ SDK npm.** Root có `pnpm sdk:publish`: chạy lint,
   typecheck, test, build, dry-run đủ bốn package rồi publish tuần tự core → web → react →

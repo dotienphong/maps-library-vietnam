@@ -31,6 +31,7 @@
     "export:odbl": "node scripts/export-odbl.mjs",
     "report:weekly": "node scripts/weekly-report.mjs",
     "load:api": "node scripts/load-api.mjs",
+    "smoke:rate-limit": "node scripts/smoke-rate-limit.mjs",
     "check:git": "node scripts/check-git-identity.mjs",
     "test:db": "node scripts/db-test.mjs",
     "test:api-db": "node scripts/api-db-test.mjs",
