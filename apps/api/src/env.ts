@@ -21,6 +21,20 @@ export interface Env {
   IP_HASH_PEPPER?: string;
   /** '1' = bật bậc 3b gập telex/VNI (spec 5.6). Mặc định TẮT; bật sau khi có số liệu stage_hit. */
   AUTOCOMPLETE_TELEX?: string;
+  /** Gốc Valhalla (spec dẫn đường A): dev `http://127.0.0.1:8002`, production hostname Tunnel. Vắng → 503. */
+  ROUTING_BASE?: string;
+  /** Service token Cloudflare Access cho hostname routing; production đặt bằng `wrangler secret put`. */
+  ROUTING_ACCESS_CLIENT_ID?: string;
+  ROUTING_ACCESS_CLIENT_SECRET?: string;
+  /** Burst riêng cho /v1/directions: 20 request/phút/colo theo khoá+IP (Valhalla đắt hơn Postgres). */
+  DIRECTIONS_RATE_LIMITER?: RateLimit;
+  /**
+   * Trần tổng theo KHOÁ (mọi IP cộng lại) cho khoá web/mobile ở /v1/directions: 100 request/phút/colo.
+   * Khoá web/mobile nằm công khai trong HTML/app (vd khoá demo docs của tenant internal) — không có trần
+   * này thì ai lấy được khoá là dùng Valhalla không giới hạn. Dùng Rate Limiting thay KV vì Workers Free
+   * chỉ cho 1.000 ghi KV/ngày (quyết định PHONG 10/09/2026).
+   */
+  DIRECTIONS_KEY_RATE_LIMITER?: RateLimit;
 }
 
 /** Kiểu Hono chung cho app: Variables.auth do requireAuth() gán, reviewer do requireAccess(). */

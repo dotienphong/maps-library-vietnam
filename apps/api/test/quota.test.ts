@@ -1,6 +1,15 @@
 import { SELF, env } from 'cloudflare:test';
 import { describe, expect, it } from 'vitest';
-import { enforceBurstLimit, rateLimitActor, vnDay } from '../src/quota';
+import {
+  FREE_DIRECTIONS_PER_DAY,
+  FREE_PLACES_PER_DAY,
+  burstLimiterFor,
+  dailyLimit,
+  enforceBurstLimit,
+  keyCapLimiterFor,
+  rateLimitActor,
+  vnDay,
+} from '../src/quota';
 import { seedKey, sha256Hex } from './helpers/seed-key';
 
 const FREE_KEY = 'mlv_live_freetest0000000000000000';
@@ -68,5 +77,50 @@ describe('quota (QUOTA_ENABLED=1 trong vitest.config)', () => {
     expect(first).toBe(same);
     expect(first).not.toBe(otherIp);
     expect(first).not.toContain('203.0.113.8');
+  });
+
+  const base = {
+    keyHash: 'h',
+    keyPrefix: 'mlv_live_x',
+    tenantId: 't',
+    plan: 'free' as const,
+    kind: 'server' as const,
+    scopes: ['places:read'],
+    allowedOrigins: [],
+    quotaPlacesPerDay: null,
+    quotaDirectionsPerDay: null,
+  };
+
+  it('dailyLimit: nhóm directions dùng cột riêng và mặc định 2.000 (spec A mục 5.5)', () => {
+    expect(dailyLimit(base, 'places')).toBe(FREE_PLACES_PER_DAY);
+    expect(dailyLimit({ ...base, quotaPlacesPerDay: 5 }, 'directions')).toBe(
+      FREE_DIRECTIONS_PER_DAY,
+    );
+    expect(
+      dailyLimit({ ...base, quotaPlacesPerDay: 5, quotaDirectionsPerDay: 7 }, 'directions'),
+    ).toBe(7);
+    expect(FREE_DIRECTIONS_PER_DAY).toBe(2_000);
+  });
+
+  it('burst theo khoá+IP: directions có binding riêng; trần theo khoá chỉ áp cho khoá web/mobile ở directions', () => {
+    const places = { limit: async () => ({ success: true }) };
+    const directions = { limit: async () => ({ success: true }) };
+    const cap = { limit: async () => ({ success: true }) };
+    const env = {
+      PLACES_RATE_LIMITER: places,
+      DIRECTIONS_RATE_LIMITER: directions,
+      DIRECTIONS_KEY_RATE_LIMITER: cap,
+    };
+    expect(burstLimiterFor(env, 'places')).toBe(places);
+    expect(burstLimiterFor(env, 'directions')).toBe(directions);
+    expect(burstLimiterFor({ PLACES_RATE_LIMITER: places }, 'directions')).toBeUndefined();
+    expect(keyCapLimiterFor(env, { ...base, kind: 'web' }, 'directions')).toBe(cap);
+    expect(keyCapLimiterFor(env, { ...base, kind: 'mobile', plan: 'internal' }, 'directions')).toBe(
+      cap,
+    );
+    expect(
+      keyCapLimiterFor(env, { ...base, kind: 'server', plan: 'internal' }, 'directions'),
+    ).toBeUndefined();
+    expect(keyCapLimiterFor(env, { ...base, kind: 'web' }, 'places')).toBeUndefined();
   });
 });

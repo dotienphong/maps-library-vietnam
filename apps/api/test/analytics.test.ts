@@ -22,6 +22,7 @@ describe('analyticsMiddleware', () => {
       scopes: ['places:read'],
       allowedOrigins: [],
       quotaPlacesPerDay: 10,
+      quotaDirectionsPerDay: null,
     } as const;
     const context = {
       env: {

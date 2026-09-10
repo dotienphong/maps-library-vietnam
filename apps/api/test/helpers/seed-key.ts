@@ -21,6 +21,7 @@ export async function seedKey(key: string, overrides: Partial<AuthInfo> = {}): P
     scopes: ['places:read'],
     allowedOrigins: [],
     quotaPlacesPerDay: null,
+    quotaDirectionsPerDay: null,
     ...overrides,
   };
   await env.META.put(`apikey:${keyHash}`, JSON.stringify(info));

@@ -19,6 +19,8 @@ export interface AuthInfo {
   scopes: string[];
   allowedOrigins: string[];
   quotaPlacesPerDay: number | null;
+  /** NULL → mặc định plan (FREE_DIRECTIONS_PER_DAY). Cột thêm ở migration 0012. */
+  quotaDirectionsPerDay: number | null;
 }
 
 const KV_TTL_S = 300;
@@ -64,6 +66,32 @@ export function originAllowed(origin: string, allowed: string[]): boolean {
   return false;
 }
 
+interface ApiKeyRow {
+  key_hash: string;
+  key_prefix: string;
+  kind: AuthInfo['kind'];
+  scopes: string[] | string;
+  allowed_origins: string[] | string;
+  quota_places_per_day: number | null;
+  quota_directions_per_day: number | null;
+  tenant_id: string;
+  plan: AuthInfo['plan'];
+}
+
+/**
+ * `quota_directions_per_day` đọc qua `to_jsonb(k) ->> …` thay vì tham chiếu cột: Postgres phân giải
+ * cột lúc parse, nên tham chiếu trực tiếp sẽ làm MỌI request có khoá 503 nếu Worker deploy trước
+ * migration 0012 (sự cố 06–07/09/2026). Cột chưa có → NULL → dùng mặc định plan.
+ */
+export function selectApiKey(sql: ReturnType<typeof getSql>, keyHash: string) {
+  return sql<ApiKeyRow[]>`SELECT k.key_hash, k.key_prefix, k.kind, k.scopes, k.allowed_origins,
+        k.quota_places_per_day,
+        (to_jsonb(k) ->> 'quota_directions_per_day')::int AS quota_directions_per_day,
+        t.id AS tenant_id, t.plan
+      FROM api_key k JOIN tenant t ON t.id = k.tenant_id
+      WHERE k.key_hash = ${keyHash} AND k.active AND k.revoked_at IS NULL`;
+}
+
 async function loadAuth(c: Context<AppEnv>, key: string): Promise<AuthInfo | null> {
   const keyHash = await sha256Hex(key);
   const kvKey = `apikey:${keyHash}`;
@@ -73,25 +101,12 @@ async function loadAuth(c: Context<AppEnv>, key: string): Promise<AuthInfo | nul
       ...cached,
       scopes: normalizeTextArray(cached.scopes as string[] | string),
       allowedOrigins: normalizeTextArray(cached.allowedOrigins as string[] | string),
+      quotaDirectionsPerDay: cached.quotaDirectionsPerDay ?? null,
     };
 
   const sql = getSql(c.env);
   try {
-    const [row] = await sql<
-      {
-        key_hash: string;
-        key_prefix: string;
-        kind: AuthInfo['kind'];
-        scopes: string[] | string;
-        allowed_origins: string[] | string;
-        quota_places_per_day: number | null;
-        tenant_id: string;
-        plan: AuthInfo['plan'];
-      }[]
-    >`SELECT k.key_hash, k.key_prefix, k.kind, k.scopes, k.allowed_origins, k.quota_places_per_day,
-        t.id AS tenant_id, t.plan
-      FROM api_key k JOIN tenant t ON t.id = k.tenant_id
-      WHERE k.key_hash = ${keyHash} AND k.active AND k.revoked_at IS NULL`;
+    const [row] = await selectApiKey(sql, keyHash);
     if (!row) return null;
 
     const info: AuthInfo = {
@@ -103,6 +118,7 @@ async function loadAuth(c: Context<AppEnv>, key: string): Promise<AuthInfo | nul
       scopes: normalizeTextArray(row.scopes),
       allowedOrigins: normalizeTextArray(row.allowed_origins),
       quotaPlacesPerDay: row.quota_places_per_day,
+      quotaDirectionsPerDay: row.quota_directions_per_day,
     };
     c.executionCtx.waitUntil(
       c.env.META.put(kvKey, JSON.stringify(info), { expirationTtl: KV_TTL_S }),

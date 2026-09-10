@@ -29,6 +29,7 @@ describe('auth tra khoá theo sha256 — DB và KV không giữ khoá plaintext 
         scopes: ['edits:write'],
         allowedOrigins: [],
         quotaPlacesPerDay: null,
+        quotaDirectionsPerDay: null,
       }),
     );
     const response = await call({ 'X-Api-Key': other });

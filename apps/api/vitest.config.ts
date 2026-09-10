@@ -11,6 +11,7 @@ export default defineWorkersConfig({
             TILES_BASE: 'https://tiles.test',
             ENVIRONMENT: 'test',
             QUOTA_ENABLED: '1',
+            ROUTING_BASE: 'https://routing.test',
             ACCESS_TEAM_DOMAIN: 'test.cloudflareaccess.com',
             ACCESS_AUD: 'test-aud',
             IP_HASH_PEPPER: 'test-pepper',
@@ -20,7 +21,11 @@ export default defineWorkersConfig({
           hyperdrives: { DB: 'postgres://nobody:nobody@127.0.0.1:59999/nowhere' },
           // Ngưỡng cao để state dùng chung giữa test files không gây 429 chéo; quyết định deny
           // được test riêng bằng fake RateLimit trong quota.test.ts.
-          ratelimits: { PLACES_RATE_LIMITER: { simple: { limit: 10_000, period: 60 } } },
+          ratelimits: {
+            PLACES_RATE_LIMITER: { simple: { limit: 10_000, period: 60 } },
+            DIRECTIONS_RATE_LIMITER: { simple: { limit: 10_000, period: 60 } },
+            DIRECTIONS_KEY_RATE_LIMITER: { simple: { limit: 10_000, period: 60 } },
+          },
         },
       },
     },
