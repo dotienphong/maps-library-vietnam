@@ -90,7 +90,10 @@ describe('mapValhallaError', () => {
       status: 400,
       code: 'invalid_request',
     });
-    expect(mapValhallaError(400, null).message).toContain('400');
+    expect(mapValhallaError(400, null)).toMatchObject({
+      status: 503,
+      code: 'upstream_unavailable',
+    });
     for (const status of [302, 401, 403, 404, 405, 500, 502]) {
       expect(mapValhallaError(status, null)).toMatchObject({
         status: 503,
@@ -108,6 +111,12 @@ describe('callValhalla / fetchValhallaStatus (fetchMock)', () => {
 
     origin.intercept({ path: '/route', method: 'POST' }).reply(400, { error_code: 442 });
     await expect(callValhalla(env, {})).rejects.toMatchObject({ status: 404, code: 'no_route' });
+
+    origin.intercept({ path: '/route', method: 'POST' }).reply(400, '<html>bad request</html>');
+    await expect(callValhalla(env, {})).rejects.toMatchObject({
+      status: 503,
+      code: 'upstream_unavailable',
+    });
 
     origin.intercept({ path: '/route', method: 'POST' }).reply(500, 'boom');
     await expect(callValhalla(env, {})).rejects.toMatchObject({ status: 503 });

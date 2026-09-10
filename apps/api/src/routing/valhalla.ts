@@ -108,6 +108,9 @@ export function routingHeaders(
 
 /** Chỉ HTTP 400 là lỗi đầu vào; Access/engine/lỗi đường dẫn đều là lỗi hạ tầng phía mình. */
 export function mapValhallaError(status: number, body: ValhallaErrorBody | null): ApiError {
+  if (status === 400 && !body) {
+    return new ApiError(503, 'upstream_unavailable', 'Dịch vụ chỉ đường trả dữ liệu không hợp lệ');
+  }
   const errorCode = body?.error_code;
   if (status === 400 && (errorCode === 442 || errorCode === 441)) {
     return new ApiError(404, 'no_route', 'Không tìm được đường giữa các điểm');
