@@ -24,9 +24,30 @@ commit với code).
   phải `waitForResponse` **trước** `goto`, vì `canvas` hiện xong trước khi response worker về —
   bắt bằng `page.on` là đua tiến trình và đỏ ngẫu nhiên. Gate: `astro check` 0 lỗi, biome sạch, full
   E2E 30 xanh/3 đỏ Playground autocomplete (đỏ sẵn trên code gốc, đã `git stash` đối chiếu — chính là
-  3 ca 401 fixture local đã ghi ở mục dưới). **Còn hở:** `@mapslibvn/react` để `maplibre-gl` là
-  peer/external nên người dùng npm bundle bằng Vite/webpack đụng đúng bẫy này; `cai-dat.mdx` mới chỉ
-  hướng dẫn cho đường tự host bundle UMD.
+  3 ca 401 fixture local đã ghi ở mục dưới). **Deploy Docs không chạy được:** GitHub Actions của repo
+  đang bị khoá vì thanh toán (`The job was not started because recent account payments have failed or
+  your spending limit needs to be increased`) — cả CI lẫn Deploy Docs đỏ sau 3–5 giây từ trước commit
+  này, nên bản sửa đã ở `origin/main` mà **chưa lên production**. Việc tay PHONG: xử lý Billing & plans
+  rồi `gh run rerun`, hoặc chạy tay `pnpm --filter @mapslibvn/docs exec wrangler pages deploy dist
+  --project-name mapslibvn-docs` (token có sẵn trong `.env` gốc).
+
+- **10/09/2026 — Ghi tài liệu bẫy worker MapLibre cho người dùng npm + bundler.** Cùng lỗi trên nhưng ở
+  phía khách hàng: `@mapslibvn/react` và bản ESM của `@mapslibvn/web` để `maplibre-gl` là peer/external,
+  nên bundler của người dùng gộp maplibre vào chunk của họ và cũng không phát ra file worker → bản build
+  của họ ra bản đồ trống y hệt. Trước đó `cai-dat.mdx` chỉ nói tới worker ở nhánh tự host bundle UMD.
+  Thêm mục `## 2. Worker của MapLibre khi dùng bundler` (các mục sau dịch số 2→3…5→6; đã kiểm không có
+  chỗ nào link tới anchor cũ của trang này), kèm `Aside` mô tả triệu chứng, công thức copy hai file vào
+  `public/` + `setWorkerUrl`, mẫu `prebuild` để không lệch phiên bản khi nâng `maplibre-gl`; thêm con trỏ
+  trong tab **npm (ESM)** và **React**, một dòng trong bảng "Lỗi hay gặp" của cả `cai-dat.mdx` và
+  `react.md`, và mục `setWorkerUrl` vào phần Cài đặt của `react.md`. **Hai điều đã đo chứ không suy
+  đoán:** (1) thiếu riêng `maplibre-gl-shared.mjs` thì worker vẫn tải 200 rồi chết ngay bằng
+  `net::ERR_ABORTED` và bản đồ vẫn trống — nên tài liệu bắt buộc copy đủ hai file cạnh nhau; (2) công
+  thức `setWorkerUrl` được thử thật trên bundle UMD (cũng là maplibre đã bị gộp) với worker đặt ở thư
+  mục khác: request đi đúng đường mới, cả hai file 200, 1 worker sống, bản đồ vẽ đủ. `maplibre-gl@6` chỉ
+  có `setWorkerUrl`/`getWorkerUrl`, **không** có API truyền lớp Worker, nên phục vụ hai file tĩnh là
+  đường duy nhất chắc chắn đúng với mọi bundler (đừng khuyên dùng `?url` của Vite: nó không xử lý
+  `import './maplibre-gl-shared.mjs'` bên trong worker). Gate: `astro check` 0 lỗi, anchor `#2-worker-…`
+  đối chiếu đúng id trong HTML build, full E2E 30 xanh/3 đỏ Playground như trên.
 
 - **10/09/2026 — Dẫn đường (routing) spec A: đã brainstorm, viết spec + plan, review bảo mật; CHƯA thực thi
   task nào, CHƯA push.** Hướng PHONG chốt: Valhalla tự host trên máy chủ nội bộ (không phải engine JS trên

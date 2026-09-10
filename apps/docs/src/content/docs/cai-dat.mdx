@@ -1,6 +1,6 @@
 ---
 title: Cài đặt
-description: Bốn cách nhúng MapsLibVN — script tag UMD, npm ESM, React, React Native — kèm yêu cầu và cách kiểm tra đã cài đúng.
+description: Bốn cách nhúng MapsLibVN — script tag UMD, npm ESM, React, React Native — kèm bước worker MapLibre cho bundler, yêu cầu và cách kiểm tra đã cài đúng.
 ---
 
 import { Aside, Tabs, TabItem } from '@astrojs/starlight/components';
@@ -92,6 +92,9 @@ Bỏ tham số thứ hai thì `createMap` tìm `globalThis.maplibregl`; không t
 
 Hai khác biệt so với bản UMD: bạn tự import CSS của MapLibre, và bạn tự gọi `defineAutocomplete()`.
 
+Còn một bước **bắt buộc cho bản build**: trỏ worker của MapLibre về thư mục tĩnh của bạn — xem mục 2
+“Worker của MapLibre khi dùng bundler” bên dưới. Bỏ bước này thì bản build ra bản đồ trống.
+
 </TabItem>
 <TabItem label="React">
 
@@ -122,6 +125,9 @@ export function BanDo() {
 }
 ```
 
+Vì gói tự `import 'maplibre-gl'`, bundler của bạn sẽ gộp maplibre vào chunk của ứng dụng — nên vẫn
+cần bước worker ở mục 2 “Worker của MapLibre khi dùng bundler” bên dưới.
+
 Chi tiết props và hook: [React](/react/).
 
 </TabItem>
@@ -145,7 +151,68 @@ Toàn bộ hướng dẫn: [React Native](/react-native/).
 </TabItem>
 </Tabs>
 
-## 2. Yêu cầu
+## 2. Worker của MapLibre khi dùng bundler
+
+Chỉ liên quan tới hai cách nhúng qua bundler (**npm (ESM)** và **React**). Bản UMD `/sdk/` đã kèm sẵn
+hai file worker nên không phải làm gì.
+
+MapLibre 6 chạy **worker ESM riêng** và tự suy URL của nó lúc chạy:
+
+```js
+new URL('./maplibre-gl-worker.mjs', import.meta.url)
+```
+
+`import.meta.url` ở đây là URL của **chunk mà bundler đã gộp maplibre vào**. Vite, webpack, Rollup và
+Parcel đều gộp maplibre vào chunk của bạn nhưng không phát ra hai file worker cạnh chunk đó, nên
+trình duyệt đi xin `maplibre-gl-worker.mjs` trong thư mục chunk và nhận **404**.
+
+<Aside type="caution" title="Triệu chứng rất dễ chẩn đoán sai">
+Bản đồ **trống trơn** trong khi style JSON, sprite và pmtiles đều 200, `<canvas>` vẫn có trong DOM và
+console không có lỗi đỏ nào rõ ràng. Không có worker thì maplibre không parse được vector tile nên
+không vẽ được gì. Mở tab Network tìm `maplibre-gl-worker.mjs`: nếu nó **404**, hoặc 200 rồi
+`net::ERR_ABORTED`, thì đúng lỗi này.
+
+Chỉ **bản build** hỏng. `vite dev` hay `next dev` thường vẫn chạy vì lúc đó maplibre được phục vụ trực
+tiếp từ `node_modules`, worker nằm ngay cạnh nên giải đúng — đừng kết luận từ dev server.
+</Aside>
+
+### Cách xử lý
+
+Copy **cả hai** file vào thư mục tĩnh của ứng dụng, rồi trỏ maplibre vào đó trước khi tạo map:
+
+```bash
+cp node_modules/maplibre-gl/dist/maplibre-gl-worker.mjs \
+   node_modules/maplibre-gl/dist/maplibre-gl-shared.mjs \
+   public/
+```
+
+```ts
+import * as maplibregl from 'maplibre-gl';
+
+maplibregl.setWorkerUrl('/maplibre-gl-worker.mjs'); // phải gọi TRƯỚC khi tạo map
+```
+
+Ở React, gọi `setWorkerUrl` một lần tại điểm vào ứng dụng, cùng chỗ `import` CSS của MapLibre.
+
+Phải đủ **cả hai** file và **cạnh nhau**: `maplibre-gl-worker.mjs` có `import './maplibre-gl-shared.mjs'`,
+nên thiếu file shared thì worker tải được (200) rồi chết ngay với `net::ERR_ABORTED` và bản đồ vẫn trống.
+
+Nên gắn bước copy vào script build để không lệch phiên bản mỗi lần nâng `maplibre-gl`:
+
+```json
+{
+  "scripts": {
+    "prebuild": "cp node_modules/maplibre-gl/dist/maplibre-gl-worker.mjs node_modules/maplibre-gl/dist/maplibre-gl-shared.mjs public/"
+  }
+}
+```
+
+`maplibre-gl@6` chỉ cung cấp `setWorkerUrl(url)` và `getWorkerUrl()`, không có API truyền lớp Worker,
+nên phục vụ hai file tĩnh là đường chắc chắn đúng với mọi bundler. Site này cũng làm y như vậy: bản UMD
+đặt hai file cạnh `mapslibvn.umd.js` trong `/sdk/`, còn trang [React demo](/react-demo/) copy chúng vào
+thư mục asset của bản build.
+
+## 3. Yêu cầu
 
 | Môi trường | Tối thiểu |
 |---|---|
@@ -158,7 +225,7 @@ Toàn bộ hướng dẫn: [React Native](/react-native/).
 
 Bản đồ dùng WebGL2. Máy không có WebGL2 thì MapLibre không khởi tạo được và `createMap` ném lỗi.
 
-## 3. Cài từ tarball để kiểm thử bản source
+## 4. Cài từ tarball để kiểm thử bản source
 
 Bản npm là cách cài mặc định. Nếu cần kiểm thử thay đổi local trước lần phát hành tiếp theo,
 `pnpm pack` không nhận `--filter`, nên phải chạy trong thư mục gói:
@@ -177,7 +244,7 @@ Khi cài tarball Web local, npm có thể tự tải `@mapslibvn/core@0.4.0` t�
 ba tarball `core`, `web`, `react`. Riêng `@mapslibvn/react-native` gộp sẵn `core` vào `dist`, chỉ
 cần một tarball.
 
-## 4. Kiểm tra đã cài đúng
+## 5. Kiểm tra đã cài đúng
 
 ```js
 const map = MapsLibVN.createMap({ container: 'map', apiKey: 'mlv_live_…', apiBase: '…' });
@@ -194,13 +261,14 @@ Ba dấu hiệu cài đúng:
 3. Trên tab Network, các request tiles trả `206 Partial Content` (hoặc `200`): PMTiles đọc bằng
    HTTP Range trực tiếp từ R2.
 
-## 5. Lỗi hay gặp
+## 6. Lỗi hay gặp
 
 | Hiện tượng | Nguyên nhân | Cách xử lý |
 |---|---|---|
 | Không có bản đồ, console báo `403` với `origin_not_allowed` | Khoá kind `web` nhưng origin của trang không nằm trong `allowed_origins` | Xin bổ sung origin, hoặc thử bằng khoá demo trên `localhost` — xem [Khoá API](/khoa-api/) |
 | `401 missing_key` / `401 invalid_key` | Chưa truyền khoá, hoặc khoá đã bị thu hồi | Truyền qua header `X-Api-Key` hoặc `?key=` |
 | Bản đồ hiện nhưng điều khiển vỡ, popup không có khung | Thiếu CSS | Bản UMD: thêm `mapslibvn.css`. Bản ESM: `import 'maplibre-gl/dist/maplibre-gl.css'` |
+| Bản đồ trống trơn **chỉ ở bản build**, dev server vẫn tốt; Network có `maplibre-gl-worker.mjs` **404** trong khi style JSON và pmtiles đều 200 | Bundler gộp maplibre vào chunk của bạn nhưng không phát ra file worker cạnh chunk đó | Copy `maplibre-gl-worker.mjs` + `maplibre-gl-shared.mjs` vào thư mục tĩnh rồi gọi `setWorkerUrl` — [mục 2](#2-worker-của-maplibre-khi-dùng-bundler) |
 | `Error: Cần maplibre-gl…` | Bản ESM thiếu peer `maplibre-gl`, hoặc quên truyền `{ maplibre: maplibregl }` | Cài `maplibre-gl@^6.4.1` và truyền vào `createMap` |
 | `<mapslibvn-autocomplete>` không hiện gì | Bản ESM chưa gọi `defineAutocomplete()` | Gọi một lần lúc khởi động ứng dụng |
 | Ô autocomplete có nhưng không gợi ý | Thiếu `api-key` hoặc `api-base`, hoặc gõ dưới 2 ký tự | Đặt đủ hai thuộc tính; component chỉ gọi API từ 2 ký tự trở lên |

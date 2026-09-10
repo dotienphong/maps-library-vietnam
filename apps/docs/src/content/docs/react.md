@@ -23,6 +23,18 @@ Nhớ nạp CSS của MapLibre một lần ở điểm vào ứng dụng:
 import 'maplibre-gl/dist/maplibre-gl.css';
 ```
 
+Cùng chỗ đó, trỏ luôn **worker của MapLibre** về thư mục tĩnh của bạn, sau khi đã copy hai file
+`maplibre-gl-worker.mjs` và `maplibre-gl-shared.mjs` từ `node_modules/maplibre-gl/dist/` vào `public/`:
+
+```ts
+import * as maplibregl from 'maplibre-gl';
+
+maplibregl.setWorkerUrl('/maplibre-gl-worker.mjs');
+```
+
+Bỏ bước này thì **bản build** ra bản đồ trống trơn (dev server vẫn tốt, nên rất dễ chẩn đoán sai). Lý
+do và cách gắn vào script build: [Cài đặt — Worker của MapLibre khi dùng bundler](/cai-dat/).
+
 ## 2. `<MapsLibVNMap>`
 
 ```tsx
@@ -257,6 +269,7 @@ Bản chạy được của ví dụ này là [React demo](/react-demo/).
 | `usePlaces` luôn trả mảng rỗng | Hook ở ngoài `<MapsLibVNMap>` mà chưa truyền `client` |
 | Bản đồ nhấp nháy, tự nhảy về tâm ban đầu | Đang đổi `center` hoặc `zoom` bằng state — dùng `useMap().flyTo` thay thế |
 | Marker và popup mất kiểu | Quên `import 'maplibre-gl/dist/maplibre-gl.css'` |
+| Bản đồ trống trơn ở bản build, dev server vẫn tốt | Chưa copy hai file worker của MapLibre vào `public/` và chưa gọi `setWorkerUrl` — xem mục 1 |
 
 Các ví dụ dùng endpoint nội bộ hiện tại `api.ai-solutions.io.vn` — **tạm thời** trong giai đoạn nội
 bộ, sẽ đổi khi MapsLibVN có tên miền riêng.
