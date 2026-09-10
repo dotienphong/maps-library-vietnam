@@ -19,7 +19,8 @@
 - `exactOptionalPropertyTypes` và `noUncheckedIndexedAccess` đang bật: không gán `undefined` vào thuộc tính tuỳ chọn (dùng spread có điều kiện), luôn xử lý `arr[i]` có thể `undefined`.
 - API unit test **không được cần Postgres hay mạng** (Hyperdrive trỏ cổng đóng; `fetchMock.disableNetConnect()`); gọi Valhalla trong test bằng `fetchMock` của `cloudflare:test`, `ROUTING_BASE` test là `https://routing.test`.
 - Scripts `.mjs` mới nằm trong `include` của `tsconfig.scripts.json` (`scripts/**/*.mjs`) nên phải qua `checkJs`: viết JSDoc kiểu cho tham số.
-- Commit message tiếng Việt, tiền tố `feat/fix/test/docs/chore(scope)`, kết bằng dòng `Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>`. **Không push** cho tới Task 17 (PHONG duyệt push).
+- Commit message tiếng Việt, tiền tố `feat/fix/test/docs/chore(scope)`, kết bằng dòng `Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>`. **Không push** cho tới Task 16 (PHONG duyệt push).
+- Biome format nghiêm và CI chạy `biome check .`: sau khi dán code từ plan, chạy `pnpm lint:fix` (hoặc `pnpm exec biome check --write <file>`) rồi mới `pnpm lint`. Biome cấm `!` (non-null assertion).
 - Toạ độ: tham số API và client `[lat, lng]`; mọi toạ độ **trong response** `[lng, lat]`.
 
 ## Cấu trúc file
@@ -569,7 +570,7 @@ Expected: PASS 4 test.
 - [ ] **Step 5: Build core và xử lý size-limit**
 
 Run: `pnpm --filter @mapslibvn/core build`
-Expected: nếu in `Size limit: 10 kB … exceeded` thì sửa `packages/core/.size-limit.json` `"limit": "10 kB"` → `"limit": "12 kB"` (spec A mục 9: barrel 9,5 kB gzip trước khi thêm polyline + bảng maneuver) và chạy lại build. Ghi số đo mới (dòng `Size:` trong output) để đưa vào DEVLOG ở Task 18.
+Expected: nếu in `Size limit: 10 kB … exceeded` thì sửa `packages/core/.size-limit.json` `"limit": "10 kB"` → `"limit": "12 kB"` (spec A mục 9: barrel 9,5 kB gzip trước khi thêm polyline + bảng maneuver) và chạy lại build. Ghi số đo mới (dòng `Size:` trong output) để đưa vào DEVLOG ở Task 19.
 
 - [ ] **Step 6: README core**
 
@@ -916,10 +917,12 @@ export function parseDirectionsParams(q: Record<string, string | undefined>): Di
   const from = requirePair(q.from, 'from');
   const to = requirePair(q.to, 'to');
   const viaRaw = (q.via ?? '').trim();
-  const via = viaRaw ? viaRaw.split(';').map((part, i) => requirePair(part, `via[${i}]`)) : [];
-  if (via.length > MAX_VIA) {
+  const viaParts = viaRaw ? viaRaw.split(';') : [];
+  // Đếm TRƯỚC khi parse: chuỗi via hàng nghìn điểm không được tốn CPU parse rồi mới bị từ chối.
+  if (viaParts.length > MAX_VIA) {
     throw new ApiError(400, 'invalid_request', `via tối đa ${MAX_VIA} điểm`);
   }
+  const via = viaParts.map((part, i) => requirePair(part, `via[${i}]`));
   const mode = oneOf(q.mode, TRAVEL_MODES, 'motorbike', 'mode');
   const lang = oneOf(q.lang, DIRECTIONS_LANGS, 'vi', 'lang');
   const alternativesRaw = q.alternatives?.trim() || '0';
@@ -1044,33 +1047,44 @@ describe('routingBase / routingHeaders', () => {
     }
   });
 
-  it('header Access chỉ khi đủ cả hai secret', () => {
-    expect(routingHeaders({})).toEqual({ 'content-type': 'application/json' });
-    expect(routingHeaders({ ROUTING_ACCESS_CLIENT_ID: 'id' })).toEqual({
+  it('header Access chỉ khi đủ cả hai secret VÀ đích là https (không lộ token qua http)', () => {
+    const secrets = { ROUTING_ACCESS_CLIENT_ID: 'id', ROUTING_ACCESS_CLIENT_SECRET: 's' };
+    expect(routingHeaders({}, 'https://x.test')).toEqual({ 'content-type': 'application/json' });
+    expect(routingHeaders({ ROUTING_ACCESS_CLIENT_ID: 'id' }, 'https://x.test')).toEqual({
       'content-type': 'application/json',
     });
-    expect(
-      routingHeaders({ ROUTING_ACCESS_CLIENT_ID: 'id', ROUTING_ACCESS_CLIENT_SECRET: 's' }),
-    ).toEqual({
+    expect(routingHeaders(secrets, 'https://x.test')).toEqual({
       'content-type': 'application/json',
       'CF-Access-Client-Id': 'id',
       'CF-Access-Client-Secret': 's',
+    });
+    expect(routingHeaders(secrets, 'http://127.0.0.1:8002')).toEqual({
+      'content-type': 'application/json',
     });
   });
 });
 
 describe('mapValhallaError', () => {
-  it('442/170/171 → 404 no_route; 4xx khác → 400; 403/5xx/không rõ → 503', () => {
-    expect(mapValhallaError(400, { error_code: 442 })).toMatchObject({ status: 404, code: 'no_route' });
-    expect(mapValhallaError(400, { error_code: 171 })).toMatchObject({ status: 404, code: 'no_route' });
-    expect(mapValhallaError(400, { error_code: 170 })).toMatchObject({ status: 404, code: 'no_route' });
+  it('HTTP 400 + 441/442/170/171 → 404 no_route; 400 khác → 400; mọi status khác → 503', () => {
+    for (const code of [441, 442, 170, 171]) {
+      expect(mapValhallaError(400, { error_code: code })).toMatchObject({
+        status: 404,
+        code: 'no_route',
+      });
+    }
     expect(mapValhallaError(400, { error_code: 154 })).toMatchObject({
       status: 400,
       code: 'invalid_request',
     });
     expect(mapValhallaError(400, null).message).toContain('400');
-    expect(mapValhallaError(403, null)).toMatchObject({ status: 503, code: 'upstream_unavailable' });
-    expect(mapValhallaError(500, { error_code: 999 })).toMatchObject({ status: 503 });
+    // 302 = Access redirect về trang đăng nhập, 401/403 = token sai/hết hạn, 404/405 = sai đường dẫn,
+    // 5xx = engine lỗi: đều là phía mình, không đổ lỗi cho người gọi.
+    for (const status of [302, 401, 403, 404, 405, 500, 502]) {
+      expect(mapValhallaError(status, null)).toMatchObject({
+        status: 503,
+        code: 'upstream_unavailable',
+      });
+    }
   });
 });
 
@@ -1088,12 +1102,15 @@ describe('callValhalla / fetchValhallaStatus (fetchMock)', () => {
 
     origin.intercept({ path: '/route', method: 'POST' }).replyWithError(new Error('ECONNREFUSED'));
     await expect(callValhalla(env, {})).rejects.toMatchObject({ status: 503 });
+
+    origin.intercept({ path: '/route', method: 'POST' }).reply(200, '<html>login</html>');
+    await expect(callValhalla(env, {})).rejects.toMatchObject({ status: 503 });
   });
 
   it('timeout → 503', async () => {
     const hang: typeof fetch = (_url, init) =>
       new Promise<Response>((_, reject) => {
-        init?.signal?.addEventListener('abort', () => reject(init.signal?.reason));
+        init?.signal?.addEventListener('abort', () => reject(init?.signal?.reason));
       });
     await expect(callValhalla(env, {}, { fetchImpl: hang, timeoutMs: 20 })).rejects.toMatchObject({
       status: 503,
@@ -1205,28 +1222,37 @@ export function routingBase(env: Pick<Env, 'ROUTING_BASE'>): string {
   return base;
 }
 
-/** Header Access chỉ khi đủ cả hai secret (production); dev gọi thẳng localhost không header. */
+/**
+ * Header Access chỉ khi đủ cả hai secret (production) VÀ đích là https — không bao giờ gửi service
+ * token qua http kể cả khi ai đó cấu hình nhầm ROUTING_BASE. Dev gọi thẳng localhost không header.
+ */
 export function routingHeaders(
   env: Pick<Env, 'ROUTING_ACCESS_CLIENT_ID' | 'ROUTING_ACCESS_CLIENT_SECRET'>,
+  base: string,
 ): Record<string, string> {
   const headers: Record<string, string> = { 'content-type': 'application/json' };
-  if (env.ROUTING_ACCESS_CLIENT_ID && env.ROUTING_ACCESS_CLIENT_SECRET) {
+  const secure = base.startsWith('https://');
+  if (secure && env.ROUTING_ACCESS_CLIENT_ID && env.ROUTING_ACCESS_CLIENT_SECRET) {
     headers['CF-Access-Client-Id'] = env.ROUTING_ACCESS_CLIENT_ID;
     headers['CF-Access-Client-Secret'] = env.ROUTING_ACCESS_CLIENT_SECRET;
   }
   return headers;
 }
 
-/** Mã lỗi Valhalla → lỗi API (spec A mục 5.3). 403 là Access từ chối = cấu hình máy chủ sai → 503. */
+/**
+ * Mã lỗi Valhalla → lỗi API (spec A mục 5.3). Chỉ HTTP 400 là lỗi đầu vào theo Valhalla; mọi status
+ * khác (302 redirect của Access, 401/403 token sai hoặc hết hạn, 404/405 sai đường dẫn, 5xx) là cấu
+ * hình hoặc hạ tầng phía mình → 503, không đổ lỗi cho người gọi.
+ */
 export function mapValhallaError(status: number, body: ValhallaErrorBody | null): ApiError {
   const code = body?.error_code;
-  if (status === 400 && code === 442) {
+  if (status === 400 && (code === 442 || code === 441)) {
     return new ApiError(404, 'no_route', 'Không tìm được đường giữa các điểm');
   }
   if (status === 400 && (code === 170 || code === 171)) {
     return new ApiError(404, 'no_route', 'Điểm quá xa mạng đường hoặc nằm trong vùng không kết nối');
   }
-  if (status >= 400 && status < 500 && status !== 403) {
+  if (status === 400) {
     return new ApiError(400, 'invalid_request', `Engine từ chối yêu cầu (mã ${code ?? status})`);
   }
   return new ApiError(503, 'upstream_unavailable', 'Dịch vụ chỉ đường không phản hồi');
@@ -1248,7 +1274,10 @@ async function routingFetch(
   try {
     return await fetchImpl(`${base}${path}`, {
       ...init,
-      headers: routingHeaders(env),
+      headers: routingHeaders(env, base),
+      // Không theo redirect: Access trả 302 về trang đăng nhập khi token sai → phải thành 503,
+      // không được đi tới URL lạ rồi parse HTML.
+      redirect: 'manual',
       signal: AbortSignal.timeout(timeoutMs),
     });
   } catch (error) {
@@ -1281,7 +1310,12 @@ export async function callValhalla(
     }
     throw mapValhallaError(response.status, parsed);
   }
-  return (await response.json()) as ValhallaRouteResponse;
+  try {
+    return (await response.json()) as ValhallaRouteResponse;
+  } catch (error) {
+    console.error('valhalla body không phải JSON', error);
+    throw new ApiError(503, 'upstream_unavailable', 'Dịch vụ chỉ đường trả dữ liệu không hợp lệ');
+  }
 }
 
 export async function fetchValhallaStatus(
@@ -1298,14 +1332,18 @@ export async function fetchValhallaStatus(
   if (!response.ok) {
     throw new ApiError(503, 'upstream_unavailable', `Valhalla /status trả ${response.status}`);
   }
-  return (await response.json()) as ValhallaStatus;
+  try {
+    return (await response.json()) as ValhallaStatus;
+  } catch {
+    throw new ApiError(503, 'upstream_unavailable', 'Valhalla /status trả dữ liệu không hợp lệ');
+  }
 }
 ```
 
 - [ ] **Step 4: Chạy test, xác nhận xanh**
 
 Run: `pnpm --filter @mapslibvn/api exec vitest run test/routing-valhalla.test.ts`
-Expected: PASS 7 test. Nếu `replyWithError` không tồn tại ở phiên bản undici đi kèm, thay bằng `.reply(() => { throw new Error('ECONNREFUSED'); })`.
+Expected: PASS 8 test. Nếu `replyWithError` không tồn tại ở phiên bản undici đi kèm, thay bằng `.reply(() => { throw new Error('ECONNREFUSED'); })`.
 
 - [ ] **Step 5: Commit**
 
@@ -1780,13 +1818,20 @@ describe('GET /v1/directions', () => {
     expect(down.headers.get('retry-after')).toBe('30');
   });
 
-  it('cache: hai request giống nhau chỉ gọi Valhalla một lần, lần hai x-mlv-cache=hit', async () => {
-    mockRoute(200, fixture); // times(1) mặc định — gọi lần hai sẽ không có interceptor → 503
+  it('cache: request giống nhau trong 60 s được trả từ cache (x-mlv-cache=hit)', async () => {
+    // cache.put chạy trong waitUntil nên có thể chưa xong khi request đầu trả về: cho phép Valhalla
+    // được gọi lại (persist) và chờ tới khi thấy bản cache, tối đa ~1 s.
+    mockRoute(200, fixture).persist();
     const first = await call(q(5));
     expect(first.status).toBe(200);
-    const second = await call(q(5));
-    expect(second.status).toBe(200);
-    expect(second.headers.get('x-mlv-cache')).toBe('hit');
+    let hit = false;
+    for (let i = 0; i < 20 && !hit; i++) {
+      const again = await call(q(5));
+      expect(again.status).toBe(200);
+      hit = again.headers.get('x-mlv-cache') === 'hit';
+      if (!hit) await new Promise((resolve) => setTimeout(resolve, 50));
+    }
+    expect(hit).toBe(true);
   });
 
   it('quota nhóm directions: đếm riêng, 2× hạn → 429; counter places không ảnh hưởng', async () => {
@@ -2164,7 +2209,7 @@ Thêm sau service `pipeline` (trước `volumes:`):
       build_time_zones: "True"
       server_threads: "2"
     ports:
-      - "${VALHALLA_PORT:-8002}:8002"
+      - "127.0.0.1:${VALHALLA_PORT:-8002}:8002"
     volumes:
       - ${MAPSLIBVN_VALHALLA_DEV:-../../work/valhalla-dev}:/custom_files
 ```
@@ -2182,7 +2227,7 @@ Thêm sau service `pipeline` (trước `volumes:`):
 import 'dotenv/config';
 import { spawn, spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
-import { copyFileSync, existsSync, mkdirSync, writeFileSync } from 'node:fs';
+import { copyFileSync, existsSync, mkdirSync, rmSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { TEST_KEY, parseRoutingTestArgs, testAuthInfo, waitForOk } from './lib/routing-test.mjs';
 import { run } from './lib/run.mjs';
@@ -2233,6 +2278,9 @@ if (opts.capture) {
 if (!existsSync('apps/admin/dist/admin/index.html')) {
   run('pnpm', ['--filter', '@mapslibvn/admin', 'build']);
 }
+// Cache local của wrangler sống qua nhiều phiên (bài học api-db-test 07/09/2026): xoá để tuyến không
+// bị trả từ bản cache của lần chạy trước.
+rmSync('apps/api/.wrangler/state/v3/cache', { recursive: true, force: true });
 const keyHash = createHash('sha256').update(TEST_KEY, 'utf8').digest('hex');
 run('pnpm', [
   '--filter',
@@ -2392,7 +2440,7 @@ describe('/v1/directions trên Valhalla fixture Quận 1', () => {
 - [ ] **Step 8: Chạy thật trên máy dev**
 
 Run: `pnpm --filter @mapslibvn/core build && pnpm test:routing -- --capture`
-Expected: log `chép fixture…`, sau vài phút `Valhalla sẵn sàng`, `đã ghi …/q1-motorbike.json`, wrangler lên, vitest **6 test xanh**. Nếu `docker compose up` báo thiếu `.env`: tạo từ `.env.example` (`pnpm run setup` đã làm việc này trên máy dev). Nếu test `lang=en` trượt vì câu mở đầu khác, nới regex theo câu thật và ghi lại.
+Expected: log `chép fixture…`, sau vài phút `Valhalla sẵn sàng`, `đã ghi …/q1-motorbike.json`, wrangler lên, vitest **7 test xanh**. Nếu `docker compose up` báo thiếu `.env`: tạo từ `.env.example` (`pnpm run setup` đã làm việc này trên máy dev). Nếu test `lang=en` trượt vì câu mở đầu khác, nới regex theo câu thật và ghi lại.
 
 Ghi lại thời gian build graph fixture (dòng `chờ Valhalla /status… Ns` cuối) cho DEVLOG.
 
@@ -2487,7 +2535,7 @@ jobs:
 - [ ] **Step 2: Kiểm cú pháp YAML cục bộ**
 
 Run: `node -e "import('node:fs').then(fs => { const y = fs.readFileSync('.github/workflows/routing-test.yml','utf8'); if (!y.includes('workflow_dispatch')) throw new Error('thiếu dispatch'); console.log('ok', y.split('\n').length, 'dòng'); })"`
-Expected: `ok … dòng`. Workflow chỉ chạy thật sau khi push (Task 17); ghi vào checklist Task 17 bước kích hoạt `workflow_dispatch` và xác nhận xanh.
+Expected: `ok … dòng`. Workflow chỉ chạy thật sau khi push (Task 16); ghi vào checklist Task 16 bước kích hoạt `workflow_dispatch` và xác nhận xanh.
 
 - [ ] **Step 3: Commit**
 
@@ -2636,7 +2684,7 @@ export function graphMeta(pbfMd5, pbfDate, requestedAt, previous) {
 - [ ] **Step 4: Chạy test lib, xác nhận xanh**
 
 Run: `pnpm vitest run scripts/lib/routing-graph.test.mjs`
-Expected: PASS 5 test.
+Expected: PASS 6 test.
 
 - [ ] **Step 5: Viết `scripts/routing-graph.mjs`**
 
@@ -2777,25 +2825,27 @@ if (command === 'prepare') {
 ```bash
 #!/usr/bin/env bash
 # Bọc entrypoint gốc của image valhalla-scripted (spec dẫn đường A mục 4.3): chạy build+serve, đợi cờ
-# /custom_files/reload.request do scripts/routing-graph.mjs ghi, rồi dừng valhalla_service và chạy lại
-# entrypoint — không cần Docker socket trong container pipeline. Entrypoint gốc `exec valhalla_service`
-# nên PID tiến trình nền chính là valhalla_service; TERM tới nó là đủ.
+# /custom_files/reload.request do scripts/routing-graph.mjs ghi, rồi dừng CẢ NHÓM tiến trình (valhalla_service
+# hoặc valhalla_build_tiles đang chạy) và chạy lại entrypoint — không cần Docker socket trong container
+# pipeline. Entrypoint chạy qua setsid để có process group riêng: kill -TERM cả nhóm mới không để sót
+# valhalla_build_tiles chạy mồ côi nếu cờ tới giữa lúc build (hai build chồng nhau làm hỏng graph).
 set -euo pipefail
 CUSTOM_FILES=/custom_files
 FLAG="${CUSTOM_FILES}/reload.request"
 ENTRYPOINT=/valhalla/scripts/docker-entrypoint.sh
 POLL_SECONDS="${RELOAD_POLL_SECONDS:-30}"
+FAIL_SLEEP_SECONDS="${FAIL_SLEEP_SECONDS:-600}"
 log() { echo "[run.sh] $(date -u +%FT%TZ) $*"; }
 
 while true; do
   rm -f "${FLAG}"
-  "${ENTRYPOINT}" build_tiles &
+  setsid "${ENTRYPOINT}" build_tiles &
   child=$!
   log "entrypoint pid ${child} (build nếu thiếu tar, rồi phục vụ :8002)"
   while kill -0 "${child}" 2>/dev/null; do
     if [[ -f "${FLAG}" ]]; then
-      log "thấy cờ '$(tr -d '\n' < "${FLAG}" 2>/dev/null || echo reload)' → dừng valhalla_service để nạp lại graph"
-      kill -TERM "${child}" 2>/dev/null || true
+      log "thấy cờ '$(tr -d '\n' < "${FLAG}" 2>/dev/null || echo reload)' → dừng nhóm tiến trình ${child} để nạp lại graph"
+      kill -TERM -- "-${child}" 2>/dev/null || kill -TERM "${child}" 2>/dev/null || true
       wait "${child}" || true
       break
     fi
@@ -2806,7 +2856,13 @@ while true; do
     wait "${child}"
     code=$?
     set -e
-    log "entrypoint thoát mã ${code} mà không có cờ reload → thoát để Docker khởi động lại"
+    if [[ "${code}" -eq 0 ]]; then
+      log "entrypoint thoát mã 0 → thoát"
+      exit 0
+    fi
+    # Không để Docker restart-loop build lại liên tục khi OOM/lỗi dữ liệu: ngủ rồi mới thoát.
+    log "entrypoint thoát mã ${code} mà không có cờ reload (build lỗi/OOM?) — ngủ ${FAIL_SLEEP_SECONDS}s rồi để Docker khởi động lại; quay về graph cũ: scripts/routing-graph.mjs rollback"
+    sleep "${FAIL_SLEEP_SECONDS}"
     exit "${code}"
   fi
 done
@@ -2817,10 +2873,14 @@ done
 Thêm service sau `pipeline` (trước `volumes:`):
 ```yaml
   valhalla:
-    image: ghcr.io/valhalla/valhalla-scripted:3.8.3
+    # Ghim theo digest của manifest list tag 3.8.3 (amd64+arm64, `docker buildx imagetools inspect`
+    # 10/09/2026): tag bị đẩy lại trên GHCR không đổi được bản chạy trên máy chủ.
+    image: ghcr.io/valhalla/valhalla-scripted:3.8.3@sha256:24ef7955899dececb94e26c6dfb89d64fabfae875f980432694b0261eb6c251b
     restart: unless-stopped
-    # Ghi đè ENTRYPOINT (không phải command) — ENTRYPOINT gốc nhận command làm tham số.
+    # Ghi đè ENTRYPOINT (không phải command) — ENTRYPOINT gốc nhận command làm tham số; command rỗng
+    # để run.sh không nhận thừa "build_tiles" của CMD gốc.
     entrypoint: ["/bin/bash", "/opt/mapslibvn/run.sh"]
+    command: []
     environment:
       serve_tiles: "True"
       use_tiles_ignore_pbf: "True"
@@ -2850,9 +2910,10 @@ Run:
 ```bash
 docker compose -f infra/server/compose.yml --env-file /dev/null config --quiet && echo compose-ok
 bash -n infra/server/valhalla/run.sh && echo bash-ok
+docker run --rm --entrypoint sh ghcr.io/valhalla/valhalla-scripted:3.8.3 -c 'command -v setsid curl jq && echo tools-ok'
 pnpm typecheck && pnpm lint
 ```
-Expected: `compose-ok`, `bash-ok` (nếu `config` báo thiếu biến `${...}`, tạo file env tạm trong scratchpad với `POSTGRES_SUPER_PASSWORD=x API_PASSWORD=x PIPELINE_PASSWORD=x TUNNEL_TOKEN=x` và trỏ `--env-file` vào đó), typecheck/lint sạch.
+Expected: `compose-ok`, `bash-ok`, `tools-ok` (image có setsid/curl/jq) (nếu `config` báo thiếu biến `${...}`, tạo file env tạm trong scratchpad với `POSTGRES_SUPER_PASSWORD=x API_PASSWORD=x PIPELINE_PASSWORD=x TUNNEL_TOKEN=x` và trỏ `--env-file` vào đó), typecheck/lint sạch.
 
 - [ ] **Step 9: Thử `routing-graph.mjs` cục bộ với thư mục giả**
 
@@ -3001,8 +3062,9 @@ run('docker', [...compose, 'up', '-d', 'valhalla']);
 ```
 - Trong chuỗi checklist cuối, thêm sau mục 5:
 ```
-  6. Chỉ đường: Tunnel "mapslibvn-db" → Public Hostname thêm maps-route.<domain> → Service HTTP → URL valhalla:8002.
-  7. Access → Service Auth → Service Token "routing"; Access → Applications → Self-hosted "mapslibvn-route" domain maps-route.<domain>, Policy Service Auth = token "routing".
+  6. Chỉ đường — làm ĐÚNG THỨ TỰ để Valhalla không có lúc nào công khai: Access → Service Auth → Service Token "routing";
+     Access → Applications → Self-hosted "mapslibvn-route" domain maps-route.<domain>, Policy Service Auth = token "routing".
+  7. Rồi mới: Tunnel "mapslibvn-db" → Public Hostname thêm maps-route.<domain> → Service HTTP → URL valhalla:8002.
   8. Máy dev: wrangler secret put ROUTING_ACCESS_CLIENT_ID --env production (và …_SECRET); ROUTING_BASE production đã có trong wrangler.toml.
 ```
 
@@ -3390,18 +3452,18 @@ Bảng "Phương thức client": thêm `| `directions(opts)` | `GET /v1/directio
 `infra/server/README.md`: mục "Việc tay trên Cloudflare (một lần)" thêm mục 7:
 ```markdown
 7. **Chỉ đường (spec dẫn đường A, 10/09/2026)** — mở Valhalla ra Worker:
-   1. Tunnel `mapslibvn-db` → Public Hostname → Add: subdomain `maps-route`, domain `<domain>`, Service type **HTTP**, URL `valhalla:8002`.
-   2. Access → Service Auth → Create Service Token `routing` (thời hạn dài nhất) → lưu Client ID/Secret.
-   3. Access → Applications → Add → Self-hosted `mapslibvn-route`, domain `maps-route.<domain>` → Policy Service Auth, include Service Token `routing`.
+   1. Access → Service Auth → Create Service Token `routing` (thời hạn dài nhất) → lưu Client ID/Secret vào password manager. Token có hạn: khi hết, `/healthz/routing` trả 503 và log Worker có `valhalla 403` → tạo token mới, `wrangler secret put` lại, xoá token cũ.
+   2. Access → Applications → Add → Self-hosted `mapslibvn-route`, domain `maps-route.<domain>` → Policy Service Auth, include Service Token `routing`.
+   3. **Chỉ sau khi có Access application**: Tunnel `mapslibvn-db` → Public Hostname → Add: subdomain `maps-route`, domain `<domain>`, Service type **HTTP**, URL `valhalla:8002`. (Làm ngược thứ tự là Valhalla công khai trên Internet trong lúc chưa có Access.)
    4. Máy dev: `cd apps/api && pnpm exec wrangler secret put ROUTING_ACCESS_CLIENT_ID --env production` và `… ROUTING_ACCESS_CLIENT_SECRET --env production`. `ROUTING_BASE` production nằm sẵn trong `wrangler.toml`.
-   5. Kiểm: `curl -H "CF-Access-Client-Id: …" -H "CF-Access-Client-Secret: …" https://maps-route.<domain>/status` → JSON có `version`; không header → 403 của Access.
+   5. Kiểm (đọc secret từ biến môi trường, không gõ thẳng vào lệnh để khỏi lọt shell history): `curl -H "CF-Access-Client-Id: $CF_ROUTING_ID" -H "CF-Access-Client-Secret: $CF_ROUTING_SECRET" https://maps-route.<domain>/status` → JSON có `version`; không header → 403 của Access.
 ```
 Mục "Kiểm tra": sửa "4 dịch vụ `running`" → "5 dịch vụ `running` (`valhalla` `healthy` sau khi build graph xong)"; thêm gạch đầu dòng:
 ```markdown
 - Graph chỉ đường: `docker compose … run --rm pipeline node scripts/routing-graph.mjs status` in `graph.json`, kích cỡ tar và `pendingReload`. Build lại tay: `… node scripts/routing-graph.mjs prepare --force` (valhalla ngừng phục vụ vài chục phút trong lúc build); quay về bản trước: `… node scripts/routing-graph.mjs rollback`. `data:update` tự gọi `prepare` khi OSM đổi.
 - Worker: `curl https://api.<domain>/healthz/routing` → `{"ok":true,"version":"3.8.x","graph_built_at":"…"}`.
 ```
-Mục "Vận hành" thêm: `- Không bao giờ thêm `ports:` cho `valhalla`. Đường vào duy nhất là Tunnel + Access.` và `- `pnpm server:update` kéo cả image `valhalla`; sau cập nhật lần đầu chạy `routing-graph.mjs prepare` nếu volume `valhalla-data` còn rỗng (container sẽ khởi động lại liên tục cho tới khi có PBF).`
+Mục "Vận hành" thêm: `- Không bao giờ thêm `ports:` cho `valhalla`. Đường vào duy nhất là Tunnel + Access.`, `- `pnpm server:update` kéo cả image `valhalla`; sau cập nhật lần đầu chạy `routing-graph.mjs prepare` nếu volume `valhalla-data` còn rỗng (container sẽ khởi động lại liên tục cho tới khi có PBF).`, `- Sau `pnpm server:restore` trên máy mới, graph không nằm trong backup: chạy `routing-graph.mjs prepare` để build lại (volume `valhalla-data` cần ~5 GB: PBF + thư mục tile + tar + tar prev).` và `- Build lỗi/OOM: container ngủ 10 phút rồi Docker khởi động lại; xem `docker compose … logs valhalla`, quay về graph cũ bằng `routing-graph.mjs rollback`.`
 
 - [ ] **Step 6: Build docs, kiểm link, commit**
 
@@ -3417,32 +3479,67 @@ Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>"
 
 ---
 
-## Task 16: Máy chủ thật — dựng Valhalla, build graph Việt Nam, đo RAM/thời gian (PHONG chạy, Fable hướng dẫn)
+## Task 16: Phát hành mã — cổng cục bộ, push, CI, Deploy API (PHONG duyệt push)
 
-Điều kiện trước: Task 12–13 đã commit **và đã push** (Task 17 Step 1 làm việc push trước khi tới đây nếu chưa). Máy chủ đã tắt auto-sleep khi cắm điện (PHONG xác nhận — điều kiện mở tính năng, spec mục 9).
+Điều kiện: Task 1–15 commit xong. Worker sẽ được deploy TRƯỚC khi máy chủ có Valhalla (Task 17): `/v1/directions` trả `503 upstream_unavailable` cho tới khi Tunnel + secret sẵn; các endpoint khác không ảnh hưởng (`loadAuth` đọc cột mới qua `to_jsonb`, migration 0012 áp ở Task 17).
 
-**Files:** không sửa code; kết quả ghi `docs/evidence/routing/2026-09-XX-build-graph-may-chu.md`.
+- [ ] **Step 1: Cổng cục bộ đầy đủ**
 
-- [ ] **Step 1: Cập nhật máy chủ và tạo graph lần đầu** (trên máy chủ)
+Run: `pnpm lint && pnpm typecheck && pnpm test && pnpm test:routing`
+Expected: tất cả xanh (ghi số file/test vào DEVLOG ở Task 19).
+
+- [ ] **Step 2: Push và theo dõi CI**
+
+```bash
+git push origin main
+gh run list --limit 8
+```
+Expected: `CI`, `Deploy API`, `Deploy Docs`, `DB tests` (paths `db/**`, `scripts/**`), `Routing tests` (paths routing) đều xanh. Nếu `Routing tests` không tự chạy: `gh workflow run "Routing tests"` rồi `gh run watch`. Ghi ID run vào evidence Task 18.
+
+- [ ] **Step 3: Kiểm Worker production ngay sau deploy**
+
+```bash
+curl -s https://api.ai-solutions.io.vn/healthz
+curl -s https://api.ai-solutions.io.vn/healthz/routing
+curl -s -H "X-Api-Key: $KEY_EXAMPLE_EMBED" "https://api.ai-solutions.io.vn/v1/autocomplete?q=highlands&near=10.776,106.700" | head -c 200
+```
+Expected: `/healthz` 200; `/healthz/routing` **503** `upstream_unavailable` (chưa có Tunnel/secret — đúng kỳ vọng); autocomplete 200 (chứng minh `loadAuth` mới chạy được khi cột `quota_directions_per_day` chưa có trên production).
+
+---
+
+## Task 17: Máy chủ thật — Docker Desktop, Valhalla, graph Việt Nam, Cloudflare, đo RAM (PHONG chạy, Fable hướng dẫn)
+
+Điều kiện: Task 16 đã push. PHONG xác nhận máy chủ đã tắt auto-sleep khi cắm điện (điều kiện mở tính năng, spec mục 9).
+
+**Files:** không sửa code; kết quả ghi `docs/evidence/routing/2026-09-XX-build-graph-may-chu.md` + `build-stats.txt`.
+
+- [ ] **Step 0: Tài nguyên VM Docker Desktop** (macOS: container chạy trong VM, không phải RAM máy)
+
+```bash
+docker info --format 'RAM VM: {{.MemTotal}} bytes · CPU: {{.NCPU}}'
+```
+Expected: RAM VM ≥ 12 GB (12884901888). Nếu nhỏ hơn: Docker Desktop → Settings → Resources → Memory ≥ 12 GB, CPU ≥ 4 → Apply & restart → chạy lại lệnh. `PG_SHARED_BUFFERS` trong `infra/server/.env` được sinh từ RAM máy (16 GB → 4 GB); nếu VM chỉ 12 GB thì hạ xuống `3GB` và `docker compose … up -d postgres` sau bước này. Ghi số vào evidence.
+
+- [ ] **Step 1: Cập nhật máy chủ, migration 0012, tạo graph lần đầu**
 
 ```bash
 pnpm server:update          # git pull, kéo image (kể cả valhalla), compose up -d, migration 0012
 C="docker compose --env-file infra/server/.env -f infra/server/compose.yml"
-$C run --rm pipeline sh -c 'test -f /app/work/data/sources/vietnam.osm.pbf && echo co-pbf || echo thieu-pbf'
+$C run --rm -T pipeline sh -c 'test -f /app/work/data/sources/vietnam.osm.pbf && echo co-pbf || echo thieu-pbf'
 # nếu thieu-pbf:  $C run --rm pipeline node pipelines/tiles/src/download.mjs
 $C run --rm pipeline node scripts/routing-graph.mjs prepare
 $C logs -f valhalla          # theo dõi tới dòng "Starting valhalla service!"
 ```
-Expected: `[db:migrate] Áp dụng 0012_api_key_quota_directions.sql`; `[routing-graph] đã ghi cờ reload.request (rebuild)`; log valhalla chạy `valhalla_build_admins`, `valhalla_build_timezones`, `valhalla_build_tiles … build`, `… enhance`, `valhalla_build_extract`, rồi `INFO: Found config file. Starting valhalla service!`.
+Expected: `[db:migrate] Áp dụng 0012_api_key_quota_directions.sql`; `[routing-graph] đã ghi cờ reload.request (rebuild)`; log valhalla: `valhalla_build_admins`, `valhalla_build_timezones`, `valhalla_build_tiles … build`, `… enhance`, `valhalla_build_extract`, rồi `INFO: Found config file. Starting valhalla service!`. (Container có thể đã khởi động lại vài lần trước `prepare` vì chưa có PBF — bình thường.)
 
-- [ ] **Step 2: Đo trong lúc build** (cửa sổ terminal thứ hai trên máy chủ)
+- [ ] **Step 2: Đo trong lúc build** (terminal thứ hai trên máy chủ)
 
 ```bash
 ( while docker inspect -f '{{.State.Running}}' mapslibvn-server-valhalla-1 >/dev/null 2>&1; do \
     docker stats --no-stream --format '{{.Name}} {{.MemUsage}} {{.CPUPerc}}' mapslibvn-server-valhalla-1 mapslibvn-server-postgres-1; sleep 60; \
   done ) | tee /tmp/valhalla-build-stats.txt
 ```
-Dừng bằng Ctrl+C khi `/status` trả 200. Ghi: thời gian từ cờ tới `Starting valhalla service!` (đọc timestamp log), RAM đỉnh `valhalla`, RAM `postgres` cùng lúc, dung lượng tar (`$C run --rm pipeline node scripts/routing-graph.mjs status`).
+Dừng bằng Ctrl+C khi `/status` trả 200. Ghi: thời gian từ cờ tới `Starting valhalla service!` (timestamp log), RAM đỉnh `valhalla`, RAM `postgres` cùng lúc, dung lượng tar (`$C run --rm pipeline node scripts/routing-graph.mjs status`).
 
 - [ ] **Step 3: Kiểm nội bộ trên máy chủ**
 
@@ -3453,27 +3550,27 @@ $C exec -T valhalla curl -s -X POST http://localhost:8002/route -H 'content-type
 ```
 Expected: `{"version":"3.8.3","tileset_last_modified":…}`; JSON tuyến có `"language":"vi-VN"` và câu tiếng Việt.
 
-- [ ] **Step 4: Việc tay trên Cloudflare** (PHONG, theo `infra/server/README.md` mục 7): hostname `maps-route`, service token `routing`, Access application, hai `wrangler secret put` trên máy dev. Kiểm bằng `curl` với header Access → JSON; không header → 403.
+- [ ] **Step 4: Việc tay trên Cloudflare** (PHONG, theo `infra/server/README.md` mục 7, **đúng thứ tự**: service token `routing` → Access application `mapslibvn-route` → public hostname `maps-route` → hai `wrangler secret put` trên máy dev). Kiểm: `curl` có header Access → JSON; không header → 403. Sau đó `curl -s https://api.ai-solutions.io.vn/healthz/routing` → 200 (Worker đọc secret ngay, không cần deploy lại).
 
-- [ ] **Step 5: Kiểm kịch bản bọc (checklist spec mục 7.5)**
+- [ ] **Step 5: Kiểm kịch bản bọc (spec mục 7.5)**
 
 ```bash
-$C run --rm pipeline node scripts/routing-graph.mjs rollback   # lúc này chưa có prev → phải báo lỗi rõ, không đụng gì
+$C run --rm pipeline node scripts/routing-graph.mjs rollback   # chưa có prev → phải báo lỗi rõ, không đụng gì
 $C run --rm pipeline node scripts/routing-graph.mjs prepare --force
-$C logs --since 2m valhalla | grep run.sh      # thấy "thấy cờ 'rebuild' → dừng valhalla_service"
+$C logs --since 2m valhalla | grep run.sh      # "thấy cờ 'rebuild' → dừng nhóm tiến trình"
 # … chờ build lần 2 xong (đo lại thời gian) …
 $C run --rm pipeline node scripts/routing-graph.mjs rollback   # nay có prev
 $C logs --since 1m valhalla | grep run.sh      # "thấy cờ 'rollback'"; /status quay lại 200 trong < 1 phút, tileset_last_modified là mốc CŨ
 ```
-Expected đúng như chú thích. Nếu bước `prepare --force` không làm container build lại (log không có `run.sh` hoặc entrypoint không thoát), đọc `docker logs` và áp phương án dự phòng spec mục 4.3 (docker-socket-proxy) — ghi DEVLOG "Quyết định phát sinh" trước khi làm.
+Expected đúng như chú thích. Nếu `prepare --force` không làm container build lại (log không có `run.sh`), đọc `docker logs` và áp phương án dự phòng spec mục 4.3 (docker-socket-proxy) — ghi DEVLOG "Quyết định phát sinh" trước khi làm.
 
-- [ ] **Step 6: Ghi evidence**
+- [ ] **Step 6: Ghi evidence và quyết định RAM**
 
 Tạo `docs/evidence/routing/2026-09-XX-build-graph-may-chu.md`:
 ```markdown
 # Build graph Valhalla Việt Nam trên máy chủ nội bộ
 
-Ngày: 2026-09-XX. Máy: 16 GB RAM. Image ghcr.io/valhalla/valhalla-scripted:3.8.3, server_threads=4.
+Ngày: 2026-09-XX. Máy: 16 GB RAM; VM Docker Desktop … GB / … CPU. Image ghcr.io/valhalla/valhalla-scripted:3.8.3 (digest 24ef7955…), server_threads=4.
 PBF: vietnam-latest.osm.pbf md5 … (Geofabrik ngày …), … MB.
 
 | Số đo | Lần 1 (lần đầu, có admins/timezones) | Lần 2 (prepare --force) |
@@ -3484,10 +3581,10 @@ PBF: vietnam-latest.osm.pbf md5 … (Geofabrik ngày …), … MB.
 | valhalla_tiles.tar | … MB | … MB |
 
 Rollback: cờ 'rollback' → /status 200 sau … giây, tileset_last_modified quay về ….
-Quyết định RAM (spec mục 9): đỉnh … GB → [không đặt mem_limit | đặt mem_limit …G và hạ PG_SHARED_BUFFERS xuống 3GB].
-Log docker stats: build-stats.txt (đính kèm cùng thư mục).
+Quyết định RAM (spec mục 9): đỉnh … GB → [không đặt mem_limit | đặt mem_limit …g và hạ PG_SHARED_BUFFERS xuống 3GB].
+Log docker stats: build-stats.txt (cùng thư mục).
 ```
-Chép `/tmp/valhalla-build-stats.txt` về `docs/evidence/routing/build-stats.txt`. Nếu RAM đỉnh > 6 GB: thêm `mem_limit: 6g` cho service `valhalla` và đổi `PG_SHARED_BUFFERS` trong `infra/server/.env` thành `3GB`, `$C up -d postgres valhalla`, ghi vào DEVLOG.
+Chép `/tmp/valhalla-build-stats.txt` về `docs/evidence/routing/build-stats.txt`. Nếu RAM đỉnh > 6 GB: thêm `mem_limit: 6g` cho service `valhalla`, đổi `PG_SHARED_BUFFERS=3GB` trong `infra/server/.env`, `$C up -d postgres valhalla`, ghi DEVLOG.
 
 - [ ] **Step 7: Commit evidence**
 
@@ -3500,54 +3597,45 @@ Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>"
 
 ---
 
-## Task 17: Phát hành production — push, CI, deploy, smoke
+## Task 18: Kiểm production — healthz, smoke bốn tuyến, chốt p95, evidence
 
-Điều kiện: Task 1–15 commit xong, `pnpm lint && pnpm typecheck && pnpm test` xanh cục bộ. PHONG duyệt push.
+Điều kiện: Task 16 và 17 xong.
 
-- [ ] **Step 1: Cổng cục bộ đầy đủ**
-
-Run: `pnpm lint && pnpm typecheck && pnpm test && pnpm test:routing`
-Expected: tất cả xanh (ghi số file/test vào DEVLOG ở Task 18).
-
-- [ ] **Step 2: Push và theo dõi CI**
-
-```bash
-git push origin main
-gh run list --limit 6
-```
-Expected: workflow `CI`, `Deploy API`, `Deploy Docs`, `DB tests`, `Routing tests` (kích hoạt theo paths) đều xanh. Nếu `Routing tests` không tự chạy, `gh workflow run "Routing tests"` rồi `gh run watch`. `Deploy API` deploy Worker **trước** khi Valhalla sẵn (Task 16 có thể chưa xong): `/v1/directions` trả 503 `upstream_unavailable` cho tới khi Tunnel + secret có — chấp nhận, các endpoint khác không ảnh hưởng.
-
-- [ ] **Step 3: Kiểm production sau Task 16**
+- [ ] **Step 1: Health và schema**
 
 ```bash
 curl -s https://api.ai-solutions.io.vn/healthz/routing
 curl -s https://api.ai-solutions.io.vn/healthz/db | grep -o '"schema_migration":"[^"]*"'
-pnpm smoke:directions -- --confirm-production --requests=20
 ```
-Expected: `{"ok":true,"version":"3.8.3","graph_built_at":"…","ms":…}`; `schema_migration":"0012_api_key_quota_directions.sql"`; bảng 4 tuyến `failed 0`, `lien-tinh-xe-may` `highway false`, `vietnamese true`, p95 từng tuyến.
+Expected: `{"ok":true,"version":"3.8.3","graph_built_at":"…","ms":…}`; `schema_migration":"0012_api_key_quota_directions.sql"`.
 
-Nếu `lien-tinh-xe-may` có `highway: true`: thêm `costing_options: { motor_scooter: { use_highways: 0 } }` vào `valhallaBody` khi `mode === 'motorbike'` (kèm test trong `routing-valhalla.test.ts`), commit `fix(api): xe máy không dùng cao tốc`, deploy lại, chạy lại smoke. Ghi DEVLOG.
+- [ ] **Step 2: Smoke 20 lượt/tuyến**
 
-- [ ] **Step 4: Chốt ngưỡng p95**
+Run: `pnpm smoke:directions -- --confirm-production --requests=20`
+Expected: bảng 4 tuyến `failed 0`, `lien-tinh-xe-may` `highway false`, `vietnamese true`, p95 từng tuyến.
 
-Lấy p95 lớn nhất trong bảng, nhân 1,5 và làm tròn lên trăm → ghi vào comment đầu `scripts/smoke-directions.mjs` (`// Ngưỡng p95 production đo … : --p95-max=<N>`) và chạy lại `pnpm smoke:directions -- --confirm-production --p95-max=<N>` → xanh. Commit `docs(scripts): ngưỡng p95 smoke directions theo số đo production`.
+Nếu `lien-tinh-xe-may` có `highway: true`: thêm vào `valhallaBody` khi `p.mode === 'motorbike'` trường `costing_options: { motor_scooter: { use_highways: 0 } }` (Valhalla: mọi tuỳ chọn auto áp cho motor_scooter, `use_highways` 0–1), kèm test trong `routing-valhalla.test.ts`; commit `fix(api): xe máy không dùng cao tốc`; đợi Deploy API; chạy lại smoke. Ghi DEVLOG.
 
-- [ ] **Step 5: Ghi evidence production**
+- [ ] **Step 3: Chốt ngưỡng p95**
 
-`docs/evidence/routing/2026-09-XX-nghiem-thu-production.md`: bảng smoke (dán `console.table`), output `/healthz/routing`, `schema_migration`, link run CI (`gh run list`), kích cỡ core gzip (từ Task 3), kết quả `pnpm test:routing` (số test, thời gian build fixture). Commit `docs(evidence): nghiệm thu production chỉ đường spec A`.
+Lấy p95 lớn nhất trong bảng, nhân 1,5, làm tròn lên trăm → ghi vào comment đầu `scripts/smoke-directions.mjs` (`// Ngưỡng p95 production đo YYYY-MM-DD: --p95-max=<N>`) và chạy lại `pnpm smoke:directions -- --confirm-production --p95-max=<N>` → xanh. Commit `docs(scripts): ngưỡng p95 smoke directions theo số đo production`.
+
+- [ ] **Step 4: Evidence production**
+
+`docs/evidence/routing/2026-09-XX-nghiem-thu-production.md`: bảng smoke (dán `console.table`), output `/healthz/routing`, `schema_migration`, ID các run CI (Task 16), kích cỡ core gzip (Task 3), kết quả `pnpm test:routing` (số test, thời gian build graph fixture). Commit `docs(evidence): nghiệm thu production chỉ đường spec A`.
 
 ---
 
-## Task 18: Nghiệm thu spec A, DEVLOG, trạng thái mốc
+## Task 19: Nghiệm thu spec A, DEVLOG, trạng thái mốc
 
-- [ ] **Step 1: Đối chiếu bảng nghiệm thu spec mục 11** — từng dòng 1–7 có bằng chứng (file evidence, số test, commit). Dòng nào chưa đạt: ghi rõ "CHƯA ĐẠT + lý do" thay vì tick.
+- [ ] **Step 1: Đối chiếu bảng nghiệm thu spec mục 11** — từng dòng 1–7 có bằng chứng (file evidence, số test, commit). Dòng nào chưa đạt: ghi "CHƯA ĐẠT + lý do", không tick.
 
 - [ ] **Step 2: DEVLOG**
 
 `docs/DEVLOG.md`:
 - Mục 1 thêm bullet đầu: `**YYYY-MM-DD — Chỉ đường spec A phát hành.** Valhalla 3.8.3 trên máy chủ (graph VN build … phút, RAM đỉnh … GB, tar … MB), Worker `GET /v1/directions` + `/healthz/routing`, core `client.directions()`/polyline6/ManeuverKind (barrel … kB gzip, trần … kB), quota nhóm `directions`, migration 0012, test tích hợp `pnpm test:routing` (… test, graph fixture build … s) và workflow Routing tests, smoke production 4 tuyến p95 … ms. Evidence: `docs/evidence/routing/`. **Bắt đầu tiếp:** spec B (logic dẫn đường trong core + SDK web).`
 - Mục 2 thêm: `- **Dẫn đường:** spec A đóng …; bước kế tiếp là brainstorm spec B (`RouteProvider`, máy trạng thái dẫn đường, GPS web). Spec C (React Native) sau B.`
-- Mục 3 thêm các dòng quyết định phát sinh (ngày, quyết định, lý do, commit): (a) `use_tiles_ignore_pbf=True` + dời tar/xoá tile dir thay cho hash vì image băm tên file; (b) `loadAuth` đọc cột mới qua `to_jsonb` để deploy độc lập migration; (c) `/status` không verbose; (d) workflow Routing tests riêng vì job DB tests không có Docker; (e) fixture Q1 dùng lại; (f) size-limit core nâng lên 12 kB (nếu có); (g) `costing_options.motor_scooter.use_highways` (nếu phải thêm ở Task 17).
+- Mục 3 thêm các dòng quyết định phát sinh (ngày, quyết định, lý do, commit): (a) `use_tiles_ignore_pbf=True` + dời tar/xoá tile dir thay cho hash vì image băm tên file; (b) `loadAuth` đọc cột mới qua `to_jsonb` để deploy độc lập migration; (c) `/status` không verbose; (d) workflow Routing tests riêng vì job DB tests không có Docker; (e) fixture Q1 dùng lại; (f) size-limit core nâng lên 12 kB (nếu có); (g) `costing_options.motor_scooter.use_highways` (nếu phải thêm ở Task 18); (h) header Access chỉ gửi qua https, `redirect: 'manual'`, mọi status ngoài 400 của Valhalla → 503; (i) image ghim digest; (j) `mem_limit`/`PG_SHARED_BUFFERS` theo số đo Task 17.
 - Mục 4 thêm một dòng mỗi task: `YYYY-MM-DD · Dẫn đường A T<n> · <việc> · <commit>`.
 
 - [ ] **Step 3: Spec A** — sửa dòng "Trạng thái" đầu file thành `Đã phát hành YYYY-MM-DD; nghiệm thu mục 11 …/7 (xem docs/evidence/routing/)`.
@@ -3570,20 +3658,30 @@ git push origin main
 |---|---|
 | 4.1 compose service, 4.3 run.sh, 4.4 prepare/rollback/status | 12 |
 | 4.2 server:setup build lần đầu; data:update/rollback | 13 |
-| 4.5 việc tay Cloudflare | 15 (README), 16 (thực hiện) |
+| 4.5 việc tay Cloudflare | 15 (README), 17 (thực hiện) |
 | 5.1 tham số, giới hạn, body Valhalla | 5, 6 |
 | 5.2 schema, ánh xạ kind, nối shape, waypoints, engine.graph | 2, 7, 8 |
 | 5.3 lỗi | 6, 8 |
 | 5.4 cache | 5 (khoá), 8 |
 | 5.5 quota, migration 0012, `--quota-directions`, loadAuth to_jsonb | 4, 9 |
 | 5.6 /healthz/routing | 8 |
-| 5.7 biến môi trường/secret | 4, 15, 16 |
+| 5.7 biến môi trường/secret | 4, 15, 17 |
 | 6 core: types, client, polyline, maneuver | 1, 2, 3 |
 | 7.1 unit Worker | 5, 6, 7, 8 |
 | 7.2 core test | 1, 2, 3 |
 | 7.3 fixture Q1, test:routing, workflow riêng, capture | 10, 11 |
-| 7.4 smoke production, p95 | 14, 17 |
-| 7.5 checklist kịch bản bọc | 16 |
-| 8 docs, notices, README máy chủ, evidence | 15, 16, 17 |
-| 9 rủi ro RAM/size-limit/highway | 3, 16, 17 |
-| 11 nghiệm thu, 12 việc tay PHONG | 16, 17, 18 |
+| 7.4 smoke production, p95 | 14, 18 |
+| 7.5 checklist kịch bản bọc | 17 |
+| 8 docs, notices, README máy chủ, evidence | 15, 17, 18 |
+| 9 rủi ro RAM/size-limit/highway/Docker Desktop | 3, 17, 18 |
+| 11 nghiệm thu, 12 việc tay PHONG | 16, 17, 18, 19 |
+
+## Bảo mật — điểm đã rà (10/09/2026)
+
+- Worker chỉ gọi hai đường dẫn cố định `/route`, `/status` trên `ROUTING_BASE`; đầu vào người dùng chỉ vào body JSON dưới dạng số đã validate và giá trị trong allow-list → không có SSRF/injection.
+- Service token Access nằm trong `wrangler secret`, chỉ gửi khi đích là https, không bao giờ ghi log; `redirect: 'manual'` để Access 302 không kéo Worker tới URL lạ.
+- Valhalla không mở `ports:`; đường vào duy nhất là Tunnel + Access application (tạo Access **trước** hostname). Dev compose chỉ bind `127.0.0.1`.
+- Image ghim digest; graph build từ PBF Geofabrik đã kiểm md5 (pipeline có sẵn); `default_speeds.json` tải từ GitHub OpenStreetMapSpeeds lần đầu (đầu vào ngoài duy nhất của build — chấp nhận, ghi ở đây).
+- `/v1/directions` bắt buộc khoá; quota ngày riêng cho plan free; burst 60/phút/khoá+IP dùng chung. `/healthz/routing` không cần khoá và gọi `/status` (rẻ) — cùng mô hình `/healthz/db`.
+- Toạ độ `from/to` của người dùng cuối nằm trong URL nên xuất hiện trong log Workers (như `/v1/nearby`, `/v1/reverse` hiện tại); Analytics Engine chỉ ghi pathname. Không ghi thêm gì mới.
+- Việc CHƯA làm, chờ PHONG quyết (xem thông điệp review 10/09): khoá `web` plan `internal` (khoá demo docs) không bị quota ngày → có thể bị lấy làm backend routing miễn phí; cân nhắc limiter burst riêng cho directions.

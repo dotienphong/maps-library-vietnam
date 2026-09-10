@@ -106,7 +106,7 @@ Nguyên tắc: SDK **không bao giờ** gọi thẳng Valhalla; mọi thứ đi 
 
 Thêm vào `infra/server/compose.yml`:
 
-- `image: ghcr.io/valhalla/valhalla-scripted:3.8.3` (bản phát hành 25/07/2026, mới nhất lúc viết spec).
+- `image: ghcr.io/valhalla/valhalla-scripted:3.8.3@sha256:24ef7955899dececb94e26c6dfb89d64fabfae875f980432694b0261eb6c251b` (bản phát hành 25/07/2026, mới nhất lúc viết spec; ghim digest để tag bị đẩy lại không đổi được bản chạy).
 - `volumes: valhalla-data:/custom_files` và `./valhalla/run.sh:/opt/mapslibvn/run.sh:ro`.
 - `entrypoint: ["/bin/bash", "/opt/mapslibvn/run.sh"]` (kịch bản bọc, mục 4.3; phải ghi đè `entrypoint`, không phải `command`, vì ENTRYPOINT gốc của image nhận `command` làm tham số).
 - `environment`: `serve_tiles=True`, `use_tiles_ignore_pbf=True` (mặc định: có tar thì phục vụ ngay; build lại do mục 4.4 kích hoạt bằng cách dời tar và xoá thư mục tile), `force_rebuild=False`, `server_threads=4`, `build_elevation=False`, `build_admins=True`, `build_time_zones=True`, `build_tar=True`, `tileset_name=valhalla_tiles`.
@@ -131,7 +131,7 @@ Lý do: entrypoint gốc chỉ kiểm tra hash PBF **lúc khởi động**; pipe
 3. Thấy cờ: xoá cờ, gửi TERM cho tiến trình entrypoint và `valhalla_service`, chờ thoát, quay lại bước 1. Entrypoint thấy hash PBF đổi thì build lại rồi phục vụ; không đổi thì phục vụ ngay (trường hợp rollback, mục 4.4).
 4. Ghi log ra stdout theo dạng `[run.sh] …` để `docker compose logs valhalla` đọc được.
 
-Kịch bản ~40 dòng bash. Không viết test tự động cho nó; kiểm bằng checklist tay trong plan (tạo cờ, xem log, `/status` quay lại 200). Nếu entrypoint thoát mà **không** có cờ (build lỗi, crash), kịch bản thoát cùng mã lỗi để Docker `restart: unless-stopped` khởi động lại. Nếu entrypoint gốc không hợp tác (ví dụ không tôn trọng TERM hoặc ghi hash ở chỗ khác), phương án dự phòng là `tecnativa/docker-socket-proxy` chỉ cho phép `POST /containers/{id}/restart` — quyết định ở plan nếu rơi vào ca này, ghi DEVLOG.
+Kịch bản ~45 dòng bash. Không viết test tự động cho nó; kiểm bằng checklist tay trong plan (tạo cờ, xem log, `/status` quay lại 200). Entrypoint chạy qua `setsid` và bị dừng theo **cả nhóm tiến trình**, để cờ tới giữa lúc build không để sót `valhalla_build_tiles` chạy mồ côi (hai build chồng nhau làm hỏng graph). Nếu entrypoint thoát mà **không** có cờ (build lỗi, OOM), kịch bản ngủ 10 phút rồi thoát cùng mã lỗi để Docker `restart: unless-stopped` khởi động lại — tránh vòng lặp build liên tục; quay về graph cũ bằng `rollback` (mục 4.4). Nếu entrypoint gốc không hợp tác (ví dụ không tôn trọng TERM hoặc ghi hash ở chỗ khác), phương án dự phòng là `tecnativa/docker-socket-proxy` chỉ cho phép `POST /containers/{id}/restart` — quyết định ở plan nếu rơi vào ca này, ghi DEVLOG.
 
 ### 4.4 Cập nhật và rollback
 
@@ -150,9 +150,9 @@ Trong lúc build (vài chục phút), `valhalla_service` không chạy → Worke
 
 ### 4.5 Việc tay trên Cloudflare (ghi vào `infra/server/README.md`)
 
-1. Zero Trust → Networks → Tunnels → `mapslibvn-db` → Public Hostname → Add: subdomain `maps-route`, domain `<domain>`, Service type **HTTP**, URL `valhalla:8002`.
-2. Access → Service Auth → Create Service Token `routing` (thời hạn dài nhất) → lưu Client ID/Secret.
-3. Access → Applications → Add → Self-hosted `mapslibvn-route`, domain `maps-route.<domain>` → Policy Service Auth, include Service Token `routing`.
+1. Access → Service Auth → Create Service Token `routing` (thời hạn dài nhất) → lưu Client ID/Secret. Token hết hạn → `/healthz/routing` 503, log Worker `valhalla 403` → tạo token mới, đặt lại secret.
+2. Access → Applications → Add → Self-hosted `mapslibvn-route`, domain `maps-route.<domain>` → Policy Service Auth, include Service Token `routing`.
+3. **Chỉ sau khi có Access application:** Zero Trust → Networks → Tunnels → `mapslibvn-db` → Public Hostname → Add: subdomain `maps-route`, domain `<domain>`, Service type **HTTP**, URL `valhalla:8002`. Làm ngược thứ tự là Valhalla công khai trên Internet trong lúc chưa có Access.
 4. `wrangler secret put ROUTING_ACCESS_CLIENT_ID --env production`, `wrangler secret put ROUTING_ACCESS_CLIENT_SECRET --env production`; `ROUTING_BASE=https://maps-route.<domain>` vào `vars` production trong `wrangler.toml`.
 5. Kiểm: `curl -H "CF-Access-Client-Id: …" -H "CF-Access-Client-Secret: …" https://maps-route.<domain>/status` trả JSON; không header → 403 từ Access.
 
@@ -233,7 +233,7 @@ Tham số `costing_options` bản đầu để mặc định Valhalla; tinh ch�
     }
   ],
   "waypoints": [
-    { "location": [106.7, 10.776], "snapped": [106.7002, 10.7761], "name": "Lê Lợi" }
+    { "location": [106.7, 10.776], "snapped": [106.7002, 10.7761], "name": null }
   ],
   "attribution": "© OpenStreetMap contributors",
   "engine": { "name": "valhalla", "graph": "2026-09-15" }
@@ -277,9 +277,9 @@ Quy ước:
 | Tình huống | HTTP | `code` | Ghi chú |
 |---|---|---|---|
 | Thiếu/sai tham số, ngoài hộp VN, vượt khoảng cách, quá điểm | 400 | `invalid_request` | message nói rõ giới hạn |
-| Valhalla HTTP 400 với `error_code` 442 (không có đường), 170/171 (vùng không kết nối, điểm quá xa mạng đường) | 404 | `no_route` | `message` tiếng Việt phân biệt hai ca; không thêm trường mới vào body lỗi |
-| Valhalla 4xx khác (154 vượt max distance của engine, v.v.) | 400 | `invalid_request` | message ghi mã Valhalla, không lộ message thô; log server có |
-| Valhalla không trả lời, timeout 10 s, 5xx, Access 403 (secret sai), đang build, chưa cấu hình `ROUTING_BASE` | 503 | `upstream_unavailable` | `retry-after: 30` (đã có sẵn trong `errorResponse`) |
+| Valhalla HTTP 400 với `error_code` 442/441 (không có đường, điểm không tới được), 170/171 (vùng không kết nối, điểm quá xa mạng đường) | 404 | `no_route` | `message` tiếng Việt phân biệt hai ca; không thêm trường mới vào body lỗi |
+| Valhalla HTTP 400 khác (154 vượt max distance của engine, v.v.) | 400 | `invalid_request` | message ghi mã Valhalla, không lộ message thô; log server có |
+| Valhalla không trả lời, timeout 10 s, body không phải JSON, mọi HTTP status khác 400 (302 redirect Access, 401/403 token sai hoặc hết hạn, 404/405 sai đường dẫn, 5xx), đang build, chưa cấu hình `ROUTING_BASE` | 503 | `upstream_unavailable` | `retry-after: 30` (đã có sẵn trong `errorResponse`); chỉ HTTP 400 mới là lỗi của người gọi |
 | Quota ngày / burst | 429 | `quota_exceeded` / `rate_limit_exceeded` | cơ chế sẵn có |
 
 `no_route` là mã lỗi mới trong `apps/api/src/errors.ts` và trong bảng lỗi docs `api.md` mục 2.
@@ -303,7 +303,8 @@ Không cần khoá (như `/healthz/db`). Gọi `{ROUTING_BASE}/status` (không v
 
 - `ROUTING_BASE: string` (var; dev `http://localhost:8002`, production `https://maps-route.<domain>`).
 - `ROUTING_ACCESS_CLIENT_ID?`, `ROUTING_ACCESS_CLIENT_SECRET?` (secret production; vắng cả hai → gọi không header, dành cho dev/test).
-- Vắng `ROUTING_BASE` → `/v1/directions` trả `503 upstream_unavailable` "Chưa cấu hình routing", `/healthz/routing` trả `{ ok:false, configured:false }` 503. API còn lại không ảnh hưởng.
+- Vắng `ROUTING_BASE` → `/v1/directions` và `/healthz/routing` trả `503 upstream_unavailable` "Chưa cấu hình routing". API còn lại không ảnh hưởng.
+- Header Access **chỉ gửi khi `ROUTING_BASE` là https** (không bao giờ đưa service token qua http dù cấu hình nhầm); fetch tới Valhalla dùng `redirect: 'manual'` để 302 của Access không kéo Worker tới URL khác rồi parse HTML.
 
 ## 6. Gói core (`packages/core`)
 
@@ -385,7 +386,7 @@ Bảng ánh xạ `ManeuverKind` (mục 5.2) đặt ở core (`maneuver.ts`, `VAL
 1. **Unit Worker** (`apps/api/test`, vitest, không cần dịch vụ ngoài theo quy tắc test API không được cần Postgres): fixture JSON Valhalla ghi sẵn cho ba mode + một ca `alternates` + ca lỗi 442/171/154; test `translate()` (ánh xạ kind, nối shape và dịch chỉ số, làm tròn, bbox, waypoints), validate tham số (hộp VN, khoảng cách theo mode, số điểm), ánh xạ lỗi, khoá cache chuẩn hoá, header Access chỉ gửi khi có secret, timeout → 503. Mock `fetch` bằng `vi.stubGlobal`.
 2. **Core**: `decodePolyline6` với chuỗi đã biết; `directions()` ghép tham số đúng (`[lat,lng]` → `lat,lng`).
 3. **Fixture PBF Quận 1 có sẵn** `pipelines/poi/fixtures/q1.osm.pbf` (mục 2), không cắt mới. `infra/dev/compose.yml` thêm service `valhalla` (profile `routing`, không bật mặc định) đọc thư mục `work/valhalla-dev/` (gitignore) mà script chép fixture vào → build graph mini vài phút. Script `scripts/routing-test.mjs` (`pnpm test:routing`): dựng compose profile, chờ `/status`, chạy `wrangler dev` với `ROUTING_BASE` trỏ container và khoá test seed vào KV local, rồi chạy bộ `apps/api/test-routing/*.rtest.mjs`: tuyến Nhà thờ Đức Bà → Chợ Bến Thành cho cả 3 mode, kiểm `routes[0].distance_m` trong khoảng, `steps[0].kind = depart`, bước cuối `arrive`, câu `instruction` có dấu tiếng Việt, điểm ngoài Quận 1 → `404 no_route`, `/healthz/routing` trả `graph_built_at`. Cờ `--capture` ghi JSON Valhalla thô làm fixture `apps/api/test/fixtures/valhalla/q1-motorbike.json` cho unit test. Trên CI chạy trong **workflow riêng `Routing tests`** trên `ubuntu-latest` (job DB tests chạy trong container image pipeline nên không có Docker), kích hoạt khi chạm mã routing hoặc chạy tay; **không** đưa vào job CI nhanh.
-4. **Smoke production** `scripts/smoke-directions.mjs` (`pnpm smoke:directions`): ba tuyến cố định — nội thành TP.HCM xe máy (~10 km), liên tỉnh TP.HCM → Cần Thơ ô tô, đi bộ 2 km quanh Hồ Gươm; in `distance_m`, `duration_s`, số bước, thời gian phản hồi; lần đầu chạy 20 lượt để lấy p95 ghi vào evidence, sau đó ngưỡng p95 ghi cứng vào script (đo rồi mới chốt số, không đoán).
+4. **Smoke production** `scripts/smoke-directions.mjs` (`pnpm smoke:directions`): bốn tuyến cố định — nội thành TP.HCM xe máy (~8 km), liên tỉnh xe máy TP.HCM → Vũng Tàu (kiểm `flags.highway = false`), liên tỉnh ô tô TP.HCM → Cần Thơ, đi bộ ~2,5 km Hồ Gươm → Lăng Bác; in `distance_m`, số lượt lỗi, cờ highway, có dấu tiếng Việt, p95; lần đầu chạy 20 lượt để lấy p95 ghi vào evidence, sau đó ngưỡng p95 ghi vào script (đo rồi mới chốt số, không đoán); production bắt buộc `--confirm-production`.
 5. **Kịch bản bọc**: kiểm tay theo checklist trong plan: tạo cờ → log "reload" → `/status` không trả lời → build → 200; rollback → `/healthz/routing` trả `graph_built_at` cũ và `routing-graph.mjs status` trả `pbfDate` cũ.
 
 ## 8. Docs, thông báo bên thứ ba, attribution
@@ -409,6 +410,9 @@ Bảng ánh xạ `ManeuverKind` (mục 5.2) đặt ở core (`maneuver.ts`, `VAL
 | Đo ở dev rồi kết luận (bài học tìm kiếm) | Mọi ngưỡng p95 và RAM chốt bằng số đo production, ghi evidence |
 | Worker deploy trước migration 0012 | `loadAuth` đọc cột qua `to_jsonb(k) ->> …` nên không phụ thuộc thứ tự (mục 5.5); vẫn đối chiếu `/healthz/db` sau `server:update` |
 | Gói core vượt trần size-limit 10 kB gzip (hiện 9,5 kB) khi thêm polyline + bảng maneuver | Nâng trần lên 12 kB trong `.size-limit.json` kèm ghi DEVLOG; đo lại sau build |
+| Build graph lỗi/OOM → Docker khởi động lại và build lại liên tục | `run.sh` ngủ 10 phút trước khi thoát; `rollback` quay về tar cũ; xem log trước khi build lại |
+| Máy chủ là macOS: container chạy trong VM Docker Desktop, RAM của VM (không phải 16 GB của máy) mới là trần thật cho Postgres + Valhalla | Kiểm `docker info` MemTotal ≥ 12 GB trước khi build lần đầu; chỉnh Settings → Resources; hạ `PG_SHARED_BUFFERS` nếu VM nhỏ |
+| Khoá `web` của tenant plan `internal` (khoá demo trong docs/playground) công khai trong HTML và không có quota ngày → người ngoài dùng làm backend chỉ đường miễn phí | **Chờ PHONG quyết** (review 10/09): áp quota ngày `directions` cho mọi khoá `web`/`mobile` kể cả plan internal, hoặc chuyển tenant demo sang plan `free`, hoặc thêm limiter burst riêng 20 request/phút cho directions |
 
 ## 10. Đường nâng cấp đã dự trù
 
