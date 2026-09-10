@@ -14,11 +14,19 @@ commit với code).
   hạ tầng hoặc lỗi 4xx bất ngờ; production bắt buộc `--confirm-production`, khoá chỉ đọc từ biến
   môi trường để không lộ trong process list. TDD: quota/burst 6 test và load harness 4 test xanh;
   root 83 file/984 test, API 27 file/188 test, typecheck 14/14 và build 8/8 xanh. Wrangler production
-  dry-run nhận đúng binding `PLACES_RATE_LIMITER (60 requests/60s)`. **Chưa deploy ở checkpoint
-  này; cần commit/push hoặc direct deploy có source được ghi nhận.** Baseline trước deploy tự dừng:
+  dry-run nhận đúng binding `PLACES_RATE_LIMITER (60 requests/60s)`. Commit `a4f0b5e` đã push lên
+  `origin/main`; direct deploy ban đầu là Worker version
+  `274e8d14-87bc-4858-982f-3af75560769e`. Health và autocomplete có auth đều trả 200 trên
+  production. Baseline trước deploy tự dừng:
   10 VU đạt 10/10, p95 5.738 ms;
   25 VU đạt 25/25, p95 5.921 ms; 50 VU chỉ 42/50, p95 chạm timeout 10 giây; không chạy 100 VU.
   Vì vậy chưa được cam kết quá 25 Places request cold đồng thời, và p95 cold vẫn là rủi ro cần tối ưu.
+  **Burst gate chưa đạt:** 75 request có nhịp vẫn không có 429; hạ tạm ngưỡng xuống 1/phút và đổi
+  namespace riêng cũng vẫn trả 400 validation. Tail xác nhận custom domain chạy đúng
+  `mapslibvn-api-production` và actor hash ổn định. Đã bỏ log chẩn đoán, khôi phục 60/phút và giữ
+  namespace riêng `20260910`; chưa được quảng bá native binding này là chống spam đã nghiệm thu.
+  **Bắt đầu tiếp:** thay bằng cơ chế có tính nhất quán mạnh (Durable Object) hoặc Cloudflare WAF
+  rate-limit rule, rồi bắt buộc thấy 429 + `Retry-After: 60` trên production trước khi đóng gate.
 
 - **09/09/2026 — Một lệnh phát hành toàn bộ SDK npm.** Root có `pnpm sdk:publish`: chạy lint,
   typecheck, test, build, dry-run đủ bốn package rồi publish tuần tự core → web → react →

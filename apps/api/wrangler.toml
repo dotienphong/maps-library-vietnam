@@ -44,5 +44,5 @@ kv_namespaces = [{ binding = "META", id = "a50e778ff63a4ad7956f783eba456ed5" }]
 r2_buckets = [{ binding = "TILES", bucket_name = "mapslibvn-tiles" }]
 hyperdrive = [{ binding = "DB", id = "71d7a62b89e9462e91bb0094af1f750f" }]
 analytics_engine_datasets = [{ binding = "ANALYTICS", dataset = "mapslibvn_api" }]
-ratelimits = [{ name = "PLACES_RATE_LIMITER", namespace_id = "1001", simple = { limit = 60, period = 60 } }]
+ratelimits = [{ name = "PLACES_RATE_LIMITER", namespace_id = "20260910", simple = { limit = 60, period = 60 } }]
 assets = { directory = "../admin/dist" }
