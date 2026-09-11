@@ -25,11 +25,32 @@ import {
 } from './routing-graph.mjs';
 
 const SCRIPT = resolve(import.meta.dirname, '../routing-graph.mjs');
-const RUN_SH = resolve(import.meta.dirname, '../../infra/server/valhalla/run.sh');
+// bash trên Windows (MSYS/Git Bash) tự tách lại command line theo quy tắc POSIX và nuốt mất
+// dấu '\' — path kiểu Windows truyền cho spawn('bash', [...]) phải dùng '/' mới sống sót.
+const RUN_SH = resolve(import.meta.dirname, '../../infra/server/valhalla/run.sh').replaceAll(
+  '\\',
+  '/',
+);
 const SERVER_COMPOSE = resolve(import.meta.dirname, '../../infra/server/compose.yml');
 const DEV_COMPOSE = resolve(import.meta.dirname, '../../infra/dev/compose.yml');
 const HAS_FLOCK = spawnSync('flock', ['--version']).status === 0;
 const HAS_LINUX_LIFECYCLE_TOOLS = HAS_FLOCK && spawnSync('setsid', ['--version']).status === 0;
+// 'bash' trong PATH trên Windows là ngõ cụt: máy có cài WSL thì C:\Windows\System32\bash.exe
+// (launcher WSL, không hiểu path 'D:/...') có thể đứng trước Git Bash tuỳ thứ tự PATH của
+// từng shell/terminal — resolve status===0 với CẢ HAI nên không thể phân biệt bằng cách đó.
+// Ở đây trỏ thẳng vào bash.exe của Git for Windows (bash thật sự hiểu path kiểu ổ đĩa Windows).
+const BASH_BIN =
+  process.platform === 'win32'
+    ? [
+        process.env.MAPSLIBVN_GIT_BASH,
+        process.env.ProgramFiles && `${process.env.ProgramFiles}\\Git\\bin\\bash.exe`,
+        process.env['ProgramFiles(x86)'] && `${process.env['ProgramFiles(x86)']}\\Git\\bin\\bash.exe`,
+        process.env.LOCALAPPDATA && `${process.env.LOCALAPPDATA}\\Programs\\Git\\bin\\bash.exe`,
+      ]
+        .filter(Boolean)
+        .find((candidate) => existsSync(candidate)) ?? 'bash'
+    : 'bash';
+const HAS_BASH = spawnSync(BASH_BIN, ['--version']).status === 0;
 /** @type {string[]} */
 const temporaryDirectories = [];
 
@@ -364,14 +385,16 @@ describe('validation boundary', () => {
     expect(existsSync(resolve(state.graph, 'reload.failed'))).toBe(false);
   });
 
-  it('run.sh từ chối mọi timeout không phải số nguyên dương trước khi chạy entrypoint', () => {
+  it.runIf(HAS_BASH)('run.sh từ chối mọi timeout không phải số nguyên dương trước khi chạy entrypoint', () => {
     for (const [name, value] of /** @type {[string, string][]} */ ([
       ['RELOAD_POLL_SECONDS', '0'],
       ['RELOAD_POLL_SECONDS', 'abc'],
       ['FAIL_SLEEP_SECONDS', '-1'],
       ['STOP_GRACE_SECONDS', '0'],
     ])) {
-      const result = spawnSync('/bin/bash', [RUN_SH], {
+      // Validation ở đây (positive_integer) chạy trước bước check flock trong run.sh,
+      // nên chỉ cần bash là đủ — không cần flock/setsid như các test dưới "Valhalla wrapper race contract".
+      const result = spawnSync(BASH_BIN, [RUN_SH], {
         encoding: 'utf8',
         env: { ...process.env, [name]: value },
       });
@@ -730,7 +753,7 @@ describe('Valhalla wrapper race contract', () => {
       );
       await waitFor(() => existsSync(pause));
 
-      const wrapper = spawn('/bin/bash', [RUN_SH], {
+      const wrapper = spawn(BASH_BIN, [RUN_SH], {
         env: {
           ...process.env,
           CUSTOM_FILES: state.graph,
@@ -775,7 +798,7 @@ describe('Valhalla wrapper race contract', () => {
         { stdio: ['ignore', 'pipe', 'ignore'] },
       );
       const port = await firstLine(hangingReady.stdout);
-      const wrapper = spawn('/bin/bash', [RUN_SH], {
+      const wrapper = spawn(BASH_BIN, [RUN_SH], {
         env: {
           ...process.env,
           CUSTOM_FILES: state.graph,

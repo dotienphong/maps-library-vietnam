@@ -56,7 +56,11 @@ async function md5(file) {
 
 /** @param {string} target */
 function syncPath(target) {
-  const descriptor = openSync(target, 'r');
+  // Trên Windows, FlushFileBuffers (fsync) đòi hỏi handle mở có quyền ghi, nên
+  // fd mở 'r' (read-only) luôn báo EPERM — kể cả với file lẫn thư mục. Trên
+  // POSIX (container production), thư mục chỉ mở được ở chế độ read-only nên
+  // vẫn phải dùng 'r'.
+  const descriptor = openSync(target, process.platform === 'win32' ? 'r+' : 'r');
   try {
     fsyncSync(descriptor);
   } finally {

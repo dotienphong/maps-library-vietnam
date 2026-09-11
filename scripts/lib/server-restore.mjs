@@ -1,4 +1,7 @@
-import { resolve } from 'node:path';
+import { resolve, sep } from 'node:path';
+
+/** @param {string} path */
+const toPosixPath = (path) => path.split(sep).join('/');
 
 export const SERVER_RESTORE_REQUIRED_ENV = [
   'POSTGRES_SUPER_PASSWORD',
@@ -24,7 +27,7 @@ export function serverRestoreRun(env) {
       '--env-file',
       'infra/server/.env',
       '-f',
-      resolve('infra/server/compose.yml'),
+      toPosixPath(resolve('infra/server/compose.yml')),
       'run',
       '--rm',
       '-e',
