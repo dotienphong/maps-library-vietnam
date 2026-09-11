@@ -2522,7 +2522,7 @@ Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>"
 - Modify (nếu test lộ lỗi): `packages/core/src/navigation/navigator.ts`
 - Verify: `packages/core/dist` size, `pnpm typecheck` toàn repo (gồm react-native dùng core)
 
-- [ ] **Step 1: Viết test thất bại/đỏ-xanh cho reroute**
+- [x] **Step 1: Viết test thất bại/đỏ-xanh cho reroute**
 
 Tạo `packages/core/src/navigation/navigator.reroute.test.ts`:
 
@@ -2710,17 +2710,17 @@ describe('createNavigator — reroute auto', () => {
 });
 ```
 
-- [ ] **Step 2: Chạy test**
+- [x] **Step 2: Chạy test**
 
 Run: `pnpm exec vitest run packages/core/src/navigation/navigator.reroute.test.ts`
 Expected: PASS nếu Task 9 viết đúng. Ca dễ đỏ: "cooldown" — nếu chỉ có một lần gọi trong 40 fix (200 s) thì `maybeAutoReroute` bị chặn bởi `rerouteAttempts` hay `inflight` không được reset sau khi provider thành công; sửa ở `runReroute` (đặt `inflight = false` trước khi kiểm token).
 
-- [ ] **Step 3: Kiểm barrel, size và typecheck toàn repo**
+- [x] **Step 3: Kiểm barrel, size và typecheck toàn repo**
 
 Run: `pnpm --filter @mapslibvn/core build && pnpm typecheck && pnpm exec vitest run packages/core`
 Expected: size-limit in số gzip của `dist/index.js` (kỳ vọng 13–15 kB, dưới 16 kB); typecheck xanh kể cả `packages/react-native` (import core). Ghi số gzip vào commit.
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add packages/core/src/navigation

@@ -156,8 +156,8 @@ export function createNavigator(opts: NavigatorOptions): Navigator {
       if (token !== rerouteToken || status !== 'rerouting') return;
       rerouteAttempts = 0;
       applyRoute(next, 0);
-      setStatus('navigating');
       emit('reroute', { reason, response: next });
+      setStatus('navigating');
     } catch (error) {
       inflight = false;
       if (token !== rerouteToken) return;
