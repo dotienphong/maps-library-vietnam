@@ -2,9 +2,9 @@
 // DB cô lập → migrate → seed → Wrangler/Hyperdrive local → integration tests.
 import 'dotenv/config';
 import { spawn } from 'node:child_process';
-import crossSpawn from 'cross-spawn';
 import { existsSync, rmSync } from 'node:fs';
 import { readFile } from 'node:fs/promises';
+import crossSpawn from 'cross-spawn';
 import postgres from 'postgres';
 import { CERTS_PORT, FAKE_AUD } from './lib/access-fake.mjs';
 import { DBTEST_DATABASE, isolatedDbUrl } from './lib/db-test.mjs';

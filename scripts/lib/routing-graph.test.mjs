@@ -41,14 +41,15 @@ const HAS_LINUX_LIFECYCLE_TOOLS = HAS_FLOCK && spawnSync('setsid', ['--version']
 // Ở đây trỏ thẳng vào bash.exe của Git for Windows (bash thật sự hiểu path kiểu ổ đĩa Windows).
 const BASH_BIN =
   process.platform === 'win32'
-    ? [
+    ? ([
         process.env.MAPSLIBVN_GIT_BASH,
         process.env.ProgramFiles && `${process.env.ProgramFiles}\\Git\\bin\\bash.exe`,
-        process.env['ProgramFiles(x86)'] && `${process.env['ProgramFiles(x86)']}\\Git\\bin\\bash.exe`,
+        process.env['ProgramFiles(x86)'] &&
+          `${process.env['ProgramFiles(x86)']}\\Git\\bin\\bash.exe`,
         process.env.LOCALAPPDATA && `${process.env.LOCALAPPDATA}\\Programs\\Git\\bin\\bash.exe`,
       ]
-        .filter(Boolean)
-        .find((candidate) => existsSync(candidate)) ?? 'bash'
+        .filter((candidate) => candidate !== undefined)
+        .find((candidate) => existsSync(candidate)) ?? 'bash')
     : 'bash';
 const HAS_BASH = spawnSync(BASH_BIN, ['--version']).status === 0;
 /** @type {string[]} */
@@ -385,23 +386,26 @@ describe('validation boundary', () => {
     expect(existsSync(resolve(state.graph, 'reload.failed'))).toBe(false);
   });
 
-  it.runIf(HAS_BASH)('run.sh từ chối mọi timeout không phải số nguyên dương trước khi chạy entrypoint', () => {
-    for (const [name, value] of /** @type {[string, string][]} */ ([
-      ['RELOAD_POLL_SECONDS', '0'],
-      ['RELOAD_POLL_SECONDS', 'abc'],
-      ['FAIL_SLEEP_SECONDS', '-1'],
-      ['STOP_GRACE_SECONDS', '0'],
-    ])) {
-      // Validation ở đây (positive_integer) chạy trước bước check flock trong run.sh,
-      // nên chỉ cần bash là đủ — không cần flock/setsid như các test dưới "Valhalla wrapper race contract".
-      const result = spawnSync(BASH_BIN, [RUN_SH], {
-        encoding: 'utf8',
-        env: { ...process.env, [name]: value },
-      });
-      expect(result.status).not.toBe(0);
-      expect(result.stderr).toContain(`${name} phải là số nguyên dương`);
-    }
-  });
+  it.runIf(HAS_BASH)(
+    'run.sh từ chối mọi timeout không phải số nguyên dương trước khi chạy entrypoint',
+    () => {
+      for (const [name, value] of /** @type {[string, string][]} */ ([
+        ['RELOAD_POLL_SECONDS', '0'],
+        ['RELOAD_POLL_SECONDS', 'abc'],
+        ['FAIL_SLEEP_SECONDS', '-1'],
+        ['STOP_GRACE_SECONDS', '0'],
+      ])) {
+        // Validation ở đây (positive_integer) chạy trước bước check flock trong run.sh,
+        // nên chỉ cần bash là đủ — không cần flock/setsid như các test dưới "Valhalla wrapper race contract".
+        const result = spawnSync(BASH_BIN, [RUN_SH], {
+          encoding: 'utf8',
+          env: { ...process.env, [name]: value },
+        });
+        expect(result.status).not.toBe(0);
+        expect(result.stderr).toContain(`${name} phải là số nguyên dương`);
+      }
+    },
+  );
 });
 
 describe('transaction recovery', () => {
