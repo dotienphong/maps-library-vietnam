@@ -2739,7 +2739,7 @@ Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>"
 - Create: `packages/web/src/position-source.ts`
 - Test: `packages/web/src/position-source.test.ts`
 
-- [ ] **Step 1: Viết test thất bại**
+- [x] **Step 1: Viết test thất bại**
 
 ```ts
 // @vitest-environment jsdom
@@ -2865,12 +2865,12 @@ describe('playbackSource', () => {
 });
 ```
 
-- [ ] **Step 2: Chạy, xác nhận đỏ**
+- [x] **Step 2: Chạy, xác nhận đỏ**
 
 Run: `pnpm exec vitest run packages/web/src/position-source.test.ts`
 Expected: FAIL — không resolve `./position-source`.
 
-- [ ] **Step 3: Viết `position-source.ts`**
+- [x] **Step 3: Viết `position-source.ts`**
 
 ```ts
 import type { GeoFix, PositionError, PositionSource } from '@mapslibvn/core';
@@ -2973,12 +2973,12 @@ export function playbackSource(
 }
 ```
 
-- [ ] **Step 4: Chạy test**
+- [x] **Step 4: Chạy test**
 
 Run: `pnpm exec vitest run packages/web/src/position-source.test.ts && pnpm --filter @mapslibvn/web typecheck`
 Expected: PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add packages/web/src/position-source.ts packages/web/src/position-source.test.ts
@@ -2995,7 +2995,7 @@ Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>"
 - Create: `packages/web/src/speech.ts`
 - Test: `packages/web/src/speech.test.ts`
 
-- [ ] **Step 1: Viết test thất bại**
+- [x] **Step 1: Viết test thất bại**
 
 ```ts
 // @vitest-environment jsdom
@@ -3102,12 +3102,12 @@ describe('createSpeech', () => {
 });
 ```
 
-- [ ] **Step 2: Chạy, xác nhận đỏ**
+- [x] **Step 2: Chạy, xác nhận đỏ**
 
 Run: `pnpm exec vitest run packages/web/src/speech.test.ts`
 Expected: FAIL.
 
-- [ ] **Step 3: Viết `speech.ts`**
+- [x] **Step 3: Viết `speech.ts`**
 
 ```ts
 import type { DirectionsLang } from '@mapslibvn/core';
@@ -3211,12 +3211,12 @@ export function createSpeech(opts: SpeechOptions): Speech {
 }
 ```
 
-- [ ] **Step 4: Chạy test**
+- [x] **Step 4: Chạy test**
 
 Run: `pnpm exec vitest run packages/web/src/speech.test.ts && pnpm --filter @mapslibvn/web typecheck`
 Expected: PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add packages/web/src/speech.ts packages/web/src/speech.test.ts
