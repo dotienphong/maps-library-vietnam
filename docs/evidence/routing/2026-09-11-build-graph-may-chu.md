@@ -73,3 +73,32 @@ Kèm hai điều kiện, vì 3,67 GB là số của build ấm:
    chốt `mem_limit`. Con số hiện tại chưa chạm được đỉnh thật của pha `enhance`.
 
 Log `docker stats` 15 giây/mẫu: `build-stats.txt` (cùng thư mục).
+
+## Step 4 — mở đường Cloudflare (11/09/2026, 15:0x–15:2xZ)
+
+Đã dựng đủ bốn mắt xích, đúng thứ tự app trước hostname:
+
+| Mắt xích | Giá trị |
+|---|---|
+| Service token | `routing`, hạn 2126-08-18 |
+| Access application | `mapslibvn-route` → `maps-route.ai-solutions.io.vn`, AUD `a3b27379…` |
+| Policy | `routing-service-token`, decision `non_identity` (Service Auth), include service token `routing` |
+| Tunnel ingress | `maps-route.ai-solutions.io.vn → http://valhalla:8002` trên tunnel `mapslibvn-db` |
+| Secret Worker | `ROUTING_ACCESS_CLIENT_ID`, `ROUTING_ACCESS_CLIENT_SECRET` (`--env production`) |
+
+**Bẫy của dashboard Zero Trust bản mới: tạo policy xong chưa có nghĩa là app đã có policy.**
+Policy nay là đối tượng dùng chung, tạo ở màn hình riêng rồi mới gắn vào application. App
+`mapslibvn-route` đứng với `policies: []` một lúc, và **Access application không có policy nào thì
+chặn sạch**, kể cả service token đúng. Triệu chứng phía Worker y hệt lúc chưa có Tunnel:
+`/healthz/routing` trả `503 upstream_unavailable` — vì `apps/api/src/routing/valhalla.ts:132` quy mọi
+status ngoài 400 về cùng một lỗi, 403 của Access không phân biệt được với upstream chết. Dấu hiệu
+phân biệt nằm ở observability: `wallTimeMs` chỉ **4–18 ms** (bị chặn ngay) thay vì vài trăm ms
+(có gọi tới Valhalla). Sau khi gắn policy vào app:
+
+```
+GET https://api.ai-solutions.io.vn/healthz/routing
+{"ok":true,"version":"3.8.3","graph_built_at":"2026-09-11T14:40:19.000Z","ms":284}
+```
+
+`graph_built_at` khớp đúng graph đo ở "Lần 3" bên trên — chuỗi Worker → Access → Tunnel → Valhalla
+thông đầu-cuối. `/healthz/db` báo `schema_migration: 0012_api_key_quota_directions.sql`.
