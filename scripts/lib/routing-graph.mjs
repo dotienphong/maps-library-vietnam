@@ -9,6 +9,75 @@ export const GRAPH_FILES = {
   meta: 'graph.json',
 };
 
+export const PREPARE_FAULT_POINTS = [
+  'journaled',
+  'current-tar-staged',
+  'previous-tar-installed',
+  'previous-meta-installed',
+  'tiles-removed',
+  'pbf-installed',
+  'active-meta-installed',
+  'reload-written',
+];
+
+export const ROLLBACK_FAULT_POINTS = [
+  'journaled',
+  'current-tar-staged',
+  'previous-tar-activated',
+  'current-tar-stored',
+  'active-meta-installed',
+  'previous-meta-installed',
+  'reload-written',
+];
+
+/**
+ * @param {string[]} argv
+ * @returns {{ command: 'prepare' | 'rollback' | 'status', force: boolean }}
+ */
+export function parseRoutingGraphArgs(argv) {
+  if (argv.length === 1 && argv[0] === 'prepare') {
+    return { command: 'prepare', force: false };
+  }
+  if (argv.length === 2 && argv[0] === 'prepare' && argv[1] === '--force') {
+    return { command: 'prepare', force: true };
+  }
+  if (argv.length === 1 && (argv[0] === 'rollback' || argv[0] === 'status')) {
+    return { command: argv[0], force: false };
+  }
+  throw new Error('Dùng: routing-graph.mjs prepare [--force] | rollback | status');
+}
+
+/** @param {unknown} value @param {string} source @returns {GraphMeta} */
+export function parseGraphMeta(value, source) {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    throw new Error(`${source}: metadata graph không phải object`);
+  }
+  const record = /** @type {Record<string, unknown>} */ (value);
+  if (typeof record.pbfMd5 !== 'string' || !/^[a-f0-9]{32}$/.test(record.pbfMd5)) {
+    throw new Error(`${source}: pbfMd5 không phải MD5 hợp lệ`);
+  }
+  for (const field of ['pbfDate', 'requestedAt']) {
+    if (typeof record[field] !== 'string' || Number.isNaN(Date.parse(record[field]))) {
+      throw new Error(`${source}: ${field} không phải ngày ISO hợp lệ`);
+    }
+  }
+  let previous = null;
+  if (record.previous !== undefined && record.previous !== null) {
+    const parsed = parseGraphMeta(record.previous, `${source}.previous`);
+    previous = {
+      pbfMd5: parsed.pbfMd5,
+      pbfDate: parsed.pbfDate,
+      requestedAt: parsed.requestedAt,
+    };
+  }
+  return {
+    pbfMd5: record.pbfMd5,
+    pbfDate: /** @type {string} */ (record.pbfDate),
+    requestedAt: /** @type {string} */ (record.requestedAt),
+    previous,
+  };
+}
+
 /**
  * @param {{ hasSource: boolean, sourceMd5: string | null, currentMd5: string | null, hasTar: boolean, force: boolean }} s
  * @returns {{ action: 'error', reason: string } | { action: 'skip', reason: string } | { action: 'rebuild', keepPrev: boolean }}
