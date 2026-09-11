@@ -173,6 +173,19 @@ describe('translateDirections', () => {
 });
 
 describe('fixture Valhalla thật (Quận 1, capture bằng pnpm test:routing --capture)', () => {
+  it('lang=vi (mặc định) áp bảng cụm từ; lang=en giữ nguyên chữ Valhalla', () => {
+    const vi = translateDirections(real as unknown as ValhallaRouteResponse, 'motorbike', null);
+    const steps = vi.routes[0]?.legs[0]?.steps ?? [];
+    expect(steps.at(-1)?.instruction).toBe('Điểm đến ở bên trái.');
+    expect(steps.at(-1)?.verbal_alert).toBe('Điểm đến ở bên trái.');
+    expect(steps[0]?.instruction).toBe('Đi về hướng đông nam trên Công trường Công xã Paris.');
+    expect(steps[0]?.verbal_pre).toBe(
+      'Đi về hướng đông nam trên Công trường Công xã Paris. Rồi, trong 100 mét nữa, rẽ phải vào Nguyễn Du.',
+    );
+    const en = translateDirections(real as unknown as ValhallaRouteResponse, 'motorbike', null, 'en');
+    expect(en.routes[0]?.legs[0]?.steps.at(-1)?.instruction).toBe('Điểm đến của bạn nằm ở trái.');
+  });
+
   it('dịch được, chỉ số shape của bước cuối trỏ đúng điểm cuối polyline', () => {
     const out = translateDirections(real as unknown as ValhallaRouteResponse, 'motorbike', null);
     const route = out.routes[0];

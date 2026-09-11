@@ -129,7 +129,7 @@ Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>"
 - Modify: `apps/api/test/routing-translate.test.ts`
 - Modify: `apps/api/test-routing/directions.rtest.mjs`
 
-- [ ] **Step 1: Khai báo kiểu cho import `?raw`**
+- [x] **Step 1: Khai báo kiểu cho import `?raw`**
 
 Thêm vào cuối `apps/api/test/env.d.ts`:
 
@@ -140,7 +140,7 @@ declare module '*?raw' {
 }
 ```
 
-- [ ] **Step 2: Viết test thất bại cho từng luật và corpus**
+- [x] **Step 2: Viết test thất bại cho từng luật và corpus**
 
 Tạo `apps/api/test/routing-vi-phrases.test.ts`:
 
@@ -231,12 +231,12 @@ describe('applyViPhrases', () => {
 });
 ```
 
-- [ ] **Step 3: Chạy test, xác nhận đỏ**
+- [x] **Step 3: Chạy test, xác nhận đỏ**
 
 Run: `cd apps/api && pnpm exec vitest run test/routing-vi-phrases.test.ts`
 Expected: FAIL — `Failed to resolve import "../src/routing/vi-phrases"`.
 
-- [ ] **Step 4: Viết `vi-phrases.ts`**
+- [x] **Step 4: Viết `vi-phrases.ts`**
 
 Tạo `apps/api/src/routing/vi-phrases.ts`:
 
@@ -311,12 +311,12 @@ export function applyViPhrases(text: string): string {
 }
 ```
 
-- [ ] **Step 5: Chạy test luật, xác nhận xanh**
+- [x] **Step 5: Chạy test luật, xác nhận xanh**
 
 Run: `cd apps/api && pnpm exec vitest run test/routing-vi-phrases.test.ts`
 Expected: PASS toàn bộ (26 ca + 2 test cấu trúc). Nếu ca corpus đỏ ở một địa chỉ cụ thể, siết luật đó (thêm neo), không bỏ test.
 
-- [ ] **Step 6: Viết test thất bại cho translate theo `lang`**
+- [x] **Step 6: Viết test thất bại cho translate theo `lang`**
 
 Trong `apps/api/test/routing-translate.test.ts`, `describe('fixture Valhalla thật …')`, thêm:
 
@@ -338,7 +338,7 @@ Trong `apps/api/test/routing-translate.test.ts`, `describe('fixture Valhalla th�
 Run: `cd apps/api && pnpm exec vitest run test/routing-translate.test.ts`
 Expected: FAIL — instruction vẫn là câu Valhalla.
 
-- [ ] **Step 7: Nối `lang` vào translate và route**
+- [x] **Step 7: Nối `lang` vào translate và route**
 
 `apps/api/src/routing/translate.ts`:
 
@@ -392,12 +392,12 @@ function translateManeuver(
 
 `apps/api/src/routes/directions.ts` dòng `return translateDirections(json, params.mode, graph);` → `return translateDirections(json, params.mode, graph, params.lang);`
 
-- [ ] **Step 8: Chạy toàn bộ test Worker và typecheck**
+- [x] **Step 8: Chạy toàn bộ test Worker và typecheck**
 
 Run: `cd apps/api && pnpm exec vitest run && cd ../.. && pnpm typecheck`
 Expected: PASS (fixture `two-legs` không có câu nào khớp luật nên các test cũ giữ nguyên).
 
-- [ ] **Step 9: Thêm kiểm câu đã vá vào test tích hợp Valhalla**
+- [x] **Step 9: Thêm kiểm câu đã vá vào test tích hợp Valhalla**
 
 `apps/api/test-routing/directions.rtest.mjs`, trong vòng `for (const mode …)`, sau dòng `expect(steps.some((s) => VI.test(s.instruction))).toBe(true);` thêm:
 
@@ -412,7 +412,7 @@ Expected: PASS (fixture `two-legs` không có câu nào khớp luật nên các 
 
 Không chạy được trên máy không có Docker; Task 19 chạy `pnpm test:routing`.
 
-- [ ] **Step 10: Commit**
+- [x] **Step 10: Commit**
 
 ```bash
 git add apps/api/src/routing/vi-phrases.ts apps/api/src/routing/translate.ts apps/api/src/routes/directions.ts apps/api/test/env.d.ts apps/api/test/routing-vi-phrases.test.ts apps/api/test/routing-translate.test.ts apps/api/test-routing/directions.rtest.mjs

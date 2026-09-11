@@ -37,7 +37,7 @@ directions.get('/v1/directions', requireAuth(), quotaMiddleware('directions'), a
       callValhalla(c.env, valhallaBody(params, crypto.randomUUID())),
       graphBuiltAt(c),
     ]);
-    return translateDirections(json, params.mode, graph);
+    return translateDirections(json, params.mode, graph, params.lang);
   });
 });
 

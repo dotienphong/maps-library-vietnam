@@ -1,4 +1,5 @@
 import {
+  type DirectionsLang,
   type DirectionsResponse,
   type Route,
   type RouteLeg,
@@ -15,6 +16,7 @@ import type {
   ValhallaRouteResponse,
   ValhallaTrip,
 } from './valhalla';
+import { applyViPhrases } from './vi-phrases';
 
 /** Dữ liệu đường là OSM (ODbL); Valhalla (MIT) không yêu cầu ghi nguồn trên UI. */
 export const ROUTING_ATTRIBUTION = '© OpenStreetMap contributors';
@@ -48,14 +50,23 @@ function pointAt(coords: readonly [number, number][], index: number): [number, n
   return coords[index] ?? coords[coords.length - 1] ?? [0, 0];
 }
 
+const patchVi = (step: RouteStep): RouteStep => ({
+  ...step,
+  instruction: applyViPhrases(step.instruction),
+  verbal_alert: step.verbal_alert === null ? null : applyViPhrases(step.verbal_alert),
+  verbal_pre: step.verbal_pre === null ? null : applyViPhrases(step.verbal_pre),
+  verbal_post: step.verbal_post === null ? null : applyViPhrases(step.verbal_post),
+});
+
 function translateManeuver(
   m: ValhallaManeuver,
   offset: number,
   coords: readonly [number, number][],
+  lang: DirectionsLang,
 ): RouteStep {
   const kind = maneuverKindFromValhalla(m.type);
   const begin = m.begin_shape_index + offset;
-  return {
+  const step: RouteStep = {
     kind,
     instruction: m.instruction,
     verbal_alert: m.verbal_transition_alert_instruction ?? null,
@@ -69,12 +80,14 @@ function translateManeuver(
     location: pointAt(coords, begin),
     roundabout_exit: kind === 'roundabout_enter' ? (m.roundabout_exit_count ?? null) : null,
   };
+  return lang === 'vi' ? patchVi(step) : step;
 }
 
 export function translateTrip(
   trip: ValhallaTrip,
   mode: TravelMode,
   merged: MergedShape = mergeLegShapes(trip.legs),
+  lang: DirectionsLang = 'vi',
 ): Route {
   const legs: RouteLeg[] = trip.legs.map((leg, i) => {
     const offset = merged.offsets[i] ?? 0;
@@ -82,7 +95,7 @@ export function translateTrip(
       distance_m: kmToM(leg.summary.length),
       duration_s: seconds(leg.summary.time),
       shape_offset: offset,
-      steps: leg.maneuvers.map((m) => translateManeuver(m, offset, merged.coords)),
+      steps: leg.maneuvers.map((m) => translateManeuver(m, offset, merged.coords, lang)),
     };
   });
   const s = trip.summary;
@@ -117,10 +130,11 @@ export function translateDirections(
   json: ValhallaRouteResponse,
   mode: TravelMode,
   graph: string | null,
+  lang: DirectionsLang = 'vi',
 ): DirectionsResponse {
   const merged = mergeLegShapes(json.trip.legs);
-  const primary = translateTrip(json.trip, mode, merged);
-  const alternates = (json.alternates ?? []).map((a) => translateTrip(a.trip, mode));
+  const primary = translateTrip(json.trip, mode, merged, lang);
+  const alternates = (json.alternates ?? []).map((a) => translateTrip(a.trip, mode, undefined, lang));
   return {
     routes: [primary, ...alternates],
     waypoints: translateWaypoints(json.trip, merged),

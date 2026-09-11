@@ -25,6 +25,12 @@ describe('/v1/directions trên Valhalla fixture Quận 1', () => {
       expect(steps[0].kind).toBe('depart');
       expect(steps.at(-1).kind).toBe('arrive');
       expect(steps.some((s) => VI.test(s.instruction))).toBe(true);
+      // Spec B mục 6.2: câu đã qua bảng cụm từ, và mọi bước có verbal_alert (string hoặc null).
+      expect(steps.at(-1).instruction).toMatch(/^(Điểm đến ở bên (trái|phải)\.|Bạn đã tới nơi\.)$/);
+      for (const s of steps) {
+        expect(s).toHaveProperty('verbal_alert');
+        expect(s.instruction).not.toMatch(/hình chữ U|^Sáp nhập|nằm ở (trái|phải)\.$|^Lái về phía/);
+      }
       expect(body.waypoints).toHaveLength(2);
       expect(body.engine.name).toBe('valhalla');
       expect(response.headers.get('content-type')).toContain('application/json');
