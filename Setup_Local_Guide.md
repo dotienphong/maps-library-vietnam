@@ -117,6 +117,15 @@ pnpm db:up
 pnpm dev
 ```
 
+Kiểm tra tích hợp chỉ đường trên graph fixture Quận 1 (tự dựng Valhalla và Worker local):
+
+```bash
+pnpm test:routing
+```
+
+Lệnh này kiểm tra các mode xe máy/ô tô/đi bộ, điểm dừng, câu chỉ dẫn tiếng Anh và trường
+`/healthz/routing`. Muốn dừng container Valhalla sau khi chạy: `pnpm test:routing -- --down`.
+
 Dừng database dev khi không dùng:
 
 ```bash
@@ -174,6 +183,13 @@ Lệnh sẽ:
 
 Không tắt Docker hoặc đóng laptop trong khi restore. Database production hiện gần 6 GB nên thời gian
 phụ thuộc mạng và SSD.
+
+`server:setup` cũng kiểm tra graph Valhalla: nếu chưa có PBF Việt Nam thì tải PBF, chạy
+`node scripts/routing-graph.mjs prepare`, rồi mới khởi động service `valhalla`; lần build đầu có thể
+mất vài chục phút và cần theo dõi `docker compose … logs -f valhalla`. Graph không nằm trong backup DB.
+Sau `server:restore` trên máy mới, nếu volume `valhalla-data` rỗng, chạy `routing-graph.mjs prepare`
+để build lại trước khi kiểm tra `/healthz/routing`. Không thêm `ports:` cho Valhalla; đường vào duy nhất
+là Tunnel + Cloudflare Access, và phải tạo Access application trước khi thêm Public Hostname Tunnel.
 
 ### 5.3 Cloudflare khi laptop mới thay máy chủ cũ
 

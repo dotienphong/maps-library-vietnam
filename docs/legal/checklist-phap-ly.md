@@ -45,6 +45,7 @@ Mười hạng mục mục A đã được đối chiếu lại với mã nguồ
 | C3 | Bảng alias phường xã trước và sau sắp xếp 2025 | Thiếu một số alias nên câu địa chỉ dùng tên cũ có thể rơi xuống mức tỉnh |
 | C4 | ~~Thêm pepper bí mật cho `ip_hash`~~ **XONG 04/09/2026** | `IP_HASH_PEPPER` là secret Worker (đặt bằng `wrangler secret put`, đã có trên `mapslibvn-api-production`). `ip_hash` và `end_user_hash` nay băm kèm pepper; thiếu secret thì `POST /v1/edits` trả 503 `server_misconfigured` chứ không âm thầm băm yếu. Dev/test dùng giá trị không bí mật trong `wrangler.toml`. Hash ghi trước ngày này không so được với hash mới — chấp nhận được vì `ip_hash` chỉ để lưu vết, không dùng trong truy vấn |
 | C5 | Xác nhận đóng góp của M4 còn nguyên sau lần `data:update` production kế tiếp | Cron chạy thứ Hai 02:00 giờ Việt Nam |
+| C6 | Giảm dấu vết toạ độ trong log Workers: hạ `head_sampling_rate` (ví dụ 0,1) hoặc tắt invocation logs production trong `[observability]` của `apps/api/wrangler.toml` | Review bảo mật spec dẫn đường A 10/09/2026: PHONG chọn chỉ ghi điều khoản (phương án 1), để phương án kỹ thuật này lại; đổi lại khi làm là khó tra lỗi hiếm |
 
 ---
 

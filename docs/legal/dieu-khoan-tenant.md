@@ -39,7 +39,7 @@ Nếu tenant cần dữ liệu OSM dẫn xuất theo ODbL, hãy yêu cầu bản
 2. Để chống spam, MapsLibVN lưu `ip_hash = sha256(IP + ngày theo giờ Việt Nam)`: **địa chỉ IP thô không được lưu**, và vì muối xoay theo ngày nên không liên kết được hoạt động của cùng một IP giữa các ngày. Lưu ý kỹ thuật trung thực: mã băm này chống liên kết chéo ngày, không nhằm mục đích chống dò ngược.
 3. **Tenant là bên kiểm soát dữ liệu** đối với người dùng cuối của mình: tenant chịu trách nhiệm xin và ghi nhận sự đồng ý khi truy cập vị trí thiết bị, thông báo mục đích xử lý, và đáp ứng quyền của chủ thể dữ liệu theo Nghị định 13/2023.
 4. Tenant không được truyền vào API các trường chứa dữ liệu cá nhân nhạy cảm ngoài các trường công khai của địa điểm (`name`, `phone` của cơ sở kinh doanh, `website`, `hours`).
-5. Log request của MapsLibVN giữ tối đa 30 ngày; số liệu tổng hợp (Analytics Engine) không chứa định danh người dùng cuối.
+5. Log request của MapsLibVN (Cloudflare Workers Logs) giữ tối đa 30 ngày và chỉ dùng để chẩn đoán lỗi. Vì tham số nằm trong URL, log này có **toạ độ mà ứng dụng gửi lên** — `near`, `lat`/`lng` của tìm kiếm và reverse geocode, `from`/`to`/`via` của chỉ đường — kèm định danh khoá API của tenant, không kèm định danh người dùng cuối. MapsLibVN không trích xuất, không ghép các toạ độ này thành hành trình hay hồ sơ người dùng, không chuyển cho bên thứ ba. Số liệu tổng hợp (Analytics Engine) chỉ có đường dẫn endpoint, không có tham số. Tenant có nghĩa vụ nêu việc này trong thông báo xử lý dữ liệu với người dùng cuối của mình (điểm 3).
 
 ## 6. Dữ liệu người dùng đóng góp và ODbL
 

@@ -38,10 +38,18 @@ pnpm server:setup
       ```
    4. Nạp biến mới cho container: `pnpm server:update` (kéo image mới có cron 2 job) rồi
       `docker compose --env-file infra/server/.env -f infra/server/compose.yml up -d pipeline`.
+   7. **Chỉ đường (spec dẫn đường A, 10/09/2026)** — mở Valhalla ra Worker:
+      1. Access → Service Auth → Create Service Token `routing` (thời hạn dài nhất) → lưu Client ID/Secret vào password manager. Token có hạn: khi hết, `/healthz/routing` trả 503 và direct Access-protected `/status` diagnostics fail → tạo token mới, `wrangler secret put` lại, xoá token cũ.
+      2. Access → Applications → Add → Self-hosted `mapslibvn-route`, domain `maps-route.<domain>` → Policy Service Auth, include Service Token `routing`.
+      3. **Chỉ sau khi có Access application**: Tunnel `mapslibvn-db` → Public Hostname → Add: subdomain `maps-route`, domain `<domain>`, Service type **HTTP**, URL `valhalla:8002`. (Làm ngược thứ tự là Valhalla công khai trên Internet trong lúc chưa có Access.)
+      4. Máy dev: `cd apps/api && pnpm exec wrangler secret put ROUTING_ACCESS_CLIENT_ID --env production` và `… ROUTING_ACCESS_CLIENT_SECRET --env production`. `ROUTING_BASE` production nằm sẵn trong `wrangler.toml`.
+      5. Kiểm (đọc secret từ biến môi trường, không gõ thẳng vào lệnh để khỏi lọt shell history): `curl -H "CF-Access-Client-Id: $CF_ROUTING_ID" -H "CF-Access-Client-Secret: $CF_ROUTING_SECRET" https://maps-route.<domain>/status` → JSON có `version`; không header → 403 của Access. Worker health: `curl https://api.<domain>/healthz/routing` → 503 nếu upstream/token lỗi.
 
 ## Kiểm tra
 
-- Trạng thái: `docker compose --env-file infra/server/.env -f infra/server/compose.yml ps` — 4 dịch vụ `running`, `postgres` `healthy`.
+- Trạng thái: `docker compose --env-file infra/server/.env -f infra/server/compose.yml ps` — 5 dịch vụ `running` (`valhalla` `healthy` sau khi build graph xong), `postgres` `healthy`.
+- Graph chỉ đường: `docker compose … run --rm pipeline node scripts/routing-graph.mjs status` in `graph.json`, kích cỡ tar và `pendingReload`. Build lại tay: `… node scripts/routing-graph.mjs prepare --force` (valhalla ngừng phục vụ vài chục phút trong lúc build); quay về bản trước: `… node scripts/routing-graph.mjs rollback`. `data:update` tự gọi `prepare` khi OSM đổi.
+- Worker: `curl https://api.<domain>/healthz/routing` → `{"ok":true,"version":"3.8.x","graph_built_at":"…"}`.
 - TLS bắt buộc từ ngoài: chạy trên **máy dev** (không cần mở cổng):
   ```bash
   PIPE pipeline sh -c 'cloudflared access tcp --hostname maps-db.<domain> --url 127.0.0.1:5433 \
@@ -93,3 +101,7 @@ pnpm server:setup
   role `api` chỉ có `SELECT` trên `poi` cùng `INSERT, SELECT` trên `poi_edit`.
 - Log: `docker compose … logs -f postgres|cloudflared|backup|pipeline`.
 - Không bao giờ thêm `ports:` cho `postgres`. Mọi truy cập đi qua Tunnel + Access.
+- Không bao giờ thêm `ports:` cho `valhalla`. Đường vào duy nhất là Tunnel + Access.
+- `pnpm server:update` kéo cả image `valhalla`; sau cập nhật lần đầu chạy `routing-graph.mjs prepare` nếu volume `valhalla-data` còn rỗng (container sẽ khởi động lại liên tục cho tới khi có PBF).
+- Sau `pnpm server:restore` trên máy mới, graph không nằm trong backup: chạy `routing-graph.mjs prepare` để build lại (volume `valhalla-data` cần ~5 GB: PBF + thư mục tile + tar + tar prev).
+- Build lỗi/OOM: container ngủ 10 phút rồi Docker khởi động lại; xem `docker compose … logs valhalla`, quay về graph cũ bằng `routing-graph.mjs rollback`.

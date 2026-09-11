@@ -60,6 +60,14 @@ commit với code).
   (GPS) → C React Native. Việc tay PHONG trước khi tới Task 17: tắt auto-sleep máy chủ; Task 17: service
   token `routing` → Access app `mapslibvn-route` → hostname `maps-route`; `wrangler secret put` hai secret.
 
+- **11/09/2026 — Dẫn đường spec A, Tasks 10–15:** đã hoàn tất harness Valhalla fixture Quận 1, workflow
+  Routing, graph lifecycle `prepare`/`rollback`/`status`, móc `data:update`/`data:rollback`/`server:setup`,
+  và smoke command an toàn. Tài liệu REST/SDK đã mô tả `GET /v1/directions`, quota/cache, polyline6,
+  health `/healthz/routing`, điều khoản log toạ độ, notices Valhalla và runbook Access-before-Tunnel;
+  `Setup_Local_Guide.md` cũng cập nhật graph bootstrap/restore. Gate local cuối Task 15: Core/docs build
+  (docs 20 trang), notices sync `--check`, lint 374 file và typecheck đều xanh. **Chưa chạy production smoke,
+  chưa deploy/push**; nghiệm thu production và token Access thuộc Tasks 17–18.
+
 - **10/09/2026 — Dọn sạch toàn bộ advisory production của workspace.** `pnpm audit --prod
   --audit-level=high` từ 15 advisory (1 critical, 6 high, 5 moderate, 3 low) về
   `No known vulnerabilities found`. Docs đã nâng Astro 5.18.2 → 7.3.2, Starlight 0.30.6 →
