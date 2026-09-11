@@ -181,6 +181,8 @@ export type ManeuverKind =
 export interface RouteStep {
   kind: ManeuverKind;
   instruction: string;
+  /** Câu rẽ ngắn gọn để đọc lúc còn cách xa (spec B); Valhalla không trả → null. */
+  verbal_alert: string | null;
   verbal_pre: string | null;
   verbal_post: string | null;
   street_names: string[];

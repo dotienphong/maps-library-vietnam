@@ -63,7 +63,7 @@
 - Modify: `apps/api/src/routing/translate.ts` (`translateManeuver`)
 - Test: `apps/api/test/routing-translate.test.ts`
 
-- [ ] **Step 1: Viết test thất bại**
+- [x] **Step 1: Viết test thất bại**
 
 Trong `describe('translateDirections', …)` của `apps/api/test/routing-translate.test.ts`, sau `it('waypoints: …')`, thêm:
 
@@ -76,12 +76,12 @@ Trong `describe('translateDirections', …)` của `apps/api/test/routing-transl
   });
 ```
 
-- [ ] **Step 2: Chạy test, xác nhận đỏ**
+- [x] **Step 2: Chạy test, xác nhận đỏ**
 
 Run: `cd apps/api && pnpm exec vitest run test/routing-translate.test.ts`
 Expected: FAIL — `expected undefined to be null` (trường chưa tồn tại).
 
-- [ ] **Step 3: Thêm trường vào core, kiểu Valhalla và translate**
+- [x] **Step 3: Thêm trường vào core, kiểu Valhalla và translate**
 
 `packages/core/src/types.ts`, trong `RouteStep` ngay sau `instruction: string;`:
 
@@ -102,12 +102,12 @@ Expected: FAIL — `expected undefined to be null` (trường chưa tồn tại)
     verbal_alert: m.verbal_transition_alert_instruction ?? null,
 ```
 
-- [ ] **Step 4: Build core, chạy test, typecheck**
+- [x] **Step 4: Build core, chạy test, typecheck**
 
 Run: `pnpm --filter @mapslibvn/core build && cd apps/api && pnpm exec vitest run test/routing-translate.test.ts && cd ../.. && pnpm typecheck`
 Expected: test PASS; typecheck xanh (không nơi nào khác dựng `RouteStep`).
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add packages/core/src/types.ts apps/api/src/routing/valhalla.ts apps/api/src/routing/translate.ts apps/api/test/routing-translate.test.ts

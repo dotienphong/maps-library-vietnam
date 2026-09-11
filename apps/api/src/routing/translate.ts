@@ -58,6 +58,7 @@ function translateManeuver(
   return {
     kind,
     instruction: m.instruction,
+    verbal_alert: m.verbal_transition_alert_instruction ?? null,
     verbal_pre: m.verbal_pre_transition_instruction ?? null,
     verbal_post: m.verbal_post_transition_instruction ?? null,
     street_names: m.street_names ?? [],

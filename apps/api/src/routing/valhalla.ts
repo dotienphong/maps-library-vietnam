@@ -16,6 +16,7 @@ export const STATUS_TIMEOUT_MS = 5_000;
 export interface ValhallaManeuver {
   type: number;
   instruction: string;
+  verbal_transition_alert_instruction?: string;
   verbal_pre_transition_instruction?: string;
   verbal_post_transition_instruction?: string;
   street_names?: string[];

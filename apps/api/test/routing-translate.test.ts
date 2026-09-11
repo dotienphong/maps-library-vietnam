@@ -147,6 +147,13 @@ describe('translateDirections', () => {
     ]);
   });
 
+  it('verbal_alert: null khi Valhalla không trả, có thì giữ nguyên (spec B mục 6.1)', () => {
+    expect(route?.legs[0]?.steps[0]?.verbal_alert).toBeNull();
+    const realOut = translateDirections(real as unknown as ValhallaRouteResponse, 'motorbike', null);
+    expect(realOut.routes[0]?.legs[0]?.steps[1]?.verbal_alert).toBe('Rẽ phải vào Nguyễn Du.');
+    expect(realOut.routes[0]?.legs[0]?.steps[0]?.verbal_alert).toBeNull();
+  });
+
   it('attribution và engine', () => {
     expect(out.attribution).toBe('© OpenStreetMap contributors');
     expect(out.engine).toEqual({ name: 'valhalla', graph: '2026-09-15' });
