@@ -5,6 +5,8 @@
 // 20 lượt × 4 tuyến ≈ 4,7 phút. Không hạ interval khi chạy production, nếu không sẽ tự gây 429.
 // Khoá đọc từ MAPSLIBVN_API_KEY hoặc KEY_EXAMPLE_EMBED (.env). Lần đầu chạy --requests=20 để lấy p95 ghi
 // evidence, sau đó chốt --p95-max theo số đo (không đoán).
+// Ngưỡng p95 production đo 2026-09-11: --p95-max=800 (p95 lớn nhất 483 ms của lien-tinh-o-to × 1,5,
+// làm tròn lên trăm; bốn tuyến đo được 400/375/483/347 ms với 20 lượt mỗi tuyến).
 import 'dotenv/config';
 import { pathToFileURL } from 'node:url';
 
@@ -13,8 +15,10 @@ const VI = /[àáảãạăằắẳẵặâầấẩẫậèéẻẽẹêềế
 
 /** @type {readonly { name: string, mode: 'motorbike' | 'car' | 'walk', from: string, to: string }[]} */
 export const SMOKE_ROUTES = [
-  // Nhà thờ Đức Bà → Sân bay Tân Sơn Nhất (~8 km)
-  { name: 'noi-thanh-hcm', mode: 'motorbike', from: '10.7798,106.6990', to: '10.8188,106.6520' },
+  // Nhà thờ Đức Bà → ga Tân Sơn Nhất, điểm đích trên Trường Sơn (~7,5 km).
+  // KHÔNG dùng toạ độ sân bay 10.8188,106.6520: nó snap vào "VĐ. bảo vệ sân bay" trong khu bay,
+  // không nối mạng đường công cộng nên auto/motor_scooter đều trả 442 no_route (chỉ pedestrian đi được).
+  { name: 'noi-thanh-hcm', mode: 'motorbike', from: '10.7798,106.6990', to: '10.8153,106.6633' },
   // TP.HCM → Vũng Tàu (~100 km): xe máy KHÔNG được lên cao tốc → flags.highway phải false
   { name: 'lien-tinh-xe-may', mode: 'motorbike', from: '10.7725,106.6980', to: '10.3460,107.0843' },
   // TP.HCM → Cần Thơ (~170 km) ô tô
