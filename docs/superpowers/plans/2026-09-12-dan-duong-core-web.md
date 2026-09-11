@@ -508,7 +508,7 @@ Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>"
 - Modify: `packages/core/.size-limit.json` (trần 12 → 16 kB)
 - Test: `packages/core/src/navigation/geometry.test.ts`, `packages/core/src/navigation/types.test.ts`
 
-- [ ] **Step 1: Viết test thất bại cho hình học và bảng ngưỡng**
+- [x] **Step 1: Viết test thất bại cho hình học và bảng ngưỡng**
 
 Tạo `packages/core/src/navigation/geometry.test.ts`:
 
@@ -630,12 +630,12 @@ describe('NAVIGATION_THRESHOLDS (spec B mục 4.3)', () => {
 });
 ```
 
-- [ ] **Step 2: Chạy, xác nhận đỏ**
+- [x] **Step 2: Chạy, xác nhận đỏ**
 
 Run: `pnpm exec vitest run packages/core/src/navigation`
 Expected: FAIL — không resolve được `./geometry`, `./types`.
 
-- [ ] **Step 3: Viết `types.ts`**
+- [x] **Step 3: Viết `types.ts`**
 
 Tạo `packages/core/src/navigation/types.ts`:
 
@@ -818,7 +818,7 @@ export interface Navigator {
 }
 ```
 
-- [ ] **Step 4: Viết `geometry.ts`**
+- [x] **Step 4: Viết `geometry.ts`**
 
 Tạo `packages/core/src/navigation/geometry.ts`:
 
@@ -908,12 +908,12 @@ export * from './geometry';
 
 `packages/core/.size-limit.json`: đổi `"limit": "12 kB"` → `"limit": "16 kB"`.
 
-- [ ] **Step 5: Chạy test, build, đo size**
+- [x] **Step 5: Chạy test, build, đo size**
 
 Run: `pnpm exec vitest run packages/core/src/navigation && pnpm --filter @mapslibvn/core build && pnpm typecheck`
 Expected: test PASS; build in size-limit dưới 16 kB (ghi số đo vào ghi chú commit).
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add packages/core/src/navigation packages/core/src/index.ts packages/core/.size-limit.json

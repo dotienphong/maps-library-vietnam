@@ -13,3 +13,4 @@ export * from './toponym';
 export * from './vi-key';
 export * from './polyline';
 export * from './maneuver';
+export * from './navigation';
