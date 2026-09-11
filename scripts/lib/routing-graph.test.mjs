@@ -1,6 +1,7 @@
-import { spawnSync } from 'node:child_process';
+import { spawn, spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import {
+  chmodSync,
   existsSync,
   mkdirSync,
   mkdtempSync,
@@ -27,6 +28,7 @@ const SCRIPT = resolve(import.meta.dirname, '../routing-graph.mjs');
 const RUN_SH = resolve(import.meta.dirname, '../../infra/server/valhalla/run.sh');
 const SERVER_COMPOSE = resolve(import.meta.dirname, '../../infra/server/compose.yml');
 const HAS_FLOCK = spawnSync('flock', ['--version']).status === 0;
+const HAS_LINUX_LIFECYCLE_TOOLS = HAS_FLOCK && spawnSync('setsid', ['--version']).status === 0;
 /** @type {string[]} */
 const temporaryDirectories = [];
 
@@ -88,6 +90,21 @@ function run({ work, graph }, args, extraEnv = {}) {
       ...extraEnv,
     },
   });
+}
+
+/** @param {() => boolean} predicate @param {number} [timeoutMs] */
+async function waitFor(predicate, timeoutMs = 5_000) {
+  const deadline = Date.now() + timeoutMs;
+  while (!predicate()) {
+    if (Date.now() >= deadline) throw new Error('timeout waiting for lifecycle condition');
+    await new Promise((resolveWait) => setTimeout(resolveWait, 20));
+  }
+}
+
+/** @param {import('node:child_process').ChildProcess} child */
+function waitForExit(child) {
+  if (child.exitCode !== null) return Promise.resolve(child.exitCode);
+  return new Promise((resolveExit) => child.once('exit', resolveExit));
 }
 
 describe('preparePlan', () => {
@@ -393,4 +410,66 @@ describe('Valhalla wrapper race contract', () => {
     expect(wrapper).toContain('if [[ -f "${FLAG}" ]]');
     expect(wrapper).toContain('continue 2');
   });
+
+  it('wrapper giữ cùng kernel lock từ trước journal check đến sau child spawn', () => {
+    const wrapper = readFileSync(RUN_SH, 'utf8');
+    const lifecycleLoop = wrapper.indexOf('while true; do');
+    const acquire = wrapper.indexOf('acquire_start_lock', lifecycleLoop);
+    const journalCheck = wrapper.indexOf('[[ -f "${JOURNAL}" ]]', lifecycleLoop);
+    const spawnChild = wrapper.indexOf('setsid "${ENTRYPOINT}"', lifecycleLoop);
+    const release = wrapper.indexOf('release_start_lock', spawnChild);
+    expect(wrapper).toContain('.routing-graph.lock');
+    expect(acquire).toBeLessThan(journalCheck);
+    expect(journalCheck).toBeLessThan(spawnChild);
+    expect(spawnChild).toBeLessThan(release);
+  });
+
+  it.runIf(HAS_LINUX_LIFECYCLE_TOOLS)(
+    'wrapper retry đợi rollback commit và nhả cùng lock rồi mới spawn upstream',
+    async () => {
+      const state = fixture();
+      const pause = resolve(state.graph, 'rollback-authorized');
+      const upstreamPid = resolve(state.graph, 'upstream.pid');
+      const fakeEntrypoint = resolve(state.root, 'fake-entrypoint.sh');
+      writeFileSync(
+        fakeEntrypoint,
+        `#!/usr/bin/env bash\nprintf '%s\\n' "\$\$" > "${upstreamPid}"\ntrap 'exit 0' TERM INT\nwhile true; do sleep 1; done\n`,
+      );
+      chmodSync(fakeEntrypoint, 0o755);
+      writeFileSync(resolve(state.graph, 'reload.in-progress'), 'rebuild\n');
+      writeFileSync(resolve(state.graph, 'reload.failed'), '42\n');
+
+      const rollback = spawn(process.execPath, [SCRIPT, 'rollback'], {
+        env: {
+          ...process.env,
+          MAPSLIBVN_WORK: state.work,
+          MAPSLIBVN_VALHALLA: state.graph,
+          NODE_ENV: 'test',
+          MAPSLIBVN_ROUTING_TEST_PAUSE_AFTER_AUTH_FILE: pause,
+        },
+        stdio: 'ignore',
+      });
+      await waitFor(() => existsSync(pause));
+
+      const wrapper = spawn('/bin/bash', [RUN_SH], {
+        env: {
+          ...process.env,
+          CUSTOM_FILES: state.graph,
+          VALHALLA_ENTRYPOINT: fakeEntrypoint,
+          RELOAD_POLL_SECONDS: '1',
+          FAIL_SLEEP_SECONDS: '5',
+          STOP_GRACE_SECONDS: '1',
+        },
+        stdio: 'ignore',
+      });
+      await new Promise((resolveWait) => setTimeout(resolveWait, 250));
+      expect(existsSync(upstreamPid)).toBe(false);
+
+      writeFileSync(`${pause}.release`, 'release\n');
+      expect(await waitForExit(rollback)).toBe(0);
+      await waitFor(() => existsSync(upstreamPid));
+      wrapper.kill('SIGTERM');
+      expect(await waitForExit(wrapper)).toBe(143);
+    },
+  );
 });

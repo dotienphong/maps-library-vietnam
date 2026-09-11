@@ -10,12 +10,14 @@ FLAG="${CUSTOM_FILES}/reload.request"
 IN_PROGRESS="${CUSTOM_FILES}/reload.in-progress"
 FAILED="${CUSTOM_FILES}/reload.failed"
 JOURNAL="${CUSTOM_FILES}/.routing-graph.transaction.json"
+LOCK="${CUSTOM_FILES}/.routing-graph.lock"
 ENTRYPOINT="${VALHALLA_ENTRYPOINT:-/valhalla/scripts/docker-entrypoint.sh}"
 READY_URL="${VALHALLA_READY_URL:-http://localhost:8002/status}"
 POLL_SECONDS="${RELOAD_POLL_SECONDS:-30}"
 FAIL_SLEEP_SECONDS="${FAIL_SLEEP_SECONDS:-600}"
 STOP_GRACE_SECONDS="${STOP_GRACE_SECONDS:-30}"
 child=""
+lock_fd=""
 log() { echo "[run.sh] $(date -u +%FT%TZ) $*"; }
 
 positive_integer() {
@@ -29,6 +31,22 @@ positive_integer() {
 positive_integer RELOAD_POLL_SECONDS "${POLL_SECONDS}"
 positive_integer FAIL_SLEEP_SECONDS "${FAIL_SLEEP_SECONDS}"
 positive_integer STOP_GRACE_SECONDS "${STOP_GRACE_SECONDS}"
+if ! command -v flock >/dev/null 2>&1; then
+  echo "[run.sh] thiếu lệnh flock — không thể phối hợp graph lifecycle an toàn" >&2
+  exit 69
+fi
+
+acquire_start_lock() {
+  exec {lock_fd}> "${LOCK}"
+  flock --exclusive "${lock_fd}"
+}
+
+release_start_lock() {
+  [[ -n "${lock_fd}" ]] || return 0
+  flock --unlock "${lock_fd}" || true
+  exec {lock_fd}>&-
+  lock_fd=""
+}
 
 child_alive() {
   [[ -n "${child}" ]] && {
@@ -53,6 +71,7 @@ on_signal() {
   local signal="$1" code="$2"
   trap - TERM INT
   log "nhận ${signal} → dừng tiến trình con"
+  release_start_lock
   stop_child
   exit "${code}"
 }
@@ -61,10 +80,15 @@ trap 'on_signal TERM 143' TERM
 trap 'on_signal INT 130' INT
 
 while true; do
-  while [[ -f "${JOURNAL}" ]]; do
+  # Cùng kernel lock với routing-graph.mjs: authorization, marker mutation và spawn
+  # là một critical section. Nhả ngay sau spawn, không giữ suốt vòng đời upstream.
+  acquire_start_lock
+  if [[ -f "${JOURNAL}" ]]; then
+    release_start_lock
     log "transaction graph chưa phục hồi xong → chưa chạy upstream"
     sleep "${POLL_SECONDS}"
-  done
+    continue
+  fi
   if [[ -f "${FLAG}" ]]; then
     mv -f "${FLAG}" "${IN_PROGRESS}"
     log "đánh dấu reload/build đang chạy"
@@ -76,6 +100,7 @@ while true; do
   setsid "${ENTRYPOINT}" build_tiles &
   child=$!
   log "entrypoint pid ${child} (build nếu thiếu tar, rồi phục vụ :8002)"
+  release_start_lock
   reload=false
   while child_alive; do
     if [[ -f "${FLAG}" ]]; then

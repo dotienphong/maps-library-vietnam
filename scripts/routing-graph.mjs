@@ -314,6 +314,15 @@ function assertMutationAllowed(command) {
   }
 }
 
+async function pauseAfterAuthorizationForTest() {
+  const ready = process.env.MAPSLIBVN_ROUTING_TEST_PAUSE_AFTER_AUTH_FILE;
+  if (process.env.NODE_ENV !== 'test' || !ready) return;
+  writeAtomic(ready, 'authorized\n');
+  while (!existsSync(`${ready}.release`)) {
+    await new Promise((resolveWait) => setTimeout(resolveWait, 10));
+  }
+}
+
 async function main() {
   // Boundary validation chạy trước cả kiểm tra directory/lock để typo không gây mutation.
   const options = parseRoutingGraphArgs(process.argv.slice(2));
@@ -429,6 +438,7 @@ async function main() {
     }
 
     assertMutationAllowed('rollback');
+    await pauseAfterAuthorizationForTest();
     const plan = rollbackPlan({ hasPrevTar: existsSync(prevPath(GRAPH_FILES.tar)) });
     if (plan.action === 'error') throw new Error(plan.reason);
     const id = randomUUID();
@@ -492,12 +502,20 @@ async function entry() {
     ],
     { stdio: ['pipe', 'pipe', 'inherit'] },
   );
+  let lockAcquired = false;
+  let releasingLock = false;
+  locker.once('close', (code) => {
+    if (!lockAcquired || releasingLock) return;
+    console.error(`[routing-graph] tiến trình giữ flock thoát bất ngờ (mã ${code ?? 1})`);
+    process.kill(process.pid, 'SIGTERM');
+  });
   await new Promise((resolveReady, rejectReady) => {
     let ready = false;
     locker.stdout.setEncoding('utf8');
     locker.stdout.on('data', (chunk) => {
       if (!ready && chunk.includes('locked\n')) {
         ready = true;
+        lockAcquired = true;
         resolveReady(undefined);
       }
     });
@@ -519,8 +537,12 @@ async function entry() {
   try {
     await main();
   } finally {
-    locker.stdin.end();
-    await new Promise((resolveClose) => locker.once('close', resolveClose));
+    releasingLock = true;
+    if (locker.exitCode === null) {
+      const closed = new Promise((resolveClose) => locker.once('close', resolveClose));
+      locker.stdin.end();
+      await closed;
+    }
   }
 }
 
