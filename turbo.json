@@ -12,6 +12,12 @@
       "dependsOn": ["^build"]
     },
     "dev": {
+      "dependsOn": ["^build"],
+      "cache": false,
+      "persistent": true
+    },
+    "@mapslibvn/api#dev": {
+      "dependsOn": ["^build", "@mapslibvn/admin#build"],
       "cache": false,
       "persistent": true
     }
