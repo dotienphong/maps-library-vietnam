@@ -225,6 +225,23 @@ export function parseRoutingGraphStatus(value) {
 }
 
 /**
+ * `status` đầu tiên dùng stdout kế thừa để Task 12 recovery/log rõ ràng; lần thứ hai lấy JSON sạch để lập kế hoạch.
+ * @param {{ runStatus: () => void, captureStatus: () => string }} commands
+ */
+export function recoverAndReadRoutingGraphStatus({ runStatus, captureStatus }) {
+  runStatus();
+  const statusText = captureStatus();
+  if (!statusText) throw new Error('routing-graph status thất bại; chưa start Valhalla');
+  try {
+    return parseRoutingGraphStatus(JSON.parse(statusText));
+  } catch (error) {
+    throw new Error(
+      `routing-graph status không hợp lệ; chưa start Valhalla: ${error instanceof Error ? error.message : String(error)}`,
+    );
+  }
+}
+
+/**
  * Bước graph Valhalla trong data:update (spec dẫn đường A mục 4.4): chỉ khi tiles có bản mới (OSM đổi
  * hoặc --force), volume valhalla-data đang gắn (máy chủ) và không bị --skip-routing.
  * @param {{ tiles: boolean, graphDirExists: boolean, skipRouting: boolean }} s

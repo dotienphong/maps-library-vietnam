@@ -6,6 +6,7 @@ import {
   nextState,
   parseRoutingGraphStatus,
   poiReleaseSteps,
+  recoverAndReadRoutingGraphStatus,
   routingStep,
   runPoiReleaseSteps,
   runTileReleaseSteps,
@@ -250,6 +251,38 @@ describe('server routing setup transaction', () => {
         { id: 'start' },
       ]);
     }
+  });
+
+  it('chạy status recovery có log trước, rồi đọc JSON sạch để start không prepare', () => {
+    const recoveryOutput = [
+      'Khôi phục reload dở dang: chuyển reload.request sang reload.in-progress.',
+      '{"activeGraph":"vn-old","tarBytes":null,"copiedPbf":{"bytes":123,"md5":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","matchesActiveGraph":false},"pendingReload":true,"buildInProgress":false,"buildFailed":false}',
+    ].join('\n');
+    /** @type {string[]} */
+    const calls = [];
+    const status = recoverAndReadRoutingGraphStatus({
+      runStatus: () => {
+        calls.push(`inherited:${recoveryOutput}`);
+      },
+      captureStatus: () => {
+        calls.push('captured');
+        return JSON.stringify({
+          activeGraph: 'vn-old',
+          tarBytes: null,
+          copiedPbf: {
+            bytes: 123,
+            md5: 'a'.repeat(32),
+            matchesActiveGraph: false,
+          },
+          pendingReload: true,
+          buildInProgress: false,
+          buildFailed: false,
+        });
+      },
+    });
+
+    expect(calls).toEqual([`inherited:${recoveryOutput}`, 'captured']);
+    expect(serverRoutingSetupSteps(status)).toEqual([{ id: 'status' }, { id: 'start' }]);
   });
 });
 

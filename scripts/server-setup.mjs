@@ -17,7 +17,7 @@ import {
   parseDockerVersion,
   waitPlan,
 } from './lib/setup-checks.mjs';
-import { parseRoutingGraphStatus, serverRoutingSetupSteps } from './lib/update-plan.mjs';
+import { recoverAndReadRoutingGraphStatus, serverRoutingSetupSteps } from './lib/update-plan.mjs';
 
 const dir = resolve('infra/server');
 const envPath = resolve(dir, '.env');
@@ -175,25 +175,30 @@ console.log(
 );
 
 step('Graph chỉ đường (Valhalla, spec dẫn đường A)');
-const routingStatusText = capture('docker', [
-  ...compose,
-  'run',
-  '--rm',
-  '-T',
-  'pipeline',
-  'node',
-  'scripts/routing-graph.mjs',
-  'status',
-]);
-if (!routingStatusText) throw new Error('routing-graph status thất bại; chưa start Valhalla');
-let routingStatus;
-try {
-  routingStatus = parseRoutingGraphStatus(JSON.parse(routingStatusText));
-} catch (error) {
-  throw new Error(
-    `routing-graph status không hợp lệ; chưa start Valhalla: ${error instanceof Error ? error.message : String(error)}`,
-  );
-}
+const routingStatus = recoverAndReadRoutingGraphStatus({
+  runStatus: () =>
+    run('docker', [
+      ...compose,
+      'run',
+      '--rm',
+      '-T',
+      'pipeline',
+      'node',
+      'scripts/routing-graph.mjs',
+      'status',
+    ]),
+  captureStatus: () =>
+    capture('docker', [
+      ...compose,
+      'run',
+      '--rm',
+      '-T',
+      'pipeline',
+      'node',
+      'scripts/routing-graph.mjs',
+      'status',
+    ]),
+});
 for (const graphStep of serverRoutingSetupSteps(routingStatus).slice(1)) {
   if (graphStep.id === 'download') {
     console.log('Chưa có PBF Việt Nam — tải (vài phút)…');
