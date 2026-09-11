@@ -3616,7 +3616,7 @@ Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>"
 - Modify: `packages/web/src/map.ts`, `packages/web/src/map.test.ts` (fake thêm `getSource`, `off`, `once`, `isStyleLoaded`)
 - Modify: `packages/web/src/index.ts`, `packages/web/src/umd.ts`
 
-- [ ] **Step 1: Viết test thất bại cho `createNavigation`**
+- [x] **Step 1: Viết test thất bại cho `createNavigation`**
 
 ```ts
 // @vitest-environment jsdom
@@ -3819,12 +3819,12 @@ describe('createNavigation', () => {
 });
 ```
 
-- [ ] **Step 2: Chạy, xác nhận đỏ**
+- [x] **Step 2: Chạy, xác nhận đỏ**
 
 Run: `pnpm exec vitest run packages/web/src/navigation.test.ts`
 Expected: FAIL.
 
-- [ ] **Step 3: Viết `navigation.ts`**
+- [x] **Step 3: Viết `navigation.ts`**
 
 ```ts
 import {
@@ -4128,12 +4128,12 @@ export function createNavigation(deps: NavigationDeps): NavigationController {
 
 Lưu ý: `stop()` gọi `nav.stop()` rồi bỏ tham chiếu nên `status` về `'idle'` (test kỳ vọng) — trạng thái `'stopped'` chỉ tồn tại trong core.
 
-- [ ] **Step 4: Chạy test navigation**
+- [x] **Step 4: Chạy test navigation**
 
 Run: `pnpm exec vitest run packages/web/src/navigation.test.ts`
 Expected: PASS. Ca "12 câu" phụ thuộc lịch đọc core (Task 9) — nếu lệch, kiểm core trước, không sửa số ở đây.
 
-- [ ] **Step 5: Nối vào `map.ts`**
+- [x] **Step 5: Nối vào `map.ts`**
 
 `packages/web/src/map.ts`:
 
@@ -4192,7 +4192,7 @@ và thêm test cuối `describe('createMap')`:
   });
 ```
 
-- [ ] **Step 6: Export ESM và UMD**
+- [x] **Step 6: Export ESM và UMD**
 
 `packages/web/src/index.ts` thay toàn bộ bằng:
 
@@ -4250,12 +4250,12 @@ export type {
 
 `packages/web/src/umd.ts`: khối `export { … } from './index';` thêm `ROUTE_LAYER_IDS, ROUTE_SOURCE_ID, FOLLOW_ZOOM, geolocationSource, playbackSource, toGeoFix, createSpeech, createNavigator, formatDistance, formatDistanceShort, NAVIGATION_THRESHOLDS, simulateFixes`; khối `export type` thêm các kiểu mới tương ứng.
 
-- [ ] **Step 7: Test, typecheck, build, size**
+- [x] **Step 7: Test, typecheck, build, size**
 
 Run: `pnpm exec vitest run packages/web && pnpm --filter @mapslibvn/web typecheck && pnpm --filter @mapslibvn/web build`
 Expected: PASS; size-limit in `dist/index.js` (kỳ vọng ≤ 11 kB gzip, trần 15 kB) và UMD (< 350 kB). Ghi số vào commit.
 
-- [ ] **Step 8: Commit**
+- [x] **Step 8: Commit**
 
 ```bash
 git add packages/web/src

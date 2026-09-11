@@ -15,6 +15,10 @@ function fakeMaplibre() {
     getLayer = vi.fn(() => ({ id: 'poi' }));
     getStyle = vi.fn(() => ({ layers: [] }));
     setLayoutProperty = vi.fn();
+    getSource = vi.fn(() => undefined);
+    isStyleLoaded = vi.fn(() => true);
+    off = vi.fn();
+    easeTo = vi.fn();
     queryRenderedFeatures = vi.fn(() => [
       {
         properties: { id: 'p1', name: 'Cafe Cây Bồ Đề', cat: 'cafe', grp: 'food_drink' },
@@ -193,5 +197,14 @@ describe('createMap', () => {
     const { ml } = fakeMaplibre();
     const m = createMap(base, { maplibre: ml as never });
     expect(m.places.styleUrl('light')).toContain('key=mlv_live_t');
+  });
+
+  it('có routes và navigation; remove() dừng dẫn đường, xoá tuyến rồi gl.remove()', () => {
+    const { ml } = fakeMaplibre();
+    const m = createMap(base, { maplibre: ml as never });
+    expect(typeof m.routes.show).toBe('function');
+    expect(m.navigation.status).toBe('idle');
+    m.remove();
+    expect(m.gl.remove).toHaveBeenCalledTimes(1);
   });
 });

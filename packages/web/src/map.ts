@@ -12,7 +12,9 @@ import {
 } from '@mapslibvn/core';
 import type * as maplibregl from 'maplibre-gl';
 import { type Lang, applyLanguage } from './language';
+import { type NavigationController, createNavigation } from './navigation';
 import { type ProtocolHost, ensurePmtilesProtocol } from './protocol';
+import { type RoutesLayer, createRoutesLayer } from './routes-layer';
 
 export type { PoiFeature };
 
@@ -47,6 +49,7 @@ export interface MarkerOptions {
 export interface MapEvents {
   poiClick: PoiFeature;
   load: undefined;
+  routeClick: { index: number };
 }
 
 export interface Deps {
@@ -56,6 +59,10 @@ export interface Deps {
 export interface MapsLibVNMap {
   gl: maplibregl.Map;
   places: MapsLibVNClient;
+  /** Vẽ tuyến từ `DirectionsResponse` (spec B 5.2). */
+  routes: RoutesLayer;
+  /** Dẫn đường theo GPS (spec B 5.5). */
+  navigation: NavigationController;
   addMarker(o: MarkerOptions): maplibregl.Marker;
   fitBounds(bbox: [number, number, number, number], padding?: number): void;
   flyTo(center: [number, number], zoom?: number): void;
@@ -103,10 +110,14 @@ export function createMap(opts: CreateMapOptions, deps?: Deps): MapsLibVNMap {
   const listeners: { [K in keyof MapEvents]: Set<(e: MapEvents[K]) => void> } = {
     poiClick: new Set(),
     load: new Set(),
+    routeClick: new Set(),
   };
   const emit = <K extends keyof MapEvents>(k: K, e: MapEvents[K]) => {
     for (const fn of listeners[k]) fn(e);
   };
+
+  const routes = createRoutesLayer(gl, ml, (index) => emit('routeClick', { index }));
+  const navigation = createNavigation({ gl, ml, places, routes, lang: opts.lang ?? 'vi' });
 
   gl.on('load', () => {
     if (opts.lang && opts.lang !== 'vi') applyLanguage(gl, opts.lang);
@@ -137,6 +148,8 @@ export function createMap(opts: CreateMapOptions, deps?: Deps): MapsLibVNMap {
   return {
     gl,
     places,
+    routes,
+    navigation,
     addMarker(o) {
       const marker = new ml.Marker(o.color ? { color: o.color } : undefined).setLngLat([
         o.lng,
@@ -164,6 +177,8 @@ export function createMap(opts: CreateMapOptions, deps?: Deps): MapsLibVNMap {
       (listeners[event] as Set<unknown>).delete(handler);
     },
     remove() {
+      navigation.stop();
+      routes.clear();
       gl.remove();
     },
   };
