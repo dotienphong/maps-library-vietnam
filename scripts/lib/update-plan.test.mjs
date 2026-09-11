@@ -211,7 +211,6 @@ describe('tile release transaction', () => {
     expect(steps.find((step) => step.id === 'routing-prepare')?.args).toEqual([
       'scripts/routing-graph.mjs',
       'prepare',
-      '--force',
       '--vn-release',
       'vn-20260911',
     ]);

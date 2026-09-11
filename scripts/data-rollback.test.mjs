@@ -174,7 +174,17 @@ describe('rollback verification', () => {
       skipRouting: false,
     });
     expect(mutations).toEqual([
-      ['node', ['scripts/routing-graph.mjs', 'rollback']],
+      [
+        'node',
+        [
+          'scripts/routing-graph.mjs',
+          'rollback',
+          '--expected-current',
+          'vn-new',
+          '--expected-target',
+          'vn-old',
+        ],
+      ],
       ['node', ['pipelines/tiles/src/manifest.mjs', 'rollback']],
     ]);
 

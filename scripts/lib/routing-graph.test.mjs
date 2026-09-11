@@ -45,12 +45,17 @@ function md5(content) {
 }
 
 /** @param {string} pbfMd5 @param {string} [requestedAt] */
-function metadata(pbfMd5, requestedAt = '2026-09-01T02:00:00.000Z') {
+function metadata(
+  pbfMd5,
+  requestedAt = '2026-09-01T02:00:00.000Z',
+  /** @type {string | undefined} */ vnRelease = undefined,
+) {
   return {
     pbfMd5,
     pbfDate: '2026-09-01T00:00:00.000Z',
     requestedAt,
     previous: null,
+    ...(vnRelease ? { vnRelease } : {}),
   };
 }
 
@@ -63,11 +68,14 @@ function fixture() {
   mkdirSync(resolve(graph, GRAPH_FILES.prevDir), { recursive: true });
   writeFileSync(resolve(work, 'data/sources', GRAPH_FILES.pbf), 'source-new');
   writeFileSync(resolve(graph, GRAPH_FILES.tar), 'tar-current');
-  writeFileSync(resolve(graph, GRAPH_FILES.meta), JSON.stringify(metadata('1'.repeat(32))));
+  writeFileSync(
+    resolve(graph, GRAPH_FILES.meta),
+    JSON.stringify(metadata('1'.repeat(32), undefined, 'vn-current')),
+  );
   writeFileSync(resolve(graph, GRAPH_FILES.prevDir, GRAPH_FILES.tar), 'tar-previous');
   writeFileSync(
     resolve(graph, GRAPH_FILES.prevDir, GRAPH_FILES.meta),
-    JSON.stringify(metadata('2'.repeat(32))),
+    JSON.stringify(metadata('2'.repeat(32), undefined, 'vn-previous')),
   );
   mkdirSync(resolve(graph, GRAPH_FILES.tileDir));
   writeFileSync(resolve(graph, GRAPH_FILES.tileDir, 'stale'), 'tile');
@@ -151,6 +159,23 @@ describe('preparePlan', () => {
     expect(preparePlan({ ...state, force: true })).toEqual({ action: 'rebuild', keepPrev: true });
   });
 
+  it('chỉ skip khi cả PBF hash và VN release đều trùng', () => {
+    const base = {
+      hasSource: true,
+      sourceMd5: md5,
+      currentMd5: md5,
+      hasTar: true,
+      force: false,
+      currentVnRelease: 'vn-b',
+      desiredVnRelease: 'vn-b',
+    };
+    expect(preparePlan(base).action).toBe('skip');
+    expect(preparePlan({ ...base, desiredVnRelease: 'vn-c' })).toEqual({
+      action: 'rebuild',
+      keepPrev: true,
+    });
+  });
+
   it('md5 khác hoặc chưa có tar → rebuild; keepPrev theo tar hiện có', () => {
     expect(
       preparePlan({
@@ -222,7 +247,20 @@ describe('validation boundary', () => {
       command: 'prepare',
       force: true,
     });
-    expect(parseRoutingGraphArgs(['rollback'])).toEqual({ command: 'rollback', force: false });
+    expect(
+      parseRoutingGraphArgs([
+        'rollback',
+        '--expected-current',
+        'vn-current',
+        '--expected-target',
+        'vn-previous',
+      ]),
+    ).toEqual({
+      command: 'rollback',
+      force: false,
+      expectedCurrent: 'vn-current',
+      expectedTarget: 'vn-previous',
+    });
     expect(parseRoutingGraphArgs(['status'])).toEqual({ command: 'status', force: false });
     expect(parseRoutingGraphArgs(['prepare', '--vn-release', 'vn-20260911'])).toEqual({
       command: 'prepare',
@@ -244,6 +282,7 @@ describe('validation boundary', () => {
       ['prepare', '--froce'],
       ['prepare', '--force', 'junk'],
       ['rollback', '--force'],
+      ['rollback'],
       ['status', 'junk'],
       ['prepare', '--vn-release', '../bad'],
       ['wat'],
@@ -347,10 +386,14 @@ describe('transaction recovery', () => {
 
   it.each(ROLLBACK_FAULT_POINTS)('recover rollback sau fault tại %s', (point) => {
     const state = fixture();
-    const crashed = run(state, ['rollback'], {
-      NODE_ENV: 'test',
-      MAPSLIBVN_ROUTING_FAULT_AFTER: point,
-    });
+    const crashed = run(
+      state,
+      ['rollback', '--expected-current', 'vn-current', '--expected-target', 'vn-previous'],
+      {
+        NODE_ENV: 'test',
+        MAPSLIBVN_ROUTING_FAULT_AFTER: point,
+      },
+    );
     expect(crashed.status).toBe(91);
 
     const recovered = run(state, ['status']);
@@ -397,7 +440,13 @@ describe('transaction recovery', () => {
   it('rollback bị từ chối khi build còn active, chưa có failed marker', () => {
     const state = fixture();
     writeFileSync(resolve(state.graph, 'reload.in-progress'), 'rebuild\n');
-    const result = run(state, ['rollback']);
+    const result = run(state, [
+      'rollback',
+      '--expected-current',
+      'vn-current',
+      '--expected-target',
+      'vn-previous',
+    ]);
     expect(result.status).not.toBe(0);
     expect(result.stderr).toContain('đang chạy');
     expect(readFileSync(resolve(state.graph, GRAPH_FILES.tar), 'utf8')).toBe('tar-current');
@@ -407,7 +456,13 @@ describe('transaction recovery', () => {
     const state = fixture();
     writeFileSync(resolve(state.graph, 'reload.in-progress'), 'rebuild\n');
     writeFileSync(resolve(state.graph, 'reload.failed'), '42\n');
-    const result = run(state, ['rollback']);
+    const result = run(state, [
+      'rollback',
+      '--expected-current',
+      'vn-current',
+      '--expected-target',
+      'vn-previous',
+    ]);
     expect(result.status, result.stderr).toBe(0);
     expect(readFileSync(resolve(state.graph, GRAPH_FILES.tar), 'utf8')).toBe('tar-previous');
     expect(readFileSync(resolve(state.graph, GRAPH_FILES.flag), 'utf8')).toBe('rollback\n');
@@ -428,6 +483,65 @@ describe('transaction recovery', () => {
       JSON.parse(readFileSync(resolve(state.graph, GRAPH_FILES.prevDir, GRAPH_FILES.meta), 'utf8'))
         .pbfMd5,
     ).toBe('2'.repeat(32));
+  });
+
+  it('retry release B không thay prev A; sau đó rollback B về A', () => {
+    const state = fixture();
+    const first = run(state, ['prepare', '--vn-release', 'vn-b']);
+    expect(first.status, first.stderr).toBe(0);
+    writeFileSync(resolve(state.graph, GRAPH_FILES.tar), 'tar-b');
+    rmSync(resolve(state.graph, GRAPH_FILES.flag), { force: true });
+
+    const retry = run(state, ['prepare', '--vn-release', 'vn-b']);
+    expect(retry.status, retry.stderr).toBe(0);
+    expect(readFileSync(resolve(state.graph, GRAPH_FILES.prevDir, GRAPH_FILES.tar), 'utf8')).toBe(
+      'tar-current',
+    );
+    expect(
+      JSON.parse(readFileSync(resolve(state.graph, GRAPH_FILES.prevDir, GRAPH_FILES.meta), 'utf8'))
+        .vnRelease,
+    ).toBe('vn-current');
+
+    const rollback = run(state, [
+      'rollback',
+      '--expected-current',
+      'vn-b',
+      '--expected-target',
+      'vn-current',
+    ]);
+    expect(rollback.status, rollback.stderr).toBe(0);
+    expect(readFileSync(resolve(state.graph, GRAPH_FILES.tar), 'utf8')).toBe('tar-current');
+  });
+
+  it('revalidate expected identities dưới lock sau status để chặn TOCTOU', async () => {
+    const state = fixture();
+    const before = run(state, ['status']);
+    expect(JSON.parse(before.stdout).activeGraph.vnRelease).toBe('vn-current');
+    const pause = resolve(state.graph, 'rollback-revalidate');
+    const child = spawn(
+      process.execPath,
+      [SCRIPT, 'rollback', '--expected-current', 'vn-current', '--expected-target', 'vn-previous'],
+      {
+        env: {
+          ...process.env,
+          MAPSLIBVN_WORK: state.work,
+          MAPSLIBVN_VALHALLA: state.graph,
+          NODE_ENV: 'test',
+          MAPSLIBVN_ROUTING_TEST_SKIP_FLOCK: '1',
+          MAPSLIBVN_ROUTING_TEST_PAUSE_AFTER_AUTH_FILE: pause,
+        },
+        stdio: 'ignore',
+      },
+    );
+    await waitFor(() => existsSync(pause));
+    writeFileSync(
+      resolve(state.graph, GRAPH_FILES.meta),
+      JSON.stringify(metadata('1'.repeat(32), undefined, 'vn-changed')),
+    );
+    writeFileSync(`${pause}.release`, 'release\n');
+    expect(await waitForExit(child)).not.toBe(0);
+    expect(readFileSync(resolve(state.graph, GRAPH_FILES.tar), 'utf8')).toBe('tar-current');
+    expect(existsSync(resolve(state.graph, GRAPH_FILES.flag))).toBe(false);
   });
 });
 
@@ -522,16 +636,27 @@ describe('Valhalla wrapper race contract', () => {
       writeFileSync(resolve(state.graph, 'reload.in-progress'), 'rebuild\n');
       writeFileSync(resolve(state.graph, 'reload.failed'), '42\n');
 
-      const rollback = spawn(process.execPath, [SCRIPT, 'rollback'], {
-        env: {
-          ...process.env,
-          MAPSLIBVN_WORK: state.work,
-          MAPSLIBVN_VALHALLA: state.graph,
-          NODE_ENV: 'test',
-          MAPSLIBVN_ROUTING_TEST_PAUSE_AFTER_AUTH_FILE: pause,
+      const rollback = spawn(
+        process.execPath,
+        [
+          SCRIPT,
+          'rollback',
+          '--expected-current',
+          'vn-current',
+          '--expected-target',
+          'vn-previous',
+        ],
+        {
+          env: {
+            ...process.env,
+            MAPSLIBVN_WORK: state.work,
+            MAPSLIBVN_VALHALLA: state.graph,
+            NODE_ENV: 'test',
+            MAPSLIBVN_ROUTING_TEST_PAUSE_AFTER_AUTH_FILE: pause,
+          },
+          stdio: 'ignore',
         },
-        stdio: 'ignore',
-      });
+      );
       await waitFor(() => existsSync(pause));
 
       const wrapper = spawn('/bin/bash', [RUN_SH], {

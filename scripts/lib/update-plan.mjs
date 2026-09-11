@@ -153,7 +153,7 @@ export function tileReleaseSteps({ release, routing, out = '/app/out' }) {
     steps.push({
       id: 'routing-prepare',
       command: 'node',
-      args: ['scripts/routing-graph.mjs', 'prepare', '--force', '--vn-release', release],
+      args: ['scripts/routing-graph.mjs', 'prepare', '--vn-release', release],
     });
   }
   steps.push({

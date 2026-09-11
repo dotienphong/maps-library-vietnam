@@ -83,7 +83,14 @@ export function executeRollback(input) {
       throw new Error('manifest thiếu VN release identity để rollback graph an toàn');
     }
     verifyRoutingRollbackTarget(input.readGraphStatus(), currentVn, targetVn);
-    input.runCommand('node', ['scripts/routing-graph.mjs', 'rollback']);
+    input.runCommand('node', [
+      'scripts/routing-graph.mjs',
+      'rollback',
+      '--expected-current',
+      currentVn,
+      '--expected-target',
+      targetVn,
+    ]);
   }
   input.runCommand('node', ['pipelines/tiles/src/manifest.mjs', 'rollback']);
   return verified;

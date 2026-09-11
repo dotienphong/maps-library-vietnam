@@ -338,6 +338,27 @@ async function main() {
       if (interrupted.type === 'prepare') await finishPrepare(interrupted, true);
       else finishRollback(interrupted, true);
     }
+
+    /** @type {import('./lib/routing-graph.mjs').GraphMeta | null} */
+    let rollbackCurrent = null;
+    /** @type {import('./lib/routing-graph.mjs').GraphMeta | null} */
+    let rollbackPrevious = null;
+    if (options.command === 'rollback') {
+      assertMutationAllowed('rollback');
+      await pauseAfterAuthorizationForTest();
+      const plan = rollbackPlan({ hasPrevTar: existsSync(prevPath(GRAPH_FILES.tar)) });
+      if (plan.action === 'error') throw new Error(plan.reason);
+      rollbackCurrent = readMeta(path(GRAPH_FILES.meta));
+      rollbackPrevious = readMeta(prevPath(GRAPH_FILES.meta));
+      if (
+        rollbackCurrent?.vnRelease !== options.expectedCurrent ||
+        rollbackPrevious?.vnRelease !== options.expectedTarget
+      ) {
+        throw new Error(
+          `graph vnRelease đã đổi: active=${rollbackCurrent?.vnRelease ?? '?'} prev=${rollbackPrevious?.vnRelease ?? '?'}; expected ${options.expectedCurrent ?? '?'} → ${options.expectedTarget ?? '?'}`,
+        );
+      }
+    }
     cleanOrphanStages();
 
     if (options.command === 'status') {
@@ -429,6 +450,8 @@ async function main() {
         currentMd5: current?.pbfMd5 ?? null,
         hasTar,
         force: options.force,
+        currentVnRelease: current?.vnRelease ?? null,
+        desiredVnRelease: options.vnRelease ?? null,
       });
       if (plan.action === 'skip') {
         rmSync(files.newPbf, { force: true });
@@ -465,14 +488,10 @@ async function main() {
       return;
     }
 
-    assertMutationAllowed('rollback');
-    await pauseAfterAuthorizationForTest();
-    const plan = rollbackPlan({ hasPrevTar: existsSync(prevPath(GRAPH_FILES.tar)) });
-    if (plan.action === 'error') throw new Error(plan.reason);
+    const current = rollbackCurrent;
+    const previous = rollbackPrevious;
     const id = randomUUID();
     const files = stages(id);
-    const current = readMeta(path(GRAPH_FILES.meta));
-    const previous = readMeta(prevPath(GRAPH_FILES.meta));
     const hasCurrentTar = existsSync(path(GRAPH_FILES.tar));
     if (previous) {
       stageMeta(files.activeMeta, { ...previous, requestedAt: new Date().toISOString() });

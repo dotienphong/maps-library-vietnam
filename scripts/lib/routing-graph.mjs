@@ -32,7 +32,7 @@ export const ROLLBACK_FAULT_POINTS = [
 
 /**
  * @param {string[]} argv
- * @returns {{ command: 'prepare' | 'rollback' | 'status' | 'reset-empty', force: boolean, vnRelease?: string | null }}
+ * @returns {{ command: 'prepare' | 'rollback' | 'status' | 'reset-empty', force: boolean, vnRelease?: string | null, expectedCurrent?: string, expectedTarget?: string }}
  */
 export function parseRoutingGraphArgs(argv) {
   if (argv.length === 1 && argv[0] === 'prepare') {
@@ -66,14 +66,29 @@ export function parseRoutingGraphArgs(argv) {
       vnRelease: /** @type {string} */ (argv[3]),
     };
   }
-  if (argv.length === 1 && (argv[0] === 'rollback' || argv[0] === 'status')) {
-    return { command: argv[0], force: false };
+  if (
+    argv.length === 5 &&
+    argv[0] === 'rollback' &&
+    argv[1] === '--expected-current' &&
+    /^vn-[a-zA-Z0-9][a-zA-Z0-9._-]*$/.test(argv[2] ?? '') &&
+    argv[3] === '--expected-target' &&
+    /^vn-[a-zA-Z0-9][a-zA-Z0-9._-]*$/.test(argv[4] ?? '')
+  ) {
+    return {
+      command: 'rollback',
+      force: false,
+      expectedCurrent: /** @type {string} */ (argv[2]),
+      expectedTarget: /** @type {string} */ (argv[4]),
+    };
+  }
+  if (argv.length === 1 && argv[0] === 'status') {
+    return { command: 'status', force: false };
   }
   if (argv.length === 1 && argv[0] === 'reset-empty') {
     return { command: 'reset-empty', force: false, vnRelease: null };
   }
   throw new Error(
-    'Dùng: routing-graph.mjs prepare [--force] [--vn-release <vn-release>] | rollback | status | reset-empty',
+    'Dùng: routing-graph.mjs prepare [--force] [--vn-release <vn-release>] | rollback --expected-current <vn-release> --expected-target <vn-release> | status | reset-empty',
   );
 }
 
@@ -118,7 +133,7 @@ export function parseGraphMeta(value, source) {
 }
 
 /**
- * @param {{ hasSource: boolean, sourceMd5: string | null, currentMd5: string | null, hasTar: boolean, force: boolean }} s
+ * @param {{ hasSource: boolean, sourceMd5: string | null, currentMd5: string | null, hasTar: boolean, force: boolean, currentVnRelease?: string | null, desiredVnRelease?: string | null }} s
  * @returns {{ action: 'error', reason: string } | { action: 'skip', reason: string } | { action: 'rebuild', keepPrev: boolean }}
  */
 export function preparePlan(s) {
@@ -129,7 +144,8 @@ export function preparePlan(s) {
         'Chưa có vietnam.osm.pbf trong work — chạy `node pipelines/tiles/src/download.mjs` trước',
     };
   }
-  if (!s.force && s.hasTar && s.currentMd5 === s.sourceMd5) {
+  const sameRelease = !s.desiredVnRelease || s.currentVnRelease === s.desiredVnRelease;
+  if (!s.force && s.hasTar && s.currentMd5 === s.sourceMd5 && sameRelease) {
     return { action: 'skip', reason: `graph đã build từ PBF md5 ${s.sourceMd5}` };
   }
   return { action: 'rebuild', keepPrev: s.hasTar };

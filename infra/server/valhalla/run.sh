@@ -147,7 +147,7 @@ while true; do
   printf '%s\n' "${code}" > "${failed_tmp}"
   mv -f "${failed_tmp}" "${FAILED}"
   # Giữ IN_PROGRESS để lệnh graph khác không xen vào khi Docker khởi động lại sau OOM/lỗi dữ liệu.
-  log "entrypoint thoát mã ${code} mà không có cờ reload (build lỗi/OOM?) — ngủ ${FAIL_SLEEP_SECONDS}s rồi để Docker khởi động lại; quay về graph cũ: scripts/routing-graph.mjs rollback"
+  log "entrypoint thoát mã ${code} mà không có cờ reload (build lỗi/OOM?) — ngủ ${FAIL_SLEEP_SECONDS}s rồi để Docker khởi động lại; rollback an toàn: pnpm data:rollback"
   remaining="${FAIL_SLEEP_SECONDS}"
   while (( remaining > 0 )); do
     if [[ -f "${FLAG}" ]]; then
