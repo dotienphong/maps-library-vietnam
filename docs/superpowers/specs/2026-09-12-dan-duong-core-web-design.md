@@ -144,7 +144,8 @@ Nguyên tắc:
 | File | Việc |
 |---|---|
 | `types.ts` | `GeoFix`, `RouteProvider`, `NavigationStatus`, `NavigationThresholds`, `NavigationProgress`, `Announcement`, `NavigationEvents`, `NavigatorOptions`, `Navigator`, `PositionSource` |
-| `geometry.ts` | `haversineM`, `bearingDeg`, `projectOnSegment`, `snapToRoute` theo cửa sổ |
+| `geometry.ts` | `haversineM`, `bearingDeg`, `angleDiffDeg`, `projectOnSegment`, `cumulativeDistances` |
+| `snap.ts` | `snapToRoute` theo cửa sổ với tie-break heading rồi chiều đi |
 | `progress.ts` | `buildRouteIndex(route)`: khoảng cách cộng dồn từng đỉnh, mốc mét đầu mỗi step và leg; `progressAt(index, shapeIndex, t)` → step, leg, `distanceToStep_m`, `remaining_m`, `remaining_s` |
 | `announce.ts` | `formatDistance`, `formatDistanceShort`, `roundForSpeech`, `composeApproach`, `planAnnouncements(progress, done)` |
 | `navigator.ts` | `createNavigator()` |
@@ -316,8 +317,9 @@ cầu. Kết quả về mà trạng thái vẫn `rerouting` → `setRoute()` n�
 **Bước, leg, via, đến nơi.** `stepIndex` là step có `shape_begin ≤ shapeIndex < shape_end` (step cuối
 của leg có `shape_begin = shape_end`, là điểm; thuộc về step đó khi `shapeIndex ≥ shape_begin`). Đổi step
 → `step`. `traveled_m` vượt mốc `shape_offset` của leg kế **hoặc** fix trong `arrive_m` của
-`waypoints[legIndex+1].snapped` → `waypoint`, `legIndex++`. Fix trong `arrive_m` của điểm cuối tuyến,
-hoặc `remaining_m ≤ arrive_m` → `arrived`, phát `arrive`; sau đó `update()` không làm gì.
+`waypoints[legIndex+1].snapped` → `waypoint`, `legIndex++`. `remaining_m ≤ arrive_m`, hoặc fix trong `arrive_m` của điểm cuối tuyến **khi đang ở leg cuối và
+`remaining_m ≤ 150 m`** (tuyến một chiều vòng qua đích có thể đi sát đích khi còn vài trăm mét) →
+`arrived`, phát `arrive`; sau đó `update()` không làm gì.
 
 **Bỏ fix.** `accuracy_m > maxAccuracy_m` hoặc `timestamp ≤ timestamp trước` → bỏ, không phát gì. Fix
 đầu tiên cách tuyến hơn ngưỡng lệch (người dùng bấm bắt đầu khi chưa tới điểm xuất phát) → vào thẳng
@@ -476,7 +478,8 @@ pitch 45. `dragstart`, `wheel`, `touchstart` hai ngón → tắt bám, `followCh
 bật lại, `followChange(true)`. `follow: false` → không đụng camera.
 
 `stop()`: unsubscribe nguồn, `speech.cancel()`, nhả wake lock, gỡ puck, `navigator.stop()`, gỡ listener
-drag; **không** xoá tuyến (app quyết). Gọi `start()` khi đang chạy → `stop()` trước.
+drag; **không** xoá tuyến (app quyết); `status` về `'idle'` và `state` về `null` (mỗi `start()` tạo
+navigator mới nên `'stopped'` của core không lộ ra web). Gọi `start()` khi đang chạy → `stop()` trước.
 
 ### 5.6 React (`packages/react`)
 
