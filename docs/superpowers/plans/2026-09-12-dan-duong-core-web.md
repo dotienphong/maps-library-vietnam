@@ -4275,7 +4275,7 @@ Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>"
 - Test: `packages/react/src/use-navigation.test.tsx`
 - Modify: `packages/react/src/index.ts`
 
-- [ ] **Step 1: Viết test thất bại**
+- [x] **Step 1: Viết test thất bại**
 
 ```tsx
 // @vitest-environment jsdom
@@ -4389,12 +4389,12 @@ function Probe() {
 }
 ```
 
-- [ ] **Step 2: Chạy, xác nhận đỏ**
+- [x] **Step 2: Chạy, xác nhận đỏ**
 
 Run: `pnpm exec vitest run packages/react/src/use-navigation.test.tsx`
 Expected: FAIL.
 
-- [ ] **Step 3: Viết `use-navigation.ts`**
+- [x] **Step 3: Viết `use-navigation.ts`**
 
 ```ts
 import type { NavigationProgress, NavigationStatus } from '@mapslibvn/core';
@@ -4452,12 +4452,12 @@ export type {
 export type { NavigationStartOptions } from '@mapslibvn/web';
 ```
 
-- [ ] **Step 4: Chạy test, typecheck, build**
+- [x] **Step 4: Chạy test, typecheck, build**
 
 Run: `pnpm exec vitest run packages/react && pnpm --filter @mapslibvn/react typecheck && pnpm --filter @mapslibvn/react build`
 Expected: PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add packages/react/src
