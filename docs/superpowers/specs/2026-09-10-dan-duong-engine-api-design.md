@@ -1,7 +1,7 @@
 # MapsLibVN — Thiết kế dẫn đường, spec A: engine chỉ đường và API `/v1/directions`
 
 - Ngày: 2026-09-10
-- Trạng thái: bản viết sau brainstorming với PHONG (hướng, phương tiện, phạm vi API, cách build graph đã duyệt qua đối thoại 10/09/2026); chờ PHONG review file trước khi viết plan
+- Trạng thái: **Đã phát hành 11/09/2026**; nghiệm thu mục 11 đạt 5/7, hai dòng đạt một phần vì lý do ngoài mã (GitHub Actions bị khoá thanh toán; khoá `free` đã thu hồi ở audit 09/09) — xem `docs/evidence/routing/` và DEVLOG mục 12
 - Chủ dự án: PHONG
 - Tài liệu do Fable 5.1 viết
 - Spec gốc: `docs/superpowers/specs/2026-08-26-mapslibvn-maps-sdk-design.md` mục 1.3 ghi "Chỉ đường (routing/ETA) — cần Valhalla/OSRM riêng" là ngoài phạm vi MVP; spec này mở phạm vi đó

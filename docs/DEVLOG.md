@@ -5,6 +5,32 @@ commit với code).
 
 ## 1. Trạng thái hiện tại
 
+- **11/09/2026 — Chỉ đường spec A phát hành.** Valhalla 3.8.3 chạy trên máy chủ nội bộ (graph Việt Nam
+  từ `vietnam-latest.osm.pbf` 313 MB, tar 1,08 GB, RAM đỉnh container 3,67 GB, build ấm 1 phút 59 giây),
+  Worker `GET /v1/directions` + `GET /healthz/routing` (200 kèm `graph_built_at`), core
+  `client.directions()` / `decodePolyline6` / `ManeuverKind` (barrel 10,62 kB gzip, trần 12 kB), quota
+  nhóm `directions` riêng, migration 0012 đã áp production, `pnpm test` 223 test / 32 file,
+  `node scripts/routing-test.mjs` 7 test, smoke production bốn tuyến 20 lượt `failed 0` với p95
+  280–326 ms (ngưỡng chốt `--p95-max=800`). Evidence: `docs/evidence/routing/`. **Bắt đầu tiếp:** spec B
+  (logic dẫn đường trong core + SDK web).
+
+  **Ba cái bẫy đã trả giá để biết, ghi lại kẻo lặp:**
+  1. **Build graph OOM cho ra dịch vụ "xanh giả".** VM Docker mặc định 8,2 GB làm
+     `valhalla_build_tiles -s enhance` bị kernel giết; wrapper khởi động lại, đóng gói thư mục tile dở
+     thành tar rồi phục vụ tiếp. `/status` trả 200, `routing-graph.mjs status` báo `buildFailed: false`,
+     `activeGraph` trỏ đúng PBF — **ba tín hiệu xanh trong khi mọi `/route` trả `error_code 171`**. Chỉ
+     truy vấn một tuyến thật mới phát hiện. Nâng VM lên 15,6 GB thì build xong ngay.
+  2. **`rollback` không phân biệt hai graph dựng từ cùng một PBF.** `pbfMd5` của chúng giống hệt nên
+     `--expected-current-md5 X --expected-target-md5 X` vẫn pass; 14:34Z lệnh này đã đưa graph hỏng
+     quay lại phục vụ trong khi graph tốt bị đẩy xuống `prev/`. Chỉ graph do `data:update` dựng mới có
+     `vnRelease` để phân biệt. Phải đọc `status` ngay trước khi rollback — trạng thái đổi sau lưng khi
+     Docker Desktop khởi động lại và container tự build lại.
+  3. **Access application không có policy thì chặn sạch, và Worker báo y hệt lúc chưa có Tunnel.**
+     Dashboard Zero Trust bản mới tách policy thành đối tượng dùng chung; tạo xong vẫn phải gắn vào
+     application. `/healthz/routing` trả `503 upstream_unavailable` cho cả hai trường hợp vì
+     `routing/valhalla.ts:132` quy mọi status ngoài 400 về một lỗi. Phân biệt bằng observability:
+     `wallTimeMs` 4–18 ms là bị Access chặn, vài trăm ms là có tới được Valhalla.
+
 - **10/09/2026 — Sửa `/react-demo/` trên production: bản đồ trống vì worker MapLibre 404.** PHONG báo
   trang chỉ hiện nền trắng. Đo trên production: HTML, `_astro/ReactDemo.*.js`, `client.*.js`, CSS, style
   JSON, sprite và pmtiles đều 200/206 — chỉ `/_astro/maplibre-gl-worker.mjs` trả **404 →
@@ -792,9 +818,13 @@ commit với code).
 
 ## 2. Bước kế tiếp
 
-- **Dẫn đường spec A (10/09/2026):** thực thi plan `docs/superpowers/plans/2026-09-10-dan-duong-engine-api.md`
-  từ **Task 1 Step 1** (core polyline6). Cách khuyến nghị: subagent-driven-development, review giữa các task.
-  Task 16 mới push; Task 17 cần PHONG làm việc tay trên máy chủ và Cloudflare.
+- **Dẫn đường:** spec A đóng 11/09/2026 (Task 1–19 xong, xem mục 1); bước kế tiếp là brainstorm **spec B**
+  (`RouteProvider`, máy trạng thái dẫn đường, GPS web). Spec C (React Native) sau B.
+
+  Hai việc còn nợ của spec A: (1) chạy `gh workflow run "Routing tests"` và ghi ID run vào
+  `docs/evidence/routing/2026-09-11-nghiem-thu-production.md` khi GitHub Actions được mở lại (đang khoá
+  vì thanh toán từ 10/09); (2) đo **build lạnh** graph Việt Nam — số 1 phút 59 giây hiện có là build ấm
+  chồng lên thư mục tile cũ, chưa dùng để ước lượng thời gian dựng máy chủ mới được.
 
 - **Nguồn POI:** đã phát hành 07/09 (xem mục 1). Profile thứ ba `osm+overture` chỉ làm khi có nhu
   cầu thật (thêm một dòng vào `POI_SOURCE_PROFILES` + một lần `pnpm poi:profile`).
@@ -1344,6 +1374,15 @@ vẫn là `sleep 1` phút — `sudo pmset -a sleep 0 disksleep 0`.
 
 | Ngày | Quyết định | Lý do | Commit |
 |---|---|---|---|
+| 2026-09-11 | **Không** đặt `mem_limit` cho service `valhalla`, giữ `PG_SHARED_BUFFERS=6144MB`; nhưng ghi thành yêu cầu cứng: VM Docker (WSL2 trên Windows) phải ≥ 12 GB mới được build graph | Đỉnh đo được 3,67 GB < 6 GB nên `mem_limit` chỉ thêm rủi ro chặn nhầm. Ngược lại 8,2 GB làm `valhalla_build_tiles -s enhance` bị kernel giết — nguyên nhân duy nhất của lần build hỏng 11/09. Số 3,67 GB là build ấm, chưa phải đỉnh của build lạnh | `ebe21db` |
+| 2026-09-11 | Toạ độ đích tuyến smoke `noi-thanh-hcm` đổi từ `10.8188,106.6520` sang `10.8153,106.6633` | Toạ độ sân bay Tân Sơn Nhất thường được trích dẫn snap vào edge "VĐ. bảo vệ sân bay" trong khu bay, không nối mạng đường công cộng: `auto`/`motor_scooter` trả 442, tuyến hỏng 20/20 lượt. Fixture này chưa từng chạy trên graph thật vì plan viết trước khi máy chủ có Valhalla | `c223497` |
+| 2026-09-11 | Ngưỡng `--p95-max=800` chỉ có nghĩa khi chạy kèm `--requests=20` | Ở mặc định 5 lượt, p95 gần như bằng lượt chậm nhất và lượt đầu sau khi nghỉ mất ~2 giây (isolate Worker nguội + bắt tay Access), làm trượt ngưỡng dù dịch vụ bình thường | `c223497` |
+| 2026-09-10 | Vòng đời graph đổi bằng **dời `valhalla_tiles.tar` + cờ `reload.request`** (`use_tiles_ignore_pbf=True`), không dựa vào hash file của image | Image `valhalla-scripted` băm theo tên file nên không nhận ra PBF đã thay; dời tar rồi dừng cả nhóm tiến trình trong `run.sh` là cách đổi graph không cần Docker socket trong container pipeline | (Task 12) |
+| 2026-09-10 | `loadAuth` đọc `quota_directions_per_day` bằng `(to_jsonb(k) ->> 'quota_directions_per_day')::int` thay vì tham chiếu cột | Cho phép deploy Worker **trước** migration 0012: tham chiếu cột chưa tồn tại làm Postgres phân giải lỗi ngay cả trên nhánh không dùng tới. Đã chứng minh 11/09 — Worker mới chạy tốt khi production còn ở 0011 | (Task 4) |
+| 2026-09-10 | Header Access chỉ gửi khi **đủ cả hai secret VÀ đích là https**; `redirect: 'manual'`; mọi status ngoài 400 của Valhalla → 503 | Không để service token rò qua http hay đi theo redirect sang trang đăng nhập của Access khi token sai | (Task 6) |
+| 2026-09-10 | Ghim image theo digest `sha256:24ef7955…` chứ không chỉ tag `3.8.3` | Tag bị đẩy lại trên GHCR sẽ đổi bản chạy trên máy chủ mà không ai biết | (Task 12) |
+| 2026-09-10 | Workflow `Routing tests` tách riêng khỏi `DB tests` | Job DB tests chạy **trong** container image pipeline nên không có Docker để dựng Valhalla fixture | (Task 11) |
+| 2026-09-10 | Test tích hợp dùng lại fixture Quận 1 `pipelines/poi/fixtures/q1.osm.pbf`; trần size-limit core giữ **12 kB** | Không thêm fixture mới cho cùng một vùng; barrel core sau khi thêm `directions`/polyline6/maneuver là 10,62 kB gzip, còn chỗ | (Task 10, Task 3) |
 | 2026-09-04 | Display priority không dùng `quality_score` làm tín hiệu chính: thứ tự là `category.rank` → `popularity` → `quality_score` → MD5/ID; tile dùng lưới Web Mercator giữ chỗ từ `minzoom` tới z16 | Quality chủ yếu đo độ đầy đủ dữ liệu, không đồng nghĩa địa điểm quan trọng. Giữ chỗ xuyên zoom bảo đảm POI đã xuất hiện không biến mất khi zoom và loại phụ thuộc biên cursor/tile | (commit này) |
 | 2026-09-04 | C4: `ip_hash`/`end_user_hash` băm kèm secret `IP_HASH_PEPPER`; thiếu secret thì `POST /v1/edits` trả **503 `server_misconfigured`** chứ không tự hạ xuống băm không pepper. Dev/test dùng giá trị không bí mật trong `wrangler.toml` và `vitest.config.ts`; production dùng `wrangler secret put` (đã đặt 04/09). Harness dbtest phải truyền `--var IP_HASH_PEPPER` | Không có pepper thì dải IPv4 chỉ ~4 tỉ giá trị — ai lấy được bảng `poi_edit` là dò ngược ra IP; mặc định im lặng sẽ khiến sự cố cấu hình không bao giờ bị phát hiện | (commit này) |
 | 2026-09-03 | M6 chốt 8 quyết định khi viết plan, đã áp dụng nguyên: (1) `tsup.config.ts` với `noExternal: ['@mapslibvn/core']` — external `react`, `react/jsx-runtime`, `react-native`, wrapper; (2) test component RN chạy jsdom bằng `@testing-library/react` với `vi.mock` hai module native trong `src/test/` (không `react-test-renderer`, không Jest preset RN); (3) vitest root include thêm `packages/*/src/**/*.test.tsx`; (4) `resolveKey` nhận tham số thứ ba `{envName, hint}` để `example-rn` dùng lại thay vì copy; (5) app thử tạo bằng `create-expo-app --template blank-typescript`, không ghim tay RN/React; (6) `npm install ./vendor/*.tgz` chạy lại **mỗi lần** `example:rn` để npm không giữ tarball cũ trùng tên; (7) `<Marker>` mặc định View tròn 22 pt, `anchor` `center`; (8) `onLoad` gọi một lần mỗi lần tạo map, guard bằng `useRef`. Kèm: style JSON tải về phải cast `as StyleSpecification` trong `use-style.ts` vì `res.json()` trả `unknown` | Gói RN phải cài được khi core chưa lên npm; React 19 + New Architecture loại bỏ hạ tầng test RN cũ; app thử phải nằm ngoài workspace để chứng minh tarball tự chứa | (commit này) |
@@ -1867,6 +1906,19 @@ vẫn là `sleep 1` phút — `sudo pmset -a sleep 0 disksleep 0`.
   `foldTelex` không gập chữ `w` trơ (`traanf hwng ddaoj` → `tran hwng dao`) và không với tới dấu
   telex đứng trước phụ âm cuối (`beexn thanhf` → `bexn thanh`). Không hồi quy: bộ mờ 40 vẫn
   **38/40**, p95 lạnh 1.630 ms (lần trước 1.751 ms)
+- 2026-09-11 · Dẫn đường A T1–T15 · polyline6/maneuver/`client.directions()` trong core, `routing/*` +
+  `GET /v1/directions` + `/healthz/routing` trong Worker, migration 0012, harness fixture Quận 1,
+  workflow Routing tests, service `valhalla` + `run.sh`, móc `data:update`/`data:rollback`/`server:setup`,
+  smoke command, tài liệu · `08b72fc`
+- 2026-09-11 · Dẫn đường A T16 · cổng cục bộ xanh, deploy tay `wrangler deploy --env production` vì
+  Actions bị khoá thanh toán · `ebecb9e`
+- 2026-09-11 · Dẫn đường A T17 · graph Việt Nam trên máy chủ (VM 8,2 → 15,6 GB sau lần OOM), migration
+  0012 trên production, Cloudflare service token + Access application + public hostname, số đo RAM ·
+  `ebe21db`, `9e4b565`
+- 2026-09-11 · Dẫn đường A T18 · smoke production bốn tuyến 20 lượt, sửa toạ độ đích sân bay, chốt
+  `--p95-max=800` · `c223497`, `12902c8`
+- 2026-09-11 · Dẫn đường A T19 · nghiệm thu spec A mục 11, DEVLOG, `Setup_Local_Guide.md` theo số đo
+  Valhalla · `413736a` + (commit này)
 
 ## 5. Sự cố
 
@@ -2388,3 +2440,18 @@ Thao tác tự động bằng Maestro 2.8.0 + `adb input tap`; ảnh trong `docs
 - `onPoiClick` dùng `queryRenderedFeatures` tại **đúng một điểm**, không có bán kính bao dung:
   chạm lệch ~10 px là trượt. Với ngón tay thật nên cân nhắc truy vấn theo khung nhỏ quanh điểm —
   ghi lại làm việc cần xem xét, chưa sửa trong M6.
+
+## 12. Nghiệm thu spec dẫn đường A (spec mục 11) — **5/7 ĐẠT, 2 ĐẠT MỘT PHẦN**, 11/09/2026
+
+Hai dòng đạt một phần đều **không phải lỗi mã**: dòng 3 vướng GitHub Actions bị khoá thanh toán,
+dòng 5 vướng khoá `free` đã bị thu hồi trong audit bảo mật 09/09.
+
+| # | Tiêu chí (spec A mục 11) | Kết quả |
+|---|---|---|
+| 1 | `valhalla` dựng trên máy chủ, graph Việt Nam build xong, `/healthz/routing` production 200 kèm `graph_built_at` | **ĐẠT** — `{"ok":true,"version":"3.8.3","graph_built_at":"2026-09-11T14:40:19.000Z","ms":284}`. Lưu ý: graph dựng bằng `routing-graph.mjs prepare --force` chứ không bằng một lần `server:setup` trên volume rỗng; đường `server:setup` mới chỉ có test, chưa chạy thật trên máy này |
+| 2 | Smoke production: các tuyến trả 200, xe máy liên tỉnh `flags.highway=false`, chỉ dẫn tiếng Việt có dấu, p95 ghi evidence | **ĐẠT** — bốn tuyến (spec yêu cầu ba), 20 lượt mỗi tuyến, `failed 0`; `lien-tinh-xe-may` `highway false`, `lien-tinh-o-to` `highway true`; `vietnamese true` cả bốn; p95 280/326/311/272 ms, ngưỡng chốt 800 ms. `docs/evidence/routing/2026-09-11-nghiem-thu-production.md` |
+| 3 | `pnpm test` xanh, `pnpm test:routing` xanh trên dev với fixture, job DB tests xanh trên CI | **ĐẠT MỘT PHẦN** — `pnpm test` 223 test / 32 file xanh, `node scripts/routing-test.mjs` 7 test xanh, `pnpm test:api-db` 53 test xanh (chạy tay). **Phần CI CHƯA ĐẠT**: GitHub Actions bị khoá vì thanh toán từ 10/09/2026, mọi workflow fail sau 3–23 giây mà job không khởi động. Cổng đã chạy tay ở máy dev |
+| 4 | `prepare --force` làm graph build lại và phục vụ lại không cần tay; `rollback` quay về graph trước và `/healthz/routing` trả `graph_built_at` cũ | **ĐẠT** — `prepare --force`: cờ 14:38:22Z → phục vụ lại 14:40:21Z, không thao tác tay. `rollback`: cờ 16:20:02Z → `/healthz/routing` trả `graph_built_at` **14:31:24Z** (graph cũ) lúc 16:20:43Z, 41 giây; đảo lại về 14:40:19Z lúc 16:21:23Z |
+| 5 | Quota `directions` đếm được với khoá `free` (kiểm bằng KV), tenant `internal` không đếm | **ĐẠT MỘT PHẦN** — vế `internal` đạt trên production: ~180 lượt `/v1/directions` bằng khoá internal, KV namespace `META` không sinh khoá `quota:` nào (chỉ có `release:current`, `release:history`). Vế `free` **chỉ có unit test** (`pnpm test`, `QUOTA_ENABLED=1`): khoá free duy nhất `mlv_live_freetest…` đã bị thu hồi trong audit bảo mật 09/09 và DB không còn lưu plaintext, nên muốn kiểm thật phải cấp khoá free mới |
+| 6 | Docs site có trang directions; THIRD_PARTY_NOTICES có Valhalla; README máy chủ có mục Cloudflare; evidence có số đo build và p95 | **ĐẠT** — `api.md` có `### GET /v1/directions` + mục quota/cache Chỉ đường, `tinh-nang.md` mục 5, `sdk.md` bảng `directions(opts)` (dạng mục trong trang sẵn có, không phải trang riêng); `THIRD_PARTY_NOTICES.md` có Valhalla (MIT, chạy như dịch vụ riêng); `infra/server/README.md` mục "Việc tay trên Cloudflare" điểm 7 kèm runbook Access-before-Tunnel; evidence có cả số đo build lẫn p95 |
+| 7 | Trạng thái mốc và DEVLOG cập nhật | **ĐẠT** — mục 1, 2, 3, 4 và mục 12 này; `Setup_Local_Guide.md` cập nhật theo số đo thật |

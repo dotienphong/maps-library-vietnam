@@ -3738,6 +3738,19 @@ Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>"
 
 ---
 
+### Thực tế 11/09/2026 — Task 17 đóng
+
+Step 0 phát hiện VM Docker chỉ 8,2 GB; build 13:51Z chết bằng `Killed` ở pha `enhance`, wrapper đóng
+gói thư mục tile dở thành tar và phục vụ tiếp — `/status` 200, `status` báo `buildFailed: false`,
+nhưng mọi `/route` trả 171. Nâng VM lên 15,6 GB thì build xanh (cờ 14:38:22Z → phục vụ 14:40:21Z,
+RAM đỉnh 3,67 GB, tar 1,08 GB). Migration 0012 đã áp. Step 4 làm xong trên Cloudflare nhưng
+`/healthz/routing` vẫn 503 cho tới khi **gắn** policy vào Access application (dashboard bản mới tách
+policy thành đối tượng dùng chung). Step 5 diễn tập rollback đạt: 42 giây ở tầng Valhalla, 41 giây
+nhìn từ `/healthz/routing`. Evidence `docs/evidence/routing/2026-09-11-build-graph-may-chu.md`,
+commit `ebe21db` và `9e4b565`.
+
+---
+
 ## Task 18: Kiểm production — healthz, smoke bốn tuyến, chốt p95, evidence
 
 Điều kiện: Task 16 và 17 xong.
@@ -3764,6 +3777,18 @@ Lấy p95 lớn nhất trong bảng, nhân 1,5, làm tròn lên trăm → ghi v�
 - [ ] **Step 4: Evidence production**
 
 `docs/evidence/routing/2026-09-XX-nghiem-thu-production.md`: bảng smoke (dán `console.table`), output `/healthz/routing`, `schema_migration`, ID các run CI (Task 16), kích cỡ core gzip (Task 3), kết quả `pnpm test:routing` (số test, thời gian build graph fixture). Commit `docs(evidence): nghiệm thu production chỉ đường spec A`.
+
+---
+
+### Thực tế 11/09/2026 — Task 18 đóng
+
+Lệnh trong Step 2 **sai**: `pnpm smoke:directions -- --confirm-production` bị pnpm truyền nguyên chuỗi
+`--` vào script ("Cờ không hợp lệ hoặc thiếu giá trị: --"); gọi thẳng
+`node scripts/smoke-directions.mjs --confirm-production --requests=20`. Lần chạy đầu tuyến
+`noi-thanh-hcm` hỏng 20/20 vì toạ độ đích snap vào "VĐ. bảo vệ sân bay" trong khu bay — đổi đích sang
+`10.8153,106.6633`. Sau đó bốn tuyến `failed 0`, p95 400/375/483/347 ms → chốt `--p95-max=800`; chạy
+lại xanh với p95 280/326/311/272 ms. Ngưỡng chỉ đúng khi kèm `--requests=20`. Evidence
+`docs/evidence/routing/2026-09-11-nghiem-thu-production.md`, commit `c223497` và `12902c8`.
 
 ---
 
