@@ -3233,7 +3233,7 @@ Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>"
 - Create: `packages/web/src/routes-layer.ts`
 - Test: `packages/web/src/routes-layer.test.ts`
 
-- [ ] **Step 1: Viết test thất bại**
+- [x] **Step 1: Viết test thất bại**
 
 ```ts
 import type { DirectionsResponse } from '@mapslibvn/core';
@@ -3390,12 +3390,12 @@ describe('createRoutesLayer', () => {
 });
 ```
 
-- [ ] **Step 2: Chạy, xác nhận đỏ**
+- [x] **Step 2: Chạy, xác nhận đỏ**
 
 Run: `pnpm exec vitest run packages/web/src/routes-layer.test.ts`
 Expected: FAIL.
 
-- [ ] **Step 3: Viết `routes-layer.ts`**
+- [x] **Step 3: Viết `routes-layer.ts`**
 
 ```ts
 import { type DirectionsResponse, decodePolyline6 } from '@mapslibvn/core';
@@ -3592,12 +3592,12 @@ export function createRoutesLayer(
 
 Lưu ý test "clear gỡ marker và xoá dữ liệu" kỳ vọng `lastData(...).features` rỗng — `clear()` gọi `setData(EMPTY)` trực tiếp, đúng kỳ vọng.
 
-- [ ] **Step 4: Chạy test**
+- [x] **Step 4: Chạy test**
 
 Run: `pnpm exec vitest run packages/web/src/routes-layer.test.ts && pnpm --filter @mapslibvn/web typecheck`
 Expected: PASS. Nếu typecheck kêu về `filter`/`paint`, ép kiểu tường minh (`as maplibregl.FilterSpecification`) thay vì `as never`.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add packages/web/src/routes-layer.ts packages/web/src/routes-layer.test.ts
