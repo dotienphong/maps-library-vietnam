@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import { spawnSync } from 'node:child_process';
+import { spawn, spawnSync } from 'node:child_process';
 // Quản lý graph Valhalla trên volume valhalla-data. Image valhalla-scripted chỉ băm TÊN PBF,
 // vì vậy prepare phải dời tar và xoá tile directory để buộc build lại (spec A mục 2, 4.4).
 import { createHash, randomUUID } from 'node:crypto';
@@ -20,7 +20,6 @@ import {
 } from 'node:fs';
 import { copyFile, rm } from 'node:fs/promises';
 import { dirname, resolve } from 'node:path';
-import { fileURLToPath } from 'node:url';
 import {
   GRAPH_FILES,
   PREPARE_FAULT_POINTS,
@@ -37,6 +36,7 @@ const RUNTIME = {
   lock: '.routing-graph.lock',
   stagePrefix: '.routing-graph-txn-',
   inProgress: 'reload.in-progress',
+  failed: 'reload.failed',
 };
 const WORK = process.env.MAPSLIBVN_WORK ?? '/app/work';
 const GRAPH_DIR = process.env.MAPSLIBVN_VALHALLA ?? '/app/valhalla';
@@ -297,10 +297,19 @@ function cleanOrphanStages() {
   syncPath(GRAPH_DIR);
 }
 
-function assertNoReloadInProgress() {
-  if (existsSync(path(GRAPH_FILES.flag)) || existsSync(path(RUNTIME.inProgress))) {
+/** @param {'prepare' | 'rollback'} command */
+function assertMutationAllowed(command) {
+  const pending = existsSync(path(GRAPH_FILES.flag));
+  const active = existsSync(path(RUNTIME.inProgress));
+  const failed = existsSync(path(RUNTIME.failed));
+  if (command === 'prepare' && (pending || active || failed)) {
     throw new Error(
       'reload/build trước vẫn đang chờ hoặc đang chạy — đợi status Valhalla 200 rồi thử lại',
+    );
+  }
+  if (command === 'rollback' && (pending || active) && !failed) {
+    throw new Error(
+      'reload/build đang chạy — rollback chỉ được phép sau khi wrapper ghi reload.failed',
     );
   }
 }
@@ -342,6 +351,7 @@ async function main() {
             },
             pendingReload: existsSync(path(GRAPH_FILES.flag)),
             buildInProgress: existsSync(path(RUNTIME.inProgress)),
+            buildFailed: existsSync(path(RUNTIME.failed)),
           },
           null,
           2,
@@ -354,7 +364,7 @@ async function main() {
     syncPath(GRAPH_DIR);
 
     if (options.command === 'prepare') {
-      assertNoReloadInProgress();
+      assertMutationAllowed('prepare');
       if (!existsSync(SOURCE_PBF)) {
         const plan = preparePlan({
           hasSource: false,
@@ -418,6 +428,7 @@ async function main() {
       return;
     }
 
+    assertMutationAllowed('rollback');
     const plan = rollbackPlan({ hasPrevTar: existsSync(prevPath(GRAPH_FILES.tar)) });
     if (plan.action === 'error') throw new Error(plan.reason);
     const id = randomUUID();
@@ -461,16 +472,13 @@ async function entry() {
     await main();
     return;
   }
-  if (process.env.MAPSLIBVN_ROUTING_FLOCK_CHILD === '1') {
-    await main();
-    return;
-  }
-
   const available = spawnSync('flock', ['--version'], { stdio: 'ignore' });
   if (available.error || available.status !== 0) {
     throw new Error('Thiếu lệnh `flock` (util-linux) — không thể cập nhật graph an toàn');
   }
-  const child = spawnSync(
+  // Helper giữ kernel lock trong suốt mutation. stdin là pipe do Node sở hữu: parent crash
+  // làm pipe đóng, `cat` thoát và flock tự nhả lock, không cần re-exec hay env bypass.
+  const locker = spawn(
     'flock',
     [
       '--exclusive',
@@ -478,20 +486,49 @@ async function entry() {
       '--conflict-exit-code',
       '75',
       path(RUNTIME.lock),
-      process.execPath,
-      fileURLToPath(import.meta.url),
-      ...argv,
+      'sh',
+      '-c',
+      'printf "locked\\n"; cat >/dev/null',
     ],
-    {
-      env: { ...process.env, MAPSLIBVN_ROUTING_FLOCK_CHILD: '1' },
-      stdio: 'inherit',
-    },
+    { stdio: ['pipe', 'pipe', 'inherit'] },
   );
-  if (child.status === 75) {
-    throw new Error('routing-graph đang được tiến trình khác giữ kernel flock');
+  await new Promise((resolveReady, rejectReady) => {
+    let ready = false;
+    locker.stdout.setEncoding('utf8');
+    locker.stdout.on('data', (chunk) => {
+      if (!ready && chunk.includes('locked\n')) {
+        ready = true;
+        resolveReady(undefined);
+      }
+    });
+    locker.once('error', rejectReady);
+    locker.once('exit', (code) => {
+      if (ready) return;
+      rejectReady(
+        Object.assign(
+          new Error(
+            code === 75
+              ? 'routing-graph đang được tiến trình khác giữ kernel flock'
+              : `flock thoát mã ${code ?? 1}`,
+          ),
+          { exitCode: code ?? 1 },
+        ),
+      );
+    });
+  });
+  try {
+    await main();
+  } finally {
+    locker.stdin.end();
+    await new Promise((resolveClose) => locker.once('close', resolveClose));
   }
-  if (child.error) throw child.error;
-  if (child.status !== 0) process.exit(child.status ?? 1);
 }
 
-await entry();
+try {
+  await entry();
+} catch (cause) {
+  /** @type {Error & { exitCode?: number }} */
+  const error = cause instanceof Error ? cause : new Error(String(cause));
+  console.error(`[routing-graph] ${error.message}`);
+  process.exitCode = /** @type {number} */ (error.exitCode ?? 1);
+}

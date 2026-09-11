@@ -8,6 +8,7 @@ set -euo pipefail
 CUSTOM_FILES="${CUSTOM_FILES:-/custom_files}"
 FLAG="${CUSTOM_FILES}/reload.request"
 IN_PROGRESS="${CUSTOM_FILES}/reload.in-progress"
+FAILED="${CUSTOM_FILES}/reload.failed"
 JOURNAL="${CUSTOM_FILES}/.routing-graph.transaction.json"
 ENTRYPOINT="${VALHALLA_ENTRYPOINT:-/valhalla/scripts/docker-entrypoint.sh}"
 READY_URL="${VALHALLA_READY_URL:-http://localhost:8002/status}"
@@ -70,6 +71,8 @@ while true; do
   elif [[ -f "${CUSTOM_FILES}/vietnam.osm.pbf" && ! -f "${CUSTOM_FILES}/valhalla_tiles.tar" && ! -f "${IN_PROGRESS}" ]]; then
     printf 'initial-build\n' > "${IN_PROGRESS}"
   fi
+  # Một lần start mới đã nhận graph/operator request; marker lỗi cũ không còn đại diện lần build này.
+  rm -f "${FAILED}"
   setsid "${ENTRYPOINT}" build_tiles &
   child=$!
   log "entrypoint pid ${child} (build nếu thiếu tar, rồi phục vụ :8002)"
@@ -83,7 +86,7 @@ while true; do
       break
     fi
     if [[ -f "${IN_PROGRESS}" ]] && curl -fsS "${READY_URL}" >/dev/null 2>&1; then
-      rm -f "${IN_PROGRESS}"
+      rm -f "${IN_PROGRESS}" "${FAILED}"
       log "graph mới đã sẵn sàng"
     fi
     sleep "${POLL_SECONDS}"
@@ -99,6 +102,9 @@ while true; do
     log "entrypoint thoát mã 0 → thoát"
     exit 0
   fi
+  failed_tmp="${FAILED}.$$"
+  printf '%s\n' "${code}" > "${failed_tmp}"
+  mv -f "${failed_tmp}" "${FAILED}"
   # Giữ IN_PROGRESS để lệnh graph khác không xen vào khi Docker khởi động lại sau OOM/lỗi dữ liệu.
   log "entrypoint thoát mã ${code} mà không có cờ reload (build lỗi/OOM?) — ngủ ${FAIL_SLEEP_SECONDS}s rồi để Docker khởi động lại; quay về graph cũ: scripts/routing-graph.mjs rollback"
   remaining="${FAIL_SLEEP_SECONDS}"

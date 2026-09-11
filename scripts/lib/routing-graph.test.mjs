@@ -321,13 +321,25 @@ describe('transaction recovery', () => {
     expect(readFileSync(resolve(state.graph, GRAPH_FILES.tar), 'utf8')).toBe('tar-current');
   });
 
-  it('rollback được phép thay graph đang build lỗi và phát cờ rollback mới', () => {
+  it('rollback bị từ chối khi build còn active, chưa có failed marker', () => {
     const state = fixture();
     writeFileSync(resolve(state.graph, 'reload.in-progress'), 'rebuild\n');
+    const result = run(state, ['rollback']);
+    expect(result.status).not.toBe(0);
+    expect(result.stderr).toContain('đang chạy');
+    expect(readFileSync(resolve(state.graph, GRAPH_FILES.tar), 'utf8')).toBe('tar-current');
+  });
+
+  it('rollback được phép thay graph đã build lỗi và phát cờ rollback mới', () => {
+    const state = fixture();
+    writeFileSync(resolve(state.graph, 'reload.in-progress'), 'rebuild\n');
+    writeFileSync(resolve(state.graph, 'reload.failed'), '42\n');
     const result = run(state, ['rollback']);
     expect(result.status, result.stderr).toBe(0);
     expect(readFileSync(resolve(state.graph, GRAPH_FILES.tar), 'utf8')).toBe('tar-previous');
     expect(readFileSync(resolve(state.graph, GRAPH_FILES.flag), 'utf8')).toBe('rollback\n');
+    const status = run(state, ['status']);
+    expect(JSON.parse(status.stdout).buildFailed).toBe(true);
   });
 
   it('prepare không có tar hiện tại giữ nguyên cặp prev tar/meta đã có', () => {
@@ -362,5 +374,23 @@ describe('Valhalla wrapper race contract', () => {
     const compose = readFileSync(SERVER_COMPOSE, 'utf8');
     expect(compose).toContain('stop_grace_period: 45s');
     expect(readFileSync(RUN_SH, 'utf8')).toContain('STOP_GRACE_SECONDS:-30');
+  });
+
+  it('không có biến môi trường công khai để bỏ qua kernel flock', () => {
+    const script = readFileSync(SCRIPT, 'utf8');
+    expect(script).not.toContain('MAPSLIBVN_ROUTING_FLOCK_CHILD');
+    expect(script).toContain('process.exitCode = /** @type {number} */ (error.exitCode ?? 1)');
+  });
+
+  it('wrapper chỉ công bố failed sau khi child lỗi và xoá marker trước lần start kế', () => {
+    const wrapper = readFileSync(RUN_SH, 'utf8');
+    expect(wrapper.indexOf('wait "${child}"')).toBeLessThan(
+      wrapper.indexOf('mv -f "${failed_tmp}" "${FAILED}"'),
+    );
+    expect(wrapper.indexOf('rm -f "${FAILED}"')).toBeLessThan(
+      wrapper.indexOf('setsid "${ENTRYPOINT}"'),
+    );
+    expect(wrapper).toContain('if [[ -f "${FLAG}" ]]');
+    expect(wrapper).toContain('continue 2');
   });
 });
