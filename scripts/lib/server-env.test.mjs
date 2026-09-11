@@ -57,7 +57,7 @@ describe('renderServerEnv / parseEnv', () => {
 describe('pullPlan', () => {
   it('image pipeline dựng tại máy (tag :local) thì chỉ pull dịch vụ công khai', () => {
     expect(pullPlan('mapslibvn/pipeline:local')).toEqual({
-      services: ['postgres', 'cloudflared'],
+      services: ['postgres', 'cloudflared', 'valhalla'],
       skipPipeline: true,
     });
   });

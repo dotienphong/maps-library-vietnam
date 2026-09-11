@@ -5,6 +5,7 @@ import {
   missingLiveEnv,
   nextState,
   poiReleaseSteps,
+  routingStep,
   runPoiReleaseSteps,
 } from './update-plan.mjs';
 
@@ -149,6 +150,27 @@ describe('missingLiveEnv', () => {
       'RCLONE_CONFIG_R2_NO_CHECK_BUCKET',
       'HF_TOKEN',
     ]);
+  });
+});
+
+describe('routingStep', () => {
+  it('chỉ chạy khi có tiles mới, volume valhalla gắn và không --skip-routing', () => {
+    expect(routingStep({ tiles: true, graphDirExists: true, skipRouting: false })).toEqual({
+      run: true,
+      reason: 'OSM đổi → build lại graph Valhalla',
+    });
+    expect(routingStep({ tiles: false, graphDirExists: true, skipRouting: false })).toEqual({
+      run: false,
+      reason: 'tiles không đổi',
+    });
+    expect(routingStep({ tiles: true, graphDirExists: false, skipRouting: false })).toEqual({
+      run: false,
+      reason: 'không có volume valhalla-data (máy dev)',
+    });
+    expect(routingStep({ tiles: true, graphDirExists: true, skipRouting: true })).toEqual({
+      run: false,
+      reason: '--skip-routing',
+    });
   });
 });
 

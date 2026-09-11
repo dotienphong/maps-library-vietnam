@@ -6,7 +6,7 @@ import { profileBatchSteps } from './poi-profile.mjs';
  *     poiProfiles?: Record<string, string> },
  *   pending?: { tiles?: boolean, poi?: boolean } }} State
  * @typedef {{ osm: { lastModified: string, md5: string }, overture: { release: string }, fsq: { release: string } }} Versions
- * @typedef {{ force?: boolean, onlyTiles?: boolean, onlyPoi?: boolean }} Flags
+ * @typedef {{ force?: boolean, onlyTiles?: boolean, onlyPoi?: boolean, skipRouting?: boolean }} Flags
  */
 
 /**
@@ -131,4 +131,16 @@ export function poiReleaseSteps({ releases, buildId, snapshot, out }) {
 /** @param {PoiReleaseStep[]} steps @param {(step: PoiReleaseStep) => void} execute */
 export function runPoiReleaseSteps(steps, execute) {
   for (const step of steps) execute(step);
+}
+
+/**
+ * Bước graph Valhalla trong data:update (spec dẫn đường A mục 4.4): chỉ khi tiles có bản mới (OSM đổi
+ * hoặc --force), volume valhalla-data đang gắn (máy chủ) và không bị --skip-routing.
+ * @param {{ tiles: boolean, graphDirExists: boolean, skipRouting: boolean }} s
+ */
+export function routingStep(s) {
+  if (s.skipRouting) return { run: false, reason: '--skip-routing' };
+  if (!s.tiles) return { run: false, reason: 'tiles không đổi' };
+  if (!s.graphDirExists) return { run: false, reason: 'không có volume valhalla-data (máy dev)' };
+  return { run: true, reason: 'OSM đổi → build lại graph Valhalla' };
 }

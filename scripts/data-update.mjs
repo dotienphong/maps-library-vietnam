@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 // Một lệnh cập nhật dữ liệu (spec 5.9). Ngoài container: tự chạy lại trong image pipeline (compose dev).
-// Trong container: dò 3 nguồn → so state R2 → build tiles/POI có điều kiện → QA → upload → manifest → state.
+// Trong container: dò 3 nguồn → so state R2 → build tiles/POI có điều kiện → QA → upload → manifest
+// → routing graph (máy chủ) → state.
 import 'dotenv/config';
 import { execFileSync, spawn } from 'node:child_process';
 import { existsSync } from 'node:fs';
@@ -15,6 +16,7 @@ import {
   missingLiveEnv,
   nextState,
   poiReleaseSteps,
+  routingStep,
   runPoiReleaseSteps,
 } from './lib/update-plan.mjs';
 
@@ -24,6 +26,7 @@ const flags = {
   onlyTiles: argv.includes('--tiles'),
   onlyPoi: argv.includes('--poi'),
   dryRun: argv.includes('--dry-run'),
+  skipRouting: argv.includes('--skip-routing'),
 };
 if (flags.onlyTiles && flags.onlyPoi) {
   throw new Error('Chỉ dùng một trong --tiles hoặc --poi');
@@ -63,6 +66,7 @@ const log = (/** @type {string} */ message) =>
   console.log(`[${Math.round((Date.now() - startedAt) / 1000)}s] ${message}`);
 const WORK = process.env.MAPSLIBVN_WORK ?? '/app/work';
 const OUT = process.env.MAPSLIBVN_OUT ?? '/app/out';
+const GRAPH_DIR = process.env.MAPSLIBVN_VALHALLA ?? '/app/valhalla';
 const bucket = process.env.R2_BUCKET ?? 'mapslibvn-tiles';
 const stateKey = `r2:${bucket}/state/releases.json`;
 /** @param {string[]} args */
@@ -119,6 +123,18 @@ if (work.tiles) {
   run('node', ['pipelines/tiles/src/manifest.mjs', 'set', '--vn', release]);
   built.vn = release;
   log(`✓ tiles ${release}`);
+}
+const routing = routingStep({
+  tiles: work.tiles,
+  graphDirExists: existsSync(GRAPH_DIR),
+  skipRouting: flags.skipRouting,
+});
+if (routing.run) {
+  // Valhalla tự build sau khi thấy cờ; data:update không chờ (build vài chục phút, spec A mục 4.4).
+  run('node', ['scripts/routing-graph.mjs', 'prepare']);
+  log('✓ routing graph: đã yêu cầu build lại (docker compose … logs -f valhalla để theo dõi)');
+} else {
+  log(`bỏ qua routing graph: ${routing.reason}`);
 }
 if (work.poi) {
   const closeTunnel = await openDatabaseTunnel(log);

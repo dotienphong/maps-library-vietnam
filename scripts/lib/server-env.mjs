@@ -67,7 +67,10 @@ export function renderServerEnv(v) {
  */
 export function pullPlan(pipelineImage) {
   const skipPipeline = /:local$/.test((pipelineImage ?? '').trim());
-  return { services: skipPipeline ? ['postgres', 'cloudflared'] : [], skipPipeline };
+  return {
+    services: skipPipeline ? ['postgres', 'cloudflared', 'valhalla'] : [],
+    skipPipeline,
+  };
 }
 
 /** @param {string} text @returns {Record<string, string>} */

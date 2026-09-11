@@ -22,6 +22,13 @@ describe('rollbackCommand', () => {
     });
   });
 
+  it('ngoài container truyền cờ routing vào sau script đích', () => {
+    expect(rollbackCommand({}, ['--skip-routing']).args.slice(-2)).toEqual([
+      'scripts/data-rollback.mjs',
+      '--skip-routing',
+    ]);
+  });
+
   it('trong container gọi manifest rollback', () => {
     expect(rollbackCommand({ MAPSLIBVN_IN_CONTAINER: '1' })).toEqual({
       cmd: 'node',

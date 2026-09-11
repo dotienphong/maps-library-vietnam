@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 import 'dotenv/config';
 import { execFileSync } from 'node:child_process';
+import { existsSync } from 'node:fs';
 import { pathToFileURL } from 'node:url';
 import { run } from './lib/run.mjs';
 
@@ -35,8 +36,11 @@ export function verifyRollbackArchives(target, listed, readChecksum) {
   });
 }
 
-/** @param {NodeJS.ProcessEnv | Record<string, string | undefined>} env */
-export function rollbackCommand(env) {
+/**
+ * @param {NodeJS.ProcessEnv | Record<string, string | undefined>} env
+ * @param {string[]} [argv]
+ */
+export function rollbackCommand(env, argv = []) {
   if (env.MAPSLIBVN_IN_CONTAINER === '1') {
     return {
       cmd: 'node',
@@ -59,15 +63,22 @@ export function rollbackCommand(env) {
       'pipeline',
       'node',
       'scripts/data-rollback.mjs',
+      ...argv,
     ],
   };
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
   if (process.env.MAPSLIBVN_IN_CONTAINER !== '1') {
-    const { cmd, args } = rollbackCommand(process.env);
+    const { cmd, args } = rollbackCommand(process.env, process.argv.slice(2));
     run(cmd, args);
   } else {
+    // Rollback graph TRƯỚC manifest: nếu không có bản prev thì dừng ngay, chưa đụng tiles
+    // (chạy lại với --skip-routing sẽ không rollback tiles hai lần).
+    const graphDir = process.env.MAPSLIBVN_VALHALLA ?? '/app/valhalla';
+    if (!process.argv.includes('--skip-routing') && existsSync(graphDir)) {
+      run('node', ['scripts/routing-graph.mjs', 'rollback']);
+    }
     const bucket = process.env.R2_BUCKET;
     if (!bucket) throw new Error('Thiếu R2_BUCKET để xác minh rollback');
     const manifest = JSON.parse(
