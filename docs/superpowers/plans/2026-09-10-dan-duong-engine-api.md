@@ -3598,12 +3598,12 @@ Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>"
 
 Điều kiện: Task 1–15 commit xong. Worker sẽ được deploy TRƯỚC khi máy chủ có Valhalla (Task 17): `/v1/directions` trả `503 upstream_unavailable` cho tới khi Tunnel + secret sẵn; các endpoint khác không ảnh hưởng (`loadAuth` đọc cột mới qua `to_jsonb`, migration 0012 áp ở Task 17).
 
-- [ ] **Step 1: Cổng cục bộ đầy đủ**
+- [x] **Step 1: Cổng cục bộ đầy đủ**
 
 Run: `pnpm lint && pnpm typecheck && pnpm test && pnpm test:routing`
 Expected: tất cả xanh (ghi số file/test vào DEVLOG ở Task 19).
 
-- [ ] **Step 2: Push và theo dõi CI**
+- [x] **Step 2: Push và theo dõi CI** → thay bằng deploy tay (xem ghi chú 11/09)
 
 ```bash
 git push origin main
@@ -3611,7 +3611,7 @@ gh run list --limit 8
 ```
 Expected: `CI`, `Deploy API`, `Deploy Docs`, `DB tests` (paths `db/**`, `scripts/**`), `Routing tests` (paths routing) đều xanh. Nếu `Routing tests` không tự chạy: `gh workflow run "Routing tests"` rồi `gh run watch`. Ghi ID run vào evidence Task 18.
 
-- [ ] **Step 3: Kiểm Worker production ngay sau deploy**
+- [x] **Step 3: Kiểm Worker production ngay sau deploy**
 
 ```bash
 curl -s https://api.ai-solutions.io.vn/healthz
@@ -3619,6 +3619,32 @@ curl -s https://api.ai-solutions.io.vn/healthz/routing
 curl -s -H "X-Api-Key: $KEY_EXAMPLE_EMBED" "https://api.ai-solutions.io.vn/v1/autocomplete?q=highlands&near=10.776,106.700" | head -c 200
 ```
 Expected: `/healthz` 200; `/healthz/routing` **503** `upstream_unavailable` (chưa có Tunnel/secret — đúng kỳ vọng); autocomplete 200 (chứng minh `loadAuth` mới chạy được khi cột `quota_directions_per_day` chưa có trên production).
+
+
+### Thực tế 11/09/2026 — GitHub Actions bị khoá vì thanh toán
+
+Mọi workflow (`CI`, `Deploy API`, `Deploy Docs`, `DB tests`, `Routing tests`) fail sau 3–23 giây, không có log: job không bao giờ khởi động. Push KHÔNG deploy. Step 2 được thay bằng:
+
+1. Không có gì để push — `origin/main` đã bằng `main` tại `504d27e`.
+2. Tự chạy cổng chặn `apitest` mà `Deploy API` lẽ ra chạy: `DATABASE_URL='postgres://mapslibvn:mapslibvn@localhost:5432/mapslibvn' pnpm test:api-db` → **53 test xanh** (dev DB ở cổng 5432; postgres máy chủ không publish cổng nên không có rủi ro chạm production).
+3. Build như CI: `pnpm --filter @mapslibvn/core build && pnpm --filter @mapslibvn/style build && pnpm --filter @mapslibvn/admin build`.
+4. Deploy tay từ `apps/api`: `npx wrangler deploy --env production`.
+
+Kết quả cổng cục bộ (Step 1): `pnpm lint` 374 file sạch · `pnpm typecheck` 14/14 · `pnpm test` **223 test / 32 file** · `pnpm test:routing` **7 test**. Core gzip **10,62 kB** (limit 12 kB).
+
+Deploy: `mapslibvn-api-production`, Version ID `03db4486-ebd6-4f28-8173-d1d4295a1c5c`, startup 25 ms, upload 388,27 KiB (gzip 92,65 KiB). Ba rate limiter lên đúng: `PLACES_RATE_LIMITER` 60/60s, `DIRECTIONS_RATE_LIMITER` 20/60s, `DIRECTIONS_KEY_RATE_LIMITER` 100/60s.
+
+Kiểm production (Step 3):
+
+| Kiểm | Kết quả | Kỳ vọng |
+| --- | --- | --- |
+| `/healthz` | 200 `{"ok":true,"environment":"production"}` | ✅ |
+| `/healthz/routing` | 503 `upstream_unavailable` | ✅ (chưa có Tunnel/Valhalla — Task 17) |
+| `/healthz/db` | `schema_migration: 0011_api_key_drop_plain.sql` | ✅ migration 0012 áp ở Task 17 |
+| `/v1/autocomplete` | 200, trả POI Highlands Coffee | ✅ `loadAuth` mới chạy được khi cột `quota_directions_per_day` chưa có |
+| `/v1/directions` | 503 `upstream_unavailable` | ✅ đúng kỳ vọng trước Task 17 |
+
+Còn nợ khi Actions mở lại: chạy `gh workflow run "Routing tests"` và ghi ID run vào evidence Task 18.
 
 ---
 
