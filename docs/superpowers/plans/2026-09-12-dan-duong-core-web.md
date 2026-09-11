@@ -1245,7 +1245,7 @@ Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>"
 - Test: `packages/core/src/navigation/snap.test.ts`
 - Modify: `packages/core/src/navigation/index.ts`
 
-- [ ] **Step 1: Viết test thất bại**
+- [x] **Step 1: Viết test thất bại**
 
 ```ts
 import { describe, expect, it } from 'vitest';
@@ -1318,12 +1318,12 @@ describe('snapToRoute', () => {
 });
 ```
 
-- [ ] **Step 2: Chạy, xác nhận đỏ**
+- [x] **Step 2: Chạy, xác nhận đỏ**
 
 Run: `pnpm exec vitest run packages/core/src/navigation/snap.test.ts`
 Expected: FAIL — không resolve `./snap`.
 
-- [ ] **Step 3: Viết `snap.ts`**
+- [x] **Step 3: Viết `snap.ts`**
 
 ```ts
 import { type LngLat, angleDiffDeg, bearingDeg, projectOnSegment } from './geometry';
@@ -1424,12 +1424,12 @@ function preferByHeadingOrFurther(
 
 `index.ts` thêm `export * from './snap';`
 
-- [ ] **Step 4: Chạy test**
+- [x] **Step 4: Chạy test**
 
 Run: `pnpm exec vitest run packages/core/src/navigation/snap.test.ts && pnpm typecheck`
 Expected: PASS. Nếu ca "đoạn kề nhau" đỏ vì BC gần hơn thật (điểm chọn chưa đúng), dời `nearB` xa B thêm 0,00002° kinh độ về tây — không đổi luật.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add packages/core/src/navigation
