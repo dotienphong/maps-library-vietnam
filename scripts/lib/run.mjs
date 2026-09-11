@@ -1,4 +1,5 @@
-import { execFileSync, spawnSync } from 'node:child_process';
+import { execFileSync } from 'node:child_process';
+import crossSpawn from 'cross-spawn';
 
 /**
  * @param {string} cmd @param {string[]} args
@@ -18,7 +19,7 @@ export function runFailure(cmd, args, result) {
  * @param {import('node:child_process').SpawnSyncOptions} [opts]
  */
 export function run(cmd, args, opts = {}) {
-  const result = spawnSync(cmd, args, { stdio: 'inherit', ...opts });
+  const result = crossSpawn.sync(cmd, args, { stdio: 'inherit', ...opts });
   if (result.error) throw result.error;
   if (result.status !== 0) throw new Error(runFailure(cmd, args, result));
 }

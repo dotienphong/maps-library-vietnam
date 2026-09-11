@@ -6,10 +6,10 @@
 //   node scripts/routing-test.mjs --no-compose     CI: VALHALLA_BASE trỏ container đã chạy.
 //   node scripts/routing-test.mjs --capture        ghi JSON Valhalla thô → apps/api/test/fixtures/valhalla/q1-motorbike.json
 import 'dotenv/config';
-import { spawn, spawnSync } from 'node:child_process';
 import { createHash, randomUUID } from 'node:crypto';
 import { copyFileSync, existsSync, mkdirSync, rmSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
+import crossSpawn from 'cross-spawn';
 import {
   TEST_KEY,
   assertPortAvailable,
@@ -127,7 +127,7 @@ try {
   ]);
 
   await assertPortAvailable(opts.apiPort);
-  const wrangler = spawn(
+  const wrangler = crossSpawn(
     'pnpm',
     [
       '--filter',
@@ -154,7 +154,7 @@ try {
     expectedEnvironment: runEnvironment,
     getError: () => spawnError,
   });
-  const result = spawnSync(
+  const result = crossSpawn.sync(
     'pnpm',
     ['exec', 'vitest', 'run', '--config', 'apps/api/vitest.routing.config.ts'],
     {

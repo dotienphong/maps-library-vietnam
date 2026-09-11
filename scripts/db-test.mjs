@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 import 'dotenv/config';
-import { spawnSync } from 'node:child_process';
+import crossSpawn from 'cross-spawn';
 import postgres from 'postgres';
 import { DBTEST_DATABASE, isolatedDbUrl } from './lib/db-test.mjs';
 import { databaseUrlFromEnv } from './lib/migrations.mjs';
@@ -39,7 +39,7 @@ try {
 }
 
 console.log(`DB test cô lập: ${target.hostname}/${DBTEST_DATABASE}`);
-const result = spawnSync(
+const result = crossSpawn.sync(
   'pnpm',
   ['exec', 'vitest', 'run', '--config', 'vitest.db.config.ts', '--passWithNoTests'],
   {

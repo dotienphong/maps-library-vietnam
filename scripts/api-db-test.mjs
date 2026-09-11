@@ -1,7 +1,8 @@
 #!/usr/bin/env node
 // DB cô lập → migrate → seed → Wrangler/Hyperdrive local → integration tests.
 import 'dotenv/config';
-import { spawn, spawnSync } from 'node:child_process';
+import { spawn } from 'node:child_process';
+import crossSpawn from 'cross-spawn';
 import { existsSync, rmSync } from 'node:fs';
 import { readFile } from 'node:fs/promises';
 import postgres from 'postgres';
@@ -21,7 +22,7 @@ const target = isolatedDbUrl(databaseUrlFromEnv(process.env));
  * @param {Record<string, string>} [extraEnv]
  */
 function run(command, args, extraEnv = {}) {
-  const result = spawnSync(command, args, {
+  const result = crossSpawn.sync(command, args, {
     stdio: 'inherit',
     env: { ...process.env, DATABASE_URL: target.href, ...extraEnv },
   });
@@ -96,7 +97,7 @@ await new Promise((resolve, reject) => {
 });
 console.log(`Access giả lập: JWKS http://127.0.0.1:${CERTS_PORT}, aud ${FAKE_AUD}`);
 
-const wrangler = spawn(
+const wrangler = crossSpawn(
   'pnpm',
   [
     '--filter',
