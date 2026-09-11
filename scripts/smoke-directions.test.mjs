@@ -2,6 +2,8 @@ import { describe, expect, it } from 'vitest';
 import {
   SMOKE_ROUTES,
   assertDirectionsTarget,
+  estimateDirectionsDurationMs,
+  parseDirectionsArgs,
   percentile,
   runDirectionsSmoke,
   validateDirectionsSmoke,
@@ -84,6 +86,7 @@ describe('smoke directions', () => {
       distance_m: 1000,
       p95_ms: 400,
       codes: [],
+      violations: [],
     }));
     const noiThanh = good[0];
     const lienTinhXeMay = good[1];
@@ -110,5 +113,132 @@ describe('smoke directions', () => {
       assertDirectionsTarget('https://api.ai-solutions.io.vn', ['--confirm-production']),
     ).not.toThrow();
     expect(() => assertDirectionsTarget('http://127.0.0.1:8787', [])).not.toThrow();
+  });
+
+  it('mọi target remote phải là HTTPS và cần --confirm-production, kể cả DNS hoa hoặc có dấu chấm cuối', () => {
+    expect(() => assertDirectionsTarget('https://API.AI-SOLUTIONS.IO.VN.', [])).toThrow(
+      /--confirm-production/,
+    );
+    expect(() =>
+      assertDirectionsTarget('https://API.AI-SOLUTIONS.IO.VN.', ['--confirm-production']),
+    ).not.toThrow();
+    expect(() =>
+      assertDirectionsTarget('http://api.ai-solutions.io.vn', ['--confirm-production']),
+    ).toThrow(/HTTPS/);
+    expect(() => assertDirectionsTarget('https://routing.example.test', [])).toThrow(
+      /--confirm-production/,
+    );
+    expect(() =>
+      assertDirectionsTarget('https://routing.example.test', ['--confirm-production']),
+    ).not.toThrow();
+    expect(() =>
+      assertDirectionsTarget('http://routing.example.test', ['--confirm-production']),
+    ).toThrow(/HTTPS/);
+    expect(() => assertDirectionsTarget('http://localhost:8787', [])).not.toThrow();
+  });
+
+  it('gửi redirect:error và giữ mã 3xx thay vì gán timeout', async () => {
+    /** @type {RequestRedirect | undefined} */
+    let redirect;
+    const summary = await runDirectionsSmoke('https://api.test', 'k', 1, {
+      intervalMs: 0,
+      fetchImpl: async (_url, init) => {
+        redirect = init?.redirect;
+        return reply(302, { error: { code: 'access_redirect' } });
+      },
+    });
+    expect(redirect).toBe('error');
+    expect(summary[0]).toMatchObject({ ok: 0, failed: 1, codes: ['access_redirect'] });
+    expect(() => validateDirectionsSmoke(summary, null)).toThrow(/access_redirect/);
+  });
+
+  it('kiểm mọi HTTP 200, giữ lỗi hợp đồng và cao tốc xe máy khi sample sau hợp lệ', async () => {
+    let call = 0;
+    const invalid = {
+      routes: [
+        {
+          mode: 'car',
+          distance_m: 0,
+          duration_s: 0,
+          flags: { toll: 'false', highway: true, ferry: false },
+          legs: [],
+        },
+      ],
+    };
+    const summary = await runDirectionsSmoke('https://api.test', 'k', 2, {
+      intervalMs: 0,
+      fetchImpl: async (url) => {
+        const mode = new URL(
+          typeof url === 'string' ? url : url instanceof URL ? url.href : url.url,
+        ).searchParams.get('mode');
+        return reply(200, call++ % 2 === 0 ? invalid : ok(mode));
+      },
+    });
+    const first = summary[0];
+    if (!first) throw new Error('thiếu kết quả tuyến đầu');
+    expect(first).toMatchObject({ ok: 1, failed: 1, highway: true, vietnamese: true });
+    expect(first.codes).toContain('invalid_route');
+    for (const message of ['mode', 'distance_m', 'duration_s', 'flags', 'legs', 'cao tốc']) {
+      expect(first.violations.join(' ')).toContain(message);
+    }
+    expect(() => validateDirectionsSmoke(summary, null)).toThrow(/noi-thanh-hcm/);
+  });
+
+  it('đo p95 sau khi JSON body đã đọc và validate xong', async () => {
+    const summary = await runDirectionsSmoke('https://api.test', 'k', 1, {
+      intervalMs: 0,
+      fetchImpl: async (url) => {
+        const mode = new URL(
+          typeof url === 'string' ? url : url instanceof URL ? url.href : url.url,
+        ).searchParams.get('mode');
+        const response = reply(200, ok(mode));
+        const json = response.json.bind(response);
+        Object.defineProperty(response, 'json', {
+          value: async () => {
+            await new Promise((resolve) => setTimeout(resolve, 20));
+            return json();
+          },
+        });
+        return response;
+      },
+    });
+    expect(summary.every((row) => (row.p95_ms ?? 0) >= 10)).toBe(true);
+  });
+
+  it('chỉ nhận cờ CLI đúng dạng, không trùng và số hữu hạn trong khoảng', () => {
+    expect(
+      parseDirectionsArgs([
+        '--confirm-production',
+        '--base=https://routing.example.test',
+        '--requests=2',
+        '--p95-max=1500',
+        '--interval-ms=0',
+      ]),
+    ).toMatchObject({
+      base: 'https://routing.example.test',
+      confirmProduction: true,
+      requests: 2,
+      p95Max: 1500,
+      intervalMs: 0,
+    });
+    for (const argv of [
+      ['--requests', '2'],
+      ['--unknown=1'],
+      ['--confirm-production=1'],
+      ['--requests=1', '--requests=2'],
+      ['--requests=Infinity'],
+      ['--requests=51'],
+      ['--p95-max=Infinity'],
+      ['--p95-max=120001'],
+      ['--interval-ms=Infinity'],
+      ['--interval-ms=60001'],
+    ]) {
+      expect(() => parseDirectionsArgs(argv)).toThrow();
+    }
+  });
+
+  it('ước thời gian có đúng số khoảng nghỉ, không thêm một interval sau lượt cuối', () => {
+    expect(estimateDirectionsDurationMs(1, 3500)).toBe(10_500);
+    expect(estimateDirectionsDurationMs(2, 3500)).toBe(24_500);
   });
 });

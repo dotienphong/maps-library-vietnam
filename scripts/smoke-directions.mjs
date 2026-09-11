@@ -33,8 +33,8 @@ export function percentile(values, p) {
 
 /**
  * @typedef {{ name: string, mode: string, ok: number, failed: number, highway: boolean | null,
- *   vietnamese: boolean, distance_m: number | null, p95_ms: number | null, codes: string[] }} RouteSummary
- * @typedef {{ routes?: { distance_m?: number, flags?: { highway?: boolean }, legs?: { steps?: { instruction: string }[] }[] }[] }} DirectionsBody
+ *   vietnamese: boolean, distance_m: number | null, p95_ms: number | null, codes: string[],
+ *   violations: string[] }} RouteSummary
  * @param {string} base @param {string} key @param {number} requests
  * @param {{ fetchImpl?: typeof fetch, timeoutMs?: number, intervalMs?: number }} [options]
  * @returns {Promise<RouteSummary[]>}
@@ -62,41 +62,46 @@ export async function runDirectionsSmoke(base, key, requests, options = {}) {
       distance_m: null,
       p95_ms: null,
       codes: [],
+      violations: [],
     };
     for (let i = 0; i < requests; i++) {
       // Cách đều mọi lượt (kể cả giữa hai tuyến và sau lượt lỗi) để không tự vướng burst limiter.
       if (sent > 0 && intervalMs > 0)
         await new Promise((resolve) => setTimeout(resolve, intervalMs));
       sent += 1;
-      const t0 = Date.now();
+      const t0 = performance.now();
+      const signal = AbortSignal.timeout(timeoutMs);
+      /** @type {Response} */
+      let response;
       try {
-        const response = await fetchImpl(url, {
+        response = await fetchImpl(url, {
           headers: { 'X-Api-Key': key },
-          signal: AbortSignal.timeout(timeoutMs),
+          redirect: 'error',
+          signal,
         });
-        durations.push(Date.now() - t0);
-        if (response.status !== 200) {
-          row.failed += 1;
-          try {
-            row.codes.push(String((await response.json())?.error?.code ?? response.status));
-          } catch {
-            row.codes.push(String(response.status));
-          }
-          continue;
-        }
-        /** @type {DirectionsBody} */
-        const body = await response.json();
-        const first = body?.routes?.[0];
-        row.ok += 1;
-        row.distance_m = first?.distance_m ?? null;
-        row.highway = first?.flags?.highway ?? null;
-        row.vietnamese = Boolean(
-          first?.legs?.some((leg) => leg.steps?.some((s) => VI.test(s.instruction))),
-        );
+      } catch (error) {
+        row.failed += 1;
+        row.codes.push(requestErrorCode(error, signal));
+        continue;
+      }
+      if (response.status !== 200) {
+        row.failed += 1;
+        row.codes.push(await responseErrorCode(response));
+        durations.push(performance.now() - t0);
+        continue;
+      }
+      /** @type {unknown} */
+      let body;
+      try {
+        body = await response.json();
       } catch {
         row.failed += 1;
-        row.codes.push('timeout');
+        row.codes.push('invalid_json');
+        durations.push(performance.now() - t0);
+        continue;
       }
+      recordRouteSample(row, body, route.mode);
+      durations.push(performance.now() - t0);
     }
     row.p95_ms = percentile(durations, 95);
     row.codes = [...new Set(row.codes)];
@@ -105,11 +110,115 @@ export async function runDirectionsSmoke(base, key, requests, options = {}) {
   return summary;
 }
 
+/** @param {unknown} value @returns {value is Record<string, unknown>} */
+function isRecord(value) {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+/** @param {RouteSummary} row @param {unknown} body @param {string} expectedMode */
+function recordRouteSample(row, body, expectedMode) {
+  const routes = isRecord(body) && Array.isArray(body.routes) ? body.routes : [];
+  const route = routes[0];
+  /** @type {string[]} */
+  const issues = [];
+  if (!isRecord(route)) {
+    issues.push('routes[0] không hợp lệ');
+  } else {
+    if (route.mode !== expectedMode)
+      issues.push(`mode=${String(route.mode)} (cần ${expectedMode})`);
+    if (
+      typeof route.distance_m !== 'number' ||
+      !Number.isFinite(route.distance_m) ||
+      route.distance_m <= 0
+    )
+      issues.push('distance_m phải hữu hạn và dương');
+    else row.distance_m = route.distance_m;
+    if (
+      typeof route.duration_s !== 'number' ||
+      !Number.isFinite(route.duration_s) ||
+      route.duration_s <= 0
+    )
+      issues.push('duration_s phải hữu hạn và dương');
+
+    const flags = isRecord(route.flags) ? route.flags : null;
+    if (flags && typeof flags.highway === 'boolean') {
+      if (flags.highway) row.highway = true;
+      else if (row.highway === null) row.highway = false;
+      if (expectedMode === 'motorbike' && flags.highway) issues.push('xe máy bị dẫn lên cao tốc');
+    }
+    if (
+      !flags ||
+      typeof flags.toll !== 'boolean' ||
+      typeof flags.highway !== 'boolean' ||
+      typeof flags.ferry !== 'boolean'
+    ) {
+      issues.push('flags.toll/highway/ferry phải là boolean');
+    }
+
+    if (!Array.isArray(route.legs) || route.legs.length === 0) {
+      issues.push('legs phải không rỗng');
+    } else {
+      /** @type {string[]} */
+      const instructions = [];
+      for (const leg of route.legs) {
+        if (!isRecord(leg) || !Array.isArray(leg.steps) || leg.steps.length === 0) {
+          issues.push('legs[].steps phải không rỗng');
+          continue;
+        }
+        for (const step of leg.steps) {
+          if (!isRecord(step) || typeof step.instruction !== 'string' || !step.instruction.trim()) {
+            issues.push('steps[].instruction phải không rỗng');
+          } else {
+            instructions.push(step.instruction);
+          }
+        }
+      }
+      if (instructions.length === 0) {
+        issues.push('không có instruction');
+      } else if (instructions.some((instruction) => VI.test(instruction))) {
+        row.vietnamese = true;
+      } else {
+        issues.push('không có câu chỉ dẫn tiếng Việt có dấu');
+      }
+    }
+  }
+
+  if (issues.length > 0) {
+    row.failed += 1;
+    row.codes.push('invalid_route');
+    row.violations.push(...issues);
+  } else {
+    row.ok += 1;
+  }
+}
+
+/** @param {Response} response */
+async function responseErrorCode(response) {
+  try {
+    const body = await response.json();
+    if (isRecord(body) && isRecord(body.error) && typeof body.error.code === 'string') {
+      return body.error.code;
+    }
+  } catch {
+    // The HTTP status remains a useful diagnostic when the error body is not JSON.
+  }
+  return String(response.status);
+}
+
+/** @param {unknown} error @param {AbortSignal} signal */
+function requestErrorCode(error, signal) {
+  if (signal.aborted) return 'timeout';
+  if (error instanceof Error && error.name) return `request_${error.name.toLowerCase()}`;
+  return 'request_failed';
+}
+
 /** @param {RouteSummary[]} summary @param {number | null} p95Max */
 export function validateDirectionsSmoke(summary, p95Max) {
   for (const row of summary) {
     if (row.failed > 0)
-      throw new Error(`${row.name}: ${row.failed} lượt lỗi (${row.codes.join(',')})`);
+      throw new Error(
+        `${row.name}: ${row.failed} lượt lỗi (${row.codes.join(',')}) ${row.violations.join('; ')}`,
+      );
     if (row.mode === 'motorbike' && row.highway)
       throw new Error(
         `${row.name}: xe máy bị dẫn lên cao tốc (flags.highway=true) — chỉnh costing_options.motor_scooter.use_highways`,
@@ -122,41 +231,96 @@ export function validateDirectionsSmoke(summary, p95Max) {
 
 /** @param {string} base @param {string[]} argv */
 export function assertDirectionsTarget(base, argv) {
-  if (
-    new URL(base).hostname === new URL(DEFAULT_BASE).hostname &&
-    !argv.includes('--confirm-production')
-  ) {
-    throw new Error('Production cần cờ --confirm-production');
+  let target;
+  try {
+    target = new URL(base);
+  } catch {
+    throw new Error('--base phải là URL hợp lệ');
   }
+  const hostname = target.hostname.toLowerCase().replace(/\.+$/, '');
+  const loopback =
+    hostname === 'localhost' ||
+    hostname === '::1' ||
+    hostname === '[::1]' ||
+    /^127(?:\.\d{1,3}){3}$/.test(hostname);
+  if (!loopback && target.protocol !== 'https:') throw new Error('Target remote phải dùng HTTPS');
+  if (!loopback && !argv.includes('--confirm-production'))
+    throw new Error('Target remote cần cờ --confirm-production');
 }
 
-/** @param {string} name */
-function arg(name) {
-  const prefix = `--${name}=`;
-  return process.argv.find((value) => value.startsWith(prefix))?.slice(prefix.length);
+/** @param {string} value @param {string} name @param {number} min @param {number} max @param {boolean} integer */
+function boundedNumber(value, name, min, max, integer) {
+  const parsed = Number(value);
+  if (
+    !Number.isFinite(parsed) ||
+    (integer && !Number.isInteger(parsed)) ||
+    parsed < min ||
+    parsed > max
+  ) {
+    throw new Error(`${name} phải ${integer ? 'là số nguyên ' : ''}từ ${min} đến ${max}`);
+  }
+  return parsed;
+}
+
+/** @param {string[]} argv */
+export function parseDirectionsArgs(argv) {
+  /** @type {Record<string, string>} */
+  const values = {};
+  let confirmProduction = false;
+  for (const value of argv) {
+    if (value === '--confirm-production') {
+      if (confirmProduction) throw new Error('--confirm-production không được lặp');
+      confirmProduction = true;
+      continue;
+    }
+    const match = /^--(base|requests|p95-max|interval-ms)=(.+)$/.exec(value);
+    if (!match) throw new Error(`Cờ không hợp lệ hoặc thiếu giá trị: ${value}`);
+    const name = match[1];
+    const raw = match[2];
+    if (!name || raw === undefined) throw new Error(`Cờ không hợp lệ: ${value}`);
+    if (values[name] !== undefined) throw new Error(`--${name} không được lặp`);
+    values[name] = raw;
+  }
+  const requests = boundedNumber(values.requests ?? '5', '--requests', 1, 50, true);
+  const p95Max =
+    values['p95-max'] === undefined
+      ? null
+      : boundedNumber(values['p95-max'], '--p95-max', 1, 120_000, false);
+  const intervalMs = boundedNumber(
+    values['interval-ms'] ?? '3500',
+    '--interval-ms',
+    0,
+    60_000,
+    true,
+  );
+  return {
+    base: values.base ?? DEFAULT_BASE,
+    confirmProduction,
+    requests,
+    p95Max,
+    intervalMs,
+  };
+}
+
+/** @param {number} requests @param {number} intervalMs */
+export function estimateDirectionsDurationMs(requests, intervalMs) {
+  return Math.max(0, SMOKE_ROUTES.length * requests - 1) * intervalMs;
 }
 
 async function main() {
-  const base = arg('base') ?? DEFAULT_BASE;
+  const args = parseDirectionsArgs(process.argv.slice(2));
+  assertDirectionsTarget(args.base, args.confirmProduction ? ['--confirm-production'] : []);
   const key = process.env.MAPSLIBVN_API_KEY ?? process.env.KEY_EXAMPLE_EMBED;
   if (!key) throw new Error('Thiếu MAPSLIBVN_API_KEY hoặc KEY_EXAMPLE_EMBED trong môi trường');
-  assertDirectionsTarget(base, process.argv);
-  const requests = Number(arg('requests') ?? 5);
-  if (!Number.isInteger(requests) || requests < 1 || requests > 50)
-    throw new Error('--requests từ 1 đến 50');
-  const p95Raw = arg('p95-max');
-  const p95Max = p95Raw === undefined ? null : Number(p95Raw);
-  if (p95Max !== null && !(p95Max > 0)) throw new Error('--p95-max phải là số dương (ms)');
-  const intervalMs = Number(arg('interval-ms') ?? 3500);
-  if (!Number.isInteger(intervalMs) || intervalMs < 0)
-    throw new Error('--interval-ms phải là số nguyên ≥ 0');
   console.log(
-    `${SMOKE_ROUTES.length * requests} lượt, cách ${intervalMs} ms — ước ${Math.ceil((SMOKE_ROUTES.length * requests * intervalMs) / 60_000)} phút`,
+    `${SMOKE_ROUTES.length * args.requests} lượt, cách ${args.intervalMs} ms — ước ${Math.ceil(estimateDirectionsDurationMs(args.requests, args.intervalMs) / 60_000)} phút`,
   );
-  const summary = await runDirectionsSmoke(base, key, requests, { intervalMs });
+  const summary = await runDirectionsSmoke(args.base, key, args.requests, {
+    intervalMs: args.intervalMs,
+  });
   console.table(summary.map(({ codes, ...row }) => ({ ...row, codes: codes.join(',') })));
-  validateDirectionsSmoke(summary, p95Max);
-  console.log(`✓ smoke directions ${base} — ${requests} lượt/tuyến`);
+  validateDirectionsSmoke(summary, args.p95Max);
+  console.log(`✓ smoke directions ${args.base} — ${args.requests} lượt/tuyến`);
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
