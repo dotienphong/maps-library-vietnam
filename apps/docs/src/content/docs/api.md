@@ -445,6 +445,7 @@ curl -H "X-Api-Key: mlv_live_…" \
             {
               "kind": "depart",
               "instruction": "Đi về hướng nam trên Đồng Khởi.",
+              "verbal_alert": "Đi về hướng nam trên Đồng Khởi.",
               "verbal_pre": "Đi về hướng nam trên Đồng Khởi trong 200 mét.",
               "verbal_post": "Đi tiếp 200 mét.",
               "street_names": ["Đồng Khởi"],
@@ -477,7 +478,8 @@ curl -H "X-Api-Key: mlv_live_…" \
 - **Toạ độ trong response theo thứ tự `[lng, lat]`** (GeoJSON), kể cả `location`/`snapped` — khác tham số vào `lat,lng`.
 - `geometry` là polyline mã hoá **precision 6** của **cả tuyến**; giải mã bằng `decodePolyline6` trong `@mapslibvn/core` ra `[lng, lat][]`. `steps[].shape_begin/shape_end` và `legs[].shape_offset` là chỉ số vào polyline đó.
 - `kind` là tập cố định: `depart`, `arrive`, `continue`, `slight_right`, `slight_left`, `turn_right`, `turn_left`, `sharp_right`, `sharp_left`, `uturn_right`, `uturn_left`, `ramp_straight`, `ramp_right`, `ramp_left`, `exit_right`, `exit_left`, `keep_right`, `keep_left`, `merge`, `merge_right`, `merge_left`, `roundabout_enter`, `roundabout_exit`, `ferry_enter`, `ferry_exit`, `elevator`, `steps`, `escalator`, `building_enter`, `building_exit`, `other`. `roundabout_exit` chỉ khác `null` khi `kind = roundabout_enter`.
-- `verbal_pre`/`verbal_post` dành cho đọc bằng giọng nói; có thể `null`.
+- `verbal_alert` (câu rẽ ngắn để đọc lúc còn xa), `verbal_pre` (đọc ngay trước điểm rẽ), `verbal_post` (đọc sau khi rẽ) dành cho giọng nói; có thể `null`. Câu không kèm khoảng cách — SDK ghép "Trong 200 mét nữa, …" theo vị trí thật (xem [Dẫn đường](/dan-duong/)).
+- Câu tiếng Việt (`lang=vi`) đã qua bảng sửa cụm từ của MapsLibVN (ví dụ "Điểm đến ở bên trái." thay cho bản dịch máy "Điểm đến của bạn nằm ở trái."); `lang=en` trả nguyên văn engine.
 - `waypoints[].snapped` là điểm trên tuyến gần điểm bạn gửi; `name` hiện luôn `null`.
 - `engine` là thông tin chẩn đoán (`graph` = ngày build dữ liệu đường), **không phải hợp đồng ổn định**.
 - Toạ độ `from`/`to`/`via` nằm trong URL nên có trong log request của Cloudflare Workers (giữ tối đa 30 ngày, chỉ để chẩn đoán; xem [Điều khoản tenant](/dieu-khoan/) mục 5). Tenant là bên kiểm soát dữ liệu vị trí của người dùng cuối.
@@ -761,6 +763,7 @@ type ManeuverKind =
 interface RouteStep {
   kind: ManeuverKind;
   instruction: string;
+  verbal_alert: string | null;
   verbal_pre: string | null;
   verbal_post: string | null;
   street_names: string[];

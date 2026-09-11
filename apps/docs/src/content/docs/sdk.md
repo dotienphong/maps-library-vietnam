@@ -72,8 +72,9 @@ Toàn bộ export của `packages/core/src/index.ts`:
 | Chuẩn hoá tiếng Việt | `normalizeVi`, `stripDiacritics`, `expandAbbrev`, `applyBrandAlias`, `nameCore`, `NAME_FILLERS` |
 | Phân tích địa chỉ | `parseAddress`, kiểu `ParsedAddress`, `AlleyKeyword` |
 | Biến đổi style | `localizeStyle`, `hidePoiLayer`, `nameExpression`, `isNameLabelLayer`, `POI_LAYER_ID`, kiểu `Lang`, `StyleLike`, `StyleLayerLike` |
-| Kiểu dữ liệu API | `Place`, `PlaceDetails`, `PlaceCategory`, `PlaceAddress`, `PlaceSource`, `AutocompleteItem`, `AutocompleteType`, `GeocodeItem`, `GeocodeMatched`, `GeocodePrecision`, `ReverseResponse`, `ReverseAddress`, `EditKind`, `EditChanges`, `SuggestEditRequest`, `SuggestEditResponse`, `PoiFeature`, `TravelMode`, `DirectionsLang`, `ManeuverKind`, `Route`, `RouteLeg`, `RouteStep`, `Waypoint`, `DirectionsResponse` |
+| Kiểu dữ liệu API | `Place`, `PlaceDetails`, `PlaceCategory`, `PlaceAddress`, `PlaceSource`, `AutocompleteItem`, `AutocompleteType`, `GeocodeItem`, `GeocodeMatched`, `GeocodePrecision`, `ReverseResponse`, `ReverseAddress`, `EditKind`, `EditChanges`, `SuggestEditRequest`, `SuggestEditResponse`, `PoiFeature`, `TravelMode`, `DirectionsLang`, `ManeuverKind`, `Route`, `RouteLeg`, `RouteStep`, `Waypoint`, `DirectionsResponse`, `GeoFix`, `RouteProvider`, `PositionSource`, `PositionError`, `NavigationStatus`, `NavigationThresholds`, `NavigationProgress`, `Announcement`, `NavigationEvents`, `NavigatorOptions`, `Navigator` |
 | Chỉ đường | `decodePolyline6`, `encodePolyline6`, `MANEUVER_KINDS`, `VALHALLA_MANEUVER_KIND`, `maneuverKindFromValhalla`, kiểu `DirectionsOptions` |
+| Dẫn đường | `createNavigator`, `NAVIGATION_THRESHOLDS`, `simulateFixes`, `SIMULATE_DEFAULT_SPEED_MPS`, `formatDistance`, `formatDistanceShort`, `roundForSpeech`, `composeApproach`, `planAnnouncements`, `buildRouteIndex`, `progressAt`, `stepAt`, `snapToRoute`, `haversineM`, `bearingDeg`, `projectOnSegment`, `cumulativeDistances` — xem [Dẫn đường](/dan-duong/) mục 5 |
 
 Định nghĩa từng kiểu dữ liệu API ở [REST API](/api/) mục 7.
 
@@ -161,7 +162,7 @@ try {
 
 ## 3. `@mapslibvn/web`
 
-Export của `packages/web/src/index.ts`: `createMap`, `applyLanguage`, `nameExpression`, `MapsLibVNAutocomplete`, `defineAutocomplete`, các kiểu `CreateMapOptions`, `MapEvents`, `MapsLibVNMap`, `MarkerOptions`, `PoiFeature`, `Lang`, và re-export từ core: `createClient`, `MapsLibVNError`, `attributionText`, `attributionHtml` cùng kiểu `AttributionResponse`, `ClientOptions`, `MapsLibVNClient`, `Theme`.
+Export của `packages/web/src/index.ts`: `createMap`, `applyLanguage`, `nameExpression`, `MapsLibVNAutocomplete`, `defineAutocomplete`, các kiểu `CreateMapOptions`, `MapEvents`, `MapsLibVNMap`, `MarkerOptions`, `PoiFeature`, `Lang`, và re-export từ core: `createClient`, `MapsLibVNError`, `attributionText`, `attributionHtml` cùng kiểu `AttributionResponse`, `ClientOptions`, `MapsLibVNClient`, `Theme`, `geolocationSource`, `playbackSource`, `toGeoFix`, `createSpeech`, `ROUTE_SOURCE_ID`, `ROUTE_LAYER_IDS`, `FOLLOW_ZOOM`, các kiểu `RoutesLayer`, `NavigationController`, `NavigationStartOptions`, `WebNavigationEvents`, và re-export dẫn đường từ core (`createNavigator`, `simulateFixes`, `formatDistance`, `formatDistanceShort`, `NAVIGATION_THRESHOLDS`).
 
 ### createMap — tuỳ chọn và mặc định
 
@@ -198,12 +199,14 @@ Tham số thứ hai là `deps`. Bản ESM cần `{ maplibre: maplibregl }`; nế
 |---|---|---|
 | `gl` | `maplibregl.Map` | đối tượng MapLibre thật, mọi API của MapLibre dùng được |
 | `places` | `MapsLibVNClient` | client core dùng chung `apiKey` và `apiBase` |
+| `routes` | `RoutesLayer` | `show(response, { active, markers })`, `setActive(i)`, `setProgress(shapeIndex, snapped)`, `clear()` — source `mapslibvn-route`, bốn layer chèn dưới nhãn |
+| `navigation` | `NavigationController` | `start(opts)`, `stop()`, `recenter()`, `reroute()`, `state`, `status`, `following`, `on/off` — xem [Dẫn đường](/dan-duong/) |
 | `addMarker(o)` | `maplibregl.Marker` | `o` là `MarkerOptions`; có `popupHtml` thì gắn `Popup` với `offset: 24` |
 | `fitBounds(bbox, padding?)` | `void` | `bbox` là `[minLng, minLat, maxLng, maxLat]`, `padding` mặc định `40` |
 | `flyTo(center, zoom?)` | `void` | `center` là `[lng, lat]`; bỏ `zoom` thì giữ zoom hiện tại |
 | `on(event, handler)` | `void` | |
 | `off(event, handler)` | `void` | |
-| `remove()` | `void` | gọi `gl.remove()` |
+| `remove()` | `void` | dừng dẫn đường, xoá tuyến rồi gọi `gl.remove()` |
 
 `MarkerOptions`: `lng`, `lat` bắt buộc; `popupHtml` và `color` tuỳ chọn (bỏ `color` thì dùng màu mặc định của MapLibre).
 
@@ -213,6 +216,7 @@ Tham số thứ hai là `deps`. Bản ESM cần `{ maplibre: maplibregl }`; nế
 |---|---|---|
 | `load` | `undefined` | sau khi MapLibre tải xong style; `lang` và `poiLayer` đã được áp trước khi phát |
 | `poiClick` | `PoiFeature` | người dùng bấm lên một biểu tượng của lớp `poi` |
+| `routeClick` | `{ index }` | người dùng bấm lên một tuyến thay thế đang vẽ mờ |
 
 `poiClick` chỉ phát khi **đã có listener trước lúc bấm** và lớp `poi` tồn tại trong style — bấm khi `poiLayer: false` hoặc khi bộ tiles POI chưa phát hành thì không có gì xảy ra. Chỉ feature dạng `Point` đầu tiên tại điểm bấm được trả về. `PoiFeature.category` và `.group` là **mã** dạng chuỗi, còn `lngLat` theo thứ tự `[lng, lat]`.
 
@@ -258,7 +262,7 @@ document.querySelector('mapslibvn-autocomplete').addEventListener('select', (eve
 
 ## 4. `@mapslibvn/react`
 
-Export của `packages/react/src/index.ts`: `MapsLibVNMap`, `useMap`, `Marker`, `usePlaces`, các kiểu `MapsLibVNMapProps`, `UsePlacesOptions`, `UsePlacesResult`, và re-export kiểu `AutocompleteItem`, `MapsLibVNClient`, `Place` từ core.
+Export của `packages/react/src/index.ts`: `MapsLibVNMap`, `useMap`, `Marker`, `usePlaces`, `useNavigation`, các kiểu `MapsLibVNMapProps`, `UsePlacesOptions`, `UsePlacesResult`, `UseNavigationResult`, và re-export kiểu `AutocompleteItem`, `MapsLibVNClient`, `Place`, `Announcement`, `NavigationProgress`, `NavigationStatus`, `RouteProvider` từ core và `NavigationStartOptions` từ `@mapslibvn/web`.
 
 ### `<MapsLibVNMap>`
 
@@ -276,7 +280,7 @@ Khung bọc mặc định `width: 100%`, `height: 100%`, `position: relative` �
 
 Đổi `apiKey`, `apiBase`, `style`, `center`, `zoom`, `lang`, `poiLayer` hoặc `compactAttribution` sẽ **tạo lại bản đồ**. Đổi `onPoiClick`, `onLoad`, `className`, `containerStyle` hoặc `children` thì không — hai handler được giữ trong ref nên truyền hàm inline cũng an toàn.
 
-### useMap, Marker, usePlaces
+### useMap, Marker, usePlaces, useNavigation
 
 `useMap()` trả bản đồ hiện hành (cùng kiểu `MapsLibVNMap` của `@mapslibvn/web`). Gọi ngoài `<MapsLibVNMap>` sẽ **ném lỗi** `useMap phải được gọi bên trong <MapsLibVNMap>`.
 
@@ -295,6 +299,8 @@ usePlaces(query, { near, limit, debounceMs, client }) // → { items, loading, e
 | `client` | `MapsLibVNClient` | client của bản đồ trong context | **bắt buộc** khi hook nằm ngoài `<MapsLibVNMap>` |
 
 Hook chỉ gọi API khi `query` có từ **2 ký tự** trở lên sau khi bỏ khoảng trắng; ngắn hơn thì `items` về mảng rỗng và không có request nào. Trong lúc tải, `items` giữ kết quả cũ (kiểu SWR) và `loading` là `true`. Không có `client` — cả prop lẫn context — thì hook im lặng trả mảng rỗng, không báo lỗi; đó là bẫy hay gặp khi đặt ô tìm kiếm **cạnh** bản đồ chứ không phải bên trong nó.
+
+`useNavigation()` trả `{ status, progress, start, stop, recenter, reroute }` của `map.navigation` trong context và re-render theo `status`/`progress`. Ngoài `<MapsLibVNMap>` ném lỗi như `useMap`. Chi tiết ở [Dẫn đường](/dan-duong/) mục 6.
 
 ## 5. `@mapslibvn/react-native`
 

@@ -186,7 +186,30 @@ Hành vi cần nhớ:
   rỗng, không báo lỗi — đây là lỗi hay gặp nhất khi ô tìm kiếm đặt cạnh bản đồ chứ không phải bên
   trong nó.
 
-## 6. Ví dụ — tìm và ghim
+## 6. `useNavigation()`
+
+```tsx
+import { useNavigation } from '@mapslibvn/react';
+
+function DanDuong({ response }: { response: DirectionsResponse }) {
+  const { status, progress, start, stop } = useNavigation();
+  if (status === 'idle' || status === 'arrived') {
+    return <button onClick={() => start({ response })}>Bắt đầu</button>;
+  }
+  const next = progress?.nextStep ?? progress?.step;
+  return (
+    <div>
+      <p>{next?.instruction}</p>
+      <button onClick={stop}>Dừng</button>
+    </div>
+  );
+}
+```
+
+Hook đọc `map.navigation` của bản đồ trong context; `start/stop/recenter/reroute` là hàm của SDK web.
+Tuỳ chọn `start()` và danh sách sự kiện ở [Dẫn đường](/dan-duong/).
+
+## 7. Ví dụ — tìm và ghim
 
 Ô tìm kiếm nằm **ngoài** map, nên phải tự tạo `client` và truyền vào `usePlaces`; component ghim
 marker nằm **trong** map để dùng được `useMap()`.
@@ -260,13 +283,14 @@ export default function TimVaGhim() {
 
 Bản chạy được của ví dụ này là [React demo](/react-demo/).
 
-## 7. Lỗi hay gặp
+## 8. Lỗi hay gặp
 
 | Hiện tượng | Nguyên nhân |
 |---|---|
 | Bản đồ cao 0 px | Phần tử cha không có chiều cao; đặt `height` cho cha hoặc dùng `containerStyle` |
 | `useMap phải được gọi bên trong <MapsLibVNMap>` | Component gọi hook không nằm trong `children` của map |
 | `usePlaces` luôn trả mảng rỗng | Hook ở ngoài `<MapsLibVNMap>` mà chưa truyền `client` |
+| `useNavigation` ném lỗi | Hook ở ngoài `<MapsLibVNMap>` |
 | Bản đồ nhấp nháy, tự nhảy về tâm ban đầu | Đang đổi `center` hoặc `zoom` bằng state — dùng `useMap().flyTo` thay thế |
 | Marker và popup mất kiểu | Quên `import 'maplibre-gl/dist/maplibre-gl.css'` |
 | Bản đồ trống trơn ở bản build, dev server vẫn tốt | Chưa copy hai file worker của MapLibre vào `public/` và chưa gọi `setWorkerUrl` — xem mục 1 |

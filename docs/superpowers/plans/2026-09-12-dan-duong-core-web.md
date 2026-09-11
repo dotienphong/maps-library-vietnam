@@ -4479,7 +4479,7 @@ Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>"
 - Modify: `apps/docs/astro.config.mjs` (sidebar "Hướng dẫn")
 - Modify: `apps/docs/e2e/docs.spec.ts` (thêm `/dan-duong/`)
 
-- [ ] **Step 1: Trang hướng dẫn `dan-duong.md`**
+- [x] **Step 1: Trang hướng dẫn `dan-duong.md`**
 
 ```md
 ---
@@ -4654,7 +4654,7 @@ Hook phải nằm trong `<MapsLibVNMap>`. Xem [React](/react/) mục 6.
 Đọc thêm: [REST API — directions](/api/#get-v1directions), [SDK JavaScript](/sdk/).
 ```
 
-- [ ] **Step 2: `api.md`**
+- [x] **Step 2: `api.md`**
 
 Trong response mẫu của `GET /v1/directions` (mục 4), sau dòng `"instruction": "Đi về hướng nam trên Đồng Khởi.",` thêm `"verbal_alert": "Đi về hướng nam trên Đồng Khởi.",`. Trong "Điểm cần chú ý", thay dòng
 
@@ -4669,7 +4669,7 @@ bằng
 
 Mục 7, `interface RouteStep`: thêm `  verbal_alert: string | null;` ngay sau `instruction: string;`.
 
-- [ ] **Step 3: `sdk.md`**
+- [x] **Step 3: `sdk.md`**
 
 Mục 2, bảng export core: dòng "Kiểu dữ liệu API" thêm cuối: `, \`GeoFix\`, \`RouteProvider\`, \`PositionSource\`, \`PositionError\`, \`NavigationStatus\`, \`NavigationThresholds\`, \`NavigationProgress\`, \`Announcement\`, \`NavigationEvents\`, \`NavigatorOptions\`, \`Navigator\``. Thêm dòng mới sau "Chỉ đường":
 
@@ -4700,11 +4700,11 @@ Mục 4 "useMap, Marker, usePlaces" đổi tiêu đề thành "useMap, Marker, u
 `useNavigation()` trả `{ status, progress, start, stop, recenter, reroute }` của `map.navigation` trong context và re-render theo `status`/`progress`. Ngoài `<MapsLibVNMap>` ném lỗi như `useMap`. Chi tiết ở [Dẫn đường](/dan-duong/) mục 6.
 ```
 
-- [ ] **Step 4: `tinh-nang.md` mục 5**
+- [x] **Step 4: `tinh-nang.md` mục 5**
 
 Thay câu `logic dẫn đường theo GPS trên thiết bị thuộc SDK giai đoạn sau.` bằng `SDK web dẫn đường từng bước trên thiết bị: bám GPS vào tuyến, đọc câu tiếng Việt đúng lúc bằng giọng nói, tự tính lại khi lệch, báo đến nơi — xem [Dẫn đường](/dan-duong/).`
 
-- [ ] **Step 5: `react.md`**
+- [x] **Step 5: `react.md`**
 
 Trước `## 6. Ví dụ — tìm và ghim` chèn mục mới, rồi đổi `## 6. Ví dụ` → `## 7. Ví dụ`, `## 7. Lỗi hay gặp` → `## 8. Lỗi hay gặp`:
 
@@ -4735,18 +4735,18 @@ Tuỳ chọn `start()` và danh sách sự kiện ở [Dẫn đường](/dan-duo
 
 Bảng "Lỗi hay gặp" thêm dòng: `| \`useNavigation\` ném lỗi | Hook ở ngoài \`<MapsLibVNMap>\` |`.
 
-- [ ] **Step 6: Sidebar và E2E link**
+- [x] **Step 6: Sidebar và E2E link**
 
 `apps/docs/astro.config.mjs`, nhóm "Hướng dẫn", sau `{ label: 'Tìm kiếm & autocomplete', slug: 'tim-kiem' },` thêm `{ label: 'Dẫn đường', slug: 'dan-duong' },`.
 
 `apps/docs/e2e/docs.spec.ts`, mảng `PAGES` thêm `'/dan-duong/',` sau `'/tim-kiem/',`.
 
-- [ ] **Step 7: Build docs kiểm link**
+- [x] **Step 7: Build docs kiểm link**
 
 Run: `pnpm --filter @mapslibvn/web build && pnpm --filter @mapslibvn/docs build && pnpm --filter @mapslibvn/docs typecheck`
 Expected: build xanh, không cảnh báo link hỏng (`/dan-duong-demo/` chưa tồn tại tới Task 17 — trang `dan-duong.md` có link tới nó; Starlight không fail build vì link nội bộ, E2E `docs.spec` mới kiểm — chạy E2E ở Task 17).
 
-- [ ] **Step 8: Commit**
+- [x] **Step 8: Commit**
 
 ```bash
 git add apps/docs/src/content/docs apps/docs/astro.config.mjs apps/docs/e2e/docs.spec.ts

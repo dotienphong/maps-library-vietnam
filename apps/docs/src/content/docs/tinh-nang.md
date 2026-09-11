@@ -95,8 +95,9 @@ trong 100 m; số nhà trả về dạng ước lượng ("≈ 86–90"). Xem
 trong Việt Nam, tối đa 5 điểm dừng, kèm bước rẽ tiếng Việt (hoặc tiếng Anh) có câu đọc bằng giọng nói.
 Engine là Valhalla tự host trên dữ liệu đường OpenStreetMap, cập nhật cùng kỳ với tiles nền. Kết quả
 theo schema riêng của MapsLibVN (`Route`, `RouteStep`), không lộ định dạng engine. Chưa có giao thông
-trực tiếp, chưa tránh phí/cao tốc theo yêu cầu; logic dẫn đường theo GPS trên thiết bị thuộc SDK giai
-đoạn sau. Chi tiết ở [REST API](/api/) mục 4.
+trực tiếp, chưa tránh phí/cao tốc theo yêu cầu; SDK web dẫn đường từng bước trên thiết bị: bám GPS vào
+tuyến, đọc câu tiếng Việt đúng lúc bằng giọng nói, tự tính lại khi lệch, báo đến nơi — xem
+[Dẫn đường](/dan-duong/). Chi tiết REST API ở [REST API](/api/) mục 4.
 
 ## 6. Đóng góp và duyệt
 

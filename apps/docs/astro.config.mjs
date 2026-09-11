@@ -61,6 +61,7 @@ export default defineConfig({
           items: [
             { label: 'Bản đồ web', slug: 'ban-do-web' },
             { label: 'Tìm kiếm & autocomplete', slug: 'tim-kiem' },
+            { label: 'Dẫn đường', slug: 'dan-duong' },
             { label: 'React', slug: 'react' },
             { label: 'Độ chính xác geocode', slug: 'do-chinh-xac' },
             { label: 'Đóng góp & sửa POI', slug: 'dong-gop' },
