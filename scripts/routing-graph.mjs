@@ -350,12 +350,17 @@ async function main() {
       if (plan.action === 'error') throw new Error(plan.reason);
       rollbackCurrent = readMeta(path(GRAPH_FILES.meta));
       rollbackPrevious = readMeta(prevPath(GRAPH_FILES.meta));
-      if (
-        rollbackCurrent?.vnRelease !== options.expectedCurrent ||
-        rollbackPrevious?.vnRelease !== options.expectedTarget
-      ) {
+      const expectedCurrent = options.expectedCurrent ?? options.expectedCurrentMd5;
+      const expectedTarget = options.expectedTarget ?? options.expectedTargetMd5;
+      const actualCurrent = options.expectedCurrent
+        ? rollbackCurrent?.vnRelease
+        : rollbackCurrent?.pbfMd5;
+      const actualTarget = options.expectedTarget
+        ? rollbackPrevious?.vnRelease
+        : rollbackPrevious?.pbfMd5;
+      if (actualCurrent !== expectedCurrent || actualTarget !== expectedTarget) {
         throw new Error(
-          `graph vnRelease đã đổi: active=${rollbackCurrent?.vnRelease ?? '?'} prev=${rollbackPrevious?.vnRelease ?? '?'}; expected ${options.expectedCurrent ?? '?'} → ${options.expectedTarget ?? '?'}`,
+          `graph identity đã đổi: active=${actualCurrent ?? '?'} prev=${actualTarget ?? '?'}; expected ${expectedCurrent ?? '?'} → ${expectedTarget ?? '?'}`,
         );
       }
     }

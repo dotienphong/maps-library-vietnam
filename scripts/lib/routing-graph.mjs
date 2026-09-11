@@ -32,7 +32,7 @@ export const ROLLBACK_FAULT_POINTS = [
 
 /**
  * @param {string[]} argv
- * @returns {{ command: 'prepare' | 'rollback' | 'status' | 'reset-empty', force: boolean, vnRelease?: string | null, expectedCurrent?: string, expectedTarget?: string }}
+ * @returns {{ command: 'prepare' | 'rollback' | 'status' | 'reset-empty', force: boolean, vnRelease?: string | null, expectedCurrent?: string, expectedTarget?: string, expectedCurrentMd5?: string, expectedTargetMd5?: string }}
  */
 export function parseRoutingGraphArgs(argv) {
   if (argv.length === 1 && argv[0] === 'prepare') {
@@ -51,6 +51,21 @@ export function parseRoutingGraphArgs(argv) {
       command: 'prepare',
       force: false,
       vnRelease: /** @type {string} */ (argv[2]),
+    };
+  }
+  if (
+    argv.length === 5 &&
+    argv[0] === 'rollback' &&
+    argv[1] === '--expected-current-md5' &&
+    /^[a-f0-9]{32}$/.test(argv[2] ?? '') &&
+    argv[3] === '--expected-target-md5' &&
+    /^[a-f0-9]{32}$/.test(argv[4] ?? '')
+  ) {
+    return {
+      command: 'rollback',
+      force: false,
+      expectedCurrentMd5: /** @type {string} */ (argv[2]),
+      expectedTargetMd5: /** @type {string} */ (argv[4]),
     };
   }
   if (
@@ -88,7 +103,7 @@ export function parseRoutingGraphArgs(argv) {
     return { command: 'reset-empty', force: false, vnRelease: null };
   }
   throw new Error(
-    'Dùng: routing-graph.mjs prepare [--force] [--vn-release <vn-release>] | rollback --expected-current <vn-release> --expected-target <vn-release> | status | reset-empty',
+    'Dùng: routing-graph.mjs prepare [--force] [--vn-release <vn-release>] | rollback (--expected-current <vn-release> --expected-target <vn-release> | --expected-current-md5 <md5> --expected-target-md5 <md5>) | status | reset-empty',
   );
 }
 

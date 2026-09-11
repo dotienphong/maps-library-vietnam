@@ -261,6 +261,20 @@ describe('validation boundary', () => {
       expectedCurrent: 'vn-current',
       expectedTarget: 'vn-previous',
     });
+    expect(
+      parseRoutingGraphArgs([
+        'rollback',
+        '--expected-current-md5',
+        'a'.repeat(32),
+        '--expected-target-md5',
+        'b'.repeat(32),
+      ]),
+    ).toEqual({
+      command: 'rollback',
+      force: false,
+      expectedCurrentMd5: 'a'.repeat(32),
+      expectedTargetMd5: 'b'.repeat(32),
+    });
     expect(parseRoutingGraphArgs(['status'])).toEqual({ command: 'status', force: false });
     expect(parseRoutingGraphArgs(['prepare', '--vn-release', 'vn-20260911'])).toEqual({
       command: 'prepare',
@@ -283,6 +297,18 @@ describe('validation boundary', () => {
       ['prepare', '--force', 'junk'],
       ['rollback', '--force'],
       ['rollback'],
+      ['rollback', '--expected-current-md5', 'a'.repeat(32)],
+      [
+        'rollback',
+        '--expected-current',
+        'vn-a',
+        '--expected-target',
+        'vn-b',
+        '--expected-current-md5',
+        'a'.repeat(32),
+        '--expected-target-md5',
+        'b'.repeat(32),
+      ],
       ['status', 'junk'],
       ['prepare', '--vn-release', '../bad'],
       ['wat'],
@@ -543,6 +569,47 @@ describe('transaction recovery', () => {
     expect(readFileSync(resolve(state.graph, GRAPH_FILES.tar), 'utf8')).toBe('tar-current');
     expect(existsSync(resolve(state.graph, GRAPH_FILES.flag))).toBe(false);
   });
+
+  it('plain prepare A → force B → rollback legacy bằng expected MD5 B/A', () => {
+    const state = fixture();
+    rmSync(state.graph, { recursive: true, force: true });
+    mkdirSync(state.graph, { recursive: true });
+
+    const prepareA = run(state, ['prepare']);
+    expect(prepareA.status, prepareA.stderr).toBe(0);
+    const metaA = JSON.parse(readFileSync(resolve(state.graph, GRAPH_FILES.meta), 'utf8'));
+    expect(metaA.vnRelease).toBeUndefined();
+    writeFileSync(resolve(state.graph, GRAPH_FILES.tar), 'tar-a');
+    rmSync(resolve(state.graph, GRAPH_FILES.flag), { force: true });
+
+    writeFileSync(resolve(state.work, 'data/sources', GRAPH_FILES.pbf), 'source-b');
+    const prepareB = run(state, ['prepare', '--force']);
+    expect(prepareB.status, prepareB.stderr).toBe(0);
+    const metaB = JSON.parse(readFileSync(resolve(state.graph, GRAPH_FILES.meta), 'utf8'));
+    writeFileSync(resolve(state.graph, GRAPH_FILES.tar), 'tar-b');
+    rmSync(resolve(state.graph, GRAPH_FILES.flag), { force: true });
+
+    const mismatch = run(state, [
+      'rollback',
+      '--expected-current-md5',
+      'f'.repeat(32),
+      '--expected-target-md5',
+      metaA.pbfMd5,
+    ]);
+    expect(mismatch.status).not.toBe(0);
+    expect(readFileSync(resolve(state.graph, GRAPH_FILES.tar), 'utf8')).toBe('tar-b');
+    expect(existsSync(resolve(state.graph, '.routing-graph.transaction.json'))).toBe(false);
+
+    const rollback = run(state, [
+      'rollback',
+      '--expected-current-md5',
+      metaB.pbfMd5,
+      '--expected-target-md5',
+      metaA.pbfMd5,
+    ]);
+    expect(rollback.status, rollback.stderr).toBe(0);
+    expect(readFileSync(resolve(state.graph, GRAPH_FILES.tar), 'utf8')).toBe('tar-a');
+  });
 });
 
 describe('Valhalla wrapper race contract', () => {
@@ -595,6 +662,10 @@ describe('Valhalla wrapper race contract', () => {
     );
     expect(wrapper).toContain('if [[ -f "${FLAG}" ]]');
     expect(wrapper).toContain('continue 2');
+    expect(wrapper).toContain(
+      'docker compose -f infra/server/compose.yml --env-file infra/server/.env run --rm pipeline node scripts/data-rollback.mjs',
+    );
+    expect(wrapper).not.toContain('rollback an toàn: pnpm data:rollback');
   });
 
   it('wrapper giữ cùng kernel lock từ trước journal check đến sau child spawn', () => {
