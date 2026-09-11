@@ -4765,7 +4765,7 @@ Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>"
 - Create: `apps/docs/e2e/dan-duong-demo.spec.ts`
 - Modify: `apps/docs/astro.config.mjs` (nhóm "Thử nghiệm"), `apps/docs/e2e/docs.spec.ts` (`/dan-duong-demo/`)
 
-- [ ] **Step 1: Viết E2E thất bại**
+- [x] **Step 1: Viết E2E thất bại**
 
 Tạo `apps/docs/e2e/dan-duong-demo.spec.ts`:
 
@@ -4809,12 +4809,12 @@ test('demo dẫn đường giả lập: tìm tuyến từ fixture, chạy hết,
 
 `apps/docs/e2e/docs.spec.ts` thêm `'/dan-duong-demo/',` sau `'/react-demo/',`.
 
-- [ ] **Step 2: Chạy E2E, xác nhận đỏ**
+- [x] **Step 2: Chạy E2E, xác nhận đỏ**
 
 Run: `pnpm --filter @mapslibvn/docs build && pnpm --filter @mapslibvn/docs e2e -- e2e/dan-duong-demo.spec.ts`
 Expected: FAIL — trang 404.
 
-- [ ] **Step 3: Viết `src/lib/dan-duong-demo.ts`**
+- [x] **Step 3: Viết `src/lib/dan-duong-demo.ts`**
 
 ```ts
 import 'maplibre-gl/dist/maplibre-gl.css';
@@ -5083,7 +5083,7 @@ export function mountDemo(root: Document = document): void {
 }
 ```
 
-- [ ] **Step 4: Viết `src/pages/dan-duong-demo.astro`**
+- [x] **Step 4: Viết `src/pages/dan-duong-demo.astro`**
 
 ```astro
 ---
@@ -5189,16 +5189,16 @@ export function mountDemo(root: Document = document): void {
 
 `apps/docs/astro.config.mjs` nhóm "Thử nghiệm", sau `{ label: 'React demo', link: '/react-demo/' },` thêm `{ label: 'Demo dẫn đường', link: '/dan-duong-demo/' },`.
 
-- [ ] **Step 5: Build, typecheck, chạy E2E**
+- [x] **Step 5: Build, typecheck, chạy E2E**
 
 Run: `pnpm --filter @mapslibvn/docs typecheck && pnpm --filter @mapslibvn/docs build && pnpm --filter @mapslibvn/docs e2e`
 Expected: `astro check` xanh; E2E toàn bộ xanh gồm `dan-duong-demo.spec.ts`, `docs.spec.ts` (hai trang mới), `react-demo-worker.spec.ts`. Nếu canvas không hiện vì worker MapLibre 404 trên trang mới, kiểm `_astro/maplibre-gl-worker.mjs` được integration `copyMaplibreWorker` chép (áp cho mọi trang build).
 
-- [ ] **Step 6: Thử tay trên máy dev (không bắt buộc cho commit)**
+- [x] **Step 6: Thử tay trên máy dev (không bắt buộc cho commit)**
 
 Run: `pnpm --filter @mapslibvn/api dev:e2e` (terminal 1) và `pnpm --filter @mapslibvn/docs dev` (terminal 2), mở `http://localhost:4321/dan-duong-demo/?fixture=1` → bấm Tìm tuyến → Giả lập: mũi tên chạy dọc tuyến, bảng chỉ dẫn đổi, câu hiện trong danh sách.
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add apps/docs/src/lib/dan-duong-demo.ts apps/docs/src/pages/dan-duong-demo.astro apps/docs/e2e/dan-duong-demo.spec.ts apps/docs/e2e/docs.spec.ts apps/docs/astro.config.mjs
