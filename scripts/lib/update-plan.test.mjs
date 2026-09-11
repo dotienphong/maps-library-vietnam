@@ -4,6 +4,7 @@ import {
   decideWork,
   missingLiveEnv,
   nextState,
+  parseRoutingGraphStatus,
   poiReleaseSteps,
   routingStep,
   runPoiReleaseSteps,
@@ -221,6 +222,34 @@ describe('server routing setup transaction', () => {
       { id: 'prepare' },
       { id: 'start' },
     ]);
+  });
+
+  it('recovered/pending graph không tar thì start wrapper, không prepare lại', () => {
+    const pending = parseRoutingGraphStatus({
+      tarBytes: null,
+      copiedPbf: { bytes: 123, md5: 'a'.repeat(32), matchesActiveGraph: false },
+      pendingReload: true,
+      buildInProgress: false,
+      buildFailed: false,
+    });
+    expect(pending).toEqual({
+      hasTar: false,
+      hasPbf: true,
+      pendingReload: true,
+      buildInProgress: false,
+      buildFailed: false,
+    });
+    expect(serverRoutingSetupSteps(pending)).toEqual([{ id: 'status' }, { id: 'start' }]);
+
+    for (const recoveryState of [
+      { pendingReload: false, buildInProgress: true, buildFailed: false },
+      { pendingReload: false, buildInProgress: false, buildFailed: true },
+    ]) {
+      expect(serverRoutingSetupSteps({ hasTar: false, hasPbf: true, ...recoveryState })).toEqual([
+        { id: 'status' },
+        { id: 'start' },
+      ]);
+    }
   });
 });
 

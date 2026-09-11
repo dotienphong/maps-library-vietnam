@@ -171,16 +171,57 @@ export function runTileReleaseSteps(steps, execute) {
 
 /**
  * `status` tự recovery transaction dở dang; luôn gọi nó trước khi kết luận tar sẵn và start Valhalla.
- * @param {{ hasTar: boolean, hasPbf: boolean }} s
+ * @param {{ hasTar: boolean, hasPbf: boolean, pendingReload?: boolean, buildInProgress?: boolean,
+ *   buildFailed?: boolean }} s
  */
 export function serverRoutingSetupSteps(s) {
   const steps = [{ id: 'status' }];
+  // run.sh sở hữu retry: nó nhận marker, xoá failed cũ khi start và build khi có PBF nhưng chưa có tar.
+  if (s.pendingReload || s.buildInProgress || s.buildFailed) {
+    steps.push({ id: 'start' });
+    return steps;
+  }
   if (!s.hasTar) {
     if (!s.hasPbf) steps.push({ id: 'download' });
     steps.push({ id: 'prepare' });
   }
   steps.push({ id: 'start' });
   return steps;
+}
+
+/**
+ * @param {unknown} value JSON từ `routing-graph.mjs status`
+ * @returns {{ hasTar: boolean, hasPbf: boolean, pendingReload: boolean, buildInProgress: boolean, buildFailed: boolean }}
+ */
+export function parseRoutingGraphStatus(value) {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    throw new Error('routing-graph status không phải object');
+  }
+  const status = /** @type {Record<string, unknown>} */ (value);
+  const copiedPbf = status.copiedPbf;
+  if (!copiedPbf || typeof copiedPbf !== 'object' || Array.isArray(copiedPbf)) {
+    throw new Error('routing-graph status thiếu copiedPbf');
+  }
+  const tarBytes = status.tarBytes;
+  const pbfBytes = /** @type {Record<string, unknown>} */ (copiedPbf).bytes;
+  if (
+    (tarBytes !== null && (typeof tarBytes !== 'number' || tarBytes < 0)) ||
+    (pbfBytes !== null && (typeof pbfBytes !== 'number' || pbfBytes < 0))
+  ) {
+    throw new Error('routing-graph status có kích thước không hợp lệ');
+  }
+  for (const field of ['pendingReload', 'buildInProgress', 'buildFailed']) {
+    if (typeof status[field] !== 'boolean') {
+      throw new Error(`routing-graph status thiếu boolean ${field}`);
+    }
+  }
+  return {
+    hasTar: typeof tarBytes === 'number',
+    hasPbf: typeof pbfBytes === 'number',
+    pendingReload: /** @type {boolean} */ (status.pendingReload),
+    buildInProgress: /** @type {boolean} */ (status.buildInProgress),
+    buildFailed: /** @type {boolean} */ (status.buildFailed),
+  };
 }
 
 /**

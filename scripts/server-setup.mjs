@@ -17,7 +17,7 @@ import {
   parseDockerVersion,
   waitPlan,
 } from './lib/setup-checks.mjs';
-import { serverRoutingSetupSteps } from './lib/update-plan.mjs';
+import { parseRoutingGraphStatus, serverRoutingSetupSteps } from './lib/update-plan.mjs';
 
 const dir = resolve('infra/server');
 const envPath = resolve(dir, '.env');
@@ -175,9 +175,7 @@ console.log(
 );
 
 step('Graph chỉ đường (Valhalla, spec dẫn đường A)');
-const inPipeline = (/** @type {string} */ shell) =>
-  capture('docker', [...compose, 'run', '--rm', '-T', 'pipeline', 'sh', '-c', shell]);
-run('docker', [
+const routingStatusText = capture('docker', [
   ...compose,
   'run',
   '--rm',
@@ -187,9 +185,16 @@ run('docker', [
   'scripts/routing-graph.mjs',
   'status',
 ]);
-const hasTar = inPipeline('test -f /app/valhalla/valhalla_tiles.tar && echo yes') === 'yes';
-const hasPbf = inPipeline('test -f /app/work/data/sources/vietnam.osm.pbf && echo yes') === 'yes';
-for (const graphStep of serverRoutingSetupSteps({ hasTar, hasPbf }).slice(1)) {
+if (!routingStatusText) throw new Error('routing-graph status thất bại; chưa start Valhalla');
+let routingStatus;
+try {
+  routingStatus = parseRoutingGraphStatus(JSON.parse(routingStatusText));
+} catch (error) {
+  throw new Error(
+    `routing-graph status không hợp lệ; chưa start Valhalla: ${error instanceof Error ? error.message : String(error)}`,
+  );
+}
+for (const graphStep of serverRoutingSetupSteps(routingStatus).slice(1)) {
   if (graphStep.id === 'download') {
     console.log('Chưa có PBF Việt Nam — tải (vài phút)…');
     run('docker', [
