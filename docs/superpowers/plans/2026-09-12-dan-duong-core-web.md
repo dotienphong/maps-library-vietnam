@@ -431,7 +431,7 @@ Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>"
 - Modify: `apps/docs/scripts/copy-sdk.mjs`
 - Modify: `apps/docs/.gitignore` (nếu có) — không cần; `public/fixtures/` sinh lúc prebuild, thêm vào gitignore của docs
 
-- [ ] **Step 1: Viết test đồng bộ (đây vừa là test vừa là bộ sinh)**
+- [x] **Step 1: Viết test đồng bộ (đây vừa là test vừa là bộ sinh)**
 
 Tạo `apps/api/test/routing-fixture-sync.test.ts`:
 
@@ -460,7 +460,7 @@ it('packages/core/tests/fixtures/directions-q1.json khớp translateDirections(q
 });
 ```
 
-- [ ] **Step 2: Chạy lần đầu để sinh file, rồi chạy lại để so khớp**
+- [x] **Step 2: Chạy lần đầu để sinh file, rồi chạy lại để so khớp**
 
 Run: `cd apps/api && pnpm exec vitest run test/routing-fixture-sync.test.ts && pnpm exec vitest run test/routing-fixture-sync.test.ts`
 Expected: lần 1 in `Snapshots 1 written`; lần 2 PASS không ghi. Kiểm file:
@@ -468,7 +468,7 @@ Expected: lần 1 in `Snapshots 1 written`; lần 2 PASS không ghi. Kiểm file
 Run: `node -e 'const j=require("./packages/core/tests/fixtures/directions-q1.json");const s=j.routes[0].legs[0].steps;console.log(s.length, s.map(x=>x.kind).join(","), "|", s.at(-1).instruction, "|", j.waypoints.length)'`
 Expected: `6 depart,turn_right,turn_left,turn_right,turn_left,arrive | Điểm đến ở bên trái. | 2`
 
-- [ ] **Step 3: Chép fixture sang docs lúc prebuild**
+- [x] **Step 3: Chép fixture sang docs lúc prebuild**
 
 `apps/docs/scripts/copy-sdk.mjs`, thêm trước dòng `console.log('✓ copy SDK vào public/sdk');`:
 
@@ -487,7 +487,7 @@ copyFileSync(fixtureSrc, resolve(fixtureDst, 'directions-q1.json'));
 Run: `cd apps/docs && node scripts/copy-sdk.mjs && ls public/fixtures`
 Expected: in `✓ copy SDK vào public/sdk` và `directions-q1.json`. (Cần `packages/web/dist` sẵn; nếu thiếu, `pnpm --filter @mapslibvn/web build` trước.)
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add apps/api/test/routing-fixture-sync.test.ts packages/core/tests/fixtures/directions-q1.json apps/docs/scripts/copy-sdk.mjs apps/docs/.gitignore

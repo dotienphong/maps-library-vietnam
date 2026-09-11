@@ -1,4 +1,5 @@
 public/sdk/
+public/fixtures/
 dist/
 test-results/
 playwright-report/
