@@ -2,11 +2,15 @@
 // Tải OSM Việt Nam + Natural Earth + water polygons bằng Planetiler (--only-download), kiểm md5.
 import { createHash } from 'node:crypto';
 import { createReadStream, existsSync, mkdirSync, renameSync, rmSync } from 'node:fs';
+import { dirname } from 'node:path';
 import { run } from '../../../scripts/lib/run.mjs';
 import { needsOsmDownload, planetilerDownloadArgs } from './lib/download-state.mjs';
 import { GEOFABRIK_PBF, OSM_PBF, WORK } from './lib/env.mjs';
 
 mkdirSync(WORK, { recursive: true });
+// curl không tự tạo thư mục cha; trên volume work trống thì data/sources/ chưa có
+// (Planetiler mới là bên tạo layout này, nhưng nó chạy sau bước tải kiểm md5).
+mkdirSync(dirname(OSM_PBF), { recursive: true });
 const checksumResponse = await fetch(`${GEOFABRIK_PBF}.md5`);
 if (!checksumResponse.ok) {
   throw new Error(`Không tải được checksum Geofabrik: HTTP ${checksumResponse.status}`);
