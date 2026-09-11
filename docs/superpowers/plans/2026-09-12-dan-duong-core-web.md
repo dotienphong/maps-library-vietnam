@@ -1447,7 +1447,7 @@ Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>"
 - Test: `packages/core/src/navigation/announce.test.ts`
 - Modify: `packages/core/src/navigation/index.ts`
 
-- [ ] **Step 1: Viết test thất bại**
+- [x] **Step 1: Viết test thất bại**
 
 ```ts
 import { describe, expect, it } from 'vitest';
@@ -1579,12 +1579,12 @@ describe('planAnnouncements', () => {
 });
 ```
 
-- [ ] **Step 2: Chạy, xác nhận đỏ**
+- [x] **Step 2: Chạy, xác nhận đỏ**
 
 Run: `pnpm exec vitest run packages/core/src/navigation/announce.test.ts`
 Expected: FAIL — không resolve `./announce`.
 
-- [ ] **Step 3: Viết `announce.ts`**
+- [x] **Step 3: Viết `announce.ts`**
 
 ```ts
 import type { DirectionsLang, RouteStep } from '../types';
@@ -1681,12 +1681,12 @@ export function planAnnouncements(
 
 `index.ts` thêm `export * from './announce';`
 
-- [ ] **Step 4: Chạy test**
+- [x] **Step 4: Chạy test**
 
 Run: `pnpm exec vitest run packages/core/src/navigation/announce.test.ts && pnpm typecheck`
 Expected: PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add packages/core/src/navigation
