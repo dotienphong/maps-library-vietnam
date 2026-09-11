@@ -8,6 +8,7 @@ set -euo pipefail
 CUSTOM_FILES="${CUSTOM_FILES:-/custom_files}"
 FLAG="${CUSTOM_FILES}/reload.request"
 IN_PROGRESS="${CUSTOM_FILES}/reload.in-progress"
+JOURNAL="${CUSTOM_FILES}/.routing-graph.transaction.json"
 ENTRYPOINT="${VALHALLA_ENTRYPOINT:-/valhalla/scripts/docker-entrypoint.sh}"
 READY_URL="${VALHALLA_READY_URL:-http://localhost:8002/status}"
 POLL_SECONDS="${RELOAD_POLL_SECONDS:-30}"
@@ -59,6 +60,10 @@ trap 'on_signal TERM 143' TERM
 trap 'on_signal INT 130' INT
 
 while true; do
+  while [[ -f "${JOURNAL}" ]]; do
+    log "transaction graph chưa phục hồi xong → chưa chạy upstream"
+    sleep "${POLL_SECONDS}"
+  done
   if [[ -f "${FLAG}" ]]; then
     mv -f "${FLAG}" "${IN_PROGRESS}"
     log "đánh dấu reload/build đang chạy"
@@ -96,6 +101,16 @@ while true; do
   fi
   # Giữ IN_PROGRESS để lệnh graph khác không xen vào khi Docker khởi động lại sau OOM/lỗi dữ liệu.
   log "entrypoint thoát mã ${code} mà không có cờ reload (build lỗi/OOM?) — ngủ ${FAIL_SLEEP_SECONDS}s rồi để Docker khởi động lại; quay về graph cũ: scripts/routing-graph.mjs rollback"
-  sleep "${FAIL_SLEEP_SECONDS}"
+  remaining="${FAIL_SLEEP_SECONDS}"
+  while (( remaining > 0 )); do
+    if [[ -f "${FLAG}" ]]; then
+      log "thấy cờ reload trong thời gian chờ lỗi → khởi động lại ngay"
+      continue 2
+    fi
+    step="${POLL_SECONDS}"
+    if (( step > remaining )); then step="${remaining}"; fi
+    sleep "${step}"
+    remaining=$((remaining - step))
+  done
   exit "${code}"
 done

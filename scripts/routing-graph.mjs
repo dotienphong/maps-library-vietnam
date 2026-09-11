@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import { spawnSync } from 'node:child_process';
 // Quản lý graph Valhalla trên volume valhalla-data. Image valhalla-scripted chỉ băm TÊN PBF,
 // vì vậy prepare phải dời tar và xoá tile directory để buộc build lại (spec A mục 2, 4.4).
 import { createHash, randomUUID } from 'node:crypto';
@@ -19,6 +20,7 @@ import {
 } from 'node:fs';
 import { copyFile, rm } from 'node:fs/promises';
 import { dirname, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import {
   GRAPH_FILES,
   PREPARE_FAULT_POINTS,
@@ -33,10 +35,8 @@ import {
 const RUNTIME = {
   journal: '.routing-graph.transaction.json',
   lock: '.routing-graph.lock',
-  lockOwner: 'owner.json',
   stagePrefix: '.routing-graph-txn-',
   inProgress: 'reload.in-progress',
-  leaseMs: 10_000,
 };
 const WORK = process.env.MAPSLIBVN_WORK ?? '/app/work';
 const GRAPH_DIR = process.env.MAPSLIBVN_VALHALLA ?? '/app/valhalla';
@@ -46,8 +46,6 @@ const prevPath = (/** @type {string} */ name) => resolve(GRAPH_DIR, GRAPH_FILES.
 const stageName = (/** @type {string} */ id, /** @type {string} */ suffix) =>
   `${RUNTIME.stagePrefix}${id}.${suffix}`;
 const log = (/** @type {string} */ message) => console.log(`[routing-graph] ${message}`);
-/** @type {ReturnType<typeof setInterval> | null} */
-let heartbeatTimer = null;
 
 /** @param {string} file */
 async function md5(file) {
@@ -91,85 +89,6 @@ function stageMeta(file, meta) {
 function requestReload(content) {
   writeAtomic(path(GRAPH_FILES.flag), `${content}\n`);
   log(`đã ghi cờ ${GRAPH_FILES.flag} (${content}) — container valhalla nhận trong ≤ 30 giây`);
-}
-
-/** @param {number} pid */
-function processIsAlive(pid) {
-  try {
-    process.kill(pid, 0);
-    return true;
-  } catch (error) {
-    return /** @type {NodeJS.ErrnoException} */ (error).code === 'EPERM';
-  }
-}
-
-function acquireLock() {
-  const lock = path(RUNTIME.lock);
-  for (let attempt = 0; attempt < 3; attempt += 1) {
-    try {
-      mkdirSync(lock);
-      writeAtomic(
-        resolve(lock, RUNTIME.lockOwner),
-        `${JSON.stringify({ pid: process.pid, heartbeatAt: new Date().toISOString() })}\n`,
-      );
-      syncPath(GRAPH_DIR);
-      heartbeatTimer = setInterval(() => {
-        if (existsSync(lock)) {
-          writeAtomic(
-            resolve(lock, RUNTIME.lockOwner),
-            `${JSON.stringify({ pid: process.pid, heartbeatAt: new Date().toISOString() })}\n`,
-          );
-        }
-      }, 2_000);
-      heartbeatTimer.unref();
-      return;
-    } catch (error) {
-      if (/** @type {NodeJS.ErrnoException} */ (error).code !== 'EEXIST') throw error;
-      let owner = null;
-      try {
-        owner = JSON.parse(readFileSync(resolve(lock, RUNTIME.lockOwner), 'utf8'));
-      } catch {
-        // Một tiến trình vừa mkdir có thể chưa kịp ghi owner; coi lock mới là đang hoạt động.
-      }
-      const heartbeatMs = Date.parse(owner?.heartbeatAt ?? '');
-      if (Number.isFinite(heartbeatMs) && Date.now() - heartbeatMs <= RUNTIME.leaseMs) {
-        throw new Error(`routing-graph đang được tiến trình ${owner.pid} giữ lock`);
-      }
-      if (
-        !Number.isFinite(heartbeatMs) &&
-        Number.isInteger(owner?.pid) &&
-        owner.pid > 0 &&
-        processIsAlive(owner.pid)
-      ) {
-        throw new Error(`routing-graph đang được tiến trình ${owner.pid} giữ lock`);
-      }
-      if (!owner && Date.now() - statSync(lock).mtimeMs < RUNTIME.leaseMs) {
-        throw new Error('routing-graph đang được tiến trình khác khởi tạo lock');
-      }
-      rmSync(lock, { recursive: true, force: true });
-      syncPath(GRAPH_DIR);
-    }
-  }
-  throw new Error('Không thể lấy lock routing-graph');
-}
-
-function releaseLock() {
-  if (heartbeatTimer) {
-    clearInterval(heartbeatTimer);
-    heartbeatTimer = null;
-  }
-  const lock = path(RUNTIME.lock);
-  if (!existsSync(lock)) return;
-  let ownerPid = null;
-  try {
-    ownerPid = JSON.parse(readFileSync(resolve(lock, RUNTIME.lockOwner), 'utf8')).pid;
-  } catch {
-    // Chỉ tiến trình đang giữ lock đi vào finally này.
-  }
-  if (ownerPid === null || ownerPid === process.pid) {
-    rmSync(lock, { recursive: true, force: true });
-    syncPath(GRAPH_DIR);
-  }
 }
 
 /** @typedef {'prepare' | 'rollback'} TransactionType */
@@ -224,10 +143,6 @@ function setPhase(journal, phase) {
 /** @param {string} point */
 function injectFault(point) {
   if (process.env.NODE_ENV === 'test' && process.env.MAPSLIBVN_ROUTING_FAULT_AFTER === point) {
-    writeAtomic(
-      resolve(path(RUNTIME.lock), RUNTIME.lockOwner),
-      `${JSON.stringify({ pid: process.pid, heartbeatAt: new Date(0).toISOString() })}\n`,
-    );
     process.exit(91);
   }
 }
@@ -247,6 +162,12 @@ function stages(id) {
 async function finishPrepare(journal, recovering) {
   const files = stages(journal.id);
   const at = PREPARE_FAULT_POINTS.indexOf(journal.phase);
+  if (at <= PREPARE_FAULT_POINTS.indexOf('pbf-installed')) {
+    setPhase(journal, 'pbf-installed');
+    if (existsSync(files.newPbf)) renameSync(files.newPbf, path(GRAPH_FILES.pbf));
+    syncPath(GRAPH_DIR);
+    injectFault('pbf-installed');
+  }
   if (at <= PREPARE_FAULT_POINTS.indexOf('current-tar-staged')) {
     setPhase(journal, 'current-tar-staged');
     if (journal.hadCurrentTar && !existsSync(files.currentTar)) {
@@ -281,12 +202,6 @@ async function finishPrepare(journal, recovering) {
     await rm(path(GRAPH_FILES.tileDir), { recursive: true, force: true });
     syncPath(GRAPH_DIR);
     injectFault('tiles-removed');
-  }
-  if (at <= PREPARE_FAULT_POINTS.indexOf('pbf-installed')) {
-    setPhase(journal, 'pbf-installed');
-    if (existsSync(files.newPbf)) renameSync(files.newPbf, path(GRAPH_FILES.pbf));
-    syncPath(GRAPH_DIR);
-    injectFault('pbf-installed');
   }
   if (at <= PREPARE_FAULT_POINTS.indexOf('active-meta-installed')) {
     setPhase(journal, 'active-meta-installed');
@@ -399,7 +314,6 @@ async function main() {
     );
   }
 
-  acquireLock();
   try {
     const interrupted = readJournal();
     if (interrupted) {
@@ -436,11 +350,11 @@ async function main() {
       return;
     }
 
-    assertNoReloadInProgress();
     mkdirSync(prevPath(''), { recursive: true });
     syncPath(GRAPH_DIR);
 
     if (options.command === 'prepare') {
+      assertNoReloadInProgress();
       if (!existsSync(SOURCE_PBF)) {
         const plan = preparePlan({
           hasSource: false,
@@ -532,8 +446,52 @@ async function main() {
     log(`đã đổi chỗ tar hiện tại ↔ prev/ (graph ${previous?.pbfMd5 ?? '?'} sẽ được nạp)`);
   } finally {
     if (!existsSync(path(RUNTIME.journal))) cleanOrphanStages();
-    releaseLock();
   }
 }
 
-await main();
+async function entry() {
+  const argv = process.argv.slice(2);
+  parseRoutingGraphArgs(argv);
+  if (!existsSync(GRAPH_DIR)) {
+    throw new Error(
+      `${GRAPH_DIR} không tồn tại — volume valhalla-data chưa gắn vào container pipeline (infra/server/compose.yml)`,
+    );
+  }
+  if (process.env.NODE_ENV === 'test' && process.env.MAPSLIBVN_ROUTING_TEST_SKIP_FLOCK === '1') {
+    await main();
+    return;
+  }
+  if (process.env.MAPSLIBVN_ROUTING_FLOCK_CHILD === '1') {
+    await main();
+    return;
+  }
+
+  const available = spawnSync('flock', ['--version'], { stdio: 'ignore' });
+  if (available.error || available.status !== 0) {
+    throw new Error('Thiếu lệnh `flock` (util-linux) — không thể cập nhật graph an toàn');
+  }
+  const child = spawnSync(
+    'flock',
+    [
+      '--exclusive',
+      '--nonblock',
+      '--conflict-exit-code',
+      '75',
+      path(RUNTIME.lock),
+      process.execPath,
+      fileURLToPath(import.meta.url),
+      ...argv,
+    ],
+    {
+      env: { ...process.env, MAPSLIBVN_ROUTING_FLOCK_CHILD: '1' },
+      stdio: 'inherit',
+    },
+  );
+  if (child.status === 75) {
+    throw new Error('routing-graph đang được tiến trình khác giữ kernel flock');
+  }
+  if (child.error) throw child.error;
+  if (child.status !== 0) process.exit(child.status ?? 1);
+}
+
+await entry();

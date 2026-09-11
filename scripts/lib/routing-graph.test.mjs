@@ -25,6 +25,8 @@ import {
 
 const SCRIPT = resolve(import.meta.dirname, '../routing-graph.mjs');
 const RUN_SH = resolve(import.meta.dirname, '../../infra/server/valhalla/run.sh');
+const SERVER_COMPOSE = resolve(import.meta.dirname, '../../infra/server/compose.yml');
+const HAS_FLOCK = spawnSync('flock', ['--version']).status === 0;
 /** @type {string[]} */
 const temporaryDirectories = [];
 
@@ -81,6 +83,8 @@ function run({ work, graph }, args, extraEnv = {}) {
       ...process.env,
       MAPSLIBVN_WORK: work,
       MAPSLIBVN_VALHALLA: graph,
+      NODE_ENV: 'test',
+      MAPSLIBVN_ROUTING_TEST_SKIP_FLOCK: '1',
       ...extraEnv,
     },
   });
@@ -294,30 +298,36 @@ describe('transaction recovery', () => {
     expect(existsSync(resolve(state.graph, '.routing-graph.transaction.json'))).toBe(false);
   });
 
-  it('từ chối contention và không thay đổi graph', () => {
+  it.runIf(HAS_FLOCK)('kernel flock từ chối contention và tự nhả sau crash', () => {
     const state = fixture();
     const lock = resolve(state.graph, '.routing-graph.lock');
-    mkdirSync(lock);
-    writeFileSync(
-      resolve(lock, 'owner.json'),
-      JSON.stringify({ pid: process.pid, startedAt: new Date().toISOString() }),
+    const contention = spawnSync(
+      'flock',
+      [lock, 'sh', '-c', 'flock --nonblock "$LOCK_FILE" true'],
+      { env: { ...process.env, LOCK_FILE: lock } },
     );
-    const result = run(state, ['rollback']);
-    expect(result.status).not.toBe(0);
-    expect(result.stderr).toContain('đang được tiến trình');
-    expect(readFileSync(resolve(state.graph, GRAPH_FILES.tar), 'utf8')).toBe('tar-current');
-    expect(readFileSync(resolve(state.graph, GRAPH_FILES.prevDir, GRAPH_FILES.tar), 'utf8')).toBe(
-      'tar-previous',
-    );
+    expect(contention.status).not.toBe(0);
+    const crashed = spawnSync('flock', [lock, 'sh', '-c', 'kill -KILL $$']);
+    expect(crashed.status).not.toBe(0);
+    expect(spawnSync('flock', ['--nonblock', lock, 'true']).status).toBe(0);
   });
 
   it('từ chối transaction mới khi reload/build trước còn pending', () => {
     const state = fixture();
     writeFileSync(resolve(state.graph, GRAPH_FILES.flag), 'rebuild\n');
-    const result = run(state, ['rollback']);
+    const result = run(state, ['prepare']);
     expect(result.status).not.toBe(0);
     expect(result.stderr).toContain('reload/build trước');
     expect(readFileSync(resolve(state.graph, GRAPH_FILES.tar), 'utf8')).toBe('tar-current');
+  });
+
+  it('rollback được phép thay graph đang build lỗi và phát cờ rollback mới', () => {
+    const state = fixture();
+    writeFileSync(resolve(state.graph, 'reload.in-progress'), 'rebuild\n');
+    const result = run(state, ['rollback']);
+    expect(result.status, result.stderr).toBe(0);
+    expect(readFileSync(resolve(state.graph, GRAPH_FILES.tar), 'utf8')).toBe('tar-previous');
+    expect(readFileSync(resolve(state.graph, GRAPH_FILES.flag), 'utf8')).toBe('rollback\n');
   });
 
   it('prepare không có tar hiện tại giữ nguyên cặp prev tar/meta đã có', () => {
@@ -333,5 +343,24 @@ describe('transaction recovery', () => {
       JSON.parse(readFileSync(resolve(state.graph, GRAPH_FILES.prevDir, GRAPH_FILES.meta), 'utf8'))
         .pbfMd5,
     ).toBe('2'.repeat(32));
+  });
+});
+
+describe('Valhalla wrapper race contract', () => {
+  it('cài PBF mới dưới journal trước khi dời tar và run.sh đợi journal trước setsid', () => {
+    expect(PREPARE_FAULT_POINTS.indexOf('pbf-installed')).toBeLessThan(
+      PREPARE_FAULT_POINTS.indexOf('current-tar-staged'),
+    );
+    const wrapper = readFileSync(RUN_SH, 'utf8');
+    expect(wrapper).toContain('.routing-graph.transaction.json');
+    expect(wrapper.indexOf('while [[ -f "${JOURNAL}" ]]')).toBeLessThan(
+      wrapper.indexOf('setsid "${ENTRYPOINT}"'),
+    );
+  });
+
+  it('compose cho wrapper đủ thời gian TERM grace trước Docker KILL', () => {
+    const compose = readFileSync(SERVER_COMPOSE, 'utf8');
+    expect(compose).toContain('stop_grace_period: 45s');
+    expect(readFileSync(RUN_SH, 'utf8')).toContain('STOP_GRACE_SECONDS:-30');
   });
 });

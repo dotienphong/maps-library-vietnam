@@ -86,6 +86,7 @@ services:
     # 10/09/2026): tag bị đẩy lại trên GHCR không đổi được bản chạy trên máy chủ.
     image: ghcr.io/valhalla/valhalla-scripted:3.8.3@sha256:24ef7955899dececb94e26c6dfb89d64fabfae875f980432694b0261eb6c251b
     restart: unless-stopped
+    stop_grace_period: 45s
     # Ghi đè ENTRYPOINT (không phải command) — ENTRYPOINT gốc nhận command làm tham số; command rỗng
     # để run.sh không nhận thừa "build_tiles" của CMD gốc.
     entrypoint: ["/bin/bash", "/opt/mapslibvn/run.sh"]

@@ -11,11 +11,11 @@ export const GRAPH_FILES = {
 
 export const PREPARE_FAULT_POINTS = [
   'journaled',
+  'pbf-installed',
   'current-tar-staged',
   'previous-tar-installed',
   'previous-meta-installed',
   'tiles-removed',
-  'pbf-installed',
   'active-meta-installed',
   'reload-written',
 ];
