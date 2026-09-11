@@ -1888,7 +1888,7 @@ Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>"
 - Test: `packages/core/src/navigation/navigator.test.ts`
 - Modify: `packages/core/src/navigation/index.ts`
 
-- [ ] **Step 1: Viết test thất bại (phần 1 — không có provider)**
+- [x] **Step 1: Viết test thất bại (phần 1 — không có provider)**
 
 Tạo `packages/core/src/navigation/navigator.test.ts`:
 
@@ -2135,12 +2135,12 @@ describe('createNavigator — tuyến hai leg', () => {
 });
 ```
 
-- [ ] **Step 2: Chạy, xác nhận đỏ**
+- [x] **Step 2: Chạy, xác nhận đỏ**
 
 Run: `pnpm exec vitest run packages/core/src/navigation/navigator.test.ts`
 Expected: FAIL — không resolve `./navigator`.
 
-- [ ] **Step 3: Viết `navigator.ts` (đầy đủ, gồm cả tính lại tuyến — test ở Task 10)**
+- [x] **Step 3: Viết `navigator.ts` (đầy đủ, gồm cả tính lại tuyến — test ở Task 10)**
 
 ```ts
 import type { DirectionsLang, DirectionsOptions, DirectionsResponse, Route } from '../types';
@@ -2499,12 +2499,12 @@ export function createNavigator(opts: NavigatorOptions): Navigator {
 
 `index.ts` thêm `export * from './navigator';`
 
-- [ ] **Step 4: Chạy test phần 1**
+- [x] **Step 4: Chạy test phần 1**
 
 Run: `pnpm exec vitest run packages/core/src/navigation/navigator.test.ts && pnpm typecheck`
 Expected: PASS. Ca "3 fix và ≥ 5 s → fix 25" là kiểm tra chính của luật xác nhận lệch; nếu ra 22 nghĩa là thiếu điều kiện thời gian, nếu ra 26 nghĩa là so `>` thay cho `>=`.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add packages/core/src/navigation

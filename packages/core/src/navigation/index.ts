@@ -4,3 +4,4 @@ export * from './progress';
 export * from './snap';
 export * from './announce';
 export * from './simulate';
+export * from './navigator';
