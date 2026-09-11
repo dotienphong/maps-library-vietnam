@@ -1704,7 +1704,7 @@ Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>"
 - Test: `packages/core/src/navigation/simulate.test.ts`
 - Modify: `packages/core/src/navigation/index.ts`
 
-- [ ] **Step 1: Viết test thất bại**
+- [x] **Step 1: Viết test thất bại**
 
 ```ts
 import { describe, expect, it } from 'vitest';
@@ -1766,12 +1766,12 @@ describe('simulateFixes', () => {
 });
 ```
 
-- [ ] **Step 2: Chạy, xác nhận đỏ**
+- [x] **Step 2: Chạy, xác nhận đỏ**
 
 Run: `pnpm exec vitest run packages/core/src/navigation/simulate.test.ts`
 Expected: FAIL.
 
-- [ ] **Step 3: Viết `simulate.ts`**
+- [x] **Step 3: Viết `simulate.ts`**
 
 ```ts
 import { decodePolyline6 } from '../polyline';
@@ -1865,12 +1865,12 @@ export function simulateFixes(route: Route, opts: SimulateOptions = {}): GeoFix[
 
 `index.ts` thêm `export * from './simulate';`
 
-- [ ] **Step 4: Chạy test**
+- [x] **Step 4: Chạy test**
 
 Run: `pnpm exec vitest run packages/core/src/navigation/simulate.test.ts && pnpm typecheck`
 Expected: PASS. Nếu số fix lệch 1 so với `floor(total/8) + 2`, kiểm vòng `for (d < total)` — tuyến có tổng chia hết cho 8 sẽ ít hơn một fix; khi đó đổi kỳ vọng test thành `Math.ceil(total / 8) + 1`.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add packages/core/src/navigation
