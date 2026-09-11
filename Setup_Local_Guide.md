@@ -23,6 +23,14 @@ Khuyến nghị khi dùng full data/pipeline:
 - Còn ít nhất 50 GB SSD.
 - Cắm nguồn và tắt sleep nếu máy đóng vai trò server.
 
+Riêng khi máy phải **build graph Valhalla** (mọi máy chủ mới đều phải, xem mục 5.2):
+
+- **VM Docker phải được cấp ≥ 12 GB RAM.** Trên Windows con số này do WSL2 quyết định, xem mục 2.2.
+  Đo 11/09/2026 trên máy chủ macOS: ở 8,2 GB thì `valhalla_build_tiles -s enhance` bị kernel giết
+  (`Killed`) giữa chừng; ở 15,6 GB build xong, RAM đỉnh của container 3,67 GB.
+- Volume `valhalla-data` cần ~5 GB: PBF Việt Nam 313 MB + thư mục tile + `valhalla_tiles.tar`
+  1,08 GB + bản `prev` cùng cỡ.
+
 ## 2. Cài công cụ nền
 
 ### 2.1 WSL2 và Ubuntu
@@ -49,6 +57,26 @@ uname -a
 2. Settings → General → bật **Use the WSL 2 based engine**.
 3. Settings → Resources → WSL Integration → bật Ubuntu vừa cài.
 4. Mở Docker Desktop và chờ engine sẵn sàng.
+
+Nếu máy sẽ build graph Valhalla, cấp RAM cho WSL2 **trước**. Trên Windows, Docker Desktop dùng
+WSL2 nên thanh Memory trong Settings → Resources không có tác dụng; phải sửa file
+`%UserProfile%\.wslconfig`:
+
+```ini
+[wsl2]
+memory=12GB
+processors=4
+```
+
+Rồi `wsl --shutdown` trong PowerShell và mở lại Docker Desktop. Kiểm bằng:
+
+```bash
+docker info --format 'RAM VM: {{.MemTotal}} · CPU: {{.NCPU}}'
+```
+
+`MemTotal` phải ≥ 12884901888. Cấp thiếu thì build graph chết giữa chừng bằng `Killed` (OOM) và —
+đây là phần nguy hiểm — container vẫn khởi động lại, đóng gói thư mục tile dở thành tar và phục vụ
+tiếp: `/status` trả 200 nhưng mọi `/route` trả `error_code 171`. Xem mục 7.
 
 Trong Ubuntu kiểm tra:
 
@@ -202,11 +230,39 @@ là Tunnel + Cloudflare Access, và phải tạo Access application trước khi
 Nếu chỉ cần full data để phát triển local, không bật Tunnel production. Nếu laptop mới thực sự thay
 máy chủ:
 
+0. **Tắt stack trên máy cũ trước** (`docker compose --env-file infra/server/.env -f infra/server/compose.yml down`).
+   Hai máy cùng chạy một `TUNNEL_TOKEN` sẽ thành hai replica của cùng một tunnel và Cloudflare chia
+   tải ngẫu nhiên giữa chúng: Hyperdrive lúc vào DB máy này lúc vào DB máy kia, dữ liệu phân kỳ mà
+   không có lỗi nào báo.
 1. Điền `TUNNEL_TOKEN` cũ, hoặc tạo Cloudflare Tunnel mới.
 2. Trỏ hostname database tới `tcp://postgres:5432`.
-3. Xác nhận Cloudflare Access service token còn hiệu lực.
+3. Xác nhận Cloudflare Access service token còn hiệu lực — cả `hyperdrive` (cho `maps-db`) lẫn
+   `routing` (cho `maps-route`).
 4. Nếu tạo Hyperdrive mới, cập nhật ID trong `apps/api/wrangler.toml` và deploy Worker.
-5. Chỉ tắt máy chủ cũ sau khi production `/healthz/db` và Places API đã nghiệm thu.
+5. Chỉ tắt máy chủ cũ sau khi production `/healthz/db`, `/healthz/routing` và Places API đã nghiệm thu.
+
+**Giữ nguyên `TUNNEL_TOKEN` thì phần Cloudflare gần như không phải làm lại.** Cấu hình ingress nằm
+trên Cloudflare chứ không nằm trên máy, nên cả `maps-db → tcp://postgres:5432` lẫn
+`maps-route → http://valhalla:8002` tự đi theo tunnel sang máy mới; Access application, service
+token và hai secret `ROUTING_ACCESS_CLIENT_ID`/`ROUTING_ACCESS_CLIENT_SECRET` của Worker đều không
+đổi.
+
+**Graph Valhalla không nằm trong backup DB.** `server:restore` gọi `server:setup`, và setup tự tải
+PBF rồi `prepare` khi volume `valhalla-data` rỗng — nhưng đó là một lần build lạnh toàn Việt Nam,
+tức là khoảng downtime của `/v1/directions` khi chuyển máy. Muốn rút ngắn, chép sẵn hai file từ
+volume máy cũ sang máy mới trước khi chuyển:
+
+```bash
+docker run --rm -v mapslibvn-server_valhalla-data:/d -v "$PWD":/out alpine \
+  sh -c 'cp /d/valhalla_tiles.tar /d/vietnam.osm.pbf /out/'
+```
+
+Sau restore, kiểm bằng một tuyến thật chứ không chỉ `/status` (xem mục 7):
+
+```bash
+docker compose --env-file infra/server/.env -f infra/server/compose.yml \
+  run --rm pipeline node scripts/routing-graph.mjs status
+```
 
 Chi tiết cấu hình cloud: `infra/server/README.md`.
 
@@ -263,6 +319,37 @@ Không xóa Docker volume `mapslibvn-server_pgdata` nếu chưa có backup đã 
 
 Đăng nhập GHCR bằng token chỉ có quyền `read:packages`, hoặc dùng image local đã được build đúng
 version. Không ghi token trực tiếp vào command history.
+
+### Valhalla `/status` trả 200 nhưng mọi tuyến trả `error_code 171`
+
+Graph rỗng hoặc dựng dở — gần như luôn là build bị OOM giết ở pha `enhance`. `routing-graph.mjs
+status` cũng báo `buildFailed: false` nên **ba tín hiệu xanh cùng lúc trong khi dịch vụ chết**.
+Kiểm bằng một tuyến thật, không dừng ở `/status`:
+
+```bash
+docker exec mapslibvn-server-valhalla-1 curl -s -X POST http://localhost:8002/route \
+  -H 'content-type: application/json' \
+  -d '{"locations":[{"lat":10.7798,"lon":106.699},{"lat":10.7725,"lon":106.698}],"costing":"motor_scooter","directions_options":{"language":"vi-VN"}}'
+```
+
+Sửa: cấp RAM theo mục 1 và 2.2, rồi `run --rm pipeline node scripts/routing-graph.mjs prepare --force`.
+Tìm `Killed` trong `docker compose … logs valhalla` để xác nhận nguyên nhân là OOM.
+
+### `/healthz/routing` trả 503 dù đã tạo đủ Tunnel, service token và Access application
+
+Kiểm xem Access application đã **gắn** policy chưa — dashboard Zero Trust bản mới tạo policy như một
+đối tượng dùng chung, tạo xong vẫn phải vào application → tab Policies → *Select existing policies*.
+Application không có policy nào thì chặn sạch, kể cả service token đúng, và Worker trả đúng cùng một
+lỗi `upstream_unavailable` như lúc chưa có Tunnel. Dấu hiệu phân biệt: trong observability
+`wallTimeMs` chỉ 4–18 ms (bị Access chặn ngay) thay vì vài trăm ms (có gọi tới Valhalla).
+
+### Rollback graph đưa nhầm bản hỏng trở lại
+
+`rollback --expected-current-md5 X --expected-target-md5 Y` không phân biệt được hai graph dựng từ
+**cùng một file PBF** vì `pbfMd5` của chúng giống hệt nhau. Chỉ graph do `data:update` dựng mới có
+`vnRelease` để phân biệt. Luôn đọc `routing-graph.mjs status` **ngay trước** khi rollback: trạng thái
+có thể đã đổi sau lưng, ví dụ khởi động lại Docker Desktop làm container tự build lại và tự xoay
+`prev/`.
 
 ### Restore báo sai passphrase
 
