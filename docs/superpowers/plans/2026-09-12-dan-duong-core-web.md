@@ -934,7 +934,7 @@ Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>"
 - Test: `packages/core/src/navigation/progress.test.ts`
 - Modify: `packages/core/src/navigation/index.ts`
 
-- [ ] **Step 1: Helper tuyến hai leg tổng hợp**
+- [x] **Step 1: Helper tuyến hai leg tổng hợp**
 
 Tạo `packages/core/tests/helpers/synthetic-route.ts`:
 
@@ -1020,7 +1020,7 @@ export function syntheticTwoLegRoute(): DirectionsResponse {
 }
 ```
 
-- [ ] **Step 2: Viết test thất bại**
+- [x] **Step 2: Viết test thất bại**
 
 Tạo `packages/core/src/navigation/progress.test.ts`:
 
@@ -1113,12 +1113,12 @@ describe('stepAt / progressAt', () => {
 });
 ```
 
-- [ ] **Step 3: Chạy, xác nhận đỏ**
+- [x] **Step 3: Chạy, xác nhận đỏ**
 
 Run: `pnpm exec vitest run packages/core/src/navigation/progress.test.ts`
 Expected: FAIL — không resolve `./progress`.
 
-- [ ] **Step 4: Viết `progress.ts`**
+- [x] **Step 4: Viết `progress.ts`**
 
 ```ts
 import { decodePolyline6 } from '../polyline';
@@ -1222,12 +1222,12 @@ export function progressAt(index: RouteIndex, along_m: number): ProgressAt {
 
 `packages/core/src/navigation/index.ts` thêm `export * from './progress';`
 
-- [ ] **Step 5: Chạy test**
+- [x] **Step 5: Chạy test**
 
 Run: `pnpm exec vitest run packages/core/src/navigation && pnpm typecheck`
 Expected: PASS. Nếu `legBegin_m[1]` lệch 222,39 quá 0,5 m thì đó là bug haversine — không sửa số kỳ vọng.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add packages/core/src/navigation packages/core/tests/helpers/synthetic-route.ts
