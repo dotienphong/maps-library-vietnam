@@ -43,7 +43,8 @@ export function snapToRoute(index: RouteIndex, p: LngLat, opts: SnapOptions): Sn
     }
   }
 
-  const heading = typeof opts.heading === 'number' && Number.isFinite(opts.heading) ? opts.heading : null;
+  const heading =
+    typeof opts.heading === 'number' && Number.isFinite(opts.heading) ? opts.heading : null;
   let best: SnapResult | null = null;
   for (let i = lo; i <= hi; i++) {
     const a = coords[i];

@@ -35,7 +35,10 @@ const CASES: [string, string][] = [
     'Lái về phía đông nam trên Công trường Công xã Paris. Rồi, trong 100 mét nữa, Rẽ phải vào Nguyễn Du.',
     'Đi về hướng đông nam trên Công trường Công xã Paris. Rồi, trong 100 mét nữa, rẽ phải vào Nguyễn Du.',
   ],
-  ['Rẽ trái vào Lê Lợi. Rồi Rẽ phải vào Nguyễn Huệ.', 'Rẽ trái vào Lê Lợi. Rồi rẽ phải vào Nguyễn Huệ.'],
+  [
+    'Rẽ trái vào Lê Lợi. Rồi Rẽ phải vào Nguyễn Huệ.',
+    'Rẽ trái vào Lê Lợi. Rồi rẽ phải vào Nguyễn Huệ.',
+  ],
   // Giữ nguyên
   ['Rẽ trái vào Lê Lợi.', 'Rẽ trái vào Lê Lợi.'],
   ['Bạn đã đến điểm dừng.', 'Bạn đã đến điểm dừng.'],

@@ -24,10 +24,16 @@ function fakeSynth(voices: { lang: string; name: string }[]) {
     speak: vi.fn(),
     cancel: vi.fn(),
     addEventListener: vi.fn((ev: string, fn: () => void) => {
-      (listeners[ev] ??= []).push(fn);
+      listeners[ev] ??= [];
+      listeners[ev].push(fn);
     }),
   } as unknown as SpeechSynthesis;
-  return { synth, fire: (ev: string) => listeners[ev]?.forEach((fn) => fn()) };
+  return {
+    synth,
+    fire: (ev: string) => {
+      for (const fn of listeners[ev] ?? []) fn();
+    },
+  };
 }
 
 beforeEach(() => vi.stubGlobal('SpeechSynthesisUtterance', FakeUtterance));

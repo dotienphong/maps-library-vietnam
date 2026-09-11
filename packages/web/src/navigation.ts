@@ -100,7 +100,8 @@ const NAV_EVENTS = [
 
 export function createNavigation(deps: NavigationDeps): NavigationController {
   const { gl, ml, routes } = deps;
-  const doc = 'document' in deps ? deps.document : typeof document !== 'undefined' ? document : undefined;
+  const doc =
+    'document' in deps ? deps.document : typeof document !== 'undefined' ? document : undefined;
   const wakeLockApi =
     'wakeLock' in deps
       ? deps.wakeLock

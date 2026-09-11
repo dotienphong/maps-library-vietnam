@@ -6,7 +6,11 @@ export { MapsLibVNAutocomplete, defineAutocomplete } from './autocomplete-elemen
 export { ROUTE_LAYER_IDS, ROUTE_SOURCE_ID } from './routes-layer';
 export type { RoutesLayer } from './routes-layer';
 export { FOLLOW_ZOOM } from './navigation';
-export type { NavigationController, NavigationStartOptions, WebNavigationEvents } from './navigation';
+export type {
+  NavigationController,
+  NavigationStartOptions,
+  WebNavigationEvents,
+} from './navigation';
 export { geolocationSource, playbackSource, toGeoFix } from './position-source';
 export type { GeolocationSourceOptions } from './position-source';
 export { createSpeech } from './speech';

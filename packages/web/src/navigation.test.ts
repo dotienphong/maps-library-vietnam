@@ -25,7 +25,10 @@ function fakeDeps() {
   const handlers: Record<string, ((e: unknown) => void)[]> = {};
   const gl = {
     easeTo: vi.fn(),
-    on: vi.fn((ev: string, fn: (e: unknown) => void) => (handlers[ev] ??= []).push(fn)),
+    on: vi.fn((ev: string, fn: (e: unknown) => void) => {
+      handlers[ev] ??= [];
+      handlers[ev].push(fn);
+    }),
     off: vi.fn((ev: string, fn: (e: unknown) => void) => {
       handlers[ev] = (handlers[ev] ?? []).filter((h) => h !== fn);
     }),
@@ -60,7 +63,9 @@ function fakeDeps() {
     synth,
     wakeLock,
     sentinel,
-    fire: (ev: string, e?: unknown) => handlers[ev]?.forEach((fn) => fn(e)),
+    fire: (ev: string, e?: unknown) => {
+      for (const fn of handlers[ev] ?? []) fn(e);
+    },
     handlerCount: (ev: string) => (handlers[ev] ?? []).length,
     make: () =>
       createNavigation({
@@ -144,7 +149,13 @@ describe('createNavigation', () => {
     const d = fakeDeps();
     const nav = d.make();
     const fixes = simulateFixes(route).slice(0, 5);
-    nav.start({ response, voice: false, follow: false, lang: 'en', source: playbackSource(fixes, { rate: 0 }) });
+    nav.start({
+      response,
+      voice: false,
+      follow: false,
+      lang: 'en',
+      source: playbackSource(fixes, { rate: 0 }),
+    });
     await vi.runAllTimersAsync();
     expect(d.gl.easeTo).not.toHaveBeenCalled();
     await nav.reroute();

@@ -63,6 +63,11 @@ describe('snapToRoute', () => {
   });
 
   it('tuyến dưới 2 điểm → null', () => {
-    expect(snapToRoute(buildRouteIndex(routeOf([[106.7, 10.77]])), between, { fromShapeIndex: null, window_m: 100 })).toBeNull();
+    expect(
+      snapToRoute(buildRouteIndex(routeOf([[106.7, 10.77]])), between, {
+        fromShapeIndex: null,
+        window_m: 100,
+      }),
+    ).toBeNull();
   });
 });

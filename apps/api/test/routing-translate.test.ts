@@ -149,7 +149,11 @@ describe('translateDirections', () => {
 
   it('verbal_alert: null khi Valhalla không trả, có thì giữ nguyên (spec B mục 6.1)', () => {
     expect(route?.legs[0]?.steps[0]?.verbal_alert).toBeNull();
-    const realOut = translateDirections(real as unknown as ValhallaRouteResponse, 'motorbike', null);
+    const realOut = translateDirections(
+      real as unknown as ValhallaRouteResponse,
+      'motorbike',
+      null,
+    );
     expect(realOut.routes[0]?.legs[0]?.steps[1]?.verbal_alert).toBe('Rẽ phải vào Nguyễn Du.');
     expect(realOut.routes[0]?.legs[0]?.steps[0]?.verbal_alert).toBeNull();
   });
@@ -182,7 +186,12 @@ describe('fixture Valhalla thật (Quận 1, capture bằng pnpm test:routing --
     expect(steps[0]?.verbal_pre).toBe(
       'Đi về hướng đông nam trên Công trường Công xã Paris. Rồi, trong 100 mét nữa, rẽ phải vào Nguyễn Du.',
     );
-    const en = translateDirections(real as unknown as ValhallaRouteResponse, 'motorbike', null, 'en');
+    const en = translateDirections(
+      real as unknown as ValhallaRouteResponse,
+      'motorbike',
+      null,
+      'en',
+    );
     expect(en.routes[0]?.legs[0]?.steps.at(-1)?.instruction).toBe('Điểm đến của bạn nằm ở trái.');
   });
 

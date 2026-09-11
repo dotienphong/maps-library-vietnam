@@ -222,7 +222,8 @@ export function createNavigator(opts: NavigatorOptions): Navigator {
       haversineM(here, nextVia.snapped) <= rs.th.arrive_m
     ) {
       along_m = nextLegBegin;
-      skippedViaStep = rs.index.steps.find((s) => s.legIndex === currentLeg && s.step.kind === 'arrive') ?? null;
+      skippedViaStep =
+        rs.index.steps.find((s) => s.legIndex === currentLeg && s.step.kind === 'arrive') ?? null;
     }
 
     const threshold = Math.max(rs.th.offRoute_m, 1.5 * accuracy);

@@ -84,7 +84,8 @@ export function planAnnouncements(
     if (d <= th.approach_m && longEnough) {
       push(nextIndex, 'approach', composeApproach(d, next, lang), 2);
     }
-    if (d <= th.pre_m) push(nextIndex, next.kind === 'arrive' ? 'arrive' : 'pre', next.verbal_pre, 3);
+    if (d <= th.pre_m)
+      push(nextIndex, next.kind === 'arrive' ? 'arrive' : 'pre', next.verbal_pre, 3);
   }
   return out;
 }

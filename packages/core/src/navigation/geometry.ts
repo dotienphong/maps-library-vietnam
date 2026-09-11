@@ -27,7 +27,7 @@ export function bearingDeg(a: LngLat, b: LngLat): number {
 
 /** Chênh góc nhỏ nhất giữa hai hướng, [0, 180]. */
 export function angleDiffDeg(a: number, b: number): number {
-  const d = Math.abs(((a - b) % 360 + 360) % 360);
+  const d = Math.abs((((a - b) % 360) + 360) % 360);
   return d > 180 ? 360 - d : d;
 }
 

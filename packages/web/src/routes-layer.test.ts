@@ -6,7 +6,10 @@ import { ROUTE_LAYER_IDS, ROUTE_SOURCE_ID, createRoutesLayer } from './routes-la
 const response = fixture as unknown as DirectionsResponse;
 const withAlt: DirectionsResponse = {
   ...response,
-  routes: [response.routes[0], { ...response.routes[0], distance_m: 1 }] as DirectionsResponse['routes'],
+  routes: [
+    response.routes[0],
+    { ...response.routes[0], distance_m: 1 },
+  ] as DirectionsResponse['routes'],
 };
 
 function fakeGl(symbolFirst = true) {
@@ -33,9 +36,13 @@ function fakeGl(symbolFirst = true) {
     on: vi.fn((ev: string, a: unknown, b?: unknown) => {
       const key = typeof a === 'string' ? `${ev}:${a}` : ev;
       const fn = (typeof a === 'string' ? b : a) as (e: unknown) => void;
-      (handlers[key] ??= []).push(fn);
+      handlers[key] ??= [];
+      handlers[key].push(fn);
     }),
-    once: vi.fn((ev: string, fn: (e: unknown) => void) => (handlers[ev] ??= []).push(fn)),
+    once: vi.fn((ev: string, fn: (e: unknown) => void) => {
+      handlers[ev] ??= [];
+      handlers[ev].push(fn);
+    }),
   };
   const markers: { options: { color?: string }; lngLat?: unknown; removed: boolean }[] = [];
   class Marker {
@@ -60,13 +67,18 @@ function fakeGl(symbolFirst = true) {
     layers,
     markers,
     resetSources: () => sources.clear(),
-    fire: (key: string, e?: unknown) => handlers[key]?.forEach((fn) => fn(e)),
+    fire: (key: string, e?: unknown) => {
+      for (const fn of handlers[key] ?? []) fn(e);
+    },
   };
 }
 
 const lastData = (setData: ReturnType<typeof vi.fn>) =>
   setData.mock.calls.at(-1)?.[0] as {
-    features: { properties: { kind: string; index: number }; geometry: { coordinates: number[][] } }[];
+    features: {
+      properties: { kind: string; index: number };
+      geometry: { coordinates: number[][] };
+    }[];
   };
 
 describe('createRoutesLayer', () => {
@@ -74,7 +86,10 @@ describe('createRoutesLayer', () => {
     const f = fakeGl();
     const routes = createRoutesLayer(f.gl as never, f.ml as never, vi.fn());
     routes.show(response);
-    expect(f.gl.addSource).toHaveBeenCalledWith(ROUTE_SOURCE_ID, expect.objectContaining({ type: 'geojson' }));
+    expect(f.gl.addSource).toHaveBeenCalledWith(
+      ROUTE_SOURCE_ID,
+      expect.objectContaining({ type: 'geojson' }),
+    );
     expect(f.layers.map((l) => l.id)).toEqual([
       ROUTE_LAYER_IDS.alt,
       ROUTE_LAYER_IDS.casing,
@@ -117,7 +132,9 @@ describe('createRoutesLayer', () => {
       ['alt', 0],
       ['active', 1],
     ]);
-    f.fire(`click:${ROUTE_LAYER_IDS.alt}`, { features: [{ properties: { kind: 'alt', index: 0 } }] });
+    f.fire(`click:${ROUTE_LAYER_IDS.alt}`, {
+      features: [{ properties: { kind: 'alt', index: 0 } }],
+    });
     expect(onRouteClick).toHaveBeenCalledWith(0);
   });
 

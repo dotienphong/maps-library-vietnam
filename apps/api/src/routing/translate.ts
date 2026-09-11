@@ -134,7 +134,9 @@ export function translateDirections(
 ): DirectionsResponse {
   const merged = mergeLegShapes(json.trip.legs);
   const primary = translateTrip(json.trip, mode, merged, lang);
-  const alternates = (json.alternates ?? []).map((a) => translateTrip(a.trip, mode, undefined, lang));
+  const alternates = (json.alternates ?? []).map((a) =>
+    translateTrip(a.trip, mode, undefined, lang),
+  );
   return {
     routes: [primary, ...alternates],
     waypoints: translateWaypoints(json.trip, merged),

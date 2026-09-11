@@ -31,8 +31,16 @@ export function useNavigation(): UseNavigationResult {
     },
     [nav],
   );
-  const status = useSyncExternalStore(subscribeStatus, () => nav.status, () => nav.status);
-  const progress = useSyncExternalStore(subscribeProgress, () => nav.state, () => nav.state);
+  const status = useSyncExternalStore(
+    subscribeStatus,
+    () => nav.status,
+    () => nav.status,
+  );
+  const progress = useSyncExternalStore(
+    subscribeProgress,
+    () => nav.state,
+    () => nav.state,
+  );
   return {
     status,
     progress,

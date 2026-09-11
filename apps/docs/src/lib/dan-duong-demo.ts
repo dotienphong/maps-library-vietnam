@@ -165,7 +165,11 @@ export function mountDemo(root: Document = document): void {
     try {
       const mode = modeSelect.value as TravelMode;
       const req = useFixture
-        ? { from: [10.7798, 106.699] as [number, number], to: [10.7725, 106.698] as [number, number], mode }
+        ? {
+            from: [10.7798, 106.699] as [number, number],
+            to: [10.7725, 106.698] as [number, number],
+            mode,
+          }
         : {
             from: [from?.[1] ?? 0, from?.[0] ?? 0] as [number, number],
             to: [to?.[1] ?? 0, to?.[0] ?? 0] as [number, number],
@@ -179,7 +183,9 @@ export function mountDemo(root: Document = document): void {
       renderSteps(response);
       startButton.disabled = false;
       simulateButton.disabled = false;
-      addLog(`Tuyến ${formatDistanceShort(route.distance_m)}, ${Math.round(route.duration_s / 60)} phút, ${route.legs[0]?.steps.length ?? 0} bước`);
+      addLog(
+        `Tuyến ${formatDistanceShort(route.distance_m)}, ${Math.round(route.duration_s / 60)} phút, ${route.legs[0]?.steps.length ?? 0} bước`,
+      );
     } catch (error) {
       addLog(`Lỗi tính tuyến: ${error instanceof Error ? error.message : String(error)}`);
     } finally {
@@ -247,7 +253,9 @@ export function mountDemo(root: Document = document): void {
     addLog(`Có tuyến mới (${e.reason})`);
     renderSteps(e.response);
   });
-  map.navigation.on('rerouteFailed', (e) => addLog(`Tính lại thất bại lần ${e.attempts}${e.final ? ' — dừng tự tính' : ''}`));
+  map.navigation.on('rerouteFailed', (e) =>
+    addLog(`Tính lại thất bại lần ${e.attempts}${e.final ? ' — dừng tự tính' : ''}`),
+  );
   map.navigation.on('arrive', () => addLog('Đã đến nơi'));
   map.navigation.on('positionError', (e) => addLog(`GPS: ${e.code} — ${e.message}`));
   map.navigation.on('voiceUnavailable', () => addLog('Máy không có giọng đọc cho ngôn ngữ này'));

@@ -1,5 +1,5 @@
-import type { DirectionsResponse, RouteStep } from '../../src/types';
 import { encodePolyline6 } from '../../src/polyline';
+import type { DirectionsResponse, RouteStep } from '../../src/types';
 
 /**
  * Tuyến thẳng hướng bắc 4 đoạn × ~111 m (0,001° vĩ độ), hai leg, via ở đỉnh 2.

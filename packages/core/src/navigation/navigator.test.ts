@@ -159,7 +159,9 @@ describe('createNavigator — lệch tuyến (reroute manual)', () => {
     // fix 20, 21, 22 = 3 fix; 5 s kể từ fix 20 → fix 25
     expect(offAt).toEqual([25]);
     expect(r.offRoute.mock.calls[0]?.[0]).toMatchObject({ distance_m: expect.any(Number) });
-    expect((r.offRoute.mock.calls[0]?.[0] as { distance_m: number }).distance_m).toBeGreaterThan(60);
+    expect((r.offRoute.mock.calls[0]?.[0] as { distance_m: number }).distance_m).toBeGreaterThan(
+      60,
+    );
     expect(nav.status).toBe('off_route');
     expect(r.progress.mock.calls.length).toBe(fixes.length);
     expect(r.arrive).not.toHaveBeenCalled();

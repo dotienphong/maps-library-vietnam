@@ -28,7 +28,11 @@ export const VI_PHRASE_RULES: readonly ViPhraseRule[] = [
     replace: 'Điểm đến ở bên $1.',
     note: 'destination_verbal_alert.2',
   },
-  { pattern: /^Rẽ (trái|phải) hình chữ U/u, replace: 'Quay đầu bên $1', note: 'uturn.* / uturn_verbal.*' },
+  {
+    pattern: /^Rẽ (trái|phải) hình chữ U/u,
+    replace: 'Quay đầu bên $1',
+    note: 'uturn.* / uturn_verbal.*',
+  },
   { pattern: /^Sáp nhập\.$/u, replace: 'Nhập làn.', note: 'merge.0' },
   { pattern: /^Sáp nhập (trái|phải)/u, replace: 'Nhập làn bên $1', note: 'merge.1 .3 .5' },
   { pattern: /^Sáp nhập vào/u, replace: 'Nhập vào', note: 'merge.2' },

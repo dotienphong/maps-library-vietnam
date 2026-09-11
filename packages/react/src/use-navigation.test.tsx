@@ -21,7 +21,10 @@ function fakeNavigation() {
     stop: vi.fn(),
     recenter: vi.fn(),
     reroute: vi.fn(async () => {}),
-    on: vi.fn((ev: string, fn: (e: unknown) => void) => (handlers[ev] ??= []).push(fn)),
+    on: vi.fn((ev: string, fn: (e: unknown) => void) => {
+      handlers[ev] ??= [];
+      handlers[ev].push(fn);
+    }),
     off: vi.fn((ev: string, fn: (e: unknown) => void) => {
       handlers[ev] = (handlers[ev] ?? []).filter((h) => h !== fn);
     }),
@@ -39,11 +42,11 @@ function fakeNavigation() {
     nav,
     setStatus: (s: string) => {
       status = s;
-      handlers.status?.forEach((fn) => fn({ status: s, previous: 'idle' }));
+      for (const fn of handlers.status ?? []) fn({ status: s, previous: 'idle' });
     },
     setProgress: (p: unknown) => {
       state = p;
-      handlers.progress?.forEach((fn) => fn(p));
+      for (const fn of handlers.progress ?? []) fn(p);
     },
     handlerCount: (ev: string) => (handlers[ev] ?? []).length,
   };

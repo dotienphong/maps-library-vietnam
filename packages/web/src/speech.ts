@@ -45,8 +45,7 @@ export function createSpeech(opts: SpeechOptions): Speech {
     const voices = synth.getVoices();
     if (voices.length === 0) return;
     voicesKnown = true;
-    voice =
-      voices.find((v) => v.lang.toLowerCase().replace('_', '-').startsWith(prefix)) ?? null;
+    voice = voices.find((v) => v.lang.toLowerCase().replace('_', '-').startsWith(prefix)) ?? null;
     if (!voice) reportUnavailable();
   };
 

@@ -16,7 +16,9 @@ describe('simulateFixes', () => {
     expect(fixes.length).toBe(Math.floor(total / 8) + 2);
     expect([fixes[0]?.lng, fixes[0]?.lat]).toEqual(coords[0]);
     const last = fixes.at(-1);
-    expect(haversineM([last?.lng ?? 0, last?.lat ?? 0], coords.at(-1) ?? [0, 0])).toBeLessThan(0.01);
+    expect(haversineM([last?.lng ?? 0, last?.lat ?? 0], coords.at(-1) ?? [0, 0])).toBeLessThan(
+      0.01,
+    );
     for (let i = 1; i < fixes.length; i++) {
       expect((fixes[i]?.timestamp ?? 0) - (fixes[i - 1]?.timestamp ?? 0)).toBe(1000);
     }
