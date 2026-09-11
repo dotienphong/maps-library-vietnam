@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // Một lệnh cập nhật dữ liệu (spec 5.9). Ngoài container: tự chạy lại trong image pipeline (compose dev).
 // Trong container: dò 3 nguồn → so state R2 → build tiles/POI có điều kiện → QA → upload → manifest
-// → routing graph (máy chủ) → state.
+// → routing graph (máy chủ) → manifest → state.
 import 'dotenv/config';
 import { execFileSync, spawn } from 'node:child_process';
 import { existsSync } from 'node:fs';
@@ -18,6 +18,8 @@ import {
   poiReleaseSteps,
   routingStep,
   runPoiReleaseSteps,
+  runTileReleaseSteps,
+  tileReleaseSteps,
 } from './lib/update-plan.mjs';
 
 const argv = process.argv.slice(2);
@@ -113,27 +115,25 @@ const ensurePatchedPbf = () => {
 
 /** @type {{ vn?: string, poi?: string, poiOsm?: string, poiProfiles?: Record<string, string> }} */
 const built = {};
-if (work.tiles) {
-  ensurePatchedPbf();
-  const release = releaseName('vn');
-  run('node', ['pipelines/tiles/src/build.mjs', '--release', release]);
-  run('node', ['pipelines/tiles/src/qa.mjs', `${OUT}/${release}.pmtiles`]);
-  run('node', ['pipelines/tiles/src/upload.mjs', release]);
-  run('node', ['pipelines/tiles/src/smoke.mjs', release]);
-  run('node', ['pipelines/tiles/src/manifest.mjs', 'set', '--vn', release]);
-  built.vn = release;
-  log(`✓ tiles ${release}`);
-}
 const routing = routingStep({
   tiles: work.tiles,
   graphDirExists: existsSync(GRAPH_DIR),
   skipRouting: flags.skipRouting,
 });
-if (routing.run) {
-  // Valhalla tự build sau khi thấy cờ; data:update không chờ (build vài chục phút, spec A mục 4.4).
-  run('node', ['scripts/routing-graph.mjs', 'prepare']);
-  log('✓ routing graph: đã yêu cầu build lại (docker compose … logs -f valhalla để theo dõi)');
-} else {
+if (work.tiles) {
+  ensurePatchedPbf();
+  const release = releaseName('vn');
+  runTileReleaseSteps(tileReleaseSteps({ release, routing, out: OUT }), (step) => {
+    run(step.command, step.args);
+    if (step.id === 'routing-prepare') {
+      log('✓ routing graph: đã yêu cầu build lại (docker compose … logs -f valhalla để theo dõi)');
+    }
+  });
+  if (!routing.run) log(`bỏ qua routing graph: ${routing.reason}`);
+  built.vn = release;
+  log(`✓ tiles ${release}`);
+}
+if (!work.tiles) {
   log(`bỏ qua routing graph: ${routing.reason}`);
 }
 if (work.poi) {

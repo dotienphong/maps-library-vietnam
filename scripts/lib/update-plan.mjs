@@ -134,6 +134,56 @@ export function runPoiReleaseSteps(steps, execute) {
 }
 
 /**
+ * Transaction tiles: graph phải được chuẩn bị trước khi commit manifest để lỗi graph không công khai
+ * tiles mới khi Valhalla còn dùng graph cũ.
+ * @param {{ release: string, routing: { run: boolean }, out?: string }} input
+ */
+export function tileReleaseSteps({ release, routing, out = '/app/out' }) {
+  const steps = [
+    { id: 'build', command: 'node', args: ['pipelines/tiles/src/build.mjs', '--release', release] },
+    {
+      id: 'qa',
+      command: 'node',
+      args: ['pipelines/tiles/src/qa.mjs', `${out}/${release}.pmtiles`],
+    },
+    { id: 'upload', command: 'node', args: ['pipelines/tiles/src/upload.mjs', release] },
+    { id: 'smoke', command: 'node', args: ['pipelines/tiles/src/smoke.mjs', release] },
+  ];
+  if (routing.run) {
+    steps.push({
+      id: 'routing-prepare',
+      command: 'node',
+      args: ['scripts/routing-graph.mjs', 'prepare'],
+    });
+  }
+  steps.push({
+    id: 'manifest',
+    command: 'node',
+    args: ['pipelines/tiles/src/manifest.mjs', 'set', '--vn', release],
+  });
+  return steps;
+}
+
+/** @param {{ id: string, command: string, args: string[] }[]} steps @param {(step: { id: string, command: string, args: string[] }) => void} execute */
+export function runTileReleaseSteps(steps, execute) {
+  for (const step of steps) execute(step);
+}
+
+/**
+ * `status` tự recovery transaction dở dang; luôn gọi nó trước khi kết luận tar sẵn và start Valhalla.
+ * @param {{ hasTar: boolean, hasPbf: boolean }} s
+ */
+export function serverRoutingSetupSteps(s) {
+  const steps = [{ id: 'status' }];
+  if (!s.hasTar) {
+    if (!s.hasPbf) steps.push({ id: 'download' });
+    steps.push({ id: 'prepare' });
+  }
+  steps.push({ id: 'start' });
+  return steps;
+}
+
+/**
  * Bước graph Valhalla trong data:update (spec dẫn đường A mục 4.4): chỉ khi tiles có bản mới (OSM đổi
  * hoặc --force), volume valhalla-data đang gắn (máy chủ) và không bị --skip-routing.
  * @param {{ tiles: boolean, graphDirExists: boolean, skipRouting: boolean }} s

@@ -7,6 +7,9 @@ import {
   poiReleaseSteps,
   routingStep,
   runPoiReleaseSteps,
+  runTileReleaseSteps,
+  serverRoutingSetupSteps,
+  tileReleaseSteps,
 } from './update-plan.mjs';
 
 const state = {
@@ -171,6 +174,53 @@ describe('routingStep', () => {
       run: false,
       reason: '--skip-routing',
     });
+  });
+});
+
+describe('tile release transaction', () => {
+  it('prepare graph trước manifest; lỗi graph không commit và retry chạy lại tuần tự', () => {
+    const steps = tileReleaseSteps({
+      release: 'vn-20260911',
+      routing: { run: true },
+    });
+    /** @type {string[]} */
+    const calls = [];
+    let manifest = 'vn-old';
+    const execute = (/** @type {{ id: string, command: string, args: string[] }} */ step) => {
+      calls.push(step.id);
+      if (step.id === 'routing-prepare') throw new Error('graph chưa sẵn sàng');
+      if (step.id === 'manifest') manifest = 'vn-20260911';
+    };
+
+    expect(() => runTileReleaseSteps(steps, execute)).toThrow(/graph chưa sẵn sàng/);
+    expect(calls).toEqual(['build', 'qa', 'upload', 'smoke', 'routing-prepare']);
+    expect(manifest).toBe('vn-old');
+
+    calls.length = 0;
+    runTileReleaseSteps(
+      steps,
+      (/** @type {{ id: string, command: string, args: string[] }} */ step) => {
+        calls.push(step.id);
+        if (step.id === 'manifest') manifest = 'vn-20260911';
+      },
+    );
+    expect(calls).toEqual(['build', 'qa', 'upload', 'smoke', 'routing-prepare', 'manifest']);
+    expect(manifest).toBe('vn-20260911');
+  });
+});
+
+describe('server routing setup transaction', () => {
+  it('phục hồi/status trước khi quyết định tar và chỉ start sau prepare', () => {
+    expect(serverRoutingSetupSteps({ hasTar: true, hasPbf: true })).toEqual([
+      { id: 'status' },
+      { id: 'start' },
+    ]);
+    expect(serverRoutingSetupSteps({ hasTar: false, hasPbf: false })).toEqual([
+      { id: 'status' },
+      { id: 'download' },
+      { id: 'prepare' },
+      { id: 'start' },
+    ]);
   });
 });
 

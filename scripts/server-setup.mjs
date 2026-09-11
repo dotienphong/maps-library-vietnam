@@ -17,6 +17,7 @@ import {
   parseDockerVersion,
   waitPlan,
 } from './lib/setup-checks.mjs';
+import { serverRoutingSetupSteps } from './lib/update-plan.mjs';
 
 const dir = resolve('infra/server');
 const envPath = resolve(dir, '.env');
@@ -176,10 +177,20 @@ console.log(
 step('Graph chỉ đường (Valhalla, spec dẫn đường A)');
 const inPipeline = (/** @type {string} */ shell) =>
   capture('docker', [...compose, 'run', '--rm', '-T', 'pipeline', 'sh', '-c', shell]);
-if (inPipeline('test -f /app/valhalla/valhalla_tiles.tar && echo yes') === 'yes') {
-  console.log('Graph đã có — valhalla phục vụ ngay.');
-} else {
-  if (inPipeline('test -f /app/work/data/sources/vietnam.osm.pbf && echo yes') !== 'yes') {
+run('docker', [
+  ...compose,
+  'run',
+  '--rm',
+  '-T',
+  'pipeline',
+  'node',
+  'scripts/routing-graph.mjs',
+  'status',
+]);
+const hasTar = inPipeline('test -f /app/valhalla/valhalla_tiles.tar && echo yes') === 'yes';
+const hasPbf = inPipeline('test -f /app/work/data/sources/vietnam.osm.pbf && echo yes') === 'yes';
+for (const graphStep of serverRoutingSetupSteps({ hasTar, hasPbf }).slice(1)) {
+  if (graphStep.id === 'download') {
     console.log('Chưa có PBF Việt Nam — tải (vài phút)…');
     run('docker', [
       ...compose,
@@ -189,22 +200,24 @@ if (inPipeline('test -f /app/valhalla/valhalla_tiles.tar && echo yes') === 'yes'
       'node',
       'pipelines/tiles/src/download.mjs',
     ]);
+  } else if (graphStep.id === 'prepare') {
+    run('docker', [
+      ...compose,
+      'run',
+      '--rm',
+      'pipeline',
+      'node',
+      'scripts/routing-graph.mjs',
+      'prepare',
+    ]);
+    console.log(
+      'Valhalla sẽ build graph lần đầu (vài chục phút, RAM đỉnh xem docker stats). Theo dõi: docker compose … logs -f valhalla; xong khi /status trả 200.',
+    );
+  } else if (graphStep.id === 'start') {
+    run('docker', [...compose, 'up', '-d', 'valhalla']);
+    services.push('valhalla');
   }
-  run('docker', [
-    ...compose,
-    'run',
-    '--rm',
-    'pipeline',
-    'node',
-    'scripts/routing-graph.mjs',
-    'prepare',
-  ]);
-  console.log(
-    'Valhalla sẽ build graph lần đầu (vài chục phút, RAM đỉnh xem docker stats). Theo dõi: docker compose … logs -f valhalla; xong khi /status trả 200.',
-  );
 }
-run('docker', [...compose, 'up', '-d', 'valhalla']);
-services.push('valhalla');
 
 console.log(`
 ✔ Máy chủ đã dựng (${services.join(', ')}).

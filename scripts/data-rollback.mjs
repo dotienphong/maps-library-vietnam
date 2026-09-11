@@ -36,11 +36,34 @@ export function verifyRollbackArchives(target, listed, readChecksum) {
   });
 }
 
+/** @param {string[]} argv */
+export function parseRollbackArgs(argv) {
+  if (argv.length === 0) return { skipRouting: false };
+  if (argv.length === 1 && argv[0] === '--skip-routing') return { skipRouting: true };
+  throw new Error('Dùng: data-rollback.mjs [--skip-routing]');
+}
+
+/**
+ * Xác minh toàn bộ target/R2 trước mọi mutation; sau đó graph rollback luôn đi trước manifest rollback.
+ * @param {{ manifest: unknown, listed: Set<string>, readChecksum: (name: string) => string,
+ *   graphDirExists: boolean, skipRouting: boolean, runCommand: (cmd: string, args: string[]) => void }} input
+ */
+export function executeRollback(input) {
+  const target = rollbackTarget(input.manifest);
+  const verified = verifyRollbackArchives(target, input.listed, input.readChecksum);
+  if (!input.skipRouting && input.graphDirExists) {
+    input.runCommand('node', ['scripts/routing-graph.mjs', 'rollback']);
+  }
+  input.runCommand('node', ['pipelines/tiles/src/manifest.mjs', 'rollback']);
+  return verified;
+}
+
 /**
  * @param {NodeJS.ProcessEnv | Record<string, string | undefined>} env
  * @param {string[]} [argv]
  */
 export function rollbackCommand(env, argv = []) {
+  parseRollbackArgs(argv);
   if (env.MAPSLIBVN_IN_CONTAINER === '1') {
     return {
       cmd: 'node',
@@ -69,32 +92,33 @@ export function rollbackCommand(env, argv = []) {
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+  const options = parseRollbackArgs(process.argv.slice(2));
   if (process.env.MAPSLIBVN_IN_CONTAINER !== '1') {
     const { cmd, args } = rollbackCommand(process.env, process.argv.slice(2));
     run(cmd, args);
   } else {
-    // Rollback graph TRƯỚC manifest: nếu không có bản prev thì dừng ngay, chưa đụng tiles
-    // (chạy lại với --skip-routing sẽ không rollback tiles hai lần).
+    // Preflight R2/history/archive hoàn tất trước mutation; retry --skip-routing chỉ commit manifest.
     const graphDir = process.env.MAPSLIBVN_VALHALLA ?? '/app/valhalla';
-    if (!process.argv.includes('--skip-routing') && existsSync(graphDir)) {
-      run('node', ['scripts/routing-graph.mjs', 'rollback']);
-    }
     const bucket = process.env.R2_BUCKET;
     if (!bucket) throw new Error('Thiếu R2_BUCKET để xác minh rollback');
     const manifest = JSON.parse(
       execFileSync('node', ['pipelines/tiles/src/manifest.mjs', 'get'], { encoding: 'utf8' }),
     );
-    const target = rollbackTarget(manifest);
     const remoteDir = `r2:${bucket}/tiles`;
     const listed = new Set(
       execFileSync('rclone', ['lsf', remoteDir, '--files-only'], { encoding: 'utf8' })
         .split(/\r?\n/)
         .filter(Boolean),
     );
-    const verified = verifyRollbackArchives(target, listed, (checksumName) =>
-      execFileSync('rclone', ['cat', `${remoteDir}/${checksumName}`], { encoding: 'utf8' }),
-    );
+    const verified = executeRollback({
+      manifest,
+      listed,
+      readChecksum: (checksumName) =>
+        execFileSync('rclone', ['cat', `${remoteDir}/${checksumName}`], { encoding: 'utf8' }),
+      graphDirExists: existsSync(graphDir),
+      skipRouting: options.skipRouting,
+      runCommand: run,
+    });
     console.log(`✓ rollback target đã xác minh: ${JSON.stringify(verified)}`);
-    run('node', ['pipelines/tiles/src/manifest.mjs', 'rollback']);
   }
 }
