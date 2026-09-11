@@ -72,7 +72,8 @@ Toàn bộ export của `packages/core/src/index.ts`:
 | Chuẩn hoá tiếng Việt | `normalizeVi`, `stripDiacritics`, `expandAbbrev`, `applyBrandAlias`, `nameCore`, `NAME_FILLERS` |
 | Phân tích địa chỉ | `parseAddress`, kiểu `ParsedAddress`, `AlleyKeyword` |
 | Biến đổi style | `localizeStyle`, `hidePoiLayer`, `nameExpression`, `isNameLabelLayer`, `POI_LAYER_ID`, kiểu `Lang`, `StyleLike`, `StyleLayerLike` |
-| Kiểu dữ liệu API | `Place`, `PlaceDetails`, `PlaceCategory`, `PlaceAddress`, `PlaceSource`, `AutocompleteItem`, `AutocompleteType`, `GeocodeItem`, `GeocodeMatched`, `GeocodePrecision`, `ReverseResponse`, `ReverseAddress`, `EditKind`, `EditChanges`, `SuggestEditRequest`, `SuggestEditResponse`, `PoiFeature` |
+| Kiểu dữ liệu API | `Place`, `PlaceDetails`, `PlaceCategory`, `PlaceAddress`, `PlaceSource`, `AutocompleteItem`, `AutocompleteType`, `GeocodeItem`, `GeocodeMatched`, `GeocodePrecision`, `ReverseResponse`, `ReverseAddress`, `EditKind`, `EditChanges`, `SuggestEditRequest`, `SuggestEditResponse`, `PoiFeature`, `TravelMode`, `DirectionsLang`, `ManeuverKind`, `Route`, `RouteLeg`, `RouteStep`, `Waypoint`, `DirectionsResponse` |
+| Chỉ đường | `decodePolyline6`, `encodePolyline6`, `MANEUVER_KINDS`, `VALHALLA_MANEUVER_KIND`, `maneuverKindFromValhalla`, kiểu `DirectionsOptions` |
 
 Định nghĩa từng kiểu dữ liệu API ở [REST API](/api/) mục 7.
 
@@ -108,6 +109,7 @@ const client = createClient({
 | `getPlace(id)` | `GET /v1/places/{id}` | `PlaceDetails` |
 | `geocode(q, opts?)` | `GET /v1/geocode` | `{ items: GeocodeItem[] }` |
 | `reverse(lat, lng)` | `GET /v1/reverse` | `ReverseResponse` |
+| `directions(opts)` | `GET /v1/directions` | `DirectionsResponse` |
 | `suggestEdit(edit)` | `POST /v1/edits` | `SuggestEditResponse` |
 
 Tham số của `opts` khớp một-một với query string của endpoint tương ứng:
@@ -118,8 +120,11 @@ Tham số của `opts` khớp một-một với query string của endpoint tư�
 | `search` | `category`, `near`, `radius`, `bbox`, `limit`, `offset` |
 | `nearby` | `lat`, `lng` (bắt buộc), `radius`, `category`, `limit` |
 | `geocode` | `near`, `limit` |
+| `directions` | `from`, `to` (bắt buộc, `[lat, lng]`), `via`, `mode`, `lang`, `alternatives` |
 
 Lưu ý về thứ tự toạ độ: `near` là `[lat, lng]` (**vĩ độ trước**, đúng như tham số `near` của API), còn `bbox` là `[minLng, minLat, maxLng, maxLat]` và `center` của bản đồ là `[lng, lat]`. Tham số `undefined` bị bỏ khỏi URL, nên client không tự áp mặc định nào — mặc định do máy chủ quyết định, xem [REST API](/api/) mục 4.
+
+Với `directions`, tham số vào là `[lat, lng]` nhưng mọi toạ độ trong `DirectionsResponse` là `[lng, lat]`; giải mã `Route.geometry` bằng `decodePolyline6`.
 
 ### MapsLibVNError
 

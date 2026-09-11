@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 // Một lệnh cập nhật dữ liệu (spec 5.9). Ngoài container: tự chạy lại trong image pipeline (compose dev).
-// Trong container: dò 3 nguồn → so state R2 → build tiles/POI có điều kiện → QA → upload → manifest → state.
+// Trong container: dò 3 nguồn → so state R2 → build tiles/POI có điều kiện → QA → upload → manifest
+// → routing graph (máy chủ) → manifest → state.
 import 'dotenv/config';
 import { execFileSync, spawn } from 'node:child_process';
 import { existsSync } from 'node:fs';
@@ -15,7 +16,10 @@ import {
   missingLiveEnv,
   nextState,
   poiReleaseSteps,
+  routingStep,
   runPoiReleaseSteps,
+  runTileReleaseSteps,
+  tileReleaseSteps,
 } from './lib/update-plan.mjs';
 
 const argv = process.argv.slice(2);
@@ -24,6 +28,7 @@ const flags = {
   onlyTiles: argv.includes('--tiles'),
   onlyPoi: argv.includes('--poi'),
   dryRun: argv.includes('--dry-run'),
+  skipRouting: argv.includes('--skip-routing'),
 };
 if (flags.onlyTiles && flags.onlyPoi) {
   throw new Error('Chỉ dùng một trong --tiles hoặc --poi');
@@ -63,6 +68,7 @@ const log = (/** @type {string} */ message) =>
   console.log(`[${Math.round((Date.now() - startedAt) / 1000)}s] ${message}`);
 const WORK = process.env.MAPSLIBVN_WORK ?? '/app/work';
 const OUT = process.env.MAPSLIBVN_OUT ?? '/app/out';
+const GRAPH_DIR = process.env.MAPSLIBVN_VALHALLA ?? '/app/valhalla';
 const bucket = process.env.R2_BUCKET ?? 'mapslibvn-tiles';
 const stateKey = `r2:${bucket}/state/releases.json`;
 /** @param {string[]} args */
@@ -109,16 +115,26 @@ const ensurePatchedPbf = () => {
 
 /** @type {{ vn?: string, poi?: string, poiOsm?: string, poiProfiles?: Record<string, string> }} */
 const built = {};
+const routing = routingStep({
+  tiles: work.tiles,
+  graphDirExists: existsSync(GRAPH_DIR),
+  skipRouting: flags.skipRouting,
+});
 if (work.tiles) {
   ensurePatchedPbf();
   const release = releaseName('vn');
-  run('node', ['pipelines/tiles/src/build.mjs', '--release', release]);
-  run('node', ['pipelines/tiles/src/qa.mjs', `${OUT}/${release}.pmtiles`]);
-  run('node', ['pipelines/tiles/src/upload.mjs', release]);
-  run('node', ['pipelines/tiles/src/smoke.mjs', release]);
-  run('node', ['pipelines/tiles/src/manifest.mjs', 'set', '--vn', release]);
+  runTileReleaseSteps(tileReleaseSteps({ release, routing, out: OUT }), (step) => {
+    run(step.command, step.args);
+    if (step.id === 'routing-prepare') {
+      log('✓ routing graph: đã yêu cầu build lại (docker compose … logs -f valhalla để theo dõi)');
+    }
+  });
+  if (!routing.run) log(`bỏ qua routing graph: ${routing.reason}`);
   built.vn = release;
   log(`✓ tiles ${release}`);
+}
+if (!work.tiles) {
+  log(`bỏ qua routing graph: ${routing.reason}`);
 }
 if (work.poi) {
   const closeTunnel = await openDatabaseTunnel(log);

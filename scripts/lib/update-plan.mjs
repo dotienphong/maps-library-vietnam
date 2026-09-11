@@ -6,7 +6,7 @@ import { profileBatchSteps } from './poi-profile.mjs';
  *     poiProfiles?: Record<string, string> },
  *   pending?: { tiles?: boolean, poi?: boolean } }} State
  * @typedef {{ osm: { lastModified: string, md5: string }, overture: { release: string }, fsq: { release: string } }} Versions
- * @typedef {{ force?: boolean, onlyTiles?: boolean, onlyPoi?: boolean }} Flags
+ * @typedef {{ force?: boolean, onlyTiles?: boolean, onlyPoi?: boolean, skipRouting?: boolean }} Flags
  */
 
 /**
@@ -131,4 +131,128 @@ export function poiReleaseSteps({ releases, buildId, snapshot, out }) {
 /** @param {PoiReleaseStep[]} steps @param {(step: PoiReleaseStep) => void} execute */
 export function runPoiReleaseSteps(steps, execute) {
   for (const step of steps) execute(step);
+}
+
+/**
+ * Transaction tiles: graph phải được chuẩn bị trước khi commit manifest để lỗi graph không công khai
+ * tiles mới khi Valhalla còn dùng graph cũ.
+ * @param {{ release: string, routing: { run: boolean }, out?: string }} input
+ */
+export function tileReleaseSteps({ release, routing, out = '/app/out' }) {
+  const steps = [
+    { id: 'build', command: 'node', args: ['pipelines/tiles/src/build.mjs', '--release', release] },
+    {
+      id: 'qa',
+      command: 'node',
+      args: ['pipelines/tiles/src/qa.mjs', `${out}/${release}.pmtiles`],
+    },
+    { id: 'upload', command: 'node', args: ['pipelines/tiles/src/upload.mjs', release] },
+    { id: 'smoke', command: 'node', args: ['pipelines/tiles/src/smoke.mjs', release] },
+  ];
+  if (routing.run) {
+    steps.push({
+      id: 'routing-prepare',
+      command: 'node',
+      args: ['scripts/routing-graph.mjs', 'prepare', '--vn-release', release],
+    });
+  }
+  steps.push({
+    id: 'manifest',
+    command: 'node',
+    args: ['pipelines/tiles/src/manifest.mjs', 'set', '--vn', release],
+  });
+  return steps;
+}
+
+/** @param {{ id: string, command: string, args: string[] }[]} steps @param {(step: { id: string, command: string, args: string[] }) => void} execute */
+export function runTileReleaseSteps(steps, execute) {
+  for (const step of steps) execute(step);
+}
+
+/**
+ * `status` tự recovery transaction dở dang; luôn gọi nó trước khi kết luận tar sẵn và start Valhalla.
+ * @param {{ hasTar: boolean, hasPbf: boolean, pendingReload?: boolean, buildInProgress?: boolean,
+ *   buildFailed?: boolean }} s
+ */
+export function serverRoutingSetupSteps(s) {
+  const steps = [{ id: 'status' }];
+  if (!s.hasTar && !s.hasPbf && s.buildFailed) {
+    steps.push({ id: 'reset-empty' }, { id: 'download' }, { id: 'prepare' }, { id: 'start' });
+    return steps;
+  }
+  // run.sh sở hữu retry: nó nhận marker, xoá failed cũ khi start và build khi có PBF nhưng chưa có tar.
+  if (s.pendingReload || s.buildInProgress || s.buildFailed) {
+    steps.push({ id: 'start' });
+    return steps;
+  }
+  if (!s.hasTar) {
+    if (!s.hasPbf) steps.push({ id: 'download' });
+    steps.push({ id: 'prepare' });
+  }
+  steps.push({ id: 'start' });
+  return steps;
+}
+
+/**
+ * @param {unknown} value JSON từ `routing-graph.mjs status`
+ * @returns {{ hasTar: boolean, hasPbf: boolean, pendingReload: boolean, buildInProgress: boolean, buildFailed: boolean }}
+ */
+export function parseRoutingGraphStatus(value) {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    throw new Error('routing-graph status không phải object');
+  }
+  const status = /** @type {Record<string, unknown>} */ (value);
+  const copiedPbf = status.copiedPbf;
+  if (!copiedPbf || typeof copiedPbf !== 'object' || Array.isArray(copiedPbf)) {
+    throw new Error('routing-graph status thiếu copiedPbf');
+  }
+  const tarBytes = status.tarBytes;
+  const pbfBytes = /** @type {Record<string, unknown>} */ (copiedPbf).bytes;
+  if (
+    (tarBytes !== null && (typeof tarBytes !== 'number' || tarBytes < 0)) ||
+    (pbfBytes !== null && (typeof pbfBytes !== 'number' || pbfBytes < 0))
+  ) {
+    throw new Error('routing-graph status có kích thước không hợp lệ');
+  }
+  for (const field of ['pendingReload', 'buildInProgress', 'buildFailed']) {
+    if (typeof status[field] !== 'boolean') {
+      throw new Error(`routing-graph status thiếu boolean ${field}`);
+    }
+  }
+  return {
+    hasTar: typeof tarBytes === 'number',
+    hasPbf: typeof pbfBytes === 'number',
+    pendingReload: /** @type {boolean} */ (status.pendingReload),
+    buildInProgress: /** @type {boolean} */ (status.buildInProgress),
+    buildFailed: /** @type {boolean} */ (status.buildFailed),
+  };
+}
+
+/**
+ * `status` đầu tiên dùng stdout kế thừa để Task 12 recovery/log rõ ràng; lần thứ hai lấy JSON sạch để lập kế hoạch.
+ * @param {{ runStatus: () => void, captureStatus: () => string }} commands
+ */
+export function recoverAndReadRoutingGraphStatus({ runStatus, captureStatus }) {
+  runStatus();
+  const statusText = captureStatus();
+  if (!statusText) throw new Error('routing-graph status thất bại; chưa start Valhalla');
+  try {
+    return parseRoutingGraphStatus(JSON.parse(statusText));
+  } catch (error) {
+    throw new Error(
+      `routing-graph status không hợp lệ; chưa start Valhalla: ${error instanceof Error ? error.message : String(error)}`,
+    );
+  }
+}
+
+/**
+ * Bước graph Valhalla trong data:update (spec dẫn đường A mục 4.4): chỉ khi tiles có bản mới (OSM đổi
+ * hoặc --force), volume valhalla-data đang gắn (máy chủ) và không bị --skip-routing.
+ * @param {{ tiles: boolean, graphDirExists: boolean, skipRouting: boolean }} s
+ */
+export function routingStep(s) {
+  if (s.skipRouting) return { run: false, reason: '--skip-routing' };
+  if (!s.tiles) return { run: false, reason: 'tiles không đổi' };
+  if (!s.graphDirExists) return { run: false, reason: 'không có volume valhalla-data (máy dev)' };
+  return { run: true, reason: 'OSM đổi → build lại graph Valhalla' };
 }

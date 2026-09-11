@@ -1,6 +1,6 @@
 ---
 title: REST API
-description: Tham chiếu Places API của MapsLibVN — xác thực, mã lỗi, quota, cache và từng endpoint kèm tham số, ví dụ curl và phản hồi.
+description: Tham chiếu Places API và Routing API của MapsLibVN — xác thực, mã lỗi, quota, cache và từng endpoint kèm tham số, ví dụ curl và phản hồi.
 ---
 
 Trang này là tham chiếu đầy đủ của REST API. Mọi tham số, giới hạn và mã lỗi ở đây lấy từ mã nguồn Worker. Nếu bạn dùng SDK JavaScript thì không cần gọi HTTP trực tiếp — xem [SDK JavaScript](/sdk/).
@@ -73,11 +73,13 @@ Mọi lỗi trả JSON cùng một hình dạng:
 | `scope` | 403 | khoá không có scope mà endpoint yêu cầu |
 | `origin_not_allowed` | 403 | khoá `web` và `Origin`/`Referer` không nằm trong `allowed_origins` |
 | `not_found` | 404 | không có route, không có POI, không có theme hoặc bộ tiles |
-| `quota_exceeded` | 429 | vượt quota Places theo ngày, hoặc vượt giới hạn đóng góp theo ngày |
-| `upstream_unavailable` | 503 | không truy vấn được cơ sở dữ liệu, không tra được khoá, chưa có phiên bản tiles, hoặc lỗi không xác định |
+| `no_route` | 404 | `GET /v1/directions`: không có đường giữa các điểm, hoặc điểm quá xa mạng đường / vùng không kết nối |
+| `rate_limit_exceeded` | 429 | vượt burst/phút của Places hoặc Chỉ đường |
+| `quota_exceeded` | 429 | vượt quota ngày của Places hoặc Chỉ đường, hoặc vượt giới hạn đóng góp theo ngày |
+| `upstream_unavailable` | 503 | không truy vấn được cơ sở dữ liệu, không tra được khoá, chưa có phiên bản tiles, dịch vụ chỉ đường không phản hồi (kể cả lúc build lại graph) hoặc lỗi không xác định |
 | `server_misconfigured` | 503 | máy chủ thiếu cấu hình bắt buộc; hiện chỉ xảy ra ở `POST /v1/edits` khi chưa đặt secret băm |
 
-Header `retry-after` được đặt theo trạng thái: **3600** giây với 429, **30** giây với 503. Các mã 4xx khác không có `retry-after` vì thử lại ngay cũng vô ích.
+Header `retry-after` phân biệt theo loại giới hạn: `quota_exceeded` (quota ngày) trả **3600** giây; `rate_limit_exceeded` (burst/phút) trả **60** giây; `upstream_unavailable` trả **30** giây. Các mã 4xx khác không có `retry-after` vì thử lại ngay cũng vô ích.
 
 Route quản trị `/v1/admin/*` dùng thêm hai mã `missing_access_jwt` và `invalid_access_jwt` (401) — xem mục 6.
 
@@ -87,18 +89,21 @@ Route quản trị `/v1/admin/*` dùng thêm hai mã `missing_access_jwt` và `i
 
 Sáu endpoint đọc dữ liệu địa điểm (`/v1/autocomplete`, `/v1/search`, `/v1/nearby`, `/v1/places/{id}`, `/v1/geocode`, `/v1/reverse`) tính vào quota này. `POST /v1/edits` có giới hạn riêng theo ngày (mục 5), không tính vào quota Places.
 
+**Quota Chỉ đường.** `GET /v1/directions` có quota **riêng**, cũng theo ngày Việt Nam và cũng chặn ở 2× hạn mức: plan `free` mặc định **2.000** lượt/ngày, khoá có thể được đặt hạn riêng (`quota_directions_per_day`). Tenant `internal` không bị đếm theo ngày. Burst **20 request/phút** cho mỗi cặp khoá + IP (riêng, không dùng chung 60 của Places). Ngoài ra khoá `web` và `mobile` — kể cả của tenant `internal`, vì khoá loại này nằm công khai trong trang/app — chịu **trần 100 request/phút cho cả khoá** (mọi IP cộng lại); khoá `server` không chịu trần này. Vượt trả `429 rate_limit_exceeded` với `retry-after: 60`.
+
 **Cache.** Một số phản hồi được cache ở biên Cloudflare:
 
 | Endpoint | Tươi trong | Còn dùng được khi lỗi |
 |---|---|---|
 | `/v1/autocomplete` | 10 phút | 1 giờ |
 | `/v1/places/{id}` | 1 giờ | 2 giờ |
+| `/v1/directions` | 60 giây | 5 phút |
 | `/v1/attribution` | 24 giờ | — |
 | `/v1/styles/{theme}.json` | 1 giờ | — |
 | `/v1/tiles/{set}.json` | 1 giờ | — |
 | tile `.pbf` | 1 ngày | thêm 7 ngày `stale-while-revalidate` |
 
-Với `/v1/autocomplete` và `/v1/places/{id}`, phản hồi lấy từ cache có header `x-mlv-cache`: `hit` là bản còn tươi, `stale` là bản cũ được trả vì truy vấn mới thất bại. Lỗi 4xx không bao giờ được cache. Các endpoint còn lại truy vấn trực tiếp, không cache.
+Với `/v1/autocomplete`, `/v1/places/{id}` và `/v1/directions`, phản hồi lấy từ cache có header `x-mlv-cache`: `hit` là bản còn tươi, `stale` là bản cũ được trả vì truy vấn mới thất bại. Lỗi 4xx không bao giờ được cache. Các endpoint còn lại truy vấn trực tiếp, không cache.
 
 Khoá cache của `/v1/autocomplete` gồm truy vấn đã chuẩn hoá (bỏ dấu, viết tắt đã bung), ô lưới của `near`, danh sách `types` và `limit` — nên hai truy vấn khác nhau về cách viết dấu vẫn dùng chung một bản cache.
 
@@ -402,6 +407,82 @@ curl -H "X-Api-Key: mlv_live_…" \
 
 Không có POI nào trong 100 m thì `nearest_poi` là `null`. Số nhà luôn là **ước lượng** — dấu `≈` nằm ngay trong chuỗi để bạn không hiển thị nó như số nhà chính xác.
 
+### GET /v1/directions
+
+Tuyến đường giữa hai điểm (có thể qua điểm dừng) cho xe máy, ô tô hoặc đi bộ, kèm bước rẽ tiếng Việt. Tính bởi Valhalla trên dữ liệu đường OpenStreetMap; **chưa** có giao thông trực tiếp, chưa tránh phí/cao tốc theo yêu cầu. Endpoint này cần scope `places:read` nhưng tính vào **quota Chỉ đường** (mục 3), không tính vào quota Places.
+
+| Tham số | Kiểu | Bắt buộc | Mặc định | Ghi chú |
+|---|---|---|---|---|
+| `from` | `lat,lng` | có | — | vĩ độ trước |
+| `to` | `lat,lng` | có | — | |
+| `via` | `lat,lng;lat,lng…` | không | — | tối đa 5 điểm dừng, theo thứ tự |
+| `mode` | `motorbike` \| `car` \| `walk` | không | `motorbike` | xe máy không đi cao tốc |
+| `lang` | `vi` \| `en` | không | `vi` | ngôn ngữ câu chỉ dẫn |
+| `alternatives` | `0` \| `1` | không | `0` | `1` xin thêm tối đa một tuyến thay thế; **bị bỏ qua khi có `via`** |
+
+Mọi điểm phải nằm trong Việt Nam (vĩ độ 8–24, kinh độ 102–110). Tổng đường chim bay giữa các điểm liên tiếp tối đa: xe máy 500 km, ô tô 2.000 km, đi bộ 50 km — vượt trả `400 invalid_request` ghi rõ giới hạn.
+
+```bash
+curl -H "X-Api-Key: mlv_live_…" \
+  "https://api.ai-solutions.io.vn/v1/directions?from=10.7798,106.6990&to=10.7725,106.6980&mode=motorbike"
+```
+
+```json
+{
+  "routes": [
+    {
+      "mode": "motorbike",
+      "distance_m": 1240,
+      "duration_s": 210,
+      "bbox": [106.6975, 10.7725, 106.699, 10.7798],
+      "geometry": "oh}pSonkojEnoBf^~{Bf^v|Af^~{Bod@",
+      "legs": [
+        {
+          "distance_m": 1240,
+          "duration_s": 210,
+          "shape_offset": 0,
+          "steps": [
+            {
+              "kind": "depart",
+              "instruction": "Đi về hướng nam trên Đồng Khởi.",
+              "verbal_pre": "Đi về hướng nam trên Đồng Khởi trong 200 mét.",
+              "verbal_post": "Đi tiếp 200 mét.",
+              "street_names": ["Đồng Khởi"],
+              "distance_m": 200,
+              "duration_s": 30,
+              "shape_begin": 0,
+              "shape_end": 1,
+              "location": [106.699, 10.7798],
+              "roundabout_exit": null
+            },
+            { "kind": "turn_left", "instruction": "Rẽ trái vào Lê Lợi.", "…": "…" },
+            { "kind": "arrive", "instruction": "Bạn đã đến điểm dừng.", "…": "…" }
+          ]
+        }
+      ],
+      "flags": { "toll": false, "highway": false, "ferry": false }
+    }
+  ],
+  "waypoints": [
+    { "location": [106.699, 10.7798], "snapped": [106.699, 10.7798], "name": null },
+    { "location": [106.698, 10.7725], "snapped": [106.6981, 10.7725], "name": null }
+  ],
+  "attribution": "© OpenStreetMap contributors",
+  "engine": { "name": "valhalla", "graph": "2026-09-15" }
+}
+```
+
+Điểm cần chú ý:
+
+- **Toạ độ trong response theo thứ tự `[lng, lat]`** (GeoJSON), kể cả `location`/`snapped` — khác tham số vào `lat,lng`.
+- `geometry` là polyline mã hoá **precision 6** của **cả tuyến**; giải mã bằng `decodePolyline6` trong `@mapslibvn/core` ra `[lng, lat][]`. `steps[].shape_begin/shape_end` và `legs[].shape_offset` là chỉ số vào polyline đó.
+- `kind` là tập cố định: `depart`, `arrive`, `continue`, `slight_right`, `slight_left`, `turn_right`, `turn_left`, `sharp_right`, `sharp_left`, `uturn_right`, `uturn_left`, `ramp_straight`, `ramp_right`, `ramp_left`, `exit_right`, `exit_left`, `keep_right`, `keep_left`, `merge`, `merge_right`, `merge_left`, `roundabout_enter`, `roundabout_exit`, `ferry_enter`, `ferry_exit`, `elevator`, `steps`, `escalator`, `building_enter`, `building_exit`, `other`. `roundabout_exit` chỉ khác `null` khi `kind = roundabout_enter`.
+- `verbal_pre`/`verbal_post` dành cho đọc bằng giọng nói; có thể `null`.
+- `waypoints[].snapped` là điểm trên tuyến gần điểm bạn gửi; `name` hiện luôn `null`.
+- `engine` là thông tin chẩn đoán (`graph` = ngày build dữ liệu đường), **không phải hợp đồng ổn định**.
+- Toạ độ `from`/`to`/`via` nằm trong URL nên có trong log request của Cloudflare Workers (giữ tối đa 30 ngày, chỉ để chẩn đoán; xem [Điều khoản tenant](/dieu-khoan/) mục 5). Tenant là bên kiểm soát dữ liệu vị trí của người dùng cuối.
+- Không có đường → `404 no_route`. Dịch vụ đang build lại dữ liệu (thứ Hai ~02:00 giờ VN, vài chục phút) → `503 upstream_unavailable` với `retry-after: 30`; bản cache còn trong 5 phút vẫn được trả.
+
 ## 5. Endpoint ghi
 
 ### POST /v1/edits
@@ -514,6 +595,7 @@ curl "https://api.ai-solutions.io.vn/healthz"
 ```
 
 Có thêm `GET /healthz/db` kiểm cả kết nối cơ sở dữ liệu, trả `{ ok, user, version }` khi nối được và `503 upstream_unavailable` khi không.
+Tương tự, `GET /healthz/routing` kiểm dịch vụ chỉ đường: trả `{ ok, version, graph_built_at, ms }` (ISO thời điểm build graph) hoặc `503 upstream_unavailable`.
 
 ### Route quản trị
 
@@ -663,6 +745,62 @@ interface PoiFeature {
   group: string;
   lngLat: [number, number];
 }
+
+type TravelMode = 'motorbike' | 'car' | 'walk';
+type DirectionsLang = 'vi' | 'en';
+
+type ManeuverKind =
+  | 'depart' | 'arrive' | 'continue' | 'slight_right' | 'slight_left'
+  | 'turn_right' | 'turn_left' | 'sharp_right' | 'sharp_left'
+  | 'uturn_right' | 'uturn_left' | 'ramp_straight' | 'ramp_right' | 'ramp_left'
+  | 'exit_right' | 'exit_left' | 'keep_right' | 'keep_left' | 'merge'
+  | 'merge_right' | 'merge_left' | 'roundabout_enter' | 'roundabout_exit'
+  | 'ferry_enter' | 'ferry_exit' | 'elevator' | 'steps' | 'escalator'
+  | 'building_enter' | 'building_exit' | 'other';
+
+interface RouteStep {
+  kind: ManeuverKind;
+  instruction: string;
+  verbal_pre: string | null;
+  verbal_post: string | null;
+  street_names: string[];
+  distance_m: number;
+  duration_s: number;
+  shape_begin: number;
+  shape_end: number;
+  location: [number, number];
+  roundabout_exit: number | null;
+}
+
+interface RouteLeg {
+  distance_m: number;
+  duration_s: number;
+  shape_offset: number;
+  steps: RouteStep[];
+}
+
+interface Route {
+  mode: TravelMode;
+  distance_m: number;
+  duration_s: number;
+  bbox: [number, number, number, number];
+  geometry: string;
+  legs: RouteLeg[];
+  flags: { toll: boolean; highway: boolean; ferry: boolean };
+}
+
+interface Waypoint {
+  location: [number, number];
+  snapped: [number, number];
+  name: string | null;
+}
+
+interface DirectionsResponse {
+  routes: Route[];
+  waypoints: Waypoint[];
+  attribution: string;
+  engine?: { name: string; graph: string | null };
+}
 ```
 
 Vài điểm dễ sai:
@@ -674,6 +812,7 @@ Vài điểm dễ sai:
 - `PoiFeature.category` và `.group` là **mã** dạng chuỗi, khác `Place.category` là một object có tên tiếng Việt và tiếng Anh.
 - `PoiFeature.lngLat` theo thứ tự **kinh độ trước** (chuẩn GeoJSON), còn tham số `near` của API theo thứ tự **vĩ độ trước**.
 - `contact` và `hours` có thể là `null`. `hours` không có kiểu chặt vì giữ nguyên chuỗi opening_hours của nguồn.
+- `Route.geometry` là polyline6 (không phải GeoJSON); mọi toạ độ trong `Route`/`Waypoint` là `[lng, lat]`.
 
 ## 8. Đọc thêm
 

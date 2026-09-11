@@ -52,6 +52,25 @@ services:
         condition: service_healthy
     command: ["sleep", "infinity"]
 
+  # Valhalla mini trên fixture Quận 1 cho `pnpm test:routing` (spec dẫn đường A mục 7.3).
+  # Chỉ bật: --profile routing. Thư mục work/valhalla-dev do scripts/routing-test.mjs tạo và chép PBF vào
+  # (không mount thẳng fixtures/ vì image ghi valhalla.json, tar, sqlite vào cùng chỗ và chmod 664).
+  valhalla:
+    profiles: ["routing"]
+    image: ghcr.io/valhalla/valhalla-scripted:3.8.3@sha256:24ef7955899dececb94e26c6dfb89d64fabfae875f980432694b0261eb6c251b
+    environment:
+      serve_tiles: "True"
+      use_tiles_ignore_pbf: "True"
+      build_tar: "True"
+      build_elevation: "False"
+      build_admins: "True"
+      build_time_zones: "True"
+      server_threads: "2"
+    ports:
+      - "127.0.0.1:${VALHALLA_PORT:-8002}:8002"
+    volumes:
+      - ${MAPSLIBVN_VALHALLA_DEV:-../../work/valhalla-dev}:/custom_files
+
 volumes:
   pgdata:
   pipeline-work:

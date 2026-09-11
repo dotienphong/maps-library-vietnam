@@ -60,14 +60,17 @@ export function renderServerEnv(v) {
  * Image pipeline dựng tại máy mang tag `:local` (xem `pnpm image:build`) và không nằm trên
  * registry nào, nên `docker compose pull` cho nó luôn trả `pull access denied` và làm hỏng cả
  * `pnpm server:update` trước khi kịp áp migration — đúng lỗi gặp ngày 05/09/2026. Khi đó chỉ pull
- * hai dịch vụ dùng image công khai; image pipeline phải tự dựng lại bằng `pnpm image:build`.
+ * ba dịch vụ dùng image công khai; image pipeline phải tự dựng lại bằng `pnpm image:build`.
  *
  * @param {string | undefined} pipelineImage giá trị PIPELINE_IMAGE trong infra/server/.env
  * @returns {{ services: string[], skipPipeline: boolean }} `services` rỗng = pull mọi dịch vụ
  */
 export function pullPlan(pipelineImage) {
   const skipPipeline = /:local$/.test((pipelineImage ?? '').trim());
-  return { services: skipPipeline ? ['postgres', 'cloudflared'] : [], skipPipeline };
+  return {
+    services: skipPipeline ? ['postgres', 'cloudflared', 'valhalla'] : [],
+    skipPipeline,
+  };
 }
 
 /** @param {string} text @returns {Record<string, string>} */

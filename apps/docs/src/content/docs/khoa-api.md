@@ -73,6 +73,8 @@ Khoá thiếu scope cần thiết trả `403` với code `scope` và message nê
 | Giới hạn | Giá trị | Áp cho |
 |---|---|---|
 | Burst Places | 60 lượt / phút / điểm Cloudflare | mỗi cặp khoá + IP, gộp 6 endpoint `places:read` |
+| Burst Chỉ đường | 20 lượt / phút / điểm Cloudflare | mỗi cặp khoá + IP, riêng `GET /v1/directions` |
+| Trần theo khoá Chỉ đường | 100 lượt / phút / điểm Cloudflare | mọi IP cộng lại; chỉ khoá `web` và `mobile` (kể cả tenant internal), khoá `server` không chịu |
 | Lượt gọi Places | 20.000 / ngày (plan `free`) | mỗi khoá, gộp cả 6 endpoint `places:read` |
 | Đóng góp theo người dùng cuối | 20 / ngày | mỗi `end_user_token` |
 | Đóng góp theo khoá | 500 / ngày | mỗi khoá API |

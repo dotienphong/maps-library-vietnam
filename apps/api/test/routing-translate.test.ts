@@ -2,6 +2,7 @@ import { decodePolyline6, encodePolyline6 } from '@mapslibvn/core';
 import { describe, expect, it } from 'vitest';
 import { mergeLegShapes, translateDirections, translateTrip } from '../src/routing/translate';
 import type { ValhallaLeg, ValhallaRouteResponse, ValhallaTrip } from '../src/routing/valhalla';
+import real from './fixtures/valhalla/q1-motorbike.json';
 import fixture from './fixtures/valhalla/two-legs.json';
 
 const json = fixture as unknown as ValhallaRouteResponse;
@@ -161,5 +162,19 @@ describe('translateDirections', () => {
     expect(alt.routes).toHaveLength(2);
     expect(alt.routes[1]?.mode).toBe('car');
     expect(alt.routes[1]?.distance_m).toBe(820);
+  });
+});
+
+describe('fixture Valhalla thật (Quận 1, capture bằng pnpm test:routing --capture)', () => {
+  it('dịch được, chỉ số shape của bước cuối trỏ đúng điểm cuối polyline', () => {
+    const out = translateDirections(real as unknown as ValhallaRouteResponse, 'motorbike', null);
+    const route = out.routes[0];
+    const coords = decodePolyline6(route?.geometry ?? '');
+    const last = route?.legs.at(-1)?.steps.at(-1);
+    expect(last?.kind).toBe('arrive');
+    expect(last?.shape_end).toBe(coords.length - 1);
+    expect(route?.distance_m).toBeGreaterThan(800);
+    expect(route?.legs[0]?.steps[0]?.kind).toBe('depart');
+    expect(out.waypoints[1]?.snapped).toEqual(coords.at(-1));
   });
 });

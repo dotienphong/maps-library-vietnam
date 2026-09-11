@@ -76,9 +76,41 @@ services:
     volumes:
       - pipeline-work:/app/work
       - pipeline-out:/app/out
+      - valhalla-data:/app/valhalla
     depends_on:
       postgres:
         condition: service_healthy
+
+  valhalla:
+    # Ghim theo digest của manifest list tag 3.8.3 (amd64+arm64, `docker buildx imagetools inspect`
+    # 10/09/2026): tag bị đẩy lại trên GHCR không đổi được bản chạy trên máy chủ.
+    image: ghcr.io/valhalla/valhalla-scripted:3.8.3@sha256:24ef7955899dececb94e26c6dfb89d64fabfae875f980432694b0261eb6c251b
+    restart: unless-stopped
+    stop_grace_period: 45s
+    # Ghi đè ENTRYPOINT (không phải command) — ENTRYPOINT gốc nhận command làm tham số; command rỗng
+    # để run.sh không nhận thừa "build_tiles" của CMD gốc.
+    entrypoint: ["/bin/bash", "/opt/mapslibvn/run.sh"]
+    command: []
+    environment:
+      serve_tiles: "True"
+      use_tiles_ignore_pbf: "True"
+      force_rebuild: "False"
+      build_tar: "True"
+      build_elevation: "False"
+      build_admins: "True"
+      build_time_zones: "True"
+      server_threads: "4"
+      tileset_name: valhalla_tiles
+    volumes:
+      - valhalla-data:/custom_files
+      - ./valhalla/run.sh:/opt/mapslibvn/run.sh:ro
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:8002/status >/dev/null"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 3600s
+    # KHÔNG có `ports:` — chỉ cloudflared nối tới valhalla:8002 trong mạng compose (spec A mục 4.1).
 
 volumes:
   pgdata:
@@ -86,3 +118,4 @@ volumes:
   pipeline-work:
   pipeline-out:
   backup-tmp:
+  valhalla-data:

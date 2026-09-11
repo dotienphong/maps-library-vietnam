@@ -1,0 +1,62 @@
+name: Routing tests
+
+# Job DB tests chạy TRONG container image pipeline (không có Docker) nên test Valhalla cần workflow riêng.
+# Graph fixture Quận 1 build ~vài phút trên runner; chỉ chạy khi chạm mã routing hoặc chạy tay.
+on:
+  push:
+    branches: [main]
+    paths:
+      - "apps/api/src/routing/**"
+      - "apps/api/src/routes/directions.ts"
+      - "apps/api/src/**"
+      - "apps/api/test-routing/**"
+      - "apps/api/vitest.routing.config.ts"
+      - "apps/api/wrangler.toml"
+      - "apps/api/package.json"
+      - "scripts/routing-test.mjs"
+      - "scripts/lib/routing-test.mjs"
+      - "scripts/lib/run.mjs"
+      - "packages/core/src/polyline.ts"
+      - "packages/core/src/maneuver.ts"
+      - "packages/core/src/index.ts"
+      - "infra/dev/compose.yml"
+      - "pipelines/poi/fixtures/q1.osm.pbf"
+      - "package.json"
+      - "pnpm-lock.yaml"
+      - ".github/workflows/routing-test.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: routing-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  routing:
+    timeout-minutes: 30
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter @mapslibvn/core build && pnpm --filter @mapslibvn/style build && pnpm --filter @mapslibvn/admin build
+      - name: Valhalla trên fixture Quận 1
+        run: |
+          mkdir -p "$RUNNER_TEMP/valhalla"
+          cp pipelines/poi/fixtures/q1.osm.pbf "$RUNNER_TEMP/valhalla/"
+          docker run -d --name valhalla -p 8002:8002 -e server_threads=2 \
+            -v "$RUNNER_TEMP/valhalla:/custom_files" \
+            ghcr.io/valhalla/valhalla-scripted:3.8.3@sha256:24ef7955899dececb94e26c6dfb89d64fabfae875f980432694b0261eb6c251b
+      - run: node scripts/routing-test.mjs --no-compose
+        env:
+          VALHALLA_BASE: http://127.0.0.1:8002
+      - if: failure()
+        run: docker logs valhalla 2>&1 | tail -100 || true

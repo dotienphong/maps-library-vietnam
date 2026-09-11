@@ -4,8 +4,14 @@ import {
   decideWork,
   missingLiveEnv,
   nextState,
+  parseRoutingGraphStatus,
   poiReleaseSteps,
+  recoverAndReadRoutingGraphStatus,
+  routingStep,
   runPoiReleaseSteps,
+  runTileReleaseSteps,
+  serverRoutingSetupSteps,
+  tileReleaseSteps,
 } from './update-plan.mjs';
 
 const state = {
@@ -149,6 +155,158 @@ describe('missingLiveEnv', () => {
       'RCLONE_CONFIG_R2_NO_CHECK_BUCKET',
       'HF_TOKEN',
     ]);
+  });
+});
+
+describe('routingStep', () => {
+  it('chỉ chạy khi có tiles mới, volume valhalla gắn và không --skip-routing', () => {
+    expect(routingStep({ tiles: true, graphDirExists: true, skipRouting: false })).toEqual({
+      run: true,
+      reason: 'OSM đổi → build lại graph Valhalla',
+    });
+    expect(routingStep({ tiles: false, graphDirExists: true, skipRouting: false })).toEqual({
+      run: false,
+      reason: 'tiles không đổi',
+    });
+    expect(routingStep({ tiles: true, graphDirExists: false, skipRouting: false })).toEqual({
+      run: false,
+      reason: 'không có volume valhalla-data (máy dev)',
+    });
+    expect(routingStep({ tiles: true, graphDirExists: true, skipRouting: true })).toEqual({
+      run: false,
+      reason: '--skip-routing',
+    });
+  });
+});
+
+describe('tile release transaction', () => {
+  it('prepare graph trước manifest; lỗi graph không commit và retry chạy lại tuần tự', () => {
+    const steps = tileReleaseSteps({
+      release: 'vn-20260911',
+      routing: { run: true },
+    });
+    /** @type {string[]} */
+    const calls = [];
+    let manifest = 'vn-old';
+    const execute = (/** @type {{ id: string, command: string, args: string[] }} */ step) => {
+      calls.push(step.id);
+      if (step.id === 'routing-prepare') throw new Error('graph chưa sẵn sàng');
+      if (step.id === 'manifest') manifest = 'vn-20260911';
+    };
+
+    expect(() => runTileReleaseSteps(steps, execute)).toThrow(/graph chưa sẵn sàng/);
+    expect(calls).toEqual(['build', 'qa', 'upload', 'smoke', 'routing-prepare']);
+    expect(manifest).toBe('vn-old');
+
+    calls.length = 0;
+    runTileReleaseSteps(
+      steps,
+      (/** @type {{ id: string, command: string, args: string[] }} */ step) => {
+        calls.push(step.id);
+        if (step.id === 'manifest') manifest = 'vn-20260911';
+      },
+    );
+    expect(calls).toEqual(['build', 'qa', 'upload', 'smoke', 'routing-prepare', 'manifest']);
+    expect(manifest).toBe('vn-20260911');
+    expect(steps.find((step) => step.id === 'routing-prepare')?.args).toEqual([
+      'scripts/routing-graph.mjs',
+      'prepare',
+      '--vn-release',
+      'vn-20260911',
+    ]);
+  });
+});
+
+describe('server routing setup transaction', () => {
+  it('phục hồi/status trước khi quyết định tar và chỉ start sau prepare', () => {
+    expect(serverRoutingSetupSteps({ hasTar: true, hasPbf: true })).toEqual([
+      { id: 'status' },
+      { id: 'start' },
+    ]);
+    expect(serverRoutingSetupSteps({ hasTar: false, hasPbf: false })).toEqual([
+      { id: 'status' },
+      { id: 'download' },
+      { id: 'prepare' },
+      { id: 'start' },
+    ]);
+  });
+
+  it('recovered/pending graph không tar thì start wrapper, không prepare lại', () => {
+    const pending = parseRoutingGraphStatus({
+      tarBytes: null,
+      copiedPbf: { bytes: 123, md5: 'a'.repeat(32), matchesActiveGraph: false },
+      pendingReload: true,
+      buildInProgress: false,
+      buildFailed: false,
+    });
+    expect(pending).toEqual({
+      hasTar: false,
+      hasPbf: true,
+      pendingReload: true,
+      buildInProgress: false,
+      buildFailed: false,
+    });
+    expect(serverRoutingSetupSteps(pending)).toEqual([{ id: 'status' }, { id: 'start' }]);
+
+    for (const recoveryState of [
+      { pendingReload: false, buildInProgress: true, buildFailed: false },
+      { pendingReload: false, buildInProgress: false, buildFailed: true },
+    ]) {
+      expect(serverRoutingSetupSteps({ hasTar: false, hasPbf: true, ...recoveryState })).toEqual([
+        { id: 'status' },
+        { id: 'start' },
+      ]);
+    }
+  });
+
+  it('upgrade cũ để lại failed trên volume trống thì reset rồi bootstrap an toàn', () => {
+    expect(
+      serverRoutingSetupSteps({
+        hasTar: false,
+        hasPbf: false,
+        pendingReload: false,
+        buildInProgress: true,
+        buildFailed: true,
+      }),
+    ).toEqual([
+      { id: 'status' },
+      { id: 'reset-empty' },
+      { id: 'download' },
+      { id: 'prepare' },
+      { id: 'start' },
+    ]);
+  });
+
+  it('chạy status recovery có log trước, rồi đọc JSON sạch để start không prepare', () => {
+    const recoveryOutput = [
+      'Khôi phục reload dở dang: chuyển reload.request sang reload.in-progress.',
+      '{"activeGraph":"vn-old","tarBytes":null,"copiedPbf":{"bytes":123,"md5":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","matchesActiveGraph":false},"pendingReload":true,"buildInProgress":false,"buildFailed":false}',
+    ].join('\n');
+    /** @type {string[]} */
+    const calls = [];
+    const status = recoverAndReadRoutingGraphStatus({
+      runStatus: () => {
+        calls.push(`inherited:${recoveryOutput}`);
+      },
+      captureStatus: () => {
+        calls.push('captured');
+        return JSON.stringify({
+          activeGraph: 'vn-old',
+          tarBytes: null,
+          copiedPbf: {
+            bytes: 123,
+            md5: 'a'.repeat(32),
+            matchesActiveGraph: false,
+          },
+          pendingReload: true,
+          buildInProgress: false,
+          buildFailed: false,
+        });
+      },
+    });
+
+    expect(calls).toEqual([`inherited:${recoveryOutput}`, 'captured']);
+    expect(serverRoutingSetupSteps(status)).toEqual([{ id: 'status' }, { id: 'start' }]);
   });
 });
 

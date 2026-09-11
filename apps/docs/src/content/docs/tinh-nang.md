@@ -89,7 +89,16 @@ này để quyết định ghim marker chính xác hay chỉ vẽ vùng ước l
 trong 100 m; số nhà trả về dạng ước lượng ("≈ 86–90"). Xem
 [Độ chính xác geocode](/do-chinh-xac/).
 
-## 5. Đóng góp và duyệt
+## 5. Chỉ đường
+
+`GET /v1/directions` trả tuyến cho **xe máy** (không lên cao tốc), **ô tô** và **đi bộ** giữa hai điểm
+trong Việt Nam, tối đa 5 điểm dừng, kèm bước rẽ tiếng Việt (hoặc tiếng Anh) có câu đọc bằng giọng nói.
+Engine là Valhalla tự host trên dữ liệu đường OpenStreetMap, cập nhật cùng kỳ với tiles nền. Kết quả
+theo schema riêng của MapsLibVN (`Route`, `RouteStep`), không lộ định dạng engine. Chưa có giao thông
+trực tiếp, chưa tránh phí/cao tốc theo yêu cầu; logic dẫn đường theo GPS trên thiết bị thuộc SDK giai
+đoạn sau. Chi tiết ở [REST API](/api/) mục 4.
+
+## 6. Đóng góp và duyệt
 
 Người dùng cuối gửi được đề xuất sửa qua `POST /v1/edits` với `kind` là `create`, `update`,
 `close`, `reopen` hoặc `report`. Mỗi `end_user_token` gửi tối đa 20 đóng góp một ngày, mỗi khoá API
@@ -97,7 +106,7 @@ tối đa 500. Trường do người dùng sửa được khoá lại (`locked_f
 đè ở lần chạy sau; địa chỉ có số nhà còn tạo thêm mốc geocoding mới. Xem
 [Đóng góp & sửa POI](/dong-gop/).
 
-## 6. Ghi nguồn bắt buộc
+## 7. Ghi nguồn bắt buộc
 
 SDK luôn gắn `AttributionControl`, và file style cũng khai đúng chuỗi đó ngay trong từng nguồn
 tiles, nên bản đồ có ghi nguồn kể cả khi nạp thẳng vào MapLibre không qua SDK. MapLibre gộp hai
@@ -106,7 +115,7 @@ chuỗi trùng nhau nên người xem chỉ thấy một lần. Có tuỳ chọn
 ODbL, CDLA-Permissive 2.0 và Apache-2.0, không phải lựa chọn giao diện. Xem
 [Giấy phép & ghi nguồn](/giay-phep/).
 
-## 7. SDK — bốn gói
+## 8. SDK — bốn gói
 
 | Gói | Dùng cho | Xuất chính |
 |---|---|---|
@@ -119,7 +128,7 @@ Bản **UMD** của `@mapslibvn/web` (`mapslibvn.umd.js` + `mapslibvn.css`) đó
 và `pmtiles`, tạo global `MapsLibVN` và tự đăng ký web component `<mapslibvn-autocomplete>` — nhúng
 bằng đúng một thẻ `<script>`, không cần bước build.
 
-## 8. Kiến trúc tóm tắt
+## 9. Kiến trúc tóm tắt
 
 | Thành phần | Chạy ở đâu | Chi phí |
 |---|---|---|
@@ -132,7 +141,7 @@ bằng đúng một thẻ `<script>`, không cần bước build.
 Vì tiles không chạm Worker, lượt tải bản đồ không tính vào hạn mức request của Worker. Chi tiết ở
 [Tự host](/tu-host/).
 
-## 9. Trạng thái và giới hạn hiện tại
+## 10. Trạng thái và giới hạn hiện tại
 
 - **Bốn gói `@mapslibvn/*` đã public trên npm**; dist-tag `latest` hiện trỏ tới `0.4.0`. Bản UMD
   vẫn dùng được cho ứng dụng không có bundler. Xem [Cài đặt](/cai-dat/).
@@ -148,6 +157,7 @@ Vì tiles không chạm Worker, lượt tải bản đồ không tính vào hạ
   không có số nhà hay tên đường, ví dụ "Quận 10") thì một suất trong danh sách luôn được dành cho
   vùng. Truy vấn có tên đường hoặc số nhà thì không dành suất — lúc đó bạn đang tìm địa chỉ. Muốn
   chỉ lấy vùng thì gọi `/v1/autocomplete` với `types=area`.
+- **Chỉ đường** dựa trên dữ liệu đường một chiều và cấm rẽ của OSM Việt Nam, còn thiếu ở nhiều nơi; tuyến nội thành có thể kém ứng dụng thương mại. ETA theo cấp đường, không có giao thông trực tiếp.
 - **Chưa có tiles offline.** MapLibre Native đọc được PMTiles qua `file://` nên có thể bổ sung sau.
 - Repo hiện private; liên hệ theo [Điều khoản tenant](/dieu-khoan/) mục 10 để xin quyền hoặc xin
   khoá API.

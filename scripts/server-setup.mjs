@@ -17,6 +17,7 @@ import {
   parseDockerVersion,
   waitPlan,
 } from './lib/setup-checks.mjs';
+import { recoverAndReadRoutingGraphStatus, serverRoutingSetupSteps } from './lib/update-plan.mjs';
 
 const dir = resolve('infra/server');
 const envPath = resolve(dir, '.env');
@@ -173,6 +174,72 @@ console.log(
     : 'CẢNH BÁO: ssl chưa bật',
 );
 
+step('Graph chỉ đường (Valhalla, spec dẫn đường A)');
+const routingStatus = recoverAndReadRoutingGraphStatus({
+  runStatus: () =>
+    run('docker', [
+      ...compose,
+      'run',
+      '--rm',
+      '-T',
+      'pipeline',
+      'node',
+      'scripts/routing-graph.mjs',
+      'status',
+    ]),
+  captureStatus: () =>
+    capture('docker', [
+      ...compose,
+      'run',
+      '--rm',
+      '-T',
+      'pipeline',
+      'node',
+      'scripts/routing-graph.mjs',
+      'status',
+    ]),
+});
+for (const graphStep of serverRoutingSetupSteps(routingStatus).slice(1)) {
+  if (graphStep.id === 'reset-empty') {
+    run('docker', [
+      ...compose,
+      'run',
+      '--rm',
+      '-T',
+      'pipeline',
+      'node',
+      'scripts/routing-graph.mjs',
+      'reset-empty',
+    ]);
+  } else if (graphStep.id === 'download') {
+    console.log('Chưa có PBF Việt Nam — tải (vài phút)…');
+    run('docker', [
+      ...compose,
+      'run',
+      '--rm',
+      'pipeline',
+      'node',
+      'pipelines/tiles/src/download.mjs',
+    ]);
+  } else if (graphStep.id === 'prepare') {
+    run('docker', [
+      ...compose,
+      'run',
+      '--rm',
+      'pipeline',
+      'node',
+      'scripts/routing-graph.mjs',
+      'prepare',
+    ]);
+    console.log(
+      'Valhalla sẽ build graph lần đầu (vài chục phút, RAM đỉnh xem docker stats). Theo dõi: docker compose … logs -f valhalla; xong khi /status trả 200.',
+    );
+  } else if (graphStep.id === 'start') {
+    run('docker', [...compose, 'up', '-d', 'valhalla']);
+    services.push('valhalla');
+  }
+}
+
 console.log(`
 ✔ Máy chủ đã dựng (${services.join(', ')}).
 
@@ -183,4 +250,8 @@ Việc tay trên Cloudflare — chi tiết từng màn hình trong infra/server/
   4. Access → Applications → Self-hosted "mapslibvn-db", domain maps-db.<domain>, Policy "Service Auth" chọn token trên.
   5. Workers & Pages → Hyperdrive → Create: name mapslibvn-db, host maps-db.<domain>, port 5432, database mapslibvn,
      user api, password = API_PASSWORD, bật "Connect via Cloudflare Access" với Client ID/Secret → copy Hyperdrive ID vào apps/api/wrangler.toml.
+  6. Chỉ đường — làm ĐÚNG THỨ TỰ để Valhalla không có lúc nào công khai: Access → Service Auth → Service Token "routing";
+     Access → Applications → Self-hosted "mapslibvn-route" domain maps-route.<domain>, Policy Service Auth = token "routing".
+  7. Rồi mới: Tunnel "mapslibvn-db" → Public Hostname thêm maps-route.<domain> → Service HTTP → URL valhalla:8002.
+  8. Máy dev: wrangler secret put ROUTING_ACCESS_CLIENT_ID --env production (và …_SECRET); ROUTING_BASE production đã có trong wrangler.toml.
 `);
