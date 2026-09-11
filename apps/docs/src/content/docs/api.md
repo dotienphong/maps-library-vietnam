@@ -75,7 +75,7 @@ Mọi lỗi trả JSON cùng một hình dạng:
 | `not_found` | 404 | không có route, không có POI, không có theme hoặc bộ tiles |
 | `no_route` | 404 | `GET /v1/directions`: không có đường giữa các điểm, hoặc điểm quá xa mạng đường / vùng không kết nối |
 | `rate_limit_exceeded` | 429 | vượt burst/phút của Places hoặc Chỉ đường |
-| `quota_exceeded` | 429 | vượt quota Places theo ngày, hoặc vượt giới hạn đóng góp theo ngày |
+| `quota_exceeded` | 429 | vượt quota ngày của Places hoặc Chỉ đường, hoặc vượt giới hạn đóng góp theo ngày |
 | `upstream_unavailable` | 503 | không truy vấn được cơ sở dữ liệu, không tra được khoá, chưa có phiên bản tiles, dịch vụ chỉ đường không phản hồi (kể cả lúc build lại graph) hoặc lỗi không xác định |
 | `server_misconfigured` | 503 | máy chủ thiếu cấu hình bắt buộc; hiện chỉ xảy ra ở `POST /v1/edits` khi chưa đặt secret băm |
 
