@@ -1,6 +1,6 @@
 ---
 title: REST API
-description: Tham chiếu Places API của MapsLibVN — xác thực, mã lỗi, quota, cache và từng endpoint kèm tham số, ví dụ curl và phản hồi.
+description: Tham chiếu Places API và Routing API của MapsLibVN — xác thực, mã lỗi, quota, cache và từng endpoint kèm tham số, ví dụ curl và phản hồi.
 ---
 
 Trang này là tham chiếu đầy đủ của REST API. Mọi tham số, giới hạn và mã lỗi ở đây lấy từ mã nguồn Worker. Nếu bạn dùng SDK JavaScript thì không cần gọi HTTP trực tiếp — xem [SDK JavaScript](/sdk/).
@@ -74,11 +74,12 @@ Mọi lỗi trả JSON cùng một hình dạng:
 | `origin_not_allowed` | 403 | khoá `web` và `Origin`/`Referer` không nằm trong `allowed_origins` |
 | `not_found` | 404 | không có route, không có POI, không có theme hoặc bộ tiles |
 | `no_route` | 404 | `GET /v1/directions`: không có đường giữa các điểm, hoặc điểm quá xa mạng đường / vùng không kết nối |
+| `rate_limit_exceeded` | 429 | vượt burst/phút của Places hoặc Chỉ đường |
 | `quota_exceeded` | 429 | vượt quota Places theo ngày, hoặc vượt giới hạn đóng góp theo ngày |
 | `upstream_unavailable` | 503 | không truy vấn được cơ sở dữ liệu, không tra được khoá, chưa có phiên bản tiles, dịch vụ chỉ đường không phản hồi (kể cả lúc build lại graph) hoặc lỗi không xác định |
 | `server_misconfigured` | 503 | máy chủ thiếu cấu hình bắt buộc; hiện chỉ xảy ra ở `POST /v1/edits` khi chưa đặt secret băm |
 
-Header `retry-after` được đặt theo trạng thái: **3600** giây với 429, **30** giây với 503. Các mã 4xx khác không có `retry-after` vì thử lại ngay cũng vô ích.
+Header `retry-after` phân biệt theo loại giới hạn: `quota_exceeded` (quota ngày) trả **3600** giây; `rate_limit_exceeded` (burst/phút) trả **60** giây; `upstream_unavailable` trả **30** giây. Các mã 4xx khác không có `retry-after` vì thử lại ngay cũng vô ích.
 
 Route quản trị `/v1/admin/*` dùng thêm hai mã `missing_access_jwt` và `invalid_access_jwt` (401) — xem mục 6.
 
@@ -479,7 +480,7 @@ curl -H "X-Api-Key: mlv_live_…" \
 - `verbal_pre`/`verbal_post` dành cho đọc bằng giọng nói; có thể `null`.
 - `waypoints[].snapped` là điểm trên tuyến gần điểm bạn gửi; `name` hiện luôn `null`.
 - `engine` là thông tin chẩn đoán (`graph` = ngày build dữ liệu đường), **không phải hợp đồng ổn định**.
-- Toạ độ `from`/`to`/`via` nằm trong URL nên có trong log request của Cloudflare Workers (giữ vài ngày, chỉ để chẩn đoán; xem [Điều khoản tenant](/dieu-khoan/) mục 5). Tenant là bên kiểm soát dữ liệu vị trí của người dùng cuối.
+- Toạ độ `from`/`to`/`via` nằm trong URL nên có trong log request của Cloudflare Workers (giữ tối đa 30 ngày, chỉ để chẩn đoán; xem [Điều khoản tenant](/dieu-khoan/) mục 5). Tenant là bên kiểm soát dữ liệu vị trí của người dùng cuối.
 - Không có đường → `404 no_route`. Dịch vụ đang build lại dữ liệu (thứ Hai ~02:00 giờ VN, vài chục phút) → `503 upstream_unavailable` với `retry-after: 30`; bản cache còn trong 5 phút vẫn được trả.
 
 ## 5. Endpoint ghi

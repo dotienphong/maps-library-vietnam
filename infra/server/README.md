@@ -37,18 +37,19 @@ pnpm server:setup
       REPORT_EMAIL_FROM=maps-report@<domain>
       ```
    4. Nạp biến mới cho container: `pnpm server:update` (kéo image mới có cron 2 job) rồi
-      `docker compose --env-file infra/server/.env -f infra/server/compose.yml up -d pipeline`.
-   7. **Chỉ đường (spec dẫn đường A, 10/09/2026)** — mở Valhalla ra Worker:
-      1. Access → Service Auth → Create Service Token `routing` (thời hạn dài nhất) → lưu Client ID/Secret vào password manager. Token có hạn: khi hết, `/healthz/routing` trả 503 và direct Access-protected `/status` diagnostics fail → tạo token mới, `wrangler secret put` lại, xoá token cũ.
-      2. Access → Applications → Add → Self-hosted `mapslibvn-route`, domain `maps-route.<domain>` → Policy Service Auth, include Service Token `routing`.
-      3. **Chỉ sau khi có Access application**: Tunnel `mapslibvn-db` → Public Hostname → Add: subdomain `maps-route`, domain `<domain>`, Service type **HTTP**, URL `valhalla:8002`. (Làm ngược thứ tự là Valhalla công khai trên Internet trong lúc chưa có Access.)
-      4. Máy dev: `cd apps/api && pnpm exec wrangler secret put ROUTING_ACCESS_CLIENT_ID --env production` và `… ROUTING_ACCESS_CLIENT_SECRET --env production`. `ROUTING_BASE` production nằm sẵn trong `wrangler.toml`.
-      5. Kiểm (đọc secret từ biến môi trường, không gõ thẳng vào lệnh để khỏi lọt shell history): `curl -H "CF-Access-Client-Id: $CF_ROUTING_ID" -H "CF-Access-Client-Secret: $CF_ROUTING_SECRET" https://maps-route.<domain>/status` → JSON có `version`; không header → 403 của Access. Worker health: `curl https://api.<domain>/healthz/routing` → 503 nếu upstream/token lỗi.
+      `docker compose -f infra/server/compose.yml --env-file infra/server/.env up -d pipeline`.
+7. **Chỉ đường (spec dẫn đường A, 10/09/2026)** — mở Valhalla ra Worker:
+   1. Access → Service Auth → Create Service Token `routing` (thời hạn dài nhất) → lưu Client ID/Secret vào password manager. Token có hạn: khi hết, `/healthz/routing` trả 503 và direct Access-protected `/status` diagnostics fail → tạo token mới, `wrangler secret put` lại, xoá token cũ.
+   2. Access → Applications → Add → Self-hosted `mapslibvn-route`, domain `maps-route.<domain>` → Policy Service Auth, include Service Token `routing`.
+   3. **Chỉ sau khi có Access application**: Tunnel `mapslibvn-db` → Public Hostname → Add: subdomain `maps-route`, domain `<domain>`, Service type **HTTP**, URL `valhalla:8002`. (Làm ngược thứ tự là Valhalla công khai trên Internet trong lúc chưa có Access.)
+   4. Máy dev: `cd apps/api && pnpm exec wrangler secret put ROUTING_ACCESS_CLIENT_ID --env production` và `cd apps/api && pnpm exec wrangler secret put ROUTING_ACCESS_CLIENT_SECRET --env production`. `ROUTING_BASE` production nằm sẵn trong `wrangler.toml`.
+   5. Kiểm (đọc secret từ biến môi trường, không gõ thẳng vào lệnh để khỏi lọt shell history): `curl -H "CF-Access-Client-Id: $CF_ROUTING_ID" -H "CF-Access-Client-Secret: $CF_ROUTING_SECRET" https://maps-route.<domain>/status` → JSON có `version`; không header → 403 của Access. Worker health: `curl https://api.<domain>/healthz/routing` → 503 nếu upstream/token lỗi.
 
 ## Kiểm tra
 
 - Trạng thái: `docker compose --env-file infra/server/.env -f infra/server/compose.yml ps` — 5 dịch vụ `running` (`valhalla` `healthy` sau khi build graph xong), `postgres` `healthy`.
-- Graph chỉ đường: `docker compose … run --rm pipeline node scripts/routing-graph.mjs status` in `graph.json`, kích cỡ tar và `pendingReload`. Build lại tay: `… node scripts/routing-graph.mjs prepare --force` (valhalla ngừng phục vụ vài chục phút trong lúc build); quay về bản trước: `… node scripts/routing-graph.mjs rollback`. `data:update` tự gọi `prepare` khi OSM đổi.
+- Graph chỉ đường: `docker compose -f infra/server/compose.yml --env-file infra/server/.env run --rm pipeline node scripts/routing-graph.mjs status` in `graph.json`, kích cỡ tar và `pendingReload`. Build lại tay: `docker compose -f infra/server/compose.yml --env-file infra/server/.env run --rm pipeline node scripts/routing-graph.mjs prepare --force` (valhalla ngừng phục vụ vài chục phút trong lúc build); quay về bản trước: `docker compose -f infra/server/compose.yml --env-file infra/server/.env run --rm pipeline node scripts/routing-graph.mjs rollback`. `data:update` tự gọi `prepare` khi OSM đổi.
+- `status` phải cho thấy `activeGraph` và `previousGraph`, kích thước `tarBytes`/`prevTarBytes`, PBF đã chép và MD5 PBF có khớp graph đang active hay không (`copiedPbf.matchesActiveGraph`), cùng `pendingReload`, `buildInProgress` và `buildFailed`; startup tự phục hồi transaction dở dang trước khi chạy upstream. `prepare` từ chối khi thiếu PBF, graph đang build hoặc còn marker reload/transaction; chỉ chạy `rollback` sau khi build lỗi đã ghi `buildFailed: true` và đã kiểm tra graph trước còn trong `previousGraph`.
 - Worker: `curl https://api.<domain>/healthz/routing` → `{"ok":true,"version":"3.8.x","graph_built_at":"…"}`.
 - TLS bắt buộc từ ngoài: chạy trên **máy dev** (không cần mở cổng):
   ```bash
@@ -58,7 +59,7 @@ pnpm server:setup
   ```
   Kỳ vọng: `api | t`. Với `sslmode=disable` phải bị từ chối (`no pg_hba.conf entry … SSL off`).
 - Worker: `cd apps/api && pnpm exec wrangler dev --remote` → `curl localhost:8787/healthz/db` → `{"ok":true,"user":"api",…}`.
-- Backup tay: `docker compose --env-file infra/server/.env -f infra/server/compose.yml exec backup node infra/server/backup/backup.mjs --once` → `rclone ls r2:mapslibvn-backups/backups/daily` có file `.dump.zst.enc`.
+- Backup tay: `docker compose -f infra/server/compose.yml --env-file infra/server/.env exec backup node infra/server/backup/backup.mjs --once` → `rclone ls r2:mapslibvn-backups/backups/daily` có file `.dump.zst.enc`.
   **Audit 09/09/2026:** dump từng nằm plaintext trong bucket `mapslibvn-tiles` (có custom domain công khai) và
   tải được không cần xác thực. Nay: (1) object luôn mã hoá AES-256 bằng `BACKUP_PASSPHRASE` trong
   `infra/server/.env` — mất passphrase là mất backup, lưu vào password manager; (2) ghi vào bucket riêng
@@ -67,16 +68,16 @@ pnpm server:setup
   quyền R2 — `ACCESS_KEY_ID` = `id` trong `GET /user/tokens/verify`, `SECRET_ACCESS_KEY` = `sha256(token)` hex; máy chủ
   đang dùng khoá suy từ `CLOUDFLARE_API_TOKEN` (R2 Edit toàn tài khoản) từ 09/09/2026. Chưa đặt `BACKUP_BUCKET`
   thì script vẫn ghi vào bucket tiles kèm cảnh báo — chỉ tạm chấp nhận vì file đã mã hoá.
-- Cron: `docker compose … logs pipeline | tail -2` → dòng `[cron] <job> kế tiếp <ISO> (thứ Hai HH:MM VN)`
+- Cron: `docker compose -f infra/server/compose.yml --env-file infra/server/.env logs pipeline | tail -2` → dòng `[cron] <job> kế tiếp <ISO> (thứ Hai HH:MM VN)`
   cho job gần nhất trong hai job: `data:update` 02:00 và `report:weekly` 08:00 (giờ VN).
-- Báo cáo tuần: `docker compose --env-file infra/server/.env -f infra/server/compose.yml exec pipeline
+- Báo cáo tuần: `docker compose -f infra/server/compose.yml --env-file infra/server/.env exec pipeline
   node scripts/weekly-report.mjs --dry-run` in bảng theo tenant/key/endpoint ra stdout mà không gửi mail.
   Thêm `--this-week` để xem tuần đang chạy (tuần trước có thể chưa có traffic). Bỏ `--dry-run` để gửi thật.
 - Thử phục hồi (chứng minh lời hứa "chuyển máy < 1 giờ") — phục hồi vào **DB mới**, không `--clean` lên DB đang chạy
   (`spatial_ref_sys` là bảng cấu hình của extension, restore trùng khoá). Container `backup` **không** có sẵn
   `DATABASE_URL`; dựng URL từ các biến `POSTGRES_*` của chính container:
   ```bash
-  C="docker compose --env-file infra/server/.env -f infra/server/compose.yml"
+  C="docker compose -f infra/server/compose.yml --env-file infra/server/.env"
   F=$($C exec -T backup rclone lsf r2:mapslibvn-backups/backups/daily | sort | tail -1 | tr -d '\r')
   $C exec -T postgres psql -U mapslibvn -d postgres -c "DROP DATABASE IF EXISTS restore_smoke" -c "CREATE DATABASE restore_smoke"
   # .enc → giải mã bằng BACKUP_PASSPHRASE (container backup đọc từ env_file) rồi mới zstd/pg_restore
@@ -99,9 +100,9 @@ pnpm server:setup
   `api`/`pipeline` vì archive portable cố ý dùng `--no-owner --no-privileges`.
 - Kiểm restore: `SELECT count(*) FROM poi;` và xác nhận `poi.tableowner = pipeline`,
   role `api` chỉ có `SELECT` trên `poi` cùng `INSERT, SELECT` trên `poi_edit`.
-- Log: `docker compose … logs -f postgres|cloudflared|backup|pipeline`.
+- Log: `docker compose -f infra/server/compose.yml --env-file infra/server/.env logs -f postgres cloudflared backup pipeline valhalla`.
 - Không bao giờ thêm `ports:` cho `postgres`. Mọi truy cập đi qua Tunnel + Access.
 - Không bao giờ thêm `ports:` cho `valhalla`. Đường vào duy nhất là Tunnel + Access.
 - `pnpm server:update` kéo cả image `valhalla`; sau cập nhật lần đầu chạy `routing-graph.mjs prepare` nếu volume `valhalla-data` còn rỗng (container sẽ khởi động lại liên tục cho tới khi có PBF).
 - Sau `pnpm server:restore` trên máy mới, graph không nằm trong backup: chạy `routing-graph.mjs prepare` để build lại (volume `valhalla-data` cần ~5 GB: PBF + thư mục tile + tar + tar prev).
-- Build lỗi/OOM: container ngủ 10 phút rồi Docker khởi động lại; xem `docker compose … logs valhalla`, quay về graph cũ bằng `routing-graph.mjs rollback`.
+- Build lỗi/OOM: container ghi `buildFailed: true`, ngủ 10 phút rồi Docker khởi động lại; xem `docker compose -f infra/server/compose.yml --env-file infra/server/.env logs valhalla`, chờ marker lỗi và xác nhận `previousGraph` còn nguyên rồi mới quay về graph cũ bằng `docker compose -f infra/server/compose.yml --env-file infra/server/.env run --rm pipeline node scripts/routing-graph.mjs rollback`.

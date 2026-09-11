@@ -184,11 +184,13 @@ Lệnh sẽ:
 Không tắt Docker hoặc đóng laptop trong khi restore. Database production hiện gần 6 GB nên thời gian
 phụ thuộc mạng và SSD.
 
-`server:setup` cũng kiểm tra graph Valhalla: nếu chưa có PBF Việt Nam thì tải PBF, chạy
+`server:setup` tự xử lý volume `valhalla-data` rỗng: nếu chưa có PBF Việt Nam thì tải PBF, chạy
 `node scripts/routing-graph.mjs prepare`, rồi mới khởi động service `valhalla`; lần build đầu có thể
-mất vài chục phút và cần theo dõi `docker compose … logs -f valhalla`. Graph không nằm trong backup DB.
-Sau `server:restore` trên máy mới, nếu volume `valhalla-data` rỗng, chạy `routing-graph.mjs prepare`
-để build lại trước khi kiểm tra `/healthz/routing`. Không thêm `ports:` cho Valhalla; đường vào duy nhất
+mất vài chục phút và cần theo dõi `docker compose -f infra/server/compose.yml --env-file infra/server/.env logs -f valhalla`.
+Graph không nằm trong backup DB; `server:restore` gọi `server:setup` trước nên không cần chạy lại
+`prepare` trên volume đã có graph. Nếu kiểm tra sau restore vẫn báo thiếu graph, chạy rõ ràng:
+`docker compose -f infra/server/compose.yml --env-file infra/server/.env run --rm pipeline node scripts/routing-graph.mjs prepare`.
+Không thêm `ports:` cho Valhalla; đường vào duy nhất
 là Tunnel + Cloudflare Access, và phải tạo Access application trước khi thêm Public Hostname Tunnel.
 
 ### 5.3 Cloudflare khi laptop mới thay máy chủ cũ
