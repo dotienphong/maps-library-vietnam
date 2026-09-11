@@ -200,7 +200,18 @@ const routingStatus = recoverAndReadRoutingGraphStatus({
     ]),
 });
 for (const graphStep of serverRoutingSetupSteps(routingStatus).slice(1)) {
-  if (graphStep.id === 'download') {
+  if (graphStep.id === 'reset-empty') {
+    run('docker', [
+      ...compose,
+      'run',
+      '--rm',
+      '-T',
+      'pipeline',
+      'node',
+      'scripts/routing-graph.mjs',
+      'reset-empty',
+    ]);
+  } else if (graphStep.id === 'download') {
     console.log('Chưa có PBF Việt Nam — tải (vài phút)…');
     run('docker', [
       ...compose,

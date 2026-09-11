@@ -187,6 +187,8 @@ phụ thuộc mạng và SSD.
 `server:setup` tự xử lý volume `valhalla-data` rỗng: nếu chưa có PBF Việt Nam thì tải PBF, chạy
 `node scripts/routing-graph.mjs prepare`, rồi mới khởi động service `valhalla`; lần build đầu có thể
 mất vài chục phút và cần theo dõi `docker compose -f infra/server/compose.yml --env-file infra/server/.env logs -f valhalla`.
+Nếu bản cũ từng để lại marker build lỗi trên volume hoàn toàn rỗng, setup sẽ dọn marker dưới kernel
+lock rồi mới download/prepare/start; wrapper mới chỉ chờ input và không chạy upstream khi chưa có PBF/tar.
 Graph không nằm trong backup DB; `server:restore` gọi `server:setup` trước, và setup tự tải PBF,
 prepare rồi start Valhalla khi volume rỗng nên không cần chạy lại `prepare` trên volume đã có graph.
 Hãy kiểm tra `routing-graph.mjs status` và log Valhalla sau restore. Chỉ nếu setup báo chưa có graph/PBF

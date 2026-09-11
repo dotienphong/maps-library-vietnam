@@ -53,7 +53,7 @@ services:
   # (không mount thẳng fixtures/ vì image ghi valhalla.json, tar, sqlite vào cùng chỗ và chmod 664).
   valhalla:
     profiles: ["routing"]
-    image: ghcr.io/valhalla/valhalla-scripted:3.8.3
+    image: ghcr.io/valhalla/valhalla-scripted:3.8.3@sha256:24ef7955899dececb94e26c6dfb89d64fabfae875f980432694b0261eb6c251b
     environment:
       serve_tiles: "True"
       use_tiles_ignore_pbf: "True"

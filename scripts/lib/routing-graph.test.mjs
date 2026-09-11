@@ -27,6 +27,7 @@ import {
 const SCRIPT = resolve(import.meta.dirname, '../routing-graph.mjs');
 const RUN_SH = resolve(import.meta.dirname, '../../infra/server/valhalla/run.sh');
 const SERVER_COMPOSE = resolve(import.meta.dirname, '../../infra/server/compose.yml');
+const DEV_COMPOSE = resolve(import.meta.dirname, '../../infra/dev/compose.yml');
 const HAS_FLOCK = spawnSync('flock', ['--version']).status === 0;
 const HAS_LINUX_LIFECYCLE_TOOLS = HAS_FLOCK && spawnSync('setsid', ['--version']).status === 0;
 /** @type {string[]} */
@@ -105,6 +106,19 @@ async function waitFor(predicate, timeoutMs = 5_000) {
 function waitForExit(child) {
   if (child.exitCode !== null) return Promise.resolve(child.exitCode);
   return new Promise((resolveExit) => child.once('exit', resolveExit));
+}
+
+/** @param {import('node:stream').Readable} stream */
+function firstLine(stream) {
+  return new Promise((resolveLine) => {
+    let buffered = '';
+    stream.setEncoding('utf8');
+    stream.on('data', (chunk) => {
+      buffered += chunk;
+      const newline = buffered.indexOf('\n');
+      if (newline >= 0) resolveLine(buffered.slice(0, newline));
+    });
+  });
 }
 
 describe('preparePlan', () => {
@@ -210,12 +224,28 @@ describe('validation boundary', () => {
     });
     expect(parseRoutingGraphArgs(['rollback'])).toEqual({ command: 'rollback', force: false });
     expect(parseRoutingGraphArgs(['status'])).toEqual({ command: 'status', force: false });
+    expect(parseRoutingGraphArgs(['prepare', '--vn-release', 'vn-20260911'])).toEqual({
+      command: 'prepare',
+      force: false,
+      vnRelease: 'vn-20260911',
+    });
+    expect(parseRoutingGraphArgs(['prepare', '--force', '--vn-release', 'vn-20260911'])).toEqual({
+      command: 'prepare',
+      force: true,
+      vnRelease: 'vn-20260911',
+    });
+    expect(parseRoutingGraphArgs(['reset-empty'])).toEqual({
+      command: 'reset-empty',
+      force: false,
+      vnRelease: null,
+    });
     for (const argv of [
       [],
       ['prepare', '--froce'],
       ['prepare', '--force', 'junk'],
       ['rollback', '--force'],
       ['status', 'junk'],
+      ['prepare', '--vn-release', '../bad'],
       ['wat'],
     ]) {
       expect(() => parseRoutingGraphArgs(argv)).toThrow('Dùng:');
@@ -241,6 +271,32 @@ describe('validation boundary', () => {
     expect(result.status).not.toBe(0);
     expect(result.stderr).toContain('Dùng:');
     expect(readdirSync(state.graph).sort()).toEqual(before);
+  });
+
+  it('prepare gắn VN release identity vào graph metadata', () => {
+    const state = fixture();
+    const result = run(state, ['prepare', '--vn-release', 'vn-20260911']);
+    expect(result.status, result.stderr).toBe(0);
+    expect(JSON.parse(readFileSync(resolve(state.graph, GRAPH_FILES.meta), 'utf8')).vnRelease).toBe(
+      'vn-20260911',
+    );
+  });
+
+  it('reset-empty chỉ dọn marker bootstrap lỗi khi volume thật sự rỗng', () => {
+    const state = fixture();
+    writeFileSync(resolve(state.graph, 'reload.in-progress'), 'initial-build\n');
+    writeFileSync(resolve(state.graph, 'reload.failed'), '1\n');
+    expect(run(state, ['reset-empty']).status).not.toBe(0);
+
+    rmSync(resolve(state.graph, GRAPH_FILES.pbf), { force: true });
+    rmSync(resolve(state.graph, GRAPH_FILES.tar), { force: true });
+    rmSync(resolve(state.graph, GRAPH_FILES.tileDir), { recursive: true, force: true });
+    rmSync(resolve(state.graph, GRAPH_FILES.meta), { force: true });
+    rmSync(resolve(state.graph, GRAPH_FILES.prevDir), { recursive: true, force: true });
+    const reset = run(state, ['reset-empty']);
+    expect(reset.status, reset.stderr).toBe(0);
+    expect(existsSync(resolve(state.graph, 'reload.in-progress'))).toBe(false);
+    expect(existsSync(resolve(state.graph, 'reload.failed'))).toBe(false);
   });
 
   it('run.sh từ chối mọi timeout không phải số nguyên dương trước khi chạy entrypoint', () => {
@@ -382,15 +438,31 @@ describe('Valhalla wrapper race contract', () => {
     );
     const wrapper = readFileSync(RUN_SH, 'utf8');
     expect(wrapper).toContain('.routing-graph.transaction.json');
-    expect(wrapper.indexOf('while [[ -f "${JOURNAL}" ]]')).toBeLessThan(
-      wrapper.indexOf('setsid "${ENTRYPOINT}"'),
-    );
+    const journalCheck = wrapper.indexOf('[[ -f "${JOURNAL}" ]]');
+    const childSpawn = wrapper.indexOf('setsid "${ENTRYPOINT}"');
+    expect(journalCheck).toBeGreaterThanOrEqual(0);
+    expect(childSpawn).toBeGreaterThanOrEqual(0);
+    expect(journalCheck).toBeLessThan(childSpawn);
   });
 
   it('compose cho wrapper đủ thời gian TERM grace trước Docker KILL', () => {
     const compose = readFileSync(SERVER_COMPOSE, 'utf8');
     expect(compose).toContain('stop_grace_period: 45s');
     expect(readFileSync(RUN_SH, 'utf8')).toContain('STOP_GRACE_SECONDS:-30');
+  });
+
+  it('readiness curl có connect/total timeout hữu hạn dưới stop grace', () => {
+    const wrapper = readFileSync(RUN_SH, 'utf8');
+    expect(wrapper).toContain('--connect-timeout "${READY_CONNECT_TIMEOUT_SECONDS}"');
+    expect(wrapper).toContain('--max-time "${READY_MAX_TIME_SECONDS}"');
+    expect(wrapper).toContain('READY_MAX_TIME_SECONDS >= STOP_GRACE_SECONDS');
+  });
+
+  it('dev compose dùng cùng Valhalla digest đã xác minh như server', () => {
+    const digest =
+      'ghcr.io/valhalla/valhalla-scripted:3.8.3@sha256:24ef7955899dececb94e26c6dfb89d64fabfae875f980432694b0261eb6c251b';
+    expect(readFileSync(DEV_COMPOSE, 'utf8')).toContain(`image: ${digest}`);
+    expect(readFileSync(SERVER_COMPOSE, 'utf8')).toContain(`image: ${digest}`);
   });
 
   it('không có biến môi trường công khai để bỏ qua kernel flock', () => {
@@ -422,6 +494,17 @@ describe('Valhalla wrapper race contract', () => {
     expect(acquire).toBeLessThan(journalCheck);
     expect(journalCheck).toBeLessThan(spawnChild);
     expect(spawnChild).toBeLessThan(release);
+  });
+
+  it('volume rỗng chờ bootstrap dưới lock và không spawn upstream', () => {
+    const wrapper = readFileSync(RUN_SH, 'utf8');
+    const emptyCheck = wrapper.indexOf(
+      '[[ ! -f "${CUSTOM_FILES}/vietnam.osm.pbf" && ! -f "${CUSTOM_FILES}/valhalla_tiles.tar" ]]',
+    );
+    const childSpawn = wrapper.indexOf('setsid "${ENTRYPOINT}"');
+    expect(emptyCheck).toBeGreaterThanOrEqual(0);
+    expect(childSpawn).toBeGreaterThanOrEqual(0);
+    expect(emptyCheck).toBeLessThan(childSpawn);
   });
 
   it.runIf(HAS_LINUX_LIFECYCLE_TOOLS)(
@@ -458,7 +541,9 @@ describe('Valhalla wrapper race contract', () => {
           VALHALLA_ENTRYPOINT: fakeEntrypoint,
           RELOAD_POLL_SECONDS: '1',
           FAIL_SLEEP_SECONDS: '5',
-          STOP_GRACE_SECONDS: '1',
+          STOP_GRACE_SECONDS: '3',
+          READY_CONNECT_TIMEOUT_SECONDS: '1',
+          READY_MAX_TIME_SECONDS: '2',
         },
         stdio: 'ignore',
       });
@@ -470,6 +555,53 @@ describe('Valhalla wrapper race contract', () => {
       await waitFor(() => existsSync(upstreamPid));
       wrapper.kill('SIGTERM');
       expect(await waitForExit(wrapper)).toBe(143);
+    },
+  );
+
+  it.runIf(HAS_LINUX_LIFECYCLE_TOOLS)(
+    'readiness endpoint treo vẫn nhường vòng lặp cho reload trong timeout hữu hạn',
+    async () => {
+      const state = fixture();
+      const countFile = resolve(state.graph, 'start-count');
+      const fakeEntrypoint = resolve(state.root, 'fake-hanging-ready.sh');
+      writeFileSync(
+        fakeEntrypoint,
+        `#!/usr/bin/env bash\ncount=0\n[[ -f "${countFile}" ]] && count=\$(cat "${countFile}")\nprintf '%s\\n' \$((count + 1)) > "${countFile}"\ntrap 'exit 0' TERM INT\nwhile true; do sleep 1; done\n`,
+      );
+      chmodSync(fakeEntrypoint, 0o755);
+      writeFileSync(resolve(state.graph, 'reload.in-progress'), 'rebuild\n');
+      const hangingReady = spawn(
+        process.execPath,
+        [
+          '-e',
+          "const n=require('node:net');const s=n.createServer(()=>{});s.listen(0,'127.0.0.1',()=>console.log(s.address().port))",
+        ],
+        { stdio: ['ignore', 'pipe', 'ignore'] },
+      );
+      const port = await firstLine(hangingReady.stdout);
+      const wrapper = spawn('/bin/bash', [RUN_SH], {
+        env: {
+          ...process.env,
+          CUSTOM_FILES: state.graph,
+          VALHALLA_ENTRYPOINT: fakeEntrypoint,
+          VALHALLA_READY_URL: `http://127.0.0.1:${port}/status`,
+          RELOAD_POLL_SECONDS: '1',
+          FAIL_SLEEP_SECONDS: '5',
+          STOP_GRACE_SECONDS: '3',
+          READY_CONNECT_TIMEOUT_SECONDS: '1',
+          READY_MAX_TIME_SECONDS: '2',
+        },
+        stdio: 'ignore',
+      });
+      try {
+        await waitFor(() => existsSync(countFile));
+        writeFileSync(resolve(state.graph, GRAPH_FILES.flag), 'rollback\n');
+        await waitFor(() => Number(readFileSync(countFile, 'utf8')) >= 2, 7_000);
+      } finally {
+        wrapper.kill('SIGTERM');
+        hangingReady.kill('SIGTERM');
+        await Promise.all([waitForExit(wrapper), waitForExit(hangingReady)]);
+      }
     },
   );
 });

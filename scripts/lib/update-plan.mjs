@@ -153,7 +153,7 @@ export function tileReleaseSteps({ release, routing, out = '/app/out' }) {
     steps.push({
       id: 'routing-prepare',
       command: 'node',
-      args: ['scripts/routing-graph.mjs', 'prepare'],
+      args: ['scripts/routing-graph.mjs', 'prepare', '--force', '--vn-release', release],
     });
   }
   steps.push({
@@ -176,6 +176,10 @@ export function runTileReleaseSteps(steps, execute) {
  */
 export function serverRoutingSetupSteps(s) {
   const steps = [{ id: 'status' }];
+  if (!s.hasTar && !s.hasPbf && s.buildFailed) {
+    steps.push({ id: 'reset-empty' }, { id: 'download' }, { id: 'prepare' }, { id: 'start' });
+    return steps;
+  }
   // run.sh sở hữu retry: nó nhận marker, xoá failed cũ khi start và build khi có PBF nhưng chưa có tar.
   if (s.pendingReload || s.buildInProgress || s.buildFailed) {
     steps.push({ id: 'start' });

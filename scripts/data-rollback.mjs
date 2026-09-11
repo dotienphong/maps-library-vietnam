@@ -14,14 +14,14 @@ export function rollbackTarget(value) {
 }
 
 /**
- * @param {{ poi?: string | null, poiProfiles?: Record<string, string | null> }} target
+ * @param {{ vn?: string | null, poi?: string | null, poiProfiles?: Record<string, string | null> }} target
  * @param {Set<string>} listed
  * @param {(checksumName: string) => string} readChecksum
  */
 export function verifyRollbackArchives(target, listed, readChecksum) {
-  const releases = [...new Set([target.poi, ...Object.values(target.poiProfiles ?? {})])].filter(
-    (release) => typeof release === 'string' && release.length > 0,
-  );
+  const releases = [
+    ...new Set([target.vn, target.poi, ...Object.values(target.poiProfiles ?? {})]),
+  ].filter((release) => typeof release === 'string' && release.length > 0);
   return releases.map((release) => {
     const archiveName = `${release}.pmtiles`;
     const checksumName = `${archiveName}.sha256`;
@@ -36,6 +36,23 @@ export function verifyRollbackArchives(target, listed, readChecksum) {
   });
 }
 
+/**
+ * @param {unknown} status
+ * @param {string} currentVn
+ * @param {string} targetVn
+ */
+export function verifyRoutingRollbackTarget(status, currentVn, targetVn) {
+  if (!status || typeof status !== 'object' || Array.isArray(status)) {
+    throw new Error('graph release identity không khả dụng');
+  }
+  const graph = /** @type {Record<string, any>} */ (status);
+  if (graph.activeGraph?.vnRelease !== currentVn || graph.previousGraph?.vnRelease !== targetVn) {
+    throw new Error(
+      `graph vnRelease không khớp rollback ${currentVn} → ${targetVn}; từ chối toggle graph`,
+    );
+  }
+}
+
 /** @param {string[]} argv */
 export function parseRollbackArgs(argv) {
   if (argv.length === 0) return { skipRouting: false };
@@ -46,12 +63,26 @@ export function parseRollbackArgs(argv) {
 /**
  * Xác minh toàn bộ target/R2 trước mọi mutation; sau đó graph rollback luôn đi trước manifest rollback.
  * @param {{ manifest: unknown, listed: Set<string>, readChecksum: (name: string) => string,
- *   graphDirExists: boolean, skipRouting: boolean, runCommand: (cmd: string, args: string[]) => void }} input
+ *   graphDirExists: boolean, skipRouting: boolean, readGraphStatus?: () => unknown,
+ *   runCommand: (cmd: string, args: string[]) => void }} input
  */
 export function executeRollback(input) {
+  const manifest = /** @type {any} */ (input.manifest);
   const target = rollbackTarget(input.manifest);
   const verified = verifyRollbackArchives(target, input.listed, input.readChecksum);
-  if (!input.skipRouting && input.graphDirExists) {
+  const currentVn = manifest.current?.vn;
+  const targetVn = target.vn;
+  const vnChanged = currentVn !== targetVn;
+  if (!input.skipRouting && vnChanged) {
+    if (!input.graphDirExists || typeof input.readGraphStatus !== 'function') {
+      throw new Error(
+        `graph release identity không khả dụng cho rollback ${String(currentVn)} → ${String(targetVn)}; dùng --skip-routing nếu chủ ý bỏ qua`,
+      );
+    }
+    if (typeof currentVn !== 'string' || typeof targetVn !== 'string') {
+      throw new Error('manifest thiếu VN release identity để rollback graph an toàn');
+    }
+    verifyRoutingRollbackTarget(input.readGraphStatus(), currentVn, targetVn);
     input.runCommand('node', ['scripts/routing-graph.mjs', 'rollback']);
   }
   input.runCommand('node', ['pipelines/tiles/src/manifest.mjs', 'rollback']);
@@ -117,6 +148,13 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
         execFileSync('rclone', ['cat', `${remoteDir}/${checksumName}`], { encoding: 'utf8' }),
       graphDirExists: existsSync(graphDir),
       skipRouting: options.skipRouting,
+      readGraphStatus: () => {
+        // Lần đầu cho phép status recovery journal và in chẩn đoán; lần hai lấy JSON sạch.
+        execFileSync('node', ['scripts/routing-graph.mjs', 'status'], { stdio: 'inherit' });
+        return JSON.parse(
+          execFileSync('node', ['scripts/routing-graph.mjs', 'status'], { encoding: 'utf8' }),
+        );
+      },
       runCommand: run,
     });
     console.log(`✓ rollback target đã xác minh: ${JSON.stringify(verified)}`);

@@ -32,7 +32,7 @@ export const ROLLBACK_FAULT_POINTS = [
 
 /**
  * @param {string[]} argv
- * @returns {{ command: 'prepare' | 'rollback' | 'status', force: boolean }}
+ * @returns {{ command: 'prepare' | 'rollback' | 'status' | 'reset-empty', force: boolean, vnRelease?: string | null }}
  */
 export function parseRoutingGraphArgs(argv) {
   if (argv.length === 1 && argv[0] === 'prepare') {
@@ -41,10 +41,40 @@ export function parseRoutingGraphArgs(argv) {
   if (argv.length === 2 && argv[0] === 'prepare' && argv[1] === '--force') {
     return { command: 'prepare', force: true };
   }
+  if (
+    argv.length === 3 &&
+    argv[0] === 'prepare' &&
+    argv[1] === '--vn-release' &&
+    /^vn-[a-zA-Z0-9][a-zA-Z0-9._-]*$/.test(argv[2] ?? '')
+  ) {
+    return {
+      command: 'prepare',
+      force: false,
+      vnRelease: /** @type {string} */ (argv[2]),
+    };
+  }
+  if (
+    argv.length === 4 &&
+    argv[0] === 'prepare' &&
+    argv[1] === '--force' &&
+    argv[2] === '--vn-release' &&
+    /^vn-[a-zA-Z0-9][a-zA-Z0-9._-]*$/.test(argv[3] ?? '')
+  ) {
+    return {
+      command: 'prepare',
+      force: true,
+      vnRelease: /** @type {string} */ (argv[3]),
+    };
+  }
   if (argv.length === 1 && (argv[0] === 'rollback' || argv[0] === 'status')) {
     return { command: argv[0], force: false };
   }
-  throw new Error('Dùng: routing-graph.mjs prepare [--force] | rollback | status');
+  if (argv.length === 1 && argv[0] === 'reset-empty') {
+    return { command: 'reset-empty', force: false, vnRelease: null };
+  }
+  throw new Error(
+    'Dùng: routing-graph.mjs prepare [--force] [--vn-release <vn-release>] | rollback | status | reset-empty',
+  );
 }
 
 /** @param {unknown} value @param {string} source @returns {GraphMeta} */
@@ -68,13 +98,22 @@ export function parseGraphMeta(value, source) {
       pbfMd5: parsed.pbfMd5,
       pbfDate: parsed.pbfDate,
       requestedAt: parsed.requestedAt,
+      ...(parsed.vnRelease ? { vnRelease: parsed.vnRelease } : {}),
     };
+  }
+  if (
+    record.vnRelease !== undefined &&
+    (typeof record.vnRelease !== 'string' ||
+      !/^vn-[a-zA-Z0-9][a-zA-Z0-9._-]*$/.test(record.vnRelease))
+  ) {
+    throw new Error(`${source}: vnRelease không hợp lệ`);
   }
   return {
     pbfMd5: record.pbfMd5,
     pbfDate: /** @type {string} */ (record.pbfDate),
     requestedAt: /** @type {string} */ (record.requestedAt),
     previous,
+    ...(typeof record.vnRelease === 'string' ? { vnRelease: record.vnRelease } : {}),
   };
 }
 
@@ -107,14 +146,15 @@ export function rollbackPlan(s) {
 }
 
 /**
- * @typedef {{ pbfMd5: string, pbfDate: string, requestedAt: string, previous?: GraphMeta | null }} GraphMeta
+ * @typedef {{ pbfMd5: string, pbfDate: string, requestedAt: string, previous?: GraphMeta | null, vnRelease?: string }} GraphMeta
  * @param {string} pbfMd5
  * @param {Date} pbfDate mtime của PBF nguồn (xấp xỉ ngày Geofabrik phát hành)
  * @param {Date} requestedAt
  * @param {GraphMeta | null} previous
+ * @param {string | null} [vnRelease]
  * @returns {GraphMeta}
  */
-export function graphMeta(pbfMd5, pbfDate, requestedAt, previous) {
+export function graphMeta(pbfMd5, pbfDate, requestedAt, previous, vnRelease = null) {
   return {
     pbfMd5,
     pbfDate: pbfDate.toISOString(),
@@ -124,7 +164,9 @@ export function graphMeta(pbfMd5, pbfDate, requestedAt, previous) {
           pbfMd5: previous.pbfMd5,
           pbfDate: previous.pbfDate,
           requestedAt: previous.requestedAt,
+          ...(previous.vnRelease ? { vnRelease: previous.vnRelease } : {}),
         }
       : null,
+    ...(vnRelease ? { vnRelease } : {}),
   };
 }

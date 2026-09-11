@@ -208,6 +208,13 @@ describe('tile release transaction', () => {
     );
     expect(calls).toEqual(['build', 'qa', 'upload', 'smoke', 'routing-prepare', 'manifest']);
     expect(manifest).toBe('vn-20260911');
+    expect(steps.find((step) => step.id === 'routing-prepare')?.args).toEqual([
+      'scripts/routing-graph.mjs',
+      'prepare',
+      '--force',
+      '--vn-release',
+      'vn-20260911',
+    ]);
   });
 });
 
@@ -251,6 +258,24 @@ describe('server routing setup transaction', () => {
         { id: 'start' },
       ]);
     }
+  });
+
+  it('upgrade cũ để lại failed trên volume trống thì reset rồi bootstrap an toàn', () => {
+    expect(
+      serverRoutingSetupSteps({
+        hasTar: false,
+        hasPbf: false,
+        pendingReload: false,
+        buildInProgress: true,
+        buildFailed: true,
+      }),
+    ).toEqual([
+      { id: 'status' },
+      { id: 'reset-empty' },
+      { id: 'download' },
+      { id: 'prepare' },
+      { id: 'start' },
+    ]);
   });
 
   it('chạy status recovery có log trước, rồi đọc JSON sạch để start không prepare', () => {

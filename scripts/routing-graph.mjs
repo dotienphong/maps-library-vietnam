@@ -369,6 +369,28 @@ async function main() {
       return;
     }
 
+    if (options.command === 'reset-empty') {
+      if (!existsSync(path(RUNTIME.failed))) {
+        throw new Error('reset-empty cần reload.failed từ bootstrap lỗi trước đó');
+      }
+      if (
+        existsSync(path(GRAPH_FILES.pbf)) ||
+        existsSync(path(GRAPH_FILES.tar)) ||
+        existsSync(path(GRAPH_FILES.tileDir)) ||
+        existsSync(path(GRAPH_FILES.meta)) ||
+        existsSync(prevPath(GRAPH_FILES.tar)) ||
+        existsSync(prevPath(GRAPH_FILES.meta))
+      ) {
+        throw new Error('reset-empty chỉ dùng khi volume graph chưa có PBF/tar/tile');
+      }
+      rmSync(path(GRAPH_FILES.flag), { force: true });
+      rmSync(path(RUNTIME.inProgress), { force: true });
+      rmSync(path(RUNTIME.failed), { force: true });
+      syncPath(GRAPH_DIR);
+      log('đã xoá marker build lỗi trên volume graph rỗng');
+      return;
+    }
+
     mkdirSync(prevPath(''), { recursive: true });
     syncPath(GRAPH_DIR);
 
@@ -416,7 +438,13 @@ async function main() {
       }
       if (plan.action !== 'rebuild') throw new Error(plan.reason);
 
-      const next = graphMeta(sourceMd5, stagedPbf.mtime, new Date(), current);
+      const next = graphMeta(
+        sourceMd5,
+        stagedPbf.mtime,
+        new Date(),
+        current,
+        options.vnRelease ?? current?.vnRelease ?? null,
+      );
       stageMeta(files.newMeta, next);
       if (hasTar && current) stageMeta(files.previousMeta, current);
       syncPath(GRAPH_DIR);

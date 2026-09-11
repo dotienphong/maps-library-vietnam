@@ -16,6 +16,8 @@ READY_URL="${VALHALLA_READY_URL:-http://localhost:8002/status}"
 POLL_SECONDS="${RELOAD_POLL_SECONDS:-30}"
 FAIL_SLEEP_SECONDS="${FAIL_SLEEP_SECONDS:-600}"
 STOP_GRACE_SECONDS="${STOP_GRACE_SECONDS:-30}"
+READY_CONNECT_TIMEOUT_SECONDS="${READY_CONNECT_TIMEOUT_SECONDS:-2}"
+READY_MAX_TIME_SECONDS="${READY_MAX_TIME_SECONDS:-5}"
 child=""
 lock_fd=""
 log() { echo "[run.sh] $(date -u +%FT%TZ) $*"; }
@@ -31,6 +33,12 @@ positive_integer() {
 positive_integer RELOAD_POLL_SECONDS "${POLL_SECONDS}"
 positive_integer FAIL_SLEEP_SECONDS "${FAIL_SLEEP_SECONDS}"
 positive_integer STOP_GRACE_SECONDS "${STOP_GRACE_SECONDS}"
+positive_integer READY_CONNECT_TIMEOUT_SECONDS "${READY_CONNECT_TIMEOUT_SECONDS}"
+positive_integer READY_MAX_TIME_SECONDS "${READY_MAX_TIME_SECONDS}"
+if (( READY_MAX_TIME_SECONDS >= STOP_GRACE_SECONDS )); then
+  echo "[run.sh] READY_MAX_TIME_SECONDS phải nhỏ hơn STOP_GRACE_SECONDS" >&2
+  exit 64
+fi
 if ! command -v flock >/dev/null 2>&1; then
   echo "[run.sh] thiếu lệnh flock — không thể phối hợp graph lifecycle an toàn" >&2
   exit 69
@@ -89,6 +97,12 @@ while true; do
     sleep "${POLL_SECONDS}"
     continue
   fi
+  if [[ ! -f "${CUSTOM_FILES}/vietnam.osm.pbf" && ! -f "${CUSTOM_FILES}/valhalla_tiles.tar" ]]; then
+    release_start_lock
+    log "volume graph rỗng, chờ server:setup tải PBF và prepare"
+    sleep "${POLL_SECONDS}"
+    continue
+  fi
   if [[ -f "${FLAG}" ]]; then
     mv -f "${FLAG}" "${IN_PROGRESS}"
     log "đánh dấu reload/build đang chạy"
@@ -110,7 +124,9 @@ while true; do
       reload=true
       break
     fi
-    if [[ -f "${IN_PROGRESS}" ]] && curl -fsS "${READY_URL}" >/dev/null 2>&1; then
+    if [[ -f "${IN_PROGRESS}" ]] && curl -fsS \
+      --connect-timeout "${READY_CONNECT_TIMEOUT_SECONDS}" \
+      --max-time "${READY_MAX_TIME_SECONDS}" "${READY_URL}" >/dev/null 2>&1; then
       rm -f "${IN_PROGRESS}" "${FAILED}"
       log "graph mới đã sẵn sàng"
     fi
