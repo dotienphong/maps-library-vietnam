@@ -3,6 +3,13 @@
 FROM ubuntu:24.04 AS tools
 ARG DEBIAN_FRONTEND=noninteractive
 
+# Mirror mặc định archive.ubuntu.com/security.ubuntu.com hay bị nghẽn/timeout từ mạng VN;
+# đổi sang mirror trong nước để build ổn định.
+RUN sed -i \
+      -e 's|http://archive.ubuntu.com/ubuntu/|http://mirror.bizflycloud.vn/ubuntu/|' \
+      -e 's|http://security.ubuntu.com/ubuntu/|http://mirror.bizflycloud.vn/ubuntu/|' \
+      /etc/apt/sources.list.d/ubuntu.sources
+
 RUN apt-get update && apt-get install -y --no-install-recommends \
       ca-certificates curl unzip git build-essential libsqlite3-dev zlib1g-dev \
       openjdk-21-jre-headless osmium-tool python3 python3-venv postgresql-client-16 zstd \

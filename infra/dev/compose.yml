@@ -36,8 +36,12 @@ services:
     volumes:
       - pipeline-work:/app/work
       - pipeline-out:/app/out
-      # Bind mount mã nguồn: sửa code không cần build lại image (node_modules vẫn của image — symlink pnpm tương đối)
+      # Bind mount mã nguồn: sửa code không cần build lại image.
+      # node_modules của từng package pipelines/* phải giữ nguyên bản trong image (đã cài cho Linux) —
+      # nếu không, bind mount đè bằng node_modules trên host (Windows, symlink trỏ ra ngoài/khác kiến trúc).
       - ../../pipelines:/app/pipelines
+      - /app/pipelines/poi/node_modules
+      - /app/pipelines/tiles/node_modules
       - ../../scripts:/app/scripts
       - ../../db:/app/db
       - ../../infra:/app/infra
