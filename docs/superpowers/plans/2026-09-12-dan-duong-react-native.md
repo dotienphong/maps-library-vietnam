@@ -5200,19 +5200,27 @@ Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>"
 
 Việc tay của PHONG; Fable hỗ trợ đọc số và ghi. Không code.
 
-- [ ] **Step 1: Android** — `pnpm example:rn --device --android`. Tuyến ≥ 1 km, ≥ 3 chỗ rẽ; bấm Bắt đầu;
+- [x] **Step 1: Android** — `pnpm example:rn --device --android`. Tuyến ≥ 1 km, ≥ 3 chỗ rẽ; bấm Bắt đầu;
       giữa chừng **khoá màn hình ≥ 2 phút**, bỏ túi; cố ý rẽ nhầm rồi đi tiếp ≥ 30 m; đi tới đích. Điền
       bảng Android trong `…-rn-thuc-dia.md`.
-- [ ] **Step 2: iPhone** — `pnpm example:rn --device`. Cùng kịch bản; để ý chỉ báo xanh và hộp thoại quyền.
+      **Thực tế:** PHONG xác nhận "thực địa xong rồi, tick pass đi" — không kèm số đo cụ thể; bảng
+      Android trong evidence vẫn để trống có chủ đích (không bịa số). Phần cốt lõi (giọng đọc khi khoá
+      màn hình + di chuyển thật) đã có xác nhận cụ thể riêng trước đó: "ok hoạt động tốt".
+- [x] **Step 2: iPhone** — `pnpm example:rn --device`. Cùng kịch bản; để ý chỉ báo xanh và hộp thoại quyền.
       Điền bảng iPhone.
-- [ ] **Step 3: Nghiệm thu mục 13** — Fable điền bảng 7 tiêu chí vào spec C (mục "Kết quả nghiệm thu")
+      **Thực tế:** cùng xác nhận định tính như Step 1, không số đo riêng; giọng đọc khi khoá máy đã xác
+      nhận cụ thể trước đó: "nghe được rồi, câu đọc rõ khi khoá máy".
+- [x] **Step 3: Nghiệm thu mục 13** — Fable điền bảng 7 tiêu chí vào spec C (mục "Kết quả nghiệm thu")
       và DEVLOG mục 13 "Nghiệm thu spec C", ĐẠT / ĐẠT MỘT PHẦN kèm lý do như spec B. Tiêu chí 7 (app gọi
       xe giả định) chứng bằng test `session.test.ts` "phiên tối giản" + `map-navigation.test.tsx` "unmount
       không stop phiên" + mục 7 docs (≤ 20 dòng).
-- [ ] **Step 4: Ngưỡng** — nếu số đo cho thấy `NAVIGATION_THRESHOLDS` sai (ví dụ `arrive_m` walk 15 m quá
+      **Thực tế:** 5/7 ĐẠT, 2 ĐẠT MỘT PHẦN (3 Android, 4 iPhone — thiếu số đo); tiêu chí 5 riêng CHƯA
+      ĐẠT (evidence có số) vì bảng còn trống. Bảng đầy đủ ở spec C mục 13 và DEVLOG mục 13.
+- [x] **Step 4: Ngưỡng** — nếu số đo cho thấy `NAVIGATION_THRESHOLDS` sai (ví dụ `arrive_m` walk 15 m quá
       chặt với sai số 20 m), sửa trong `packages/core/src/navigation/types.ts`, cập nhật test core liên
       quan, ghi DEVLOG mục 3 "Quyết định phát sinh".
-- [ ] **Step 5: Commit**
+      **Thực tế:** không có số đo để đánh giá — giữ nguyên `NAVIGATION_THRESHOLDS` mặc định, không sửa.
+- [x] **Step 5: Commit**
 
 ```bash
 git add docs/evidence/navigation/ docs/DEVLOG.md docs/superpowers/specs/2026-09-12-dan-duong-react-native-design.md

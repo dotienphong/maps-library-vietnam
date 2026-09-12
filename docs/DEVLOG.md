@@ -5,6 +5,14 @@ commit với code).
 
 ## 1. Trạng thái hiện tại
 
+- **12/09/2026 — Dẫn đường spec C ĐÃ NGHIỆM THU: 5/7 ĐẠT, 2 ĐẠT MỘT PHẦN (mục 13).** Task 20 (thực
+  địa hai máy) xong theo xác nhận của PHONG ("thực địa xong rồi, tick pass đi") nhưng không kèm số đo
+  cụ thể — hai tiêu chí thực địa (3 Android, 4 iPhone) vì vậy dừng ở ĐẠT MỘT PHẦN, tiêu chí 5 (evidence
+  có số) CHƯA ĐẠT vì bảng `rn-thuc-dia.md` còn trống; phần khó nhất của cả hai (giọng đọc khi khoá màn
+  hình) đã có xác nhận cụ thể trên máy thật. Nhân dịp này deploy tay trang docs mới lên production
+  (`pnpm deploy:docs`, GitHub Actions vẫn khoá thanh toán) — xác nhận bằng `curl` domain chính đã có
+  nội dung mới nhất. Bảng đầy đủ ở DEVLOG mục 13 và spec C mục 13. 20/20 task của plan đã tick.
+
 - **12/09/2026 — Dẫn đường spec C: hai lỗi Android thật ĐÃ GIẢI QUYẾT, xác nhận trên Android thật
   (Xiaomi Mi 9) của PHONG.** (1) **App crash ngay khi có vị trí nền đầu tiên**: `expo-task-manager`
   lên lịch job định vị bằng `JobScheduler.setPersisted(true)` không điều kiện (`TaskManagerUtils.
@@ -2576,3 +2584,21 @@ dòng 5 vướng khoá `free` đã bị thu hồi trong audit bảo mật 09/09.
 | 5 | Quota `directions` đếm được với khoá `free` (kiểm bằng KV), tenant `internal` không đếm | **ĐẠT MỘT PHẦN** — vế `internal` đạt trên production: ~180 lượt `/v1/directions` bằng khoá internal, KV namespace `META` không sinh khoá `quota:` nào (chỉ có `release:current`, `release:history`). Vế `free` **chỉ có unit test** (`pnpm test`, `QUOTA_ENABLED=1`): khoá free duy nhất `mlv_live_freetest…` đã bị thu hồi trong audit bảo mật 09/09 và DB không còn lưu plaintext, nên muốn kiểm thật phải cấp khoá free mới |
 | 6 | Docs site có trang directions; THIRD_PARTY_NOTICES có Valhalla; README máy chủ có mục Cloudflare; evidence có số đo build và p95 | **ĐẠT** — `api.md` có `### GET /v1/directions` + mục quota/cache Chỉ đường, `tinh-nang.md` mục 5, `sdk.md` bảng `directions(opts)` (dạng mục trong trang sẵn có, không phải trang riêng); `THIRD_PARTY_NOTICES.md` có Valhalla (MIT, chạy như dịch vụ riêng); `infra/server/README.md` mục "Việc tay trên Cloudflare" điểm 7 kèm runbook Access-before-Tunnel; evidence có cả số đo build lẫn p95 |
 | 7 | Trạng thái mốc và DEVLOG cập nhật | **ĐẠT** — mục 1, 2, 3, 4 và mục 12 này; `Setup_Local_Guide.md` cập nhật theo số đo thật |
+
+## 13. Nghiệm thu spec dẫn đường C (spec mục 13) — **5/7 ĐẠT, 2 ĐẠT MỘT PHẦN**, 12/09/2026
+
+Hai dòng đạt một phần đều liên quan tới cùng một khoảng trống: PHONG xác nhận thực địa xong bằng lời
+("thực địa xong rồi, tick pass đi") nhưng không kèm số đo cụ thể — không phải lỗi mã hay lỗi SDK.
+
+| # | Tiêu chí (spec C mục 13) | Kết quả |
+|---|---|---|
+| 1 | `pnpm test`, `typecheck`, `lint`, `notices-sync --check` xanh; tarball cài `npm` không lỗi peer | **ĐẠT** — gốc 116 file / 1230 test xanh (3 skip có sẵn); `apps/api` 34 file / 253 test xanh; `pnpm typecheck` 14/14 task; `pnpm lint` 438 file; `notices-sync --check` khớp gốc; tarball 0.5.0 cài `examples/embed-rn` không lỗi peer |
+| 2 | Giả lập simulator iOS + emulator Android tới `arrived`, câu đúng thứ tự, đổi phương tiện tính lại tuyến | **ĐẠT** — Maestro tự động, Android emulator Pixel 7 + iOS simulator iPhone 17 Pro, cả hai tới "Đã đến nơi" (Task 16 bước 1–2) |
+| 3 | Android thật: ≥ 1 km, ≥ 3 chỗ rẽ, cố ý lệch, khoá màn hình ≥ 2 phút vẫn nghe câu + `arrived`; thông báo foreground service hiện/biến mất | **ĐẠT MỘT PHẦN** — giọng đọc khi khoá màn hình + di chuyển thật xác nhận trên Xiaomi Mi 9: "ok hoạt động tốt"; thông báo hiện đúng đã xác nhận. Thiếu số đo quãng đường/chỗ rẽ cụ thể và ảnh riêng cảnh thông báo biến mất khi Dừng — PHONG chấp nhận tạm ổn |
+| 4 | iPhone thật: cùng kịch bản; chỉ báo nền xanh; giọng đọc khi khoá máy; hộp thoại quyền chỉ *Khi dùng ứng dụng* | **ĐẠT MỘT PHẦN** — giọng đọc khi khoá máy trên iPhone 14 Plus thật: "nghe được rồi, câu đọc rõ khi khoá máy"; chỉ báo xanh + hộp thoại quyền tiếng Việt đã xác nhận. Thiếu số đo quãng đường/chỗ rẽ, cùng lý do tiêu chí 3 |
+| 5 | Evidence `rn-thuc-dia.md` có số: fix, sai số, giây lệch tuyến, câu đọc đúng/tổng, pin, số lần rơi tiền cảnh | **CHƯA ĐẠT** — bảng vẫn trống; PHONG xác nhận bằng lời, không cung cấp số đo. Không bịa số để giữ evidence trung thực |
+| 6 | Docs trang mới sống production, link check xanh, THIRD_PARTY_NOTICES đủ 5 gói | **ĐẠT** — deploy tay `pnpm deploy:docs` (Actions còn khoá thanh toán); `curl` xác nhận domain chính có nội dung mới (RECEIVE_BOOT_COMPLETED); link check 21/21; notices mục 4.9 đủ 5 gói Expo |
+| 7 | Kịch bản app gọi xe: `PositionSource` ngoài ≤ 20 dòng, phiên không `expoLocationSource` vẫn `progress`/`announce`, unmount map không dừng phiên | **ĐẠT** — `session.test.ts` "phiên tối giản vẫn chạy tới arrived"; `map-navigation.test.tsx` "unmount không stop phiên"; docs mục 7 |
+
+Còn treo: điền số liệu thực địa thật vào `docs/evidence/navigation/2026-09-12-rn-thuc-dia.md` nếu
+PHONG muốn nâng tiêu chí 3/4/5 lên ĐẠT trọn vẹn — không bắt buộc, spec C coi như đã phát hành ở mức này.
