@@ -406,7 +406,7 @@ Bảng ánh xạ `ManeuverKind` (mục 5.2) đặt ở core (`maneuver.ts`, `VAL
 | Build graph ăn RAM đỉnh cao, chèn Postgres | `server_threads=4`; đo lần đầu bằng `docker stats`; nếu đỉnh > 6 GB thì đặt `mem_limit` và hạ `PG_SHARED_BUFFERS` xuống 3 GB, ghi DEVLOG |
 | Gián đoạn chỉ đường lúc build (vài chục phút, 02:00 thứ Hai) | Chấp nhận ở giai đoạn nội bộ; 503 có retry-after; stale cache đỡ tuyến trùng; nâng lên build tách container nếu thành vấn đề |
 | Entrypoint image không hợp tác với kịch bản bọc | Phương án dự phòng docker-socket-proxy chỉ cho `restart` (mục 4.3) |
-| Câu tiếng Việt của Valhalla dịch máy, đọc gượng | Spec A trả nguyên; spec B đánh giá và có thể vá `vi-VN.json` bằng volume mount |
+| Câu tiếng Việt của Valhalla dịch máy, đọc gượng | Spec A trả nguyên; spec B vá ở Worker bằng bảng cụm từ (locale nằm trong binary, không mount được — xem spec B mục 2, 6.2) |
 | Dữ liệu một chiều/cấm rẽ OSM Việt Nam thiếu → tuyến sai nội thành | Không giải trong spec này; là bài toán dữ liệu OSM. Ghi vào docs "độ chính xác"; cơ chế đóng góp POI không áp dụng cho đường |
 | Xe máy lên cao tốc do costing chưa chuẩn | Kiểm smoke liên tỉnh: `flags.highway` phải `false` với `mode=motorbike`; nếu sai chỉnh `costing_options.motor_scooter.use_highways = 0` ở plan |
 | Đo ở dev rồi kết luận (bài học tìm kiếm) | Mọi ngưỡng p95 và RAM chốt bằng số đo production, ghi evidence |

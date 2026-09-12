@@ -5372,7 +5372,7 @@ Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>"
 - Modify: `docs/superpowers/specs/2026-09-12-dan-duong-core-web-design.md` (dòng Trạng thái)
 - Modify: `/Users/dtphong/.claude/projects/-Users-dtphong-Desktop-software-business-mapsLibVN/memory/trang-thai-moc-hien-tai.md`
 
-- [ ] **Step 1: DEVLOG mục 1 — thêm bullet đầu**
+- [x] **Step 1: DEVLOG mục 1 — thêm bullet đầu**
 
 ```md
 - **2026-09-XX — Dẫn đường spec B phát hành.** Core `navigation/` (createNavigator máy trạng thái thuần,
@@ -5385,7 +5385,7 @@ Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>"
   (React Native: PositionSource từ expo-location, expo-speech, ShapeSource/LineLayer).
 ```
 
-- [ ] **Step 2: DEVLOG mục 2 — thay đoạn "Dẫn đường"**
+- [x] **Step 2: DEVLOG mục 2 — thay đoạn "Dẫn đường"**
 
 ```md
 - **Dẫn đường:** spec A đóng 11/09, spec B đóng <ngày> (xem mục 1). Kế tiếp: brainstorm **spec C** React
@@ -5394,7 +5394,7 @@ Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>"
   đo build lạnh graph).
 ```
 
-- [ ] **Step 3: DEVLOG mục 3 — các quyết định phát sinh**
+- [x] **Step 3: DEVLOG mục 3 — các quyết định phát sinh**
 
 Thêm các dòng (điền ngày và commit thật):
 
@@ -5404,23 +5404,23 @@ Thêm các dòng (điền ngày và commit thật):
 | 2026-09-12 | Trần size-limit barrel core 12 → 16 kB | navigation/ thêm ~<x> kB; app không dùng dẫn đường vẫn tree-shake (`sideEffects: false`) | <commit Task 4> |
 ```
 
-- [ ] **Step 4: DEVLOG mục 4 — nhật ký**
+- [x] **Step 4: DEVLOG mục 4 — nhật ký**
 
 Thêm một dòng cho mỗi task đã xong theo dạng `- 2026-09-XX · Spec B T<n> · <việc> · \`<sha>\``.
 
-- [ ] **Step 5: Spec A mục 9**
+- [x] **Step 5: Spec A mục 9**
 
 Dòng `| Câu tiếng Việt của Valhalla dịch máy, đọc gượng | Spec A trả nguyên; spec B đánh giá và có thể vá \`vi-VN.json\` bằng volume mount |` đổi vế sau thành `Spec A trả nguyên; spec B vá ở Worker bằng bảng cụm từ (locale nằm trong binary, không mount được — xem spec B mục 2, 6.2)`.
 
-- [ ] **Step 6: Spec B trạng thái**
+- [x] **Step 6: Spec B trạng thái**
 
 Dòng `- Trạng thái: bản viết sau brainstorming …` đổi thành `- Trạng thái: **Đã phát hành <ngày>**; nghiệm thu mục 11 <n>/7 đạt — evidence \`docs/evidence/navigation/\`, DEVLOG mục 1`. Ghi kết quả từng điểm nghiệm thu mục 11 ngay dưới mục 11 (bảng Đạt / Đạt một phần + lý do).
 
-- [ ] **Step 7: Memory trạng thái mốc**
+- [x] **Step 7: Memory trạng thái mốc**
 
 Cập nhật file memory `trang-thai-moc-hien-tai.md`: đoạn "Dẫn đường" ghi spec B đóng <ngày>, plan `docs/superpowers/plans/2026-09-12-dan-duong-core-web.md` 20 task xong, việc tiếp theo brainstorm spec C; giữ hai nợ spec A. Cập nhật `description` frontmatter cho khớp.
 
-- [ ] **Step 8: Cổng cuối và commit**
+- [x] **Step 8: Cổng cuối và commit**
 
 Run: `pnpm lint && pnpm typecheck && pnpm test`
 Expected: xanh.

@@ -5,6 +5,25 @@ commit với code).
 
 ## 1. Trạng thái hiện tại
 
+- **12/09/2026 — Dẫn đường spec B phát hành.** Core `navigation/` (createNavigator máy trạng thái
+  thuần, bám tuyến theo cửa sổ, lịch đọc 5 loại câu, reroute auto có cooldown 15 s / trần 3 lỗi,
+  simulateFixes; barrel 16,91 kB gzip, trần nâng 16 → 20 kB ở Task 9 vì `navigator.ts` nặng hơn dự
+  tính lúc viết spec), web `map.routes` + `map.navigation` (geolocation, camera bám, puck,
+  speechSynthesis vi-VN, wake lock; wrapper 8,8 kB gzip, UMD 302,15 kB), React `useNavigation()`,
+  Worker `verbal_alert` + bảng cụm từ `vi-phrases.ts` (16 luật, corpus 400+ tên đường/địa chỉ/tỉnh
+  không đụng), fixture `directions-q1.json` dùng chung qua `toMatchFileSnapshot`, docs `/dan-duong/`.
+  Trang demo riêng `/dan-duong-demo/` (Task 17) bị gỡ **cùng ngày**, sau khi một plan khác ("Dẫn đường
+  trong Playground") dồn chức năng giả lập/dẫn đường vào Playground để khỏi trùng hai nơi. Thực địa đi
+  bộ 12/09 đạt — PHONG tự đi thử, xác nhận trực tiếp "ok", giữ nguyên `NAVIGATION_THRESHOLDS`, không đo
+  số liệu định lượng chi tiết. `pnpm test` gốc 1177 test / 104 file (3 skip có sẵn từ trước), apps/api
+  253 test / 34 file. Evidence: `docs/evidence/navigation/`. **Bắt đầu tiếp:** spec C (React Native:
+  `PositionSource` từ `expo-location`, `expo-speech`, `ShapeSource`/`LineLayer`).
+
+  **Bài học:** nghiệm thu mục 11 của spec B chỉ 3/7 đạt trọn vẹn, 4/7 "đạt một phần" — không phải do
+  lỗi mà do thực tế lệch khỏi số/tên viết sẵn trong spec lúc brainstorm (trần size-limit phải nâng
+  thêm một lần nữa, tên trang demo đổi giữa chừng, thực địa chỉ có xác nhận định tính). Xem bảng kết
+  quả đầy đủ trong spec B mục 11.
+
 - **11/09/2026 — Chỉ đường spec A phát hành.** Valhalla 3.8.3 chạy trên máy chủ nội bộ (graph Việt Nam
   từ `vietnam-latest.osm.pbf` 313 MB, tar 1,08 GB, RAM đỉnh container 3,67 GB, build ấm 1 phút 59 giây),
   Worker `GET /v1/directions` + `GET /healthz/routing` (200 kèm `graph_built_at`), core
@@ -818,10 +837,11 @@ commit với code).
 
 ## 2. Bước kế tiếp
 
-- **Dẫn đường:** spec A đóng 11/09/2026 (Task 1–19 xong, xem mục 1); bước kế tiếp là brainstorm **spec B**
-  (`RouteProvider`, máy trạng thái dẫn đường, GPS web). Spec C (React Native) sau B.
+- **Dẫn đường:** spec A đóng 11/09/2026, spec B đóng 12/09/2026 (xem mục 1). Kế tiếp: brainstorm
+  **spec C** React Native — dùng nguyên `createNavigator`/`PositionSource`/`announce` của core; việc
+  riêng của RN là định vị nền, quyền, TTS native, vẽ tuyến bằng ShapeSource.
 
-  Hai việc còn nợ của spec A: (1) chạy `gh workflow run "Routing tests"` và ghi ID run vào
+  Hai việc còn nợ của spec A (chưa đổi): (1) chạy `gh workflow run "Routing tests"` và ghi ID run vào
   `docs/evidence/routing/2026-09-11-nghiem-thu-production.md` khi GitHub Actions được mở lại (đang khoá
   vì thanh toán từ 10/09); (2) đo **build lạnh** graph Việt Nam — số 1 phút 59 giây hiện có là build ấm
   chồng lên thư mục tile cũ, chưa dùng để ước lượng thời gian dựng máy chủ mới được.
@@ -1374,6 +1394,11 @@ vẫn là `sleep 1` phút — `sudo pmset -a sleep 0 disksleep 0`.
 
 | Ngày | Quyết định | Lý do | Commit |
 |---|---|---|---|
+| 2026-09-12 | Gỡ trang riêng `/dan-duong-demo/` và E2E của nó, dồn giả lập/dẫn đường vào chế độ Dẫn đường trong Playground | Quyết định của một plan riêng ("Dẫn đường trong Playground") cùng ngày spec B phát hành — khỏi trùng hai nơi cùng chức năng; làm 2 mục nghiệm thu spec B (2, 6) chỉ còn "đạt một phần" | `7f2211b` |
+| 2026-09-12 | Trần size-limit barrel core nâng thêm **16 → 20 kB** | `createNavigator` (máy trạng thái đầy đủ: bám tuyến, lịch đọc, reroute) nặng hơn dự tính khi viết spec B; đo thực tế 16,91 kB | `b516a92` |
+| 2026-09-12 | Trần size-limit barrel core 12 → 16 kB | `navigation/types.ts` + `geometry.ts` thêm vào; app không dùng dẫn đường vẫn tree-shake (`sideEffects: false`) | `3abbff5` |
+| 2026-09-12 | Vá câu tiếng Việt Valhalla **ở Worker** bằng bảng cụm từ, không mount `vi-VN.json` | Locale nằm trong binary Valhalla 3.8.3 (không có `locales/` trên đĩa, `valhalla_service` chứa chuỗi mẫu) — spec A mục 9 sửa một dòng trỏ sang spec B | `ac70c1b` |
+| 2026-09-12 | Thêm trường `verbal_alert` vào `RouteStep` (bổ sung, không đổi trường cũ) | Valhalla trả alert ngắn gọn hơn `verbal_pre`; câu "Trong X nữa" do core ghép vì `FormVerbalAlertApproachInstruction` không được gọi trong 3.8.3 | `8c98642` |
 | 2026-09-11 | **Không** đặt `mem_limit` cho service `valhalla`, giữ `PG_SHARED_BUFFERS=6144MB`; nhưng ghi thành yêu cầu cứng: VM Docker (WSL2 trên Windows) phải ≥ 12 GB mới được build graph | Đỉnh đo được 3,67 GB < 6 GB nên `mem_limit` chỉ thêm rủi ro chặn nhầm. Ngược lại 8,2 GB làm `valhalla_build_tiles -s enhance` bị kernel giết — nguyên nhân duy nhất của lần build hỏng 11/09. Số 3,67 GB là build ấm, chưa phải đỉnh của build lạnh | `ebe21db` |
 | 2026-09-11 | Toạ độ đích tuyến smoke `noi-thanh-hcm` đổi từ `10.8188,106.6520` sang `10.8153,106.6633` | Toạ độ sân bay Tân Sơn Nhất thường được trích dẫn snap vào edge "VĐ. bảo vệ sân bay" trong khu bay, không nối mạng đường công cộng: `auto`/`motor_scooter` trả 442, tuyến hỏng 20/20 lượt. Fixture này chưa từng chạy trên graph thật vì plan viết trước khi máy chủ có Valhalla | `c223497` |
 | 2026-09-11 | Ngưỡng `--p95-max=800` chỉ có nghĩa khi chạy kèm `--requests=20` | Ở mặc định 5 lượt, p95 gần như bằng lượt chậm nhất và lượt đầu sau khi nghỉ mất ~2 giây (isolate Worker nguội + bắt tay Access), làm trượt ngưỡng dù dịch vụ bình thường | `c223497` |
@@ -1919,6 +1944,37 @@ vẫn là `sleep 1` phút — `sudo pmset -a sleep 0 disksleep 0`.
   `--p95-max=800` · `c223497`, `12902c8`
 - 2026-09-11 · Dẫn đường A T19 · nghiệm thu spec A mục 11, DEVLOG, `Setup_Local_Guide.md` theo số đo
   Valhalla · `413736a` + (commit này)
+- 2026-09-12 · Dẫn đường B T1 · `verbal_alert` xuyên suốt core → Worker · `8c98642`
+- 2026-09-12 · Dẫn đường B T2 · bảng cụm từ `vi-phrases.ts`, áp vào translate khi `lang=vi` · `ac70c1b`
+- 2026-09-12 · Dẫn đường B T3 · fixture `DirectionsResponse` Quận 1 dùng chung, đồng bộ bằng
+  `toMatchFileSnapshot` · `b4e3605`
+- 2026-09-12 · Dẫn đường B T4 · kiểu dữ liệu `navigation/types.ts`, bảng ngưỡng, `geometry.ts` ·
+  `3abbff5`
+- 2026-09-12 · Dẫn đường B T5 · `progress.ts` — chỉ mục tuyến, step phẳng, ETA · `4c9f48b`
+- 2026-09-12 · Dẫn đường B T6 · `snap.ts` — bám tuyến theo cửa sổ · `b46aa93`
+- 2026-09-12 · Dẫn đường B T7 · `announce.ts` — định dạng khoảng cách và lịch đọc · `32ee56a`
+- 2026-09-12 · Dẫn đường B T8 · `simulate.ts` — chuỗi GPS giả lập thuần · `ed8acbf`
+- 2026-09-12 · Dẫn đường B T9 · `navigator.ts` — máy trạng thái `createNavigator`, trần size-limit core
+  16 → 20 kB · `b516a92`
+- 2026-09-12 · Dẫn đường B T10 · tính lại tuyến — test auto/cooldown/trần lỗi/kết quả cũ/manual ·
+  `3334974`
+- 2026-09-12 · Dẫn đường B T11 · web `position-source.ts` — `geolocationSource`, `playbackSource` ·
+  `a8e858f`
+- 2026-09-12 · Dẫn đường B T12 · web `speech.ts` — đọc bằng `speechSynthesis` · `d66b48b`
+- 2026-09-12 · Dẫn đường B T13 · web `routes-layer.ts` — vẽ tuyến, tuyến thay thế, phần đã đi ·
+  `aec9a00`
+- 2026-09-12 · Dẫn đường B T14 · web `navigation.ts`, nối vào `createMap`, export ESM/UMD · `1cdd0ae`
+- 2026-09-12 · Dẫn đường B T15 · React `useNavigation()` · `b388503`
+- 2026-09-12 · Dẫn đường B T16 · docs trang `dan-duong`, cập nhật `api.md`/`sdk.md`/`tinh-nang.md`/
+  `react.md`, sidebar · `7fc4121`
+- 2026-09-12 · Dẫn đường B T17 · trang demo `/dan-duong-demo/` và E2E giả lập — gỡ cùng ngày, xem quyết
+  định phát sinh mục 3 và T20 · `e47d3d0`
+- 2026-09-12 · Dẫn đường B T18 · cổng local, PHONG duyệt bảng cụm từ, deploy Worker + docs tay, smoke
+  production, evidence · `288e5c8`, `f387d9d`
+- 2026-09-12 · Dẫn đường B T19 · thực địa đi bộ — PHONG xác nhận trực tiếp "ok", giữ nguyên ngưỡng ·
+  `35c0bf2`
+- 2026-09-12 · Dẫn đường B T20 · đóng spec B — DEVLOG, nghiệm thu, spec A mục 9, memory trạng thái mốc ·
+  (commit này)
 
 ## 5. Sự cố
 
