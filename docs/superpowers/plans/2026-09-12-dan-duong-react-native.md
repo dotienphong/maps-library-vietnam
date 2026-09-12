@@ -2837,7 +2837,7 @@ Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>"
 - Create: `packages/react-native/src/expo/location-source.ts`
 - Create: `packages/react-native/src/expo/location-source.test.ts`
 
-- [ ] **Step 1: Kiểu ambient cho năm gói Expo** (không cài gói vào workspace — quyết định M6)
+- [x] **Step 1: Kiểu ambient cho năm gói Expo** (không cài gói vào workspace — quyết định M6)
 
 `packages/react-native/src/expo/expo-modules.d.ts`:
 
@@ -2957,7 +2957,7 @@ import * as TaskManager from 'expo-task-manager';
 export { Audio, KeepAwake, Location, Speech, TaskManager };
 ```
 
-- [ ] **Step 2: Viết test đỏ**
+- [x] **Step 2: Viết test đỏ**
 
 `packages/react-native/src/expo/location-source.test.ts`:
 
@@ -3210,12 +3210,12 @@ describe('expoLocationSource — quyền và huỷ sớm', () => {
 });
 ```
 
-- [ ] **Step 3: Chạy đỏ**
+- [x] **Step 3: Chạy đỏ**
 
 Run: `pnpm exec vitest run packages/react-native/src/expo/location-source.test.ts`
 Expected: FAIL — không resolve được `./location-source`.
 
-- [ ] **Step 4: Viết `location-source.ts`**
+- [x] **Step 4: Viết `location-source.ts`**
 
 ```ts
 import type { GeoFix, PositionError, TravelMode } from '@mapslibvn/core';
@@ -3449,12 +3449,12 @@ export function expoLocationSource(opts: ExpoLocationSourceOptions = {}): Sessio
 }
 ```
 
-- [ ] **Step 5: Chạy xanh + typecheck**
+- [x] **Step 5: Chạy xanh + typecheck**
 
 Run: `pnpm exec vitest run packages/react-native/src/expo/location-source.test.ts && pnpm --filter @mapslibvn/react-native typecheck`
 Expected: 11 PASS. Nếu typecheck báo không tìm thấy module `expo-location`, kiểm tra `expo-modules.d.ts` nằm trong `src/` (tsconfig `include: ["src"]`) và dòng `/// <reference>` trong `modules.ts`.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add packages/react-native/src/expo/expo-modules.d.ts packages/react-native/src/expo/modules.ts packages/react-native/src/expo/location-source.ts packages/react-native/src/expo/location-source.test.ts
@@ -3472,7 +3472,7 @@ Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>"
 - Create: `packages/react-native/src/expo/device.ts`, `device.test.ts`
 - Create: `packages/react-native/src/expo/index.ts`
 
-- [ ] **Step 1: Viết test speech đỏ**
+- [x] **Step 1: Viết test speech đỏ**
 
 `packages/react-native/src/expo/speech.test.ts`:
 
@@ -3561,7 +3561,7 @@ describe('expoSpeech', () => {
 });
 ```
 
-- [ ] **Step 2: Viết test device đỏ**
+- [x] **Step 2: Viết test device đỏ**
 
 `packages/react-native/src/expo/device.test.ts`:
 
@@ -3610,12 +3610,12 @@ describe('expoKeepAwake', () => {
 });
 ```
 
-- [ ] **Step 3: Chạy đỏ**
+- [x] **Step 3: Chạy đỏ**
 
 Run: `pnpm exec vitest run packages/react-native/src/expo/speech.test.ts packages/react-native/src/expo/device.test.ts`
 Expected: FAIL — không resolve được `./speech`, `./device`.
 
-- [ ] **Step 4: Viết `speech.ts`**
+- [x] **Step 4: Viết `speech.ts`**
 
 ```ts
 import type { DirectionsLang } from '@mapslibvn/core';
@@ -3700,7 +3700,7 @@ export function expoSpeech(opts: ExpoSpeechOptions = {}): Speaker {
 }
 ```
 
-- [ ] **Step 5: Viết `device.ts`**
+- [x] **Step 5: Viết `device.ts`**
 
 ```ts
 import type { AudioSession, KeepAwake } from '../navigation/session';
@@ -3752,7 +3752,7 @@ export function expoKeepAwake(): KeepAwake {
 }
 ```
 
-- [ ] **Step 6: Viết `expo/index.ts`**
+- [x] **Step 6: Viết `expo/index.ts`**
 
 ```ts
 import type { NavigationSessionOptions } from '../navigation/session';
@@ -3788,12 +3788,12 @@ export function expoNavigation(
 }
 ```
 
-- [ ] **Step 7: Chạy xanh + typecheck + lint**
+- [x] **Step 7: Chạy xanh + typecheck + lint**
 
 Run: `pnpm exec vitest run packages/react-native/src/expo && pnpm --filter @mapslibvn/react-native typecheck && pnpm lint`
 Expected: PASS (location 11, speech 4, device 2).
 
-- [ ] **Step 8: Commit**
+- [x] **Step 8: Commit**
 
 ```bash
 git add packages/react-native/src/expo
@@ -3995,11 +3995,11 @@ pnpm --filter @mapslibvn/core build && pnpm --filter @mapslibvn/react-native bui
 ls packages/react-native/dist packages/react-native/dist/expo
 grep -c "expo-" packages/react-native/dist/index.js
 grep -o "from ['\"]expo-[a-z-]*['\"]" packages/react-native/dist/expo/index.js | sort -u
-grep -c "expo-" packages/react-native/dist/expo/index.d.ts
+grep -E "^import.*expo-|from ['\"]expo-" packages/react-native/dist/expo/index.d.ts | wc -l
 grep -c "createNavigationSession" packages/react-native/dist/index.d.ts
 cd packages/react-native && pnpm pack --pack-destination /tmp && tar -tzf /tmp/mapslibvn-react-native-0.5.0.tgz | grep -E "dist/(expo/)?index" && cd ../..
 ```
-Expected: `dist/expo/index.js` + `.d.ts` tồn tại; entry chính **0** lần nhắc `expo-`; entry expo import đúng 5 gói; `dist/expo/index.d.ts` **0** lần nhắc `expo-` (không lộ kiểu Expo); `createNavigationSession` có trong `.d.ts`; tarball chứa cả hai entry.
+Expected: `dist/expo/index.js` + `.d.ts` tồn tại; entry chính **0** lần nhắc `expo-`; entry expo import đúng 5 gói; `dist/expo/index.d.ts` **0** dòng import từ `expo-*` (không lộ kiểu Expo; nhắc trong comment doc thì được); `createNavigationSession` có trong `.d.ts`; tarball chứa cả hai entry.
 
 - [ ] **Step 6: Test + typecheck + lint toàn gói**
 
