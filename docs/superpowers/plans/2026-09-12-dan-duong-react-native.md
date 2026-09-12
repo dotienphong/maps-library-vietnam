@@ -60,7 +60,7 @@
 - Create: `packages/core/src/navigation/route-features.test.ts`
 - Modify: `packages/core/src/navigation/index.ts`
 
-- [ ] **Step 1: Viết test đỏ**
+- [x] **Step 1: Viết test đỏ**
 
 `packages/core/src/navigation/route-features.test.ts`:
 
@@ -147,12 +147,12 @@ describe('routeFeatures', () => {
 });
 ```
 
-- [ ] **Step 2: Chạy để thấy đỏ**
+- [x] **Step 2: Chạy để thấy đỏ**
 
 Run: `pnpm exec vitest run packages/core/src/navigation/route-features.test.ts`
 Expected: FAIL — `Failed to resolve import "./route-features"`.
 
-- [ ] **Step 3: Viết `route-features.ts`**
+- [x] **Step 3: Viết `route-features.ts`**
 
 ```ts
 import { decodePolyline6 } from '../polyline';
@@ -257,12 +257,12 @@ Thêm vào cuối `packages/core/src/navigation/index.ts`:
 export * from './route-features';
 ```
 
-- [ ] **Step 4: Chạy để thấy xanh + typecheck core**
+- [x] **Step 4: Chạy để thấy xanh + typecheck core**
 
 Run: `pnpm exec vitest run packages/core/src/navigation/route-features.test.ts && pnpm --filter @mapslibvn/core typecheck`
 Expected: 6 test PASS; typecheck không lỗi.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add packages/core/src/navigation/route-features.ts packages/core/src/navigation/route-features.test.ts packages/core/src/navigation/index.ts
@@ -279,7 +279,7 @@ Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>"
 - Modify: `packages/core/src/style-transform.ts`
 - Create: `packages/style/src/first-symbol-layer.test.ts`
 
-- [ ] **Step 1: Viết test đỏ**
+- [x] **Step 1: Viết test đỏ**
 
 `packages/style/src/first-symbol-layer.test.ts`:
 
@@ -317,12 +317,12 @@ describe('FIRST_SYMBOL_LAYER_ID của core khớp style dựng thật', () => {
 });
 ```
 
-- [ ] **Step 2: Chạy để thấy đỏ**
+- [x] **Step 2: Chạy để thấy đỏ**
 
 Run: `pnpm --filter @mapslibvn/core build && pnpm exec vitest run packages/style/src/first-symbol-layer.test.ts`
 Expected: FAIL — `FIRST_SYMBOL_LAYER_ID` không phải export của `@mapslibvn/core` (undefined → `Cannot read properties of undefined`).
 
-- [ ] **Step 3: Thêm hằng vào core**
+- [x] **Step 3: Thêm hằng vào core**
 
 Trong `packages/core/src/style-transform.ts`, thêm sau dòng `export const POI_LAYER_ID = 'poi';`:
 
@@ -343,12 +343,12 @@ và thêm import ở đầu file (chỉ kiểu, không tạo vòng import lúc c
 import type { Theme } from './client';
 ```
 
-- [ ] **Step 4: Build core, chạy test xanh**
+- [x] **Step 4: Build core, chạy test xanh**
 
 Run: `pnpm --filter @mapslibvn/core build && pnpm exec vitest run packages/style/src/first-symbol-layer.test.ts packages/core/src/style-transform.test.ts`
 Expected: PASS (2 test mới + test cũ).
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add packages/core/src/style-transform.ts packages/style/src/first-symbol-layer.test.ts
@@ -365,12 +365,12 @@ Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>"
 - Modify: `packages/web/src/routes-layer.ts`
 - Test có sẵn: `packages/web/src/routes-layer.test.ts` (không sửa)
 
-- [ ] **Step 1: Chạy test web hiện tại để có mốc xanh**
+- [x] **Step 1: Chạy test web hiện tại để có mốc xanh**
 
 Run: `pnpm exec vitest run packages/web/src/routes-layer.test.ts`
 Expected: PASS (5 test).
 
-- [ ] **Step 2: Thay phần dựng GeoJSON cục bộ bằng core**
+- [x] **Step 2: Thay phần dựng GeoJSON cục bộ bằng core**
 
 Sửa `packages/web/src/routes-layer.ts`:
 
@@ -409,12 +409,12 @@ import {
 
 7. Trong `clear`: `source?.setData(EMPTY as GeoJsonData);` → `source?.setData(EMPTY_ROUTE_FEATURES as GeoJsonData);`.
 
-- [ ] **Step 3: Test web xanh không sửa test, typecheck web**
+- [x] **Step 3: Test web xanh không sửa test, typecheck web**
 
 Run: `pnpm --filter @mapslibvn/core build && pnpm exec vitest run packages/web/src/routes-layer.test.ts packages/web/src/navigation.test.ts && pnpm --filter @mapslibvn/web typecheck && pnpm lint`
 Expected: PASS toàn bộ; lint xanh (Biome sẽ báo import chưa dùng nếu quên xoá `decodePolyline6`).
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add packages/web/src/routes-layer.ts
@@ -431,7 +431,7 @@ Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>"
 - Create: `packages/react-native/src/navigation/playback-source.ts`
 - Create: `packages/react-native/src/navigation/playback-source.test.ts`
 
-- [ ] **Step 1: Viết test đỏ**
+- [x] **Step 1: Viết test đỏ**
 
 `packages/react-native/src/navigation/playback-source.test.ts`:
 
@@ -473,12 +473,12 @@ describe('playbackSource', () => {
 });
 ```
 
-- [ ] **Step 2: Chạy để thấy đỏ**
+- [x] **Step 2: Chạy để thấy đỏ**
 
 Run: `pnpm exec vitest run packages/react-native/src/navigation/playback-source.test.ts`
 Expected: FAIL — không resolve được `./playback-source`.
 
-- [ ] **Step 3: Viết `playback-source.ts`** (bản sao của `packages/web/src/position-source.ts` phần `playbackSource`; chấp nhận trùng như `usePlaces`, vì core không chứa timer)
+- [x] **Step 3: Viết `playback-source.ts`** (bản sao của `packages/web/src/position-source.ts` phần `playbackSource`; chấp nhận trùng như `usePlaces`, vì core không chứa timer)
 
 ```ts
 import type { GeoFix, PositionSource } from '@mapslibvn/core';
@@ -527,12 +527,12 @@ export function playbackSource(
 }
 ```
 
-- [ ] **Step 4: Chạy xanh**
+- [x] **Step 4: Chạy xanh**
 
 Run: `pnpm exec vitest run packages/react-native/src/navigation/playback-source.test.ts`
 Expected: 2 PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add packages/react-native/src/navigation/playback-source.ts packages/react-native/src/navigation/playback-source.test.ts
@@ -549,7 +549,7 @@ Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>"
 - Create: `packages/react-native/src/navigation/session.ts`
 - Create: `packages/react-native/src/navigation/session.test.ts`
 
-- [ ] **Step 1: Viết test đỏ**
+- [x] **Step 1: Viết test đỏ**
 
 `packages/react-native/src/navigation/session.test.ts`:
 
@@ -783,12 +783,12 @@ describe('createNavigationSession', () => {
 });
 ```
 
-- [ ] **Step 2: Chạy để thấy đỏ**
+- [x] **Step 2: Chạy để thấy đỏ**
 
 Run: `pnpm --filter @mapslibvn/core build && pnpm exec vitest run packages/react-native/src/navigation/session.test.ts`
 Expected: FAIL — không resolve được `./session`.
 
-- [ ] **Step 3: Viết `session.ts`**
+- [x] **Step 3: Viết `session.ts`**
 
 ```ts
 import {
@@ -1096,12 +1096,12 @@ export function createNavigationSession(opts: NavigationSessionOptions): Navigat
 }
 ```
 
-- [ ] **Step 4: Chạy xanh + typecheck gói RN**
+- [x] **Step 4: Chạy xanh + typecheck gói RN**
 
 Run: `pnpm exec vitest run packages/react-native/src/navigation/session.test.ts && pnpm --filter @mapslibvn/react-native typecheck`
 Expected: 8 PASS; typecheck sạch.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add packages/react-native/src/navigation/session.ts packages/react-native/src/navigation/session.test.ts
@@ -1119,7 +1119,7 @@ Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>"
 - Create: `packages/react-native/src/navigation/puck-image.ts` (do script sinh)
 - Create: `packages/react-native/src/navigation/puck-image.test.ts`
 
-- [ ] **Step 1: Viết test đỏ**
+- [x] **Step 1: Viết test đỏ**
 
 `packages/react-native/src/navigation/puck-image.test.ts`:
 
@@ -1143,12 +1143,12 @@ describe('puck-image', () => {
 });
 ```
 
-- [ ] **Step 2: Chạy để thấy đỏ**
+- [x] **Step 2: Chạy để thấy đỏ**
 
 Run: `pnpm exec vitest run packages/react-native/src/navigation/puck-image.test.ts`
 Expected: FAIL — không resolve được `./puck-image`.
 
-- [ ] **Step 3: Viết script sinh**
+- [x] **Step 3: Viết script sinh**
 
 `packages/react-native/scripts/gen-puck.mjs`:
 
@@ -1248,7 +1248,7 @@ writeFileSync(target, out);
 console.log(`✓ ${target} (${png.length} byte PNG)`);
 ```
 
-- [ ] **Step 4: Chạy script, xem ảnh, chạy test xanh**
+- [x] **Step 4: Chạy script, xem ảnh, chạy test xanh**
 
 Run:
 ```bash
@@ -1258,7 +1258,7 @@ pnpm exec vitest run packages/react-native/src/navigation/puck-image.test.ts
 ```
 Expected: in ra `✓ … (~900 byte PNG)`; ảnh là tam giác xanh viền trắng mũi hướng lên; test PASS. `pnpm lint` phải xanh (Biome không đòi ngắt chuỗi dài).
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add packages/react-native/scripts/gen-puck.mjs packages/react-native/src/navigation/puck-image.ts packages/react-native/src/navigation/puck-image.test.ts
@@ -1511,7 +1511,8 @@ describe('RouteLayers', () => {
     }
     expect(layer(ROUTE_LAYER_IDS.line).paint).toEqual({ 'line-color': '#2458a6', 'line-width': 6 });
     expect(screen.getByTestId('mlrn-images').dataset.keys).toBe('mapslibvn-puck');
-    expect(screen.queryByTestId(`mlrn-layer-${ROUTE_LAYER_IDS.puck}`)).toBeNull(); // chưa có progress
+    // Layer puck luôn có khi puck bật; chưa có progress thì source không có feature puck (kinds ở trên).
+    expect(screen.getByTestId(`mlrn-layer-${ROUTE_LAYER_IDS.puck}`)).toBeTruthy();
     const markers = screen.getAllByTestId('mapslibvn-route-marker');
     expect(markers).toHaveLength(1);
     expect(markers[0]?.dataset.lnglat).toBe(response.waypoints[1]?.snapped.join(','));
@@ -1618,8 +1619,11 @@ interface RouteLayersProps {
 }
 
 const kindIs = (kind: string): FilterSpecification => ['==', ['get', 'kind'], kind];
-const ROUND: LineLayerSpecification['layout'] = { 'line-join': 'round', 'line-cap': 'round' };
-const PUCK_LAYOUT: SymbolLayerSpecification['layout'] = {
+const ROUND: NonNullable<LineLayerSpecification['layout']> = {
+  'line-join': 'round',
+  'line-cap': 'round',
+};
+const PUCK_LAYOUT: NonNullable<SymbolLayerSpecification['layout']> = {
   'icon-image': PUCK_IMAGE_KEY,
   'icon-rotate': ['get', 'bearing'],
   'icon-rotation-alignment': 'map',

@@ -19,6 +19,7 @@ let lastMapProps: MapProps | null = null;
 export const getLastMapProps = () => lastMapProps;
 export const resetMocks = () => {
   lastMapProps = null;
+  lastSourceProps = null;
   for (const fn of Object.values(mapRefMock)) fn.mockClear();
   for (const fn of Object.values(cameraRefMock)) fn.mockClear();
 };
@@ -61,4 +62,30 @@ export function Marker(props: {
       {props.children}
     </div>
   );
+}
+
+type SourceProps = {
+  id?: string;
+  data: unknown;
+  onPress?: (e: unknown) => void;
+  children?: ReactNode;
+};
+let lastSourceProps: SourceProps | null = null;
+export const getLastSourceProps = () => lastSourceProps;
+
+export function GeoJSONSource(props: SourceProps) {
+  lastSourceProps = props;
+  return (
+    <div data-testid={`mlrn-source-${props.id ?? 'x'}`} data-geojson={JSON.stringify(props.data)}>
+      {props.children}
+    </div>
+  );
+}
+
+export function Layer(props: Record<string, unknown> & { id?: string }) {
+  return <div data-testid={`mlrn-layer-${String(props.id)}`} data-layer={JSON.stringify(props)} />;
+}
+
+export function Images(props: { images: Record<string, unknown> }) {
+  return <div data-testid="mlrn-images" data-keys={Object.keys(props.images).join(',')} />;
 }

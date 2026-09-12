@@ -1,7 +1,7 @@
 import { type Anchor, Marker as NativeMarker } from '@maplibre/maplibre-react-native';
-import type { ReactElement } from 'react';
+import { type ReactElement, useContext } from 'react';
 import { StyleSheet, View } from 'react-native';
-import { useMap } from './map';
+import { MapContext } from './context';
 
 /** Màu ghim mặc định của MapLibre. */
 export const DEFAULT_MARKER_COLOR = '#3FB1CE';
@@ -28,7 +28,8 @@ export function Marker({
   children,
   testID,
 }: MarkerProps) {
-  useMap(); // bảo đảm nằm trong <MapsLibVNMap>
+  // Đọc context trực tiếp (không qua useMap của map.tsx) để tránh vòng import map → route-layers → marker → map.
+  if (!useContext(MapContext)) throw new Error('useMap phải được gọi bên trong <MapsLibVNMap>');
   const pin = children ?? (
     <View style={[styles.pin, { backgroundColor: color }]} testID="mapslibvn-marker-pin" />
   );
