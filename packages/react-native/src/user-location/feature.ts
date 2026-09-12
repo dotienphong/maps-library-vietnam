@@ -50,7 +50,9 @@ export function metersPerPixel(lat: number, zoom: number): number {
   return (EARTH_CIRCUMFERENCE_M * Math.cos((lat * Math.PI) / 180)) / (512 * 2 ** zoom);
 }
 
-type CircleRadius = NonNullable<CircleLayerSpecification['paint']>['circle-radius'];
+// Trích kiểu qua property tuỳ chọn vẫn giữ `| undefined` — bỏ thêm một lớp NonNullable để
+// exactOptionalPropertyTypes chấp nhận literal `{ 'circle-radius': accuracyRadiusExpression(...) }`.
+type CircleRadius = NonNullable<NonNullable<CircleLayerSpecification['paint']>['circle-radius']>;
 
 /**
  * `circle-radius` (px) để vòng có bán kính `accuracy_m` thật ở mọi zoom: interpolate exponential
