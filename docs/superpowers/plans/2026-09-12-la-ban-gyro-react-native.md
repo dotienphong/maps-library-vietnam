@@ -3759,7 +3759,7 @@ Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>"
 - Modify: `docs/DEVLOG.md`
 - Modify: `docs/superpowers/specs/2026-09-12-la-ban-gyro-react-native-design.md` (mục 12 và mục lệch spec)
 
-- [ ] **Step 1: Cổng local (GitHub Actions khoá thanh toán)**
+- [x] **Step 1: Cổng local (GitHub Actions khoá thanh toán)**
 
 ```bash
 pnpm lint
@@ -3771,7 +3771,7 @@ pnpm --filter @mapslibvn/core build   # đọc dòng Size: … kB gzipped
 
 Expected: cả bốn lệnh xanh; ghi lại số file/test và size core vào evidence bước 4.
 
-- [ ] **Step 2: Cài lên Android emulator và kiểm cảm biến ảo**
+- [x] **Step 2: Cài lên Android emulator và kiểm cảm biến ảo**
 
 ```bash
 pnpm example:rn --android
@@ -3786,7 +3786,7 @@ bằng `adb exec-out screencap -p > <file>`.
 Nếu emulator không phát mẫu la bàn (một số image không có từ kế ảo): ghi rõ vào evidence, chuyển tiêu chí 2
 sang kiểm trên Android thật ở Task 15.
 
-- [ ] **Step 3: iOS simulator — chỉ kiểm không crash**
+- [x] **Step 3: iOS simulator — chỉ kiểm không crash**
 
 ```bash
 pnpm example:rn --ios
@@ -3796,7 +3796,7 @@ Expected: app mở, chấm xanh hiện (không nón, simulator không có la bà
 làm sập app; dòng chẩn đoán khi Giả lập hiện `hướng —`. Chụp `…-la-ban-ios-sim.png`
 (`xcrun simctl io booted screenshot <file>`). Dừng simulator, emulator, Metro sau khi kiểm (bài học bộ nhớ 12/09).
 
-- [ ] **Step 4: Viết evidence**
+- [x] **Step 4: Viết evidence**
 
 ```markdown
 # La bàn + con quay hồi chuyển — kiểm sớm và cổng local
@@ -3837,7 +3837,7 @@ Plan: `docs/superpowers/plans/2026-09-12-la-ban-gyro-react-native.md`.
 Ghi định tính nếu không đo được số; ghi rõ "theo quyết định PHONG" khi đóng mà thiếu số.
 ```
 
-- [ ] **Step 5: DEVLOG**
+- [x] **Step 5: DEVLOG**
 
 Đầu `## 1. Trạng thái hiện tại` thêm bullet mới (trên cùng):
 
@@ -3867,7 +3867,7 @@ Cuối file thêm mục:
 | 7 | `useHeading(session)` ngoài map; `HeadingSource` ngoài ≤ 15 dòng; test spec C cũ xanh không sửa | ĐẠT — `use-heading.test.tsx`, docs mục 10, `pnpm test` không sửa test cũ |
 ```
 
-- [ ] **Step 6: Ghi lệch spec vào spec**
+- [x] **Step 6: Ghi lệch spec vào spec**
 
 Trong spec `2026-09-12-la-ban-gyro-react-native-design.md`, thêm mục `## 10b. Lệch khi thực thi` (trước mục 11) với ít nhất hai dòng đã biết trước:
 
@@ -3884,7 +3884,7 @@ Trong spec `2026-09-12-la-ban-gyro-react-native-design.md`, thêm mục `## 10b.
 - (điền thêm khi thực thi)
 ```
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add docs/evidence/navigation/2026-09-12-la-ban.md docs/evidence/navigation/2026-09-12-la-ban-*.png docs/DEVLOG.md docs/superpowers/specs/2026-09-12-la-ban-gyro-react-native-design.md docs/superpowers/plans/2026-09-12-la-ban-gyro-react-native.md
