@@ -23,6 +23,7 @@ import { useCallback, useEffect, useState } from 'react';
 import {
   Alert,
   FlatList,
+  Keyboard,
   LogBox,
   Pressable,
   StyleSheet,
@@ -52,6 +53,10 @@ const realSession = createNavigationSession({
 
 type Point = { name: string; lng: number; lat: number };
 
+/** Quận 1 — dùng khi simulator/emulator không có GPS hoặc trả vị trí ngoài Việt Nam. */
+const FALLBACK_ORIGIN: [number, number] = [106.699, 10.7798];
+const inVietnam = ([lng, lat]: [number, number]) => lng > 102 && lng < 110 && lat > 8 && lat < 24;
+
 /** Ô tìm kiếm + gợi ý — nằm ngoài <MapsLibVNMap> nên truyền client tường minh. */
 function Search({ near, onPick }: { near: [number, number]; onPick: (p: Point) => void }) {
   const [q, setQ] = useState('');
@@ -80,6 +85,7 @@ function Search({ near, onPick }: { near: [number, number]; onPick: (p: Point) =
               style={styles.row}
               onPress={() => {
                 setQ('');
+                Keyboard.dismiss();
                 onPick({ name: item.name, lng: item.lng, lat: item.lat });
               }}
             >
@@ -103,16 +109,25 @@ export default function App() {
   const [response, setResponse] = useState<DirectionsResponse | null>(null);
   const [active, setActive] = useState(0);
   const [session, setSession] = useState<NavigationSession>(realSession);
-  const [navigating, setNavigating] = useState(false);
+  const [navigating, setNavigating] = useState<false | 'real' | 'sim'>(false);
 
   // Vị trí hiện tại lúc mở app → bay tới; xin quyền một lần ở đây, SDK dùng lại khi start().
+  // Lấy vị trí đã biết trước (trả ngay), rồi mới xin vị trí mới — getCurrentPositionAsync có thể
+  // chờ lâu trên emulator hoặc trong nhà.
   useEffect(() => {
+    const use = (lng: number, lat: number) =>
+      setOrigin(inVietnam([lng, lat]) ? [lng, lat] : FALLBACK_ORIGIN);
+    // Simulator/emulator không có GPS: sau 8 giây chưa có fix thì dùng Quận 1 để vẫn thử được.
+    const timer = setTimeout(() => setOrigin((o) => o ?? FALLBACK_ORIGIN), 8000);
     (async () => {
       const perm = await Location.requestForegroundPermissionsAsync();
       if (!perm.granted) return;
-      const p = await Location.getCurrentPositionAsync({});
-      setOrigin([p.coords.longitude, p.coords.latitude]);
+      const last = await Location.getLastKnownPositionAsync().catch(() => null);
+      if (last) use(last.coords.longitude, last.coords.latitude);
+      const p = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
+      use(p.coords.longitude, p.coords.latitude);
     })().catch(() => {});
+    return () => clearTimeout(timer);
   }, []);
   useEffect(() => {
     if (map && origin) map.flyTo(origin, 15);
@@ -161,7 +176,7 @@ export default function App() {
             });
       if (s !== session) await session.stop();
       setSession(s);
-      setNavigating(true);
+      setNavigating(kind);
       await s.start({ response, routeIndex: active, lang });
     },
     [response, active, session, lang],
@@ -273,7 +288,9 @@ export default function App() {
         </>
       )}
 
-      {navigating && <NavigationPanel session={session} map={map} onStop={() => void stop()} />}
+      {navigating && (
+        <NavigationPanel session={session} kind={navigating} map={map} onStop={() => void stop()} />
+      )}
     </View>
   );
 }

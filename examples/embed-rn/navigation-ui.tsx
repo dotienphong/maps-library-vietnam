@@ -19,16 +19,19 @@ interface Diag {
   fixes: number;
   accuracy: number | null;
   reroutes: number;
-  background: 'chưa rõ' | 'nền' | 'tiền cảnh';
+  /** 'GPS nền' cho tới khi nguồn báo rơi về tiền cảnh; 'giả lập' với playbackSource. */
+  source: string;
   voice: string;
 }
 
 export function NavigationPanel({
   session,
+  kind,
   map,
   onStop,
 }: {
   session: NavigationSession;
+  kind: 'real' | 'sim';
   map: MapHandle | null;
   onStop: () => void;
 }) {
@@ -37,8 +40,8 @@ export function NavigationPanel({
     fixes: 0,
     accuracy: null,
     reroutes: 0,
-    background: 'chưa rõ',
-    voice: 'chưa rõ',
+    source: kind === 'sim' ? 'giả lập' : 'GPS nền',
+    voice: 'có',
   });
 
   useEffect(() => {
@@ -46,9 +49,9 @@ export function NavigationPanel({
       setDiag((d) => ({ ...d, fixes: d.fixes + 1, accuracy: p.fix.accuracy_m ?? null }));
     const onReroute = () => setDiag((d) => ({ ...d, reroutes: d.reroutes + 1 }));
     const onBg = (e: { reason: string }) =>
-      setDiag((d) => ({ ...d, background: 'tiền cảnh', voice: `${d.voice} · nền: ${e.reason}` }));
-    const onVoice = () => setDiag((d) => ({ ...d, voice: 'không có giọng' }));
-    const onRoute = () => setDiag((d) => ({ ...d, background: 'nền', fixes: 0 }));
+      setDiag((d) => ({ ...d, source: `GPS tiền cảnh (${e.reason})` }));
+    const onVoice = () => setDiag((d) => ({ ...d, voice: 'không có' }));
+    const onRoute = () => setDiag((d) => ({ ...d, fixes: 0 }));
     session.on('progress', onProgress);
     session.on('reroute', onReroute);
     session.on('backgroundUnavailable', onBg);
@@ -85,8 +88,8 @@ export function NavigationPanel({
           </Text>
           <Text style={styles.diag}>
             fix {diag.fixes} · sai số{' '}
-            {diag.accuracy === null ? '—' : `${Math.round(diag.accuracy)} m`} · {diag.background} ·
-            tính lại {diag.reroutes} · giọng {diag.voice}
+            {diag.accuracy === null ? '—' : `${Math.round(diag.accuracy)} m`} · {diag.source} · tính
+            lại {diag.reroutes} · giọng {diag.voice}
           </Text>
         </View>
         {!following && map ? (
