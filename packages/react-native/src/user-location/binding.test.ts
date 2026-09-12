@@ -16,8 +16,17 @@ import { createUserLocationStore } from './store';
 
 const response = fixture as unknown as DirectionsResponse;
 const T0 = 1_700_000_000_000;
-const fixAt = (ts: number, lng = 106.7): GeoFix => ({ lng, lat: 10.78, accuracy_m: 12, timestamp: ts });
-const headingAt = (h: number, ts: number, accuracy: HeadingFix['accuracy'] = 'high'): HeadingFix => ({
+const fixAt = (ts: number, lng = 106.7): GeoFix => ({
+  lng,
+  lat: 10.78,
+  accuracy_m: 12,
+  timestamp: ts,
+});
+const headingAt = (
+  h: number,
+  ts: number,
+  accuracy: HeadingFix['accuracy'] = 'high',
+): HeadingFix => ({
   heading: h,
   accuracy,
   timestamp: ts,
@@ -51,7 +60,9 @@ function fakeSources() {
   };
 }
 
-function setup(opts: Omit<UserLocationOptions, 'source' | 'heading'> & { withHeading?: boolean } = {}) {
+function setup(
+  opts: Omit<UserLocationOptions, 'source' | 'heading'> & { withHeading?: boolean } = {},
+) {
   const easeTo = vi.fn();
   const camera = { current: { easeTo } } as unknown as RefObject<CameraRef | null>;
   const store = createUserLocationStore();

@@ -2,6 +2,7 @@ import type { CameraRef, MapRef } from '@maplibre/maplibre-react-native';
 import type { DirectionsResponse, MapsLibVNClient } from '@mapslibvn/core';
 import { type RefObject, createContext } from 'react';
 import type { MapNavigationBinding } from './navigation/map-binding';
+import type { UserLocationHandle } from './user-location/binding';
 
 /** Tay cầm map — tương ứng `MapsLibVNMap` của web: `native` thay `gl`. */
 export interface MapHandle {
@@ -22,6 +23,8 @@ export interface MapHandle {
   };
   /** Dẫn đường của map này: phiên qua prop `navigation`, không thì phiên mặc định tạo lười. */
   navigation: MapNavigationBinding;
+  /** Chấm xanh + nón hướng ngoài dẫn đường (prop `userLocation`); luôn có, `fix` null khi không bật. */
+  userLocation: UserLocationHandle;
 }
 
 export const MapContext = createContext<MapHandle | null>(null);

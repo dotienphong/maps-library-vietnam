@@ -69,7 +69,8 @@ export function createUserLocationBinding(deps: UserLocationBindingDeps): UserLo
 
   const followMode = (): 'none' | 'center' | 'heading' => options?.follow ?? 'none';
   const isFollowing = (): boolean => options !== null && followMode() !== 'none' && wantFollow;
-  const visible = (): boolean => options !== null && deps.routesStore.getSnapshot().progress === null;
+  const visible = (): boolean =>
+    options !== null && deps.routesStore.getSnapshot().progress === null;
   const emitFollow = (f: boolean): void => {
     for (const fn of listeners) fn(f);
   };

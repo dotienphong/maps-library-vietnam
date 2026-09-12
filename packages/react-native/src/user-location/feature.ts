@@ -20,12 +20,18 @@ export interface UserLocationCollection {
   features: UserLocationFeature[];
 }
 
-export const EMPTY_USER_LOCATION: UserLocationCollection = { type: 'FeatureCollection', features: [] };
+export const EMPTY_USER_LOCATION: UserLocationCollection = {
+  type: 'FeatureCollection',
+  features: [],
+};
 /** Sai số dùng khi fix không có accuracy_m — cùng giá trị mặc định của navigator core. */
 export const DEFAULT_USER_ACCURACY_M = 10;
 
 /** Feature Point cho chấm xanh (spec la bàn mục 7). Không đột biến đầu vào. */
-export function userLocationFeature(fix: GeoFix, heading: HeadingFix | null): UserLocationCollection {
+export function userLocationFeature(
+  fix: GeoFix,
+  heading: HeadingFix | null,
+): UserLocationCollection {
   return {
     type: 'FeatureCollection',
     features: [

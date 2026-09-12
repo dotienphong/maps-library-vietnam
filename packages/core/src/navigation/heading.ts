@@ -23,7 +23,10 @@ export interface HeadingError {
 
 /** Nguồn hướng do lớp dán cung cấp — cùng hình với PositionSource. */
 export interface HeadingSource {
-  subscribe(onHeading: (fix: HeadingFix) => void, onError?: (error: HeadingError) => void): () => void;
+  subscribe(
+    onHeading: (fix: HeadingFix) => void,
+    onError?: (error: HeadingError) => void,
+  ): () => void;
 }
 
 /** Tốc độ xoay quanh trục vuông góc màn hình, độ/giây; dương = ngược chiều kim đồng hồ nhìn từ trên. */
@@ -111,7 +114,8 @@ export function createHeadingFilter(opts: HeadingFilterOptions = {}): HeadingFil
     if (
       !force &&
       last &&
-      (timestamp - last.timestamp < minInterval_ms || angleDiffDeg(est, last.heading) < minDelta_deg)
+      (timestamp - last.timestamp < minInterval_ms ||
+        angleDiffDeg(est, last.heading) < minDelta_deg)
     ) {
       return null;
     }

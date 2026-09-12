@@ -125,8 +125,7 @@ export function createMapBinding(deps: MapBindingDeps): MapBinding {
   let lastHeading: HeadingFix | null = null;
   let lastCameraBearing: { value: number; at: number } | null = null;
 
-  const stationary = (p: NavigationProgress): boolean =>
-    (p.fix.speed_mps ?? 0) <= MOVING_SPEED_MPS;
+  const stationary = (p: NavigationProgress): boolean => (p.fix.speed_mps ?? 0) <= MOVING_SPEED_MPS;
   /** Hướng la bàn dùng được tại thời điểm `at`: không unreliable và còn tươi. */
   const usableHeading = (at: number): HeadingFix | null =>
     lastHeading &&

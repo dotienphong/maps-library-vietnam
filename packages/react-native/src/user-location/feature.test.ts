@@ -32,7 +32,10 @@ describe('userLocationFeature', () => {
       accuracy_m: DEFAULT_USER_ACCURACY_M,
     });
     const b = userLocationFeature(fix, { ...heading, accuracy: 'unreliable' });
-    expect(b.features[0]?.properties).toMatchObject({ hasHeading: true, hasReliableHeading: false });
+    expect(b.features[0]?.properties).toMatchObject({
+      hasHeading: true,
+      hasReliableHeading: false,
+    });
   });
 });
 

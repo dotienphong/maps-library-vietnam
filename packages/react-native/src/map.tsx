@@ -36,6 +36,9 @@ import {
 } from './navigation/session';
 import { toPoiFeature } from './to-poi-feature';
 import { isTheme, useResolvedStyle } from './use-style';
+import { type UserLocationOptions, createUserLocationBinding } from './user-location/binding';
+import { UserLocationLayers } from './user-location/layers';
+import { createUserLocationStore } from './user-location/store';
 
 export const DEFAULT_CENTER: [number, number] = [106.7, 10.776];
 export const DEFAULT_ZOOM = 12;
@@ -68,6 +71,8 @@ export interface MapsLibVNMapProps {
   follow?: boolean | FollowOptions;
   /** Vẽ mũi tên vị trí — mặc định true; false để app tự vẽ từ `progress.snapped`. */
   puck?: boolean;
+  /** Chấm xanh + nón hướng khi KHÔNG dẫn đường (spec la bàn 5.5). Giữ tham chiếu `source`/`heading` ổn định. */
+  userLocation?: UserLocationOptions;
   routeStyle?: RouteStyle;
   /** Chèn tuyến dưới lớp này; mặc định lớp symbol đầu tiên của theme; null = trên cùng. */
   routeBeforeLayerId?: string | null;
@@ -96,6 +101,7 @@ export function MapsLibVNMap({
   sessionOptions,
   follow = true,
   puck = true,
+  userLocation,
   routeStyle,
   routeBeforeLayerId,
   onRouteClick,
@@ -150,6 +156,37 @@ export function MapsLibVNMap({
     store.setPuck(puck);
   }, [store, puck]);
 
+  const userStore = useMemo(() => createUserLocationStore(), []);
+  const userBinding = useMemo(
+    () =>
+      createUserLocationBinding({
+        camera,
+        store: userStore,
+        routesStore: store,
+        appState: AppState,
+      }),
+    [userStore, store],
+  );
+  useEffect(() => () => userBinding.dispose(), [userBinding]);
+  // Chỉ theo tham chiếu source/heading và các giá trị nguyên thuỷ — object `userLocation` inline đổi
+  // mỗi render, đưa cả object vào deps sẽ đăng ký lại nguồn liên tục.
+  const userSource = userLocation?.source;
+  const userHeading = userLocation?.heading;
+  const userFollow = userLocation?.follow;
+  const userZoom = userLocation?.zoom;
+  useEffect(() => {
+    userBinding.setOptions(
+      userSource
+        ? {
+            source: userSource,
+            ...(userHeading ? { heading: userHeading } : {}),
+            ...(userFollow ? { follow: userFollow } : {}),
+            ...(userZoom !== undefined ? { zoom: userZoom } : {}),
+          }
+        : null,
+    );
+  }, [userBinding, userSource, userHeading, userFollow, userZoom]);
+
   const handle = useMemo<MapHandle>(
     () => ({
       native,
@@ -174,8 +211,9 @@ export function MapsLibVNMap({
         clear: () => store.clear(),
       },
       navigation: binding.api,
+      userLocation: userBinding.api,
     }),
-    [places, store, binding],
+    [places, store, binding, userBinding],
   );
 
   const resolved = useResolvedStyle(places, { style, lang, poiLayer });
@@ -196,7 +234,9 @@ export function MapsLibVNMap({
     if (poi) handlers.current.onPoiClick?.(poi);
   };
   const onRegionWillChange = (e: NativeSyntheticEvent<ViewStateChangeEvent>): void => {
-    if (e.nativeEvent.userInteraction) binding.userGesture();
+    if (!e.nativeEvent.userInteraction) return;
+    binding.userGesture();
+    userBinding.userGesture();
   };
   const beforeId =
     routeBeforeLayerId === undefined
@@ -232,6 +272,12 @@ export function MapsLibVNMap({
               routeStyle={routeStyle}
               beforeId={beforeId}
               onRouteClick={(index) => handlers.current.onRouteClick?.(index)}
+            />
+            <UserLocationLayers
+              store={userStore}
+              routesStore={store}
+              accuracyCircle={userLocation?.accuracyCircle ?? true}
+              beforeId={beforeId}
             />
             {children}
           </MapContext.Provider>

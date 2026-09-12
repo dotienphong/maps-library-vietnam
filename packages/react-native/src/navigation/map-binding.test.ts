@@ -11,7 +11,10 @@ const response = fixture as unknown as DirectionsResponse;
 const route = response.routes[0] as Route;
 const T0 = 1_700_000_000_000;
 
-function setup(follow?: boolean | FollowOptions, appStateStatus: AppStateLike['currentState'] = 'active') {
+function setup(
+  follow?: boolean | FollowOptions,
+  appStateStatus: AppStateLike['currentState'] = 'active',
+) {
   const easeTo = vi.fn();
   const camera = {
     current: { easeTo, flyTo: vi.fn(), fitBounds: vi.fn() },
@@ -31,9 +34,7 @@ function setup(follow?: boolean | FollowOptions, appStateStatus: AppStateLike['c
   if (follow !== undefined) binding.setFollow(follow);
   binding.attach(s.session);
   const puckBearing = (): number | undefined => {
-    const puck = store
-      .getSnapshot()
-      .features.features.find((f) => f.properties.kind === 'puck');
+    const puck = store.getSnapshot().features.features.find((f) => f.properties.kind === 'puck');
     return puck && puck.properties.kind === 'puck' ? puck.properties.bearing : undefined;
   };
   const lastEase = () => easeTo.mock.calls.at(-1)?.[0] as Record<string, unknown> | undefined;
