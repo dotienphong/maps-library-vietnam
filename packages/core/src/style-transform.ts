@@ -3,6 +3,8 @@
  * không có API đổi layout property của lớp có sẵn. Web dùng `applyLanguage` lúc chạy nhưng
  * chia sẻ `nameExpression`/`isNameLabelLayer` từ đây.
  */
+import type { Theme } from './client';
+
 export type Lang = 'vi' | 'en';
 
 export interface StyleLayerLike {
@@ -17,6 +19,14 @@ export interface StyleLike {
 }
 
 export const POI_LAYER_ID = 'poi';
+/**
+ * Lớp symbol đầu tiên của từng theme MapsLibVN — chèn tuyến dẫn đường trước lớp này để nhãn đường
+ * nằm trên tuyến (spec C mục 4). `packages/style/src/first-symbol-layer.test.ts` bảo vệ giá trị.
+ */
+export const FIRST_SYMBOL_LAYER_ID: Readonly<Record<Theme, string>> = {
+  light: 'road_one_way_arrow',
+  dark: 'water_name',
+};
 const SOVEREIGNTY_LABEL_ID = 'sovereignty-label';
 
 export function isPoiStyleLayer(layer: StyleLayerLike): boolean {
