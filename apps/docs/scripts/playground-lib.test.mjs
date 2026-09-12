@@ -4,9 +4,16 @@ import {
   PRECISION_ZOOM,
   buildSnippet,
   circleGeoJson,
+  directionsRequest,
+  etaLabel,
   maskKey,
   parseState,
+  pointFromAutocomplete,
+  pointFromLngLat,
+  pointFromPoi,
   radiusForPrecision,
+  routeSummary,
+  shortDistance,
   toSearchParams,
 } from '../public/playground-lib.js';
 
@@ -247,5 +254,88 @@ describe('radiusForPrecision', () => {
 
   it('mức lạ cũng không vẽ vòng', () => {
     expect(radiusForPrecision(undefined)).toBe(0);
+  });
+});
+
+describe('pointFrom*', () => {
+  it('autocomplete: lấy lng/lat/name; area thiếu toạ độ thì lấy tâm bbox', () => {
+    expect(
+      pointFromAutocomplete({ type: 'street', name: 'Nguyễn Du', lng: 106.699, lat: 10.78 }),
+    ).toEqual({ lng: 106.699, lat: 10.78, label: 'Nguyễn Du' });
+    expect(
+      pointFromAutocomplete({ type: 'area', name: 'Quận 1', bbox: [106.69, 10.77, 106.71, 10.79] }),
+    ).toEqual({ lng: 106.7, lat: 10.78, label: 'Quận 1' });
+  });
+  it('poi: lngLat [lng, lat] và tên', () => {
+    expect(
+      pointFromPoi({
+        id: 'p1',
+        name: 'Chợ Bến Thành',
+        category: 'market',
+        group: 'shop',
+        lngLat: [106.6981, 10.7725],
+      }),
+    ).toEqual({ lng: 106.6981, lat: 10.7725, label: 'Chợ Bến Thành' });
+  });
+  it('lngLat: nhãn "lat, lng" bốn chữ số lẻ', () => {
+    expect(pointFromLngLat([106.699012, 10.779834])).toEqual({
+      lng: 106.699012,
+      lat: 10.779834,
+      label: '10.7798, 106.6990',
+    });
+  });
+});
+
+describe('directionsRequest', () => {
+  it('đảo [lng,lat] → [lat,lng], luôn xin tuyến thay thế, có lang', () => {
+    const from = { lng: 106.699, lat: 10.7798, label: 'A' };
+    const to = { lng: 106.698, lat: 10.7725, label: 'B' };
+    expect(directionsRequest({ from, to, mode: 'car', lang: 'vi' })).toEqual({
+      from: [10.7798, 106.699],
+      to: [10.7725, 106.698],
+      mode: 'car',
+      lang: 'vi',
+      alternatives: true,
+    });
+  });
+});
+
+describe('shortDistance / routeSummary / etaLabel', () => {
+  it('shortDistance: mét dưới 1 km, km một chữ số lẻ dấu phẩy, nguyên từ 10 km', () => {
+    expect(shortDistance(85.4)).toBe('85 m');
+    expect(shortDistance(1140)).toBe('1,1 km');
+    expect(shortDistance(12_400)).toBe('12 km');
+  });
+  it('routeSummary: quãng đường, phút làm tròn (tối thiểu 1), tên đường của bước dài nhất', () => {
+    const route = {
+      distance_m: 1148,
+      duration_s: 250,
+      legs: [
+        {
+          steps: [
+            { distance_m: 140, street_names: ['Công trường Công xã Paris'] },
+            { distance_m: 333, street_names: ['Nam Kỳ Khởi Nghĩa'] },
+            { distance_m: 0, street_names: [] },
+          ],
+        },
+      ],
+    };
+    expect(routeSummary(route)).toEqual({
+      distanceText: '1,1 km',
+      minutes: 4,
+      via: 'Nam Kỳ Khởi Nghĩa',
+    });
+    expect(
+      routeSummary({
+        distance_m: 20,
+        duration_s: 5,
+        legs: [{ steps: [{ distance_m: 20, street_names: [] }] }],
+      }),
+    ).toEqual({ distanceText: '20 m', minutes: 1, via: null });
+  });
+  it('etaLabel: "phút · quãng · HH:MM" theo giờ máy', () => {
+    const now = new Date(2026, 8, 12, 10, 38, 0).getTime();
+    expect(etaLabel(250, 950, now)).toBe('4 phút · 950 m · 10:42');
+    expect(etaLabel(0, 0, now)).toBe('0 phút · 0 m · 10:38');
   });
 });

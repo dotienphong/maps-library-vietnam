@@ -252,3 +252,107 @@ export function radiusForPrecision(precision) {
   if (!precision) return 0;
   return PRECISION_RADIUS[/** @type {keyof typeof PRECISION_RADIUS} */ (precision)] ?? 0;
 }
+
+/* ---------- Dẫn đường ---------- */
+
+/**
+ * Một điểm đi/đến của chế độ dẫn đường.
+ * @typedef {{ lng: number, lat: number, label: string }} NavPoint
+ */
+
+/** Phương tiện hợp lệ của `GET /v1/directions`. */
+export const TRAVEL_MODES = ['motorbike', 'car', 'walk'];
+
+/**
+ * @param {{ name: string, lng?: number, lat?: number, bbox?: [number, number, number, number] }} item
+ * @returns {NavPoint}
+ */
+export function pointFromAutocomplete(item) {
+  if (typeof item.lng === 'number' && typeof item.lat === 'number') {
+    return { lng: item.lng, lat: item.lat, label: item.name };
+  }
+  const [minLng, minLat, maxLng, maxLat] = item.bbox ?? [0, 0, 0, 0];
+  return {
+    lng: round6((minLng + maxLng) / 2),
+    lat: round6((minLat + maxLat) / 2),
+    label: item.name,
+  };
+}
+
+/**
+ * @param {{ name: string, lngLat: [number, number] }} poi
+ * @returns {NavPoint}
+ */
+export function pointFromPoi(poi) {
+  return { lng: poi.lngLat[0], lat: poi.lngLat[1], label: poi.name };
+}
+
+/**
+ * @param {[number, number]} lngLat
+ * @returns {NavPoint}
+ */
+export function pointFromLngLat([lng, lat]) {
+  return { lng, lat, label: `${lat.toFixed(4)}, ${lng.toFixed(4)}` };
+}
+
+/**
+ * Tham số cho `client.directions()` — API nhận `[lat, lng]`, luôn xin tuyến thay thế.
+ * @param {{ from: NavPoint, to: NavPoint, mode: string, lang: string }} input
+ */
+export function directionsRequest({ from, to, mode, lang }) {
+  return {
+    from: /** @type {[number, number]} */ ([from.lat, from.lng]),
+    to: /** @type {[number, number]} */ ([to.lat, to.lng]),
+    mode,
+    lang,
+    alternatives: true,
+  };
+}
+
+/**
+ * "85 m", "1,1 km", "12 km" — cùng quy tắc với `formatDistanceShort` của SDK, viết lại để test thuần.
+ * @param {number} m
+ */
+export function shortDistance(m) {
+  if (m < 1000) return `${Math.max(0, Math.round(m))} m`;
+  const km = m / 1000;
+  return km < 10 ? `${km.toFixed(1).replace('.', ',')} km` : `${Math.round(km)} km`;
+}
+
+/**
+ * Tóm tắt một tuyến cho danh sách chọn tuyến.
+ * @param {{ distance_m: number, duration_s: number,
+ *   legs: { steps: { distance_m: number, street_names: string[] }[] }[] }} route
+ * @returns {{ distanceText: string, minutes: number, via: string | null }}
+ */
+export function routeSummary(route) {
+  let via = null;
+  let longest = -1;
+  for (const leg of route.legs) {
+    for (const step of leg.steps) {
+      const name = step.street_names[0];
+      if (name && step.distance_m > longest) {
+        longest = step.distance_m;
+        via = name;
+      }
+    }
+  }
+  return {
+    distanceText: shortDistance(route.distance_m),
+    minutes: Math.max(1, Math.round(route.duration_s / 60)),
+    via,
+  };
+}
+
+/**
+ * "4 phút · 950 m · 10:42" cho thanh dưới khi đang dẫn đường.
+ * @param {number} remaining_s
+ * @param {number} remaining_m
+ * @param {number} nowMs
+ */
+export function etaLabel(remaining_s, remaining_m, nowMs) {
+  const arrive = new Date(nowMs + remaining_s * 1000);
+  const hh = String(arrive.getHours()).padStart(2, '0');
+  const mm = String(arrive.getMinutes()).padStart(2, '0');
+  return `${Math.round(remaining_s / 60)} phút · ${shortDistance(remaining_m)} · ${hh}:${mm}`;
+}
