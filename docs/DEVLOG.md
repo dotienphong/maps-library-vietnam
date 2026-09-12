@@ -5,6 +5,23 @@ commit với code).
 
 ## 1. Trạng thái hiện tại
 
+- **13/09/2026 — PHONG bắt đầu Task 15 (máy thật) trên iPhone 14 Plus, phát hiện + sửa một lỗi, thêm
+  script build Release.** PHONG cắm iPhone thật, yêu cầu build bản chạy độc lập không cần laptop —
+  thêm hai lệnh `pnpm release:ios` / `pnpm release:android` (`scripts/example-rn.mjs`,
+  `scripts/lib/example-rn.mjs`): tự build `--configuration Release` (iOS) / `--variant release`
+  (Android) kèm `--no-bundler`, tự dò đúng một máy thật đang cắm/ghép nối qua
+  `xcrun devicectl list devices` / `adb devices` (lỗi rõ nếu 0 hoặc ≥ 2 máy, tránh Expo CLI hỏi chọn
+  tương tác bị treo) — xem `examples/embed-rn/README.md` mục "Build bản Release". Thử trên máy: đứng
+  yên xoay người, nón hướng xoay theo nhưng **giật** (không mượt). Điều tra gốc rễ
+  (systematic-debugging): `CLLocationManager` không tự fuse gyro, bộ lọc `createHeadingFilter` bù
+  bằng tích phân gyro nhưng chỉ phát ở trần `minInterval_ms` 100 ms trong khi `expoHeadingSource` đọc
+  gyro ở 50 ms — bỏ phí một nửa mẫu gyro, mỗi lần phát là một bước nhảy góc lớn; `icon-rotate` của
+  MapLibre là thuộc tính layout, không animate, nên bước nhảy càng lớn càng giật. Sửa: hạ
+  `minInterval_ms` mặc định 100 → 50 ms (`packages/core/src/navigation/heading.ts`, commit
+  `07b4218`) — khớp đúng nhịp gyro, không bỏ mẫu nào. Test core 70/70 xanh. **Chưa xác nhận lại trên
+  máy thật** — cần cài lại bản Release mới rồi lặp lại kịch bản xoay người; xem
+  `docs/evidence/navigation/2026-09-12-la-ban.md` mục "Phát hiện thực địa".
+
 - **12–13/09/2026 — La bàn + con quay hồi chuyển cho `@mapslibvn/react-native` (spec
   `2026-09-12-la-ban-gyro-react-native-design.md`, plan cùng tên) — ĐÃ CODE VÀ KIỂM GIẢ LẬP XONG,
   chờ nghiệm thu máy thật (Task 15).** Core thêm `createHeadingFilter` (bộ lọc bù thuần: gyro tích
@@ -2662,5 +2679,9 @@ kỳ lúc nào nếu muốn, nhưng không còn là điều kiện nghiệm thu.
 Evidence đầy đủ (bảng cổng local, ảnh chụp Android + iOS, phân tích la bàn không phát trên giả lập):
 `docs/evidence/navigation/2026-09-12-la-ban.md`. Bảng "Máy thật" trong evidence để trống có chủ đích,
 chờ PHONG cắm Xiaomi Mi 9 và iPhone 14 Plus (Task 15 của plan).
+
+**Cập nhật 13/09/2026:** PHONG đã bắt đầu thử trên iPhone 14 Plus thật (dòng 4 ở trên), phát hiện nón
+hướng giật khi đứng yên xoay người. Gốc rễ + sửa: xem mục 1 (bullet 13/09) và evidence mục "Phát hiện
+thực địa". Dòng 3/4/5 vẫn **CHỜ PHONG** — cần cài lại bản Release mới (đã có bản vá) rồi đo lại.
 
 Không bump version, không push, không publish, không `pnpm deploy:docs` — để PHONG quyết định.

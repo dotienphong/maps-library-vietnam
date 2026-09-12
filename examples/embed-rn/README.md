@@ -26,6 +26,31 @@ Máy thật: `pnpm example:rn --device --android` (bật USB debugging) hoặc `
 (iPhone: mở `ios/MapsLibVNDemo.xcworkspace` một lần, Signing & Capabilities → Team = Apple ID cá
 nhân; trên máy: Cài đặt → Cài đặt chung → VPN & Quản lý thiết bị → tin cậy nhà phát triển).
 
+## Build bản Release (máy thật, chạy độc lập)
+
+`pnpm example:rn --device` build bản **Debug**: JS được Metro phục vụ trực tiếp từ laptop, rút dây
+hoặc tắt Metro là app đứng im/lỗi. Để đi thử ngoài đường (dẫn đường, la bàn, GPS nền) mà không vướng
+dây/laptop, build bản **Release** — JS đóng gói sẵn vào app lúc build, cài xong chạy độc lập hoàn toàn:
+
+```bash
+pnpm release:ios        # iOS: --configuration Release, kèm --no-bundler
+pnpm release:android    # Android: --variant release, kèm --no-bundler
+```
+
+Cả hai luôn cài lên **máy thật** (không simulator/emulator — la bàn/GPS thật không giả lập được).
+Script tự dò máy đang cắm/ghép nối qua `xcrun devicectl list devices` (iOS) / `adb devices`
+(Android). Nếu có nhiều hơn một máy, lệnh dừng lại và yêu cầu chỉ rõ:
+
+```bash
+pnpm release:ios -- --device-name "iPhone của Phong"
+pnpm release:android -- --device-name emulator-serial-hoặc-tên-máy
+```
+
+Yêu cầu như build Debug máy thật ở trên (iOS: mở `.xcworkspace` một lần, chọn Team ký; Android: bật
+USB debugging). Vì JS đã đóng gói sẵn, **sửa code JS xong phải chạy lại `pnpm release:*`** để cài bản
+mới — không có live reload như Debug. Build đầu tiên (hoặc sau khi đổi native plugin) vẫn phải
+prebuild + CocoaPods/Gradle nên mất vài phút; các lần sau nhanh hơn.
+
 ## La bàn và con quay hồi chuyển
 
 Chấm xanh có nón hướng hiện trước khi dẫn đường (nguồn `expoLocationSource({ background: false })` +
