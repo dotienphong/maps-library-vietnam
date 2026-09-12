@@ -90,6 +90,29 @@ declare module 'expo-audio' {
     shouldRouteThroughEarpiece: boolean;
   }
   export function setAudioModeAsync(mode: Partial<AudioMode>): Promise<void>;
+  /**
+   * Kích hoạt/ngừng phiên AVAudioSession — BẮT BUỘC ngoài `setAudioModeAsync` để giọng đọc phát
+   * được khi app vào nền: `setAudioModeAsync` chỉ đặt category, không gọi `AVAudioSession.setActive`
+   * (xác nhận trong mã nguồn expo-audio 57.0.5 `AudioModule.swift`, hàm `setAudioMode` so với
+   * `setIsAudioActive`). Thiếu bước này là nguyên nhân im lặng hoàn toàn khi khoá màn hình iPhone
+   * (phát hiện thực địa 12/09/2026).
+   */
+  export function setIsAudioActiveAsync(active: boolean): Promise<void>;
+  export interface AudioPlayer {
+    loop: boolean;
+    volume: number;
+    play(): void;
+    pause(): void;
+    remove(): void;
+  }
+  export interface AudioPlayerOptions {
+    keepAudioSessionActive?: boolean;
+  }
+  /** `source` chấp nhận `data:audio/*;base64,...` — expo-audio giải mã và ghi ra file tạm trên iOS. */
+  export function createAudioPlayer(
+    source?: string | { uri?: string } | null,
+    options?: AudioPlayerOptions,
+  ): AudioPlayer;
 }
 
 declare module 'expo-keep-awake' {
