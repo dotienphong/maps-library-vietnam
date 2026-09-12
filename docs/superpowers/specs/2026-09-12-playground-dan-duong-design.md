@@ -107,7 +107,7 @@ bộ URL, tab Mã nhúng và E2E của playground; `?fixture=1` giữ để E2E 
 | `public/playground-nav.css` (mới) | Kiểu thẻ trái (rộng 360 px, tối đa 46 % màn hình), banner, thanh dưới, chip, popup, hai fab; `@media (max-width: 720px)`: thẻ trái thành thẻ trên (ô đi/đến) + thẻ dưới (chip, tuyến, nút), banner/thanh dưới toàn bề rộng. Tách khỏi `playground.css`. |
 | `public/playground-lib.js` (mở rộng) | Hàm thuần: `pointFromAutocomplete(item)`, `pointFromPoi(poi)`, `pointFromLngLat(lngLat)` → `{ lng, lat, label }` (`area` lấy tâm `bbox`); `directionsRequest({ from, to, mode, lang })`; `routeSummary(route)` → `{ distanceText, minutes, via }` với `via` = tên đường của bước có `distance_m` lớn nhất (không có → `null`); `etaLabel(remaining_s, remaining_m, now)` → "4 phút · 950 m · 10:42"; `navSnippet(state)` → mã 3 bước cho tab Mã nhúng; `parseState/toSearchParams` thêm `tab` (`'dan-duong'`), `tmode`, `from`, `to` (`lat,lng[,nhãn]`, nhãn `encodeURIComponent`). |
 | `public/playground.html` | Nút tab "Dẫn đường"; markup ẩn sẵn (`hidden`) cho `#nav-card`, `#nav-banner`, `#nav-bar`, `#nav-popup`, fab `#locate` (◎) và `#tools` (⋯); `<link>` CSS mới; script tag giữ nguyên. |
-| `public/playground.js` | (a) Geolocation lúc `load` + chấm GPS + fab ◎ — thuộc bản đồ chung; (b) khởi tạo nav module một lần cho mỗi lần `buildMap` (tạo lại map khi đổi style → `exit()` trước, `enter()` lại với cùng điểm sau); (c) khi `nav.active`: thu bảng phải, chuyển `click`/`poiClick` sang nav, tab Mã nhúng dùng `navSnippet`; (d) đọc `tab=dan-duong` lúc tải để vào thẳng chế độ. |
+| `public/playground.js` | (a) Geolocation lúc `load` + chấm GPS + fab ◎ — thuộc bản đồ chung; (b) khởi tạo nav module một lần cho mỗi lần `buildMap` (tạo lại map khi đổi style → `exit()` trước, `enter()` lại với cùng điểm sau); (c) khi `nav.active`: thu bảng điều khiển, chuyển `click`/`poiClick` sang nav, tab Mã nhúng dùng `navSnippet`; (d) đọc `tab=dan-duong` lúc tải để vào thẳng chế độ. |
 | `public/fixtures/directions-q1.json` | Có sẵn. Với `?fixture=1`, provider trả fixture cho **mọi** phương tiện/điểm (vẫn là một lần gọi, đếm được trong E2E). |
 | Xoá | `src/pages/dan-duong-demo.astro`, `src/lib/dan-duong-demo.ts`, `e2e/dan-duong-demo.spec.ts`. |
 
@@ -141,14 +141,14 @@ hàm thuần đều ở `playground-lib.js` và có test Node.
   lẻ dùng dấu phẩy, phút làm tròn, `via` là tên bước dài nhất, không tên → `null`); `etaLabel`;
   `navSnippet`; vòng tròn `parseState ↔ toSearchParams` với `tab/tmode/from/to`, nhãn có dấu và dấu phẩy.
 - **E2E `playground.spec.ts`** (thay `dan-duong-demo.spec.ts`), chạy với `?fixture=1&api=…`:
-  1. Bấm "Dẫn đường" → bảng phải thu, thẻ trái hiện, hai ô autocomplete, chip Xe máy `aria-pressed`.
+  1. Bấm "Dẫn đường" → bảng điều khiển thu, thẻ trái hiện, hai ô autocomplete, chip Xe máy `aria-pressed`.
   2. Mở với `from`/`to` trong URL → tuyến vẽ (`hasRouteLayer` qua `globalThis.__mapslibvnPlayground`),
      ≥ 1 dòng tuyến, "Chi tiết bước" → 6 bước.
   3. Đổi chip Ô tô → thêm một request directions (đếm bằng `page.route`), URL có `tmode=car`.
   4. "Giả lập" → `#nav-banner[data-status]` đi `navigating → arrived` trong 30 s; phụ đề từng chứa
      "Trong " và câu cuối "Điểm đến ở bên trái."; thanh dưới có "phút"; sau khi đến thẻ trái hiện lại,
      tuyến vẫn trên bản đồ.
-  5. "✕" → tuyến mất, bảng phải mở, URL không còn `tab=dan-duong`.
+  5. "✕" → tuyến mất, bảng điều khiển mở, URL không còn `tab=dan-duong`.
   6. Geolocation: `context.grantPermissions(['geolocation'])` + `setGeolocation` tại Nhà thờ Đức Bà → chấm
      GPS hiện, ô Điểm đi = "Vị trí của tôi"; ca đối chứng không cấp quyền → không lỗi, tâm Quận 1.
 - **`docs.spec.ts`**: bỏ `/dan-duong-demo/`.
