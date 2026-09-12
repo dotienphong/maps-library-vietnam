@@ -59,7 +59,7 @@
 - Modify: `packages/core/src/navigation/index.ts`
 - Modify: `packages/core/src/navigation/navigator.ts:4-25`
 
-- [ ] **Step 1: Viết test đỏ**
+- [x] **Step 1: Viết test đỏ**
 
 ```ts
 // packages/core/src/navigation/heading.test.ts
@@ -176,12 +176,12 @@ describe('createHeadingFilter', () => {
 });
 ```
 
-- [ ] **Step 2: Chạy test, xác nhận đỏ**
+- [x] **Step 2: Chạy test, xác nhận đỏ**
 
 Run: `pnpm exec vitest run packages/core/src/navigation/heading.test.ts`
 Expected: FAIL — `Failed to resolve import "./heading"`.
 
-- [ ] **Step 3: Viết `heading.ts`**
+- [x] **Step 3: Viết `heading.ts`**
 
 ```ts
 // packages/core/src/navigation/heading.ts
@@ -359,7 +359,7 @@ export function createHeadingFilter(opts: HeadingFilterOptions = {}): HeadingFil
 }
 ```
 
-- [ ] **Step 4: Xuất và chuyển hằng trong navigator**
+- [x] **Step 4: Xuất và chuyển hằng trong navigator**
 
 `packages/core/src/navigation/index.ts` — thêm dòng cuối:
 
@@ -380,7 +380,7 @@ và **xoá** hai dòng (khoảng dòng 24–25):
 const MOVING_SPEED_MPS = 1;
 ```
 
-- [ ] **Step 5: Chạy test xanh, build core kiểm size-limit**
+- [x] **Step 5: Chạy test xanh, build core kiểm size-limit**
 
 Run: `pnpm exec vitest run packages/core/src/navigation/`
 Expected: PASS toàn bộ (heading.test + navigator.test không đổi).
@@ -388,7 +388,7 @@ Expected: PASS toàn bộ (heading.test + navigator.test không đổi).
 Run: `pnpm --filter @mapslibvn/core build`
 Expected: dòng cuối `Size: … kB gzipped` ≤ 20 kB (trước task: 17,34 kB). Nếu vượt 20 kB: dừng, báo PHONG — không tự nâng trần.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add packages/core/src/navigation/heading.ts packages/core/src/navigation/heading.test.ts packages/core/src/navigation/index.ts packages/core/src/navigation/navigator.ts
@@ -406,7 +406,7 @@ Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>"
 - Regenerate: `packages/react-native/src/navigation/puck-image.ts`
 - Modify: `packages/react-native/src/navigation/puck-image.test.ts`
 
-- [ ] **Step 1: Thêm test đỏ**
+- [x] **Step 1: Thêm test đỏ**
 
 Thay toàn bộ `packages/react-native/src/navigation/puck-image.test.ts`:
 
@@ -451,12 +451,12 @@ describe('puck-image', () => {
 });
 ```
 
-- [ ] **Step 2: Chạy test, xác nhận đỏ**
+- [x] **Step 2: Chạy test, xác nhận đỏ**
 
 Run: `pnpm exec vitest run packages/react-native/src/navigation/puck-image.test.ts`
 Expected: FAIL — `HEADING_CONE_IMAGE_KEY` không được export.
 
-- [ ] **Step 3: Viết lại script sinh ảnh**
+- [x] **Step 3: Viết lại script sinh ảnh**
 
 Thay toàn bộ `packages/react-native/scripts/gen-puck.mjs`:
 
@@ -622,7 +622,7 @@ writeFileSync(target, out);
 console.log(`✓ ${target} (mũi tên ${arrow.length} byte, nón ${cone.length} byte)`);
 ```
 
-- [ ] **Step 4: Sinh lại ảnh, chạy test xanh**
+- [x] **Step 4: Sinh lại ảnh, chạy test xanh**
 
 Run: `node packages/react-native/scripts/gen-puck.mjs`
 Expected: `✓ …/puck-image.ts (mũi tên NNNN byte, nón NNNN byte)`.
@@ -630,7 +630,7 @@ Expected: `✓ …/puck-image.ts (mũi tên NNNN byte, nón NNNN byte)`.
 Run: `pnpm exec vitest run packages/react-native/src/navigation/puck-image.test.ts`
 Expected: PASS 2 test.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add packages/react-native/scripts/gen-puck.mjs packages/react-native/src/navigation/puck-image.ts packages/react-native/src/navigation/puck-image.test.ts
@@ -648,7 +648,7 @@ Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>"
 - Modify: `packages/react-native/src/navigation/session.ts`
 - Modify: `packages/react-native/src/navigation/session.test.ts`
 
-- [ ] **Step 1: Mở rộng phiên giả cho test**
+- [x] **Step 1: Mở rộng phiên giả cho test**
 
 Trong `packages/react-native/src/test/fake-session.ts`:
 
@@ -687,7 +687,7 @@ Trong object trả về, sau hàm `status(s) { … },` thêm:
     },
 ```
 
-- [ ] **Step 2: Thêm test đỏ cho phiên**
+- [x] **Step 2: Thêm test đỏ cho phiên**
 
 Trong `packages/react-native/src/navigation/session.test.ts`, đổi import đầu thành:
 
@@ -794,12 +794,12 @@ describe('createNavigationSession — nguồn hướng', () => {
 });
 ```
 
-- [ ] **Step 3: Chạy test, xác nhận đỏ**
+- [x] **Step 3: Chạy test, xác nhận đỏ**
 
 Run: `pnpm exec vitest run packages/react-native/src/navigation/session.test.ts`
 Expected: FAIL — `session.heading` là `undefined`, `hd.source.subscribe` chưa được gọi.
 
-- [ ] **Step 4: Sửa `session.ts`**
+- [x] **Step 4: Sửa `session.ts`**
 
 Import từ core — thêm ba kiểu vào khối `import { … } from '@mapslibvn/core'`:
 
@@ -879,12 +879,12 @@ Trong object trả về, sau `get routeIndex() { return routeIndex; },` thêm:
     },
 ```
 
-- [ ] **Step 5: Chạy test xanh**
+- [x] **Step 5: Chạy test xanh**
 
 Run: `pnpm exec vitest run packages/react-native/src/navigation/session.test.ts packages/react-native/src/use-navigation.test.tsx packages/react-native/src/map-navigation.test.tsx`
 Expected: PASS (test cũ không đổi; 3 test mới xanh).
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add packages/react-native/src/test/fake-session.ts packages/react-native/src/navigation/session.ts packages/react-native/src/navigation/session.test.ts
@@ -901,7 +901,7 @@ Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>"
 - Create: `packages/react-native/src/navigation/map-binding.test.ts`
 - Modify: `packages/react-native/src/navigation/map-binding.ts` (viết lại toàn bộ)
 
-- [ ] **Step 1: Viết test đỏ**
+- [x] **Step 1: Viết test đỏ**
 
 ```ts
 // packages/react-native/src/navigation/map-binding.test.ts
@@ -1038,12 +1038,12 @@ describe('createMapBinding — la bàn', () => {
 });
 ```
 
-- [ ] **Step 2: Chạy test, xác nhận đỏ**
+- [x] **Step 2: Chạy test, xác nhận đỏ**
 
 Run: `pnpm exec vitest run packages/react-native/src/navigation/map-binding.test.ts`
 Expected: FAIL — puck vẫn 45 sau mẫu la bàn; `setFollow({ bearing })` lỗi kiểu.
 
-- [ ] **Step 3: Viết lại `map-binding.ts`**
+- [x] **Step 3: Viết lại `map-binding.ts`**
 
 ```ts
 // packages/react-native/src/navigation/map-binding.ts
@@ -1361,17 +1361,17 @@ export function createMapBinding(deps: MapBindingDeps): MapBinding {
 }
 ```
 
-- [ ] **Step 4: Chạy test xanh (cả test cũ đi qua map)**
+- [x] **Step 4: Chạy test xanh (cả test cũ đi qua map)**
 
 Run: `pnpm exec vitest run packages/react-native/src/navigation/map-binding.test.ts packages/react-native/src/map-navigation.test.tsx packages/react-native/src/use-navigation.test.tsx`
 Expected: PASS.
 
-- [ ] **Step 5: Typecheck gói**
+- [x] **Step 5: Typecheck gói**
 
 Run: `pnpm --filter @mapslibvn/react-native typecheck`
 Expected: không lỗi.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add packages/react-native/src/navigation/map-binding.ts packages/react-native/src/navigation/map-binding.test.ts
@@ -1388,7 +1388,7 @@ Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>"
 - Create: `packages/react-native/src/use-heading.ts`
 - Create: `packages/react-native/src/use-heading.test.tsx`
 
-- [ ] **Step 1: Viết test đỏ**
+- [x] **Step 1: Viết test đỏ**
 
 ```tsx
 // packages/react-native/src/use-heading.test.tsx
@@ -1444,12 +1444,12 @@ describe('useHeading', () => {
 });
 ```
 
-- [ ] **Step 2: Chạy test, xác nhận đỏ**
+- [x] **Step 2: Chạy test, xác nhận đỏ**
 
 Run: `pnpm exec vitest run packages/react-native/src/use-heading.test.tsx`
 Expected: FAIL — không resolve được `./use-heading`.
 
-- [ ] **Step 3: Viết hook**
+- [x] **Step 3: Viết hook**
 
 ```ts
 // packages/react-native/src/use-heading.ts
@@ -1503,12 +1503,12 @@ export function useHeading(target: HeadingSource | NavigationSession): HeadingFi
 }
 ```
 
-- [ ] **Step 4: Chạy test xanh**
+- [x] **Step 4: Chạy test xanh**
 
 Run: `pnpm exec vitest run packages/react-native/src/use-heading.test.tsx`
 Expected: PASS 2 test.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add packages/react-native/src/use-heading.ts packages/react-native/src/use-heading.test.tsx
@@ -1527,7 +1527,7 @@ Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>"
 - Create: `packages/react-native/src/user-location/store.ts`
 - Create: `packages/react-native/src/user-location/store.test.ts`
 
-- [ ] **Step 1: Viết test đỏ cho feature**
+- [x] **Step 1: Viết test đỏ cho feature**
 
 ```ts
 // packages/react-native/src/user-location/feature.test.ts
@@ -1588,7 +1588,7 @@ describe('metersPerPixel / accuracyRadiusExpression', () => {
 });
 ```
 
-- [ ] **Step 2: Viết test đỏ cho store**
+- [x] **Step 2: Viết test đỏ cho store**
 
 ```ts
 // packages/react-native/src/user-location/store.test.ts
@@ -1637,12 +1637,12 @@ describe('createUserLocationStore', () => {
 });
 ```
 
-- [ ] **Step 3: Chạy test, xác nhận đỏ**
+- [x] **Step 3: Chạy test, xác nhận đỏ**
 
 Run: `pnpm exec vitest run packages/react-native/src/user-location/`
 Expected: FAIL — không resolve được `./feature`, `./store`.
 
-- [ ] **Step 4: Viết `feature.ts`**
+- [x] **Step 4: Viết `feature.ts`**
 
 ```ts
 // packages/react-native/src/user-location/feature.ts
@@ -1717,7 +1717,7 @@ export function accuracyRadiusExpression(accuracy_m: number, lat: number): Circl
 }
 ```
 
-- [ ] **Step 5: Viết `store.ts`**
+- [x] **Step 5: Viết `store.ts`**
 
 ```ts
 // packages/react-native/src/user-location/store.ts
@@ -1770,12 +1770,12 @@ export function createUserLocationStore(): UserLocationStore {
 }
 ```
 
-- [ ] **Step 6: Chạy test xanh**
+- [x] **Step 6: Chạy test xanh**
 
 Run: `pnpm exec vitest run packages/react-native/src/user-location/`
 Expected: PASS 4 test.
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add packages/react-native/src/user-location/feature.ts packages/react-native/src/user-location/feature.test.ts packages/react-native/src/user-location/store.ts packages/react-native/src/user-location/store.test.ts
@@ -1792,7 +1792,7 @@ Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>"
 - Create: `packages/react-native/src/user-location/binding.ts`
 - Create: `packages/react-native/src/user-location/binding.test.ts`
 
-- [ ] **Step 1: Viết test đỏ**
+- [x] **Step 1: Viết test đỏ**
 
 ```ts
 // packages/react-native/src/user-location/binding.test.ts
@@ -1978,12 +1978,12 @@ describe('createUserLocationBinding', () => {
 });
 ```
 
-- [ ] **Step 2: Chạy test, xác nhận đỏ**
+- [x] **Step 2: Chạy test, xác nhận đỏ**
 
 Run: `pnpm exec vitest run packages/react-native/src/user-location/binding.test.ts`
 Expected: FAIL — không resolve được `./binding`.
 
-- [ ] **Step 3: Viết `binding.ts`**
+- [x] **Step 3: Viết `binding.ts`**
 
 ```ts
 // packages/react-native/src/user-location/binding.ts
@@ -2186,12 +2186,12 @@ export function createUserLocationBinding(deps: UserLocationBindingDeps): UserLo
 }
 ```
 
-- [ ] **Step 4: Chạy test xanh**
+- [x] **Step 4: Chạy test xanh**
 
 Run: `pnpm exec vitest run packages/react-native/src/user-location/binding.test.ts`
 Expected: PASS 6 test.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add packages/react-native/src/user-location/binding.ts packages/react-native/src/user-location/binding.test.ts
@@ -2208,7 +2208,7 @@ Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>"
 - Create: `packages/react-native/src/user-location/layers.tsx`
 - Create: `packages/react-native/src/user-location/layers.test.tsx`
 
-- [ ] **Step 1: Viết test đỏ**
+- [x] **Step 1: Viết test đỏ**
 
 ```tsx
 // packages/react-native/src/user-location/layers.test.tsx
@@ -2286,12 +2286,12 @@ describe('<UserLocationLayers>', () => {
 });
 ```
 
-- [ ] **Step 2: Chạy test, xác nhận đỏ**
+- [x] **Step 2: Chạy test, xác nhận đỏ**
 
 Run: `pnpm exec vitest run packages/react-native/src/user-location/layers.test.tsx`
 Expected: FAIL — không resolve được `./layers`.
 
-- [ ] **Step 3: Viết `layers.tsx`**
+- [x] **Step 3: Viết `layers.tsx`**
 
 ```tsx
 // packages/react-native/src/user-location/layers.tsx
@@ -2409,12 +2409,12 @@ export function UserLocationLayers({
 }
 ```
 
-- [ ] **Step 4: Chạy test xanh + typecheck**
+- [x] **Step 4: Chạy test xanh + typecheck**
 
 Run: `pnpm exec vitest run packages/react-native/src/user-location/layers.test.tsx && pnpm --filter @mapslibvn/react-native typecheck`
 Expected: PASS 2 test; typecheck sạch (nếu `paint` circle báo lỗi kiểu `'circle-radius'`, ép `accuracyRadiusExpression(...)` đã có kiểu `CircleRadius` — kiểm lại import).
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add packages/react-native/src/user-location/layers.tsx packages/react-native/src/user-location/layers.test.tsx
