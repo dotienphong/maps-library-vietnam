@@ -267,3 +267,56 @@ test('không cấp quyền vị trí: không lỗi JS, giữ tâm mặc định'
   await expect(page.locator('#locate')).toHaveAttribute('aria-pressed', 'false');
   expect(jsErrors).toEqual([]);
 });
+
+test('bấm Dẫn đường: bảng thu về ⋯ Công cụ, thẻ trái hiện, chip Xe máy đang chọn', async ({
+  page,
+}) => {
+  await page.goto('/playground.html?api=http://localhost:8787');
+  await expect(page.locator('#status')).toHaveAttribute('data-state', 'loaded', {
+    timeout: 30_000,
+  });
+  await page.locator('#enter-nav').click();
+
+  await expect(page.locator('#panel')).toBeHidden();
+  await expect(page.locator('#tools')).toBeVisible();
+  await expect(page.locator('#nav-card')).toBeVisible();
+  await expect(page.locator('#nav-from input')).toBeVisible();
+  await expect(page.locator('#nav-to input')).toBeVisible();
+  await expect(page.locator('.nav-mode[data-mode="motorbike"]')).toHaveAttribute(
+    'aria-pressed',
+    'true',
+  );
+  expect(new URL(page.url()).searchParams.get('tab')).toBe('dan-duong');
+
+  await page.locator('#tools').click();
+  await expect(page.locator('#panel')).toBeVisible();
+  await page.locator('#tools').click();
+  await expect(page.locator('#panel')).toBeHidden();
+
+  await page.locator('#nav-exit').click();
+  await expect(page.locator('#nav-card')).toBeHidden();
+  await expect(page.locator('#panel')).toBeVisible();
+  expect(new URL(page.url()).searchParams.get('tab')).toBeNull();
+});
+
+test('bấm bản đồ chọn "Đến đây" → ô Điểm đến có nhãn toạ độ, URL có to; đổi chiều hoán vị', async ({
+  page,
+}) => {
+  await page.goto(
+    '/playground.html?api=http://localhost:8787&tab=dan-duong&from=10.7798,106.699,Nhà thờ Đức Bà',
+  );
+  await expect(page.locator('#status')).toHaveAttribute('data-state', 'loaded', {
+    timeout: 30_000,
+  });
+  await expect(page.locator('#nav-from input')).toHaveValue('Nhà thờ Đức Bà');
+
+  const canvas = page.locator('canvas.maplibregl-canvas');
+  await canvas.click({ position: { x: 700, y: 300 } });
+  await page.getByRole('button', { name: 'Đến đây' }).click();
+  await expect(page.locator('#nav-to input')).toHaveValue(/^\d+\.\d{4}, \d+\.\d{4}$/);
+  expect(new URL(page.url()).searchParams.get('to')).toMatch(/^\d+\.\d+,\d+\.\d+,/);
+
+  await page.locator('#nav-swap').click();
+  await expect(page.locator('#nav-to input')).toHaveValue('Nhà thờ Đức Bà');
+  await expect(page.locator('#nav-from input')).toHaveValue(/^\d+\.\d{4}, \d+\.\d{4}$/);
+});

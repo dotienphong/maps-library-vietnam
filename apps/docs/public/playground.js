@@ -15,6 +15,7 @@ import {
   radiusForPrecision,
   toSearchParams,
 } from '/playground-lib.js';
+import { initNavigation } from '/playground-nav.js';
 
 const SDK = globalThis.MapsLibVN;
 const apiBase = resolveApiBase();
@@ -33,7 +34,9 @@ let myLocationMarker = null;
 /** @type {[number, number] | null} lng, lat */
 let myLocation = null;
 /** @type {ReturnType<typeof import('/playground-nav.js').initNavigation> | null} */
-const nav = null;
+let nav = null;
+const fixtureMode = new URLSearchParams(location.search).get('fixture') === '1';
+const playbackRate = Math.max(1, Number(new URLSearchParams(location.search).get('rate') ?? '20'));
 
 /** @param {string} id */
 const el = (id) => document.getElementById(id);
@@ -281,6 +284,10 @@ function locateMe({ fly }) {
 
 /** @param {import('@mapslibvn/core').PoiFeature} poi */
 function onPoiClick(poi) {
+  if (nav?.active) {
+    nav.onPoiClick(poi);
+    return;
+  }
   setStatus(`${poi.name} · ${poi.category} (${poi.group})`);
   const box = el('poi-box');
   if (!box) return;
@@ -304,6 +311,29 @@ function onMoveEnd() {
   syncUrl();
 }
 
+/** Khởi tạo lại module dẫn đường cho map mới; nếu đang ở chế độ dẫn đường thì vào lại. */
+function attachNavigation() {
+  const wasActive = Boolean(nav?.active);
+  nav = initNavigation({
+    map,
+    sdk: SDK,
+    initial: { from: state.from, to: state.to, tmode: state.tmode },
+    lang: state.lang,
+    rate: playbackRate,
+    fixture: fixtureMode,
+    apiKey: state.key,
+    apiBase: state.api,
+    describeError,
+    onChange(patch) {
+      state = { ...state, ...patch };
+      renderSnippets();
+      syncUrl();
+    },
+  });
+  if (myLocation) nav.setMyLocation(myLocation);
+  if (wasActive || state.tab === 'dan-duong') nav.enter();
+}
+
 function buildMap() {
   mapLoaded = false;
   clearPins();
@@ -317,6 +347,9 @@ function buildMap() {
     baseMarker = null;
   }
   if (map) {
+    const keep = { from: state.from, to: state.to, tab: state.tab };
+    nav?.exit();
+    state = { ...state, ...keep };
     map.remove();
     map = null;
   }
@@ -371,6 +404,7 @@ function buildMap() {
     ac.map = map;
   }
   renderView();
+  attachNavigation();
 }
 
 /* ---------- Tìm kiếm ---------- */
@@ -558,6 +592,10 @@ function setReverseMode(on) {
 
 /** @param {{ lngLat: { lng: number, lat: number } }} event */
 async function onMapClick(event) {
+  if (nav?.active) {
+    nav.onMapClick([event.lngLat.lng, event.lngLat.lat]);
+    return;
+  }
   if (!reverseMode || !client) return;
   setReverseMode(false);
   const lat = Number(event.lngLat.lat.toFixed(6));
@@ -720,6 +758,8 @@ function wirePanel() {
 
   wireCopy('copy-script', 'snippet-script');
   wireCopy('copy-esm', 'snippet-esm');
+
+  el('enter-nav').addEventListener('click', () => nav?.enter());
 
   fillForm();
   renderTabs();
