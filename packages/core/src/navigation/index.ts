@@ -6,3 +6,4 @@ export * from './announce';
 export * from './simulate';
 export * from './navigator';
 export * from './route-features';
+export * from './heading';

@@ -2,6 +2,7 @@ import type { DirectionsOptions } from '../client';
 import type { DirectionsLang, DirectionsResponse, Route } from '../types';
 import { planAnnouncements } from './announce';
 import { bearingDeg, haversineM } from './geometry';
+import { MOVING_SPEED_MPS } from './heading';
 import { type FlatStep, type RouteIndex, buildRouteIndex, progressAt } from './progress';
 import { snapToRoute } from './snap';
 import {
@@ -21,8 +22,6 @@ const WINDOW_SPEED_MPS = 40;
 const WINDOW_MAX_M = 3000;
 /** Gần đích theo chim bay chỉ tính là đến nơi khi còn lại theo tuyến dưới ngần này (tuyến vòng qua đích). */
 const ARRIVE_NEAR_REMAINING_M = 150;
-/** Dưới vận tốc này heading GPS không tin được → dùng hướng đoạn tuyến. */
-const MOVING_SPEED_MPS = 1;
 
 interface RouteState {
   response: DirectionsResponse;
