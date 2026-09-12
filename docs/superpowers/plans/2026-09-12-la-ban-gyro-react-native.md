@@ -2712,7 +2712,7 @@ Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>"
 - Modify: `packages/react-native/tsup.config.ts`
 - Modify: `packages/react-native/package.json`
 
-- [ ] **Step 1: Kiểu ambient**
+- [x] **Step 1: Kiểu ambient**
 
 Trong `expo-modules.d.ts`, đổi dòng chú thích đầu "năm gói Expo" thành "sáu gói Expo" và thêm `expo-sensors 57.0.3` vào danh sách đối chiếu. Trong `declare module 'expo-location' { … }`, sau hàm `watchPositionAsync` thêm:
 
@@ -2754,7 +2754,7 @@ declare module 'expo-sensors' {
 }
 ```
 
-- [ ] **Step 2: `modules.ts` thêm `expo-sensors`**
+- [x] **Step 2: `modules.ts` thêm `expo-sensors`**
 
 Thay toàn bộ file:
 
@@ -2772,7 +2772,7 @@ import * as TaskManager from 'expo-task-manager';
 export { Audio, KeepAwake, Location, Sensors, Speech, TaskManager };
 ```
 
-- [ ] **Step 3: Viết test đỏ cho `heading-source`**
+- [x] **Step 3: Viết test đỏ cho `heading-source`**
 
 ```ts
 // packages/react-native/src/expo/heading-source.test.ts
@@ -2935,12 +2935,12 @@ describe('expoHeadingSource', () => {
 });
 ```
 
-- [ ] **Step 4: Chạy test, xác nhận đỏ**
+- [x] **Step 4: Chạy test, xác nhận đỏ**
 
 Run: `pnpm exec vitest run packages/react-native/src/expo/heading-source.test.ts`
 Expected: FAIL — không resolve được `./heading-source`.
 
-- [ ] **Step 5: Viết `heading-source.ts`**
+- [x] **Step 5: Viết `heading-source.ts`**
 
 ```ts
 // packages/react-native/src/expo/heading-source.ts
@@ -3172,12 +3172,12 @@ export function __resetHeadingSourceForTests(): void {
 }
 ```
 
-- [ ] **Step 6: Chạy test xanh**
+- [x] **Step 6: Chạy test xanh**
 
 Run: `pnpm exec vitest run packages/react-native/src/expo/heading-source.test.ts`
 Expected: PASS 6 test.
 
-- [ ] **Step 7: `expoNavigation` kèm heading + test**
+- [x] **Step 7: `expoNavigation` kèm heading + test**
 
 Thay toàn bộ `packages/react-native/src/expo/index.ts`:
 
@@ -3262,7 +3262,7 @@ describe('expoNavigation', () => {
 Run: `pnpm exec vitest run packages/react-native/src/expo/`
 Expected: PASS toàn bộ (index.test, heading-source.test, location-source.test, speech.test, device.test).
 
-- [ ] **Step 8: tsup external + peer dependency**
+- [x] **Step 8: tsup external + peer dependency**
 
 `packages/react-native/tsup.config.ts`: trong mảng `external`, sau `'expo-keep-awake',` thêm `'expo-sensors',`. Sửa chú thích đầu: "Entry thứ hai … chỗ duy nhất import Expo (external)" giữ nguyên, thêm câu "expo-sensors cũng external (spec la bàn 6.3)".
 
@@ -3271,12 +3271,12 @@ Expected: PASS toàn bộ (index.test, heading-source.test, location-source.test
 - `peerDependenciesMeta` thêm `"expo-sensors": { "optional": true },`.
 - `description` đổi thành: `React Native bindings MapsLibVN: <MapsLibVNMap>, <Marker>, useMap, usePlaces, dẫn đường (createNavigationSession, useNavigation; entry /expo cho định vị nền + TTS), la bàn + con quay hồi chuyển (useHeading, userLocation) — bọc @maplibre/maplibre-react-native`.
 
-- [ ] **Step 9: Build gói, kiểm dist không kéo expo-sensors vào gói chính**
+- [x] **Step 9: Build gói, kiểm dist không kéo expo-sensors vào gói chính**
 
 Run: `pnpm --filter @mapslibvn/react-native build && grep -c "expo-sensors" packages/react-native/dist/index.js; grep -c "expo-sensors" packages/react-native/dist/expo/index.js`
 Expected: build xanh; dòng đầu in `0` (gói chính không nhắc expo-sensors); dòng hai in ≥ 1 (entry expo import external).
 
-- [ ] **Step 10: Commit**
+- [x] **Step 10: Commit**
 
 ```bash
 git add packages/react-native/src/expo packages/react-native/tsup.config.ts packages/react-native/package.json
