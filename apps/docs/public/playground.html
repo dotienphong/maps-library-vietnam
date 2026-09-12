@@ -7,12 +7,77 @@
   <meta name="description" content="Chạy thử bản đồ và Places API của MapsLibVN bằng khoá demo hoặc khoá riêng." />
   <link rel="stylesheet" href="/sdk/mapslibvn.css" />
   <link rel="stylesheet" href="/playground.css" />
+  <link rel="stylesheet" href="/playground-nav.css" />
 </head>
 <body data-panel="open">
   <h1 class="pg-sr">MapsLibVN Playground</h1>
 
   <div id="map"></div>
   <div id="status" data-state="loading" role="status" aria-live="polite">Đang tải…</div>
+
+  <!-- Nút nổi trên bản đồ -->
+  <button id="locate" type="button" class="pg-fab" title="Vị trí của tôi" aria-label="Vị trí của tôi">◎</button>
+  <button id="tools" type="button" class="pg-fab pg-fab-tools" hidden aria-label="Mở công cụ">⋯ Công cụ</button>
+
+  <!-- Chế độ dẫn đường: thẻ lập kế hoạch -->
+  <section id="nav-card" class="nav-card" hidden aria-label="Lập kế hoạch dẫn đường">
+    <header class="nav-card-head">
+      <strong>Dẫn đường</strong>
+      <button id="nav-exit" type="button" class="nav-icon" aria-label="Thoát dẫn đường">✕</button>
+    </header>
+    <div class="nav-points">
+      <div class="nav-point nav-point-from">
+        <span class="nav-dot nav-dot-from" aria-hidden="true"></span>
+        <mapslibvn-autocomplete id="nav-from" placeholder="Điểm đi"></mapslibvn-autocomplete>
+      </div>
+      <button id="nav-swap" type="button" class="nav-icon" aria-label="Đổi chiều">⇅</button>
+      <div class="nav-point nav-point-to">
+        <span class="nav-dot nav-dot-to" aria-hidden="true"></span>
+        <mapslibvn-autocomplete id="nav-to" placeholder="Điểm đến"></mapslibvn-autocomplete>
+      </div>
+    </div>
+    <div class="nav-modes" role="group" aria-label="Phương tiện">
+      <button type="button" class="nav-mode" data-mode="motorbike" aria-pressed="true">🏍 Xe máy</button>
+      <button type="button" class="nav-mode" data-mode="car" aria-pressed="false">🚗 Ô tô</button>
+      <button type="button" class="nav-mode" data-mode="walk" aria-pressed="false">🚶 Đi bộ</button>
+    </div>
+    <p id="nav-msg" class="nav-msg">Chọn điểm đến bằng ô tìm kiếm hoặc bấm lên bản đồ.</p>
+    <ol id="nav-routes" class="nav-routes" aria-label="Các tuyến"></ol>
+    <details id="nav-steps-box" class="nav-steps-box" hidden>
+      <summary>Chi tiết bước</summary>
+      <ol id="nav-steps" class="nav-steps"></ol>
+    </details>
+    <div class="nav-actions">
+      <button id="nav-start" type="button" class="nav-primary" disabled>▶ Bắt đầu</button>
+      <button id="nav-simulate" type="button" disabled>Giả lập</button>
+    </div>
+  </section>
+
+  <!-- Chế độ dẫn đường: đang đi -->
+  <div id="nav-banner" class="nav-banner" hidden data-status="idle" role="status" aria-live="polite">
+    <div class="nav-banner-main">
+      <span id="nav-icon" class="nav-banner-icon" aria-hidden="true">•</span>
+      <div>
+        <div id="nav-distance" class="nav-banner-distance">—</div>
+        <div id="nav-instruction" class="nav-banner-text">—</div>
+      </div>
+    </div>
+    <p id="nav-subtitle" class="nav-subtitle" hidden></p>
+  </div>
+  <div id="nav-bar" class="nav-bar" hidden>
+    <span id="nav-eta">—</span>
+    <button id="nav-recenter" type="button" hidden>Về vị trí</button>
+    <button id="nav-stop" type="button" class="nav-stop">Dừng</button>
+  </div>
+
+  <!-- Popup chọn điểm khi bấm lên bản đồ / POI -->
+  <template id="nav-popup-template">
+    <div class="nav-popup">
+      <p class="nav-popup-label"></p>
+      <button type="button" data-kind="from">Đi từ đây</button>
+      <button type="button" data-kind="to">Đến đây</button>
+    </div>
+  </template>
 
   <aside id="panel" aria-label="Bảng điều khiển playground">
     <header class="pg-head">
@@ -32,6 +97,7 @@
     <div class="pg-quick">
       <p class="pg-label" id="ac-label">Tìm nhanh địa điểm</p>
       <mapslibvn-autocomplete id="ac" placeholder="Tìm địa điểm…"></mapslibvn-autocomplete>
+      <button id="enter-nav" type="button" class="pg-nav-enter">🧭 Dẫn đường</button>
     </div>
 
     <div class="pg-tabs" role="tablist" aria-label="Nhóm công cụ">

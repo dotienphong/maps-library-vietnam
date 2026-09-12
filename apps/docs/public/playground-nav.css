@@ -1,0 +1,377 @@
+/* Chế độ dẫn đường trong Playground — dùng biến màu của playground.css. */
+
+/* Nút vào chế độ trong bảng điều khiển */
+.pg-quick .pg-nav-enter {
+  width: 100%;
+  margin-top: 10px;
+  padding: 9px 12px;
+  border: 1px solid var(--pg-accent);
+  border-radius: 8px;
+  background: var(--pg-accent);
+  color: var(--pg-accent-fg);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+/* Nút nổi trên bản đồ */
+.pg-fab {
+  position: fixed;
+  right: 12px;
+  z-index: 15;
+  width: 42px;
+  height: 42px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: var(--pg-bg);
+  color: var(--pg-fg);
+  box-shadow: var(--pg-shadow);
+  font: inherit;
+  font-size: 20px;
+  cursor: pointer;
+}
+#locate {
+  bottom: 40px;
+}
+#locate[aria-pressed="true"] {
+  color: var(--pg-accent);
+}
+.pg-fab-tools {
+  top: 12px;
+  width: auto;
+  height: auto;
+  padding: 8px 12px;
+  border-radius: 8px;
+  font-size: 13px;
+}
+
+/* Chấm vị trí của tôi (marker element) */
+.pg-my-location {
+  width: 16px;
+  height: 16px;
+  border: 3px solid #fff;
+  border-radius: 50%;
+  background: #2458a6;
+  box-shadow: 0 0 0 6px rgba(36, 88, 166, 0.18), 0 1px 4px rgba(0, 0, 0, 0.35);
+}
+
+/* Trong chế độ dẫn đường: giấu bảng điều khiển, hiện nút Công cụ */
+body[data-nav="1"] #panel {
+  display: none;
+}
+body[data-nav="1"][data-tools="1"] #panel {
+  display: flex;
+  z-index: 30;
+}
+body[data-nav="1"] #status {
+  left: 396px;
+}
+
+/* Thẻ lập kế hoạch — thế chỗ bảng điều khiển bên trái */
+.nav-card {
+  position: fixed;
+  top: 12px;
+  left: 12px;
+  z-index: 20;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 360px;
+  max-height: calc(100vh - 24px);
+  padding: 12px 14px 14px;
+  box-sizing: border-box;
+  overflow: auto;
+  border-radius: 12px;
+  background: var(--pg-bg);
+  color: var(--pg-fg);
+  box-shadow: var(--pg-shadow);
+}
+.nav-card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.nav-icon {
+  padding: 4px 8px;
+  border: 1px solid var(--pg-border);
+  border-radius: 6px;
+  background: var(--pg-bg);
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+.nav-points {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 6px 8px;
+  align-items: center;
+}
+.nav-point {
+  display: grid;
+  grid-template-columns: 14px 1fr;
+  gap: 8px;
+  align-items: center;
+}
+.nav-point mapslibvn-autocomplete {
+  display: block;
+  min-width: 0;
+}
+.nav-points #nav-swap {
+  grid-row: 1 / span 2;
+}
+.nav-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  border: 2px solid var(--pg-bg);
+  box-shadow: 0 0 0 1px var(--pg-border);
+}
+.nav-dot-from {
+  background: #2458a6;
+}
+.nav-dot-to {
+  background: #d92d20;
+}
+.nav-modes {
+  display: flex;
+  gap: 6px;
+}
+.nav-mode {
+  flex: 1;
+  padding: 7px 4px;
+  border: 1px solid var(--pg-border);
+  border-radius: 999px;
+  background: var(--pg-bg);
+  color: var(--pg-muted);
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}
+.nav-mode[aria-pressed="true"] {
+  border-color: var(--pg-accent);
+  background: var(--pg-accent);
+  color: var(--pg-accent-fg);
+  font-weight: 600;
+}
+.nav-card[aria-busy="true"] .nav-modes,
+.nav-card[aria-busy="true"] .nav-routes {
+  opacity: 0.5;
+}
+.nav-msg {
+  margin: 0;
+  color: var(--pg-muted);
+  font-size: 13px;
+}
+.nav-msg[data-state="error"] {
+  color: #a5301f;
+}
+.nav-routes {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.nav-routes li + li {
+  margin-top: 4px;
+}
+.nav-routes button {
+  display: block;
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid var(--pg-border);
+  border-left-width: 4px;
+  border-radius: 8px;
+  background: var(--pg-bg);
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.nav-routes button[aria-pressed="true"] {
+  border-left-color: var(--pg-accent);
+  background: var(--pg-soft);
+}
+.nav-routes strong {
+  font-size: 15px;
+}
+.nav-routes small {
+  display: block;
+  color: var(--pg-muted);
+  font-size: 12px;
+}
+.nav-steps-box summary {
+  cursor: pointer;
+  color: var(--pg-muted);
+  font-size: 12px;
+}
+.nav-steps {
+  margin: 6px 0 0;
+  padding-left: 18px;
+  font-size: 13px;
+}
+.nav-steps li {
+  margin: 3px 0;
+}
+.nav-actions {
+  display: flex;
+  gap: 8px;
+}
+.nav-actions button {
+  flex: 1;
+  padding: 10px 12px;
+  border: 1px solid var(--pg-border);
+  border-radius: 8px;
+  background: var(--pg-bg);
+  color: inherit;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+.nav-actions button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+.nav-actions .nav-primary {
+  border-color: var(--pg-accent);
+  background: var(--pg-accent);
+  color: var(--pg-accent-fg);
+}
+
+/* Đang dẫn đường */
+.nav-banner {
+  position: fixed;
+  top: 12px;
+  left: 12px;
+  right: 12px;
+  z-index: 20;
+  padding: 12px 16px;
+  border-radius: 12px;
+  background: #1a4f9c;
+  color: #fff;
+  box-shadow: var(--pg-shadow);
+}
+.nav-banner[data-status="off_route"],
+.nav-banner[data-status="rerouting"] {
+  background: #b54708;
+}
+.nav-banner[data-status="error"] {
+  background: #a5301f;
+}
+.nav-banner[data-status="arrived"] {
+  background: #1a7f37;
+}
+.nav-banner-main {
+  display: grid;
+  grid-template-columns: 56px 1fr;
+  gap: 12px;
+  align-items: center;
+}
+.nav-banner-icon {
+  font-size: 44px;
+  line-height: 1;
+  text-align: center;
+}
+.nav-banner-distance {
+  font-size: 30px;
+  font-weight: 800;
+  line-height: 1.1;
+}
+.nav-banner-text {
+  font-size: 18px;
+  font-weight: 600;
+}
+.nav-subtitle {
+  margin: 8px 0 0;
+  font-size: 13px;
+  opacity: 0.85;
+}
+.nav-bar {
+  position: fixed;
+  left: 12px;
+  right: 12px;
+  bottom: 12px;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  border-radius: 12px;
+  background: var(--pg-bg);
+  color: var(--pg-fg);
+  box-shadow: var(--pg-shadow);
+  font-weight: 600;
+}
+.nav-bar #nav-eta {
+  flex: 1;
+}
+.nav-bar button {
+  padding: 8px 12px;
+  border: 1px solid var(--pg-border);
+  border-radius: 8px;
+  background: var(--pg-bg);
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+.nav-bar .nav-stop {
+  border-color: #d92d20;
+  color: #d92d20;
+}
+body[data-nav-phase="nav"] #locate {
+  bottom: 76px;
+}
+body[data-nav-phase="nav"] #status {
+  display: none;
+}
+
+/* Popup chọn điểm */
+.nav-popup {
+  display: grid;
+  gap: 6px;
+  min-width: 160px;
+  font: 13px / 1.4 system-ui, sans-serif;
+}
+.nav-popup-label {
+  margin: 0 0 2px;
+  font-weight: 600;
+  color: #172033;
+}
+.nav-popup button {
+  padding: 6px 10px;
+  border: 1px solid #c7cfda;
+  border-radius: 6px;
+  background: #fff;
+  color: #172033;
+  font: inherit;
+  cursor: pointer;
+}
+.nav-popup button:hover {
+  border-color: #2458a6;
+  color: #2458a6;
+}
+
+/* Màn hình hẹp: thẻ lập kế hoạch bám đáy, banner/thanh toàn bề rộng */
+@media (max-width: 720px) {
+  .nav-card {
+    top: auto;
+    right: 12px;
+    bottom: 12px;
+    width: auto;
+    max-height: 60vh;
+  }
+  body[data-nav="1"] #status {
+    left: 12px;
+  }
+  .nav-banner-distance {
+    font-size: 24px;
+  }
+  .nav-banner-text {
+    font-size: 15px;
+  }
+  #locate {
+    bottom: calc(60vh + 24px);
+  }
+  body[data-nav-phase="nav"] #locate {
+    bottom: 76px;
+  }
+}
