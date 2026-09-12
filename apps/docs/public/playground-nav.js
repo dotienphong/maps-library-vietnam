@@ -455,16 +455,19 @@ export function initNavigation(deps) {
   });
   el('nav-recenter').addEventListener('click', () => map.navigation.recenter());
 
-  function enter() {
+  /** @param {NavPoint | null} [prefillTo] Điểm vừa tìm/chọn trước khi vào chế độ — điền sẵn nếu chưa có điểm đến. */
+  function enter(prefillTo) {
     if (active) return;
     active = true;
     document.body.dataset.nav = '1';
     delete document.body.dataset.tools;
+    const filledTo = !to && prefillTo ? prefillTo : null;
+    if (filledTo) to = filledTo;
     card.hidden = false;
     el('tools').hidden = false;
     renderModes();
     renderPoints();
-    onChange({ tab: 'dan-duong' });
+    onChange(filledTo ? { tab: 'dan-duong', to: filledTo } : { tab: 'dan-duong' });
     void compute();
   }
 

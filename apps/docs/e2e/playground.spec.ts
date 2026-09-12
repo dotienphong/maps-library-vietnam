@@ -181,11 +181,12 @@ test('Nguồn POI mới đồng bộ selector, URL, snippet và style request', 
   await page.goto('/playground.html');
   await expect(page.locator('#f-sources option')).toHaveCount(6);
 
-  for (const [profile, sources, snippet] of [
-    ['osm-fsq', 'osm,fsq', "poiSources: ['osm', 'fsq']"],
-    ['overture-fsq', 'overture,fsq', "poiSources: ['overture', 'fsq']"],
-    ['overture', 'overture', "poiSources: ['overture']"],
-    ['fsq', 'fsq', "poiSources: ['fsq']"],
+  // osm-fsq là mặc định mới của Playground nên round-trip không in lại `sources` trên URL (null).
+  for (const [profile, sources, urlSources, snippet] of [
+    ['osm-fsq', 'osm,fsq', null, "poiSources: ['osm', 'fsq']"],
+    ['overture-fsq', 'overture,fsq', 'overture,fsq', "poiSources: ['overture', 'fsq']"],
+    ['overture', 'overture', 'overture', "poiSources: ['overture']"],
+    ['fsq', 'fsq', 'fsq', "poiSources: ['fsq']"],
   ]) {
     const styleRequest = page.waitForRequest((request) => {
       const url = new URL(request.url());
@@ -199,7 +200,7 @@ test('Nguồn POI mới đồng bộ selector, URL, snippet và style request', 
     await expect(page.locator('#status')).toHaveAttribute('data-state', 'loaded', {
       timeout: 30_000,
     });
-    expect(new URL(page.url()).searchParams.get('sources')).toBe(sources);
+    expect(new URL(page.url()).searchParams.get('sources')).toBe(urlSources);
     await page.locator('#tab-ma-nhung').click();
     await expect(page.locator('#snippet-script')).toContainText(snippet);
     await page.locator('#tab-ban-do').click();
@@ -282,6 +283,8 @@ test('bấm Dẫn đường: bảng thu về ⋯ Công cụ, thẻ trái hiện,
   await expect(page.locator('#nav-card')).toBeVisible();
   await expect(page.locator('#nav-from input')).toBeVisible();
   await expect(page.locator('#nav-to input')).toBeVisible();
+  // Chưa tìm kiếm gì trước đó nên không có gì để tự điền điểm đến.
+  await expect(page.locator('#nav-to input')).toHaveValue('');
   await expect(page.locator('.nav-mode[data-mode="motorbike"]')).toHaveAttribute(
     'aria-pressed',
     'true',
@@ -297,6 +300,28 @@ test('bấm Dẫn đường: bảng thu về ⋯ Công cụ, thẻ trái hiện,
   await expect(page.locator('#nav-card')).toBeHidden();
   await expect(page.locator('#panel')).toBeVisible();
   expect(new URL(page.url()).searchParams.get('tab')).toBeNull();
+});
+
+test('đã tìm địa điểm rồi mới bấm Dẫn đường: điểm đến tự điền, không cần nhập lại', async ({
+  page,
+}) => {
+  await page.goto('/playground.html?api=http://localhost:8787');
+  await expect(page.locator('#status')).toHaveAttribute('data-state', 'loaded', {
+    timeout: 30_000,
+  });
+
+  const autocomplete = page.locator('#ac');
+  await autocomplete.locator('input').fill('highlands');
+  const firstOption = autocomplete.locator('[role="option"]').first();
+  await expect(firstOption).toBeVisible({ timeout: 5_000 });
+  await firstOption.click();
+  await expect(page.locator('#status')).toContainText('Đã chọn:');
+  const placeName = ((await page.locator('#status').textContent()) ?? '').replace('Đã chọn: ', '');
+
+  await page.locator('#enter-nav').click();
+  await expect(page.locator('#nav-card')).toBeVisible();
+  await expect(page.locator('#nav-to input')).toHaveValue(placeName);
+  expect(decodeURIComponent(new URL(page.url()).searchParams.get('to') ?? '')).toContain(placeName);
 });
 
 test('bấm bản đồ chọn "Đến đây" → ô Điểm đến có nhãn toạ độ, URL có to; đổi chiều hoán vị', async ({

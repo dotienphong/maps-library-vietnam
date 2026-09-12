@@ -13,6 +13,7 @@ import {
   navSnippet,
   parseState,
   poiSourcesForProfile,
+  pointFromPoi,
   radiusForPrecision,
   toSearchParams,
 } from '/playground-lib.js';
@@ -36,6 +37,8 @@ let myLocationMarker = null;
 let myLocation = null;
 /** @type {ReturnType<typeof import('/playground-nav.js').initNavigation> | null} */
 let nav = null;
+/** @type {import('/playground-lib.js').NavPoint | null} Địa điểm vừa tìm/chọn — điền sẵn khi bấm "Dẫn đường". */
+let lastSearchPoint = null;
 const fixtureMode = new URLSearchParams(location.search).get('fixture') === '1';
 const playbackRate = Math.max(1, Number(new URLSearchParams(location.search).get('rate') ?? '20'));
 
@@ -291,6 +294,7 @@ function onPoiClick(poi) {
     nav.onPoiClick(poi);
     return;
   }
+  lastSearchPoint = pointFromPoi(poi);
   setStatus(`${poi.name} · ${poi.category} (${poi.group})`);
   const box = el('poi-box');
   if (!box) return;
@@ -424,6 +428,7 @@ function goTo(target, zoom) {
   addPin(target.lng, target.lat, `<b>${escapeHtml(target.name)}</b>`);
   if (map) map.flyTo([target.lng, target.lat], zoom);
   setStatus(`Đã chọn: ${target.name}`);
+  lastSearchPoint = { lng: target.lng, lat: target.lat, label: target.name };
 }
 
 /**
@@ -437,6 +442,7 @@ function goToArea(area) {
   // Thứ tự bbox của API là [minLng, minLat, maxLng, maxLat] — khớp `MapsLibVNMap.fitBounds`.
   if (map) map.fitBounds(area.bbox);
   setStatus(`Đã chọn: ${area.name}`);
+  lastSearchPoint = { lng: area.lng, lat: area.lat, label: area.name };
 }
 
 /** @param {import('@mapslibvn/core').Place[]} items */
@@ -526,6 +532,7 @@ function showGeocodeItem(item) {
   );
   const radius = radiusForPrecision(item.precision);
   drawCircle(item.lng, item.lat, radius);
+  lastSearchPoint = { lng: item.lng, lat: item.lat, label: item.display_name };
   if (!map) return;
   if (radius > 0) map.flyTo([item.lng, item.lat], 17);
   else if (item.precision === 'rooftop') map.flyTo([item.lng, item.lat], 18);
@@ -763,7 +770,7 @@ function wirePanel() {
   wireCopy('copy-esm', 'snippet-esm');
   wireCopy('copy-nav', 'snippet-nav');
 
-  el('enter-nav').addEventListener('click', () => nav?.enter());
+  el('enter-nav').addEventListener('click', () => nav?.enter(lastSearchPoint));
 
   fillForm();
   renderTabs();

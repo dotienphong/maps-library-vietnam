@@ -39,6 +39,9 @@ export const POI_PROFILE_SOURCES = {
   fsq: ['fsq'],
 };
 
+/** Profile nguồn POI mặc định của Playground — khác mặc định "tất cả" của SDK. */
+export const DEFAULT_SOURCES = 'osm-fsq';
+
 /** @param {string} profile @returns {string[] | undefined} */
 export function poiSourcesForProfile(profile) {
   const sources = POI_PROFILE_SOURCES[profile];
@@ -47,10 +50,11 @@ export function poiSourcesForProfile(profile) {
 
 /** @param {string | null} raw */
 function profileForSources(raw) {
-  if (!raw || raw === 'all') return 'all';
+  if (!raw) return DEFAULT_SOURCES;
+  if (raw === 'all') return 'all';
   return (
     Object.entries(POI_PROFILE_SOURCES).find(([, sources]) => sources.join(',') === raw)?.[0] ??
-    'all'
+    DEFAULT_SOURCES
   );
 }
 
@@ -170,8 +174,10 @@ export function toSearchParams(state, apiBase) {
   if (state.style !== SDK_DEFAULTS.style) params.set('style', state.style);
   if (state.lang !== SDK_DEFAULTS.lang) params.set('lang', state.lang);
   if (!state.poi) params.set('poi', '0');
-  const poiSources = poiSourcesForProfile(state.sources);
-  if (poiSources) params.set('sources', poiSources.join(','));
+  if (state.sources !== DEFAULT_SOURCES) {
+    const poiSources = poiSourcesForProfile(state.sources);
+    params.set('sources', poiSources ? poiSources.join(',') : 'all');
+  }
   if (state.compact) params.set('compact', '1');
   const movedCenter =
     round6(state.center[0]) !== DEFAULT_CENTER[0] || round6(state.center[1]) !== DEFAULT_CENTER[1];
