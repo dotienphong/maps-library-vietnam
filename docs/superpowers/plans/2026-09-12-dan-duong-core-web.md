@@ -5315,14 +5315,14 @@ Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>"
 - Create: `docs/evidence/navigation/2026-09-XX-di-bo.md`
 - Modify (nếu chỉnh ngưỡng): `packages/core/src/navigation/types.ts`, `types.test.ts`, `apps/docs/src/content/docs/dan-duong.md` (bảng ngưỡng), spec B mục 4.3, DEVLOG mục 3
 
-- [ ] **Step 1: Hướng dẫn PHONG (chép vào tin nhắn)**
+- [x] **Step 1: Hướng dẫn PHONG (chép vào tin nhắn)**
 
 1. Mở `https://<docs>/dan-duong-demo/` trên điện thoại (Safari iOS hoặc Chrome Android), cho phép vị trí.
 2. Chọn "Đi bộ"; bấm bản đồ chọn điểm đi (vị trí đang đứng) và điểm đến ~1 km, tuyến có ≥ 3 chỗ rẽ → Tìm tuyến → Bắt đầu (mở loa).
 3. Đi hết tuyến. **Ở một chỗ rẽ, cố ý rẽ nhầm và đi tiếp ≥ 30 m** rồi quay lại hoặc đi theo tuyến mới.
 4. Tới nơi, chụp màn hình bảng "Câu đã đọc", "Nhật ký" và dòng GPS; ghi lại: máy/trình duyệt, câu nào đọc sớm/muộn/thiếu, mấy giây sau khi lệch thì có tuyến mới, có báo "Đã đến nơi" không, màn hình có tắt giữa chừng không, pin hao bao nhiêu.
 
-- [ ] **Step 2: Ghi evidence**
+- [x] **Step 2: Ghi evidence**
 
 Tạo `docs/evidence/navigation/2026-09-XX-di-bo.md` theo mẫu:
 
@@ -5349,15 +5349,15 @@ Ngày: 2026-09-XX. Thiết bị: <máy>, <trình duyệt + phiên bản>. Tuyế
 <không / danh sách ngưỡng + số mới + lý do>
 ```
 
-- [ ] **Step 3: Chỉnh ngưỡng nếu thực địa yêu cầu**
+- [x] **Step 3: Chỉnh ngưỡng nếu thực địa yêu cầu** — không cần: PHONG xác nhận giữ nguyên ngưỡng.
 
 Nếu PHONG báo câu rẽ đọc quá sớm/muộn hoặc lệch giả: đổi số trong `NAVIGATION_THRESHOLDS` (`types.ts`), cập nhật `types.test.ts`, bảng trong `dan-duong.md` và spec B mục 4.3; thêm dòng DEVLOG mục 3 `| ngày | Ngưỡng <tên> walk đổi a → b | thực địa <ngày>: … | commit |`. Chạy `pnpm test` xanh.
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
-git add docs/evidence/navigation packages/core/src/navigation apps/docs/src/content/docs/dan-duong.md docs/superpowers/specs/2026-09-12-dan-duong-core-web-design.md docs/DEVLOG.md
-git commit -m "docs(evidence): thực địa đi bộ spec B và chốt ngưỡng dẫn đường
+git add docs/evidence/navigation docs/superpowers/plans/2026-09-12-dan-duong-core-web.md
+git commit -m "docs(evidence): thực địa đi bộ spec B — PHONG xác nhận ok, giữ nguyên ngưỡng
 
 Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>"
 ```
