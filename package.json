@@ -10,6 +10,8 @@
     "setup": "node scripts/setup.mjs",
     "dev": "turbo run dev --parallel",
     "build": "turbo run build",
+    "deploy:api": "pnpm build && pnpm --filter @mapslibvn/api exec wrangler deploy --env production",
+    "deploy:docs": "pnpm build && pnpm --filter @mapslibvn/docs exec wrangler pages deploy dist --project-name mapslibvn-docs",
     "lint": "biome check .",
     "lint:fix": "biome check --write .",
     "notices:sync": "node scripts/notices-sync.mjs",
