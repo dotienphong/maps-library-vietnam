@@ -21,7 +21,7 @@ Cập nhật: 12/09/2026.
 | @maplibre/maplibre-react-native | 11.3.8 (peer, chỉ `@mapslibvn/react-native`) | MIT | bộ vẽ bản đồ native iOS/Android |
 | react, react-native | react ≥ 19.1, react-native ≥ 0.80 (peer, chỉ `@mapslibvn/react-native`) | MIT | |
 | expo-location, expo-task-manager | 57.0.17 (peer **tuỳ chọn**, chỉ entry `@mapslibvn/react-native/expo`) | MIT | định vị tiền cảnh và nền cho dẫn đường |
-| expo-speech, expo-audio, expo-keep-awake | 57.0.3 / 57.0.5 / 57.0.1 (peer **tuỳ chọn**, chỉ entry `@mapslibvn/react-native/expo`) | MIT | đọc câu chỉ dẫn, phiên âm thanh khi nền, giữ màn hình sáng |
+| expo-speech, expo-audio, expo-keep-awake, expo-sensors | 57.0.3 / 57.0.5 / 57.0.1 / 57.0.3 (peer **tuỳ chọn**, chỉ entry `@mapslibvn/react-native/expo`) | MIT | đọc câu chỉ dẫn, phiên âm thanh khi nền, giữ màn hình sáng, con quay hồi chuyển cho la bàn |
 
 Nguyên văn giấy phép ở mục 4.
 
@@ -387,7 +387,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SO
 Gói này nhúng MapLibre Native (Android, iOS) khi build app — xem thông báo giấy phép trong
 chính gói đó cho các thành phần native.
 
-### 4.9 expo-location, expo-task-manager, expo-speech, expo-audio, expo-keep-awake — MIT
+### 4.9 expo-location, expo-task-manager, expo-speech, expo-audio, expo-keep-awake, expo-sensors — MIT
 
 ```
 The MIT License (MIT)

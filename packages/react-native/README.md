@@ -15,6 +15,7 @@ Works with Expo (bare or managed, not Expo Go) and bare React Native apps alike.
 - 🔊 **Voice guidance that keeps talking, even locked** — background location updates and Vietnamese TTS continue to work with the screen locked, verified on real hardware (not just a simulator).
 - 🧩 **Opt-in Expo integration** — location, background task, speech, audio-session and keep-awake support ship through the `@mapslibvn/react-native/expo` entry point, as optional peer dependencies. Not using navigation? You don't install any of them. Building a bare app? Swap in your own GPS/audio source.
 - 🔐 **Privacy-conscious by default** — only requests "When In Use" location permission, never "Always".
+- 🧭 **Compass + gyroscope, opt-in** — the puck turns with the phone while you're stopped at a light, a blue dot with a heading cone before the ride starts, and `useHeading()` for your own UI (rotate the driver icon, send heading to your server). Ships through the same `/expo` entry.
 - 🚀 **New Architecture ready** — built and tested against React Native's New Architecture and current Expo SDKs.
 
 ## Requirements
@@ -67,7 +68,20 @@ await session.start({ response });               // GPS even when locked, Vietna
 const { status, progress } = useNavigation(session); // usable anywhere
 ```
 
-You'll need `npx expo install expo-location expo-task-manager expo-speech expo-audio` plus the corresponding `app.json` plugin config (see docs). Have your own GPS pipeline? Pass your own `source` instead of `expoNavigation()`.
+You'll need `npx expo install expo-location expo-task-manager expo-speech expo-audio expo-sensors` plus the corresponding `app.json` plugin config (see docs). Have your own GPS pipeline? Pass your own `source` instead of `expoNavigation()`.
+
+## Compass and heading
+
+```tsx
+import { useHeading } from '@mapslibvn/react-native';
+import { expoHeadingSource, expoLocationSource } from '@mapslibvn/react-native/expo';
+
+const heading = expoHeadingSource();                                     // compass + gyro, one shared native subscription
+<MapsLibVNMap {...props} userLocation={{ source: expoLocationSource({ background: false }), heading, follow: 'heading' }} />
+const fix = useHeading(heading);                                         // { heading, accuracy, source } anywhere in your app
+```
+
+`expoNavigation()` already includes the heading source, so the navigation puck follows the phone while stationary (≤ 1 m/s) and goes back to GPS when moving. Pass `follow={{ bearing: 'heading' }}` for a heading-up camera while walking.
 
 📖 Docs: <https://mapslibvn-docs.pages.dev/react-native/> and <https://mapslibvn-docs.pages.dev/dan-duong-react-native/>
 
@@ -90,6 +104,7 @@ Dùng được với cả Expo (bare hoặc managed, không chạy trên Expo Go
 - 🔊 **Giọng đọc không tắt kể cả khi khoá máy** — định vị nền và TTS tiếng Việt vẫn hoạt động khi khoá màn hình, đã xác nhận trên máy thật (không chỉ trên giả lập).
 - 🧩 **Tích hợp Expo theo kiểu tuỳ chọn** — định vị, background task, giọng đọc, phiên âm thanh và giữ máy thức đi qua entry point `@mapslibvn/react-native/expo`, dưới dạng peer dependency tuỳ chọn. Không dùng dẫn đường? Không cần cài gói nào trong số đó. Làm app bare? Tự thay bằng nguồn GPS/âm thanh riêng.
 - 🔐 **Tôn trọng quyền riêng tư mặc định** — chỉ xin quyền định vị "When In Use", không bao giờ xin "Always".
+- 🧭 **La bàn + con quay hồi chuyển, tuỳ chọn** — puck xoay theo điện thoại khi dừng đèn đỏ, chấm xanh có nón hướng trước khi bắt đầu chuyến, `useHeading()` cho UI riêng (xoay icon tài xế, gửi hướng về máy chủ). Đi cùng entry `/expo`.
 - 🚀 **Sẵn sàng cho New Architecture** — được build và kiểm thử trên New Architecture của React Native cùng các bản Expo SDK hiện hành.
 
 ## Yêu cầu
@@ -142,7 +157,20 @@ await session.start({ response });            // GPS cả khi khoá máy, giọn
 const { status, progress } = useNavigation(session); // dùng ở bất kỳ đâu
 ```
 
-Cần `npx expo install expo-location expo-task-manager expo-speech expo-audio` và plugin trong `app.json` (xem docs). App có luồng GPS riêng: truyền `source` của bạn thay `expoNavigation()`.
+Cần `npx expo install expo-location expo-task-manager expo-speech expo-audio expo-sensors` và plugin trong `app.json` (xem docs). App có luồng GPS riêng: truyền `source` của bạn thay `expoNavigation()`.
+
+## La bàn và hướng
+
+```tsx
+import { useHeading } from '@mapslibvn/react-native';
+import { expoHeadingSource, expoLocationSource } from '@mapslibvn/react-native/expo';
+
+const heading = expoHeadingSource();                                     // la bàn + gyro, một đăng ký native dùng chung
+<MapsLibVNMap {...props} userLocation={{ source: expoLocationSource({ background: false }), heading, follow: 'heading' }} />
+const fix = useHeading(heading);                                         // { heading, accuracy, source } ở bất kỳ đâu
+```
+
+`expoNavigation()` đã kèm nguồn hướng: puck dẫn đường xoay theo máy khi đứng yên (≤ 1 m/s), chạy lại theo GPS. Truyền `follow={{ bearing: 'heading' }}` để bản đồ xoay theo hướng nhìn khi đi bộ.
 
 📖 Tài liệu: <https://mapslibvn-docs.pages.dev/react-native/> và <https://mapslibvn-docs.pages.dev/dan-duong-react-native/>
 
