@@ -2193,10 +2193,16 @@ export function createMapBinding(deps: MapBindingDeps): MapBinding {
       session.on(k, fn);
       detachFns.push(() => session.off(k, fn));
     };
-    on('route', (e) => deps.store.show(e.response, { active: e.routeIndex }));
-    on('progress', paint);
+    // Một handler mỗi sự kiện: vẽ (route/progress) rồi phát lại cho listener của binding.
     for (const name of SESSION_EVENTS) {
-      on(name, (e) => emit(name, e as BindingEvents[typeof name]));
+      on(name, (e) => {
+        if (name === 'progress') paint(e as NavigationProgress);
+        else if (name === 'route') {
+          const r = e as SessionEvents['route'];
+          deps.store.show(r.response, { active: r.routeIndex });
+        }
+        emit(name, e as BindingEvents[typeof name]);
+      });
     }
     if (session.response) deps.store.show(session.response, { active: session.routeIndex });
     const p = session.state;

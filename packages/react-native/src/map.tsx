@@ -4,8 +4,10 @@ import {
   type MapRef,
   Map as NativeMap,
   type PressEvent,
+  type ViewStateChangeEvent,
 } from '@maplibre/maplibre-react-native';
 import {
+  FIRST_SYMBOL_LAYER_ID,
   type Lang,
   POI_LAYER_ID,
   type PoiFeature,
@@ -15,6 +17,7 @@ import {
 } from '@mapslibvn/core';
 import { type ReactNode, useContext, useEffect, useMemo, useRef } from 'react';
 import {
+  AppState,
   type NativeSyntheticEvent,
   type StyleProp,
   StyleSheet,
@@ -23,8 +26,16 @@ import {
 } from 'react-native';
 import { Attribution } from './attribution';
 import { MapContext, type MapHandle } from './context';
+import { type FollowOptions, createMapBinding } from './navigation/map-binding';
+import { RouteLayers, type RouteStyle } from './navigation/route-layers';
+import { createRoutesStore } from './navigation/routes-store';
+import {
+  type NavigationSession,
+  type NavigationSessionOptions,
+  createNavigationSession,
+} from './navigation/session';
 import { toPoiFeature } from './to-poi-feature';
-import { useResolvedStyle } from './use-style';
+import { isTheme, useResolvedStyle } from './use-style';
 
 export const DEFAULT_CENTER: [number, number] = [106.7, 10.776];
 export const DEFAULT_ZOOM = 12;
@@ -49,6 +60,19 @@ export interface MapsLibVNMapProps {
   bundleId?: string;
   /** Style của khung View bọc ngoài */
   containerStyle?: StyleProp<ViewStyle>;
+  /** Phiên dẫn đường gắn vào map để vẽ tuyến, puck, camera bám; bỏ prop → gỡ và xoá tuyến. */
+  navigation?: NavigationSession;
+  /** Tuỳ chọn cho phiên mặc định (khi không truyền `navigation`); cần ít nhất `source`. */
+  sessionOptions?: Omit<NavigationSessionOptions, 'provider'>;
+  /** Camera bám vị trí khi dẫn đường — mặc định true (zoom theo phương tiện, pitch 45). */
+  follow?: boolean | FollowOptions;
+  /** Vẽ mũi tên vị trí — mặc định true; false để app tự vẽ từ `progress.snapped`. */
+  puck?: boolean;
+  routeStyle?: RouteStyle;
+  /** Chèn tuyến dưới lớp này; mặc định lớp symbol đầu tiên của theme; null = trên cùng. */
+  routeBeforeLayerId?: string | null;
+  /** Bấm tuyến thay thế. */
+  onRouteClick?: (index: number) => void;
   onLoad?: (map: MapHandle) => void;
   onPoiClick?: (poi: PoiFeature) => void;
   onError?: (error: Error) => void;
@@ -68,6 +92,13 @@ export function MapsLibVNMap({
   compactAttribution = false,
   bundleId,
   containerStyle,
+  navigation,
+  sessionOptions,
+  follow = true,
+  puck = true,
+  routeStyle,
+  routeBeforeLayerId,
+  onRouteClick,
   onLoad,
   onPoiClick,
   onError,
@@ -89,8 +120,35 @@ export function MapsLibVNMap({
   );
   const native = useRef<MapRef | null>(null);
   const camera = useRef<CameraRef | null>(null);
-  const handlers = useRef({ onLoad, onPoiClick, onError });
-  handlers.current = { onLoad, onPoiClick, onError };
+  const handlers = useRef({ onLoad, onPoiClick, onError, onRouteClick });
+  handlers.current = { onLoad, onPoiClick, onError, onRouteClick };
+  const sessionOptionsRef = useRef(sessionOptions);
+  sessionOptionsRef.current = sessionOptions;
+
+  const store = useMemo(() => createRoutesStore(), []);
+  const binding = useMemo(
+    () =>
+      createMapBinding({
+        camera,
+        store,
+        appState: AppState,
+        createDefaultSession: () =>
+          createNavigationSession({ provider: places, ...sessionOptionsRef.current }),
+      }),
+    [places, store],
+  );
+  useEffect(() => () => binding.dispose(), [binding]);
+  useEffect(() => {
+    binding.attach(navigation ?? null);
+  }, [binding, navigation]);
+  // `follow` là object mới mỗi render → so bằng chuỗi để không setFollow liên tục.
+  const followKey = JSON.stringify(follow);
+  useEffect(() => {
+    binding.setFollow(JSON.parse(followKey) as boolean | FollowOptions);
+  }, [binding, followKey]);
+  useEffect(() => {
+    store.setPuck(puck);
+  }, [store, puck]);
 
   const handle = useMemo<MapHandle>(
     () => ({
@@ -110,8 +168,14 @@ export function MapsLibVNMap({
         if (!b) throw new Error('Bản đồ chưa sẵn sàng');
         return b;
       },
+      routes: {
+        show: (response, opts) => store.show(response, opts ?? {}),
+        setActive: (index) => store.setActive(index),
+        clear: () => store.clear(),
+      },
+      navigation: binding.api,
     }),
-    [places],
+    [places, store, binding],
   );
 
   const resolved = useResolvedStyle(places, { style, lang, poiLayer });
@@ -131,6 +195,15 @@ export function MapsLibVNMap({
     const poi = toPoiFeature(features?.[0]);
     if (poi) handlers.current.onPoiClick?.(poi);
   };
+  const onRegionWillChange = (e: NativeSyntheticEvent<ViewStateChangeEvent>): void => {
+    if (e.nativeEvent.userInteraction) binding.userGesture();
+  };
+  const beforeId =
+    routeBeforeLayerId === undefined
+      ? isTheme(style)
+        ? FIRST_SYMBOL_LAYER_ID[style]
+        : null
+      : routeBeforeLayerId;
 
   return (
     <View style={[styles.container, containerStyle]} {...(testID ? { testID } : {})}>
@@ -144,6 +217,7 @@ export function MapsLibVNMap({
           attributionPosition={{ bottom: 8, right: 8 }}
           logo={false}
           onPress={onPress}
+          onRegionWillChange={onRegionWillChange}
           onDidFinishLoadingStyle={() => {
             if (loadedFor.current === mapKey) return;
             loadedFor.current = mapKey;
@@ -152,7 +226,15 @@ export function MapsLibVNMap({
           onDidFailLoadingMap={() => handlers.current.onError?.(new Error('Không tải được bản đồ'))}
         >
           <Camera ref={camera} initialViewState={{ center, zoom }} />
-          <MapContext.Provider value={handle}>{children}</MapContext.Provider>
+          <MapContext.Provider value={handle}>
+            <RouteLayers
+              store={store}
+              routeStyle={routeStyle}
+              beforeId={beforeId}
+              onRouteClick={(index) => handlers.current.onRouteClick?.(index)}
+            />
+            {children}
+          </MapContext.Provider>
         </NativeMap>
       ) : null}
       <Attribution

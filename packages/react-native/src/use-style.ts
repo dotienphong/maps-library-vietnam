@@ -20,7 +20,7 @@ export type ResolvedStyle =
   | { status: 'ready'; mapStyle: string | StyleSpecification }
   | { status: 'error'; error: Error };
 
-const isTheme = (s: string): s is Theme => s === 'light' || s === 'dark';
+export const isTheme = (s: string): s is Theme => s === 'light' || s === 'dark';
 
 export function styleUrlFor(places: MapsLibVNClient, style: Theme | string): string {
   return isTheme(style) ? places.styleUrl(style) : style;

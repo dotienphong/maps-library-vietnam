@@ -25,3 +25,18 @@ export const Platform = {
   OS: 'ios',
   select: <T,>(o: { ios?: T; default?: T }) => o.ios ?? o.default,
 };
+
+type AppStateStatus = 'active' | 'background' | 'inactive';
+const appStateListeners = new Set<(s: AppStateStatus) => void>();
+export const AppState = {
+  currentState: 'active' as AppStateStatus,
+  addEventListener: (_type: string, cb: (s: AppStateStatus) => void) => {
+    appStateListeners.add(cb);
+    return { remove: () => appStateListeners.delete(cb) };
+  },
+};
+/** Chỉ cho test: đổi trạng thái app và báo mọi listener. */
+export function setAppState(s: AppStateStatus): void {
+  AppState.currentState = s;
+  for (const fn of appStateListeners) fn(s);
+}
