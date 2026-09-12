@@ -1,5 +1,12 @@
 import type { CameraRef, ViewPadding } from '@maplibre/maplibre-react-native';
-import type { NavigationProgress, NavigationStatus, TravelMode } from '@mapslibvn/core';
+import {
+  type HeadingFix,
+  MOVING_SPEED_MPS,
+  type NavigationProgress,
+  type NavigationStatus,
+  type TravelMode,
+  angleDiffDeg,
+} from '@mapslibvn/core';
 import type { RefObject } from 'react';
 import type { RoutesStore } from './routes-store';
 import type { NavigationSession, NavigationSessionStartOptions, SessionEvents } from './session';
@@ -10,6 +17,11 @@ export interface FollowOptions {
   /** Mặc định 45. */
   pitch?: number;
   padding?: ViewPadding;
+  /**
+   * 'route' (mặc định): camera theo hướng đi/tuyến. 'heading': theo la bàn của phiên (spec la bàn
+   * 5.4) — hợp đi bộ; đi xe dễ chóng mặt.
+   */
+  bearing?: 'route' | 'heading';
 }
 
 export const FOLLOW_ZOOM: Readonly<Record<TravelMode, number>> = {
@@ -18,6 +30,11 @@ export const FOLLOW_ZOOM: Readonly<Record<TravelMode, number>> = {
   car: 15.5,
 };
 export const FOLLOW_PITCH = 45;
+/** Hướng la bàn cách fix GPS quá ngần này thì không dùng cho puck/camera. */
+export const HEADING_FRESH_MS = 2000;
+/** Camera theo la bàn cập nhật thưa hơn puck: cách ≥ 250 ms và đổi ≥ 2°. */
+export const CAMERA_BEARING_MIN_MS = 250;
+export const CAMERA_BEARING_MIN_DEG = 2;
 
 export interface BindingEvents extends SessionEvents {
   followChange: boolean;
@@ -79,9 +96,18 @@ const SESSION_EVENTS = [
   'voiceUnavailable',
   'backgroundUnavailable',
   'end',
+  'heading',
+  'headingUnavailable',
 ] as const;
 
 type Listener = (e: never) => void;
+
+interface FollowState {
+  zoom?: number;
+  pitch: number;
+  padding?: ViewPadding;
+  bearing: 'route' | 'heading';
+}
 
 export function createMapBinding(deps: MapBindingDeps): MapBinding {
   const listeners = new Map<string, Set<Listener>>();
@@ -93,28 +119,74 @@ export function createMapBinding(deps: MapBindingDeps): MapBinding {
   let fallback: NavigationSession | null = null;
   let attached: NavigationSession | null = null;
   let detachFns: (() => void)[] = [];
-  let follow: { zoom?: number; pitch: number; padding?: ViewPadding } | null = {
-    pitch: FOLLOW_PITCH,
-  };
+  let follow: FollowState | null = { pitch: FOLLOW_PITCH, bearing: 'route' };
   let following = true;
   let lastFixTs: number | null = null;
+  let lastHeading: HeadingFix | null = null;
+  let lastCameraBearing: { value: number; at: number } | null = null;
 
-  const camera = (p: NavigationProgress): void => {
+  const stationary = (p: NavigationProgress): boolean =>
+    (p.fix.speed_mps ?? 0) <= MOVING_SPEED_MPS;
+  /** Hướng la bàn dùng được tại thời điểm `at`: không unreliable và còn tươi. */
+  const usableHeading = (at: number): HeadingFix | null =>
+    lastHeading &&
+    lastHeading.accuracy !== 'unreliable' &&
+    Math.abs(at - lastHeading.timestamp) <= HEADING_FRESH_MS
+      ? lastHeading
+      : null;
+  const cameraZoom = (p: NavigationProgress, f: FollowState): number =>
+    f.zoom ?? FOLLOW_ZOOM[p.route.mode];
+
+  const camera = (p: NavigationProgress, bearing: number): void => {
     if (!follow || !following || deps.appState.currentState !== 'active') return;
     const dt = lastFixTs === null ? 500 : p.fix.timestamp - lastFixTs;
     lastFixTs = p.fix.timestamp;
     deps.camera.current?.easeTo({
       center: p.snapped,
-      bearing: p.bearing,
-      zoom: follow.zoom ?? FOLLOW_ZOOM[p.route.mode],
+      bearing,
+      zoom: cameraZoom(p, follow),
       pitch: follow.pitch,
       duration: Math.max(0, Math.min(1000, dt)),
       ...(follow.padding ? { padding: follow.padding } : {}),
     });
   };
+  /** Mỗi fix GPS: puck theo la bàn nếu đứng yên và la bàn tươi; camera theo tuyến trừ khi app chọn 'heading'. */
   const paint = (p: NavigationProgress): void => {
-    deps.store.setProgress({ shapeIndex: p.shapeIndex, snapped: p.snapped, bearing: p.bearing });
-    camera(p);
+    const h = usableHeading(p.fix.timestamp);
+    deps.store.setProgress({
+      shapeIndex: p.shapeIndex,
+      snapped: p.snapped,
+      bearing: h && stationary(p) ? h.heading : p.bearing,
+    });
+    camera(p, h && follow?.bearing === 'heading' ? h.heading : p.bearing);
+  };
+  /** Mỗi mẫu la bàn: đứng yên → puck xoay ngay; follow.bearing 'heading' → camera xoay (thưa). */
+  const onHeading = (h: HeadingFix): void => {
+    lastHeading = h;
+    const p = attached?.state;
+    if (!p || h.accuracy === 'unreliable') return;
+    if (stationary(p)) {
+      deps.store.setProgress({ shapeIndex: p.shapeIndex, snapped: p.snapped, bearing: h.heading });
+    }
+    if (!follow || follow.bearing !== 'heading' || !following) return;
+    if (deps.appState.currentState !== 'active') return;
+    const prev = lastCameraBearing;
+    if (
+      prev &&
+      (h.timestamp - prev.at < CAMERA_BEARING_MIN_MS ||
+        angleDiffDeg(h.heading, prev.value) < CAMERA_BEARING_MIN_DEG)
+    ) {
+      return;
+    }
+    lastCameraBearing = { value: h.heading, at: h.timestamp };
+    deps.camera.current?.easeTo({
+      center: p.snapped,
+      bearing: h.heading,
+      zoom: cameraZoom(p, follow),
+      pitch: follow.pitch,
+      duration: CAMERA_BEARING_MIN_MS,
+      ...(follow.padding ? { padding: follow.padding } : {}),
+    });
   };
 
   const detach = (): void => {
@@ -122,6 +194,8 @@ export function createMapBinding(deps: MapBindingDeps): MapBinding {
     detachFns = [];
     attached = null;
     lastFixTs = null;
+    lastHeading = null;
+    lastCameraBearing = null;
     deps.store.clear();
   };
 
@@ -133,14 +207,14 @@ export function createMapBinding(deps: MapBindingDeps): MapBinding {
       session.on(k, fn);
       detachFns.push(() => session.off(k, fn));
     };
-    // Một handler mỗi sự kiện: vẽ (route/progress) rồi phát lại cho listener của binding.
+    // Một handler mỗi sự kiện: vẽ (route/progress/heading) rồi phát lại cho listener của binding.
     for (const name of SESSION_EVENTS) {
       on(name, (e) => {
         if (name === 'progress') paint(e as NavigationProgress);
         else if (name === 'route') {
           const r = e as SessionEvents['route'];
           deps.store.show(r.response, { active: r.routeIndex });
-        }
+        } else if (name === 'heading') onHeading(e as HeadingFix);
         emit(name, e as BindingEvents[typeof name]);
       });
     }
@@ -162,7 +236,7 @@ export function createMapBinding(deps: MapBindingDeps): MapBinding {
   const appSub = deps.appState.addEventListener('change', (s) => {
     if (s !== 'active') return;
     const p = attached?.state;
-    if (p) camera(p);
+    if (p) camera(p, p.bearing);
   });
 
   const api: MapNavigationBinding = {
@@ -177,7 +251,7 @@ export function createMapBinding(deps: MapBindingDeps): MapBinding {
       following = true;
       emit('followChange', true);
       const p = attached?.state;
-      if (p) camera(p);
+      if (p) camera(p, p.bearing);
     },
     start: (o) => resolve().start(o),
     stop: () => current()?.stop() ?? Promise.resolve(),
@@ -218,6 +292,7 @@ export function createMapBinding(deps: MapBindingDeps): MapBinding {
       const o = typeof opt === 'object' ? opt : {};
       follow = {
         pitch: o.pitch ?? FOLLOW_PITCH,
+        bearing: o.bearing ?? 'route',
         ...(o.zoom !== undefined ? { zoom: o.zoom } : {}),
         ...(o.padding ? { padding: o.padding } : {}),
       };
