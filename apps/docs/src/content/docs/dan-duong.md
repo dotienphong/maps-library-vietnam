@@ -166,7 +166,8 @@ Hook phải nằm trong `<MapsLibVNMap>`. Xem [React](/react/) mục 6.
   TTS đã cài. Không có → sự kiện `voiceUnavailable`, chữ vẫn hiện. Gọi `start()` trong sự kiện bấm
   nút để iOS cho phép phát âm.
 - **GPS phố hẹp nhiễu** 20–50 m là bình thường; ngưỡng lệch đã tính theo sai số GPS. Đứng yên thì
-  hướng mũi tên lấy theo tuyến, không theo la bàn.
+  hướng mũi tên lấy theo tuyến, không theo la bàn — SDK React Native có la bàn + gyro, xem
+  [Dẫn đường trên React Native](/dan-duong-react-native/) mục 10.
 - Toạ độ bạn gửi khi tính lại tuyến nằm trong URL request như mọi lượt `directions()` — xem
   [Điều khoản tenant](/dieu-khoan/) mục 5.
 

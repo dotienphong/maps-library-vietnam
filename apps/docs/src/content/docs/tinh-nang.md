@@ -98,7 +98,9 @@ theo schema riêng của MapsLibVN (`Route`, `RouteStep`), không lộ định d
 trực tiếp, chưa tránh phí/cao tốc theo yêu cầu; SDK web dẫn đường từng bước trên thiết bị: bám GPS vào
 tuyến, đọc câu tiếng Việt đúng lúc bằng giọng nói, tự tính lại khi lệch, báo đến nơi — xem
 [Dẫn đường](/dan-duong/). SDK React Native dẫn đường cả khi khoá máy, phiên độc lập với màn hình bản đồ —
-[Dẫn đường trên React Native](/dan-duong-react-native/). Chi tiết REST API ở [REST API](/api/) mục 4.
+[Dẫn đường trên React Native](/dan-duong-react-native/). Trên React Native còn có la bàn + con quay hồi
+chuyển: puck xoay theo điện thoại khi đứng yên, chấm xanh có nón hướng, `useHeading()` cho UI riêng.
+Chi tiết REST API ở [REST API](/api/) mục 4.
 
 ## 6. Đóng góp và duyệt
 

@@ -306,6 +306,15 @@ Hook chỉ gọi API khi `query` có từ **2 ký tự** trở lên sau khi bỏ
 
 Cùng bộ API với `@mapslibvn/react` nhưng bọc `@maplibre/maplibre-react-native`. Export của `packages/react-native/src/index.ts`: `MapsLibVNMap`, `useMap`, `Marker`, `usePlaces`, `DEFAULT_CENTER` (`[106.7, 10.776]`), `DEFAULT_ZOOM` (`12`), `DEFAULT_MARKER_COLOR` (`'#3FB1CE'`), `COMPACT_ATTRIBUTION`, các kiểu `MapsLibVNMapProps`, `MarkerProps`, `MapHandle`, `UsePlacesOptions`, `UsePlacesResult`, và re-export kiểu `AutocompleteItem`, `Lang`, `MapsLibVNClient`, `Place`, `PoiFeature`, `Theme` từ core.
 
+La bàn + con quay hồi chuyển: `useHeading`, prop `userLocation` (kiểu `UserLocationOptions`,
+`UserLocationHandle`), `follow.bearing`, hằng `USER_LOCATION_SOURCE_ID`, `USER_LOCATION_LAYER_IDS`,
+`HEADING_CONE_IMAGE_KEY`, `HEADING_FRESH_MS`, `CAMERA_BEARING_MIN_MS`, `CAMERA_BEARING_MIN_DEG`; re-export
+từ core: `createHeadingFilter`, `wrapDeg`, `signedDiffDeg`, `MOVING_SPEED_MPS` và kiểu `HeadingFix`,
+`HeadingSource`, `HeadingError`, `HeadingAccuracy`, `HeadingFilter`, `HeadingFilterOptions`,
+`CompassSample`, `RotationRate`. Entry `/expo`: `expoHeadingSource`, `ExpoHeadingOptions`,
+`HEADING_ACCURACY_LEVELS`, `toCompassSample`, `toAccuracy`; `expoNavigation({ heading })`.
+Phiên: tuỳ chọn `heading`, sự kiện `heading`/`headingUnavailable`, getter `session.heading`.
+
 Bốn khác biệt đáng nhớ:
 
 - `useMap()` trả `MapHandle` với `native` và `camera` (ref của wrapper) thay cho `gl`, cộng `places`, `flyTo`, `fitBounds` và `getBounds()` bất đồng bộ.

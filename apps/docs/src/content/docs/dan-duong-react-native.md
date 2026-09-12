@@ -10,15 +10,18 @@ vị tiếp tục khi khoá máy hoặc chuyển app**.
 
 ## 1. Yêu cầu và cài đặt
 
-Ngoài yêu cầu của [React Native](/react-native/) mục 1, dẫn đường cần năm module Expo (app bare chạy
+Ngoài yêu cầu của [React Native](/react-native/) mục 1, dẫn đường cần sáu module Expo (app bare chạy
 `npx install-expo-modules@latest` trước):
 
 ```bash
-npx expo install expo-location expo-task-manager expo-speech expo-audio expo-keep-awake
+npx expo install expo-location expo-task-manager expo-speech expo-audio expo-keep-awake expo-sensors
 ```
 
 Bản đồ và tìm kiếm **không** cần các module này; chỉ khi bạn import
 `@mapslibvn/react-native/expo` Metro mới resolve chúng.
+
+`expo-sensors` chỉ phục vụ con quay hồi chuyển cho la bàn (mục 10) nhưng là bắt buộc khi import entry
+`/expo`: thiếu nó Metro báo `Unable to resolve module expo-sensors`.
 
 ## 2. Cấu hình `app.json` và `index.ts`
 
@@ -33,13 +36,15 @@ Bản đồ và tìm kiếm **không** cần các module này; chỉ khi bạn i
     "isAndroidForegroundServiceEnabled": true,
     "locationWhenInUsePermission": "Ứng dụng dùng vị trí của bạn để dẫn đường."
   }],
-  "expo-audio"
+  "expo-audio",
+  ["expo-sensors", { "motionPermission": "Ứng dụng dùng cảm biến chuyển động để hiện hướng." }]
 ]
 ```
 
 Plugin thêm `UIBackgroundModes: location` + `audio` (iOS) và quyền `FOREGROUND_SERVICE_LOCATION`
 (Android). **Không** bật `isAndroidBackgroundLocationEnabled`: SDK không xin quyền "Luôn luôn", vì cả
-hai hệ đều cho tiếp tục định vị khi phiên khởi động lúc app đang mở.
+hai hệ đều cho tiếp tục định vị khi phiên khởi động lúc app đang mở. Plugin `expo-sensors` thêm
+`NSMotionUsageDescription` (iOS); con quay hồi chuyển không hỏi quyền lúc chạy trên cả hai hệ.
 
 **`android.permissions: ["RECEIVE_BOOT_COMPLETED"]` là bắt buộc, không phải tuỳ chọn.**
 `expo-task-manager` lên lịch job định vị nền bằng `JobScheduler` với `setPersisted(true)` — không
@@ -191,11 +196,64 @@ số lần tính lại để ghi evidence.
 | Wake Lock, không có nền | Keep-awake khi app mở; **có nền** qua expo-location + task |
 | `speechSynthesis` | expo-speech; iOS cần expo-audio để phát khi khoá máy |
 
-## 10. Giới hạn hiện tại
+## 10. La bàn và con quay hồi chuyển
+
+`expoNavigation()` đã kèm nguồn hướng `expoHeadingSource()`: la bàn từ `expo-location`
+(`watchHeadingAsync`, bắc thật, mức tin cậy 0–3 của hệ) trộn với con quay hồi chuyển từ `expo-sensors`
+qua bộ lọc bù trong core (gyro phản ứng ngay khi xoay máy, la bàn kéo về để không trôi). iOS đã trộn
+sẵn ở CoreLocation; gyro chủ yếu làm mượt Android.
+
+Trong dẫn đường, SDK dùng hướng như sau:
+
+| Tình huống | Puck | Camera |
+|---|---|---|
+| Đang chạy (`speed_mps` > 1) | theo GPS như cũ | theo hướng đi |
+| Đứng yên / dưới 1 m/s (đèn đỏ, chờ khách) | **xoay theo điện thoại** | không đổi |
+| `follow={{ bearing: 'heading' }}` | như trên | **xoay theo la bàn** (thưa: ≥ 250 ms, ≥ 2°) — hợp đi bộ, đi xe dễ chóng mặt |
+| Hướng `unreliable` (từ kế nhiễu, chưa hiệu chuẩn) | về hướng tuyến | không xoay theo la bàn |
+
+Đọc hướng ở bất kỳ đâu:
+
+```tsx
+import { useHeading } from '@mapslibvn/react-native';
+
+const fix = useHeading(session);          // trong lúc dẫn đường: { heading, magnetic?, accuracy, timestamp, source }
+const fix2 = useHeading(headingSource);   // ngoài dẫn đường: hook tự đăng ký theo vòng đời component
+```
+
+Sự kiện trên phiên: `heading` (mỗi mẫu đã lọc), `headingUnavailable` (từ chối quyền vị trí, máy không
+có la bàn — một lần mỗi `start`). `accuracy` là `unreliable | low | medium | high`; `source` là `compass`
+hay `fused` (đã có gyro góp vào).
+
+Tắt: `expoNavigation({ heading: false })`. Chỉnh bộ lọc: `expoNavigation({ heading: { tau_s: 1, gyro: false } })`.
+Nguồn hướng riêng (feed máy chủ, SDK cảm biến khác) ≤ 15 dòng:
+
+```ts
+import type { HeadingSource } from '@mapslibvn/react-native';
+
+const fromMyFeed: HeadingSource = {
+  subscribe(onHeading, onError) {
+    const off = myFeed.on('heading', (h) =>
+      onHeading({ heading: h.deg, accuracy: 'medium', timestamp: Date.now(), source: 'compass' }),
+    );
+    myFeed.on('error', (e) => onError?.({ code: 'unavailable', message: String(e) }));
+    return off;
+  },
+};
+const session = createNavigationSession({ provider: client, ...expoNavigation({ heading: false }), heading: fromMyFeed });
+```
+
+Chấm xanh có nón hướng **ngoài** dẫn đường: prop `userLocation` — xem [React Native](/react-native/) mục 6.
+
+## 11. Giới hạn hiện tại
 
 - Nội dung thông báo foreground service Android cố định từ lúc `start()` (không đổi theo câu rẽ).
 - Chưa có config plugin riêng của MapsLibVN — cấu hình theo mục 2.
 - Chưa ETA theo giao thông, làn đường, map-matching máy chủ, tiles offline (giống web).
-- Gói chưa publish npm — cài từ tarball như [React Native](/react-native/) mục 6.
+- Gói chưa publish npm — cài từ tarball như [React Native](/react-native/) mục 7.
+- La bàn tham chiếu cạnh trên máy ở tư thế **dọc**; app xoay ngang chưa được bù.
+- Simulator iOS không có la bàn (`headingUnavailable`); Android emulator chỉ có cảm biến ảo.
+- Android cần hiệu chuẩn la bàn lần đầu (xoay máy hình số 8) — trước đó `accuracy` là `low`/`unreliable`.
+- Giá đỡ điện thoại có nam châm trên xe máy làm từ kế nhiễu → `unreliable`, SDK tự về hướng tuyến.
 
 Đọc thêm: [Dẫn đường (web)](/dan-duong/), [React Native](/react-native/), [REST API — directions](/api/#get-v1directions).
