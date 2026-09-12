@@ -1763,7 +1763,7 @@ Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>"
 - Modify: `packages/react-native/src/use-style.ts` (export `isTheme`)
 - Modify: `packages/react-native/src/map.tsx`
 
-- [ ] **Step 1: Thêm `AppState` vào mock react-native**
+- [x] **Step 1: Thêm `AppState` vào mock react-native**
 
 Thêm vào cuối `packages/react-native/src/test/react-native-mock.tsx`:
 
@@ -1784,7 +1784,7 @@ export function setAppState(s: AppStateStatus): void {
 }
 ```
 
-- [ ] **Step 2: Phiên giả dùng chung cho test map và hook**
+- [x] **Step 2: Phiên giả dùng chung cho test map và hook**
 
 `packages/react-native/src/test/fake-session.ts`:
 
@@ -1876,7 +1876,7 @@ export function progressAt(
 }
 ```
 
-- [ ] **Step 3: Viết test map đỏ**
+- [x] **Step 3: Viết test map đỏ**
 
 `packages/react-native/src/map-navigation.test.tsx`:
 
@@ -2052,12 +2052,12 @@ describe('MapsLibVNMap + navigation', () => {
 });
 ```
 
-- [ ] **Step 4: Chạy đỏ**
+- [x] **Step 4: Chạy đỏ**
 
 Run: `pnpm exec vitest run packages/react-native/src/map-navigation.test.tsx`
 Expected: FAIL — `./navigation/map-binding` không tồn tại / props chưa có.
 
-- [ ] **Step 5: Viết `map-binding.ts`**
+- [x] **Step 5: Viết `map-binding.ts`**
 
 ```ts
 import type { CameraRef, ViewPadding } from '@maplibre/maplibre-react-native';
@@ -2297,7 +2297,7 @@ export function createMapBinding(deps: MapBindingDeps): MapBinding {
 }
 ```
 
-- [ ] **Step 6: `context.ts` thêm `routes` và `navigation`**
+- [x] **Step 6: `context.ts` thêm `routes` và `navigation`**
 
 Thay toàn bộ `packages/react-native/src/context.ts`:
 
@@ -2331,12 +2331,12 @@ export interface MapHandle {
 export const MapContext = createContext<MapHandle | null>(null);
 ```
 
-- [ ] **Step 7: Export `isTheme` từ `use-style.ts`**
+- [x] **Step 7: Export `isTheme` từ `use-style.ts`**
 
 Đổi dòng `const isTheme = (s: string): s is Theme => s === 'light' || s === 'dark';` thành
 `export const isTheme = (s: string): s is Theme => s === 'light' || s === 'dark';`.
 
-- [ ] **Step 8: Viết lại `map.tsx`**
+- [x] **Step 8: Viết lại `map.tsx`**
 
 Thay toàn bộ `packages/react-native/src/map.tsx`:
 
@@ -2603,12 +2603,12 @@ const styles = StyleSheet.create({
 });
 ```
 
-- [ ] **Step 9: Chạy xanh toàn bộ test RN + typecheck + lint**
+- [x] **Step 9: Chạy xanh toàn bộ test RN + typecheck + lint**
 
 Run: `pnpm exec vitest run packages/react-native && pnpm --filter @mapslibvn/react-native typecheck && pnpm lint`
 Expected: PASS (kể cả `map.test.tsx`, `marker.test.tsx` cũ — nếu `map.test.tsx` đỏ vì `AppState` thiếu trong mock, Step 1 chưa lưu). Biome: nếu báo `useExhaustiveDependencies` ở effect `followKey`, giữ nguyên cách parse từ `followKey` (đã không đọc `follow` trong effect).
 
-- [ ] **Step 10: Commit**
+- [x] **Step 10: Commit**
 
 ```bash
 git add packages/react-native/src/navigation/map-binding.ts packages/react-native/src/test/fake-session.ts packages/react-native/src/map-navigation.test.tsx packages/react-native/src/test/react-native-mock.tsx packages/react-native/src/context.ts packages/react-native/src/use-style.ts packages/react-native/src/map.tsx
@@ -2625,7 +2625,7 @@ Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>"
 - Create: `packages/react-native/src/use-navigation.ts`
 - Create: `packages/react-native/src/use-navigation.test.tsx`
 
-- [ ] **Step 1: Viết test đỏ**
+- [x] **Step 1: Viết test đỏ**
 
 `packages/react-native/src/use-navigation.test.tsx`:
 
@@ -2705,12 +2705,12 @@ function Probe() {
 }
 ```
 
-- [ ] **Step 2: Chạy đỏ**
+- [x] **Step 2: Chạy đỏ**
 
 Run: `pnpm exec vitest run packages/react-native/src/use-navigation.test.tsx`
 Expected: FAIL — không resolve được `./use-navigation`.
 
-- [ ] **Step 3: Viết hook**
+- [x] **Step 3: Viết hook**
 
 `packages/react-native/src/use-navigation.ts`:
 
@@ -2813,12 +2813,12 @@ Nếu TypeScript không chấp nhận gán `NavigationSession`/`MapNavigationBin
 `const asLike = (n: { on(...a: never[]): void; off(...a: never[]): void; ... }) => n as unknown as NavigationLike;`.
 Ưu tiên cách gán thẳng; chỉ bọc khi typecheck thật sự đỏ.
 
-- [ ] **Step 4: Chạy xanh + typecheck**
+- [x] **Step 4: Chạy xanh + typecheck**
 
 Run: `pnpm exec vitest run packages/react-native/src/use-navigation.test.tsx && pnpm --filter @mapslibvn/react-native typecheck`
 Expected: 3 PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add packages/react-native/src/use-navigation.ts packages/react-native/src/use-navigation.test.tsx
@@ -2969,8 +2969,12 @@ import type { BackgroundUnavailable } from '../navigation/session';
 const mocks = vi.hoisted(() => ({
   Location: {
     requestForegroundPermissionsAsync: vi.fn(async () => ({ granted: true, status: 'granted' })),
-    watchPositionAsync: vi.fn(async () => ({ remove: vi.fn() })),
-    startLocationUpdatesAsync: vi.fn(async () => {}),
+    watchPositionAsync: vi.fn(
+      async (_options: Record<string, unknown>, _cb?: unknown, _err?: unknown) => ({
+        remove: vi.fn(),
+      }),
+    ),
+    startLocationUpdatesAsync: vi.fn(async (_task: string, _options?: Record<string, unknown>) => {}),
     stopLocationUpdatesAsync: vi.fn(async () => {}),
     hasStartedLocationUpdatesAsync: vi.fn(async () => false),
     isBackgroundLocationAvailableAsync: vi.fn(async () => true),
