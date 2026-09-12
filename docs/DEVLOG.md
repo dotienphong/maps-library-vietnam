@@ -5,6 +5,28 @@ commit với code).
 
 ## 1. Trạng thái hiện tại
 
+- **12/09/2026 — Dẫn đường spec C: hai lỗi Android thật ĐÃ GIẢI QUYẾT, xác nhận trên Android thật
+  (Xiaomi Mi 9) của PHONG.** (1) **App crash ngay khi có vị trí nền đầu tiên**: `expo-task-manager`
+  lên lịch job định vị bằng `JobScheduler.setPersisted(true)` không điều kiện (`TaskManagerUtils.
+  createJobInfo`, hardcode) — thiếu quyền `RECEIVE_BOOT_COMPLETED` thì Android ném
+  `IllegalArgumentException` ngay trong `TaskBroadcastReceiver.onReceive` (luồng chính, không bắt được
+  bằng try/catch JS), và sau vài lần crash liên tiếp Android còn khoá hẳn việc mở lại app ("crashed too
+  many times: killing"). Sửa: thêm `android.permissions: ["RECEIVE_BOOT_COMPLETED"]` vào `app.json`,
+  `expo prebuild --clean`, gỡ cài rồi cài lại để xoá trạng thái khoá crash-loop. (2) **Giọng đọc im khi
+  khoá màn hình**: hai phần riêng biệt — (a) `player.play()` một mình không khiến Android công nhận
+  đây là phiên media "đang phát" chính thức, phải gọi thêm `player.setActiveForLockScreen(true, …)`
+  (expo-audio) để có `MediaSessionService` riêng, độc lập với dịch vụ nền định vị; (b) sau khi vá (a),
+  logcat cho thấy dịch vụ media khởi động đúng nhưng **không tự đánh thức luồng JS chính** — chỉ dịch
+  vụ nền ĐỊNH VỊ (`startLocationUpdatesAsync` qua `JobScheduler` của expo-task-manager) mới có cơ chế
+  đó. Hệ quả rút ra: phiên **Giả lập** (`playbackSource`, `setTimeout` JS thuần) sẽ luôn câm khi khoá
+  màn hình Android bất kể vá gì thêm — chấp nhận là giới hạn công cụ mô phỏng, không sửa; phiên
+  **Bắt đầu** (GPS thật) đọc đúng khi khoá máy với điều kiện có di chuyển thật, đứng yên một chỗ không
+  tạo tiến độ tuyến mới nên không có câu thông báo mới (dễ nhầm là bug). PHONG xác nhận thử lại đúng
+  kịch bản (Bắt đầu + khoá máy + di chuyển thật): "ok hoạt động tốt". Cả hai đã ghi vào spec mục 11.
+  Evidence `docs/evidence/navigation/2026-09-12-rn-phat-hanh.md`. **Còn lại:** đóng dấu chính thức Task
+  16 bước 4 (thông báo foreground service hiện/biến mất đúng lúc) và Task 20 (thực địa đầy đủ hai máy,
+  điền số liệu, nghiệm thu 7 tiêu chí mục 13).
+
 - **12/09/2026 — Dẫn đường spec C: rủi ro 1 (TTS iOS khi khoá máy) ĐÃ GIẢI QUYẾT, xác nhận trên
   iPhone 14 Plus thật của PHONG.** Ba lỗi thật chồng nhau, simulator không lộ ra được vì không khoá
   màn hình được: (1) `expoAudioSession()` gọi `setAudioModeAsync` mà quên `setIsAudioActiveAsync(true)`

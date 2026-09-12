@@ -23,6 +23,9 @@ Bản đồ và tìm kiếm **không** cần các module này; chỉ khi bạn i
 ## 2. Cấu hình `app.json` và `index.ts`
 
 ```json
+"android": {
+  "permissions": ["RECEIVE_BOOT_COMPLETED"]
+},
 "plugins": [
   "@maplibre/maplibre-react-native",
   ["expo-location", {
@@ -36,8 +39,19 @@ Bản đồ và tìm kiếm **không** cần các module này; chỉ khi bạn i
 
 Plugin thêm `UIBackgroundModes: location` + `audio` (iOS) và quyền `FOREGROUND_SERVICE_LOCATION`
 (Android). **Không** bật `isAndroidBackgroundLocationEnabled`: SDK không xin quyền "Luôn luôn", vì cả
-hai hệ đều cho tiếp tục định vị khi phiên khởi động lúc app đang mở. Đổi plugin xong chạy
-`npx expo prebuild --clean` rồi build lại.
+hai hệ đều cho tiếp tục định vị khi phiên khởi động lúc app đang mở.
+
+**`android.permissions: ["RECEIVE_BOOT_COMPLETED"]` là bắt buộc, không phải tuỳ chọn.**
+`expo-task-manager` lên lịch job định vị nền bằng `JobScheduler` với `setPersisted(true)` — không
+có cách nào tắt qua cấu hình — và Android **crash ngay** (`IllegalArgumentException: requested job
+be persisted without holding RECEIVE_BOOT_COMPLETED permission`) ngay lần đầu có vị trí mới trong
+lúc nền, nếu thiếu quyền này. Không plugin Expo nào tự thêm giúp (xác nhận đọc mã nguồn
+`expo-task-manager` 57.0.15 và `expo-location` 57.0.15 — quyền này nằm ngoài danh sách cả hai
+plugin quản lý), phải tự khai trong `app.json` như trên. Thiếu quyền này Android còn khoá hẳn việc
+mở lại app một lúc ("crashed too many times") sau vài lần crash liên tiếp — nếu gặp, gỡ app
+(`adb uninstall`) rồi cài lại sau khi thêm quyền.
+
+Đổi plugin hoặc quyền xong chạy `npx expo prebuild --clean` rồi build lại.
 
 ```ts
 // index.ts — PHẢI ở phạm vi toàn cục, trước registerRootComponent (yêu cầu của expo-task-manager)
