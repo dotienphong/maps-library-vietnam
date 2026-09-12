@@ -25,3 +25,12 @@ thư mục này (xoá `ios/`, `android/` rồi sinh lại — đều gitignore).
 Máy thật: `pnpm example:rn --device --android` (bật USB debugging) hoặc `pnpm example:rn --device`
 (iPhone: mở `ios/MapsLibVNDemo.xcworkspace` một lần, Signing & Capabilities → Team = Apple ID cá
 nhân; trên máy: Cài đặt → Cài đặt chung → VPN & Quản lý thiết bị → tin cậy nhà phát triển).
+
+## La bàn và con quay hồi chuyển
+
+Chấm xanh có nón hướng hiện trước khi dẫn đường (nguồn `expoLocationSource({ background: false })` +
+`expoHeadingSource()`); nút **La bàn** bật bản đồ xoay theo hướng nhìn, nút **Về tôi** hiện sau khi kéo
+bản đồ. Trong dẫn đường, puck xoay theo máy khi đứng yên; dòng chẩn đoán ghi `hướng 123° high fused`.
+Cần `expo-sensors` (đã trong `package.json`) và plugin trong `app.json` → **prebuild lại** sau khi kéo
+code mới: `npx expo prebuild --clean`. Simulator/emulator không có la bàn thật: Android emulator dùng
+Extended controls → Virtual sensors → Rotation để xoay; iOS simulator không có hướng (nón không hiện).

@@ -17,7 +17,9 @@ import {
 } from '@mapslibvn/react-native';
 import {
   expoAudioSession,
+  expoHeadingSource,
   expoKeepAwake,
+  expoLocationSource,
   expoNavigation,
   expoSpeech,
 } from '@mapslibvn/react-native/expo';
@@ -55,6 +57,10 @@ const realSession = createNavigationSession({
   provider: client,
   ...expoNavigation({ notification: { title: 'MapsLibVN Demo đang dẫn đường' } }),
 });
+// Nguồn hướng và vị trí tiền cảnh cho chấm xanh — cấp module để tham chiếu ổn định (SDK chỉ đăng ký
+// lại nguồn khi tham chiếu đổi). realSession đã kèm heading qua expoNavigation() mặc định.
+const headingSource = expoHeadingSource();
+const foregroundSource = expoLocationSource({ background: false });
 
 type Point = { name: string; lng: number; lat: number };
 
@@ -115,6 +121,20 @@ export default function App() {
   const [active, setActive] = useState(0);
   const [session, setSession] = useState<NavigationSession>(realSession);
   const [navigating, setNavigating] = useState<false | 'real' | 'sim'>(false);
+  const [compass, setCompass] = useState(false); // bản đồ xoay theo hướng nhìn
+  const [userFollowing, setUserFollowing] = useState(false);
+
+  // Theo dõi bám chấm xanh để hiện nút "Về tôi" khi người dùng đã kéo bản đồ. `compass` không đọc
+  // trong thân hàm nhưng vẫn cần trong deps: đổi follow mode khiến binding tự đặt lại wantFollow=true
+  // mà không phát followChange (xem createUserLocationBinding.setOptions) — phải re-run để đồng bộ.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: xem chú thích trên
+  useEffect(() => {
+    if (!map) return;
+    const onChange = (f: boolean) => setUserFollowing(f);
+    map.userLocation.on('followChange', onChange);
+    setUserFollowing(map.userLocation.following);
+    return () => map.userLocation.off('followChange', onChange);
+  }, [map, compass]);
 
   // Vị trí hiện tại lúc mở app → bay tới; xin quyền một lần ở đây, SDK dùng lại khi start().
   // Lấy vị trí đã biết trước (trả ngay), rồi mới xin vị trí mới — getCurrentPositionAsync có thể
@@ -212,6 +232,12 @@ export default function App() {
         lang={lang}
         {...(BUNDLE_ID ? { bundleId: BUNDLE_ID } : {})}
         navigation={session}
+        userLocation={{
+          source: foregroundSource,
+          heading: headingSource,
+          follow: compass ? 'heading' : 'center',
+        }}
+        follow={compass ? { bearing: 'heading' } : true}
         onLoad={setMap}
         onRouteClick={(i) => {
           setActive(i);
@@ -292,6 +318,18 @@ export default function App() {
             <Pressable style={styles.btn} onPress={() => setLang(lang === 'vi' ? 'en' : 'vi')}>
               <Text style={styles.btnText}>{lang === 'vi' ? 'EN' : 'VI'}</Text>
             </Pressable>
+            <Pressable
+              style={[styles.btn, compass && styles.primary]}
+              onPress={() => setCompass((c) => !c)}
+              accessibilityLabel="La bàn"
+            >
+              <Text style={[styles.btnText, compass && { color: '#fff' }]}>La bàn</Text>
+            </Pressable>
+            {!userFollowing && (
+              <Pressable style={styles.btn} onPress={() => map?.userLocation.recenter()}>
+                <Text style={styles.btnText}>Về tôi</Text>
+              </Pressable>
+            )}
           </View>
         </>
       )}

@@ -36,7 +36,13 @@
           "locationWhenInUsePermission": "MapsLibVN Demo dùng vị trí của bạn để dẫn đường."
         }
       ],
-      "expo-audio"
+      "expo-audio",
+      [
+        "expo-sensors",
+        {
+          "motionPermission": "MapsLibVN Demo dùng cảm biến chuyển động để hiện hướng bạn đang nhìn."
+        }
+      ]
     ]
   }
 }

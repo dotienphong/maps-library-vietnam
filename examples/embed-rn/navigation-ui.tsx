@@ -3,6 +3,7 @@ import {
   type NavigationSession,
   type TravelMode,
   formatDistanceShort,
+  useHeading,
   useNavigation,
 } from '@mapslibvn/react-native';
 import { useEffect, useState } from 'react';
@@ -36,6 +37,7 @@ export function NavigationPanel({
   onStop: () => void;
 }) {
   const { status, progress, following } = useNavigation(session);
+  const heading = useHeading(session);
   const [diag, setDiag] = useState<Diag>({
     fixes: 0,
     accuracy: null,
@@ -89,7 +91,10 @@ export function NavigationPanel({
           <Text style={styles.diag}>
             fix {diag.fixes} · sai số{' '}
             {diag.accuracy === null ? '—' : `${Math.round(diag.accuracy)} m`} · {diag.source} · tính
-            lại {diag.reroutes} · giọng {diag.voice}
+            lại {diag.reroutes} · giọng {diag.voice} · hướng{' '}
+            {heading
+              ? `${Math.round(heading.heading)}° ${heading.accuracy} ${heading.source}`
+              : '—'}
           </Text>
         </View>
         {!following && map ? (
