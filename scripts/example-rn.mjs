@@ -71,7 +71,12 @@ function resolveDeviceName() {
     );
   }
   const devices = parseAdbDevices(capture('adb', ['devices', '-l']));
-  const serial = deviceName ?? pickSingleDevice(devices.map((d) => d.serial), 'Android');
+  const serial =
+    deviceName ??
+    pickSingleDevice(
+      devices.map((d) => d.serial),
+      'Android',
+    );
   return androidDeviceArg(devices, serial);
 }
 const resolvedDeviceName = release ? resolveDeviceName() : undefined;
