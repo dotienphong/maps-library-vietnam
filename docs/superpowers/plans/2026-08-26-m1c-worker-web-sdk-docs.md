@@ -1096,7 +1096,7 @@ title: MapsLibVN
 description: Bản đồ nhúng cho web và mobile, dữ liệu mở, Việt Nam trước.
 template: splash
 hero:
-  tagline: Nhúng bản đồ Việt Nam bằng một dòng. Không Google, không phí, không khoá.
+  tagline: Nhúng bản đồ Việt Nam vào hệ thống web/mobile chỉ bằng một dòng.
   actions:
     - text: Bắt đầu 5 phút
       link: /bat-dau/
