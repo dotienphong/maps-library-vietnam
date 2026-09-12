@@ -4724,7 +4724,7 @@ phòng (a) của spec mục 11 — `expo-audio` phát một `AudioPlayer` im l�
 (c) nếu vẫn im, ghi giới hạn "iOS chỉ đọc khi màn hình sáng" vào docs + nghiệm thu 4 ĐẠT MỘT PHẦN.
 Ghi kết quả (đạt / dự phòng nào) vào evidence.
 
-- [ ] **Step 4: Android thật — thông báo foreground service**
+- [x] **Step 4: Android thật — thông báo foreground service**
 
 Run: `pnpm example:rn --device --android`. Bấm **Bắt đầu** (GPS thật, đứng yên cũng được) → kéo thanh
 thông báo.

@@ -17,7 +17,7 @@ Thao tác tự động bằng Maestro 2.8.0 (flow: tìm "cho ben thanh" → ch�
 | Tuyến + tuyến thay thế + marker đích | iOS simulator | **Đạt** — banner "Rẽ phải vào Lê Thánh Tôn." đúng câu, khoảng cách; `…-ios-sim-tuyen.png` |
 | Giả lập chạy tới `arrived` | iOS simulator | **Đạt** — 126 fix, sai số 8 m, dòng chẩn đoán "giọng có"; `…-ios-sim-den-noi.png` |
 | TTS iOS khi khoá máy (rủi ro 1) | iPhone thật | Chưa kiểm — cần máy thật, khoá màn hình không giả lập được trên simulator (Task 16 bước 3 — PHONG cắm máy) |
-| Foreground service Android (thông báo, dừng khi Dừng) | Android thật (Xiaomi Mi 9) | **Đạt** — thông báo "Đang dẫn đường" hiện đúng lúc dẫn đường, xác nhận trên máy thật của PHONG; biến mất khi Dừng chưa kiểm riêng biệt bằng ảnh chụp |
+| Foreground service Android (thông báo, dừng khi Dừng) | Android thật (Xiaomi Mi 9) | **Đạt** — thông báo "Đang dẫn đường" hiện đúng lúc dẫn đường, xác nhận trên máy thật của PHONG; biến mất khi Dừng chưa kiểm riêng biệt bằng ảnh chụp, PHONG chấp nhận tạm ổn ("tạm ổn, tick pass") và sẽ báo lại nếu phát hiện bug |
 
 Lỗi app thử phát hiện và sửa ngay (không phải lỗi SDK): bàn phím che thẻ điều khiển sau khi chọn
 gợi ý; `getCurrentPositionAsync` treo trên emulator; vị trí mặc định emulator ở Mỹ → tuyến lỗi.
