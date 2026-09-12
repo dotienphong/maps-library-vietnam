@@ -4,7 +4,8 @@
 import * as Audio from 'expo-audio';
 import * as KeepAwake from 'expo-keep-awake';
 import * as Location from 'expo-location';
+import * as Sensors from 'expo-sensors';
 import * as Speech from 'expo-speech';
 import * as TaskManager from 'expo-task-manager';
 
-export { Audio, KeepAwake, Location, Speech, TaskManager };
+export { Audio, KeepAwake, Location, Sensors, Speech, TaskManager };

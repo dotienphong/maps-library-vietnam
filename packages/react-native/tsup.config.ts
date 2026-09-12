@@ -3,6 +3,7 @@ import { defineConfig } from 'tsup';
 // Đóng gói @mapslibvn/core vào dist để app cài được bằng MỘT tarball (spec M6 4.1).
 // Entry thứ hai `src/expo/index.ts` → dist/expo/index.js: chỗ duy nhất import Expo (external),
 // Metro chỉ resolve khi app import '@mapslibvn/react-native/expo' (spec C 6.4).
+// expo-sensors cũng external (spec la bàn 6.3).
 export default defineConfig({
   entry: ['src/index.ts', 'src/expo/index.ts'],
   format: ['esm'],
@@ -21,6 +22,7 @@ export default defineConfig({
     'expo-speech',
     'expo-audio',
     'expo-keep-awake',
+    'expo-sensors',
   ],
   noExternal: ['@mapslibvn/core'],
 });

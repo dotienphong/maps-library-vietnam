@@ -1,7 +1,8 @@
-// Kiểu ambient TỐI THIỂU cho năm gói Expo mà entry `/expo` gọi. Không cài các gói này vào pnpm
+// Kiểu ambient TỐI THIỂU cho sáu gói Expo mà entry `/expo` gọi. Không cài các gói này vào pnpm
 // workspace (quyết định M6: Expo nằm ngoài workspace). App nhúng dùng kiểu thật của gói đã cài;
 // API công khai của entry không lộ kiểu nào ở đây. Đối chiếu với expo-location 57.0.15,
-// expo-task-manager 57.0.15, expo-speech 57.0.2, expo-audio 57.0.4, expo-keep-awake 57.0.1.
+// expo-task-manager 57.0.15, expo-speech 57.0.2, expo-audio 57.0.4, expo-keep-awake 57.0.1,
+// expo-sensors 57.0.3.
 
 declare module 'expo-location' {
   export interface LocationObjectCoords {
@@ -31,6 +32,18 @@ declare module 'expo-location' {
   export function watchPositionAsync(
     options: LocationOptions,
     callback: (location: LocationObject) => void,
+    errorHandler?: (reason: string) => void,
+  ): Promise<LocationSubscription>;
+  /** Mẫu la bàn của watchHeadingAsync: iOS CLHeading (đã trộn gyro), Android từ kế + gia tốc kế. */
+  export interface LocationHeadingObject {
+    /** Độ so với bắc thật; −1 khi chưa có vị trí để tính độ lệch từ. */
+    trueHeading: number;
+    magHeading: number;
+    /** 0 = không tin, 1 thấp, 2 vừa, 3 cao (iOS: sai số > 50° / < 50° / < 35° / < 20°). */
+    accuracy: number;
+  }
+  export function watchHeadingAsync(
+    callback: (heading: LocationHeadingObject) => void,
     errorHandler?: (reason: string) => void,
   ): Promise<LocationSubscription>;
   export function startLocationUpdatesAsync(
@@ -143,4 +156,23 @@ declare module 'expo-audio' {
 declare module 'expo-keep-awake' {
   export function activateKeepAwakeAsync(tag?: string): Promise<void>;
   export function deactivateKeepAwake(tag?: string): Promise<void>;
+}
+
+declare module 'expo-sensors' {
+  export interface GyroscopeMeasurement {
+    /** rad/s theo trục thiết bị (thuận tay phải, Z hướng ra khỏi màn hình). */
+    x: number;
+    y: number;
+    z: number;
+    /** GIÂY theo đồng hồ cảm biến — khác miền với Date.now(). */
+    timestamp: number;
+  }
+  export interface SensorSubscription {
+    remove(): void;
+  }
+  export const Gyroscope: {
+    setUpdateInterval(intervalMs: number): void;
+    addListener(listener: (measurement: GyroscopeMeasurement) => void): SensorSubscription;
+    isAvailableAsync(): Promise<boolean>;
+  };
 }

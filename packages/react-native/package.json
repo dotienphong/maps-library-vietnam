@@ -1,7 +1,7 @@
 {
   "name": "@mapslibvn/react-native",
   "version": "0.5.0",
-  "description": "React Native bindings MapsLibVN: <MapsLibVNMap>, <Marker>, useMap, usePlaces, dẫn đường (createNavigationSession, useNavigation; entry /expo cho định vị nền + TTS) — bọc @maplibre/maplibre-react-native",
+  "description": "React Native bindings MapsLibVN: <MapsLibVNMap>, <Marker>, useMap, usePlaces, dẫn đường (createNavigationSession, useNavigation; entry /expo cho định vị nền + TTS), la bàn + con quay hồi chuyển (useHeading, userLocation) — bọc @maplibre/maplibre-react-native",
   "license": "MIT",
   "type": "module",
   "main": "./dist/index.js",
@@ -34,6 +34,7 @@
     "expo-audio": ">=1.0.10",
     "expo-keep-awake": ">=15.0.6",
     "expo-location": ">=19.0.6",
+    "expo-sensors": ">=15.0.0",
     "expo-speech": ">=14.0.6",
     "expo-task-manager": ">=14.0.6",
     "react": ">=19.1.0",
@@ -47,6 +48,9 @@
       "optional": true
     },
     "expo-location": {
+      "optional": true
+    },
+    "expo-sensors": {
       "optional": true
     },
     "expo-speech": {
