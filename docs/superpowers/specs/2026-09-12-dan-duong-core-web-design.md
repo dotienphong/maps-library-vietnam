@@ -642,9 +642,11 @@ hình có tắt không, pin. Ngưỡng mục 4.3 nào sai thì chỉnh và ghi D
 
 ## 10. Đường nâng cấp đã dự trù
 
-- **Spec C (React Native)**: dùng nguyên `createNavigator`, `NAVIGATION_THRESHOLDS`, `Announcement`; viết
-  `PositionSource` từ `expo-location` (kể cả nền), đọc `announce` bằng `expo-speech`, vẽ tuyến bằng
-  `ShapeSource`/`LineLayer` của maplibre-react-native. Không cần đổi core.
+- **Spec C (React Native)** — đã viết `2026-09-12-dan-duong-react-native-design.md`: dùng nguyên
+  `createNavigator`, `NAVIGATION_THRESHOLDS`, `Announcement`; `PositionSource` từ `expo-location` (cả
+  nền, qua `expo-task-manager`), đọc `announce` bằng `expo-speech`, vẽ tuyến bằng
+  `GeoJSONSource`/`Layer` của maplibre-react-native 11 (tên `ShapeSource`/`LineLayer` ở bản trước là
+  của v10). Core chỉ thêm hàm thuần `routeFeatures()` (chuyển từ `routes-layer.ts` web).
 - **UI đóng gói**: web component `<mapslibvn-navigation>` đọc `map.navigation` — làm khi có tenant cần.
 - **Worker tự sinh câu tiếng Việt** từ dữ liệu có cấu trúc (bỏ text Valhalla) — nếu bảng cụm từ vượt ~30
   luật hoặc đổi engine.

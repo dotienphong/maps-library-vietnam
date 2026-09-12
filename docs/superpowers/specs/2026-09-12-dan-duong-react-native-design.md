@@ -573,6 +573,18 @@ Vitest root, jsdom, mock như M6 (`packages/react-native/src/test/`). Không có
   `trang-thai` cập nhật.
 - Version gói 0.5.0.
 
+## 10b. Lệch khi thực thi (plan `2026-09-12-dan-duong-react-native.md`)
+
+| Mục spec | Spec viết | Thực tế | Lý do |
+|---|---|---|---|
+| 7 | Puck SDF + `icon-color` | PNG **màu sẵn** (xanh viền trắng), không SDF | SDF một ảnh không có viền trắng; `routeStyle.color` không đổi màu puck |
+| 5.2 | `Speaker` 3 hàm | thêm `setOptions?({ rate, volume })` | để `start({ voice: { rate } })` có tác dụng |
+| 5.2, 5.4 | map vẽ theo `progress`/`reroute` | thêm sự kiện `route { response, routeIndex }` phát ở `start()`, `setRoute()`, tính lại xong | map gắn vào cần biết tuyến mới ngay lúc `start()` |
+| 5.3 | "phiên vẫn ở navigating chờ fix" | phiên tự phát `status navigating` lúc `start()` và `idle` lúc `stop()`; lọc `stopped` và idle→navigating của core | core chỉ đổi status ở fix đầu |
+| 6.4 | devDependencies expo 57.x để typecheck | **không** cài Expo vào workspace; kiểu ambient `src/expo/expo-modules.d.ts`, một chỗ import ở `src/expo/modules.ts` để test mock | quyết định M6 giữ Expo ngoài workspace |
+| 6.1 | `isBackgroundLocationAvailableAsync()` là điều kiện | vẫn gọi, nhưng lỗi → coi là có; quyết định cuối do `startLocationUpdatesAsync` ném hay không | hàm này chỉ đọc `providerStatus.backgroundModeEnabled` |
+| 7 | layer puck chỉ có khi có progress | layer puck luôn có khi `puck` bật; chưa có progress thì source không có feature puck | đơn giản, không đổi cây layer theo từng fix |
+
 ## 11. Rủi ro và giảm thiểu
 
 | Rủi ro | Giảm thiểu |

@@ -9,7 +9,7 @@ MapsLibVN **không liên kết với, không được tài trợ hay chứng th�
 nhãn hiệu của bên thứ ba; tên đó xuất hiện ở đây và trong tài liệu chỉ để mô tả nguồn gốc kỹ
 thuật của thư viện mà MapsLibVN sử dụng.
 
-Cập nhật: 04/09/2026.
+Cập nhật: 12/09/2026.
 
 ## 1. Thư viện được đóng gói hoặc là peer dependency của SDK
 
@@ -20,6 +20,8 @@ Cập nhật: 04/09/2026.
 | react, react-dom | 18.3.1 (peer, chỉ `@mapslibvn/react`) | MIT | |
 | @maplibre/maplibre-react-native | 11.3.8 (peer, chỉ `@mapslibvn/react-native`) | MIT | bộ vẽ bản đồ native iOS/Android |
 | react, react-native | react ≥ 19.1, react-native ≥ 0.80 (peer, chỉ `@mapslibvn/react-native`) | MIT | |
+| expo-location, expo-task-manager | 57.0.17 (peer **tuỳ chọn**, chỉ entry `@mapslibvn/react-native/expo`) | MIT | định vị tiền cảnh và nền cho dẫn đường |
+| expo-speech, expo-audio, expo-keep-awake | 57.0.3 / 57.0.5 / 57.0.1 (peer **tuỳ chọn**, chỉ entry `@mapslibvn/react-native/expo`) | MIT | đọc câu chỉ dẫn, phiên âm thanh khi nền, giữ màn hình sáng |
 
 Nguyên văn giấy phép ở mục 4.
 
@@ -384,6 +386,35 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SO
 
 Gói này nhúng MapLibre Native (Android, iOS) khi build app — xem thông báo giấy phép trong
 chính gói đó cho các thành phần native.
+
+### 4.9 expo-location, expo-task-manager, expo-speech, expo-audio, expo-keep-awake — MIT
+
+```
+The MIT License (MIT)
+
+Copyright (c) 2015-present 650 Industries, Inc. (aka Expo)
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+```
+
+Các gói này là peer dependency **tuỳ chọn**: chỉ app import `@mapslibvn/react-native/expo` (dẫn
+đường) mới cài; SDK không đóng gói mã của chúng.
 
 ## 5. Công cụ phía máy chủ (không phân phối, liệt kê để minh bạch)
 
