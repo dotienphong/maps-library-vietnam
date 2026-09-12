@@ -182,12 +182,13 @@ test('Nguồn POI mới đồng bộ selector, URL, snippet và style request', 
   await expect(page.locator('#f-sources option')).toHaveCount(6);
 
   // osm-fsq là mặc định mới của Playground nên round-trip không in lại `sources` trên URL (null).
-  for (const [profile, sources, urlSources, snippet] of [
+  const sourceCases: [string, string, string | null, string][] = [
     ['osm-fsq', 'osm,fsq', null, "poiSources: ['osm', 'fsq']"],
     ['overture-fsq', 'overture,fsq', 'overture,fsq', "poiSources: ['overture', 'fsq']"],
     ['overture', 'overture', 'overture', "poiSources: ['overture']"],
     ['fsq', 'fsq', 'fsq', "poiSources: ['fsq']"],
-  ]) {
+  ];
+  for (const [profile, sources, urlSources, snippet] of sourceCases) {
     const styleRequest = page.waitForRequest((request) => {
       const url = new URL(request.url());
       return (
