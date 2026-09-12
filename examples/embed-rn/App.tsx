@@ -1,16 +1,25 @@
 import {
   type AutocompleteItem,
+  type DirectionsResponse,
   type Lang,
   type MapHandle,
   type MapsLibVNClient,
   MapsLibVNMap,
   Marker,
+  type NavigationSession,
   type Theme,
+  type TravelMode,
+  createClient,
+  createNavigationSession,
+  playbackSource,
+  simulateFixes,
   usePlaces,
 } from '@mapslibvn/react-native';
+import { expoKeepAwake, expoNavigation, expoSpeech } from '@mapslibvn/react-native/expo';
 import * as Application from 'expo-application';
+import * as Location from 'expo-location';
 import { StatusBar } from 'expo-status-bar';
-import { useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import {
   Alert,
   FlatList,
@@ -21,33 +30,37 @@ import {
   TextInput,
   View,
 } from 'react-native';
+import { MODES, NavigationPanel } from './navigation-ui';
 
 const API_KEY = process.env.EXPO_PUBLIC_MAPSLIBVN_KEY ?? '';
 const API_BASE = process.env.EXPO_PUBLIC_MAPSLIBVN_API ?? 'https://api.ai-solutions.io.vn';
+const BUNDLE_ID = Application.applicationId ?? undefined;
 
-// Cảnh báo của MapLibre Native về vài đoạn line trong tile (dữ liệu, không phải code app) —
-// chỉ ảnh hưởng toast LogBox lúc dev, build release không có LogBox.
+// Cảnh báo của MapLibre Native về vài đoạn line trong tile (dữ liệu, không phải code app).
 LogBox.ignoreLogs(['Invalid geometry in line layer']);
 
-/** Ô tìm kiếm + danh sách gợi ý — nằm ngoài <MapsLibVNMap> nên phải truyền client tường minh. */
-function Search({
-  client,
-  onPick,
-}: {
-  client: MapsLibVNClient | undefined;
-  onPick: (item: AutocompleteItem) => void;
-}) {
+// Client và phiên GPS thật sống ở cấp module: đổi màn hình, popup đè lên bản đồ không dừng dẫn đường.
+const client: MapsLibVNClient = createClient({
+  apiKey: API_KEY,
+  baseUrl: API_BASE,
+  ...(BUNDLE_ID ? { headers: { 'X-Bundle-Id': BUNDLE_ID } } : {}),
+});
+const realSession = createNavigationSession({
+  provider: client,
+  ...expoNavigation({ notification: { title: 'MapsLibVN Demo đang dẫn đường' } }),
+});
+
+type Point = { name: string; lng: number; lat: number };
+
+/** Ô tìm kiếm + gợi ý — nằm ngoài <MapsLibVNMap> nên truyền client tường minh. */
+function Search({ near, onPick }: { near: [number, number]; onPick: (p: Point) => void }) {
   const [q, setQ] = useState('');
-  const { items, loading } = usePlaces(q, {
-    near: [10.776, 106.7],
-    limit: 6,
-    ...(client ? { client } : {}),
-  });
+  const { items, loading } = usePlaces(q, { near, limit: 6, client });
   return (
     <View style={styles.search}>
       <TextInput
         style={styles.input}
-        placeholder="Tìm địa điểm, ví dụ highlands"
+        placeholder="Điểm đến: tên đường, địa điểm…"
         value={q}
         onChangeText={setQ}
         autoCorrect={false}
@@ -58,7 +71,7 @@ function Search({
           style={styles.list}
           keyboardShouldPersistTaps="handled"
           data={items}
-          keyExtractor={(it, i) => it.id ?? `${it.type}-${i}`}
+          keyExtractor={(it: AutocompleteItem, i) => it.id ?? `${it.type}-${i}`}
           ListEmptyComponent={
             <Text style={styles.hint}>{loading ? 'Đang tìm…' : 'Không có gợi ý'}</Text>
           }
@@ -67,7 +80,7 @@ function Search({
               style={styles.row}
               onPress={() => {
                 setQ('');
-                onPick(item);
+                onPick({ name: item.name, lng: item.lng, lat: item.lat });
               }}
             >
               <Text style={styles.name}>{item.name}</Text>
@@ -84,7 +97,79 @@ export default function App() {
   const [theme, setTheme] = useState<Theme>('light');
   const [lang, setLang] = useState<Lang>('vi');
   const [map, setMap] = useState<MapHandle | null>(null);
-  const [picked, setPicked] = useState<AutocompleteItem | null>(null);
+  const [origin, setOrigin] = useState<[number, number] | null>(null); // [lng, lat]
+  const [dest, setDest] = useState<Point | null>(null);
+  const [mode, setMode] = useState<TravelMode>('motorbike');
+  const [response, setResponse] = useState<DirectionsResponse | null>(null);
+  const [active, setActive] = useState(0);
+  const [session, setSession] = useState<NavigationSession>(realSession);
+  const [navigating, setNavigating] = useState(false);
+
+  // Vị trí hiện tại lúc mở app → bay tới; xin quyền một lần ở đây, SDK dùng lại khi start().
+  useEffect(() => {
+    (async () => {
+      const perm = await Location.requestForegroundPermissionsAsync();
+      if (!perm.granted) return;
+      const p = await Location.getCurrentPositionAsync({});
+      setOrigin([p.coords.longitude, p.coords.latitude]);
+    })().catch(() => {});
+  }, []);
+  useEffect(() => {
+    if (map && origin) map.flyTo(origin, 15);
+  }, [map, origin]);
+
+  // Đủ hai điểm → tự tính tuyến; đổi phương tiện hay điểm đến → tính lại.
+  useEffect(() => {
+    if (!origin || !dest || navigating) return;
+    let cancelled = false;
+    client
+      .directions({
+        from: [origin[1], origin[0]],
+        to: [dest.lat, dest.lng],
+        mode,
+        alternatives: true,
+      })
+      .then((r) => {
+        if (cancelled) return;
+        setResponse(r);
+        setActive(0);
+        map?.routes.show(r, { active: 0 });
+        const bbox = r.routes[0]?.bbox;
+        if (bbox) map?.fitBounds(bbox, 60);
+      })
+      .catch((e: unknown) =>
+        Alert.alert('Không tính được tuyến', e instanceof Error ? e.message : ''),
+      );
+    return () => {
+      cancelled = true;
+    };
+  }, [origin, dest, mode, map, navigating]);
+
+  const start = useCallback(
+    async (kind: 'real' | 'sim') => {
+      if (!response) return;
+      const route = response.routes[active];
+      if (!route) return;
+      const s =
+        kind === 'real'
+          ? realSession
+          : createNavigationSession({
+              provider: client,
+              source: playbackSource(simulateFixes(route, { jitter_m: 4 }), { rate: 4 }),
+              speech: expoSpeech(),
+              keepAwake: expoKeepAwake(),
+            });
+      if (s !== session) await session.stop();
+      setSession(s);
+      setNavigating(true);
+      await s.start({ response, routeIndex: active, lang });
+    },
+    [response, active, session, lang],
+  );
+  const stop = useCallback(async () => {
+    await session.stop();
+    setNavigating(false);
+  }, [session]);
 
   if (!API_KEY) {
     return (
@@ -102,34 +187,93 @@ export default function App() {
         apiBase={API_BASE}
         style={theme}
         lang={lang}
-        {...(Application.applicationId ? { bundleId: Application.applicationId } : {})}
+        {...(BUNDLE_ID ? { bundleId: BUNDLE_ID } : {})}
+        navigation={session}
         onLoad={setMap}
-        onPoiClick={(poi) => Alert.alert(poi.name, `${poi.category} · ${poi.group}`)}
+        onRouteClick={(i) => {
+          setActive(i);
+          map?.routes.setActive(i);
+        }}
+        onPoiClick={(poi) => setDest({ name: poi.name, lng: poi.lngLat[0], lat: poi.lngLat[1] })}
         onError={(e) => Alert.alert('Lỗi bản đồ', e.message)}
         testID="map"
       >
-        {picked && <Marker lng={picked.lng} lat={picked.lat} color="#e53935" />}
+        {dest && !response && <Marker lng={dest.lng} lat={dest.lat} color="#e53935" />}
       </MapsLibVNMap>
 
-      <Search
-        client={map?.places}
-        onPick={(item) => {
-          setPicked(item);
-          map?.flyTo([item.lng, item.lat], 16);
-        }}
-      />
+      {!navigating && (
+        <>
+          <Search near={origin ? [origin[1], origin[0]] : [10.776, 106.7]} onPick={setDest} />
+          {dest && (
+            <View style={styles.card}>
+              <Text style={styles.name} numberOfLines={1}>
+                → {dest.name}
+              </Text>
+              <View style={styles.chips}>
+                {MODES.map((m) => (
+                  <Pressable
+                    key={m.mode}
+                    style={[styles.chip, mode === m.mode && styles.chipOn]}
+                    onPress={() => setMode(m.mode)}
+                  >
+                    <Text style={mode === m.mode ? styles.chipTextOn : styles.chipText}>
+                      {m.label}
+                    </Text>
+                  </Pressable>
+                ))}
+              </View>
+              {response ? (
+                <>
+                  <Text style={styles.secondary}>
+                    {response.routes
+                      .map(
+                        (r, i) =>
+                          `${i === active ? '● ' : '○ '}${Math.round(r.duration_s / 60)} phút · ${(r.distance_m / 1000).toFixed(1)} km`,
+                      )
+                      .join('   ')}
+                  </Text>
+                  <View style={styles.chips}>
+                    <Pressable
+                      style={[styles.btn, styles.primary]}
+                      onPress={() => void start('real')}
+                    >
+                      <Text style={[styles.btnText, { color: '#fff' }]}>Bắt đầu</Text>
+                    </Pressable>
+                    <Pressable style={styles.btn} onPress={() => void start('sim')}>
+                      <Text style={styles.btnText}>Giả lập</Text>
+                    </Pressable>
+                    <Pressable
+                      style={styles.btn}
+                      onPress={() => {
+                        setDest(null);
+                        setResponse(null);
+                        map?.routes.clear();
+                      }}
+                    >
+                      <Text style={styles.btnText}>Xoá</Text>
+                    </Pressable>
+                  </View>
+                </>
+              ) : (
+                <Text style={styles.hint}>{origin ? 'Đang tính tuyến…' : 'Chờ vị trí GPS…'}</Text>
+              )}
+            </View>
+          )}
+          <View style={styles.toolbar}>
+            <Pressable
+              style={styles.btn}
+              onPress={() => setTheme(theme === 'light' ? 'dark' : 'light')}
+            >
+              <Text style={styles.btnText}>{theme === 'light' ? 'Tối' : 'Sáng'}</Text>
+            </Pressable>
+            <Pressable style={styles.btn} onPress={() => setLang(lang === 'vi' ? 'en' : 'vi')}>
+              <Text style={styles.btnText}>{lang === 'vi' ? 'EN' : 'VI'}</Text>
+            </Pressable>
+          </View>
+        </>
+      )}
 
-      <View style={styles.toolbar}>
-        <Pressable
-          style={styles.btn}
-          onPress={() => setTheme(theme === 'light' ? 'dark' : 'light')}
-        >
-          <Text style={styles.btnText}>{theme === 'light' ? 'Tối' : 'Sáng'}</Text>
-        </Pressable>
-        <Pressable style={styles.btn} onPress={() => setLang(lang === 'vi' ? 'en' : 'vi')}>
-          <Text style={styles.btnText}>{lang === 'vi' ? 'EN' : 'VI'}</Text>
-        </Pressable>
-      </View>
+      {navigating && <NavigationPanel session={session} map={map} onStop={() => void stop()} />}
     </View>
   );
 }
@@ -155,13 +299,24 @@ const styles = StyleSheet.create({
   name: { fontSize: 15, fontWeight: '600' },
   secondary: { fontSize: 12, color: '#666' },
   hint: { padding: 12, color: '#666' },
-  toolbar: { position: 'absolute', right: 12, bottom: 48, gap: 8 },
-  btn: {
+  card: {
+    position: 'absolute',
+    left: 12,
+    right: 12,
+    bottom: 32,
     backgroundColor: '#fff',
-    borderRadius: 20,
-    paddingHorizontal: 14,
-    paddingVertical: 8,
+    borderRadius: 12,
+    padding: 12,
+    gap: 8,
     elevation: 3,
   },
+  chips: { flexDirection: 'row', gap: 8, flexWrap: 'wrap' },
+  chip: { borderRadius: 16, paddingHorizontal: 12, paddingVertical: 6, backgroundColor: '#eef2f8' },
+  chipOn: { backgroundColor: '#2458a6' },
+  chipText: { fontWeight: '600', color: '#1b3a6b' },
+  chipTextOn: { fontWeight: '600', color: '#fff' },
+  toolbar: { position: 'absolute', right: 12, top: 120, gap: 8 },
+  btn: { backgroundColor: '#eef2f8', borderRadius: 20, paddingHorizontal: 14, paddingVertical: 8 },
+  primary: { backgroundColor: '#2458a6' },
   btnText: { fontWeight: '600' },
 });
