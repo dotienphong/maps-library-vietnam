@@ -1278,7 +1278,7 @@ Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>"
 - Create: `packages/react-native/src/navigation/route-layers.test.tsx`
 - Modify: `packages/react-native/src/test/mlrn-mock.tsx`
 
-- [ ] **Step 1: Viết test store đỏ**
+- [x] **Step 1: Viết test store đỏ**
 
 `packages/react-native/src/navigation/routes-store.test.ts`:
 
@@ -1328,12 +1328,12 @@ describe('createRoutesStore', () => {
 });
 ```
 
-- [ ] **Step 2: Chạy đỏ**
+- [x] **Step 2: Chạy đỏ**
 
 Run: `pnpm exec vitest run packages/react-native/src/navigation/routes-store.test.ts`
 Expected: FAIL — không resolve được `./routes-store`.
 
-- [ ] **Step 3: Viết `routes-store.ts`**
+- [x] **Step 3: Viết `routes-store.ts`**
 
 ```ts
 import {
@@ -1413,12 +1413,12 @@ export function createRoutesStore(): RoutesStore {
 }
 ```
 
-- [ ] **Step 4: Chạy test store xanh**
+- [x] **Step 4: Chạy test store xanh**
 
 Run: `pnpm exec vitest run packages/react-native/src/navigation/routes-store.test.ts`
 Expected: 2 PASS.
 
-- [ ] **Step 5: Mở rộng mock mlrn**
+- [x] **Step 5: Mở rộng mock mlrn**
 
 Thêm vào `packages/react-native/src/test/mlrn-mock.tsx` (sau `Marker`):
 
@@ -1452,7 +1452,7 @@ export function Images(props: { images: Record<string, unknown> }) {
 
 và trong `resetMocks` thêm dòng `lastSourceProps = null;`.
 
-- [ ] **Step 6: Viết test RouteLayers đỏ**
+- [x] **Step 6: Viết test RouteLayers đỏ**
 
 `packages/react-native/src/navigation/route-layers.test.tsx`:
 
@@ -1564,12 +1564,12 @@ describe('RouteLayers', () => {
 });
 ```
 
-- [ ] **Step 7: Chạy đỏ**
+- [x] **Step 7: Chạy đỏ**
 
 Run: `pnpm exec vitest run packages/react-native/src/navigation/route-layers.test.tsx`
 Expected: FAIL — không resolve được `./route-layers`.
 
-- [ ] **Step 8: Viết `route-layers.tsx`**
+- [x] **Step 8: Viết `route-layers.tsx`**
 
 ```tsx
 import {
@@ -1723,7 +1723,7 @@ Nếu `data={snap.features as GeoJSON.FeatureCollection}` báo lỗi kiểu, đ�
 `data={snap.features as unknown as GeoJSON.FeatureCollection}` (kiểu core hẹp hơn `GeoJSON.Feature`
 ở `properties`, không phải lỗi logic).
 
-- [ ] **Step 8b: `marker.tsx` đọc context trực tiếp** (tránh vòng import `map → route-layers → marker → map`)
+- [x] **Step 8b: `marker.tsx` đọc context trực tiếp** (tránh vòng import `map → route-layers → marker → map`)
 
 Trong `packages/react-native/src/marker.tsx` đổi `import { useMap } from './map';` thành
 `import { useContext } from 'react';` + `import { MapContext } from './context';`, và thay dòng
@@ -1735,13 +1735,13 @@ Trong `packages/react-native/src/marker.tsx` đổi `import { useMap } from './m
 
 (`marker.test.tsx` sẵn có vẫn xanh — thông điệp giữ nguyên.)
 
-- [ ] **Step 9: Chạy xanh + typecheck**
+- [x] **Step 9: Chạy xanh + typecheck**
 
 Run: `pnpm exec vitest run packages/react-native/src/navigation/ packages/react-native/src/marker.test.tsx && pnpm --filter @mapslibvn/react-native typecheck`
 Expected: PASS toàn bộ thư mục (session, playback, puck, store, layers); typecheck sạch. Mock `Marker` in
 `data-testid` từ prop `testID` nên `getAllByTestId('mapslibvn-route-marker')` bắt được.
 
-- [ ] **Step 10: Commit**
+- [x] **Step 10: Commit**
 
 ```bash
 git add packages/react-native/src/navigation/routes-store.ts packages/react-native/src/navigation/routes-store.test.ts packages/react-native/src/navigation/route-layers.tsx packages/react-native/src/navigation/route-layers.test.tsx packages/react-native/src/test/mlrn-mock.tsx packages/react-native/src/marker.tsx
