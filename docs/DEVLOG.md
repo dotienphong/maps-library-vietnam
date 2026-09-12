@@ -5,6 +5,33 @@ commit với code).
 
 ## 1. Trạng thái hiện tại
 
+- **12/09/2026 — Dẫn đường spec C (React Native) đã code xong, chờ thực địa.** Gói
+  `@mapslibvn/react-native` 0.5.0: phiên dẫn đường **độc lập với map** `createNavigationSession()`
+  (cầm `createNavigator` của core + `PositionSource` + `Speaker` + keep-awake + phiên âm thanh, API
+  giữ chữ ký `map.navigation` web, `start/stop` trả Promise), `<MapsLibVNMap navigation={session}>`
+  chỉ *gắn* để vẽ tuyến/puck/camera bám (`useMap().routes`, `useMap().navigation`, `useNavigation(session?)`
+  dùng được ngoài map); entry riêng `@mapslibvn/react-native/expo` (`defineNavigationTask`,
+  `expoLocationSource` — `startLocationUpdatesAsync` + task là **một nguồn cho cả tiền cảnh lẫn nền**,
+  thiếu cấu hình thì rơi về `watchPositionAsync` và phát `backgroundUnavailable`; `expoSpeech`,
+  `expoAudioSession`, `expoKeepAwake`, `expoNavigation()`); kiểu Expo khai báo ambient, **không** đưa
+  Expo vào workspace; peer expo-* tuỳ chọn. Core chỉ thêm `routeFeatures()`/`decodeRoutes()` (chuyển từ
+  web) và `FIRST_SYMBOL_LAYER_ID` (test style bảo vệ); web dùng lại, test không đổi. App thử
+  `examples/embed-rn` có màn dẫn đường đủ luồng + `pnpm example:rn --device`. Docs
+  `/dan-duong-react-native/`. Cổng local: lint 436 file, typecheck 14/14, `pnpm test` gốc 116 file /
+  1228 test (3 skip cũ), api 34 / 253, notices ✓, docs E2E 21/21; core 17,34 kB gzip (trần 20 kB),
+  tarball RN 42 kB. **Kiểm sớm trên máy** (spec C mục 11, evidence
+  `docs/evidence/navigation/2026-09-12-rn-phat-hanh.md`): Android emulator Pixel 7 **và** iOS simulator
+  iPhone 17 Pro — cả hai rủi ro đã biết đạt: puck data URI hiện đúng (mũi tên xoay theo hướng), tuyến +
+  tuyến thay thế + marker đích, giả lập Maestro chạy tới `arrived` với banner/ETA đúng câu tiếng Việt.
+  Bài học vận hành: build iOS lần đầu treo 21 phút ở tải artifact RN từ Maven (nguội, không cache);
+  chạy song song emulator + Metro + pod install làm hệ thống hết bộ nhớ, phải build tuần tự; Maestro
+  trên iOS gộp hai `<Text>` con của `Pressable` thành một nhãn accessibility (Android giữ hai nhãn
+  riêng) — chỉ ảnh hưởng khâu tự động hoá thử, khớp bằng regex. **Còn lại:** thực địa PHONG trên Android
+  thật + iPhone thật (Task 16 bước 3–4, Task 20) → nghiệm thu mục 13. Bảy lệch spec đã ghi ở
+  spec C mục 10b (puck PNG màu không SDF, `Speaker.setOptions`, sự kiện `route`, status `navigating`
+  ngay lúc `start()`, kiểu ambient thay devDeps, `isBackgroundLocationAvailableAsync` chỉ gợi ý, layer
+  puck luôn có).
+
 - **12/09/2026 — Dẫn đường spec B phát hành.** Core `navigation/` (createNavigator máy trạng thái
   thuần, bám tuyến theo cửa sổ, lịch đọc 5 loại câu, reroute auto có cooldown 15 s / trần 3 lỗi,
   simulateFixes; barrel 16,91 kB gzip, trần nâng 16 → 20 kB ở Task 9 vì `navigator.ts` nặng hơn dự
@@ -16,8 +43,8 @@ commit với code).
   trong Playground") dồn chức năng giả lập/dẫn đường vào Playground để khỏi trùng hai nơi. Thực địa đi
   bộ 12/09 đạt — PHONG tự đi thử, xác nhận trực tiếp "ok", giữ nguyên `NAVIGATION_THRESHOLDS`, không đo
   số liệu định lượng chi tiết. `pnpm test` gốc 1177 test / 104 file (3 skip có sẵn từ trước), apps/api
-  253 test / 34 file. Evidence: `docs/evidence/navigation/`. **Bắt đầu tiếp:** spec C (React Native:
-  `PositionSource` từ `expo-location`, `expo-speech`, `ShapeSource`/`LineLayer`).
+  253 test / 34 file. Evidence: `docs/evidence/navigation/`. **Bắt đầu tiếp:** spec C (đã làm — xem mục ngày
+  12/09/2026 về SDK React Native ở trên).
 
   **Bài học:** nghiệm thu mục 11 của spec B chỉ 3/7 đạt trọn vẹn, 4/7 "đạt một phần" — không phải do
   lỗi mà do thực tế lệch khỏi số/tên viết sẵn trong spec lúc brainstorm (trần size-limit phải nâng
@@ -837,9 +864,10 @@ commit với code).
 
 ## 2. Bước kế tiếp
 
-- **Dẫn đường:** spec A đóng 11/09/2026, spec B đóng 12/09/2026 (xem mục 1). Kế tiếp: brainstorm
-  **spec C** React Native — dùng nguyên `createNavigator`/`PositionSource`/`announce` của core; việc
-  riêng của RN là định vị nền, quyền, TTS native, vẽ tuyến bằng ShapeSource.
+- **Dẫn đường:** spec A đóng 11/09/2026, spec B đóng 12/09/2026, spec C (React Native) đã code + kiểm
+  sớm simulator xong (Task 1–19/20, xem mục 1). Kế tiếp: **thực địa PHONG** trên Android thật + iPhone
+  thật (Task 16 bước 3–4 gộp vào Task 20) → nghiệm thu mục 13 → cân nhắc publish npm (B3) hoặc spec D
+  theo tenant đầu tiên.
 
   Hai việc còn nợ của spec A (chưa đổi): (1) chạy `gh workflow run "Routing tests"` và ghi ID run vào
   `docs/evidence/routing/2026-09-11-nghiem-thu-production.md` khi GitHub Actions được mở lại (đang khoá

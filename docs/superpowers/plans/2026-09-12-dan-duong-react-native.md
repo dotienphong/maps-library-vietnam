@@ -3812,7 +3812,7 @@ Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>"
 - Modify: `packages/react-native/src/index.ts`
 - Modify: `packages/react-native/README.md`
 
-- [ ] **Step 1: tsup hai entry, external Expo**
+- [x] **Step 1: tsup hai entry, external Expo**
 
 Thay `packages/react-native/tsup.config.ts`:
 
@@ -3845,7 +3845,7 @@ export default defineConfig({
 });
 ```
 
-- [ ] **Step 2: `package.json`**
+- [x] **Step 2: `package.json`**
 
 Sửa `packages/react-native/package.json`:
 
@@ -3883,7 +3883,7 @@ Sửa `packages/react-native/package.json`:
   },
 ```
 
-- [ ] **Step 3: `src/index.ts` xuất khẩu mới**
+- [x] **Step 3: `src/index.ts` xuất khẩu mới**
 
 Thay toàn bộ `packages/react-native/src/index.ts`:
 
@@ -3958,7 +3958,7 @@ export type {
 } from '@mapslibvn/core';
 ```
 
-- [ ] **Step 4: README gói — thêm mục dẫn đường** (chèn trước mục "Tài liệu:")
+- [x] **Step 4: README gói — thêm mục dẫn đường** (chèn trước mục "Tài liệu:")
 
 ```markdown
 ## Dẫn đường (0.5.0)
@@ -3987,7 +3987,7 @@ Cần `npx expo install expo-location expo-task-manager expo-speech expo-audio` 
 `app.json` (xem docs). App có luồng GPS riêng: truyền `source` của bạn thay `expoNavigation()`.
 ```
 
-- [ ] **Step 5: Build và kiểm dist**
+- [x] **Step 5: Build và kiểm dist**
 
 Run:
 ```bash
@@ -4001,12 +4001,12 @@ cd packages/react-native && pnpm pack --pack-destination /tmp && tar -tzf /tmp/m
 ```
 Expected: `dist/expo/index.js` + `.d.ts` tồn tại; entry chính **0** lần nhắc `expo-`; entry expo import đúng 5 gói; `dist/expo/index.d.ts` **0** dòng import từ `expo-*` (không lộ kiểu Expo; nhắc trong comment doc thì được); `createNavigationSession` có trong `.d.ts`; tarball chứa cả hai entry.
 
-- [ ] **Step 6: Test + typecheck + lint toàn gói**
+- [x] **Step 6: Test + typecheck + lint toàn gói**
 
 Run: `pnpm exec vitest run packages/react-native && pnpm --filter @mapslibvn/react-native typecheck && pnpm lint`
 Expected: xanh.
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add packages/react-native/tsup.config.ts packages/react-native/package.json packages/react-native/src/index.ts packages/react-native/README.md
@@ -4024,7 +4024,7 @@ Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>"
 - Modify: `scripts/lib/example-rn.test.mjs`
 - Modify: `scripts/example-rn.mjs`
 
-- [ ] **Step 1: Sửa test hiện có thành đỏ**
+- [x] **Step 1: Sửa test hiện có thành đỏ**
 
 Trong `scripts/lib/example-rn.test.mjs`, đổi các kỳ vọng `parseArgs` và `expoRunArgs`:
 
@@ -4058,7 +4058,7 @@ describe('parseArgs', () => {
 
 Run: `pnpm exec vitest run scripts/lib/example-rn.test.mjs` → Expected: FAIL (`device` thiếu, `--device` bị ném lỗi).
 
-- [ ] **Step 2: Sửa `scripts/lib/example-rn.mjs`**
+- [x] **Step 2: Sửa `scripts/lib/example-rn.mjs`**
 
 ```js
 /**
@@ -4092,19 +4092,19 @@ export function expoRunArgs(platform, device = false) {
 }
 ```
 
-- [ ] **Step 3: Nối vào `scripts/example-rn.mjs`**
+- [x] **Step 3: Nối vào `scripts/example-rn.mjs`**
 
 - Dòng header usage thêm `//   pnpm example:rn --device           (máy thật đang cắm USB; iOS cần ký bằng Apple ID trong Xcode)`.
 - `const { platform, packOnly, device } = parseArgs(argv, process.platform);`
 - Dòng cuối: `run('npx', expoRunArgs(platform, device), { cwd: appDir, env: { ...process.env, ...extraEnv } });`
 - Thông báo bước 5: `` console.log(`▶ 5/5 npx expo run:${platform}${device ? ' --device' : ''} (lần đầu prebuild + CocoaPods/Gradle, vài phút)`); ``
 
-- [ ] **Step 4: Test xanh + typecheck scripts**
+- [x] **Step 4: Test xanh + typecheck scripts**
 
 Run: `pnpm exec vitest run scripts/lib/example-rn.test.mjs && tsc -p tsconfig.scripts.json`
 Expected: PASS; typecheck sạch (checkJs cho `scripts/*.mjs`, xem memory "Bẫy typecheck M3").
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add scripts/lib/example-rn.mjs scripts/lib/example-rn.test.mjs scripts/example-rn.mjs
@@ -4123,7 +4123,7 @@ Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>"
 - Modify: `examples/embed-rn/index.ts`
 - Modify: `examples/embed-rn/README.md`
 
-- [ ] **Step 1: Cài module (từ thư mục app, dùng npm — app ngoài workspace)**
+- [x] **Step 1: Cài module (từ thư mục app, dùng npm — app ngoài workspace)**
 
 Run:
 ```bash
@@ -4132,7 +4132,7 @@ node -e "const p=require('./examples/embed-rn/package.json');for(const k of ['ex
 ```
 Expected: bốn dòng in phiên bản `~57.0.x`.
 
-- [ ] **Step 2: `app.json` plugin**
+- [x] **Step 2: `app.json` plugin**
 
 Thay khối `"plugins"`:
 
@@ -4154,7 +4154,7 @@ Thay khối `"plugins"`:
 (`expo-audio` mặc định `enableBackgroundPlayback: true` → thêm `UIBackgroundModes: audio`; **không** bật
 `isAndroidBackgroundLocationEnabled`.)
 
-- [ ] **Step 3: `index.ts`**
+- [x] **Step 3: `index.ts`**
 
 ```ts
 import { defineNavigationTask } from '@mapslibvn/react-native/expo';
@@ -4170,7 +4170,7 @@ defineNavigationTask();
 registerRootComponent(App);
 ```
 
-- [ ] **Step 4: README app thử — thêm đoạn**
+- [x] **Step 4: README app thử — thêm đoạn**
 
 Sau đoạn "Yêu cầu máy", thêm:
 
@@ -4186,7 +4186,7 @@ Máy thật: `pnpm example:rn --device --android` (bật USB debugging) hoặc `
 nhân; trên máy: Cài đặt → Cài đặt chung → VPN & Quản lý thiết bị → tin cậy nhà phát triển).
 ```
 
-- [ ] **Step 5: Prebuild lại và xác nhận cấu hình native**
+- [x] **Step 5: Prebuild lại và xác nhận cấu hình native**
 
 Run:
 ```bash
@@ -4198,7 +4198,7 @@ grep -E "FOREGROUND_SERVICE|ACCESS_BACKGROUND_LOCATION|ACCESS_FINE_LOCATION" exa
 Expected: Info.plist có `location` **và** `audio`; manifest có `ACCESS_FINE_LOCATION`, `FOREGROUND_SERVICE`,
 `FOREGROUND_SERVICE_LOCATION`, `FOREGROUND_SERVICE_MEDIA_PLAYBACK`; **không** có `ACCESS_BACKGROUND_LOCATION`.
 
-- [ ] **Step 6: Commit** (chỉ file trong git — `ios/`, `android/`, `node_modules/` gitignore)
+- [x] **Step 6: Commit** (chỉ file trong git — `ios/`, `android/`, `node_modules/` gitignore)
 
 ```bash
 git add examples/embed-rn/package.json examples/embed-rn/package-lock.json examples/embed-rn/app.json examples/embed-rn/index.ts examples/embed-rn/README.md
@@ -4215,7 +4215,7 @@ Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>"
 - Create: `examples/embed-rn/navigation-ui.tsx`
 - Modify: `examples/embed-rn/App.tsx`
 
-- [ ] **Step 1: Bảng điều khiển dẫn đường (ngoài `<MapsLibVNMap>`, dùng `useNavigation(session)`)**
+- [x] **Step 1: Bảng điều khiển dẫn đường (ngoài `<MapsLibVNMap>`, dùng `useNavigation(session)`)**
 
 `examples/embed-rn/navigation-ui.tsx`:
 
@@ -4356,7 +4356,7 @@ const styles = StyleSheet.create({
 });
 ```
 
-- [ ] **Step 2: `App.tsx` — thêm điểm đến, chip phương tiện, tuyến, Bắt đầu / Giả lập**
+- [x] **Step 2: `App.tsx` — thêm điểm đến, chip phương tiện, tuyến, Bắt đầu / Giả lập**
 
 Thay toàn bộ `examples/embed-rn/App.tsx`:
 
@@ -4670,7 +4670,7 @@ const styles = StyleSheet.create({
 });
 ```
 
-- [ ] **Step 3: Lint + đóng gói + cài vào app + kiểm kiểu trong app**
+- [x] **Step 3: Lint + đóng gói + cài vào app + kiểm kiểu trong app**
 
 Run:
 ```bash
@@ -4681,7 +4681,7 @@ cd examples/embed-rn && npx tsc --noEmit -p tsconfig.json && cd ../..
 Expected: lint xanh; tarball 0.5.0 cài vào app; `tsc` của app sạch (app đọc kiểu từ `dist/index.d.ts` và
 `dist/expo/index.d.ts` — đây là chỗ bắt lỗi "kiểu Expo lộ ra ngoài" nếu Task 12 Step 5 sót).
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add examples/embed-rn/App.tsx examples/embed-rn/navigation-ui.tsx
@@ -4697,7 +4697,7 @@ Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>"
 Không có test tự động; ghi kết quả vào `docs/evidence/navigation/<ngày>-rn-phat-hanh.md` (tạo ở
 bước này, hoàn thiện ở Task 19). Task này **chặn** Task 17–19 nếu rủi ro 1 hoặc 2 buộc đổi thiết kế.
 
-- [ ] **Step 1: iOS simulator — giả lập**
+- [x] **Step 1: iOS simulator — giả lập**
 
 Run: `pnpm example:rn` (iOS). Trong app: chọn điểm đến bằng ô tìm (ví dụ "chợ bến thành"), chip Xe máy →
 thấy tuyến; bấm **Giả lập**.
@@ -4710,11 +4710,11 @@ dự phòng của spec mục 7: trong `route-layers.tsx` thay layer symbol bằn
 xoay `bearing − bearing_bản_đồ` (bearing bản đồ đọc từ `onRegionIsChanging` → store). Mở việc đó thành
 Task 16b trong plan này trước khi tiếp tục.
 
-- [ ] **Step 2: Android emulator — giả lập**
+- [x] **Step 2: Android emulator — giả lập**
 
 Run: `pnpm example:rn --android`. Lặp lại Step 1. Expected như trên; chụp `rn-android-emu-giả-lập.png`.
 
-- [ ] **Step 3: iPhone thật — kiểm rủi ro 1 (giọng đọc khi khoá máy) NGAY, bằng Giả lập**
+- [x] **Step 3: iPhone thật — kiểm rủi ro 1 (giọng đọc khi khoá máy) NGAY, bằng Giả lập**
 
 Run: `pnpm example:rn --device` (ký theo README app thử). Trong app bấm **Giả lập** rồi **khoá màn hình**
 ngay, chờ ≥ 60 giây.
@@ -4724,7 +4724,7 @@ phòng (a) của spec mục 11 — `expo-audio` phát một `AudioPlayer` im l�
 (c) nếu vẫn im, ghi giới hạn "iOS chỉ đọc khi màn hình sáng" vào docs + nghiệm thu 4 ĐẠT MỘT PHẦN.
 Ghi kết quả (đạt / dự phòng nào) vào evidence.
 
-- [ ] **Step 4: Android thật — thông báo foreground service**
+- [x] **Step 4: Android thật — thông báo foreground service**
 
 Run: `pnpm example:rn --device --android`. Bấm **Bắt đầu** (GPS thật, đứng yên cũng được) → kéo thanh
 thông báo.
@@ -4732,7 +4732,7 @@ Expected: thông báo "MapsLibVN Demo đang dẫn đường / Chạm để mở 
 bấm **Dừng** → thông báo biến mất. Nếu dòng chẩn đoán hiện `tiền cảnh · nền: <reason>` → đọc `reason`:
 `not_configured` = prebuild chưa chạy lại (Task 14 Step 5); `task_not_defined` = `index.ts` chưa gọi.
 
-- [ ] **Step 5: Ghi evidence tạm và commit**
+- [x] **Step 5: Ghi evidence tạm và commit**
 
 Tạo `docs/evidence/navigation/<ngày>-rn-phat-hanh.md` với mục "Kiểm sớm trên máy" (bốn dòng kết quả
 trên, tên máy, hệ điều hành) — các mục còn lại điền ở Task 19.
@@ -4753,7 +4753,7 @@ Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>"
 - Modify: `apps/docs/astro.config.mjs`, `apps/docs/e2e/docs.spec.ts`
 - Modify: `apps/docs/src/content/docs/react-native.md`, `dan-duong.md`, `tinh-nang.md`
 
-- [ ] **Step 1: Trang mới**
+- [x] **Step 1: Trang mới**
 
 `apps/docs/src/content/docs/dan-duong-react-native.md`:
 
@@ -4947,7 +4947,7 @@ số lần tính lại để ghi evidence.
 Đọc thêm: [Dẫn đường (web)](/dan-duong/), [React Native](/react-native/), [REST API — directions](/api/#get-v1directions).
 ```
 
-- [ ] **Step 2: Sidebar, link check, link chéo**
+- [x] **Step 2: Sidebar, link check, link chéo**
 
 - `apps/docs/astro.config.mjs`: trong nhóm "Hướng dẫn", sau `{ label: 'Dẫn đường', slug: 'dan-duong' },`
   thêm `{ label: 'Dẫn đường React Native', slug: 'dan-duong-react-native' },`.
@@ -4961,7 +4961,7 @@ số lần tính lại để ghi evidence.
 - `tinh-nang.md` mục 5 "Chỉ đường": thêm câu
   `SDK React Native dẫn đường cả khi khoá máy, phiên độc lập với màn hình bản đồ — [Dẫn đường trên React Native](/dan-duong-react-native/).`
 
-- [ ] **Step 3: Build docs và chạy link check**
+- [x] **Step 3: Build docs và chạy link check**
 
 Run:
 ```bash
@@ -4971,7 +4971,7 @@ pnpm --filter @mapslibvn/docs e2e -- docs.spec.ts
 Expected: build xanh; `docs.spec.ts` xanh cho mọi trang kể cả `/dan-duong-react-native/` (E2E cần
 `apps/api dev:e2e` như các lần trước — xem `apps/docs/package.json` script `e2e`).
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add apps/docs/src/content/docs/dan-duong-react-native.md apps/docs/astro.config.mjs apps/docs/e2e/docs.spec.ts apps/docs/src/content/docs/react-native.md apps/docs/src/content/docs/dan-duong.md apps/docs/src/content/docs/tinh-nang.md
@@ -4989,7 +4989,7 @@ Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>"
 - Modify: `docs/superpowers/specs/2026-09-12-dan-duong-core-web-design.md` (mục 10)
 - Modify: `docs/superpowers/specs/2026-09-12-dan-duong-react-native-design.md`
 
-- [ ] **Step 1: Notices — bảng mục 1 và nguyên văn 4.9**
+- [x] **Step 1: Notices — bảng mục 1 và nguyên văn 4.9**
 
 Trong `THIRD_PARTY_NOTICES.md`:
 
@@ -5038,7 +5038,7 @@ Các gói này là peer dependency **tuỳ chọn**: chỉ app import `@mapslibv
 Run: `pnpm notices:sync && node scripts/notices-sync.mjs --check`
 Expected: `đã đồng bộ 8 file (4 thay đổi)` rồi `✓ notices trong 4 gói SDK khớp gốc`.
 
-- [ ] **Step 2: Spec B mục 10 — sửa tên và trỏ sang spec C**
+- [x] **Step 2: Spec B mục 10 — sửa tên và trỏ sang spec C**
 
 Trong `2026-09-12-dan-duong-core-web-design.md` mục 10, gạch đầu dòng "Spec C" đổi thành:
 
@@ -5050,7 +5050,7 @@ Trong `2026-09-12-dan-duong-core-web-design.md` mục 10, gạch đầu dòng "S
   của v10). Core chỉ thêm hàm thuần `routeFeatures()` (chuyển từ `routes-layer.ts` web).
 ```
 
-- [ ] **Step 3: Ghi lệch spec C (mục "Lệch khi thực thi", thêm trước mục 11 của spec C)**
+- [x] **Step 3: Ghi lệch spec C (mục "Lệch khi thực thi", thêm trước mục 11 của spec C)**
 
 ```markdown
 ## 10b. Lệch khi thực thi (plan `2026-09-12-dan-duong-react-native.md`)
@@ -5065,7 +5065,7 @@ Trong `2026-09-12-dan-duong-core-web-design.md` mục 10, gạch đầu dòng "S
 | 6.1 | `isBackgroundLocationAvailableAsync()` là điều kiện | vẫn gọi, nhưng lỗi → coi là có; quyết định cuối do `startLocationUpdatesAsync` ném hay không | hàm này chỉ đọc `providerStatus.backgroundModeEnabled` |
 ```
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add THIRD_PARTY_NOTICES.md packages/*/THIRD_PARTY_NOTICES.md docs/superpowers/specs/2026-09-12-dan-duong-core-web-design.md docs/superpowers/specs/2026-09-12-dan-duong-react-native-design.md
@@ -5083,7 +5083,7 @@ Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>"
 - Modify: `docs/DEVLOG.md`
 - Create: `docs/evidence/navigation/<ngày>-rn-thuc-dia.md` (mẫu để PHONG điền ở Task 20)
 
-- [ ] **Step 1: Cổng local (Actions đang khoá)**
+- [x] **Step 1: Cổng local (Actions đang khoá)**
 
 Run lần lượt, ghi kết quả vào evidence:
 ```bash
@@ -5097,7 +5097,7 @@ pnpm example:rn --pack-only && ls -la examples/embed-rn/vendor/
 Expected: tất cả xanh; ghi số test/file của `pnpm test` (gốc và apps/api), kích cỡ tarball trước
 (0.4.0, lấy từ evidence M6 nếu có) và sau.
 
-- [ ] **Step 2: Hoàn thiện evidence phát hành**
+- [x] **Step 2: Hoàn thiện evidence phát hành**
 
 `docs/evidence/navigation/<ngày>-rn-phat-hanh.md` — cấu trúc:
 
@@ -5131,7 +5131,7 @@ Ngày: <ngày>. Commit: <sha>.
 | core dist/index.js gzip | 16,91 kB | … (trần 20 kB) |
 ```
 
-- [ ] **Step 3: Mẫu evidence thực địa cho PHONG điền**
+- [x] **Step 3: Mẫu evidence thực địa cho PHONG điền**
 
 `docs/evidence/navigation/<ngày>-rn-thuc-dia.md`:
 
@@ -5176,7 +5176,7 @@ nền/tiền cảnh, tính lại); giờ theo đồng hồ điện thoại; pin 
 (để trống nếu giữ nguyên `NAVIGATION_THRESHOLDS`)
 ```
 
-- [ ] **Step 4: DEVLOG mục 1 và mục 2**
+- [x] **Step 4: DEVLOG mục 1 và mục 2**
 
 Thêm đầu mục "1. Trạng thái hiện tại" một gạch đầu dòng ngày phát hành, tóm tắt: phiên độc lập,
 entry `/expo`, nền một đường + rơi về tiền cảnh, core `routeFeatures`, app thử đủ luồng, số test,
@@ -5185,7 +5185,7 @@ Sửa câu "**Bắt đầu tiếp:** spec C…" của mục 12/09 cũ thành "(�
 Mục "2. Bước kế tiếp": thay dòng spec C bằng "Thực địa spec C hai máy; sau đó cân nhắc spec D
 (tenant đầu tiên) hoặc publish npm (B3)".
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add docs/evidence/navigation/ docs/DEVLOG.md
