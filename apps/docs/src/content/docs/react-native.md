@@ -90,6 +90,7 @@ POI người dùng luôn được giữ. Search/nearby/reverse/autocomplete dùn
 | `map.gl` là `maplibregl.Map` | `useMap().native` là ref `Map` của wrapper; `useMap().camera` là ref `Camera` |
 | Đổi `center`/`zoom` tạo lại map | `center`/`zoom` chỉ là giá trị khởi tạo; dùng `useMap().flyTo` / `fitBounds` |
 | `<Marker popupHtml>` | không có HTML; truyền `children` và `onPress` |
+| `map.navigation` gắn với map | `createNavigationSession()` độc lập, `navigation={session}` — xem [Dẫn đường React Native](/dan-duong-react-native/) |
 | Attribution `AttributionControl` | dòng MapsLibVN chồng góc dưới trái + nút "i" native; `compactAttribution` gọn, **không tắt được** |
 
 Đổi `apiKey`, `apiBase`, `style`, `lang`, `poiLayer`, `poiSources` sau khi mount sẽ tạo lại map và gọi `onLoad` lần nữa.
@@ -102,6 +103,7 @@ báo cáo (chưa chặn — xem [Điều khoản tenant](/dieu-khoan/)). Khoá v
 
 ## 6. Giới hạn hiện tại
 
+- Dẫn đường (định vị nền, giọng Việt) có từ 0.5: xem [Dẫn đường trên React Native](/dan-duong-react-native/).
 - Chưa publish npm (đã sẵn sàng, chưa chạy publish). Cài từ tarball do `pnpm --filter @mapslibvn/react-native pack`
   sinh ra — app thử `examples/embed-rn` trong repo minh hoạ trọn quy trình bằng `pnpm example:rn`.
 - Chưa có tiles offline; MapLibre Native đọc được PMTiles `file://` nên có thể thêm sau.

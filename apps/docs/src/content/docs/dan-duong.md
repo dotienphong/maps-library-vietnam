@@ -139,7 +139,7 @@ nav.on('announce', (a) => console.log(a.text));
 nav.update({ lng: 106.699, lat: 10.7798, accuracy_m: 8, heading: 160, speed_mps: 4, timestamp: Date.now() });
 ```
 
-Đây cũng là phần React Native sẽ dùng lại.
+Đây cũng là phần React Native dùng lại (xem [Dẫn đường trên React Native](/dan-duong-react-native/)).
 
 ## 6. React
 
@@ -160,7 +160,8 @@ Hook phải nằm trong `<MapsLibVNMap>`. Xem [React](/react/) mục 6.
 
 - **Cần HTTPS** (hoặc `localhost`) để có Geolocation.
 - **Không dẫn đường nền trên web.** iOS và Android tạm dừng `watchPosition` khi tắt màn hình hoặc
-  chuyển app; SDK chỉ giữ màn hình sáng bằng Wake Lock khi có. Dẫn đường nền là việc của SDK React Native.
+  chuyển app; SDK chỉ giữ màn hình sáng bằng Wake Lock khi có. Dẫn đường nền có ở SDK React Native:
+  [Dẫn đường trên React Native](/dan-duong-react-native/).
 - **Giọng tiếng Việt tuỳ máy.** Safari/iOS có sẵn; Chrome máy tính có khi cần mạng; Android tuỳ gói
   TTS đã cài. Không có → sự kiện `voiceUnavailable`, chữ vẫn hiện. Gọi `start()` trong sự kiện bấm
   nút để iOS cho phép phát âm.

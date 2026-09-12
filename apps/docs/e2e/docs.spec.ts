@@ -13,6 +13,7 @@ const PAGES = [
   '/ban-do-web/',
   '/tim-kiem/',
   '/dan-duong/',
+  '/dan-duong-react-native/',
   '/react/',
   '/do-chinh-xac/',
   '/dong-gop/',
