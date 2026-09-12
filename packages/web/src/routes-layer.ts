@@ -1,4 +1,10 @@
-import { type DirectionsResponse, decodePolyline6 } from '@mapslibvn/core';
+import {
+  type DirectionsResponse,
+  EMPTY_ROUTE_FEATURES,
+  type RouteProgressCut,
+  decodeRoutes,
+  routeFeatures,
+} from '@mapslibvn/core';
 import type * as maplibregl from 'maplibre-gl';
 
 export const ROUTE_SOURCE_ID = 'mapslibvn-route';
@@ -21,23 +27,7 @@ export interface RoutesLayer {
 }
 
 type Kind = 'alt' | 'active' | 'traveled';
-interface LineFeature {
-  type: 'Feature';
-  geometry: { type: 'LineString'; coordinates: [number, number][] };
-  properties: { kind: Kind; index: number };
-}
-interface Collection {
-  type: 'FeatureCollection';
-  features: LineFeature[];
-}
 type GeoJsonData = Parameters<maplibregl.GeoJSONSource['setData']>[0];
-
-const EMPTY: Collection = { type: 'FeatureCollection', features: [] };
-const feature = (kind: Kind, index: number, coordinates: [number, number][]): LineFeature => ({
-  type: 'Feature',
-  geometry: { type: 'LineString', coordinates },
-  properties: { kind, index },
-});
 
 export function createRoutesLayer(
   gl: maplibregl.Map,
@@ -48,7 +38,7 @@ export function createRoutesLayer(
   let coords: [number, number][][] = [];
   let active = 0;
   let showMarkers = true;
-  let progress: { shapeIndex: number; snapped: [number, number] } | null = null;
+  let progress: RouteProgressCut | null = null;
   let markers: maplibregl.Marker[] = [];
   let clickBound = false;
 
@@ -76,7 +66,7 @@ export function createRoutesLayer(
 
   const ensureLayers = (): void => {
     if (gl.getSource(ROUTE_SOURCE_ID)) return;
-    gl.addSource(ROUTE_SOURCE_ID, { type: 'geojson', data: EMPTY as GeoJsonData });
+    gl.addSource(ROUTE_SOURCE_ID, { type: 'geojson', data: EMPTY_ROUTE_FEATURES as GeoJsonData });
     const before = firstSymbolLayerId();
     addLine(ROUTE_LAYER_IDS.alt, 'alt', { 'line-color': ALT_COLOR, 'line-width': 5 }, before);
     addLine(ROUTE_LAYER_IDS.casing, 'active', { 'line-color': '#ffffff', 'line-width': 9 }, before);
@@ -96,31 +86,10 @@ export function createRoutesLayer(
     }
   };
 
-  const collection = (): Collection => {
-    if (!response) return EMPTY;
-    const features: LineFeature[] = [];
-    response.routes.forEach((_route, i) => {
-      const c = coords[i];
-      if (!c) return;
-      if (i !== active) {
-        features.push(feature('alt', i, c));
-        return;
-      }
-      if (progress && progress.shapeIndex < c.length - 1) {
-        features.push(
-          feature('traveled', i, [...c.slice(0, progress.shapeIndex + 1), progress.snapped]),
-          feature('active', i, [progress.snapped, ...c.slice(progress.shapeIndex + 1)]),
-        );
-      } else {
-        features.push(feature('active', i, c));
-      }
-    });
-    return { type: 'FeatureCollection', features };
-  };
-
   const setData = (): void => {
     const source = gl.getSource(ROUTE_SOURCE_ID) as maplibregl.GeoJSONSource | undefined;
-    source?.setData(collection() as GeoJsonData);
+    const data = response ? routeFeatures(coords, { active, progress }) : EMPTY_ROUTE_FEATURES;
+    source?.setData(data as GeoJsonData);
   };
 
   const apply = (): void => {
@@ -162,7 +131,7 @@ export function createRoutesLayer(
   return {
     show(next, opts = {}) {
       response = next;
-      coords = next.routes.map((r) => decodePolyline6(r.geometry));
+      coords = decodeRoutes(next);
       active = opts.active ?? 0;
       showMarkers = opts.markers ?? true;
       progress = null;
@@ -184,7 +153,7 @@ export function createRoutesLayer(
       progress = null;
       clearMarkers();
       const source = gl.getSource(ROUTE_SOURCE_ID) as maplibregl.GeoJSONSource | undefined;
-      source?.setData(EMPTY as GeoJsonData);
+      source?.setData(EMPTY_ROUTE_FEATURES as GeoJsonData);
     },
   };
 }

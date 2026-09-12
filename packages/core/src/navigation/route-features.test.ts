@@ -32,7 +32,10 @@ describe('routeFeatures', () => {
   it('không progress: tuyến active nguyên vẹn, tuyến khác là alt kèm index', () => {
     const fc = routeFeatures(two, { active: 1 });
     expect(
-      fc.features.map((f) => [f.properties.kind, 'index' in f.properties ? f.properties.index : -1]),
+      fc.features.map((f) => [
+        f.properties.kind,
+        'index' in f.properties ? f.properties.index : -1,
+      ]),
     ).toEqual([
       ['alt', 0],
       ['active', 1],
