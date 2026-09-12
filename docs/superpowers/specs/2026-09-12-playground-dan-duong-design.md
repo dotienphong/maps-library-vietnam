@@ -10,7 +10,7 @@
 
 Trang demo dẫn đường riêng (`/dan-duong-demo/`, Astro + ESM) bị gỡ; thay vào đó Playground
 (`/playground.html`, vanilla JS + SDK UMD) có thêm **chế độ dẫn đường** theo phong cách Google Maps:
-mở playground là xin GPS và bay về vị trí người dùng; bấm "Dẫn đường" thì bảng điều khiển bên phải thu
+mở playground là xin GPS và bay về vị trí người dùng; bấm "Dẫn đường" thì bảng điều khiển thu
 về một nút, một **thẻ nổi bên trái** hiện lên với ô Điểm đi (mặc định "Vị trí của tôi"), ô Điểm đến
 (autocomplete sẵn có: POI, đường, địa chỉ, vùng — hoặc bấm lên bản đồ / bấm POI), ba chip phương tiện;
 đủ hai điểm là **tự tính tuyến**, đổi phương tiện hay đổi điểm là **tự tính lại**, có tuyến thay thế bấm
@@ -72,7 +72,7 @@ bộ URL, tab Mã nhúng và E2E của playground; `?fixture=1` giữ để E2E 
    không có API: giữ tâm mặc định (Quận 1), ghi một dòng vào `#status`, không hộp thoại. Nút tròn
    **"◎ Vị trí của tôi"** luôn ở góc phải dưới bản đồ: bấm thì xin lại quyền nếu chưa có và `flyTo` về chỗ mình.
 2. **Vào chế độ dẫn đường.** Trên thanh tab có nút "Dẫn đường" (không có panel riêng — bấm là vào chế độ).
-   Bảng bên phải thu về nút **"⋯ Công cụ"** ở góc phải trên; **thẻ nổi bên trái** hiện ra: ô **Điểm đi**
+   Bảng điều khiển (bên trái) thu về nút **"⋯ Công cụ"** ở góc phải trên; **thẻ nổi bên trái** hiện ra: ô **Điểm đi**
    (điền sẵn "Vị trí của tôi" nếu có GPS, gõ để đổi), ô **Điểm đến**, nút **⇅** đổi chiều, ba chip
    **🏍 Xe máy / 🚗 Ô tô / 🚶 Đi bộ** (mặc định xe máy), nút **✕** thoát chế độ. Hai ô là
    `<mapslibvn-autocomplete>` với `near` = tâm bản đồ hiện tại.
@@ -96,7 +96,7 @@ bộ URL, tab Mã nhúng và E2E của playground; `?fixture=1` giữ để E2E 
    → hiện nút "Về vị trí" trên thanh dưới; bấm gọi `recenter()`.
 6. **Đến nơi / Dừng.** `arrive` → banner đổi "Đã đến nơi" 3 s rồi trở về thẻ lập kế hoạch, tuyến và marker
    vẫn trên bản đồ, nút Bắt đầu/Giả lập bật lại. "Dừng" → `navigation.stop()` rồi cùng trạng thái.
-   "✕" → `stop()` + `routes.clear()` + xoá marker đi/đến (giữ chấm GPS) + bảng phải mở lại + bỏ
+   "✕" → `stop()` + `routes.clear()` + xoá marker đi/đến (giữ chấm GPS) + bảng điều khiển mở lại + bỏ
    `tab/tmode/from/to` khỏi URL.
 
 ## 4. Thành phần và file (tất cả trong `apps/docs`)
@@ -131,7 +131,7 @@ hàm thuần đều ở `playground-lib.js` và có test Node.
   URL. Marker đích của `routes.show` tắt (`markers: false`).
 - **Đang đi**: thẻ trái ẩn nên không đổi điểm/phương tiện được; `reroute` cập nhật danh sách tuyến/bước
   (chỉ còn một tuyến). Camera, puck, wake lock, giọng nói: SDK lo.
-- **⋯ Công cụ**: mở bảng phải để đổi style/lang/nguồn POI/dán khoá như hiện nay; đổi style tạo lại map →
+- **⋯ Công cụ**: mở bảng điều khiển để đổi style/lang/nguồn POI/dán khoá như hiện nay; đổi style tạo lại map →
   `exit()` trước, `enter()` lại với cùng `from/to/tmode` sau khi map mới `load`.
 
 ## 6. Kiểm thử
