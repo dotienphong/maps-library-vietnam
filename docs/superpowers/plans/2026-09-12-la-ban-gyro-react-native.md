@@ -3572,7 +3572,7 @@ Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>"
 - Modify: `apps/docs/src/content/docs/dan-duong.md`
 - Modify: `apps/docs/src/content/docs/tinh-nang.md`
 
-- [ ] **Step 1: `dan-duong-react-native.md` — cài đặt và plugin**
+- [x] **Step 1: `dan-duong-react-native.md` — cài đặt và plugin**
 
 Mục 1: đổi "dẫn đường cần năm module Expo" thành "dẫn đường cần sáu module Expo" và lệnh cài thành:
 
@@ -3595,7 +3595,7 @@ Mục 2, trong khối JSON `plugins`, sau `"expo-audio"` thêm:
 
 và sau câu "Plugin thêm `UIBackgroundModes: location` + `audio` (iOS) …" thêm câu: "Plugin `expo-sensors` thêm `NSMotionUsageDescription` (iOS); con quay hồi chuyển không hỏi quyền lúc chạy trên cả hai hệ."
 
-- [ ] **Step 2: `dan-duong-react-native.md` — mục mới "La bàn và con quay hồi chuyển"**
+- [x] **Step 2: `dan-duong-react-native.md` — mục mới "La bàn và con quay hồi chuyển"**
 
 Đổi tiêu đề `## 10. Giới hạn hiện tại` thành `## 11. Giới hạn hiện tại`, rồi chèn ngay TRƯỚC nó:
 
@@ -3659,7 +3659,7 @@ Trong mục "Giới hạn hiện tại" (nay là 11) thêm bốn bullet:
 - Giá đỡ điện thoại có nam châm trên xe máy làm từ kế nhiễu → `unreliable`, SDK tự về hướng tuyến.
 ```
 
-- [ ] **Step 3: `react-native.md` — mục "Vị trí của tôi và la bàn"**
+- [x] **Step 3: `react-native.md` — mục "Vị trí của tôi và la bàn"**
 
 Đổi tiêu đề `## 6. Giới hạn hiện tại` thành `## 7. Giới hạn hiện tại`. Sửa hai tham chiếu chữ "mục 6":
 trong khối bash mục 2 đổi `# xem mục 6` thành `# xem mục 7`; trong `dan-duong-react-native.md` mục 11 đổi
@@ -3711,7 +3711,7 @@ Trong bảng "## 4. Khác với web" thêm dòng cuối:
 
 Trong mục Giới hạn (nay 7) thêm bullet: `- La bàn giả định màn hình dọc; simulator không có la bàn.`
 
-- [ ] **Step 4: `sdk.md` mục 5**
+- [x] **Step 4: `sdk.md` mục 5**
 
 Sau đoạn liệt kê export hiện có của `@mapslibvn/react-native` thêm:
 
@@ -3726,14 +3726,14 @@ từ core: `createHeadingFilter`, `wrapDeg`, `signedDiffDeg`, `MOVING_SPEED_MPS`
 Phiên: tuỳ chọn `heading`, sự kiện `heading`/`headingUnavailable`, getter `session.heading`.
 ```
 
-- [ ] **Step 5: `dan-duong.md` (web) và `tinh-nang.md`**
+- [x] **Step 5: `dan-duong.md` (web) và `tinh-nang.md`**
 
 `dan-duong.md`: đổi câu `Đứng yên thì\n  hướng mũi tên lấy theo tuyến, không theo la bàn.` thành
 `Đứng yên thì hướng mũi tên lấy theo tuyến, không theo la bàn — SDK React Native có la bàn + gyro, xem [Dẫn đường trên React Native](/dan-duong-react-native/) mục 10.`
 
 `tinh-nang.md` mục 5: sau câu "SDK React Native dẫn đường cả khi khoá máy, phiên độc lập với màn hình bản đồ — [Dẫn đường trên React Native](/dan-duong-react-native/)." thêm: "Trên React Native còn có la bàn + con quay hồi chuyển: puck xoay theo điện thoại khi đứng yên, chấm xanh có nón hướng, `useHeading()` cho UI riêng."
 
-- [ ] **Step 6: Build docs, kiểm link nội bộ**
+- [x] **Step 6: Build docs, kiểm link nội bộ**
 
 Run: `pnpm --filter @mapslibvn/docs build`
 Expected: Astro build xanh, không cảnh báo link hỏng.
@@ -3741,7 +3741,7 @@ Expected: Astro build xanh, không cảnh báo link hỏng.
 Run: `grep -c "# xem mục 7" apps/docs/src/content/docs/react-native.md; grep -c "/react-native/) mục 7" apps/docs/src/content/docs/dan-duong-react-native.md; grep -c "/react-native/) mục 6" apps/docs/src/content/docs/dan-duong-react-native.md`
 Expected: `1`, `1`, `1` — hai tham chiếu cũ tới "Giới hạn" đã trỏ mục 7; tham chiếu duy nhất còn lại tới mục 6 là dòng cuối mục 10 mới (trỏ đúng "Vị trí của tôi và la bàn").
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add apps/docs/src/content/docs/dan-duong-react-native.md apps/docs/src/content/docs/react-native.md apps/docs/src/content/docs/sdk.md apps/docs/src/content/docs/dan-duong.md apps/docs/src/content/docs/tinh-nang.md
