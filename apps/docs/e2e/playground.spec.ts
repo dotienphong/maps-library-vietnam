@@ -320,3 +320,43 @@ test('bấm bản đồ chọn "Đến đây" → ô Điểm đến có nhãn to
   await expect(page.locator('#nav-to input')).toHaveValue('Nhà thờ Đức Bà');
   await expect(page.locator('#nav-from input')).toHaveValue(/^\d+\.\d{4}, \d+\.\d{4}$/);
 });
+
+const NAV_URL =
+  '/playground.html?api=http://localhost:8787&fixture=1&tab=dan-duong' +
+  '&from=10.7798,106.699,Nhà thờ Đức Bà&to=10.7725,106.698,Chợ Bến Thành';
+
+test('có đủ hai điểm: tự tính tuyến, vẽ tuyến, danh sách tuyến và 6 bước', async ({ page }) => {
+  await page.goto(NAV_URL);
+  await expect(page.locator('#status')).toHaveAttribute('data-state', 'loaded', {
+    timeout: 30_000,
+  });
+  await expect(page.locator('#nav-routes li').first()).toBeVisible({ timeout: 10_000 });
+  await expect(page.locator('#nav-routes li').first()).toContainText('km');
+  await expect(page.locator('#nav-routes button').first()).toHaveAttribute('aria-pressed', 'true');
+  await page.locator('#nav-steps-box summary').click();
+  await expect(page.locator('#nav-steps li')).toHaveCount(6);
+  await expect(page.locator('#nav-start')).toBeEnabled();
+  const hasLayer = await page.evaluate(() =>
+    Boolean(
+      (window as unknown as { __map: { gl: { getLayer(id: string): unknown } } }).__map.gl.getLayer(
+        'mapslibvn-route-line',
+      ),
+    ),
+  );
+  expect(hasLayer).toBe(true);
+});
+
+test('đổi phương tiện → gọi lại directions và URL có tmode=car', async ({ page }) => {
+  let calls = 0;
+  await page.route('**/fixtures/directions-q1.json', (route) => {
+    calls += 1;
+    void route.continue();
+  });
+  await page.goto(NAV_URL);
+  await expect(page.locator('#nav-routes li').first()).toBeVisible({ timeout: 30_000 });
+  const before = calls;
+  await page.locator('.nav-mode[data-mode="car"]').click();
+  await expect(page.locator('.nav-mode[data-mode="car"]')).toHaveAttribute('aria-pressed', 'true');
+  await expect.poll(() => calls).toBe(before + 1);
+  expect(new URL(page.url()).searchParams.get('tmode')).toBe('car');
+});

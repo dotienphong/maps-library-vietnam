@@ -4,14 +4,51 @@
  */
 import {
   TRAVEL_MODES,
+  directionsRequest,
   pointFromAutocomplete,
   pointFromLngLat,
   pointFromPoi,
+  routeSummary,
 } from '/playground-lib.js';
 
 /** @typedef {import('/playground-lib.js').NavPoint} NavPoint */
 
 const MY_LOCATION_LABEL = 'Vị trí của tôi';
+
+/** Ký hiệu theo `ManeuverKind` (spec A) — glyph hình học, không phụ thuộc font emoji. */
+const ICONS = {
+  depart: '●',
+  arrive: '⚑',
+  continue: '↑',
+  slight_right: '↗',
+  slight_left: '↖',
+  turn_right: '↱',
+  turn_left: '↰',
+  sharp_right: '↳',
+  sharp_left: '↲',
+  uturn_right: '↷',
+  uturn_left: '↶',
+  ramp_straight: '↑',
+  ramp_right: '↗',
+  ramp_left: '↖',
+  exit_right: '↗',
+  exit_left: '↖',
+  keep_right: '↗',
+  keep_left: '↖',
+  merge: '↑',
+  merge_right: '↗',
+  merge_left: '↖',
+  roundabout_enter: '↻',
+  roundabout_exit: '↻',
+  ferry_enter: '⛴',
+  ferry_exit: '⛴',
+  elevator: '⇕',
+  steps: '≡',
+  escalator: '≡',
+  building_enter: '⌂',
+  building_exit: '⌂',
+  other: '•',
+};
 
 /** @param {string} id */
 const el = (id) => /** @type {HTMLElement} */ (document.getElementById(id));
@@ -60,6 +97,13 @@ export function initNavigation(deps) {
   let toMarker = null;
   /** @type {any} popup chọn điểm */
   let popup = null;
+  /** @type {any} DirectionsResponse đang hiện */
+  let response = null;
+  let activeRoute = 0;
+  let requestId = 0;
+  const provider = deps.fixture
+    ? { directions: async () => (await fetch('/fixtures/directions-q1.json')).json() }
+    : map.places;
 
   const card = el('nav-card');
   const fromAc = el('nav-from');
@@ -71,6 +115,9 @@ export function initNavigation(deps) {
     ac.setAttribute('api-base', deps.apiBase);
     /** @type {any} */ (ac).map = map;
   }
+  map.on('routeClick', (e) => {
+    if (active && phase === 'plan') selectRoute(e.index);
+  });
 
   /**
    * @param {string} text
@@ -156,8 +203,135 @@ export function initNavigation(deps) {
       .addTo(gl);
   }
 
-  /* compute(), startNav(), backToPlan() được thêm ở Task 6 và 7 */
-  async function compute() {}
+  /** @param {unknown} err */
+  const routeErrorText = (err) => {
+    const status = err && typeof err === 'object' && 'status' in err ? err.status : 0;
+    if (status === 429) {
+      return 'Quá giới hạn 20 lượt/phút của khoá demo — chờ một chút hoặc dán khoá riêng ở ⋯ Công cụ.';
+    }
+    if (status === 503 || status === 504) return 'Máy chủ chỉ đường đang bận, thử lại sau.';
+    if (status === 404 || status === 422) return 'Chưa có đường cho đoạn này.';
+    return describeError(err);
+  };
+
+  const renderRoutes = () => {
+    const list = el('nav-routes');
+    if (!response) {
+      list.replaceChildren();
+      return;
+    }
+    list.replaceChildren(
+      ...response.routes.map((route, index) => {
+        const li = document.createElement('li');
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.setAttribute('aria-pressed', String(index === activeRoute));
+        const summary = routeSummary(route);
+        const strong = document.createElement('strong');
+        strong.textContent = `${summary.distanceText} · ${summary.minutes} phút`;
+        const small = document.createElement('small');
+        small.textContent = summary.via
+          ? `qua ${summary.via}`
+          : index === 0
+            ? 'Tuyến nhanh nhất'
+            : 'Tuyến thay thế';
+        button.append(strong, small);
+        button.addEventListener('click', () => selectRoute(index));
+        li.append(button);
+        return li;
+      }),
+    );
+  };
+
+  const renderSteps = () => {
+    const box = el('nav-steps-box');
+    const list = el('nav-steps');
+    const route = response?.routes[activeRoute];
+    if (!route) {
+      box.hidden = true;
+      list.replaceChildren();
+      return;
+    }
+    box.hidden = false;
+    list.replaceChildren(
+      ...route.legs.flatMap((leg) =>
+        leg.steps.map((step) => {
+          const li = document.createElement('li');
+          li.textContent = `${ICONS[step.kind] ?? '•'} ${step.instruction} (${sdk.formatDistanceShort(step.distance_m)})`;
+          return li;
+        }),
+      ),
+    );
+  };
+
+  /** @param {number} index */
+  function selectRoute(index) {
+    if (!response || !response.routes[index]) return;
+    activeRoute = index;
+    map.routes.setActive(index);
+    renderRoutes();
+    renderSteps();
+  }
+
+  const setBusy = (busy) => card.setAttribute('aria-busy', String(busy));
+
+  async function compute() {
+    if (!active || phase !== 'plan') return;
+    const origin = effectiveFrom();
+    const id = ++requestId;
+    if (!to || !origin) {
+      response = null;
+      map.routes.clear();
+      renderRoutes();
+      renderSteps();
+      el('nav-start').disabled = true;
+      el('nav-simulate').disabled = true;
+      say(
+        !to
+          ? 'Chọn điểm đến bằng ô tìm kiếm hoặc bấm lên bản đồ.'
+          : 'Đang chờ vị trí của bạn… hoặc chọn điểm đi khác.',
+      );
+      return;
+    }
+    setBusy(true);
+    say('Đang tính tuyến…');
+    try {
+      const result = await provider.directions(
+        directionsRequest({ from: origin, to, mode: tmode, lang: deps.lang }),
+      );
+      if (id !== requestId) return;
+      if (!result.routes[0]) {
+        throw Object.assign(new Error('Chưa có đường cho đoạn này.'), { status: 404 });
+      }
+      response = result;
+      activeRoute = 0;
+      map.routes.show(result, { active: 0, markers: false });
+      const [minLng, minLat, maxLng, maxLat] = result.routes[0].bbox;
+      gl.fitBounds(
+        [
+          [minLng, minLat],
+          [maxLng, maxLat],
+        ],
+        { padding: window.innerWidth > 720 ? { top: 60, right: 60, bottom: 60, left: 400 } : 60 },
+      );
+      renderRoutes();
+      renderSteps();
+      el('nav-start').disabled = false;
+      el('nav-simulate').disabled = false;
+      say(`${result.routes.length} tuyến · bấm để đổi tuyến, rồi Bắt đầu hoặc Giả lập.`);
+    } catch (err) {
+      if (id !== requestId) return;
+      response = null;
+      map.routes.clear();
+      renderRoutes();
+      renderSteps();
+      el('nav-start').disabled = true;
+      el('nav-simulate').disabled = true;
+      say(routeErrorText(err), 'error');
+    } finally {
+      if (id === requestId) setBusy(false);
+    }
+  }
 
   function enter() {
     if (active) return;
@@ -184,6 +358,9 @@ export function initNavigation(deps) {
     toMarker = null;
     from = null;
     to = null;
+    response = null;
+    activeRoute = 0;
+    requestId += 1;
     map.routes.clear();
     card.hidden = true;
     el('nav-banner').hidden = true;
