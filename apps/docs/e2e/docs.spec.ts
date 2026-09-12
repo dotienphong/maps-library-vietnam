@@ -21,7 +21,6 @@ const PAGES = [
   '/sdk/',
   '/nhung-thu/',
   '/react-demo/',
-  '/dan-duong-demo/',
   '/giay-phep/',
   '/dieu-khoan/',
   '/thong-bao-ben-thu-ba/',
