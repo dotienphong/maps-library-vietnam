@@ -3,6 +3,7 @@
 //   pnpm example:rn            (iOS trên macOS, Android nơi khác; khoá từ KEY_EXAMPLE_RN trong .env)
 //   pnpm example:rn --android
 //   pnpm example:rn --pack-only        (chỉ build + pack + cài, không chạy)
+//   pnpm example:rn --device           (máy thật đang cắm USB; iOS cần ký bằng Apple ID trong Xcode)
 //   pnpm example:rn --android --key mlv_live_…   (ghi đè tạm; --key phải đứng CUỐI)
 // Các bước: build core + react-native → pnpm pack vào examples/embed-rn/vendor → ghi .env của app
 // → npm install tarball → npx expo run:<platform>. Khoá KHÔNG nằm trong repo. Ctrl+C để dừng.
@@ -28,7 +29,7 @@ import { resolveKey } from './lib/example-serve.mjs';
 import { run } from './lib/run.mjs';
 
 const argv = process.argv.slice(2);
-const { platform, packOnly } = parseArgs(argv, process.platform);
+const { platform, packOnly, device } = parseArgs(argv, process.platform);
 const key = resolveKey(argv, process.env, { envName: KEY_ENV_NAME_RN, hint: 'pnpm example:rn' });
 const api = process.env.EXAMPLE_RN_API ?? DEFAULT_API;
 
@@ -57,7 +58,9 @@ run('npm', ['install', '--no-audit', '--no-fund', `./vendor/${TARBALL}`], { cwd:
 if (packOnly) {
   console.log('✓ --pack-only: xong. Chạy tay: cd examples/embed-rn && npx expo run:ios');
 } else {
-  console.log(`▶ 5/5 npx expo run:${platform} (lần đầu prebuild + CocoaPods/Gradle, vài phút)`);
+  console.log(
+    `▶ 5/5 npx expo run:${platform}${device ? ' --device' : ''} (lần đầu prebuild + CocoaPods/Gradle, vài phút)`,
+  );
   /** @type {Record<string, string>} */
   let extraEnv = {};
   if (platform === 'android') {
@@ -72,5 +75,5 @@ if (packOnly) {
     if (extraEnv.ANDROID_HOME) console.log(`  ANDROID_HOME chưa đặt → dùng ${sdk}`);
     if (extraEnv.JAVA_HOME) console.log('  JAVA_HOME chưa đặt → dùng JDK của Android Studio');
   }
-  run('npx', expoRunArgs(platform), { cwd: appDir, env: { ...process.env, ...extraEnv } });
+  run('npx', expoRunArgs(platform, device), { cwd: appDir, env: { ...process.env, ...extraEnv } });
 }

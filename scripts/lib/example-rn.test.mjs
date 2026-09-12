@@ -15,14 +15,23 @@ import {
 
 describe('parseArgs', () => {
   it('mặc định ios trên macOS, android nơi khác; cờ --android/--ios ghi đè', () => {
-    expect(parseArgs([], 'darwin')).toEqual({ platform: 'ios', packOnly: false });
-    expect(parseArgs([], 'linux')).toEqual({ platform: 'android', packOnly: false });
+    expect(parseArgs([], 'darwin')).toEqual({ platform: 'ios', packOnly: false, device: false });
+    expect(parseArgs([], 'linux')).toEqual({ platform: 'android', packOnly: false, device: false });
     expect(parseArgs(['--android'], 'darwin').platform).toBe('android');
     expect(parseArgs(['--ios'], 'linux').platform).toBe('ios');
   });
 
-  it('--pack-only chỉ build/pack/cài', () => {
-    expect(parseArgs(['--pack-only'], 'darwin')).toEqual({ platform: 'ios', packOnly: true });
+  it('--pack-only chỉ build/pack/cài; --device chạy máy thật', () => {
+    expect(parseArgs(['--pack-only'], 'darwin')).toEqual({
+      platform: 'ios',
+      packOnly: true,
+      device: false,
+    });
+    expect(parseArgs(['--device', '--android'], 'darwin')).toEqual({
+      platform: 'android',
+      packOnly: false,
+      device: true,
+    });
   });
 
   it('cờ lạ → lỗi', () => {
@@ -53,6 +62,7 @@ describe('hằng số và chuỗi sinh', () => {
   it('expoRunArgs', () => {
     expect(expoRunArgs('ios')).toEqual(['expo', 'run:ios']);
     expect(expoRunArgs('android')).toEqual(['expo', 'run:android']);
+    expect(expoRunArgs('ios', true)).toEqual(['expo', 'run:ios', '--device']);
   });
 });
 
