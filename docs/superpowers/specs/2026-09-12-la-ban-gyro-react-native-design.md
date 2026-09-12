@@ -498,6 +498,28 @@ Không có test E2E cảm biến: simulator iOS không có la bàn, emulator And
 - DEVLOG: mục 1 một đoạn, mục nghiệm thu mới "14. Nghiệm thu la bàn/gyro" theo bảng mục 12 dưới đây.
 - Không bump version, không publish — PHONG quyết.
 
+## 10b. Lệch khi thực thi (plan `2026-09-12-la-ban-gyro-react-native.md`)
+
+- `HeadingFilter.gyro(rate, now?)` có tham số `now` (ms epoch) — spec 4 viết "timestamp phát = timestamp
+  của mẫu vừa xử lý", nhưng đồng hồ gyro (giây, đồng hồ cảm biến) khác miền `Date.now()`, nên fix phát
+  từ gyro gắn `now` do adapter truyền; `rate.timestamp` chỉ dùng tính `dt`.
+- Mét/pixel dùng chu vi Trái Đất / (512 · 2^z) = 78 271,517 m/px ở zoom 0 (tile 512 của MapLibre),
+  không phải 156 543,03 (tile 256) như spec 7 viết.
+- Đường dẫn đến docs "mục 10" (dẫn đường RN) và "mục 6" (React Native) chốt khi chèn mục mới trước
+  "Giới hạn hiện tại", không đánh số lại các mục khác để giữ tham chiếu cũ.
+- Task 8: kiểu `CircleRadius` trong `user-location/feature.ts` trích qua property tuỳ chọn của
+  `CircleLayerSpecification['paint']` vẫn giữ `| undefined` — `exactOptionalPropertyTypes` từ chối
+  literal `{ 'circle-radius': accuracyRadiusExpression(...) }` trong `layers.tsx`. Sửa bằng thêm một
+  lớp `NonNullable` lồng nhau; không đổi hành vi.
+- Task 12 (`examples/embed-rn/App.tsx`): `useEffect` theo dõi `followChange` cần `compass` trong mảng
+  deps để re-run khi đổi `follow` mode, nhưng thân hàm không đọc trực tiếp `compass` (đổi mode khiến
+  `createUserLocationBinding.setOptions` tự đặt `wantFollow = true` mà KHÔNG phát sự kiện
+  `followChange`, nên phải re-run để đồng bộ `userFollowing` cục bộ). Biome
+  `useExhaustiveDependencies` báo dư — thêm `biome-ignore` kèm chú thích giải thích, không bỏ deps.
+- Task 13: bullet "Gói chưa publish npm — cài từ tarball…" trong `dan-duong-react-native.md` (nay mục
+  11) đổi từ tham chiếu "mục 6" sang "mục 7" của `react-native.md` (mục Giới hạn dịch xuống một số sau
+  khi chèn "Vị trí của tôi và la bàn" làm mục 6 mới) — đúng như dự tính ở mục lệch spec thứ ba trên.
+
 ## 11. Rủi ro và giảm thiểu
 
 | Rủi ro | Ảnh hưởng | Giảm thiểu |
@@ -513,20 +535,23 @@ Không có test E2E cảm biến: simulator iOS không có la bàn, emulator And
 | Camera xoay theo la bàn gây chóng mặt | trải nghiệm | mặc định `'route'`; throttle 250 ms / 2°; docs khuyên chỉ dùng cho đi bộ |
 | Ảnh nón render mờ trên màn 3× | nhìn xấu | 66×66 với `icon-size` 0,5 như puck; sinh siêu lấy mẫu 4× |
 
-## 12. Nghiệm thu
+## 12. Nghiệm thu — 4/7 ĐẠT, 1 ĐẠT MỘT PHẦN, 2 CHỜ MÁY THẬT (cập nhật 13/09/2026)
 
-| # | Tiêu chí | Cách chứng minh |
-|---|---|---|
-| 1 | `pnpm test`, `pnpm typecheck`, `pnpm lint`, `node scripts/notices-sync.mjs --check` xanh; core barrel ≤ 20 kB; tarball cài vào app thử bằng `npm` không lỗi peer với `expo-sensors` | output lệnh trong evidence |
-| 2 | Android emulator: cảm biến ảo xoay quanh Z → nón chấm xanh xoay theo, bảng chẩn đoán đổi số; Giả lập tuyến puck vẫn theo GPS | ảnh chụp `docs/evidence/navigation/<ngày>-la-ban-*.png` |
-| 3 | Xiaomi Mi 9 thật: đứng yên xoay người 90° → nón/puck theo kịp trong khoảng nửa giây, sau 1 s không rung quá ±3°; bật "La bàn" bản đồ xoay theo; đưa điện thoại gần nam châm → nón mờ, camera không xoay | PHONG xác nhận + ảnh; số đo ghi định tính nếu không đo được |
-| 4 | iPhone 14 Plus thật: cùng kịch bản; không có hộp thoại quyền mới ngoài vị trí | PHONG xác nhận + ảnh |
-| 5 | Dẫn đường thật ≥ 1 chỗ dừng đèn đỏ: puck xoay theo máy lúc dừng, chạy lại về GPS không giật; `follow.bearing 'heading'` khi đi bộ ≥ 200 m bản đồ xoay mượt | PHONG xác nhận |
-| 6 | Docs sống trên production (deploy tay `pnpm deploy:docs`), link check xanh, README gói hai ngôn ngữ, notices đủ sáu gói Expo | `curl` domain chính có cụm "expo-sensors" |
-| 7 | Kịch bản app gọi xe: `useHeading(session)` trả hướng ngoài `<MapsLibVNMap>`; `HeadingSource` từ feed ngoài viết ≤ 15 dòng; app không truyền `heading` thì mọi test cũ của spec C vẫn xanh không sửa | test + docs |
+| # | Tiêu chí | Cách chứng minh | Kết quả |
+|---|---|---|---|
+| 1 | `pnpm test`, `pnpm typecheck`, `pnpm lint`, `node scripts/notices-sync.mjs --check` xanh; core barrel ≤ 20 kB; tarball cài vào app thử bằng `npm` không lỗi peer với `expo-sensors` | output lệnh trong evidence | **ĐẠT** |
+| 2 | Android emulator: cảm biến ảo xoay quanh Z → nón chấm xanh xoay theo, bảng chẩn đoán đổi số; Giả lập tuyến puck vẫn theo GPS | ảnh chụp `docs/evidence/navigation/2026-09-12-la-ban-*.png` | **ĐẠT MỘT PHẦN** — chấm xanh/vòng sai số/nút La bàn/Giả lập tới arrived đều đạt trên cả Android emulator và iOS simulator (ngoài kế hoạch); riêng nón xoay theo cảm biến ảo không kiểm được vì la bàn không phát sự kiện trên môi trường giả lập (xác nhận không phải lỗi SDK, xem evidence) |
+| 3 | Xiaomi Mi 9 thật: đứng yên xoay người 90° → nón/puck theo kịp trong khoảng nửa giây, sau 1 s không rung quá ±3°; bật "La bàn" bản đồ xoay theo; đưa điện thoại gần nam châm → nón mờ, camera không xoay | PHONG xác nhận + ảnh; số đo ghi định tính nếu không đo được | **CHỜ PHONG** (Task 15) |
+| 4 | iPhone 14 Plus thật: cùng kịch bản; không có hộp thoại quyền mới ngoài vị trí | PHONG xác nhận + ảnh | **CHỜ PHONG** (Task 15) |
+| 5 | Dẫn đường thật ≥ 1 chỗ dừng đèn đỏ: puck xoay theo máy lúc dừng, chạy lại về GPS không giật; `follow.bearing 'heading'` khi đi bộ ≥ 200 m bản đồ xoay mượt | PHONG xác nhận | **CHỜ PHONG** (Task 15) |
+| 6 | Docs sống trên production (deploy tay `pnpm deploy:docs`), link check xanh, README gói hai ngôn ngữ, notices đủ sáu gói Expo | `curl` domain chính có cụm "expo-sensors" | **ĐẠT MỘT PHẦN** — nội dung cục bộ đúng, build docs xanh (22 trang); chưa `pnpm deploy:docs` — để PHONG quyết định thời điểm |
+| 7 | Kịch bản app gọi xe: `useHeading(session)` trả hướng ngoài `<MapsLibVNMap>`; `HeadingSource` từ feed ngoài viết ≤ 15 dòng; app không truyền `heading` thì mọi test cũ của spec C vẫn xanh không sửa | test + docs | **ĐẠT** |
 
-Evidence: `docs/evidence/navigation/<ngày>-la-ban.md`. Như spec C, PHONG có thể đóng tiêu chí thực địa bằng
-xác nhận định tính; bảng phải ghi rõ "theo quyết định PHONG" nếu không có số.
+Evidence: `docs/evidence/navigation/2026-09-12-la-ban.md`. Như spec C, PHONG có thể đóng tiêu chí thực địa bằng
+xác nhận định tính; bảng phải ghi rõ "theo quyết định PHONG" nếu không có số. Chi tiết vì sao tiêu chí 2 chỉ
+đạt một phần (la bàn không phát trên cả hai máy giả lập, đã chẩn đoán tận gốc bằng log trực tiếp gọi
+`expo-location` không qua wrapper của SDK) nằm trong evidence, mục "Phát hiện: la bàn Android không phát
+sự kiện trên emulator này".
 
 ## 13. Việc tay của PHONG
 

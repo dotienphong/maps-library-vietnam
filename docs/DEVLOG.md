@@ -5,6 +5,27 @@ commit với code).
 
 ## 1. Trạng thái hiện tại
 
+- **12–13/09/2026 — La bàn + con quay hồi chuyển cho `@mapslibvn/react-native` (spec
+  `2026-09-12-la-ban-gyro-react-native-design.md`, plan cùng tên) — ĐÃ CODE VÀ KIỂM GIẢ LẬP XONG,
+  chờ nghiệm thu máy thật (Task 15).** Core thêm `createHeadingFilter` (bộ lọc bù thuần: gyro tích
+  phân giữa hai mẫu la bàn, la bàn kéo về theo hằng thời gian) và kiểu `HeadingSource`/`HeadingFix`;
+  phiên dẫn đường nhận tuỳ chọn `heading`; puck xoay theo la bàn khi `speed_mps ≤ 1`, về GPS khi chạy;
+  `follow.bearing: 'heading'` cho camera; prop `userLocation` (chấm xanh + nón hướng + vòng sai số,
+  tự ẩn và ngừng nghe nguồn khi dẫn đường có tiến độ); hook `useHeading()`; entry `/expo` thêm
+  `expoHeadingSource()` gộp la bàn `expo-location` + gyro `expo-sensors` qua MỘT đăng ký native dùng
+  chung — **bắt buộc cài `expo-sensors`** khi import `/expo` (quyết định PHONG, khác với các gói Expo
+  khác vốn tuỳ chọn). Cổng local xanh toàn bộ: lint 455 file, typecheck 14/14, test gốc 126 file/1274
+  (+3 skip) và `apps/api` 34/253, notices khớp, core barrel 18,08/20 kB. Kiểm giả lập cả hai nền tảng
+  (Android emulator Pixel_7 API 36, iOS simulator iPhone 17 Pro): chấm xanh + vòng sai số + nút La bàn
+  + dẫn đường Giả lập tới "Đã đến nơi" đều **ĐẠT** trên cả hai máy, không crash. **Phát hiện quan
+  trọng: la bàn (nón hướng) không phát được trên CẢ HAI máy giả lập** — Android emulator có cảm biến
+  ảo và đăng ký native thành công nhưng sự kiện heading không bao giờ tới JS (xác nhận bằng log chẩn
+  đoán trực tiếp gọi `expo-location`, không qua wrapper — cùng kết quả im lặng, kết luận là hạn chế
+  môi trường giả lập, không phải lỗi SDK); iOS simulator không có phần cứng la bàn theo thiết kế của
+  Apple. Cả hai trường hợp SDK xử lý đúng: không crash, chẩn đoán hiện `hướng —`. Việc xác nhận la
+  bàn hoạt động thật chuyển hoàn toàn sang Task 15 (Xiaomi Mi 9 + iPhone 14 Plus thật của PHONG) —
+  evidence `docs/evidence/navigation/2026-09-12-la-ban.md` (mục 12 spec, bảng nghiệm thu đầy đủ).
+
 - **12/09/2026 — PHONG chốt đóng cả ba spec dẫn đường A/B/C trong cùng một quyết định.** "A/ quên
   GitHub Actions đi vì tôi chưa có tiền đóng, coi như pass, build lạnh và ấm đã ok. B/ thực địa đã
   pass, coi như xong. C/ thực địa đã pass, coi như xong." Kết quả: **A 6/7 ĐẠT** (dòng CI đóng theo
@@ -2625,3 +2646,21 @@ hướng dẫn lệnh `pnpm sdk:publish` trong mục 1, do PHONG tự chạy).
 
 Bảng `docs/evidence/navigation/2026-09-12-rn-thuc-dia.md` vẫn để trống — PHONG có thể điền bổ sung bất
 kỳ lúc nào nếu muốn, nhưng không còn là điều kiện nghiệm thu.
+
+## 14. Nghiệm thu la bàn + con quay hồi chuyển (spec la bàn mục 12) — 4/7 ĐẠT, 3 CHỜ MÁY THẬT, 13/09/2026
+
+| # | Tiêu chí | Kết quả |
+|---|---|---|
+| 1 | Cổng local xanh; core ≤ 20 kB; tarball cài với `expo-sensors` không lỗi peer | **ĐẠT** — lint 455 file, typecheck 14/14, test gốc 126/1274 (+3 skip) + api 34/253, notices khớp, core 18,08/20 kB, tarball cài + typecheck app thử sạch |
+| 2 | Android emulator cảm biến ảo → nón xoay; Giả lập puck vẫn theo GPS | **ĐẠT MỘT PHẦN** — chấm xanh/vòng sai số/nút La bàn/Giả lập tới "Đã đến nơi" đều đúng; riêng nón xoay theo cảm biến ảo KHÔNG kiểm được vì la bàn Android không phát sự kiện trên emulator này (xác nhận không phải lỗi SDK — xem evidence mục "Phát hiện"); đã bổ sung kiểm trên iOS simulator ngoài kế hoạch, cũng đạt phần chấm xanh/không crash |
+| 3 | Mi 9 thật: xoay người, La bàn, nam châm | CHỜ PHONG |
+| 4 | iPhone 14 Plus thật: cùng kịch bản, không hộp thoại quyền mới | CHỜ PHONG |
+| 5 | Dẫn đường thật dừng đèn đỏ: puck theo máy, chạy lại về GPS | CHỜ PHONG |
+| 6 | Docs sống production, README hai ngôn ngữ, notices đủ 6 gói Expo | **ĐẠT MỘT PHẦN** — README + notices đã đúng nội dung cục bộ; chưa chạy `pnpm deploy:docs` (để PHONG quyết định thời điểm, cùng lúc với push/publish) |
+| 7 | `useHeading(session)` ngoài map; `HeadingSource` ngoài ≤ 15 dòng; test spec C cũ xanh không sửa | **ĐẠT** — `use-heading.test.tsx`; docs mục 10 `dan-duong-react-native.md` có ví dụ nguồn ngoài; `pnpm test` toàn bộ xanh, không sửa test cũ nào của spec C |
+
+Evidence đầy đủ (bảng cổng local, ảnh chụp Android + iOS, phân tích la bàn không phát trên giả lập):
+`docs/evidence/navigation/2026-09-12-la-ban.md`. Bảng "Máy thật" trong evidence để trống có chủ đích,
+chờ PHONG cắm Xiaomi Mi 9 và iPhone 14 Plus (Task 15 của plan).
+
+Không bump version, không push, không publish, không `pnpm deploy:docs` — để PHONG quyết định.
