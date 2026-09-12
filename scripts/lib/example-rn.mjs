@@ -20,6 +20,7 @@ export function parseArgs(argv, platform) {
   let deviceName;
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
+    if (a === '--') continue; // `pnpm release:ios -- --device-name …` chuyển tiếp cả dấu `--`
     if (a === '--ios') target = 'ios';
     else if (a === '--android') target = 'android';
     else if (a === '--pack-only') packOnly = true;

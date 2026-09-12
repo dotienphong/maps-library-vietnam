@@ -66,6 +66,16 @@ describe('parseArgs', () => {
     });
   });
 
+  it('bỏ qua dấu `--` đứng đơn lẻ (pnpm release:ios -- --device-name … chuyển tiếp cả dấu này)', () => {
+    expect(parseArgs(['--', '--release', '--device-name', 'Pixel 7'], 'darwin')).toEqual({
+      platform: 'ios',
+      packOnly: false,
+      device: true,
+      release: true,
+      deviceName: 'Pixel 7',
+    });
+  });
+
   it('cờ lạ → lỗi', () => {
     expect(() => parseArgs(['--web'], 'darwin')).toThrow(/--web/);
   });
