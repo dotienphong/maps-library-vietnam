@@ -5,6 +5,21 @@ commit với code).
 
 ## 1. Trạng thái hiện tại
 
+- **12/09/2026 — Dẫn đường spec C: rủi ro 1 (TTS iOS khi khoá máy) ĐÃ GIẢI QUYẾT, xác nhận trên
+  iPhone 14 Plus thật của PHONG.** Ba lỗi thật chồng nhau, simulator không lộ ra được vì không khoá
+  màn hình được: (1) `expoAudioSession()` gọi `setAudioModeAsync` mà quên `setIsAudioActiveAsync(true)`
+  — hai hàm tách biệt trong expo-audio, thiếu bước kích hoạt AVAudioSession thì im dù đã đặt category;
+  (2) chỉ kích hoạt phiên chưa đủ, giữa hai câu chỉ dẫn iOS thu hồi quyền chạy nền — phải phát một
+  vòng lặp WAV im lặng tuyệt đối liên tục suốt lúc dẫn đường (`packages/react-native/scripts/gen-silence.mjs`
+  → `src/expo/silence-audio.ts`, đúng dự phòng (a) đã ghi sẵn trong spec mục 11); (3) app thử `App.tsx`
+  quên truyền `audio: expoAudioSession()` vào phiên Giả lập, nên bản vá đầu không có tác dụng lúc kiểm.
+  Sửa cả ba, build lại 2 lần, cài lại lên máy PHONG bằng `expo run:ios --device "iPhone của Phong"`
+  (ký bằng Apple ID cá nhân, phải bấm Tin cậy trong Cài đặt chung → VPN & Quản lý thiết bị ở lần cài
+  đầu). PHONG xác nhận trực tiếp: "nghe được rồi, câu đọc rõ khi khoá máy". Evidence
+  `docs/evidence/navigation/2026-09-12-rn-phat-hanh.md`. Test mới `expo/device.test.ts` (75 test gói
+  RN, từ 73). **Còn lại:** thông báo foreground service Android thật (Task 16 bước 4) và Task 20
+  (thực địa hai máy, điền số liệu, nghiệm thu 7 tiêu chí mục 13).
+
 - **12/09/2026 — Dẫn đường spec C (React Native) đã code xong, chờ thực địa.** Gói
   `@mapslibvn/react-native` 0.5.0: phiên dẫn đường **độc lập với map** `createNavigationSession()`
   (cầm `createNavigator` của core + `PositionSource` + `Speaker` + keep-awake + phiên âm thanh, API

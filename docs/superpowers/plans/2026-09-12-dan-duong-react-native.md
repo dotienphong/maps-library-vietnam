@@ -4714,7 +4714,7 @@ Task 16b trong plan này trước khi tiếp tục.
 
 Run: `pnpm example:rn --android`. Lặp lại Step 1. Expected như trên; chụp `rn-android-emu-giả-lập.png`.
 
-- [ ] **Step 3: iPhone thật — kiểm rủi ro 1 (giọng đọc khi khoá máy) NGAY, bằng Giả lập**
+- [x] **Step 3: iPhone thật — kiểm rủi ro 1 (giọng đọc khi khoá máy) NGAY, bằng Giả lập**
 
 Run: `pnpm example:rn --device` (ký theo README app thử). Trong app bấm **Giả lập** rồi **khoá màn hình**
 ngay, chờ ≥ 60 giây.

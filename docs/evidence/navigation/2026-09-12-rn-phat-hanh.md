@@ -55,3 +55,30 @@ playback 2, puck 1, store 2, layers 3, map-navigation 7, hook 3, expo 17, cũ 30
 
 Kiểm dist: `dist/index.js` 0 lần nhắc `expo-`; `dist/expo/index.js` import đúng 5 gói expo;
 `dist/expo/index.d.ts` không có dòng import từ `expo-*` (chỉ nhắc trong comment doc).
+
+## Hai lỗi thật chỉ lộ ra khi chạy máy thật (Task 16 bước 3, iPhone của PHONG)
+
+Simulator không khoá được màn hình nên không phát hiện được hai lỗi này lúc kiểm sớm; chỉ lộ ra khi
+PHONG cắm iPhone 14 Plus thật, bấm Giả lập rồi khoá màn hình: **giọng đọc im lặng hoàn toàn**.
+
+1. **`expoAudioSession()` thiếu bước kích hoạt AVAudioSession.** Đọc mã nguồn expo-audio 57.0.5 xác
+   nhận `setAudioModeAsync` (Swift `AudioModule.setAudioMode`) chỉ gọi `session.setCategory(...)`,
+   KHÔNG gọi `AVAudioSession.setActive`; việc kích hoạt nằm ở hàm JS riêng `setIsAudioActiveAsync`.
+   Sửa: `activate()` gọi thêm `Audio.setIsAudioActiveAsync(true)` ngay sau `setAudioModeAsync`;
+   `deactivate()` gọi `setIsAudioActiveAsync(false)` trước khi trả mode.
+2. **Chỉ kích hoạt phiên vẫn chưa đủ.** Giữa hai câu chỉ dẫn (vài chục giây không có tiếng phát ra
+   thật), iOS coi app không còn dùng "audio" background mode chính đáng và thu hồi quyền chạy nền.
+   Sửa đúng dự phòng (a) đã ghi sẵn trong spec mục 11: phát một vòng lặp WAV **im lặng tuyệt đối**
+   (1 giây, 8000 Hz mono 16-bit toàn mẫu 0, sinh bởi `packages/react-native/scripts/gen-silence.mjs`
+   → `src/expo/silence-audio.ts`, nhúng base64 giống cách làm với ảnh puck) liên tục suốt lúc dẫn
+   đường, để phiên luôn "đang phát" thật sự.
+3. **Lỗi thứ ba, ở app thử chứ không phải SDK:** nút "Giả lập" tạo phiên tạm chỉ truyền `speech` và
+   `keepAwake`, quên truyền `audio: expoAudioSession()` — nên bản vá SDK lần đầu không có tác dụng gì
+   khi kiểm bằng Giả lập. Sửa `App.tsx` thêm `audio: expoAudioSession()` vào phiên giả lập.
+
+**Đã sửa cả ba, build lại, cài lại lên iPhone 14 Plus của PHONG (build lần 4), PHONG xác nhận trực
+tiếp: "nghe được rồi, câu đọc rõ khi khoá máy".** Rủi ro 1 của spec C mục 11 — ĐÃ GIẢI QUYẾT.
+
+Test mới: `packages/react-native/src/expo/device.test.ts` (4 test, kiểm thứ tự mode→active→phát vòng
+lặp, không tạo player thứ hai khi activate lặp lại, dọn dẹp khi deactivate). `pnpm test` gốc vẫn xanh
+sau khi thêm (116 file → không đổi số file, +1 test → 1229 gốc).

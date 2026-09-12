@@ -589,7 +589,7 @@ Vitest root, jsdom, mock như M6 (`packages/react-native/src/test/`). Không có
 
 | Rủi ro | Giảm thiểu |
 |---|---|
-| `AVSpeechSynthesizer` im khi khoá máy dù đã đặt audio mode | Kiểm sớm ở task đầu chạy iPhone thật, trước khi làm UI app thử. Dự phòng theo thứ tự: (a) `expo-audio` phát một `AudioPlayer` im lặng lặp để giữ phiên âm thanh sống; (b) chấp nhận iOS chỉ đọc khi màn hình sáng, ghi giới hạn trong docs và nghiệm thu 4 ghi ĐẠT MỘT PHẦN |
+| `AVSpeechSynthesizer` im khi khoá máy dù đã đặt audio mode | **ĐÃ GIẢI QUYẾT, xác nhận trên iPhone thật 12/09/2026.** Hai lỗi thật chồng nhau, cả hai phải sửa mới hết im lặng: (1) `expoAudioSession()` chỉ gọi `setAudioModeAsync` (đặt category) mà quên `setIsAudioActiveAsync(true)` — hai hàm tách biệt trong expo-audio, thiếu bước kích hoạt thì AVAudioSession không thật sự "active"; (2) chỉ kích hoạt phiên không đủ — giữa hai câu chỉ dẫn (vài chục giây không có tiếng thật phát ra) iOS thu hồi quyền chạy nền, phải dùng đúng dự phòng (a) đã ghi: phát một vòng lặp WAV im lặng tuyệt đối (`SILENT_AUDIO_DATA_URI`, sinh bởi `scripts/gen-silence.mjs`) liên tục suốt lúc dẫn đường để giữ phiên "đang phát" thật sự. Dự phòng (b) không cần dùng tới |
 | Data URI cho `Images` không nạp | Dự phòng `Marker` xoay theo bearing bản đồ (mục 7) |
 | iOS tạm dừng cập nhật khi đứng yên lâu (đèn đỏ, chờ khách) | `pausesUpdatesAutomatically: false`, `activityType` theo mode; thực địa có đoạn đứng yên ≥ 2 phút |
 | Task ma sau khi app bị giết, GPS chạy ngầm tốn pin | Executor tự dừng khi không ai nghe; kiểm lúc `defineNavigationTask()`; `killServiceOnDestroy: true` |
