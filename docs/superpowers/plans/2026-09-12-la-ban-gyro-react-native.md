@@ -3405,7 +3405,7 @@ Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>"
 - Modify: `examples/embed-rn/navigation-ui.tsx`
 - Modify: `examples/embed-rn/README.md`
 
-- [ ] **Step 1: Khai báo gói và plugin**
+- [x] **Step 1: Khai báo gói và plugin**
 
 `examples/embed-rn/package.json` — trong `dependencies`, sau `"expo-location": "~57.0.17",` thêm:
 
@@ -3424,7 +3424,7 @@ Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>"
       ]
 ```
 
-- [ ] **Step 2: `App.tsx` — nguồn hướng, chấm xanh, nút La bàn / Về tôi**
+- [x] **Step 2: `App.tsx` — nguồn hướng, chấm xanh, nút La bàn / Về tôi**
 
 Import từ `@mapslibvn/react-native`: thêm `useHeading` **không** cần ở App (dùng ở `navigation-ui.tsx`); giữ nguyên.
 
@@ -3494,7 +3494,7 @@ Trong `<View style={styles.toolbar}>`, sau nút đổi ngôn ngữ thêm:
             )}
 ```
 
-- [ ] **Step 3: `navigation-ui.tsx` — dòng chẩn đoán hướng**
+- [x] **Step 3: `navigation-ui.tsx` — dòng chẩn đoán hướng**
 
 Đổi import đầu để có `useHeading`:
 
@@ -3526,7 +3526,7 @@ Thay `<Text style={styles.diag}>…</Text>` bằng:
           </Text>
 ```
 
-- [ ] **Step 4: README app thử**
+- [x] **Step 4: README app thử**
 
 Cuối `examples/embed-rn/README.md` thêm:
 
@@ -3541,7 +3541,7 @@ code mới: `npx expo prebuild --clean`. Simulator/emulator không có la bàn t
 Extended controls → Virtual sensors → Rotation để xoay; iOS simulator không có hướng (nón không hiện).
 ```
 
-- [ ] **Step 5: Cài, typecheck app thử**
+- [x] **Step 5: Cài, typecheck app thử**
 
 Run: `pnpm example:rn --pack-only`
 Expected: build core + RN, pack tarball, `npm install` cài thêm `expo-sensors`, dòng cuối `✓ --pack-only: xong`.
@@ -3552,7 +3552,7 @@ Expected: không lỗi kiểu (prop `userLocation`, `follow.bearing`, `useHeadin
 Run: `cd examples/embed-rn && npx expo prebuild --clean && cd ../..`
 Expected: sinh lại `ios/` và `android/` với plugin `expo-sensors` (kiểm `grep -c NSMotionUsageDescription examples/embed-rn/ios/MapsLibVNDemo/Info.plist` → 1).
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add examples/embed-rn/package.json examples/embed-rn/package-lock.json examples/embed-rn/app.json examples/embed-rn/App.tsx examples/embed-rn/navigation-ui.tsx examples/embed-rn/README.md
