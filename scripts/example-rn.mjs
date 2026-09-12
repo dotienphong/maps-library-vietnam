@@ -26,6 +26,7 @@ import {
   KEY_ENV_NAME_RN,
   RN_PACKAGE_DIR,
   TARBALL,
+  androidDeviceArg,
   androidEnv,
   androidStudioJdk,
   availableIosDevices,
@@ -51,10 +52,16 @@ if (!existsSync(join(appDir, 'package.json'))) {
   throw new Error(`Không thấy ${EXAMPLE_RN_DIR}/package.json — chạy từ gốc repo`);
 }
 
-/** Tên/UDID máy thật để chạy — bắt buộc khi `--release`, không rơi vào hỏi chọn tương tác của Expo CLI. */
+/**
+ * Tên/UDID (iOS) hoặc model (Android) máy thật để truyền cho `expo run:<platform> --device` —
+ * bắt buộc khi `--release`, không rơi vào hỏi chọn tương tác của Expo CLI. Android: `--device`
+ * của Expo CLI so khớp theo model chứ không theo serial, nên serial do người dùng chỉ định qua
+ * `--device-name` (hoặc tự chọn được khi chỉ có đúng một máy) luôn phải dịch sang model bằng
+ * `androidDeviceArg` trước khi chuyển tiếp (xem chú thích trong `lib/example-rn.mjs`).
+ */
 function resolveDeviceName() {
-  if (deviceName) return deviceName;
   if (platform === 'ios') {
+    if (deviceName) return deviceName;
     const devices = availableIosDevices(
       parseDevicectlDevices(capture('xcrun', ['devicectl', 'list', 'devices'])),
     );
@@ -63,7 +70,9 @@ function resolveDeviceName() {
       'iOS',
     );
   }
-  return pickSingleDevice(parseAdbDevices(capture('adb', ['devices'])), 'Android');
+  const devices = parseAdbDevices(capture('adb', ['devices', '-l']));
+  const serial = deviceName ?? pickSingleDevice(devices.map((d) => d.serial), 'Android');
+  return androidDeviceArg(devices, serial);
 }
 const resolvedDeviceName = release ? resolveDeviceName() : undefined;
 if (release) console.log(`  Máy: ${resolvedDeviceName}`);

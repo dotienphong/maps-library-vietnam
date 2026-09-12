@@ -64,8 +64,8 @@ export function envFileContent(key, api) {
  *   nhiều máy ghép nối, chỉ dùng khi chắc chắn có đúng một máy)
  * @param {boolean} [release] `--configuration Release` (iOS) / `--variant release` (Android), kèm
  *   `--no-bundler` — bản cài xong chạy độc lập, không cần Metro giữ kết nối với laptop
- * @param {string} [deviceName] tên/UDID (iOS) hoặc tên/serial (Android) — ghi đè `device` trần để
- *   không rơi vào hỏi chọn tương tác khi có nhiều máy
+ * @param {string} [deviceName] tên/UDID (iOS) hoặc model (Android — xem `androidDeviceArg`, KHÔNG
+ *   phải serial) — ghi đè `device` trần để không rơi vào hỏi chọn tương tác khi có nhiều máy
  */
 export function expoRunArgs(platform, device = false, release = false, deviceName = undefined) {
   const args = ['expo', `run:${platform}`];
@@ -112,10 +112,12 @@ export function availableIosDevices(devices) {
 }
 
 /**
- * Phân tích `adb devices` thành danh sách serial thật đang cắm (bỏ dòng tiêu đề, thiết bị
- * `unauthorized`/`offline`, và emulator ảo — release chỉ nhắm máy thật).
+ * Phân tích `adb devices -l` thành danh sách {serial, model} thật đang cắm (bỏ dòng tiêu đề,
+ * thiết bị `unauthorized`/`offline`, và emulator ảo — release chỉ nhắm máy thật). Cần cột `-l`
+ * (không phải `adb devices` trơn) vì `expo run:android --device <tên>` so khớp thiết bị theo
+ * `model:` — KHÔNG so theo serial (xem `androidDeviceArg`).
  * @param {string} output
- * @returns {string[]}
+ * @returns {{ serial: string, model: string }[]}
  */
 export function parseAdbDevices(output) {
   return output
@@ -125,8 +127,28 @@ export function parseAdbDevices(output) {
     .filter(Boolean)
     .map((line) => line.split(/\s+/))
     .filter((parts) => parts[1] === 'device' && !(parts[0] ?? '').startsWith('emulator-'))
-    .map((parts) => parts[0] ?? '')
-    .filter(Boolean);
+    .map((parts) => ({
+      serial: parts[0] ?? '',
+      model: (parts.find((p) => p.startsWith('model:')) ?? '').replace('model:', ''),
+    }))
+    .filter((d) => d.serial);
+}
+
+/**
+ * `expo run:android --device <tên>` so khớp thiết bị Android theo **model** (cột `model:` của
+ * `adb devices -l`), không theo serial — truyền thẳng serial (như iOS UDID) sẽ luôn báo "Could not
+ * find device with name". Hàm này dịch serial người dùng chỉ định qua `--device-name` (hoặc serial
+ * duy nhất tự chọn được) sang đúng model để chuyển tiếp xuống Expo CLI.
+ * @param {{ serial: string, model: string }[]} devices
+ * @param {string} serial
+ * @returns {string}
+ */
+export function androidDeviceArg(devices, serial) {
+  const device = devices.find((d) => d.serial === serial);
+  if (!device) {
+    throw new Error(`Không thấy máy Android serial "${serial}" trong danh sách đang cắm.`);
+  }
+  return device.model;
 }
 
 /**

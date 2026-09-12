@@ -38,13 +38,18 @@ pnpm release:android    # Android: --variant release, kèm --no-bundler
 ```
 
 Cả hai luôn cài lên **máy thật** (không simulator/emulator — la bàn/GPS thật không giả lập được).
-Script tự dò máy đang cắm/ghép nối qua `xcrun devicectl list devices` (iOS) / `adb devices`
+Script tự dò máy đang cắm/ghép nối qua `xcrun devicectl list devices` (iOS) / `adb devices -l`
 (Android). Nếu có nhiều hơn một máy, lệnh dừng lại và yêu cầu chỉ rõ:
 
 ```bash
 pnpm release:ios -- --device-name "iPhone của Phong"
-pnpm release:android -- --device-name emulator-serial-hoặc-tên-máy
+pnpm release:android -- --device-name bab02fbc    # serial, lấy bằng `adb devices`
 ```
+
+Android: `--device-name` nhận **serial** (dễ lấy bằng `adb devices`); script tự dịch sang model bên
+trong vì Expo CLI chỉ so khớp thiết bị theo model, không theo serial. Nếu cắm cùng lúc ≥ 2 máy
+**trùng model**, Expo CLI có thể chọn nhầm máy trong số đó (hạn chế của chính Expo CLI, script không
+sửa được) — nên tránh cắm 2 máy cùng dòng cùng lúc khi release.
 
 Yêu cầu như build Debug máy thật ở trên (iOS: mở `.xcworkspace` một lần, chọn Team ký; Android: bật
 USB debugging). Vì JS đã đóng gói sẵn, **sửa code JS xong phải chạy lại `pnpm release:*`** để cài bản

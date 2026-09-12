@@ -4,6 +4,7 @@ import {
   EXAMPLE_RN_DIR,
   KEY_ENV_NAME_RN,
   TARBALL,
+  androidDeviceArg,
   androidEnv,
   androidStudioJdk,
   availableIosDevices,
@@ -161,15 +162,18 @@ describe('chọn thiết bị thật cho --release', () => {
     ]);
   });
 
-  it('parseAdbDevices bỏ dòng tiêu đề, thiết bị unauthorized và emulator ảo', () => {
-    const output = [
-      'List of devices attached',
-      '00008110-000A55083430401E\tdevice',
-      'emulator-5554\tdevice',
-      'ZY22222222\tunauthorized',
-      '',
-    ].join('\n');
-    expect(parseAdbDevices(output)).toEqual(['00008110-000A55083430401E']);
+  // Định dạng thật của `adb devices -l` (xác nhận thực địa 13/09/2026 trên máy MI_9 — Expo CLI
+  // (`expo run:android --device <tên>`) chỉ khớp theo `model:`, KHÔNG khớp theo serial cột đầu).
+  const adbDevicesLOutput = [
+    'List of devices attached',
+    'bab02fbc               device usb:1048576X product:cepheus model:MI_9 device:cepheus transport_id:12',
+    'FA8251A00719           unauthorized usb:338690048X transport_id:5',
+    'emulator-5554          device product:sdk_gphone64_arm64 model:sdk_gphone64_arm64 device:emu64a transport_id:6',
+    '',
+  ].join('\n');
+
+  it('parseAdbDevices lấy {serial, model} từ `adb devices -l`; bỏ dòng tiêu đề, unauthorized, emulator ảo', () => {
+    expect(parseAdbDevices(adbDevicesLOutput)).toEqual([{ serial: 'bab02fbc', model: 'MI_9' }]);
   });
 
   it('pickSingleDevice: đúng một máy → trả tên; 0 hoặc ≥2 → lỗi liệt kê tên để dùng --device-name', () => {
@@ -177,6 +181,22 @@ describe('chọn thiết bị thật cho --release', () => {
     expect(() => pickSingleDevice([], 'iOS')).toThrow(/Không thấy thiết bị iOS/);
     expect(() => pickSingleDevice(['A', 'B'], 'Android')).toThrow(/--device-name/);
     expect(() => pickSingleDevice(['A', 'B'], 'Android')).toThrow(/"A", "B"/);
+  });
+
+  describe('androidDeviceArg — dịch serial (--device-name) sang model để khớp `expo run:android --device`', () => {
+    const devices = [
+      { serial: 'bab02fbc', model: 'MI_9' },
+      { serial: 'HT99AB123', model: 'Pixel_7' },
+    ];
+
+    it('trả về model của đúng serial được chỉ định', () => {
+      expect(androidDeviceArg(devices, 'bab02fbc')).toBe('MI_9');
+      expect(androidDeviceArg(devices, 'HT99AB123')).toBe('Pixel_7');
+    });
+
+    it('serial không có trong danh sách đang cắm → lỗi rõ ràng thay vì âm thầm chuyển tiếp', () => {
+      expect(() => androidDeviceArg(devices, 'khong-ton-tai')).toThrow(/khong-ton-tai/);
+    });
   });
 });
 
