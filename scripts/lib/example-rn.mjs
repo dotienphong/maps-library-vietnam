@@ -8,26 +8,43 @@ export const RN_PACKAGE_DIR = 'packages/react-native';
 /**
  * @param {string[]} argv
  * @param {string} platform process.platform
- * @returns {{ platform: 'ios' | 'android', packOnly: boolean, device: boolean }}
+ * @returns {{ platform: 'ios' | 'android', packOnly: boolean, device: boolean, release: boolean, deviceName?: string }}
  */
 export function parseArgs(argv, platform) {
   /** @type {'ios' | 'android'} */
   let target = platform === 'darwin' ? 'ios' : 'android';
   let packOnly = false;
   let device = false;
-  for (const a of argv) {
+  let release = false;
+  /** @type {string | undefined} */
+  let deviceName;
+  for (let i = 0; i < argv.length; i++) {
+    const a = argv[i];
     if (a === '--ios') target = 'ios';
     else if (a === '--android') target = 'android';
     else if (a === '--pack-only') packOnly = true;
     else if (a === '--device') device = true;
-    else if (a === '--key')
+    else if (a === '--release') {
+      // Release luôn cài lên máy thật (không simulator/emulator) nên kéo theo --device.
+      device = true;
+      release = true;
+    } else if (a === '--device-name') {
+      deviceName = argv[i + 1];
+      i += 1;
+    } else if (a === '--key')
       break; // phần còn lại do resolveKey đọc
     else
       throw new Error(
-        `Không hiểu tham số ${a}. Dùng: --ios | --android | --device | --pack-only | --key mlv_live_…`,
+        `Không hiểu tham số ${a}. Dùng: --ios | --android | --device | --release | --device-name <tên> | --pack-only | --key mlv_live_…`,
       );
   }
-  return { platform: target, packOnly, device };
+  return {
+    platform: target,
+    packOnly,
+    device,
+    release,
+    ...(deviceName !== undefined ? { deviceName } : {}),
+  };
 }
 
 /** Tên file `pnpm pack` sinh: bỏ `@`, đổi `/` thành `-`. @param {string} name @param {string} version */
@@ -40,9 +57,97 @@ export function envFileContent(key, api) {
   return `EXPO_PUBLIC_MAPSLIBVN_KEY=${key}\nEXPO_PUBLIC_MAPSLIBVN_API=${api}\n`;
 }
 
-/** @param {'ios' | 'android'} platform @param {boolean} [device] chạy trên máy thật đang cắm */
-export function expoRunArgs(platform, device = false) {
-  return device ? ['expo', `run:${platform}`, '--device'] : ['expo', `run:${platform}`];
+/**
+ * @param {'ios' | 'android'} platform
+ * @param {boolean} [device] chạy trên máy thật đang cắm (bare `--device` — Expo CLI hỏi chọn nếu
+ *   nhiều máy ghép nối, chỉ dùng khi chắc chắn có đúng một máy)
+ * @param {boolean} [release] `--configuration Release` (iOS) / `--variant release` (Android), kèm
+ *   `--no-bundler` — bản cài xong chạy độc lập, không cần Metro giữ kết nối với laptop
+ * @param {string} [deviceName] tên/UDID (iOS) hoặc tên/serial (Android) — ghi đè `device` trần để
+ *   không rơi vào hỏi chọn tương tác khi có nhiều máy
+ */
+export function expoRunArgs(platform, device = false, release = false, deviceName = undefined) {
+  const args = ['expo', `run:${platform}`];
+  if (deviceName) args.push('--device', deviceName);
+  else if (device) args.push('--device');
+  if (release) {
+    args.push(...(platform === 'ios' ? ['--configuration', 'Release'] : ['--variant', 'release']));
+    args.push('--no-bundler');
+  }
+  return args;
+}
+
+/**
+ * Phân tích bảng văn bản của `xcrun devicectl list devices` thành danh sách thiết bị. Cột phân
+ * cách bằng ≥ 2 khoảng trắng (tên máy/model có thể chứa một khoảng trắng đơn, ví dụ "iPhone của
+ * Phong"), nên tách theo cụm khoảng trắng thay vì cắt cột cố định — bền hơn với độ rộng cột thay
+ * đổi (ví dụ tên có emoji).
+ * @param {string} output
+ * @returns {{ name: string, hostname: string, identifier: string, state: string, model: string }[]}
+ */
+export function parseDevicectlDevices(output) {
+  return output
+    .split('\n')
+    .map((line) => line.trimEnd())
+    .filter((line) => line && !/^-+(\s+-+)*$/.test(line))
+    .map((line) => line.split(/ {2,}/).map((s) => s.trim()))
+    .filter((parts) => parts.length >= 4 && parts[0] !== 'Name')
+    .map((parts) => ({
+      name: parts[0] ?? '',
+      hostname: parts[1] ?? '',
+      identifier: parts[2] ?? '',
+      state: parts[3] ?? '',
+      model: parts[4] ?? '',
+    }));
+}
+
+/**
+ * Thiết bị iOS đã ghép nối VÀ đang có mặt (đủ điều kiện cài app) — bỏ máy đã ghép nối nhưng hiện
+ * không cắm/không cùng mạng.
+ * @param {ReturnType<typeof parseDevicectlDevices>} devices
+ */
+export function availableIosDevices(devices) {
+  return devices.filter((d) => d.state.startsWith('available'));
+}
+
+/**
+ * Phân tích `adb devices` thành danh sách serial thật đang cắm (bỏ dòng tiêu đề, thiết bị
+ * `unauthorized`/`offline`, và emulator ảo — release chỉ nhắm máy thật).
+ * @param {string} output
+ * @returns {string[]}
+ */
+export function parseAdbDevices(output) {
+  return output
+    .split('\n')
+    .slice(1)
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .map((line) => line.split(/\s+/))
+    .filter((parts) => parts[1] === 'device' && !(parts[0] ?? '').startsWith('emulator-'))
+    .map((parts) => parts[0] ?? '')
+    .filter(Boolean);
+}
+
+/**
+ * Chọn đúng một thiết bị khi không truyền `--device-name`. 0 hoặc ≥ 2 thiết bị → lỗi liệt kê tên,
+ * để không bao giờ rơi vào hỏi chọn tương tác của Expo CLI (treo trong môi trường không phím).
+ * @param {string[]} names
+ * @param {string} kind ghi trong thông báo lỗi, ví dụ 'iOS' hoặc 'Android'
+ */
+export function pickSingleDevice(names, kind) {
+  if (names.length === 1) {
+    const name = names[0];
+    if (name === undefined) throw new Error('Không có tên thiết bị.');
+    return name;
+  }
+  if (names.length === 0) {
+    throw new Error(
+      `Không thấy thiết bị ${kind} thật nào đang cắm/ghép nối và có mặt. Cắm máy rồi thử lại.`,
+    );
+  }
+  throw new Error(
+    `Có ${names.length} thiết bị ${kind}: ${names.map((n) => `"${n}"`).join(', ')}. Chỉ định rõ bằng --device-name "<tên>".`,
+  );
 }
 
 /**

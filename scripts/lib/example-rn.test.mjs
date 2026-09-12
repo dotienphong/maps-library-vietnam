@@ -6,17 +6,31 @@ import {
   TARBALL,
   androidEnv,
   androidStudioJdk,
+  availableIosDevices,
   defaultAndroidSdk,
   envFileContent,
   expoRunArgs,
   packedTarballName,
+  parseAdbDevices,
   parseArgs,
+  parseDevicectlDevices,
+  pickSingleDevice,
 } from './example-rn.mjs';
 
 describe('parseArgs', () => {
   it('mặc định ios trên macOS, android nơi khác; cờ --android/--ios ghi đè', () => {
-    expect(parseArgs([], 'darwin')).toEqual({ platform: 'ios', packOnly: false, device: false });
-    expect(parseArgs([], 'linux')).toEqual({ platform: 'android', packOnly: false, device: false });
+    expect(parseArgs([], 'darwin')).toEqual({
+      platform: 'ios',
+      packOnly: false,
+      device: false,
+      release: false,
+    });
+    expect(parseArgs([], 'linux')).toEqual({
+      platform: 'android',
+      packOnly: false,
+      device: false,
+      release: false,
+    });
     expect(parseArgs(['--android'], 'darwin').platform).toBe('android');
     expect(parseArgs(['--ios'], 'linux').platform).toBe('ios');
   });
@@ -26,11 +40,29 @@ describe('parseArgs', () => {
       platform: 'ios',
       packOnly: true,
       device: false,
+      release: false,
     });
     expect(parseArgs(['--device', '--android'], 'darwin')).toEqual({
       platform: 'android',
       packOnly: false,
       device: true,
+      release: false,
+    });
+  });
+
+  it('--release kéo theo device=true; --device-name đọc giá trị đứng sau', () => {
+    expect(parseArgs(['--ios', '--release'], 'darwin')).toEqual({
+      platform: 'ios',
+      packOnly: false,
+      device: true,
+      release: true,
+    });
+    expect(parseArgs(['--android', '--release', '--device-name', 'Pixel 7'], 'darwin')).toEqual({
+      platform: 'android',
+      packOnly: false,
+      device: true,
+      release: true,
+      deviceName: 'Pixel 7',
     });
   });
 
@@ -59,10 +91,82 @@ describe('hằng số và chuỗi sinh', () => {
     );
   });
 
-  it('expoRunArgs', () => {
+  it('expoRunArgs: mặc định, --device trần, và --release (kèm --no-bundler) cho từng nền tảng', () => {
     expect(expoRunArgs('ios')).toEqual(['expo', 'run:ios']);
     expect(expoRunArgs('android')).toEqual(['expo', 'run:android']);
     expect(expoRunArgs('ios', true)).toEqual(['expo', 'run:ios', '--device']);
+    expect(expoRunArgs('ios', true, true, 'iPhone của Phong')).toEqual([
+      'expo',
+      'run:ios',
+      '--device',
+      'iPhone của Phong',
+      '--configuration',
+      'Release',
+      '--no-bundler',
+    ]);
+    expect(expoRunArgs('android', true, true, 'emulator-5554')).toEqual([
+      'expo',
+      'run:android',
+      '--device',
+      'emulator-5554',
+      '--variant',
+      'release',
+      '--no-bundler',
+    ]);
+  });
+});
+
+describe('chọn thiết bị thật cho --release', () => {
+  // Định dạng thật của `xcrun devicectl list devices` (xác nhận thực địa 13/09/2026).
+  const devicectlOutput = [
+    'Name               Hostname                            Identifier                             State                Model                         ',
+    '----------------   ---------------------------------   ------------------------------------   ------------------   ------------------------------',
+    'TranTran💕          TranTran.coredevice.local           59749ACD-033F-5DE4-B0AF-B3AC7C1939E5   available (paired)   iPhone 14 Pro Max (iPhone15,3)',
+    'iPhone của Phong   iPhone-cua-Phong.coredevice.local   600EE67B-0B24-5249-BDFC-DAA46353D9AC   available (paired)   iPhone 14 Plus (iPhone14,8)',
+  ].join('\n');
+
+  it('parseDevicectlDevices tách đúng cột dù tên có emoji/khoảng trắng đơn', () => {
+    const devices = parseDevicectlDevices(devicectlOutput);
+    expect(devices).toHaveLength(2);
+    expect(devices[0]).toEqual({
+      name: 'TranTran💕',
+      hostname: 'TranTran.coredevice.local',
+      identifier: '59749ACD-033F-5DE4-B0AF-B3AC7C1939E5',
+      state: 'available (paired)',
+      model: 'iPhone 14 Pro Max (iPhone15,3)',
+    });
+    expect(devices[1]?.name).toBe('iPhone của Phong');
+    expect(devices[1]?.model).toBe('iPhone 14 Plus (iPhone14,8)');
+  });
+
+  it('availableIosDevices chỉ giữ máy "available"; bỏ máy ghép nối nhưng vắng mặt', () => {
+    const devices = parseDevicectlDevices(devicectlOutput);
+    expect(availableIosDevices(devices).map((d) => d.name)).toEqual([
+      'TranTran💕',
+      'iPhone của Phong',
+    ]);
+    const oneAbsent = devicectlOutput.replace('available (paired)', 'unavailable (paired)  ');
+    expect(availableIosDevices(parseDevicectlDevices(oneAbsent)).map((d) => d.name)).toEqual([
+      'iPhone của Phong',
+    ]);
+  });
+
+  it('parseAdbDevices bỏ dòng tiêu đề, thiết bị unauthorized và emulator ảo', () => {
+    const output = [
+      'List of devices attached',
+      '00008110-000A55083430401E\tdevice',
+      'emulator-5554\tdevice',
+      'ZY22222222\tunauthorized',
+      '',
+    ].join('\n');
+    expect(parseAdbDevices(output)).toEqual(['00008110-000A55083430401E']);
+  });
+
+  it('pickSingleDevice: đúng một máy → trả tên; 0 hoặc ≥2 → lỗi liệt kê tên để dùng --device-name', () => {
+    expect(pickSingleDevice(['iPhone của Phong'], 'iOS')).toBe('iPhone của Phong');
+    expect(() => pickSingleDevice([], 'iOS')).toThrow(/Không thấy thiết bị iOS/);
+    expect(() => pickSingleDevice(['A', 'B'], 'Android')).toThrow(/--device-name/);
+    expect(() => pickSingleDevice(['A', 'B'], 'Android')).toThrow(/"A", "B"/);
   });
 });
 

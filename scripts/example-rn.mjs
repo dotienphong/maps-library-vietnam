@@ -5,8 +5,17 @@
 //   pnpm example:rn --pack-only        (chỉ build + pack + cài, không chạy)
 //   pnpm example:rn --device           (máy thật đang cắm USB; iOS cần ký bằng Apple ID trong Xcode)
 //   pnpm example:rn --android --key mlv_live_…   (ghi đè tạm; --key phải đứng CUỐI)
+//   pnpm release:ios / pnpm release:android      (bản Release lên máy thật — xem dưới)
 // Các bước: build core + react-native → pnpm pack vào examples/embed-rn/vendor → ghi .env của app
 // → npm install tarball → npx expo run:<platform>. Khoá KHÔNG nằm trong repo. Ctrl+C để dừng.
+//
+// `--release` (dùng qua `pnpm release:ios [--device-name "<tên>"]` / `pnpm release:android […]`):
+// build cấu hình Release (iOS: `--configuration Release`; Android: `--variant release`) kèm
+// `--no-bundler` — JS đã đóng gói sẵn vào app lúc build nên cài xong CHẠY ĐỘC LẬP, rút dây/tắt
+// Metro/laptop vẫn hoạt động bình thường (yêu cầu PHONG 13/09/2026, xem README mục "Build Release").
+// Luôn cần máy thật + tên rõ ràng: iOS ghép nối nhiều máy thì Expo CLI hỏi chọn tương tác và TREO
+// trong môi trường không phím, nên script tự liệt kê máy đang có mặt và chỉ chạy tiếp khi đúng một
+// máy (hoặc đã truyền `--device-name`).
 import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { join, resolve } from 'node:path';
@@ -19,17 +28,21 @@ import {
   TARBALL,
   androidEnv,
   androidStudioJdk,
+  availableIosDevices,
   defaultAndroidSdk,
   envFileContent,
   expoRunArgs,
   packedTarballName,
+  parseAdbDevices,
   parseArgs,
+  parseDevicectlDevices,
+  pickSingleDevice,
 } from './lib/example-rn.mjs';
 import { resolveKey } from './lib/example-serve.mjs';
-import { run } from './lib/run.mjs';
+import { capture, run } from './lib/run.mjs';
 
 const argv = process.argv.slice(2);
-const { platform, packOnly, device } = parseArgs(argv, process.platform);
+const { platform, packOnly, device, release, deviceName } = parseArgs(argv, process.platform);
 const key = resolveKey(argv, process.env, { envName: KEY_ENV_NAME_RN, hint: 'pnpm example:rn' });
 const api = process.env.EXAMPLE_RN_API ?? DEFAULT_API;
 
@@ -37,6 +50,23 @@ const appDir = resolve(EXAMPLE_RN_DIR);
 if (!existsSync(join(appDir, 'package.json'))) {
   throw new Error(`Không thấy ${EXAMPLE_RN_DIR}/package.json — chạy từ gốc repo`);
 }
+
+/** Tên/UDID máy thật để chạy — bắt buộc khi `--release`, không rơi vào hỏi chọn tương tác của Expo CLI. */
+function resolveDeviceName() {
+  if (deviceName) return deviceName;
+  if (platform === 'ios') {
+    const devices = availableIosDevices(
+      parseDevicectlDevices(capture('xcrun', ['devicectl', 'list', 'devices'])),
+    );
+    return pickSingleDevice(
+      devices.map((d) => d.name),
+      'iOS',
+    );
+  }
+  return pickSingleDevice(parseAdbDevices(capture('adb', ['devices'])), 'Android');
+}
+const resolvedDeviceName = release ? resolveDeviceName() : undefined;
+if (release) console.log(`  Máy: ${resolvedDeviceName}`);
 
 console.log('▶ 1/5 build @mapslibvn/core + @mapslibvn/react-native');
 run('pnpm', ['--filter', '@mapslibvn/core', '--filter', '@mapslibvn/react-native', 'build']);
@@ -58,9 +88,8 @@ run('npm', ['install', '--no-audit', '--no-fund', `./vendor/${TARBALL}`], { cwd:
 if (packOnly) {
   console.log('✓ --pack-only: xong. Chạy tay: cd examples/embed-rn && npx expo run:ios');
 } else {
-  console.log(
-    `▶ 5/5 npx expo run:${platform}${device ? ' --device' : ''} (lần đầu prebuild + CocoaPods/Gradle, vài phút)`,
-  );
+  const runArgs = expoRunArgs(platform, device, release, resolvedDeviceName);
+  console.log(`▶ 5/5 npx ${runArgs.join(' ')} (lần đầu prebuild + CocoaPods/Gradle, vài phút)`);
   /** @type {Record<string, string>} */
   let extraEnv = {};
   if (platform === 'android') {
@@ -75,5 +104,10 @@ if (packOnly) {
     if (extraEnv.ANDROID_HOME) console.log(`  ANDROID_HOME chưa đặt → dùng ${sdk}`);
     if (extraEnv.JAVA_HOME) console.log('  JAVA_HOME chưa đặt → dùng JDK của Android Studio');
   }
-  run('npx', expoRunArgs(platform, device), { cwd: appDir, env: { ...process.env, ...extraEnv } });
+  run('npx', runArgs, { cwd: appDir, env: { ...process.env, ...extraEnv } });
+  if (release) {
+    console.log(
+      `✓ Đã cài bản Release lên "${resolvedDeviceName}". Rút dây/tắt Metro: app vẫn chạy độc lập.`,
+    );
+  }
 }
