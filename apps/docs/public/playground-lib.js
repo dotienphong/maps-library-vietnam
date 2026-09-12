@@ -66,6 +66,10 @@ function profileForSources(raw) {
  * @property {[number, number]} center Tâm bản đồ `[lng, lat]`.
  * @property {number} zoom Mức zoom.
  * @property {boolean} embed Chế độ nhúng iframe (ẩn bảng điều khiển).
+ * @property {'dan-duong' | null} tab Đang ở chế độ dẫn đường.
+ * @property {'motorbike' | 'car' | 'walk'} tmode Phương tiện dẫn đường.
+ * @property {import('./playground-lib.js').NavPoint | null} from Điểm đi; null = vị trí của tôi.
+ * @property {import('./playground-lib.js').NavPoint | null} to Điểm đến.
  */
 
 /**
@@ -74,6 +78,33 @@ function profileForSources(raw) {
  * @returns {number}
  */
 const round6 = (value) => Number(value.toFixed(6));
+
+/**
+ * `lat,lng[,nhãn]` → NavPoint; nhãn có thể chứa dấu phẩy nên chỉ tách hai phần đầu.
+ * @param {string | null} raw
+ * @returns {import('./playground-lib.js').NavPoint | null}
+ */
+function parsePoint(raw) {
+  if (!raw) return null;
+  const first = raw.indexOf(',');
+  const second = first < 0 ? -1 : raw.indexOf(',', first + 1);
+  const latText = first < 0 ? raw : raw.slice(0, first);
+  const lngText = first < 0 ? '' : second < 0 ? raw.slice(first + 1) : raw.slice(first + 1, second);
+  const lat = Number(latText);
+  const lng = Number(lngText);
+  if (!Number.isFinite(lat) || !Number.isFinite(lng) || Math.abs(lat) > 90 || Math.abs(lng) > 180) {
+    return null;
+  }
+  const label = second < 0 ? '' : raw.slice(second + 1).trim();
+  return {
+    lng: round6(lng),
+    lat: round6(lat),
+    label: label || `${lat.toFixed(4)}, ${lng.toFixed(4)}`,
+  };
+}
+
+/** @param {import('./playground-lib.js').NavPoint} point */
+const pointParam = (point) => `${round6(point.lat)},${round6(point.lng)},${point.label}`;
 
 /**
  * Đọc trạng thái playground từ query string.
@@ -117,6 +148,12 @@ export function parseState(search, apiBase) {
     center,
     zoom,
     embed: params.get('embed') === '1',
+    tab: params.get('tab') === 'dan-duong' ? 'dan-duong' : null,
+    tmode: /** @type {'motorbike' | 'car' | 'walk'} */ (
+      TRAVEL_MODES.includes(params.get('tmode') ?? '') ? params.get('tmode') : 'motorbike'
+    ),
+    from: parsePoint(params.get('from')),
+    to: parsePoint(params.get('to')),
   };
 }
 
@@ -142,6 +179,10 @@ export function toSearchParams(state, apiBase) {
     params.set('c', `${round6(state.center[0])},${round6(state.center[1])},${round6(state.zoom)}`);
   }
   if (state.embed) params.set('embed', '1');
+  if (state.tab === 'dan-duong') params.set('tab', 'dan-duong');
+  if (state.tmode !== 'motorbike') params.set('tmode', state.tmode);
+  if (state.from) params.set('from', pointParam(state.from));
+  if (state.to) params.set('to', pointParam(state.to));
   return params;
 }
 
@@ -355,4 +396,47 @@ export function etaLabel(remaining_s, remaining_m, nowMs) {
   const hh = String(arrive.getHours()).padStart(2, '0');
   const mm = String(arrive.getMinutes()).padStart(2, '0');
   return `${Math.round(remaining_s / 60)} phút · ${shortDistance(remaining_m)} · ${hh}:${mm}`;
+}
+
+/**
+ * Mã nhúng dẫn đường (ESM) theo điểm và phương tiện đang chọn — bám trang /dan-duong/ mục 1.
+ * @param {PlaygroundState} state
+ */
+export function navSnippet(state) {
+  const to = state.to ?? { lng: 106.6981, lat: 10.7725, label: 'Chợ Bến Thành' };
+  const fromLine = state.from
+    ? `  from: [${round6(state.from.lat)}, ${round6(state.from.lng)}], // ${state.from.label}`
+    : '  from: [pos.coords.latitude, pos.coords.longitude], // vị trí của tôi';
+  const body = [
+    'const response = await map.places.directions({',
+    fromLine,
+    `  to: [${round6(to.lat)}, ${round6(to.lng)}], // ${to.label}`,
+    `  mode: '${state.tmode}',`,
+    '  alternatives: true,',
+    '});',
+    'map.routes.show(response);',
+    'map.fitBounds(response.routes[0].bbox, 60);',
+    'startButton.onclick = () => map.navigation.start({ response }); // trong sự kiện bấm nút',
+  ];
+  const wrapped = state.from
+    ? body
+    : [
+        'navigator.geolocation.getCurrentPosition(async (pos) => {',
+        ...body.map((line) => `  ${line}`),
+        '});',
+      ];
+  return [
+    "import { createMap } from '@mapslibvn/web';",
+    "import * as maplibregl from 'maplibre-gl';",
+    "import 'maplibre-gl/dist/maplibre-gl.css';",
+    '',
+    'const map = createMap(',
+    '  {',
+    optionLines(state, '    '),
+    '  },',
+    '  { maplibre: maplibregl },',
+    ');',
+    '',
+    ...wrapped,
+  ].join('\n');
 }

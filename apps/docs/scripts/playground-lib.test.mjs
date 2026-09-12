@@ -7,6 +7,7 @@ import {
   directionsRequest,
   etaLabel,
   maskKey,
+  navSnippet,
   parseState,
   pointFromAutocomplete,
   pointFromLngLat,
@@ -32,6 +33,10 @@ describe('parseState', () => {
       center: [106.7, 10.776],
       zoom: 14,
       embed: false,
+      tab: null,
+      tmode: 'motorbike',
+      from: null,
+      to: null,
     });
   });
 
@@ -143,8 +148,76 @@ describe('toSearchParams', () => {
       compact: true,
       center: [105.85, 21.028],
       zoom: 11.5,
+      tab: 'dan-duong',
+      tmode: 'walk',
+      from: { lng: 106.699, lat: 10.7798, label: 'Nhà thờ Đức Bà, Quận 1' },
+      to: { lng: 106.6981, lat: 10.7725, label: 'Chợ Bến Thành' },
     };
     expect(parseState(toSearchParams(original, API).toString(), API)).toEqual(original);
+  });
+});
+
+describe('state dẫn đường trên URL', () => {
+  it('đọc tab, tmode, from, to; nhãn có dấu và dấu phẩy', () => {
+    const s = parseState(
+      'tab=dan-duong&tmode=car&from=10.7798,106.699,Nh%C3%A0%20th%E1%BB%9D%2C%20Q1&to=10.7725,106.6981',
+      API,
+    );
+    expect(s.tab).toBe('dan-duong');
+    expect(s.tmode).toBe('car');
+    expect(s.from).toEqual({ lng: 106.699, lat: 10.7798, label: 'Nhà thờ, Q1' });
+    expect(s.to).toEqual({ lng: 106.6981, lat: 10.7725, label: '10.7725, 106.6981' });
+  });
+  it('bỏ qua tmode lạ, điểm sai định dạng, tab khác', () => {
+    const s = parseState('tab=xyz&tmode=plane&from=abc&to=10.7,200', API);
+    expect(s.tab).toBeNull();
+    expect(s.tmode).toBe('motorbike');
+    expect(s.from).toBeNull();
+    expect(s.to).toBeNull();
+  });
+  it('toSearchParams chỉ in khi khác mặc định; from trống = vị trí của tôi', () => {
+    const base = parseState('', API);
+    expect(toSearchParams(base, API).toString()).toBe('');
+    const p = toSearchParams(
+      {
+        ...base,
+        tab: 'dan-duong',
+        tmode: 'walk',
+        to: { lng: 106.6981, lat: 10.7725, label: 'Chợ Bến Thành' },
+      },
+      API,
+    );
+    expect(p.get('tab')).toBe('dan-duong');
+    expect(p.get('tmode')).toBe('walk');
+    expect(p.get('from')).toBeNull();
+    expect(p.get('to')).toBe('10.7725,106.6981,Chợ Bến Thành');
+  });
+});
+
+describe('navSnippet', () => {
+  it('sinh mã 3 bước với toạ độ [lat, lng], mode và điểm đi mặc định là GPS', () => {
+    const s = {
+      ...parseState('', API),
+      tmode: 'car',
+      to: { lng: 106.6981, lat: 10.7725, label: 'Chợ Bến Thành' },
+    };
+    const code = navSnippet(s);
+    expect(code).toContain("import { createMap } from '@mapslibvn/web';");
+    expect(code).toContain('to: [10.7725, 106.6981], // Chợ Bến Thành');
+    expect(code).toContain("mode: 'car',");
+    expect(code).toContain('navigator.geolocation.getCurrentPosition');
+    expect(code).toContain('map.routes.show(response);');
+    expect(code).toContain('map.navigation.start({ response })');
+  });
+  it('có from thì dùng thẳng toạ độ, không xin GPS', () => {
+    const s = {
+      ...parseState('', API),
+      from: { lng: 106.699, lat: 10.7798, label: 'Nhà thờ Đức Bà' },
+      to: { lng: 106.6981, lat: 10.7725, label: 'Chợ Bến Thành' },
+    };
+    const code = navSnippet(s);
+    expect(code).toContain('from: [10.7798, 106.699], // Nhà thờ Đức Bà');
+    expect(code).not.toContain('getCurrentPosition');
   });
 });
 
