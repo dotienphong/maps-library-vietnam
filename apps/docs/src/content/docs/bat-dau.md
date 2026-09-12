@@ -86,5 +86,7 @@ của bạn chưa nằm trong danh sách của khoá — xem [Khoá API](/khoa-a
 - [Khoá API](/khoa-api/) — ba loại khoá, scope, quota, cách xin khoá.
 - [Nhúng thử trang của bạn](/nhung-thu/) — trang HTML trắng chạy được ngay bằng khoá demo.
 - [Bản đồ web](/ban-do-web/) — toàn bộ tuỳ chọn `createMap`, marker, sự kiện, đổi ngôn ngữ.
+- [Dẫn đường](/dan-duong/) — chỉ đường, giọng đọc, bám camera trên web; bản
+  [React Native](/dan-duong-react-native/) chạy nền cả khi khoá máy.
 - [Độ chính xác geocode](/do-chinh-xac/) — dùng đúng `precision` và `confidence`.
 - [Giấy phép & ghi nguồn](/giay-phep/) — nghĩa vụ attribution.
