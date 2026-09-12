@@ -1,17 +1,32 @@
 # @mapslibvn/core
 
-Client TypeScript không phụ thuộc giao diện cho Places API MapsLibVN, kèm kiểu dữ liệu, chuẩn hóa
-tiếng Việt và chuỗi ghi nguồn dùng chung.
+[![npm version](https://img.shields.io/npm/v/@mapslibvn/core.svg)](https://www.npmjs.com/package/@mapslibvn/core)
+[![npm downloads](https://img.shields.io/npm/dm/@mapslibvn/core.svg)](https://www.npmjs.com/package/@mapslibvn/core)
+[![minzipped size](https://img.shields.io/bundlephobia/minzip/@mapslibvn/core)](https://bundlephobia.com/package/@mapslibvn/core)
+[![license](https://img.shields.io/npm/l/@mapslibvn/core.svg)](https://www.npmjs.com/package/@mapslibvn/core)
 
-## Cài đặt
+**The Vietnam-first geodata client for TypeScript/JavaScript.** Framework-agnostic, no runtime dependencies, and built from day one to understand Vietnamese addresses the way people actually type them — no diacritics, abbreviated street types, old-vs-new administrative names, and hẻm/ngõ (alley) numbering that generic geocoders get wrong.
+
+`@mapslibvn/core` is the foundation shared by [`@mapslibvn/web`](https://www.npmjs.com/package/@mapslibvn/web), [`@mapslibvn/react`](https://www.npmjs.com/package/@mapslibvn/react) and [`@mapslibvn/react-native`](https://www.npmjs.com/package/@mapslibvn/react-native) — but it works just as well on its own, in any Node.js service, CLI, or non-map UI (search bars, address forms, delivery apps, coverage checks…).
+
+## Why teams pick it
+
+- 🇻🇳 **Vietnamese text handling, built in** — `normalizeVi`, `stripDiacritics`, `expandAbbrev`, `applyBrandAlias` normalize things like "chung cu", "P. Bến Thành" or "Cty" the way Vietnamese users actually search.
+- 🏠 **Real address parsing** — `parseAddress` splits a raw Vietnamese address string into house number, hẻm/ngõ, street, ward, district and province, with a confidence score.
+- 🌍 **Pick your POI sources** — mix OpenStreetMap, Overture Maps and Foursquare Open Places per request, or just use the sensible "all" default.
+- 🧭 **Headless turn-by-turn navigation** — a pure state machine (`createNavigator`) handling rerouting, off-route detection, maneuver formatting and voice-announcement timing, with zero UI dependency. It's the same engine powering the web and React Native navigation layers.
+- 📦 **Small and fully typed** — ESM-only, one flat export surface, gzip barrel kept under 20 kB by CI.
+- ⚖️ **Attribution helpers included** — `attributionText()` / `attributionHtml()` so you stay compliant with OSM/Overture/Foursquare data licenses even outside a map view.
+
+## Install
 
 ```bash
 npm install @mapslibvn/core
 ```
 
-Yêu cầu Node.js 22+ khi chạy phía máy chủ. Trình duyệt hiện đại có sẵn `fetch` cũng dùng được.
+Works with Node.js 22+ on the server, and any modern browser with `fetch`.
 
-## Ví dụ
+## Quick start
 
 ```ts
 import { createClient } from '@mapslibvn/core';
@@ -27,11 +42,59 @@ const { items } = await places.autocomplete('cho ben thanh', {
 });
 ```
 
-API gồm autocomplete, search, nearby, geocode, reverse geocode, chi tiết địa điểm, chỉ đường (directions), style URL và
-gửi đề xuất chỉnh sửa. Không đưa khóa bí mật vào mã nguồn hoặc commit; khóa trình duyệt phải giới
-hạn đúng origin.
+The client covers autocomplete, search, nearby, geocode, reverse geocode, place details, directions, style URLs and edit suggestions. Never ship a secret key in client-side code or commit it to source control — browser-facing keys must be origin-restricted.
 
-Tài liệu: <https://mapslibvn-docs.pages.dev/sdk/>
+📖 Full API reference: <https://mapslibvn-docs.pages.dev/sdk/>
 
-Giấy phép mã nguồn: MIT. Khi hiển thị dữ liệu bản đồ, phải giữ attribution theo tài liệu và
-`THIRD_PARTY_NOTICES.md`.
+📦 Part of the MapsLibVN SDK family: [`@mapslibvn/web`](https://www.npmjs.com/package/@mapslibvn/web) · [`@mapslibvn/react`](https://www.npmjs.com/package/@mapslibvn/react) · [`@mapslibvn/react-native`](https://www.npmjs.com/package/@mapslibvn/react-native)
+
+Source license: MIT. When you display map data, you must keep attribution as described in the docs and `THIRD_PARTY_NOTICES.md`.
+
+---
+
+## Tiếng Việt
+
+**Client TypeScript/JavaScript "Việt Nam trước" cho dữ liệu địa lý.** Không phụ thuộc framework, không cần thư viện ngoài lúc chạy, và được xây dựng ngay từ đầu để hiểu địa chỉ tiếng Việt đúng như người dùng thật gõ — không dấu, viết tắt loại đường, tên hành chính cũ/mới, và cách đánh số hẻm/ngõ mà các bộ geocoder thông thường không xử lý đúng.
+
+`@mapslibvn/core` là nền tảng dùng chung cho [`@mapslibvn/web`](https://www.npmjs.com/package/@mapslibvn/web), [`@mapslibvn/react`](https://www.npmjs.com/package/@mapslibvn/react) và [`@mapslibvn/react-native`](https://www.npmjs.com/package/@mapslibvn/react-native) — nhưng vẫn dùng tốt độc lập trong bất kỳ service Node.js, CLI hay giao diện không có bản đồ nào (ô tìm kiếm, form địa chỉ, app giao hàng, kiểm tra vùng phủ…).
+
+## Vì sao nên chọn
+
+- 🇻🇳 **Xử lý tiếng Việt có sẵn** — `normalizeVi`, `stripDiacritics`, `expandAbbrev`, `applyBrandAlias` chuẩn hoá "chung cư", "P. Bến Thành", "Cty" đúng cách người Việt hay tìm.
+- 🏠 **Phân tích địa chỉ thật** — `parseAddress` tách một chuỗi địa chỉ tiếng Việt thành số nhà, hẻm/ngõ, đường, phường, quận, tỉnh, kèm điểm tin cậy (`confidence`).
+- 🌍 **Tự chọn nguồn POI** — trộn OpenStreetMap, Overture Maps và Foursquare Open Places theo từng request, hoặc dùng mặc định "cả ba" (`all`).
+- 🧭 **Dẫn đường không giao diện** — một máy trạng thái thuần (`createNavigator`) lo việc tính lại tuyến, phát hiện lệch tuyến, định dạng chỉ dẫn rẽ và thời điểm đọc thoại — không phụ thuộc UI, dùng chung cho cả lớp dẫn đường web lẫn React Native.
+- 📦 **Nhỏ gọn và có kiểu đầy đủ** — chỉ ESM, một điểm export duy nhất, CI giữ trần gzip dưới 20 kB.
+- ⚖️ **Có sẵn hàm ghi nguồn** — `attributionText()` / `attributionHtml()` để tuân thủ giấy phép dữ liệu OSM/Overture/Foursquare kể cả khi không hiển thị bản đồ.
+
+## Cài đặt
+
+```bash
+npm install @mapslibvn/core
+```
+
+Yêu cầu Node.js 22+ khi chạy phía máy chủ. Trình duyệt hiện đại có sẵn `fetch` cũng dùng được.
+
+## Bắt đầu nhanh
+
+```ts
+import { createClient } from '@mapslibvn/core';
+
+const places = createClient({
+  apiKey: 'mlv_live_…',
+  baseUrl: 'https://api.ai-solutions.io.vn',
+});
+
+const { items } = await places.autocomplete('cho ben thanh', {
+  near: [106.7, 10.776],
+  limit: 5,
+});
+```
+
+API gồm autocomplete, search, nearby, geocode, reverse geocode, chi tiết địa điểm, chỉ đường (directions), style URL và gửi đề xuất chỉnh sửa. Không đưa khóa bí mật vào mã nguồn hoặc commit; khóa trình duyệt phải giới hạn đúng origin.
+
+📖 Tài liệu API đầy đủ: <https://mapslibvn-docs.pages.dev/sdk/>
+
+📦 Nằm trong họ SDK MapsLibVN: [`@mapslibvn/web`](https://www.npmjs.com/package/@mapslibvn/web) · [`@mapslibvn/react`](https://www.npmjs.com/package/@mapslibvn/react) · [`@mapslibvn/react-native`](https://www.npmjs.com/package/@mapslibvn/react-native)
+
+Giấy phép mã nguồn: MIT. Khi hiển thị dữ liệu bản đồ, phải giữ attribution theo tài liệu và `THIRD_PARTY_NOTICES.md`.
