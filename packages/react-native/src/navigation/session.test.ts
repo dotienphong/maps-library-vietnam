@@ -1,6 +1,9 @@
 import {
   type DirectionsResponse,
   type GeoFix,
+  type HeadingError,
+  type HeadingFix,
+  type HeadingSource,
   type PositionError,
   type Route,
   simulateFixes,
@@ -87,6 +90,37 @@ function fakeDevice(calls: string[]) {
     },
   };
 }
+
+function fakeHeading() {
+  let onHeading: ((h: HeadingFix) => void) | null = null;
+  let onError: ((e: HeadingError) => void) | undefined;
+  const unsubscribe = vi.fn(() => {
+    onHeading = null;
+  });
+  const source: HeadingSource = {
+    subscribe: vi.fn((h: (fix: HeadingFix) => void, e?: (error: HeadingError) => void) => {
+      onHeading = h;
+      onError = e;
+      return unsubscribe;
+    }),
+  };
+  return {
+    source,
+    unsubscribe,
+    push(h: HeadingFix) {
+      onHeading?.(h);
+    },
+    fail(e: HeadingError) {
+      onError?.(e);
+    },
+  };
+}
+const headingAt = (heading: number, timestamp = 1_700_000_000_000): HeadingFix => ({
+  heading,
+  accuracy: 'high',
+  timestamp,
+  source: 'compass',
+});
 
 describe('createNavigationSession', () => {
   it('start: audio → available → keep-awake → setMode → subscribe; hết fix → arrived, end{arrived}, nhả nguồn và thiết bị', async () => {
@@ -223,5 +257,56 @@ describe('createNavigationSession', () => {
     expect(session.status).toBe('arrived');
     expect(progress).toHaveBeenCalled();
     expect(calls).toEqual(['setMode:motorbike', 'subscribe']);
+  });
+});
+
+describe('createNavigationSession — nguồn hướng', () => {
+  it('có heading: đăng ký lúc start sau source, phát lại sự kiện, getter; stop() huỷ và xoá', async () => {
+    const calls: string[] = [];
+    const src = fakeSource(calls);
+    const hd = fakeHeading();
+    const session = createNavigationSession({ provider, source: src.source, heading: hd.source });
+    const got: HeadingFix[] = [];
+    session.on('heading', (h) => got.push(h));
+    expect(session.heading).toBeNull();
+    await session.start({ response });
+    expect(calls).toContain('subscribe');
+    expect(hd.source.subscribe).toHaveBeenCalledTimes(1);
+    hd.push(headingAt(123));
+    expect(got.map((h) => h.heading)).toEqual([123]);
+    expect(session.heading?.heading).toBe(123);
+    await session.stop();
+    expect(hd.unsubscribe).toHaveBeenCalledTimes(1);
+    expect(session.heading).toBeNull();
+  });
+
+  it('đến nơi huỷ đăng ký hướng; lỗi nguồn → headingUnavailable đúng một lần mỗi start', async () => {
+    const calls: string[] = [];
+    const src = fakeSource(calls);
+    const hd = fakeHeading();
+    const session = createNavigationSession({ provider, source: src.source, heading: hd.source });
+    const errors: HeadingError[] = [];
+    session.on('headingUnavailable', (e) => errors.push(e));
+    await session.start({ response });
+    hd.fail({ code: 'unavailable', message: 'simulator không có la bàn' });
+    hd.fail({ code: 'unavailable', message: 'lại' });
+    expect(errors).toHaveLength(1);
+    src.push(simulateFixes(route));
+    expect(session.status).toBe('arrived');
+    expect(hd.unsubscribe).toHaveBeenCalledTimes(1);
+    expect(session.heading).toBeNull();
+  });
+
+  it('không heading: không sự kiện, getter null, mọi thứ khác như cũ', async () => {
+    const calls: string[] = [];
+    const src = fakeSource(calls);
+    const session = createNavigationSession({ provider, source: src.source });
+    const onHeading = vi.fn();
+    session.on('heading', onHeading);
+    await session.start({ response });
+    src.push(simulateFixes(route).slice(0, 3));
+    expect(onHeading).not.toHaveBeenCalled();
+    expect(session.heading).toBeNull();
+    await session.stop();
   });
 });

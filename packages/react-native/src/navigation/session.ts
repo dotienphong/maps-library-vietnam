@@ -1,6 +1,9 @@
 import {
   type DirectionsLang,
   type DirectionsResponse,
+  type HeadingError,
+  type HeadingFix,
+  type HeadingSource,
   type NavigationEvents,
   type NavigationProgress,
   type NavigationStatus,
@@ -56,6 +59,8 @@ export interface NavigationSessionOptions {
   speech?: Speaker;
   keepAwake?: KeepAwake;
   audio?: AudioSession;
+  /** Nguồn hướng la bàn (spec la bàn 5.3); thiếu → puck/camera như cũ, không có sự kiện heading. */
+  heading?: HeadingSource;
 }
 
 export interface NavigationSessionStartOptions {
@@ -82,6 +87,10 @@ export interface SessionEvents extends NavigationEvents {
   backgroundUnavailable: BackgroundUnavailable;
   /** Phiên đã dừng nguồn vị trí: đến nơi hoặc app gọi `stop()`. */
   end: { reason: 'arrived' | 'stopped' };
+  /** Hướng la bàn đã lọc — phiên chuyển tiếp nguyên từ `heading`. */
+  heading: HeadingFix;
+  /** Nguồn hướng lỗi (từ chối quyền, máy không có la bàn) — một lần mỗi start. */
+  headingUnavailable: HeadingError;
 }
 
 export interface NavigationSession {
@@ -96,6 +105,8 @@ export interface NavigationSession {
   /** Tuyến hiện tại — map gắn muộn vẽ lại từ đây; `stop()` không xoá. */
   readonly response: DirectionsResponse | null;
   readonly routeIndex: number;
+  /** Hướng la bàn cuối của phiên đang chạy; null khi idle hoặc chưa có mẫu. */
+  readonly heading: HeadingFix | null;
   on<K extends keyof SessionEvents>(event: K, handler: (e: SessionEvents[K]) => void): void;
   off<K extends keyof SessionEvents>(event: K, handler: (e: SessionEvents[K]) => void): void;
 }
@@ -125,6 +136,8 @@ export function createNavigationSession(opts: NavigationSessionOptions): Navigat
 
   let nav: Navigator | null = null;
   let unsubscribe: (() => void) | null = null;
+  let unsubscribeHeading: (() => void) | null = null;
+  let lastHeading: HeadingFix | null = null;
   let running = false;
   let ended = false;
   let startToken = 0;
@@ -141,6 +154,9 @@ export function createNavigationSession(opts: NavigationSessionOptions): Navigat
   const releaseSource = (): void => {
     unsubscribe?.();
     unsubscribe = null;
+    unsubscribeHeading?.();
+    unsubscribeHeading = null;
+    lastHeading = null;
   };
   const releaseDevice = async (): Promise<void> => {
     if (keepOn) {
@@ -262,6 +278,21 @@ export function createNavigationSession(opts: NavigationSessionOptions): Navigat
       (fix) => engine.update(fix),
       (error) => emit('positionError', error),
     );
+    const headingSource = opts.heading;
+    if (headingSource) {
+      let reported = false;
+      unsubscribeHeading = headingSource.subscribe(
+        (h) => {
+          lastHeading = h;
+          emit('heading', h);
+        },
+        (error) => {
+          if (reported) return;
+          reported = true;
+          emit('headingUnavailable', error);
+        },
+      );
+    }
   }
 
   return {
@@ -287,6 +318,9 @@ export function createNavigationSession(opts: NavigationSessionOptions): Navigat
     },
     get routeIndex() {
       return routeIndex;
+    },
+    get heading() {
+      return lastHeading;
     },
     on(event, handler) {
       let set = listeners.get(event);

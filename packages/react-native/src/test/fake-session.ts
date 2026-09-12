@@ -1,4 +1,10 @@
-import type { DirectionsResponse, NavigationProgress, Route, RouteStep } from '@mapslibvn/core';
+import type {
+  DirectionsResponse,
+  HeadingFix,
+  NavigationProgress,
+  Route,
+  RouteStep,
+} from '@mapslibvn/core';
 import { vi } from 'vitest';
 import type { NavigationSession } from '../navigation/session';
 
@@ -10,6 +16,7 @@ export function fakeSession(
   let response: DirectionsResponse | null = init.response ?? null;
   let routeIndex = init.routeIndex ?? 0;
   let state: NavigationProgress | null = init.state ?? null;
+  let heading: HeadingFix | null = null;
   const session = {
     start: vi.fn(async () => {}),
     stop: vi.fn(async () => {}),
@@ -34,6 +41,9 @@ export function fakeSession(
     get routeIndex() {
       return routeIndex;
     },
+    get heading() {
+      return heading;
+    },
   } as unknown as NavigationSession;
   const emit = (ev: string, e: unknown) => {
     for (const fn of handlers[ev] ?? []) fn(e);
@@ -52,6 +62,10 @@ export function fakeSession(
     },
     status(s: NavigationProgress['status']) {
       emit('status', { status: s, previous: 'idle' });
+    },
+    heading(h: HeadingFix | null) {
+      heading = h;
+      if (h) emit('heading', h);
     },
     handlerCount: (ev: string) => (handlers[ev] ?? []).length,
   };
