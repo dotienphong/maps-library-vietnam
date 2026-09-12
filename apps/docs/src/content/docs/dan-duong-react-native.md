@@ -27,7 +27,7 @@ Bản đồ và tìm kiếm **không** cần các module này; chỉ khi bạn i
 
 ```json
 "android": {
-  "permissions": ["RECEIVE_BOOT_COMPLETED"]
+  "permissions": ["RECEIVE_BOOT_COMPLETED", "HIGH_SAMPLING_RATE_SENSORS"]
 },
 "plugins": [
   "@maplibre/maplibre-react-native",
@@ -45,6 +45,11 @@ Plugin thêm `UIBackgroundModes: location` + `audio` (iOS) và quyền `FOREGROU
 (Android). **Không** bật `isAndroidBackgroundLocationEnabled`: SDK không xin quyền "Luôn luôn", vì cả
 hai hệ đều cho tiếp tục định vị khi phiên khởi động lúc app đang mở. Plugin `expo-sensors` thêm
 `NSMotionUsageDescription` (iOS); con quay hồi chuyển không hỏi quyền lúc chạy trên cả hai hệ.
+
+**`HIGH_SAMPLING_RATE_SENSORS` cần cho la bàn mượt trên Android 12+.** `expo-sensors` chỉ đăng ký
+gyro/gia tốc kế ở `SENSOR_DELAY_FASTEST` khi app khai báo quyền này (kiểm trong `SensorSubscription.kt`);
+thiếu nó, Android 12+ rơi về `SENSOR_DELAY_NORMAL` = 200 ms bất kể `gyroInterval_ms`, nón hướng chỉ cập
+nhật 5 lần/giây. Quyền này là loại "normal", không hỏi người dùng lúc chạy.
 
 **`android.permissions: ["RECEIVE_BOOT_COMPLETED"]` là bắt buộc, không phải tuỳ chọn.**
 `expo-task-manager` lên lịch job định vị nền bằng `JobScheduler` với `setPersisted(true)` — không

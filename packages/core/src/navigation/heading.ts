@@ -95,6 +95,14 @@ export interface HeadingFilterOptions {
   minInterval_ms?: number;
   /** … và đổi ≥ — mặc định 1°. */
   minDelta_deg?: number;
+  /**
+   * Giảm lực kéo về la bàn khi đang xoay: hệ số `1 / (1 + (|ω| / ref)²)` — ở ref (mặc định 30°/s) còn một
+   * nửa, 90°/s còn 1/10; `Infinity` = không giảm. Lý do: la bàn của hệ điều hành trễ/nhiễu nhất đúng lúc
+   * xoay (Android `expo-location` = accel + mag thô, gia tốc tay làm sai trọng lực; Mi 9 13/09/2026 thấy
+   * đích lệch hàng chục độ → kéo 6,9 %/bước thành cú giật ~1°/bước), trong khi gyro đã hiệu chuẩn tin
+   * được vài giây. Đứng yên/xoay chậm vẫn kéo đủ để không trôi.
+   */
+  pullFadeRate_dps?: number;
   /** Đảo dấu gyro nếu thực địa thấy quay ngược — mặc định 1. */
   gyroSign?: 1 | -1;
   /**
@@ -133,9 +141,10 @@ export function signedDiffDeg(a: number, b: number): number {
 
 /**
  * Bộ lọc bù bậc một (spec la bàn mục 4): mỗi bước gyro tích phân góc rồi kéo về mẫu la bàn cuối theo
- * `tau_s` (phản ứng ngay khi xoay máy, không trôi, không nhảy khi la bàn im). Mẫu la bàn chỉ cập nhật
- * đích kéo; không có gyro (hoặc gyro chết) thì la bàn tự làm mượt nhẹ theo `smoothing_s`. Thuần theo
- * timestamp, không timer — web dùng lại được với DeviceOrientation.
+ * `tau_s`, lực kéo giảm khi xoay nhanh (`pullFadeRate_dps`) — phản ứng ngay khi xoay máy, không trôi,
+ * không nhảy khi la bàn im, không giật theo la bàn nhiễu lúc xoay. Mẫu la bàn chỉ cập nhật đích kéo (và
+ * không phát khi gyro sống, để nhịp phát đều); không có gyro (hoặc gyro chết) thì la bàn tự làm mượt nhẹ
+ * theo `smoothing_s`. Thuần theo timestamp, không timer — web dùng lại được với DeviceOrientation.
  */
 export function createHeadingFilter(opts: HeadingFilterOptions = {}): HeadingFilter {
   const tau_s = opts.tau_s ?? 0.7;
@@ -143,6 +152,7 @@ export function createHeadingFilter(opts: HeadingFilterOptions = {}): HeadingFil
   const minInterval_ms = opts.minInterval_ms ?? 50;
   const minDelta_deg = opts.minDelta_deg ?? 1;
   const gyroSign = opts.gyroSign ?? 1;
+  const pullFadeRate_dps = opts.pullFadeRate_dps ?? 30;
   const maxGyroGap_ms = (opts.maxGyroGap_s ?? 1) * 1000;
 
   let est: number | null = null;
@@ -160,6 +170,11 @@ export function createHeadingFilter(opts: HeadingFilterOptions = {}): HeadingFil
   const alpha = (dt_s: number, tc: number): number => (tc <= 0 ? 1 : 1 - Math.exp(-dt_s / tc));
   const gyroAliveAt = (ts: number): boolean =>
     lastGyroNow !== null && ts - lastGyroNow <= maxGyroGap_ms;
+  /** Hệ số giảm kéo theo tốc độ xoay: 1 khi đứng yên, ½ ở pullFadeRate_dps, → 0 khi xoay rất nhanh. */
+  const pullScale = (z_dps: number): number => {
+    const r = z_dps / pullFadeRate_dps; // ref = ∞ → 0 → hệ số 1
+    return 1 / (1 + r * r);
+  };
 
   const emit = (timestamp: number, force: boolean): HeadingFix | null => {
     if (est === null) return null;
@@ -190,12 +205,16 @@ export function createHeadingFilter(opts: HeadingFilterOptions = {}): HeadingFil
       if (est === null || lastCompassTs === null) {
         est = target;
         first = true;
-      } else if (!gyroAliveAt(s.timestamp)) {
+      } else if (gyroAliveAt(s.timestamp)) {
+        // Gyro sống → chỉ đổi đích, KHÔNG phát: bước gyro kế tiếp kéo dần theo tau_s và giữ nhịp phát
+        // đều (phát chen ở đây làm bước gyro sau bị minInterval_ms chặn → nhịp lệch → giật).
+        lastCompassTs = s.timestamp;
+        return null;
+      } else {
         // Không có gyro (hoặc gyro chết) → la bàn tự làm mượt theo dt giữa hai mẫu la bàn.
         const dt_s = Math.max(0, (s.timestamp - lastCompassTs) / 1000);
         est = wrapDeg(est + signedDiffDeg(target, est) * alpha(dt_s, smoothing_s));
       }
-      // Gyro sống → chỉ đổi đích; bước gyro kế tiếp kéo dần theo tau_s.
       lastCompassTs = s.timestamp;
       return emit(s.timestamp, first);
     },
@@ -208,7 +227,9 @@ export function createHeadingFilter(opts: HeadingFilterOptions = {}): HeadingFil
       if (dt_ms <= 0 || dt_ms > maxGyroGap_ms) return null;
       const dt_s = dt_ms / 1000;
       est = wrapDeg(est - gyroSign * r.z_dps * dt_s);
-      if (target !== null) est = wrapDeg(est + signedDiffDeg(target, est) * alpha(dt_s, tau_s));
+      if (target !== null) {
+        est = wrapDeg(est + signedDiffDeg(target, est) * alpha(dt_s, tau_s) * pullScale(r.z_dps));
+      }
       source = 'fused';
       return emit(now, false);
     },

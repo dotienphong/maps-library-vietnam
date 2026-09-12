@@ -5,6 +5,16 @@ commit với code).
 
 ## 1. Trạng thái hiện tại
 
+- **13/09/2026 (đêm) — Thực địa lần 3: iPhone 14 Plus "đã mượt hơn" với `7e7dd05`; Mi 9 (Android 10)
+  "vẫn giật khi xoay" → đo trực tiếp qua adb rồi sửa bộ lọc lần nữa.** Bằng chứng máy: bản cài đã có
+  bản sửa lần 2; `gfxinfo` janky 0,49 % (UI thread sạch); `sensorservice` gyro FASTEST, từ kế |B| ≈
+  117 µT (hiệu chuẩn kém/nhiễu bàn). Gốc rễ khác iOS: la bàn Android của `expo-location` là accel + mag
+  thô, không fuse gyro → lúc xoay đích lệch hàng chục độ → kéo 6,9 %/bước thành giật. Sửa:
+  `pullFadeRate_dps` (mặc định 30°/s) giảm lực kéo `1/(1+(|ω|/30)²)` khi xoay; mẫu la bàn không phát
+  khi gyro sống (nhịp phát do gyro giữ); app thử + docs thêm quyền Android `HIGH_SAMPLING_RATE_SENSORS`
+  (Android 12+ không có thì `expo-sensors` rơi về 200 ms). **Chưa xác nhận trên Mi 9** — PHONG chạy
+  `pnpm release:android`. Nếu vẫn giật, bước kế tiếp đã ghi trong evidence: đổi nguồn la bàn Android
+  sang `TYPE_ROTATION_VECTOR`. Chi tiết: spec 10b (bullet lần 3), evidence "Phát hiện thực địa lần 3".
 - **13/09/2026 (tối) — Thực địa lần 2 trên iPhone 14 Plus sau `07b4218`: nón hướng vẫn "hơi giật" và
   "trễ nhẹ" khi xoay máy → tìm ra ba gốc rễ độc lập, đã sửa kèm test; một gốc rễ kiến trúc để ngỏ.**
   (1) Bộ lọc `createHeadingFilter` kéo về la bàn *lúc mẫu la bàn đến* với `dt` từ mẫu la bàn trước —

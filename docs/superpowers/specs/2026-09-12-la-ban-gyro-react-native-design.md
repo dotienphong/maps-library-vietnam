@@ -547,6 +547,26 @@ Không có test E2E cảm biến: simulator iOS không có la bàn, emulator And
     `Animated` trên UI thread) hoặc dùng `NativeUserLocation mode="heading"` (bỏ bộ lọc riêng). Trước
     đó có thể thử không đổi code: `expoHeadingSource({ gyroInterval_ms: 33, minInterval_ms: 33 })`.
 
+- **Thực địa Mi 9 (Android 10) 13/09/2026 (lần 3, sau `7e7dd05`): iPhone đã mượt, Android "vẫn giật khi
+  xoay". Hai lệch spec 4 nữa + một lệch spec 6/9, có test/bằng chứng máy:**
+  - Lực kéo về la bàn giảm theo tốc độ xoay: hệ số `1/(1+(|ω|/pullFadeRate_dps)²)`, mặc định 30°/s. Lý do:
+    la bàn Android của `expo-location` là accel + mag thô (`getRotationMatrix`/`getOrientation`, không
+    fuse gyro, ngưỡng 50 ms/2°), khi xoay gia tốc tay làm sai vector trọng lực → đích lệch hàng chục độ →
+    kéo 6,9 %/bước thành cú giật ~1°/bước; iOS không thấy vì `CLHeading` đã fuse. Gyro Android
+    (`TYPE_GYROSCOPE`) đã bù bias nên lúc xoay nhanh chỉ tin gyro; đứng yên/xoay chậm vẫn kéo đủ.
+  - Mẫu la bàn KHÔNG phát khi gyro sống (chỉ đổi đích). Bản `7e7dd05` còn phát khi `est` đã đổi ≥ 1° từ
+    lần phát trước → phát chen giữa hai bước gyro làm bước gyro sau bị `minInterval_ms` chặn → nhịp phát
+    lệch → giật. Nay nhịp phát hoàn toàn do gyro giữ.
+  - App thử và docs thêm quyền Android `HIGH_SAMPLING_RATE_SENSORS`: `expo-sensors`
+    (`SensorSubscription.kt`) chỉ đăng ký `SENSOR_DELAY_FASTEST` khi có quyền này trên Android 12+, không
+    thì `SENSOR_DELAY_NORMAL` 200 ms bất kể `setUpdateInterval` → gyro 5 Hz. Mi 9 chạy Android 10 nên
+    chưa gặp; máy Android 12+ sẽ gặp ngay.
+  - Bằng chứng máy (adb, app đang chạy): `dumpsys sensorservice` cho thấy app giữ gyro + gia tốc kế qua
+    `expo.modules.sensors.SensorSubscription` và từ kế + gia tốc kế qua `expo.modules.location.LocationModule`;
+    HAL phát gyro ~2,4 ms/mẫu (FASTEST), từ kế 20 ms/mẫu; từ kế đọc |B| ≈ 117 µT khi máy đặt cạnh laptop
+    (Trái Đất ≈ 43 µT) → hiệu chuẩn/nhiễu môi trường kém, đích la bàn không tin được lúc xoay.
+    `dumpsys gfxinfo`: 817 khung, 0,49 % janky → UI thread RN không phải nguồn giật.
+
 ## 11. Rủi ro và giảm thiểu
 
 | Rủi ro | Ảnh hưởng | Giảm thiểu |

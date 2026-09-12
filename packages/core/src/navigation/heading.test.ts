@@ -91,8 +91,9 @@ describe('createHeadingFilter', () => {
     f.compass(compass(0, T0));
     for (let t = 0; t <= 3000; t += 50) f.gyro({ z_dps: 0, timestamp: t }, T0 + t);
     expect(f.current()?.heading).toBe(0);
-    // la bàn im 3 s rồi báo 4° (la bàn trễ hơn gyro) → mẫu la bàn KHÔNG đổi góc
-    expect(f.compass(compass(4, T0 + 3000))?.heading).toBe(0);
+    // la bàn im 3 s rồi báo 4° (la bàn trễ hơn gyro) → mẫu la bàn KHÔNG đổi góc, cũng không phát
+    expect(f.compass(compass(4, T0 + 3000))).toBeNull();
+    expect(f.current()?.heading).toBe(0);
     // bước gyro 50 ms kế tiếp chỉ kéo 1 − e^(−0,05/0,7) ≈ 6,9 % của 4°
     const a = f.gyro({ z_dps: 0, timestamp: 3050 }, T0 + 3050);
     expect(a?.heading).toBeCloseTo(0.276, 2);
@@ -123,6 +124,46 @@ describe('createHeadingFilter', () => {
     f.gyro({ z_dps: 0, timestamp: 100 }, T0 + 100);
     // 1,9 s không có gyro → coi như chết → alpha = 1 − e^(−2/0,2) ≈ 1
     expect(f.compass(compass(90, T0 + 2000))?.heading).toBeCloseTo(90, 1);
+  });
+
+  it('xoay nhanh: lực kéo la bàn giảm 1/(1+(ω/ref)²) — đích lệch 15° ở 90°/s chỉ kéo ≤ 0,15°/bước; đứng yên kéo đủ', () => {
+    // Android (Mi 9, 13/09): la bàn expo-location là accel+mag thô, khi xoay đích lệch/nhiễu hàng chục độ →
+    // kéo 6,9 %/bước thành cú giật ~1°/bước. Gyro đã hiệu chuẩn thì lúc xoay nhanh chỉ nên tin gyro.
+    const mk = (over = {}) =>
+      createHeadingFilter({ tau_s: 0.7, minInterval_ms: 0, minDelta_deg: 0, ...over });
+    const run = (f: ReturnType<typeof mk>) => {
+      f.compass(compass(0, T0));
+      f.gyro({ z_dps: 0, timestamp: 0 }, T0);
+      f.gyro({ z_dps: 0, timestamp: 50 }, T0 + 50);
+      f.compass(compass(15, T0 + 60)); // đích nhảy 15° (la bàn thô lệch khi xoay)
+      const h = f.gyro({ z_dps: 90, timestamp: 100 }, T0 + 100)?.heading ?? 0; // −4,5° tích phân
+      return signedDiffDeg(h, -4.5); // phần do kéo về đích
+    };
+    expect(run(mk())).toBeLessThan(0.15); // 19,5° × 6,9 % × 1/(1+3²) ≈ 0,134
+    expect(run(mk({ pullFadeRate_dps: Number.POSITIVE_INFINITY }))).toBeCloseTo(1.34, 1); // không giảm = bản trước
+    // đứng yên (ω = 0): kéo đủ 6,9 % của 15°
+    const still = mk();
+    still.compass(compass(0, T0));
+    still.gyro({ z_dps: 0, timestamp: 0 }, T0);
+    still.gyro({ z_dps: 0, timestamp: 50 }, T0 + 50);
+    still.compass(compass(15, T0 + 60));
+    expect(still.gyro({ z_dps: 0, timestamp: 100 }, T0 + 100)?.heading).toBeCloseTo(1.03, 1);
+  });
+
+  it('gyro sống: mẫu la bàn KHÔNG phát (chỉ đổi đích) — nhịp phát do gyro giữ đều, không chen giữa', () => {
+    const f = createHeadingFilter({
+      tau_s: Number.POSITIVE_INFINITY,
+      minInterval_ms: 50,
+      minDelta_deg: 1,
+    });
+    expect(f.compass(compass(0, T0))).not.toBeNull(); // mẫu đầu vẫn phát
+    f.gyro({ z_dps: 0, timestamp: 0 }, T0);
+    f.gyro({ z_dps: 0, timestamp: 50 }, T0 + 50);
+    expect(f.gyro({ z_dps: -40, timestamp: 150 }, T0 + 150)?.heading).toBeCloseTo(4, 6); // phát
+    expect(f.gyro({ z_dps: -60, timestamp: 190 }, T0 + 190)).toBeNull(); // 40 ms → chặn, est = 6,4
+    // Bản cũ: la bàn đến lúc 205 ms (55 ms sau lần phát) thấy est đổi ≥ 1° → phát chen, làm gyro 240 ms bị chặn.
+    expect(f.compass(compass(6, T0 + 205))).toBeNull();
+    expect(f.gyro({ z_dps: 0, timestamp: 240 }, T0 + 240)?.heading).toBeCloseTo(6.4, 6);
   });
 
   it('phát thưa: cách ≥ minInterval_ms và đổi ≥ minDelta_deg (chỉ định rõ, không phụ thuộc mặc định)', () => {

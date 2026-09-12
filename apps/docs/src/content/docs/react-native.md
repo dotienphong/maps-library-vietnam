@@ -133,7 +133,8 @@ Người dùng kéo bản đồ → tắt bám; `useMap().userLocation.recenter(
 (puck dẫn đường thay thế, không có hai luồng GPS); phiên dừng thì hiện lại.
 
 Entry `/expo` cần `expo-sensors` ngoài `expo-location`: `npx expo install expo-location expo-sensors`
-và plugin `expo-sensors` trong `app.json` (xem [Dẫn đường React Native](/dan-duong-react-native/) mục 1–2).
+và plugin `expo-sensors` trong `app.json`, kèm quyền Android `HIGH_SAMPLING_RATE_SENSORS` để gyro chạy
+đủ nhịp trên Android 12+ (xem [Dẫn đường React Native](/dan-duong-react-native/) mục 1–2).
 Đọc hướng cho UI riêng: `useHeading(heading)`.
 
 ## 7. Giới hạn hiện tại
