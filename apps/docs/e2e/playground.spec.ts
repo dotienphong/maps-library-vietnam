@@ -360,3 +360,66 @@ test('đổi phương tiện → gọi lại directions và URL có tmode=car', 
   await expect.poll(() => calls).toBe(before + 1);
   expect(new URL(page.url()).searchParams.get('tmode')).toBe('car');
 });
+
+test('Giả lập: banner rẽ, phụ đề "Trong … nữa", đến nơi rồi trở về thẻ; ✕ xoá tuyến', async ({
+  page,
+}) => {
+  await page.goto(`${NAV_URL}&rate=20`);
+  await expect(page.locator('#nav-simulate')).toBeEnabled({ timeout: 30_000 });
+  const subtitles: string[] = [];
+  await page.exposeFunction('__recordSubtitle', (t: string) => subtitles.push(t));
+  await page.evaluate(() => {
+    const node = document.getElementById('nav-subtitle');
+    if (!node) return;
+    new MutationObserver(() => {
+      const text = node.textContent ?? '';
+      if (text) (window as unknown as { __recordSubtitle(t: string): void }).__recordSubtitle(text);
+    }).observe(node, { childList: true, characterData: true, subtree: true });
+  });
+
+  await page.locator('#nav-simulate').click();
+  await expect(page.locator('#nav-card')).toBeHidden();
+  await expect(page.locator('#nav-banner')).toHaveAttribute('data-status', 'navigating', {
+    timeout: 10_000,
+  });
+  await expect(page.locator('#nav-bar')).toContainText('phút');
+  await expect(page.locator('#nav-banner')).toHaveAttribute('data-status', 'arrived', {
+    timeout: 30_000,
+  });
+  await expect(page.locator('#nav-card')).toBeVisible({ timeout: 6_000 });
+
+  expect(subtitles.length).toBeGreaterThanOrEqual(10);
+  expect(subtitles.some((t) => t.startsWith('Trong '))).toBe(true);
+  expect(subtitles.at(-1)).toBe('Điểm đến ở bên trái.');
+  const stillDrawn = await page.evaluate(() =>
+    Boolean(
+      (window as unknown as { __map: { gl: { getLayer(id: string): unknown } } }).__map.gl.getLayer(
+        'mapslibvn-route-line',
+      ),
+    ),
+  );
+  expect(stillDrawn).toBe(true);
+
+  await page.locator('#nav-exit').click();
+  await expect(page.locator('#panel')).toBeVisible();
+  const routeFeatures = await page.evaluate(
+    () =>
+      (
+        window as unknown as { __map: { gl: { querySourceFeatures(id: string): unknown[] } } }
+      ).__map.gl.querySourceFeatures('mapslibvn-route').length,
+  );
+  expect(routeFeatures).toBe(0);
+});
+
+test('Dừng giữa chừng → về thẻ, trạng thái idle, Bắt đầu bật lại', async ({ page }) => {
+  await page.goto(`${NAV_URL}&rate=5`);
+  await expect(page.locator('#nav-simulate')).toBeEnabled({ timeout: 30_000 });
+  await page.locator('#nav-simulate').click();
+  await expect(page.locator('#nav-banner')).toHaveAttribute('data-status', 'navigating', {
+    timeout: 10_000,
+  });
+  await page.locator('#nav-stop').click();
+  await expect(page.locator('#nav-banner')).toBeHidden();
+  await expect(page.locator('#nav-card')).toBeVisible();
+  await expect(page.locator('#nav-start')).toBeEnabled();
+});

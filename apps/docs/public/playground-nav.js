@@ -5,6 +5,7 @@
 import {
   TRAVEL_MODES,
   directionsRequest,
+  etaLabel,
   pointFromAutocomplete,
   pointFromLngLat,
   pointFromPoi,
@@ -14,6 +15,10 @@ import {
 /** @typedef {import('/playground-lib.js').NavPoint} NavPoint */
 
 const MY_LOCATION_LABEL = 'Vị trí của tôi';
+/** Phụ đề câu vừa đọc hiện bấy nhiêu ms. */
+const SUBTITLE_MS = 4000;
+/** Banner "Đã đến nơi" giữ bấy nhiêu ms rồi trở về thẻ lập kế hoạch. */
+const ARRIVED_HOLD_MS = 3000;
 
 /** Ký hiệu theo `ManeuverKind` (spec A) — glyph hình học, không phụ thuộc font emoji. */
 const ICONS = {
@@ -101,6 +106,10 @@ export function initNavigation(deps) {
   let response = null;
   let activeRoute = 0;
   let requestId = 0;
+  /** @type {ReturnType<typeof setTimeout> | null} */
+  let subtitleTimer = null;
+  /** @type {ReturnType<typeof setTimeout> | null} */
+  let arrivedTimer = null;
   const provider = deps.fixture
     ? { directions: async () => (await fetch('/fixtures/directions-q1.json')).json() }
     : map.places;
@@ -333,6 +342,119 @@ export function initNavigation(deps) {
     }
   }
 
+  /** @param {'plan' | 'nav'} next */
+  const setPhase = (next) => {
+    phase = next;
+    document.body.dataset.navPhase = next;
+    card.hidden = next !== 'plan';
+    el('nav-banner').hidden = next !== 'nav';
+    el('nav-bar').hidden = next !== 'nav';
+  };
+
+  /** @param {string} text */
+  const showSubtitle = (text) => {
+    const node = el('nav-subtitle');
+    node.textContent = text;
+    node.hidden = false;
+    if (subtitleTimer) clearTimeout(subtitleTimer);
+    subtitleTimer = setTimeout(() => {
+      node.hidden = true;
+    }, SUBTITLE_MS);
+  };
+
+  /** @param {string} status */
+  const setBanner = (status) => {
+    el('nav-banner').dataset.status = status;
+  };
+
+  function backToPlan() {
+    if (arrivedTimer) clearTimeout(arrivedTimer);
+    arrivedTimer = null;
+    setPhase('plan');
+    el('nav-recenter').hidden = true;
+    el('nav-start').disabled = response === null;
+    el('nav-simulate').disabled = response === null;
+  }
+
+  /** @param {boolean} simulate */
+  function startNav(simulate) {
+    const route = response?.routes[activeRoute];
+    if (!response || !route) return;
+    const options = {
+      response,
+      routeIndex: activeRoute,
+      provider,
+      lang: deps.lang,
+      voice: !simulate,
+    };
+    if (simulate) {
+      options.source = sdk.playbackSource(sdk.simulateFixes(route, { jitter_m: 4, seed: 7 }), {
+        rate: deps.rate,
+      });
+    }
+    popup?.remove();
+    setBanner('navigating');
+    el('nav-icon').textContent = '•';
+    el('nav-distance').textContent = '—';
+    el('nav-instruction').textContent = 'Đang chờ vị trí…';
+    el('nav-eta').textContent = '—';
+    el('nav-subtitle').hidden = true;
+    setPhase('nav');
+    map.navigation.start(options);
+  }
+
+  map.navigation.on('progress', (p) => {
+    const next = p.nextStep ?? p.step;
+    el('nav-icon').textContent = ICONS[next.kind] ?? '•';
+    el('nav-distance').textContent = sdk.formatDistanceShort(p.distanceToStep_m);
+    el('nav-instruction').textContent = next.instruction;
+    el('nav-eta').textContent = etaLabel(p.remaining_s, p.remaining_m, Date.now());
+  });
+  map.navigation.on('announce', (a) => showSubtitle(a.text));
+  map.navigation.on('status', (e) => {
+    if (phase !== 'nav') return;
+    setBanner(e.status);
+    if (e.status === 'off_route') el('nav-instruction').textContent = 'Lệch tuyến — đang tính lại…';
+    if (e.status === 'arrived') {
+      el('nav-icon').textContent = '⚑';
+      el('nav-distance').textContent = '';
+      el('nav-instruction').textContent = 'Đã đến nơi';
+      arrivedTimer = setTimeout(backToPlan, ARRIVED_HOLD_MS);
+    }
+  });
+  map.navigation.on('reroute', (e) => {
+    response = e.response;
+    activeRoute = 0;
+    renderRoutes();
+    renderSteps();
+  });
+  map.navigation.on('rerouteFailed', (e) => {
+    showSubtitle(`Không tính lại được (${e.attempts}/3)${e.final ? ' — dừng tự tính' : ''}`);
+  });
+  map.navigation.on('positionError', (e) => {
+    if (e.code === 'denied' && phase === 'nav') {
+      map.navigation.stop();
+      setBanner('error');
+      el('nav-instruction').textContent = 'Mất quyền vị trí — bấm Dừng rồi cho phép lại';
+    } else {
+      showSubtitle(`GPS: ${e.message}`);
+    }
+  });
+  map.navigation.on('voiceUnavailable', () =>
+    showSubtitle('Máy không có giọng tiếng Việt — xem phụ đề'),
+  );
+  map.navigation.on('followChange', (following) => {
+    el('nav-recenter').hidden = following;
+  });
+
+  el('nav-start').addEventListener('click', () => startNav(false));
+  el('nav-simulate').addEventListener('click', () => startNav(true));
+  el('nav-stop').addEventListener('click', () => {
+    map.navigation.stop();
+    backToPlan();
+  });
+  el('nav-recenter').addEventListener('click', () => map.navigation.recenter());
+
   function enter() {
     if (active) return;
     active = true;
@@ -348,8 +470,10 @@ export function initNavigation(deps) {
 
   function exit() {
     if (!active) return;
+    if (subtitleTimer) clearTimeout(subtitleTimer);
+    if (arrivedTimer) clearTimeout(arrivedTimer);
     if (phase === 'nav') map.navigation.stop();
-    phase = 'plan';
+    setPhase('plan');
     active = false;
     popup?.remove();
     fromMarker?.remove();
