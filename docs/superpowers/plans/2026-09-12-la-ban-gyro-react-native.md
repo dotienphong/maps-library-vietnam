@@ -2433,7 +2433,7 @@ Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>"
 - Modify: `packages/react-native/src/index.ts`
 - Create: `packages/react-native/src/map-user-location.test.tsx`
 
-- [ ] **Step 1: Viết test đỏ**
+- [x] **Step 1: Viết test đỏ**
 
 ```tsx
 // packages/react-native/src/map-user-location.test.tsx
@@ -2567,12 +2567,12 @@ describe('<MapsLibVNMap userLocation>', () => {
 });
 ```
 
-- [ ] **Step 2: Chạy test, xác nhận đỏ**
+- [x] **Step 2: Chạy test, xác nhận đỏ**
 
 Run: `pnpm exec vitest run packages/react-native/src/map-user-location.test.tsx`
 Expected: FAIL — `handle.userLocation` là `undefined`; prop `userLocation` báo lỗi kiểu.
 
-- [ ] **Step 3: `context.ts`**
+- [x] **Step 3: `context.ts`**
 
 Thêm import và trường:
 
@@ -2587,7 +2587,7 @@ Trong `MapHandle`, sau trường `navigation: MapNavigationBinding;` thêm:
   userLocation: UserLocationHandle;
 ```
 
-- [ ] **Step 4: `map.tsx`**
+- [x] **Step 4: `map.tsx`**
 
 Thêm import (sau dòng import `use-style`):
 
@@ -2663,7 +2663,7 @@ Trong JSX, ngay sau `<RouteLayers … />` (trước `{children}`) thêm:
             />
 ```
 
-- [ ] **Step 5: `index.ts` — xuất mới**
+- [x] **Step 5: `index.ts` — xuất mới**
 
 Thêm vào `packages/react-native/src/index.ts` (sau dòng `export { COMPACT_ATTRIBUTION } …`):
 
@@ -2684,12 +2684,12 @@ Trong khối `export { … } from '@mapslibvn/core';` thêm `MOVING_SPEED_MPS, c
 
 Trong khối `export type { … } from '@mapslibvn/core';` thêm `CompassSample, HeadingAccuracy, HeadingError, HeadingFilter, HeadingFilterOptions, HeadingFix, HeadingSource, RotationRate` theo thứ tự chữ cái.
 
-- [ ] **Step 6: Chạy toàn bộ test RN + typecheck + lint**
+- [x] **Step 6: Chạy toàn bộ test RN + typecheck + lint**
 
 Run: `pnpm --filter @mapslibvn/core build && pnpm exec vitest run packages/react-native && pnpm --filter @mapslibvn/react-native typecheck && pnpm lint`
 Expected: PASS toàn bộ; typecheck sạch; Biome sạch (Biome sắp lại import/export nếu sai thứ tự — chạy `pnpm exec biome check --write packages/react-native/src/index.ts` rồi kiểm lại).
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add packages/react-native/src/context.ts packages/react-native/src/map.tsx packages/react-native/src/index.ts packages/react-native/src/map-user-location.test.tsx
