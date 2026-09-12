@@ -609,6 +609,8 @@ Vitest root, jsdom, mock như M6 (`packages/react-native/src/test/`). Không có
   sau khi start; cần restart task hoặc module riêng.
 - UI đóng gói (banner, ETA) dạng component tuỳ chọn khi có tenant cần.
 - Phiên chạy trong Node cho máy chủ tính ETA tài xế: core đã đủ, chỉ cần docs.
+- **La bàn + con quay hồi chuyển** (puck theo hướng máy khi đứng yên, chấm xanh có nón, `useHeading`):
+  spec riêng `2026-09-12-la-ban-gyro-react-native-design.md` (12/09/2026).
 
 ## 13. Nghiệm thu spec C — **7/7 ĐẠT**, 12/09/2026 (tiêu chí 3/4/5 đóng theo quyết định PHONG)
 
