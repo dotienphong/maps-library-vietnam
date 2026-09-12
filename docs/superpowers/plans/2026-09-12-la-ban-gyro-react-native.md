@@ -3293,7 +3293,7 @@ Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>"
 - Modify: `THIRD_PARTY_NOTICES.md` (gốc), rồi `pnpm notices:sync` copy vào 4 gói
 - Modify: `packages/react-native/README.md`
 
-- [ ] **Step 1: Notices gốc**
+- [x] **Step 1: Notices gốc**
 
 Trong `THIRD_PARTY_NOTICES.md`, thay dòng bảng:
 
@@ -3321,12 +3321,12 @@ bằng:
 
 (Nguyên văn MIT của 650 Industries bên dưới giữ nguyên — cùng chủ sở hữu.)
 
-- [ ] **Step 2: Đồng bộ và kiểm**
+- [x] **Step 2: Đồng bộ và kiểm**
 
 Run: `pnpm notices:sync && node scripts/notices-sync.mjs --check`
 Expected: 4 bản sao được ghi; `--check` báo khớp gốc.
 
-- [ ] **Step 3: README gói — phần tiếng Anh**
+- [x] **Step 3: README gói — phần tiếng Anh**
 
 Trong `packages/react-native/README.md`, phần "## Why teams pick it", sau bullet `🔐 **Privacy-conscious by default**` thêm:
 
@@ -3353,7 +3353,7 @@ const fix = useHeading(heading);                                         // { he
 `expoNavigation()` already includes the heading source, so the navigation puck follows the phone while stationary (≤ 1 m/s) and goes back to GPS when moving. Pass `follow={{ bearing: 'heading' }}` for a heading-up camera while walking.
 ````
 
-- [ ] **Step 4: README gói — phần tiếng Việt**
+- [x] **Step 4: README gói — phần tiếng Việt**
 
 Trong "## Vì sao nên chọn", sau bullet `🔐 **Tôn trọng quyền riêng tư mặc định**` thêm:
 
@@ -3380,12 +3380,12 @@ const fix = useHeading(heading);                                         // { he
 `expoNavigation()` đã kèm nguồn hướng: puck dẫn đường xoay theo máy khi đứng yên (≤ 1 m/s), chạy lại theo GPS. Truyền `follow={{ bearing: 'heading' }}` để bản đồ xoay theo hướng nhìn khi đi bộ.
 ````
 
-- [ ] **Step 5: Kiểm không có số version SDK trong README**
+- [x] **Step 5: Kiểm không có số version SDK trong README**
 
 Run: `grep -n "0\.[0-9]\.[0-9]" packages/react-native/README.md`
 Expected: không có dòng nào (badge shields.io không chứa số cứng).
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add THIRD_PARTY_NOTICES.md packages/core/THIRD_PARTY_NOTICES.md packages/web/THIRD_PARTY_NOTICES.md packages/react/THIRD_PARTY_NOTICES.md packages/react-native/THIRD_PARTY_NOTICES.md packages/react-native/README.md
