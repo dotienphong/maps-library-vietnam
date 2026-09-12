@@ -15,7 +15,12 @@ import {
   simulateFixes,
   usePlaces,
 } from '@mapslibvn/react-native';
-import { expoKeepAwake, expoNavigation, expoSpeech } from '@mapslibvn/react-native/expo';
+import {
+  expoAudioSession,
+  expoKeepAwake,
+  expoNavigation,
+  expoSpeech,
+} from '@mapslibvn/react-native/expo';
 import * as Application from 'expo-application';
 import * as Location from 'expo-location';
 import { StatusBar } from 'expo-status-bar';
@@ -173,6 +178,9 @@ export default function App() {
               source: playbackSource(simulateFixes(route, { jitter_m: 4 }), { rate: 4 }),
               speech: expoSpeech(),
               keepAwake: expoKeepAwake(),
+              // Giả lập vẫn cần audio: thiếu bước kích hoạt AVAudioSession + giữ phiên là lý do
+              // giọng đọc im lặng hoàn toàn khi khoá màn hình (phát hiện thực địa 12/09/2026).
+              audio: expoAudioSession(),
             });
       if (s !== session) await session.stop();
       setSession(s);
