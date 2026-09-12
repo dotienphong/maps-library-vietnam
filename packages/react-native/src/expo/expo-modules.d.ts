@@ -98,12 +98,37 @@ declare module 'expo-audio' {
    * (phát hiện thực địa 12/09/2026).
    */
   export function setIsAudioActiveAsync(active: boolean): Promise<void>;
+  export interface AudioMetadata {
+    title?: string;
+    artist?: string;
+    albumTitle?: string;
+    artworkUrl?: string;
+  }
+  export interface AudioLockScreenOptions {
+    showSeekForward?: boolean;
+    showSeekBackward?: boolean;
+    isLiveStream?: boolean;
+  }
   export interface AudioPlayer {
     loop: boolean;
     volume: number;
     play(): void;
     pause(): void;
     remove(): void;
+    /**
+     * Đăng ký (hoặc gỡ) player này làm phiên media "đang phát" chính thức của hệ điều hành —
+     * trên Android đây là bước để có `MediaSessionService` (foreground service riêng, độc lập
+     * với foreground service định vị) giữ tiến trình sống khi khoá màn hình; thiếu bước này,
+     * app đứng yên hoàn toàn khi khoá máy dù đã có foreground service định vị (xác nhận thực
+     * địa Android thật 12/09/2026: `serviceTypes=8` của vị trí vẫn còn nhưng JS/TTS không chạy
+     * tiếp). Tài liệu expo-audio khuyến nghị `interruptionMode: 'doNotMix'` để hệ điều hành gán
+     * đúng quyền điều khiển màn khoá cho player này.
+     */
+    setActiveForLockScreen(
+      active: boolean,
+      metadata?: AudioMetadata,
+      options?: AudioLockScreenOptions,
+    ): void;
   }
   export interface AudioPlayerOptions {
     keepAudioSessionActive?: boolean;

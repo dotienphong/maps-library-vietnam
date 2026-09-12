@@ -5,19 +5,24 @@ import { SILENT_AUDIO_DATA_URI } from './silence-audio';
 /**
  * Phiên âm thanh để giọng đọc phát khi khoá máy và làm nhỏ nhạc đang phát (spec C 6.3).
  *
- * Hai bước đều bắt buộc, xác nhận bằng thực địa trên iPhone thật 12/09/2026 (giọng đọc im lặng
- * hoàn toàn ngay khi khoá màn hình cho tới khi vá cả hai):
+ * Ba bước đều bắt buộc, xác nhận bằng thực địa trên máy thật 12/09/2026 (giọng đọc im lặng hoàn
+ * toàn ngay khi khoá màn hình cho tới khi vá đủ cả ba):
  *
- * 1. `setAudioModeAsync` chỉ đặt category AVAudioSession; nó KHÔNG gọi `AVAudioSession.setActive`
- *    (xác nhận trong mã nguồn expo-audio: `AudioModule.swift` hàm `setAudioMode` chỉ
- *    `session.setCategory`, `setActive` nằm ở hàm riêng `setIsAudioActive`) → phải gọi thêm
- *    `setIsAudioActiveAsync(true)`.
+ * 1. `setAudioModeAsync` chỉ đặt category AVAudioSession (iOS); nó KHÔNG gọi
+ *    `AVAudioSession.setActive` (xác nhận trong mã nguồn expo-audio: `AudioModule.swift` hàm
+ *    `setAudioMode` chỉ `session.setCategory`, `setActive` nằm ở hàm riêng `setIsAudioActive`) →
+ *    phải gọi thêm `setIsAudioActiveAsync(true)`.
  * 2. Chỉ kích hoạt phiên KHÔNG đủ: giữa hai câu chỉ dẫn (vài chục giây không có âm thanh nào thật
  *    sự phát ra), iOS coi app không còn dùng "audio" background mode một cách chính đáng và thu hồi
- *    quyền chạy nền — `AVSpeechSynthesizer.speak()` gọi sau đó không phát ra tiếng. Phải phát một
- *    vòng lặp âm thanh (im lặng tuyệt đối, toàn mẫu 0) liên tục trong suốt lúc dẫn đường để giữ phiên
- *    "đang phát" thật sự — đây là kỹ thuật chuẩn của app điều hướng/audiobook, đã ghi làm phương án
- *    dự phòng (a) trong spec C mục 11 rủi ro 1.
+ *    quyền chạy nền. Phải phát một vòng lặp âm thanh (im lặng tuyệt đối, toàn mẫu 0) liên tục trong
+ *    suốt lúc dẫn đường để giữ phiên "đang phát" thật sự.
+ * 3. Trên Android, `play()` một mình KHÔNG khiến hệ điều hành công nhận đây là phiên media đang
+ *    hoạt động: xác nhận thực địa Android thật (Xiaomi/MIUI) 12/09/2026 — dù foreground service
+ *    ĐỊNH VỊ vẫn còn nguyên (`serviceTypes` giữ cờ location suốt lúc khoá máy), JS/TTS vẫn đứng yên
+ *    hoàn toàn. Phải gọi thêm `player.setActiveForLockScreen(true, …)` để có `MediaSessionService`
+ *    — một foreground service RIÊNG, độc lập với foreground service định vị — giữ tiến trình sống.
+ *    Đây là kỹ thuật chuẩn của app điều hướng/audiobook, đã ghi làm phương án dự phòng (a) trong
+ *    spec C mục 11 rủi ro 1 (viết ban đầu cho iOS, hoá ra Android cũng cần bước tương đương).
  */
 export function expoAudioSession(): AudioSession {
   let player: {
@@ -26,6 +31,7 @@ export function expoAudioSession(): AudioSession {
     play(): void;
     pause(): void;
     remove(): void;
+    setActiveForLockScreen(active: boolean, metadata?: { title?: string }): void;
   } | null = null;
 
   return {
@@ -53,8 +59,18 @@ export function expoAudioSession(): AudioSession {
       } catch {
         /* vẫn dẫn đường, chỉ mất bảo hiểm giữ phiên khi nền */
       }
+      try {
+        player?.setActiveForLockScreen(true, { title: 'Đang dẫn đường' });
+      } catch {
+        /* Android: mất bảo hiểm giữ tiến trình sống khi khoá máy, vẫn thử dẫn đường bình thường */
+      }
     },
     async deactivate() {
+      try {
+        player?.setActiveForLockScreen(false);
+      } catch {
+        /* bỏ qua */
+      }
       try {
         player?.pause();
         player?.remove();
