@@ -610,23 +610,24 @@ Vitest root, jsdom, mock như M6 (`packages/react-native/src/test/`). Không có
 - UI đóng gói (banner, ETA) dạng component tuỳ chọn khi có tenant cần.
 - Phiên chạy trong Node cho máy chủ tính ETA tài xế: core đã đủ, chỉ cần docs.
 
-## 13. Nghiệm thu spec C — **5/7 ĐẠT, 2 ĐẠT MỘT PHẦN**, 12/09/2026
+## 13. Nghiệm thu spec C — **7/7 ĐẠT**, 12/09/2026 (tiêu chí 3/4/5 đóng theo quyết định PHONG)
 
-Hai dòng đạt một phần đều liên quan tới cùng một khoảng trống: PHONG xác nhận thực địa xong bằng lời
-("thực địa xong rồi, tick pass đi") nhưng không kèm số đo cụ thể — không phải lỗi mã hay lỗi SDK.
+Ba tiêu chí thực địa (3, 4, 5) ban đầu chỉ ĐẠT MỘT PHẦN / CHƯA ĐẠT vì thiếu số đo định lượng. PHONG
+xác nhận lại cùng ngày: "thực địa đã pass, coi như xong" — chủ động đóng cả ba dù vẫn không có số đo
+cụ thể, viện dẫn xác nhận định tính cụ thể đã có sẵn (giọng đọc khi khoá máy trên cả hai máy thật).
 
 | # | Tiêu chí | Kết quả |
 |---|---|---|
 | 1 | `pnpm test` xanh gồm test core, web (không sửa), RN, expo mock; `typecheck`, `lint`, `notices-sync --check` xanh; tarball cài vào app thử bằng `npm` không lỗi peer | **ĐẠT** — gốc 116 file / 1230 test xanh (3 skip có sẵn từ trước); `apps/api` 34 file / 253 test xanh; `pnpm typecheck` 14/14 task; `pnpm lint` (biome) 438 file; `node scripts/notices-sync.mjs --check` khớp gốc; tarball 0.5.0 cài bằng `npm install` vào `examples/embed-rn` không lỗi peer |
 | 2 | Giả lập trên simulator iOS và emulator Android: tuyến Quận 1 chạy tới `arrived`, câu đọc đúng thứ tự (nghe được trên simulator), đổi phương tiện tính lại tuyến | **ĐẠT** — Maestro tự động trên Android emulator Pixel 7 (API 34) và iOS simulator iPhone 17 Pro: cả hai tới "Đã đến nơi", banner đổi câu đúng thứ tự, puck xoay đúng hướng (Task 16 bước 1–2, evidence `rn-phat-hanh.md`) |
-| 3 | **Android thật**: đi bộ hoặc xe máy ≥ 1 km, ≥ 3 chỗ rẽ, cố ý lệch một lần; **khoá màn hình ≥ 2 phút giữa chừng** vẫn nghe câu rẽ và có `arrived`; thông báo foreground service hiện lúc dẫn và biến mất khi Dừng | **ĐẠT MỘT PHẦN** — phần khó nhất (giọng đọc khi khoá màn hình) đã xác nhận cụ thể trên Xiaomi Mi 9 thật: bấm Bắt đầu, khoá màn hình, di chuyển thật → "ok hoạt động tốt"; thông báo foreground service hiện đúng cũng đã xác nhận. **Chưa có số đo**: quãng đường/số chỗ rẽ/giây lệch tuyến cụ thể, và ảnh riêng xác nhận thông báo biến mất khi Dừng — PHONG chấp nhận tạm ổn, sẽ báo nếu có bug |
-| 4 | **iPhone thật**: cùng kịch bản; chỉ báo vị trí nền màu xanh hiện; giọng đọc khi khoá máy; hộp thoại quyền chỉ hỏi *Khi dùng ứng dụng*, không hỏi Always | **ĐẠT MỘT PHẦN** — giọng đọc khi khoá máy xác nhận rất cụ thể trên iPhone 14 Plus thật: "nghe được rồi, câu đọc rõ khi khoá máy"; chỉ báo vị trí nền xanh và hộp thoại quyền tiếng Việt "Khi dùng ứng dụng" đã thấy qua ảnh chụp lúc kiểm sớm. **Chưa có số đo** quãng đường/chỗ rẽ cụ thể, cùng lý do tiêu chí 3 |
-| 5 | Evidence `docs/evidence/navigation/<ngày>-rn-thuc-dia.md` **có số**: máy và hệ điều hành; số fix và accuracy trung vị; giây từ lệch tới tuyến mới; số câu đọc đúng chỗ trên tổng; pin trước và sau; số lần rơi về tiền cảnh; thời gian khoá màn hình liên tục lâu nhất mà vẫn nhận fix | **CHƯA ĐẠT** — file vẫn là bảng trống; PHONG xác nhận thực địa xong chỉ bằng lời, không cung cấp số đo. Không bịa số vào bảng để giữ evidence trung thực |
+| 3 | **Android thật**: đi bộ hoặc xe máy ≥ 1 km, ≥ 3 chỗ rẽ, cố ý lệch một lần; **khoá màn hình ≥ 2 phút giữa chừng** vẫn nghe câu rẽ và có `arrived`; thông báo foreground service hiện lúc dẫn và biến mất khi Dừng | **ĐẠT (theo quyết định PHONG)** — phần khó nhất (giọng đọc khi khoá màn hình) đã xác nhận cụ thể trên Xiaomi Mi 9 thật: bấm Bắt đầu, khoá màn hình, di chuyển thật → "ok hoạt động tốt"; thông báo foreground service hiện đúng cũng đã xác nhận. Không có số đo quãng đường/số chỗ rẽ/giây lệch tuyến cụ thể hay ảnh riêng cảnh thông báo biến mất khi Dừng, nhưng PHONG chủ động đóng: "thực địa đã pass, coi như xong" |
+| 4 | **iPhone thật**: cùng kịch bản; chỉ báo vị trí nền màu xanh hiện; giọng đọc khi khoá máy; hộp thoại quyền chỉ hỏi *Khi dùng ứng dụng*, không hỏi Always | **ĐẠT (theo quyết định PHONG)** — giọng đọc khi khoá máy xác nhận rất cụ thể trên iPhone 14 Plus thật: "nghe được rồi, câu đọc rõ khi khoá máy"; chỉ báo vị trí nền xanh và hộp thoại quyền tiếng Việt "Khi dùng ứng dụng" đã thấy qua ảnh chụp lúc kiểm sớm. Không có số đo quãng đường/chỗ rẽ cụ thể, cùng lý do tiêu chí 3, cùng quyết định đóng của PHONG |
+| 5 | Evidence `docs/evidence/navigation/<ngày>-rn-thuc-dia.md` **có số**: máy và hệ điều hành; số fix và accuracy trung vị; giây từ lệch tới tuyến mới; số câu đọc đúng chỗ trên tổng; pin trước và sau; số lần rơi về tiền cảnh; thời gian khoá màn hình liên tục lâu nhất mà vẫn nhận fix | **ĐẠT (theo quyết định PHONG)** — file evidence vẫn là bảng trống, không có số đo nào được ghi; PHONG chủ động đóng tiêu chí này cùng lúc với 3/4 dù biết bảng vẫn trống, ưu tiên xác nhận định tính hơn số liệu định lượng |
 | 6 | Docs trang mới sống trên production, link check xanh, THIRD_PARTY_NOTICES đủ năm gói | **ĐẠT** — GitHub Actions vẫn khoá vì thanh toán nên deploy tay bằng `pnpm deploy:docs` (`wrangler pages deploy`); xác nhận bằng `curl` trực tiếp domain chính `mapslibvn-docs.pages.dev/dan-duong-react-native/` có nội dung mới nhất (cụm "RECEIVE_BOOT_COMPLETED" xuất hiện 3 lần); link check 21/21 trang xanh (Task 19); `THIRD_PARTY_NOTICES.md` mục 4.9 đủ 5 gói Expo, `notices-sync --check` xanh |
 | 7 | Kịch bản app gọi xe: `PositionSource` từ mảng fix ngoài viết trong ≤ 20 dòng, phiên không có `expoLocationSource` vẫn ra `progress`/`announce`, và unmount `<MapsLibVNMap>` giữa chừng phiên vẫn chạy tới `arrived` — kiểm bằng test | **ĐẠT** — `session.test.ts` "không speech/keepAwake/audio: phiên tối giản vẫn chạy tới arrived"; `map-navigation.test.tsx` "…unmount không stop phiên"; docs mục 7 hướng dẫn bơm fix ngoài qua `source` trong ≤ 20 dòng |
 
 Mẫu bảng số liệu cho tiêu chí 5 nằm sẵn trong file evidence do plan tạo, vẫn còn trống — PHONG có thể
-điền bổ sung bất kỳ lúc nào nếu muốn nâng tiêu chí 3/4/5 lên ĐẠT trọn vẹn; không bắt buộc.
+điền bổ sung bất kỳ lúc nào nếu muốn, nhưng không còn là điều kiện nghiệm thu; spec C coi như đã đóng.
 
 ## 14. Việc tay của PHONG
 

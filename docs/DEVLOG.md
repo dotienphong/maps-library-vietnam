@@ -5,6 +5,20 @@ commit với code).
 
 ## 1. Trạng thái hiện tại
 
+- **12/09/2026 — PHONG chốt đóng cả ba spec dẫn đường A/B/C trong cùng một quyết định.** "A/ quên
+  GitHub Actions đi vì tôi chưa có tiền đóng, coi như pass, build lạnh và ấm đã ok. B/ thực địa đã
+  pass, coi như xong. C/ thực địa đã pass, coi như xong." Kết quả: **A 6/7 ĐẠT** (dòng CI đóng theo
+  quyết định; dòng khoá `free` bị thu hồi VẪN treo, PHONG chưa nhắc tới — xem DEVLOG mục 12); **B
+  4/7 ĐẠT** (chỉ dòng thực địa đóng; ba dòng size-limit/trang demo bị gỡ KHÔNG đổi vì không liên quan
+  thực địa — xem spec B mục 11); **C 7/7 ĐẠT** (cả ba tiêu chí thực địa đều đóng — xem DEVLOG mục 13
+  và spec C mục 13). Không dòng nào có thêm số đo mới; đây đều là quyết định chấp nhận rủi ro của
+  PHONG, ghi rõ trong từng bảng để không lẫn với "đã đo được". Bốn gói SDK (core/web/react/react-native)
+  đều đã ở 0.5.0 local, khớp version — đủ điều kiện `pnpm sdk:publish`. Registry npm chưa có phiên đăng
+  nhập (`npm whoami` trả 401) nên trước khi publish cần `npm login`; quy trình an toàn: chạy
+  `pnpm sdk:publish --dry-run` trước (gate lint/typecheck/test/build + giả lập publish, không đẩy thật),
+  rồi mới `pnpm sdk:publish` (không cờ) — lệnh này tự chạy gate rồi publish THẬT cả 4 gói liên tiếp,
+  không dừng lại hỏi giữa chừng.
+
 - **12/09/2026 — Dẫn đường spec C ĐÃ NGHIỆM THU: 5/7 ĐẠT, 2 ĐẠT MỘT PHẦN (mục 13).** Task 20 (thực
   địa hai máy) xong theo xác nhận của PHONG ("thực địa xong rồi, tick pass đi") nhưng không kèm số đo
   cụ thể — hai tiêu chí thực địa (3 Android, 4 iPhone) vì vậy dừng ở ĐẠT MỘT PHẦN, tiêu chí 5 (evidence
@@ -914,10 +928,12 @@ commit với code).
   thật (Task 16 bước 3–4 gộp vào Task 20) → nghiệm thu mục 13 → cân nhắc publish npm (B3) hoặc spec D
   theo tenant đầu tiên.
 
-  Hai việc còn nợ của spec A (chưa đổi): (1) chạy `gh workflow run "Routing tests"` và ghi ID run vào
-  `docs/evidence/routing/2026-09-11-nghiem-thu-production.md` khi GitHub Actions được mở lại (đang khoá
-  vì thanh toán từ 10/09); (2) đo **build lạnh** graph Việt Nam — số 1 phút 59 giây hiện có là build ấm
-  chồng lên thư mục tile cũ, chưa dùng để ước lượng thời gian dựng máy chủ mới được.
+  Hai việc còn nợ của spec A — **PHONG chấp nhận đóng cả hai 12/09/2026, không chờ thêm**: (1) chạy
+  `gh workflow run "Routing tests"` khi GitHub Actions mở lại — bỏ qua vì chưa xử lý được thanh toán
+  ("quên GitHub Actions đi vì tôi chưa có tiền đóng, coi như pass"); (2) đo build lạnh graph Việt Nam
+  riêng — PHONG chấp nhận số 1 phút 59 giây build ấm hiện có làm đại diện luôn ("build lạnh và ấm đã
+  ok"), không đo lại trên volume rỗng. Cả hai là quyết định chấp nhận rủi ro của PHONG, không phải có
+  thêm số đo mới.
 
 - **Nguồn POI:** đã phát hành 07/09 (xem mục 1). Profile thứ ba `osm+overture` chỉ làm khi có nhu
   cầu thật (thêm một dòng vào `POI_SOURCE_PROFILES` + một lần `pnpm poi:profile`).
@@ -2570,35 +2586,42 @@ Thao tác tự động bằng Maestro 2.8.0 + `adb input tap`; ảnh trong `docs
   chạm lệch ~10 px là trượt. Với ngón tay thật nên cân nhắc truy vấn theo khung nhỏ quanh điểm —
   ghi lại làm việc cần xem xét, chưa sửa trong M6.
 
-## 12. Nghiệm thu spec dẫn đường A (spec mục 11) — **5/7 ĐẠT, 2 ĐẠT MỘT PHẦN**, 11/09/2026
+## 12. Nghiệm thu spec dẫn đường A (spec mục 11) — **6/7 ĐẠT, 1 ĐẠT MỘT PHẦN**, 11/09/2026 (cập nhật 12/09/2026)
 
-Hai dòng đạt một phần đều **không phải lỗi mã**: dòng 3 vướng GitHub Actions bị khoá thanh toán,
-dòng 5 vướng khoá `free` đã bị thu hồi trong audit bảo mật 09/09.
+Dòng 5 đạt một phần vướng khoá `free` đã bị thu hồi trong audit bảo mật 09/09 — vẫn treo, PHONG chưa
+nhắc tới việc này. Dòng 3 (GitHub Actions) **PHONG chủ động chấp nhận đóng 12/09/2026**: "quên GitHub
+Actions đi vì tôi chưa có tiền đóng, coi như pass" — không phải vì CI đã chạy được, mà vì PHONG quyết
+định không coi CI trên GitHub là điều kiện chặn phát hành khi chưa xử lý được thanh toán. Cổng chạy
+tay ở máy dev đã xanh, đó là bằng chứng thay thế được PHONG chấp nhận.
 
 | # | Tiêu chí (spec A mục 11) | Kết quả |
 |---|---|---|
 | 1 | `valhalla` dựng trên máy chủ, graph Việt Nam build xong, `/healthz/routing` production 200 kèm `graph_built_at` | **ĐẠT** — `{"ok":true,"version":"3.8.3","graph_built_at":"2026-09-11T14:40:19.000Z","ms":284}`. Lưu ý: graph dựng bằng `routing-graph.mjs prepare --force` chứ không bằng một lần `server:setup` trên volume rỗng; đường `server:setup` mới chỉ có test, chưa chạy thật trên máy này |
 | 2 | Smoke production: các tuyến trả 200, xe máy liên tỉnh `flags.highway=false`, chỉ dẫn tiếng Việt có dấu, p95 ghi evidence | **ĐẠT** — bốn tuyến (spec yêu cầu ba), 20 lượt mỗi tuyến, `failed 0`; `lien-tinh-xe-may` `highway false`, `lien-tinh-o-to` `highway true`; `vietnamese true` cả bốn; p95 280/326/311/272 ms, ngưỡng chốt 800 ms. `docs/evidence/routing/2026-09-11-nghiem-thu-production.md` |
-| 3 | `pnpm test` xanh, `pnpm test:routing` xanh trên dev với fixture, job DB tests xanh trên CI | **ĐẠT MỘT PHẦN** — `pnpm test` 223 test / 32 file xanh, `node scripts/routing-test.mjs` 7 test xanh, `pnpm test:api-db` 53 test xanh (chạy tay). **Phần CI CHƯA ĐẠT**: GitHub Actions bị khoá vì thanh toán từ 10/09/2026, mọi workflow fail sau 3–23 giây mà job không khởi động. Cổng đã chạy tay ở máy dev |
+| 3 | `pnpm test` xanh, `pnpm test:routing` xanh trên dev với fixture, job DB tests xanh trên CI | **ĐẠT (theo quyết định PHONG 12/09/2026)** — `pnpm test` 223 test / 32 file xanh, `node scripts/routing-test.mjs` 7 test xanh, `pnpm test:api-db` 53 test xanh (chạy tay). Vế CI trên GitHub Actions vẫn không tự chạy được (khoá vì thanh toán từ 10/09/2026), nhưng PHONG chủ động không coi đây là điều kiện chặn: "quên GitHub Actions đi vì tôi chưa có tiền đóng, coi như pass" — cổng chạy tay ở máy dev được chấp nhận thay thế |
 | 4 | `prepare --force` làm graph build lại và phục vụ lại không cần tay; `rollback` quay về graph trước và `/healthz/routing` trả `graph_built_at` cũ | **ĐẠT** — `prepare --force`: cờ 14:38:22Z → phục vụ lại 14:40:21Z, không thao tác tay. `rollback`: cờ 16:20:02Z → `/healthz/routing` trả `graph_built_at` **14:31:24Z** (graph cũ) lúc 16:20:43Z, 41 giây; đảo lại về 14:40:19Z lúc 16:21:23Z |
 | 5 | Quota `directions` đếm được với khoá `free` (kiểm bằng KV), tenant `internal` không đếm | **ĐẠT MỘT PHẦN** — vế `internal` đạt trên production: ~180 lượt `/v1/directions` bằng khoá internal, KV namespace `META` không sinh khoá `quota:` nào (chỉ có `release:current`, `release:history`). Vế `free` **chỉ có unit test** (`pnpm test`, `QUOTA_ENABLED=1`): khoá free duy nhất `mlv_live_freetest…` đã bị thu hồi trong audit bảo mật 09/09 và DB không còn lưu plaintext, nên muốn kiểm thật phải cấp khoá free mới |
 | 6 | Docs site có trang directions; THIRD_PARTY_NOTICES có Valhalla; README máy chủ có mục Cloudflare; evidence có số đo build và p95 | **ĐẠT** — `api.md` có `### GET /v1/directions` + mục quota/cache Chỉ đường, `tinh-nang.md` mục 5, `sdk.md` bảng `directions(opts)` (dạng mục trong trang sẵn có, không phải trang riêng); `THIRD_PARTY_NOTICES.md` có Valhalla (MIT, chạy như dịch vụ riêng); `infra/server/README.md` mục "Việc tay trên Cloudflare" điểm 7 kèm runbook Access-before-Tunnel; evidence có cả số đo build lẫn p95 |
 | 7 | Trạng thái mốc và DEVLOG cập nhật | **ĐẠT** — mục 1, 2, 3, 4 và mục 12 này; `Setup_Local_Guide.md` cập nhật theo số đo thật |
 
-## 13. Nghiệm thu spec dẫn đường C (spec mục 13) — **5/7 ĐẠT, 2 ĐẠT MỘT PHẦN**, 12/09/2026
+## 13. Nghiệm thu spec dẫn đường C (spec mục 13) — **7/7 ĐẠT**, 12/09/2026 (tiêu chí 3/4/5 theo quyết định PHONG)
 
-Hai dòng đạt một phần đều liên quan tới cùng một khoảng trống: PHONG xác nhận thực địa xong bằng lời
-("thực địa xong rồi, tick pass đi") nhưng không kèm số đo cụ thể — không phải lỗi mã hay lỗi SDK.
+Tiêu chí 3, 4, 5 ban đầu chỉ ĐẠT MỘT PHẦN / CHƯA ĐẠT vì thực địa thiếu số đo định lượng. PHONG xác
+nhận lại cùng ngày: "thực địa đã pass, coi như xong" — chủ động đóng cả ba dù vẫn không có số đo, viện
+dẫn xác nhận định tính cụ thể đã có (giọng đọc khi khoá máy trên cả Android và iPhone thật).
 
 | # | Tiêu chí (spec C mục 13) | Kết quả |
 |---|---|---|
 | 1 | `pnpm test`, `typecheck`, `lint`, `notices-sync --check` xanh; tarball cài `npm` không lỗi peer | **ĐẠT** — gốc 116 file / 1230 test xanh (3 skip có sẵn); `apps/api` 34 file / 253 test xanh; `pnpm typecheck` 14/14 task; `pnpm lint` 438 file; `notices-sync --check` khớp gốc; tarball 0.5.0 cài `examples/embed-rn` không lỗi peer |
 | 2 | Giả lập simulator iOS + emulator Android tới `arrived`, câu đúng thứ tự, đổi phương tiện tính lại tuyến | **ĐẠT** — Maestro tự động, Android emulator Pixel 7 + iOS simulator iPhone 17 Pro, cả hai tới "Đã đến nơi" (Task 16 bước 1–2) |
-| 3 | Android thật: ≥ 1 km, ≥ 3 chỗ rẽ, cố ý lệch, khoá màn hình ≥ 2 phút vẫn nghe câu + `arrived`; thông báo foreground service hiện/biến mất | **ĐẠT MỘT PHẦN** — giọng đọc khi khoá màn hình + di chuyển thật xác nhận trên Xiaomi Mi 9: "ok hoạt động tốt"; thông báo hiện đúng đã xác nhận. Thiếu số đo quãng đường/chỗ rẽ cụ thể và ảnh riêng cảnh thông báo biến mất khi Dừng — PHONG chấp nhận tạm ổn |
-| 4 | iPhone thật: cùng kịch bản; chỉ báo nền xanh; giọng đọc khi khoá máy; hộp thoại quyền chỉ *Khi dùng ứng dụng* | **ĐẠT MỘT PHẦN** — giọng đọc khi khoá máy trên iPhone 14 Plus thật: "nghe được rồi, câu đọc rõ khi khoá máy"; chỉ báo xanh + hộp thoại quyền tiếng Việt đã xác nhận. Thiếu số đo quãng đường/chỗ rẽ, cùng lý do tiêu chí 3 |
-| 5 | Evidence `rn-thuc-dia.md` có số: fix, sai số, giây lệch tuyến, câu đọc đúng/tổng, pin, số lần rơi tiền cảnh | **CHƯA ĐẠT** — bảng vẫn trống; PHONG xác nhận bằng lời, không cung cấp số đo. Không bịa số để giữ evidence trung thực |
+| 3 | Android thật: ≥ 1 km, ≥ 3 chỗ rẽ, cố ý lệch, khoá màn hình ≥ 2 phút vẫn nghe câu + `arrived`; thông báo foreground service hiện/biến mất | **ĐẠT (theo quyết định PHONG)** — giọng đọc khi khoá màn hình + di chuyển thật xác nhận trên Xiaomi Mi 9: "ok hoạt động tốt"; thông báo hiện đúng đã xác nhận. Không có số đo quãng đường/chỗ rẽ cụ thể hay ảnh riêng cảnh thông báo biến mất khi Dừng, nhưng PHONG chủ động đóng: "thực địa đã pass, coi như xong" |
+| 4 | iPhone thật: cùng kịch bản; chỉ báo nền xanh; giọng đọc khi khoá máy; hộp thoại quyền chỉ *Khi dùng ứng dụng* | **ĐẠT (theo quyết định PHONG)** — giọng đọc khi khoá máy trên iPhone 14 Plus thật: "nghe được rồi, câu đọc rõ khi khoá máy"; chỉ báo xanh + hộp thoại quyền tiếng Việt đã xác nhận. Không có số đo quãng đường/chỗ rẽ, cùng quyết định đóng của PHONG |
+| 5 | Evidence `rn-thuc-dia.md` có số: fix, sai số, giây lệch tuyến, câu đọc đúng/tổng, pin, số lần rơi tiền cảnh | **ĐẠT (theo quyết định PHONG)** — bảng evidence vẫn trống, không có số đo; PHONG chủ động đóng cùng lúc với 3/4, ưu tiên xác nhận định tính hơn số liệu |
 | 6 | Docs trang mới sống production, link check xanh, THIRD_PARTY_NOTICES đủ 5 gói | **ĐẠT** — deploy tay `pnpm deploy:docs` (Actions còn khoá thanh toán); `curl` xác nhận domain chính có nội dung mới (RECEIVE_BOOT_COMPLETED); link check 21/21; notices mục 4.9 đủ 5 gói Expo |
 | 7 | Kịch bản app gọi xe: `PositionSource` ngoài ≤ 20 dòng, phiên không `expoLocationSource` vẫn `progress`/`announce`, unmount map không dừng phiên | **ĐẠT** — `session.test.ts` "phiên tối giản vẫn chạy tới arrived"; `map-navigation.test.tsx` "unmount không stop phiên"; docs mục 7 |
 
-Còn treo: điền số liệu thực địa thật vào `docs/evidence/navigation/2026-09-12-rn-thuc-dia.md` nếu
-PHONG muốn nâng tiêu chí 3/4/5 lên ĐẠT trọn vẹn — không bắt buộc, spec C coi như đã phát hành ở mức này.
+**Spec C phát hành đầy đủ, sẵn sàng cân nhắc publish `@mapslibvn/react-native` 0.5.0 lên npmjs** (xem
+hướng dẫn lệnh `pnpm sdk:publish` trong mục 1, do PHONG tự chạy).
+
+Bảng `docs/evidence/navigation/2026-09-12-rn-thuc-dia.md` vẫn để trống — PHONG có thể điền bổ sung bất
+kỳ lúc nào nếu muốn, nhưng không còn là điều kiện nghiệm thu.

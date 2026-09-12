@@ -669,7 +669,11 @@ hình có tắt không, pin. Ngưỡng mục 4.3 nào sai thì chỉnh và ghi D
    cập nhật; spec A mục 9 sửa một dòng ("vá `vi-VN.json` bằng volume mount" → "vá ở Worker, xem spec B")
    kèm dòng quyết định phát sinh trong DEVLOG.
 
-### Kết quả nghiệm thu (12/09/2026)
+### Kết quả nghiệm thu (12/09/2026) — **4/7 ĐẠT, 3/7 ĐẠT MỘT PHẦN**
+
+Dòng 5 (thực địa) đã được PHONG chủ động đóng cùng ngày dù thiếu số liệu định lượng — xem ghi chú.
+Ba dòng còn lại (1, 2, 6) đạt một phần vì lý do khác (trần size-limit, trang demo bị gỡ bởi plan
+khác), PHONG chưa nhắc tới nên vẫn giữ nguyên trạng thái.
 
 | # | Kết quả | Ghi chú |
 |---|---|---|
@@ -677,7 +681,7 @@ hình có tắt không, pin. Ngưỡng mục 4.3 nào sai thì chỉnh và ghi D
 | 2 | **Đạt một phần** | `pnpm --filter @mapslibvn/docs e2e` xanh, nhưng `dan-duong-demo.spec.ts` không còn tồn tại: Task 17 tạo trang `/dan-duong-demo/` + spec E2E riêng, cùng ngày 12/09 một quyết định sau đó (plan riêng "Dẫn đường trong Playground") gỡ trang này và dồn chức năng giả lập/dẫn đường vào chế độ Dẫn đường trong Playground — E2E tương ứng nay là `playground.spec.ts` |
 | 3 | **Đạt** | `pnpm test:routing` 7/7 xanh với Valhalla thật, có ca kiểm câu đã vá và `verbal_alert` (evidence Task 18) |
 | 4 | **Đạt** | Deploy tay production, smoke 4 tuyến × 20 lượt `failed 0`/p95 < 800 ms, response có `verbal_alert` và câu đến nơi đã vá (evidence Task 18, `docs/evidence/navigation/2026-09-12-phat-hanh.md`) |
-| 5 | **Đạt một phần** | PHONG tự đi bộ tuyến thật, xác nhận trực tiếp "chạy thử ok", không cần chỉnh ngưỡng — nhưng không đo/ghi số liệu định lượng (giây offRoute → reroute, khoảng cách đọc câu rẽ…) nên không đối chiếu được với từng ngưỡng số của tiêu chí này (evidence `docs/evidence/navigation/2026-09-12-di-bo.md`) |
+| 5 | **Đạt (theo quyết định PHONG 12/09/2026)** | PHONG tự đi bộ tuyến thật, xác nhận trực tiếp "chạy thử ok", không cần chỉnh ngưỡng — không đo/ghi số liệu định lượng (giây offRoute → reroute, khoảng cách đọc câu rẽ…) nên không đối chiếu được với từng ngưỡng số của tiêu chí này, nhưng PHONG chủ động xác nhận lại và đóng: "thực địa đã pass, coi như xong" (evidence `docs/evidence/navigation/2026-09-12-di-bo.md`) |
 | 6 | **Đạt một phần** | Trang `dan-duong` có trên production, `api.md` có `verbal_alert`; nhưng `/dan-duong-demo/` như một trang riêng đã bị gỡ (lý do như mục 2) — chức năng demo/giả lập nay nằm trong Playground, không phải URL độc lập như tiêu chí này viết |
 | 7 | **Đạt** | DEVLOG mục 1–4 và memory trạng thái mốc cập nhật (Task 20); spec A mục 9 đã trỏ sang spec B. `roadmap-toan-bo-spec.md` chỉ theo dõi tới M6 (không có hạng mục Dẫn đường) nên không có gì để sửa ở đó |
 
