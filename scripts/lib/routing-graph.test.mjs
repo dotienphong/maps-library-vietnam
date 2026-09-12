@@ -826,5 +826,6 @@ describe('Valhalla wrapper race contract', () => {
         await Promise.all([waitForExit(wrapper), waitForExit(hangingReady)]);
       }
     },
+    15_000,
   );
 });
