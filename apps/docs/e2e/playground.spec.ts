@@ -423,3 +423,15 @@ test('Dừng giữa chừng → về thẻ, trạng thái idle, Bắt đầu b�
   await expect(page.locator('#nav-card')).toBeVisible();
   await expect(page.locator('#nav-start')).toBeEnabled();
 });
+
+test('tab Mã nhúng có đoạn dẫn đường theo điểm/phương tiện đang chọn', async ({ page }) => {
+  await page.goto(`${NAV_URL}&tmode=walk`);
+  await expect(page.locator('#nav-routes li').first()).toBeVisible({ timeout: 30_000 });
+  await page.locator('#tools').click();
+  await page.locator('#tab-ma-nhung').click();
+  const pre = page.locator('#snippet-nav');
+  await expect(pre).toContainText('map.places.directions');
+  await expect(pre).toContainText("mode: 'walk'");
+  await expect(pre).toContainText('to: [10.7725, 106.698], // Chợ Bến Thành');
+  await expect(pre).toContainText('map.navigation.start');
+});

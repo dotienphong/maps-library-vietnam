@@ -10,6 +10,7 @@ import {
   buildSnippet,
   circleGeoJson,
   maskKey,
+  navSnippet,
   parseState,
   poiSourcesForProfile,
   radiusForPrecision,
@@ -139,6 +140,8 @@ function renderSnippets() {
   const esm = el('snippet-esm');
   if (script) script.textContent = buildSnippet(state, 'script');
   if (esm) esm.textContent = buildSnippet(state, 'esm');
+  const navPre = el('snippet-nav');
+  if (navPre) navPre.textContent = navSnippet(state);
 }
 
 function renderView() {
@@ -758,6 +761,7 @@ function wirePanel() {
 
   wireCopy('copy-script', 'snippet-script');
   wireCopy('copy-esm', 'snippet-esm');
+  wireCopy('copy-nav', 'snippet-nav');
 
   el('enter-nav').addEventListener('click', () => nav?.enter());
 
