@@ -140,12 +140,15 @@ export function createMapBinding(deps: MapBindingDeps): MapBinding {
     if (!follow || !following || deps.appState.currentState !== 'active') return;
     const dt = lastFixTs === null ? 500 : p.fix.timestamp - lastFixTs;
     lastFixTs = p.fix.timestamp;
+    // 'linear': easeTo nối tiếp mỗi fix/mỗi mẫu la bàn — 'ease' (EaseInEaseOut) mặc định của MLRN làm
+    // mỗi đoạn tăng–giảm tốc, camera giật nhịp khi bám liên tục (thực địa iPhone 13/09/2026).
     deps.camera.current?.easeTo({
       center: p.snapped,
       bearing,
       zoom: cameraZoom(p, follow),
       pitch: follow.pitch,
       duration: Math.max(0, Math.min(1000, dt)),
+      easing: 'linear',
       ...(follow.padding ? { padding: follow.padding } : {}),
     });
   };
@@ -184,6 +187,7 @@ export function createMapBinding(deps: MapBindingDeps): MapBinding {
       zoom: cameraZoom(p, follow),
       pitch: follow.pitch,
       duration: CAMERA_BEARING_MIN_MS,
+      easing: 'linear',
       ...(follow.padding ? { padding: follow.padding } : {}),
     });
   };

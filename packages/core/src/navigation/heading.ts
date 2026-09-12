@@ -29,11 +29,43 @@ export interface HeadingSource {
   ): () => void;
 }
 
-/** Tốc độ xoay quanh trục vuông góc màn hình, độ/giây; dương = ngược chiều kim đồng hồ nhìn từ trên. */
+/**
+ * Tốc độ xoay quanh trục THẲNG ĐỨNG (trục trọng lực), độ/giây; dương = ngược chiều kim đồng hồ nhìn từ
+ * trên. Máy nằm ngang thì đúng bằng trục z của gyro; máy nghiêng thì lớp dán chiếu vector tốc độ góc lên
+ * trục thẳng đứng bằng `yawRateDps` trước khi đưa vào đây.
+ */
 export interface RotationRate {
   z_dps: number;
   /** ms, đồng hồ bất kỳ nhưng phải cùng đồng hồ giữa các mẫu gyro (chỉ dùng tính dt). */
   timestamp: number;
+}
+
+/** Vector trong hệ trục thiết bị (x phải, y lên đỉnh máy, z ra khỏi màn hình — thuận tay phải). */
+export interface Vec3 {
+  x: number;
+  y: number;
+  z: number;
+}
+
+/** Vector tốc độ góc theo ba trục thiết bị, độ/giây. */
+export interface RotationRate3 {
+  x_dps: number;
+  y_dps: number;
+  z_dps: number;
+}
+
+/**
+ * Chiếu tốc độ góc lên trục thẳng đứng: `ω · û` với `û` là hướng "lên" trong hệ thiết bị (ngược trọng
+ * lực, từ gia tốc kế). Máy nằm ngang `û = (0,0,1)` → đúng z; máy dựng đứng `û = (0,1,0)` → đúng y; nghiêng
+ * θ → `y·sinθ + z·cosθ`. Không có `up` (hoặc gần 0) → trả z như cũ. Lý do: chỉ lấy z thì máy cầm nghiêng
+ * θ chỉ bắt được cosθ phần xoay, phần còn lại phải chờ la bàn kéo về theo τ → nón hướng TRỄ rồi "trôi nốt"
+ * sau khi dừng xoay (thực địa iPhone 14 Plus 13/09/2026).
+ */
+export function yawRateDps(rate: RotationRate3, up: Vec3 | null): number {
+  if (!up) return rate.z_dps;
+  const n = Math.hypot(up.x, up.y, up.z);
+  if (!(n > 1e-6)) return rate.z_dps;
+  return (rate.x_dps * up.x + rate.y_dps * up.y + rate.z_dps * up.z) / n;
 }
 
 /** Một mẫu la bàn thô từ hệ điều hành. */
@@ -46,7 +78,11 @@ export interface CompassSample {
 }
 
 export interface HeadingFilterOptions {
-  /** Hằng thời gian kéo về la bàn khi có gyro — mặc định 0,7 s. */
+  /**
+   * Hằng thời gian kéo về la bàn khi có gyro — mặc định 0,7 s. Kéo xảy ra ở TỪNG BƯỚC GYRO theo dt của
+   * bước đó (không phải lúc mẫu la bàn đến), nên la bàn im lâu (iOS chỉ phát khi đổi ≥ 1°) không gây
+   * nhảy góc, và bias gyro chỉ lệch tối đa ≈ bias·τ. `Infinity` → không kéo (test/tự chẩn đoán).
+   */
   tau_s?: number;
   /** Làm mượt la bàn khi không có gyro — mặc định 0,2 s. */
   smoothing_s?: number;
@@ -61,7 +97,10 @@ export interface HeadingFilterOptions {
   minDelta_deg?: number;
   /** Đảo dấu gyro nếu thực địa thấy quay ngược — mặc định 1. */
   gyroSign?: 1 | -1;
-  /** Hai mẫu gyro cách nhau quá ngần này thì không tích phân đoạn đó — mặc định 1 s. */
+  /**
+   * Hai mẫu gyro cách nhau quá ngần này thì không tích phân đoạn đó — mặc định 1 s. Cũng là ngưỡng coi
+   * gyro "chết": mẫu la bàn đến mà gyro im lâu hơn thế thì la bàn tự làm mượt theo `smoothing_s`.
+   */
   maxGyroGap_s?: number;
 }
 
@@ -93,9 +132,10 @@ export function signedDiffDeg(a: number, b: number): number {
 }
 
 /**
- * Bộ lọc bù bậc một (spec la bàn mục 4): gyro tích phân góc giữa hai mẫu la bàn (phản ứng ngay khi
- * xoay máy), la bàn kéo góc về theo hằng thời gian (không trôi). Không có gyro thì chỉ làm mượt nhẹ.
- * Thuần theo timestamp, không timer — web dùng lại được với DeviceOrientation.
+ * Bộ lọc bù bậc một (spec la bàn mục 4): mỗi bước gyro tích phân góc rồi kéo về mẫu la bàn cuối theo
+ * `tau_s` (phản ứng ngay khi xoay máy, không trôi, không nhảy khi la bàn im). Mẫu la bàn chỉ cập nhật
+ * đích kéo; không có gyro (hoặc gyro chết) thì la bàn tự làm mượt nhẹ theo `smoothing_s`. Thuần theo
+ * timestamp, không timer — web dùng lại được với DeviceOrientation.
  */
 export function createHeadingFilter(opts: HeadingFilterOptions = {}): HeadingFilter {
   const tau_s = opts.tau_s ?? 0.7;
@@ -106,13 +146,20 @@ export function createHeadingFilter(opts: HeadingFilterOptions = {}): HeadingFil
   const maxGyroGap_ms = (opts.maxGyroGap_s ?? 1) * 1000;
 
   let est: number | null = null;
+  /** Hướng la bàn cuối — đích để gyro kéo về. */
+  let target: number | null = null;
   let accuracy: HeadingAccuracy = 'unreliable';
   let declination: number | null = null; // heading − magnetic của mẫu la bàn cuối
   let lastCompassTs: number | null = null;
-  let lastGyroTs: number | null = null;
-  let gyroAlive = false;
+  let lastGyroTs: number | null = null; // đồng hồ gyro
+  let lastGyroNow: number | null = null; // ms epoch của mẫu gyro cuối — so với timestamp la bàn
   let source: HeadingFix['source'] = 'compass';
   let last: HeadingFix | null = null;
+
+  /** Hệ số kéo bậc một cho bước dài dt_s với hằng thời gian tc (tc ≤ 0 → 1; tc = ∞ → 0). */
+  const alpha = (dt_s: number, tc: number): number => (tc <= 0 ? 1 : 1 - Math.exp(-dt_s / tc));
+  const gyroAliveAt = (ts: number): boolean =>
+    lastGyroNow !== null && ts - lastGyroNow <= maxGyroGap_ms;
 
   const emit = (timestamp: number, force: boolean): HeadingFix | null => {
     if (est === null) return null;
@@ -138,42 +185,42 @@ export function createHeadingFilter(opts: HeadingFilterOptions = {}): HeadingFil
     compass(s) {
       accuracy = s.accuracy;
       declination = s.magnetic === undefined ? null : signedDiffDeg(s.heading, s.magnetic);
-      const target = wrapDeg(s.heading);
+      target = wrapDeg(s.heading);
       let first = false;
       if (est === null || lastCompassTs === null) {
         est = target;
         first = true;
-      } else {
+      } else if (!gyroAliveAt(s.timestamp)) {
+        // Không có gyro (hoặc gyro chết) → la bàn tự làm mượt theo dt giữa hai mẫu la bàn.
         const dt_s = Math.max(0, (s.timestamp - lastCompassTs) / 1000);
-        const tc = gyroAlive ? tau_s : smoothing_s;
-        const alpha = tc <= 0 ? 1 : 1 - Math.exp(-dt_s / tc);
-        est = wrapDeg(est + signedDiffDeg(target, est) * alpha);
+        est = wrapDeg(est + signedDiffDeg(target, est) * alpha(dt_s, smoothing_s));
       }
+      // Gyro sống → chỉ đổi đích; bước gyro kế tiếp kéo dần theo tau_s.
       lastCompassTs = s.timestamp;
       return emit(s.timestamp, first);
     },
     gyro(r, now = r.timestamp) {
       const prev = lastGyroTs;
       lastGyroTs = r.timestamp;
+      lastGyroNow = now;
       if (est === null || prev === null) return null;
       const dt_ms = r.timestamp - prev;
-      if (dt_ms <= 0 || dt_ms > maxGyroGap_ms) {
-        gyroAlive = false;
-        return null;
-      }
-      gyroAlive = true;
-      est = wrapDeg(est - gyroSign * r.z_dps * (dt_ms / 1000));
+      if (dt_ms <= 0 || dt_ms > maxGyroGap_ms) return null;
+      const dt_s = dt_ms / 1000;
+      est = wrapDeg(est - gyroSign * r.z_dps * dt_s);
+      if (target !== null) est = wrapDeg(est + signedDiffDeg(target, est) * alpha(dt_s, tau_s));
       source = 'fused';
       return emit(now, false);
     },
     current: () => last,
     reset() {
       est = null;
+      target = null;
       accuracy = 'unreliable';
       declination = null;
       lastCompassTs = null;
       lastGyroTs = null;
-      gyroAlive = false;
+      lastGyroNow = null;
       source = 'compass';
       last = null;
     },

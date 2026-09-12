@@ -81,11 +81,14 @@ export function createUserLocationBinding(deps: UserLocationBindingDeps): UserLo
 
   const ease = (center: [number, number], bearing: number | null, duration: number): void => {
     if (!options || !isFollowing() || deps.appState.currentState !== 'active') return;
+    // 'linear': các easeTo nối tiếp nhau (mỗi fix, mỗi 250 ms la bàn) — easing 'ease' mặc định của MLRN
+    // là EaseInEaseOut nên mỗi đoạn tăng–giảm tốc, bản đồ xoay/trượt giật nhịp (thực địa iPhone 13/09/2026).
     deps.camera.current?.easeTo({
       center,
       zoom: options.zoom ?? USER_FOLLOW_ZOOM,
       ...(bearing !== null ? { bearing } : {}),
       duration,
+      easing: 'linear',
     });
   };
   const onFix = (fix: GeoFix): void => {

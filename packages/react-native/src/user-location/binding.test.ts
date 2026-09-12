@@ -116,7 +116,12 @@ describe('createUserLocationBinding', () => {
     expect(binding.api.following).toBe(true);
     src.pushFix(fixAt(T0));
     expect(easeTo).toHaveBeenCalledTimes(1);
-    expect(lastEase()).toEqual({ center: [106.7, 10.78], zoom: USER_FOLLOW_ZOOM, duration: 500 });
+    expect(lastEase()).toEqual({
+      center: [106.7, 10.78],
+      zoom: USER_FOLLOW_ZOOM,
+      duration: 500,
+      easing: 'linear',
+    });
     binding.userGesture();
     expect(binding.api.following).toBe(false);
     src.pushFix(fixAt(T0 + 1000, 106.71));
@@ -131,10 +136,21 @@ describe('createUserLocationBinding', () => {
   it("follow 'heading': bearing theo la bàn, throttle 250 ms / 2°, unreliable không xoay", () => {
     const { src, easeTo, lastEase } = setup({ follow: 'heading', withHeading: true, zoom: 17 });
     src.pushFix(fixAt(T0));
-    expect(lastEase()).toEqual({ center: [106.7, 10.78], zoom: 17, duration: 500 });
+    expect(lastEase()).toEqual({
+      center: [106.7, 10.78],
+      zoom: 17,
+      duration: 500,
+      easing: 'linear',
+    });
     src.pushHeading(headingAt(100, T0 + 100));
     expect(easeTo).toHaveBeenCalledTimes(2);
-    expect(lastEase()).toEqual({ center: [106.7, 10.78], zoom: 17, bearing: 100, duration: 250 });
+    expect(lastEase()).toEqual({
+      center: [106.7, 10.78],
+      zoom: 17,
+      bearing: 100,
+      duration: 250,
+      easing: 'linear',
+    });
     src.pushHeading(headingAt(101, T0 + 200)); // quá sớm
     src.pushHeading(headingAt(150, T0 + 400)); // 300 ms, 50°
     src.pushHeading(headingAt(151, T0 + 700)); // chỉ 1°
@@ -145,7 +161,12 @@ describe('createUserLocationBinding', () => {
     // hướng hiện tại (không quay về bắc). dt = 1500 → clamp 1000.
     src.pushFix(fixAt(T0 + 1500));
     expect(easeTo).toHaveBeenCalledTimes(4);
-    expect(lastEase()).toEqual({ center: [106.7, 10.78], zoom: 17, duration: 1000 });
+    expect(lastEase()).toEqual({
+      center: [106.7, 10.78],
+      zoom: 17,
+      duration: 1000,
+      easing: 'linear',
+    });
   });
 
   it('dẫn đường có tiến độ → ẩn: huỷ hai nguồn, xoá store, api null; hết tiến độ → đăng ký lại', () => {

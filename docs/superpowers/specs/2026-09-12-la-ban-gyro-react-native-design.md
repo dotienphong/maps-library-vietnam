@@ -520,6 +520,33 @@ Không có test E2E cảm biến: simulator iOS không có la bàn, emulator And
   11) đổi từ tham chiếu "mục 6" sang "mục 7" của `react-native.md` (mục Giới hạn dịch xuống một số sau
   khi chèn "Vị trí của tôi và la bàn" làm mục 6 mới) — đúng như dự tính ở mục lệch spec thứ ba trên.
 
+- **Thực địa iPhone 14 Plus 13/09/2026 (lần 2, sau `07b4218`): vẫn "hơi giật" và thêm "trễ nhẹ" khi xoay
+  máy → ba lệch so với spec 4/5/6, đều có test:**
+  - Spec 4 viết `compass(s)`: "có gyro sống → `est += diff · (1 − e^(−dt/tau_s))` với `dt` từ mẫu la bàn
+    trước". Bỏ. Lý do: iOS chỉ phát la bàn khi đổi ≥ 1° (expo-location không đặt `headingFilter`), đứng
+    yên vài giây là la bàn im → mẫu đầu sau đó có `dt` lớn → `alpha ≈ 1` → góc **nhảy** một phát về la bàn
+    (vốn trễ hơn gyro); trong lúc la bàn im, bias gyro thô (`CMGyroData`, chưa bù) trôi tự do. Nay mẫu la
+    bàn chỉ đổi **đích**; kéo về đích xảy ra ở **từng bước gyro** theo `dt` của bước đó (bộ lọc bù kinh
+    điển) → không nhảy, bias chỉ lệch ≈ bias·τ. Gyro "chết" (mẫu cuối cách quá `maxGyroGap_s`, so bằng
+    `now` epoch) → la bàn tự làm mượt theo `smoothing_s` như không có gyro. `tau_s: Infinity` tắt kéo (test).
+  - Spec 4 định nghĩa `RotationRate.z_dps` là "xoay quanh trục vuông góc màn hình". Đổi nghĩa thành
+    "xoay quanh trục **thẳng đứng**": máy cầm nghiêng θ thì trục z của gyro chỉ bắt được cosθ phần xoay,
+    phần còn lại chờ la bàn kéo về theo τ → nón **trễ** rồi "trôi nốt" sau khi dừng. Core thêm `Vec3`,
+    `RotationRate3`, `yawRateDps(rate, up)` (chiếu ω lên hướng "lên"; không có `up` → trả z như cũ).
+    `expoHeadingSource` (spec 6.1) đăng ký thêm `expo-sensors.Accelerometer` cùng nhịp gyro, EMA k = 0,2,
+    tuỳ chọn `tiltCompensation` (mặc định true) để A/B thực địa. Quy ước dấu do expo-sensors giữ nguyên
+    của hệ điều hành: iOS đo trọng lực (nằm ngang z ≈ −1 → lên = −a), Android đo phản lực (z ≈ +1 → lên
+    = +a) — `upFromAccelerometer` chọn theo `Platform.OS`, có test cả hai.
+  - Spec 5.4/5.5 không nói easing; MLRN `easeTo` mặc định `easing: 'ease'` = `EaseInEaseOut`
+    (`CameraUpdateItem.m`), chuỗi `easeTo` nối tiếp mỗi 250 ms/mỗi fix thành từng đoạn tăng–giảm tốc →
+    bản đồ xoay **giật nhịp** ở chế độ La bàn. Mọi `easeTo` bám trong `user-location/binding.ts` và
+    `navigation/map-binding.ts` nay truyền `easing: 'linear'`.
+  - **Chưa sửa, chờ PHONG quyết vì lệch kiến trúc mục 7:** `icon-rotate` qua re-tile GeoJSON là bước rời
+    rạc 20 Hz, không nội suy, độ trễ pipeline JS → Fabric → `MLNShapeSource.shape` → worker layout cỡ vài
+    khung hình. Muốn mượt như puck hệ điều hành cần vẽ nón bằng view native (`Marker` của MLRN xoay bằng
+    `Animated` trên UI thread) hoặc dùng `NativeUserLocation mode="heading"` (bỏ bộ lọc riêng). Trước
+    đó có thể thử không đổi code: `expoHeadingSource({ gyroInterval_ms: 33, minInterval_ms: 33 })`.
+
 ## 11. Rủi ro và giảm thiểu
 
 | Rủi ro | Ảnh hưởng | Giảm thiểu |

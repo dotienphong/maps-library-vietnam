@@ -60,6 +60,9 @@ describe('createMapBinding — la bàn', () => {
     expect(puckBearing()).toBe(45);
     expect(easeTo).toHaveBeenCalledTimes(1);
     expect(lastEase()?.bearing).toBe(45);
+    // Chuỗi easeTo nối tiếp phải tuyến tính: easing 'ease' mặc định của MLRN là EaseInEaseOut → bản đồ
+    // tăng–giảm tốc mỗi đoạn, nhìn như giật nhịp (thực địa iPhone 13/09/2026).
+    expect(lastEase()?.easing).toBe('linear');
     s.heading(heading(200));
     expect(puckBearing()).toBe(200);
     expect(easeTo).toHaveBeenCalledTimes(1);
@@ -91,7 +94,12 @@ describe('createMapBinding — la bàn', () => {
     expect(easeTo).toHaveBeenCalledTimes(1); // chưa có la bàn → bearing tuyến
     s.heading(heading(100, T0 + 100));
     expect(easeTo).toHaveBeenCalledTimes(2);
-    expect(lastEase()).toMatchObject({ bearing: 100, center: [106.6985, 10.7791], duration: 250 });
+    expect(lastEase()).toMatchObject({
+      bearing: 100,
+      center: [106.6985, 10.7791],
+      duration: 250,
+      easing: 'linear',
+    });
     s.heading(heading(101, T0 + 200)); // < 250 ms
     expect(easeTo).toHaveBeenCalledTimes(2);
     s.heading(heading(150, T0 + 400)); // 300 ms, 50°

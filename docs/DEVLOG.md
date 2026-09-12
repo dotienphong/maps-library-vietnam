@@ -5,6 +5,22 @@ commit với code).
 
 ## 1. Trạng thái hiện tại
 
+- **13/09/2026 (tối) — Thực địa lần 2 trên iPhone 14 Plus sau `07b4218`: nón hướng vẫn "hơi giật" và
+  "trễ nhẹ" khi xoay máy → tìm ra ba gốc rễ độc lập, đã sửa kèm test; một gốc rễ kiến trúc để ngỏ.**
+  (1) Bộ lọc `createHeadingFilter` kéo về la bàn *lúc mẫu la bàn đến* với `dt` từ mẫu la bàn trước —
+  iOS chỉ phát la bàn khi đổi ≥ 1° nên đứng yên là la bàn im, mẫu đầu sau đó `alpha ≈ 1` → góc nhảy một
+  phát; bias gyro thô trôi tự do trong lúc im. Sửa: mẫu la bàn chỉ đổi đích, **mỗi bước gyro** tích phân
+  rồi kéo về đích theo `dt` của bước (bộ lọc bù kinh điển). (2) Gyro chỉ lấy trục z → cầm máy nghiêng θ
+  mất `1 − cosθ` phần xoay, phần thiếu chờ la bàn kéo về → trễ rồi trôi nốt. Sửa: `yawRateDps` chiếu ω
+  lên trục thẳng đứng theo gia tốc kế; `expoHeadingSource` thêm `Accelerometer`, tuỳ chọn
+  `tiltCompensation` (mặc định true), dấu iOS/Android khác nhau có test. (3) `easeTo` bám camera không
+  truyền `easing` → MLRN mặc định EaseInEaseOut → chuỗi 250 ms giật nhịp ở chế độ La bàn. Sửa:
+  `easing: 'linear'` ở `user-location/binding.ts` và `navigation/map-binding.ts`. **Để ngỏ:**
+  `icon-rotate` qua re-tile GeoJSON 20 Hz không nội suy — muốn mượt như puck hệ điều hành cần vẽ nón
+  bằng view native (`Marker` + `Animated`) hoặc `NativeUserLocation`, lệch spec mục 7, chờ PHONG quyết.
+  Test 188/188 xanh, typecheck + lint xanh, core 18,21 kB gzip. **Chưa xác nhận trên máy thật** — PHONG
+  chạy `pnpm release:ios` rồi đo theo hướng dẫn trong evidence mục "Phát hiện thực địa lần 2". Chi
+  tiết: spec mục 10b (bullet 13/09 lần 2), `docs/evidence/navigation/2026-09-12-la-ban.md`.
 - **13/09/2026 — PHONG bắt đầu Task 15 (máy thật) trên iPhone 14 Plus, phát hiện + sửa một lỗi, thêm
   script build Release.** PHONG cắm iPhone thật, yêu cầu build bản chạy độc lập không cần laptop —
   thêm hai lệnh `pnpm release:ios` / `pnpm release:android` (`scripts/example-rn.mjs`,
@@ -2683,5 +2699,8 @@ chờ PHONG cắm Xiaomi Mi 9 và iPhone 14 Plus (Task 15 của plan).
 **Cập nhật 13/09/2026:** PHONG đã bắt đầu thử trên iPhone 14 Plus thật (dòng 4 ở trên), phát hiện nón
 hướng giật khi đứng yên xoay người. Gốc rễ + sửa: xem mục 1 (bullet 13/09) và evidence mục "Phát hiện
 thực địa". Dòng 3/4/5 vẫn **CHỜ PHONG** — cần cài lại bản Release mới (đã có bản vá) rồi đo lại.
+**Lần 2 cùng ngày:** bản `07b4218` vẫn hơi giật + trễ nhẹ → ba gốc rễ mới (kéo la bàn theo bước gyro, bù
+nghiêng bằng gia tốc kế, easing linear cho camera), xem mục 1 bullet mới nhất và evidence mục "Phát hiện
+thực địa lần 2". Vẫn **CHỜ PHONG** đo lại sau `pnpm release:ios`.
 
 Không bump version, không push, không publish, không `pnpm deploy:docs` — để PHONG quyết định.

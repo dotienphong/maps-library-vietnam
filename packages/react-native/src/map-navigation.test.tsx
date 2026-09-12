@@ -72,6 +72,7 @@ describe('MapsLibVNMap + navigation', () => {
       zoom: 16.5,
       pitch: 45,
       duration: 500,
+      easing: 'linear',
     });
     act(() => s.progress(progressAt(route, 6, 1_700_000_000_000 + 2500)));
     expect(cameraRefMock.easeTo).toHaveBeenLastCalledWith(

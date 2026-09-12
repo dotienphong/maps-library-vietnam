@@ -175,4 +175,20 @@ declare module 'expo-sensors' {
     addListener(listener: (measurement: GyroscopeMeasurement) => void): SensorSubscription;
     isAvailableAsync(): Promise<boolean>;
   };
+  /**
+   * Đơn vị g, quy ước nguyên của hệ điều hành (expo-sensors không đổi dấu): iOS đo trọng lực (nằm ngang
+   * z ≈ −1), Android đo phản lực (nằm ngang z ≈ +1) — xem `upFromAccelerometer`.
+   */
+  export interface AccelerometerMeasurement {
+    x: number;
+    y: number;
+    z: number;
+    /** GIÂY theo đồng hồ cảm biến. */
+    timestamp: number;
+  }
+  export const Accelerometer: {
+    setUpdateInterval(intervalMs: number): void;
+    addListener(listener: (measurement: AccelerometerMeasurement) => void): SensorSubscription;
+    isAvailableAsync(): Promise<boolean>;
+  };
 }
