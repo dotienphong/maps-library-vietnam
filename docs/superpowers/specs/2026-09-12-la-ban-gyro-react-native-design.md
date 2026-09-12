@@ -567,6 +567,27 @@ Không có test E2E cảm biến: simulator iOS không có la bàn, emulator And
     (Trái Đất ≈ 43 µT) → hiệu chuẩn/nhiễu môi trường kém, đích la bàn không tin được lúc xoay.
     `dumpsys gfxinfo`: 817 khung, 0,49 % janky → UI thread RN không phải nguồn giật.
 
+- **Thực địa Mi 9 13/09/2026 (lần 4, sau ba vòng chỉnh bộ lọc): Android vẫn "giật, trễ nhẹ", PHONG yêu
+  cầu "mượt nhất có thể, không delay" → ĐỔI CÁCH VẼ mục 7 (systematic-debugging: 3 lần sửa không đủ thì
+  đặt lại kiến trúc):**
+  - Chấm + nón không còn là layer `circle`/`symbol` trên source GeoJSON. Chúng là VIEW NATIVE trong
+    `<Marker lngLat anchor="center">` của MLRN (`user-location/puck.tsx`): góc nón là `Animated.Value`
+    chạy `useNativeDriver`, mỗi fix hướng là một `Animated.timing` tuyến tính dài đúng khoảng cách hai
+    lần phát (`tweenDuration`, kẹp 16–250 ms), góc đi trên trục liên tục (`unwrapTo`, 350 → 10 thành
+    370) → xoay 60 fps trên UI thread, không qua JS → Fabric → `setGeoJson` → worker MapLibre. Vị trí
+    view: Android cập nhật trong `onWillStartRenderingFrame` (`MarkerViewManager.updateMarkers`), iOS là
+    `MLNAnnotationView` — bám tile từng khung hình.
+  - Nón xoay `heading − bearing camera`: `map.tsx` giữ `Animated.Value` bearing, `setValue` từ
+    `onRegionIsChanging`/`onRegionDidChange` (không re-render), truyền vào `UserLocationLayers`.
+  - `UserLocationLayers` chỉ re-render theo fix (selector `snapshot.fix`) và tiến độ dẫn đường, KHÔNG theo
+    hướng; source GeoJSON (chỉ còn vòng sai số) không đổi mỗi mẫu la bàn. `USER_LOCATION_LAYER_IDS` còn
+    `accuracy`; `cone`/`dot` bỏ (không còn layer). Mờ 0,45 khi `unreliable` giữ nguyên qua `opacity`.
+  - Nhịp gyro mặc định của `expoHeadingSource` 50 → 33 ms; bộ lọc nhận `minInterval_ms = nhịp − 5` nếu
+    app không chỉ định (jitter đồng hồ không làm rớt mẫu). Trễ nhìn thấy ≈ một nhịp tween (33 ms).
+  - Puck DẪN ĐƯỜNG (`route-layers.tsx`, `icon-rotate` map-aligned, pitch 45) KHÔNG đổi — view native
+    không nghiêng theo pitch; đứng đèn đỏ xoay máy vẫn theo đường cũ (20 Hz). Ghi ở Giới hạn nếu PHONG
+    thấy cần.
+
 ## 11. Rủi ro và giảm thiểu
 
 | Rủi ro | Ảnh hưởng | Giảm thiểu |

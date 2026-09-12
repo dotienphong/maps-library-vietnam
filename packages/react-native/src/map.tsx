@@ -17,6 +17,7 @@ import {
 } from '@mapslibvn/core';
 import { type ReactNode, useContext, useEffect, useMemo, useRef } from 'react';
 import {
+  Animated,
   AppState,
   type NativeSyntheticEvent,
   type StyleProp,
@@ -126,6 +127,9 @@ export function MapsLibVNMap({
   );
   const native = useRef<MapRef | null>(null);
   const camera = useRef<CameraRef | null>(null);
+  // Bearing camera cho nón hướng native (puck.tsx): nuôi từ onRegionIsChanging mỗi khung hình khi camera
+  // xoay, setValue đi thẳng vào native driver — không re-render.
+  const mapBearing = useRef(new Animated.Value(0)).current;
   const handlers = useRef({ onLoad, onPoiClick, onError, onRouteClick });
   handlers.current = { onLoad, onPoiClick, onError, onRouteClick };
   const sessionOptionsRef = useRef(sessionOptions);
@@ -238,6 +242,10 @@ export function MapsLibVNMap({
     binding.userGesture();
     userBinding.userGesture();
   };
+  const onRegionChanging = (e: NativeSyntheticEvent<ViewStateChangeEvent>): void => {
+    const b = e.nativeEvent.bearing;
+    if (Number.isFinite(b)) mapBearing.setValue(b);
+  };
   const beforeId =
     routeBeforeLayerId === undefined
       ? isTheme(style)
@@ -258,6 +266,8 @@ export function MapsLibVNMap({
           logo={false}
           onPress={onPress}
           onRegionWillChange={onRegionWillChange}
+          onRegionIsChanging={onRegionChanging}
+          onRegionDidChange={onRegionChanging}
           onDidFinishLoadingStyle={() => {
             if (loadedFor.current === mapKey) return;
             loadedFor.current = mapKey;
@@ -278,6 +288,7 @@ export function MapsLibVNMap({
               routesStore={store}
               accuracyCircle={userLocation?.accuracyCircle ?? true}
               beforeId={beforeId}
+              mapBearing={mapBearing}
             />
             {children}
           </MapContext.Provider>

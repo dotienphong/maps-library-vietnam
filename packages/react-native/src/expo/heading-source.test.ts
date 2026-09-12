@@ -122,8 +122,8 @@ describe('expoHeadingSource', () => {
     await gyroStarted();
     await accelStarted();
     expect(mocks.Location.watchHeadingAsync).toHaveBeenCalledTimes(1);
-    expect(mocks.Gyroscope.setUpdateInterval).toHaveBeenCalledWith(50);
-    expect(mocks.Accelerometer.setUpdateInterval).toHaveBeenCalledWith(50);
+    expect(mocks.Gyroscope.setUpdateInterval).toHaveBeenCalledWith(33);
+    expect(mocks.Accelerometer.setUpdateInterval).toHaveBeenCalledWith(33);
     headingCb()({ trueHeading: 45, magHeading: 46, accuracy: 3 });
     expect(a.map((h) => h.heading)).toEqual([45]);
     expect(b.map((h) => h.heading)).toEqual([45]);
@@ -147,6 +147,25 @@ describe('expoHeadingSource', () => {
     gyroCb()({ x: 0, y: 0, z: Math.PI / 2, timestamp: 11 }); // 1 s sau
     expect(got.at(-1)?.heading).toBeCloseTo(90, 3);
     expect(got.at(-1)?.source).toBe('fused');
+  });
+
+  it('mặc định: gyro 33 ms và bộ lọc phát ở MỌI mẫu gyro (trần 28 ms), kể cả khi jitter −4 ms', async () => {
+    const got: HeadingFix[] = [];
+    expoHeadingSource().subscribe((h) => got.push(h)); // không chỉ định minInterval_ms
+    await started();
+    await gyroStarted();
+    const nowSpy = vi.spyOn(Date, 'now');
+    let now = 1_700_000_000_000;
+    nowSpy.mockReturnValue(now); // la bàn và gyro cùng một đồng hồ giả để so minInterval_ms
+    headingCb()({ trueHeading: 0, magHeading: 0, accuracy: 3 });
+    // 90°/s → 3° mỗi 33 ms (≥ minDelta 1°); mẫu 3 đến sớm 4 ms (29 ms) vẫn phải phát
+    for (const dt of [0, 33, 29, 33]) {
+      now += dt;
+      nowSpy.mockReturnValue(now);
+      gyroCb()({ x: 0, y: 0, z: Math.PI / 2, timestamp: now / 1000 });
+    }
+    nowSpy.mockRestore();
+    expect(got.length).toBe(1 + 3); // la bàn đầu + 3 mẫu gyro có dt (mẫu gyro đầu chưa có dt)
   });
 
   it('máy dựng đứng (iOS: gia tốc kế báo trọng lực, lên = −a): xoay quanh trục y vẫn đổi hướng', async () => {

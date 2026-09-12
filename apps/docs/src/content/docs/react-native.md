@@ -127,6 +127,10 @@ const heading = expoHeadingSource();
 | `zoom` | zoom khi bám, mặc định 16 |
 | `accuracyCircle` | vòng sai số theo mét thật, mặc định true |
 
+Chấm và nón là view native đặt tại fix (MLRN `Marker`), nón xoay bằng `Animated` trên UI thread và
+nội suy tuyến tính giữa hai mẫu cảm biến — quay liên tục 60 fps, không đi qua re-tile GeoJSON. Chỉ vòng
+sai số là layer MapLibre (`USER_LOCATION_LAYER_IDS.accuracy`, chèn dưới nhãn cùng chỗ với tuyến).
+
 Người dùng kéo bản đồ → tắt bám; `useMap().userLocation.recenter()` bật lại, `following` và sự kiện
 `followChange` để hiện nút "Về tôi". `useMap().userLocation.fix` / `.heading` là fix và hướng SDK
 đang vẽ. Khi một phiên dẫn đường gắn vào map có tiến độ, chấm xanh **tự ẩn và ngừng nghe nguồn**

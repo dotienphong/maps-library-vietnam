@@ -15,6 +15,7 @@ import { MapsLibVNMap, type MapsLibVNMapProps } from './map';
 import { fakeSession, progressAt } from './test/fake-session';
 import { getLastMapProps, resetMocks } from './test/mlrn-mock';
 import { USER_LOCATION_LAYER_IDS, USER_LOCATION_SOURCE_ID } from './user-location/layers';
+import { USER_LOCATION_CONE_TEST_ID, USER_LOCATION_PUCK_TEST_ID } from './user-location/puck';
 
 vi.mock('react-native', () => import('./test/react-native-mock'));
 vi.mock('@maplibre/maplibre-react-native', () => import('./test/mlrn-mock'));
@@ -92,13 +93,11 @@ describe('<MapsLibVNMap userLocation>', () => {
     expect(s.source.subscribe).toHaveBeenCalledTimes(1);
     act(() => s.pushFix(fix));
     expect(screen.getByTestId(`mlrn-source-${USER_LOCATION_SOURCE_ID}`)).toBeTruthy();
-    expect(screen.getByTestId(`mlrn-layer-${USER_LOCATION_LAYER_IDS.dot}`)).toBeTruthy();
     expect(screen.getByTestId(`mlrn-layer-${USER_LOCATION_LAYER_IDS.accuracy}`)).toBeTruthy();
+    expect(screen.getByTestId(USER_LOCATION_PUCK_TEST_ID)).toBeTruthy(); // chấm native trong Marker
+    expect(screen.queryByTestId(USER_LOCATION_CONE_TEST_ID)).toBeNull();
     act(() => s.pushHeading(hd));
-    const geo = JSON.parse(
-      screen.getByTestId(`mlrn-source-${USER_LOCATION_SOURCE_ID}`).dataset.geojson ?? '{}',
-    ) as { features: { properties: { hasHeading: boolean; bearing: number } }[] };
-    expect(geo.features[0]?.properties).toMatchObject({ hasHeading: true, bearing: 90 });
+    expect(screen.getByTestId(USER_LOCATION_CONE_TEST_ID)).toBeTruthy(); // nón native, không phải layer
     expect(handle.userLocation.fix).toEqual(fix);
     expect(handle.userLocation.heading).toEqual(hd);
   });

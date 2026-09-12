@@ -87,10 +87,9 @@ export interface HeadingFilterOptions {
   /** Làm mượt la bàn khi không có gyro — mặc định 0,2 s. */
   smoothing_s?: number;
   /**
-   * Phát thưa: cách nhau ≥ — mặc định 50 ms (20 Hz), khớp đúng nhịp gyro mặc định (spec la bàn
-   * mục 6.1 `gyroInterval_ms`). Trần thấp hơn (ví dụ 100 ms cũ) bỏ phí một nửa số mẫu gyro đã có,
-   * khiến nón hướng/puck nhảy góc lớn mỗi lần cập nhật — MapLibre `icon-rotate` không có animation
-   * nên bước nhảy càng lớn càng giật (phát hiện thực địa iPhone 14 Plus 13/09/2026, xem DEVLOG).
+   * Phát thưa: cách nhau ≥ — mặc định 50 ms. Phải THẤP HƠN HOẶC BẰNG nhịp gyro của nguồn, không thì bỏ
+   * phí mẫu gyro và mỗi lần phát là một bước nhảy góc lớn hơn (thực địa iPhone 14 Plus 13/09/2026, trần
+   * cũ 100 ms với gyro 50 ms). `expoHeadingSource` tự truyền `gyroInterval_ms − 5` nếu app không chỉ định.
    */
   minInterval_ms?: number;
   /** … và đổi ≥ — mặc định 1°. */

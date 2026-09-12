@@ -5,6 +5,17 @@ commit với code).
 
 ## 1. Trạng thái hiện tại
 
+- **13/09/2026 (khuya) — Lần 4: Android vẫn "giật, trễ nhẹ" sau ba vòng chỉnh bộ lọc; PHONG yêu cầu
+  "mượt nhất có thể, không delay" → ĐỔI CÁCH VẼ chấm xanh + nón (lệch spec mục 7, ghi ở 10b).** Chấm +
+  nón nay là view native trong `<Marker>` của MLRN (`user-location/puck.tsx`): góc nón là
+  `Animated.Value` native driver, mỗi fix hướng là tween tuyến tính dài bằng khoảng cách hai lần phát,
+  góc trên trục liên tục — xoay 60 fps trên UI thread, không qua re-tile GeoJSON/worker MapLibre. Nón
+  xoay `heading − bearing camera` (bearing nuôi từ `onRegionIsChanging`). Chỉ vòng sai số còn là layer;
+  `USER_LOCATION_LAYER_IDS` chỉ còn `accuracy`. Nhịp gyro mặc định 33 ms, bộ lọc phát ở mọi mẫu. Puck
+  DẪN ĐƯỜNG không đổi (pitch). Test 195/195, typecheck + lint xanh. **PHONG cài lại và xác nhận "ok đã
+  mượt" (13/09, định tính)** — dòng 3a Android trong evidence đóng theo quyết định PHONG. Vòng 3 (bộ lọc: `pullFadeRate_dps`, la bàn không phát
+  chen, quyền `HIGH_SAMPLING_RATE_SENSORS`) đã vào commit `e97b5f5`; vòng 4 chờ PHONG xác nhận rồi
+  commit. Chi tiết: spec 10b (bullet lần 3, lần 4), evidence "Phát hiện thực địa lần 3/4".
 - **13/09/2026 (đêm) — Thực địa lần 3: iPhone 14 Plus "đã mượt hơn" với `7e7dd05`; Mi 9 (Android 10)
   "vẫn giật khi xoay" → đo trực tiếp qua adb rồi sửa bộ lọc lần nữa.** Bằng chứng máy: bản cài đã có
   bản sửa lần 2; `gfxinfo` janky 0,49 % (UI thread sạch); `sensorservice` gyro FASTEST, từ kế |B| ≈

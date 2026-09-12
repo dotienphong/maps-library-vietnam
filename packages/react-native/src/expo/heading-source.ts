@@ -16,7 +16,11 @@ import { Location, Sensors } from './modules';
 export interface ExpoHeadingOptions extends HeadingFilterOptions {
   /** Trộn gyro từ expo-sensors — mặc định true; máy không có gyro tự rơi về la bàn đơn. */
   gyro?: boolean;
-  /** Mặc định 50 ms (20 Hz). Gia tốc kế (bù nghiêng) đọc cùng nhịp. */
+  /**
+   * Mặc định 33 ms (30 Hz). Gia tốc kế (bù nghiêng) đọc cùng nhịp. Nón hướng native nội suy tuyến tính
+   * giữa hai lần phát nên trễ nhìn thấy ≈ một nhịp — 33 ms là mức mắt không còn nhận ra.
+   * `minInterval_ms` của bộ lọc, nếu không chỉ định, = nhịp này − 5 ms để không bỏ mẫu vì jitter.
+   */
   gyroInterval_ms?: number;
   /**
    * Bù nghiêng máy — mặc định true: chiếu vector tốc độ góc của gyro lên trục thẳng đứng theo gia tốc kế
@@ -82,7 +86,9 @@ export function smoothUp(prev: Vec3 | null, next: Vec3, k: number = UP_SMOOTHING
 }
 
 const RAD_TO_DEG = 180 / Math.PI;
-const DEFAULT_GYRO_INTERVAL_MS = 50;
+const DEFAULT_GYRO_INTERVAL_MS = 33;
+/** Trần phát của bộ lọc thấp hơn nhịp gyro một chút để jitter đồng hồ không làm rớt mẫu. */
+const MIN_INTERVAL_SLACK_MS = 5;
 
 type CompassListener = (s: CompassSample) => void;
 type GyroListener = (
@@ -217,9 +223,13 @@ export function expoHeadingSource(opts: ExpoHeadingOptions = {}): HeadingSource 
   const { gyro, gyroInterval_ms, tiltCompensation, ...filterOpts } = opts;
   const useGyro = gyro !== false;
   const useTilt = tiltCompensation !== false;
+  const interval = gyroInterval_ms ?? DEFAULT_GYRO_INTERVAL_MS;
   return {
     subscribe(onHeading, onError) {
-      const filter = createHeadingFilter(filterOpts);
+      const filter = createHeadingFilter({
+        minInterval_ms: Math.max(0, interval - MIN_INTERVAL_SLACK_MS),
+        ...filterOpts,
+      });
       let stopped = false;
       let attached = false;
       const emit = (fix: HeadingFix | null): void => {
@@ -256,10 +266,7 @@ export function expoHeadingSource(opts: ExpoHeadingOptions = {}): HeadingSource 
         shared.compass.add(compassFn);
         if (useGyro) {
           shared.gyro.add(gyroFn);
-          shared.gyroInterval_ms = Math.min(
-            shared.gyroInterval_ms,
-            gyroInterval_ms ?? DEFAULT_GYRO_INTERVAL_MS,
-          );
+          shared.gyroInterval_ms = Math.min(shared.gyroInterval_ms, interval);
         }
         shared.errors.add(errorFn);
         shared.resets.add(resetFn);
