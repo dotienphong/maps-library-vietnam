@@ -5215,11 +5215,11 @@ Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>"
 - Create: `docs/evidence/navigation/2026-09-XX-phat-hanh.md` (XX = ngày chạy)
 - Verify: toàn bộ repo
 
-- [ ] **Step 1: PHONG duyệt bảng cụm từ**
+- [x] **Step 1: PHONG duyệt bảng cụm từ**
 
 Gửi PHONG bảng `CASES` trong `apps/api/test/routing-vi-phrases.test.ts` (26 cặp câu). Luật PHONG bỏ → xoá khỏi `VI_PHRASE_RULES` **và** `CASES`, cập nhật `directions-q1.json` bằng `pnpm exec vitest run test/routing-fixture-sync.test.ts -u` (trong `apps/api`), commit `fix(routing): bảng cụm từ theo duyệt của PHONG`. Không deploy trước khi PHONG xác nhận.
 
-- [ ] **Step 2: Cổng local đầy đủ (thay CI đang khoá)**
+- [x] **Step 2: Cổng local đầy đủ (thay CI đang khoá)**
 
 Run lần lượt, mọi lệnh phải xanh:
 
@@ -5234,7 +5234,7 @@ pnpm test:routing
 
 `pnpm test:routing` cần Docker (dựng Valhalla fixture Quận 1 vài phút); kiểm ca mới "câu đã vá" và `verbal_alert` xanh. Ghi lại: số test `pnpm test`, số test routing, size gzip core/web/UMD từ output size-limit.
 
-- [ ] **Step 3: Deploy Worker production và kiểm**
+- [x] **Step 3: Deploy Worker production và kiểm**
 
 ```bash
 cd apps/api && pnpm exec wrangler deploy --env production && cd ../..
@@ -5256,7 +5256,7 @@ fetch(url, { headers: { "X-Api-Key": key } }).then(async (r) => {
 
 Expected: `first` bắt đầu bằng "Đi về hướng" (không "Lái về phía"), `alert1` là chuỗi hoặc `null` (có trường), `last` là "Điểm đến ở bên trái." hoặc "… phải." hoặc "Bạn đã tới nơi.".
 
-- [ ] **Step 4: Deploy docs production**
+- [x] **Step 4: Deploy docs production**
 
 ```bash
 pnpm --filter @mapslibvn/docs exec wrangler pages deploy dist --project-name mapslibvn-docs
@@ -5264,7 +5264,7 @@ pnpm --filter @mapslibvn/docs exec wrangler pages deploy dist --project-name map
 
 Mở `https://<docs production>/dan-duong-demo/?fixture=1` và `/dan-duong/`: trang hiện, bấm Tìm tuyến → Giả lập chạy. Ghi URL vào evidence.
 
-- [ ] **Step 5: Evidence phát hành**
+- [x] **Step 5: Evidence phát hành**
 
 Tạo `docs/evidence/navigation/2026-09-XX-phat-hanh.md`:
 
@@ -5298,7 +5298,7 @@ Ngày: 2026-09-XX. Commit: `<sha>`.
 - Docs: `<URL>/dan-duong/`, `<URL>/dan-duong-demo/`.
 ```
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add docs/evidence/navigation
