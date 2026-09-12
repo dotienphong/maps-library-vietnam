@@ -28,7 +28,9 @@ test('gõ "highlands" có gợi ý ≤ 1 s, chọn bằng bàn phím thì hiện
     timeout: 30_000,
   });
 
-  const autocomplete = page.locator('mapslibvn-autocomplete');
+  // #ac là ô tìm kiếm chính trong bảng điều khiển — trang còn hai ô #nav-from/#nav-to của thẻ
+  // dẫn đường luôn có mặt trong DOM nên không thể định vị bằng tag name chung chung nữa.
+  const autocomplete = page.locator('#ac');
   const input = autocomplete.locator('input');
   await expect(input).toHaveAttribute('role', 'combobox');
   await input.fill('highlands');
@@ -57,7 +59,7 @@ test('chọn vùng hành chính thì khớp khung bằng fitBounds', async ({ pa
     timeout: 30_000,
   });
 
-  const autocomplete = page.locator('mapslibvn-autocomplete');
+  const autocomplete = page.locator('#ac');
   const input = autocomplete.locator('input');
   await input.fill('Quận 10');
 
@@ -87,7 +89,7 @@ test('gõ cách viết địa phương "qui nhon" vẫn ra Quy Nhơn', async ({ 
     timeout: 30_000,
   });
 
-  const autocomplete = page.locator('mapslibvn-autocomplete');
+  const autocomplete = page.locator('#ac');
   await autocomplete.locator('input').fill('qui nhon');
 
   await expect(autocomplete.locator('[role="option"]').first()).toBeVisible({ timeout: 5_000 });
@@ -221,4 +223,47 @@ test('tab Mã nhúng sinh mã theo tuỳ chọn hiện tại', async ({ page }) 
   await page.locator('#tab-ma-nhung').click();
   await expect(script).toContainText("style: 'dark'");
   await expect(page.locator('#snippet-esm')).toContainText("style: 'dark'");
+});
+
+test.describe('vị trí của tôi', () => {
+  test.use({
+    geolocation: { latitude: 10.7798, longitude: 106.699 },
+    permissions: ['geolocation'],
+  });
+
+  test('có quyền: bay về vị trí, cắm chấm, nút ◎ bật', async ({ page }) => {
+    await page.goto('/playground.html?api=http://localhost:8787');
+    await expect(page.locator('#status')).toHaveAttribute('data-state', 'loaded', {
+      timeout: 30_000,
+    });
+    await expect(page.locator('.pg-my-location')).toHaveCount(1, { timeout: 10_000 });
+    await expect(page.locator('#locate')).toHaveAttribute('aria-pressed', 'true');
+    // flyTo là animation — chờ tới khi ổn định thay vì đọc getCenter() ngay lúc còn đang bay.
+    const getCenter = () =>
+      page.evaluate(() => {
+        const c = (
+          window as unknown as { __map: { gl: { getCenter(): { lng: number; lat: number } } } }
+        ).__map.gl.getCenter();
+        return [c.lng, c.lat];
+      });
+    await expect
+      .poll(async () => (await getCenter())[0], { timeout: 10_000 })
+      .toBeCloseTo(106.699, 3);
+    const center = await getCenter();
+    expect(center[1]).toBeCloseTo(10.7798, 3);
+  });
+});
+
+test('không cấp quyền vị trí: không lỗi JS, giữ tâm mặc định', async ({ page, context }) => {
+  await context.clearPermissions();
+  const jsErrors: string[] = [];
+  page.on('pageerror', (error) => jsErrors.push(error.message));
+  await page.goto('/playground.html?api=http://localhost:8787');
+  await expect(page.locator('#status')).toHaveAttribute('data-state', 'loaded', {
+    timeout: 30_000,
+  });
+  await page.waitForTimeout(1500);
+  await expect(page.locator('.pg-my-location')).toHaveCount(0);
+  await expect(page.locator('#locate')).toHaveAttribute('aria-pressed', 'false');
+  expect(jsErrors).toEqual([]);
 });

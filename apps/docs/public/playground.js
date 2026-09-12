@@ -28,6 +28,12 @@ let client = null;
 let baseMarker = null;
 let pins = [];
 let reverseMode = false;
+/** @type {import('maplibre-gl').Marker | null} */
+let myLocationMarker = null;
+/** @type {[number, number] | null} lng, lat */
+let myLocation = null;
+/** @type {ReturnType<typeof import('/playground-nav.js').initNavigation> | null} */
+const nav = null;
 
 /** @param {string} id */
 const el = (id) => document.getElementById(id);
@@ -225,6 +231,54 @@ function drawCircle(lng, lat, radiusM) {
   });
 }
 
+/* ---------- Vị trí của tôi ---------- */
+
+/** @param {[number, number]} lngLat */
+function setMyLocation(lngLat) {
+  myLocation = lngLat;
+  if (!map) return;
+  if (!myLocationMarker) {
+    const dot = document.createElement('div');
+    dot.className = 'pg-my-location';
+    dot.setAttribute('aria-label', 'Vị trí của tôi');
+    myLocationMarker = new SDK.maplibregl.Marker({ element: dot }).setLngLat(lngLat).addTo(map.gl);
+  } else {
+    myLocationMarker.setLngLat(lngLat);
+  }
+  el('locate')?.setAttribute('aria-pressed', 'true');
+  nav?.setMyLocation(lngLat);
+}
+
+/**
+ * Xin vị trí một lần. Từ chối/không hỗ trợ chỉ ghi vào thanh trạng thái (spec: không hộp thoại).
+ * @param {{ fly: boolean }} opts
+ */
+function locateMe({ fly }) {
+  if (!('geolocation' in navigator)) {
+    setStatus('Trình duyệt không có Geolocation');
+    return;
+  }
+  navigator.geolocation.getCurrentPosition(
+    (pos) => {
+      const lngLat = /** @type {[number, number]} */ ([
+        Number(pos.coords.longitude.toFixed(6)),
+        Number(pos.coords.latitude.toFixed(6)),
+      ]);
+      setMyLocation(lngLat);
+      if (fly && map) map.flyTo(lngLat, 16);
+    },
+    (err) => {
+      el('locate')?.setAttribute('aria-pressed', 'false');
+      setStatus(
+        err.code === 1
+          ? 'Chưa cho phép truy cập vị trí — bấm ◎ để thử lại'
+          : 'Không lấy được vị trí',
+      );
+    },
+    { enableHighAccuracy: true, timeout: 10_000, maximumAge: 60_000 },
+  );
+}
+
 /** @param {import('@mapslibvn/core').PoiFeature} poi */
 function onPoiClick(poi) {
   setStatus(`${poi.name} · ${poi.category} (${poi.group})`);
@@ -253,6 +307,7 @@ function onMoveEnd() {
 function buildMap() {
   mapLoaded = false;
   clearPins();
+  myLocationMarker = null;
   if (baseMarker) {
     try {
       baseMarker.remove();
@@ -296,6 +351,8 @@ function buildMap() {
   map.on('load', () => {
     mapLoaded = true;
     setStatus('Bản đồ đã tải', 'loaded');
+    if (myLocation) setMyLocation(myLocation);
+    else locateMe({ fly: true });
   });
   map.on('poiClick', onPoiClick);
   map.gl.on('error', (event) => console.warn('maplibre', event.error?.message));
@@ -675,8 +732,14 @@ function wirePanel() {
 if (state.embed) {
   document.body.dataset.embed = '1';
   el('panel')?.remove();
+  // Chế độ nhúng: chỉ bản đồ và thanh trạng thái — bỏ hẳn dẫn đường (fab, thẻ, popup, banner).
+  for (const id of ['locate', 'tools', 'nav-card', 'nav-banner', 'nav-bar', 'nav-popup-template']) {
+    el(id)?.remove();
+  }
 } else {
   wirePanel();
 }
+el('locate')?.setAttribute('aria-pressed', 'false');
+el('locate')?.addEventListener('click', () => locateMe({ fly: true }));
 syncUrl();
 buildMap();
