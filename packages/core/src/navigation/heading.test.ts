@@ -84,12 +84,19 @@ describe('createHeadingFilter', () => {
     expect(Math.abs(90 - (b?.heading ?? 0))).toBeLessThan(4.5);
   });
 
-  it('phát thưa: cách ≥ minInterval_ms và đổi ≥ minDelta_deg', () => {
-    const f = createHeadingFilter({ smoothing_s: 0 }); // alpha = 1 → est = target
+  it('phát thưa: cách ≥ minInterval_ms và đổi ≥ minDelta_deg (chỉ định rõ, không phụ thuộc mặc định)', () => {
+    const f = createHeadingFilter({ smoothing_s: 0, minInterval_ms: 100, minDelta_deg: 1 });
     expect(f.compass(compass(10, T0))).not.toBeNull();
     expect(f.compass(compass(50, T0 + 50))).toBeNull(); // quá sớm
     expect(f.compass(compass(10.5, T0 + 100))).toBeNull(); // đổi 0,5° so với lần phát (10)
     expect(f.compass(compass(12, T0 + 150))?.heading).toBe(12);
+  });
+
+  it('mặc định minInterval_ms là 50 ms (20 Hz, khớp nhịp gyro) — không bỏ phí mẫu gyro như trần cũ 100 ms', () => {
+    const f = createHeadingFilter({ smoothing_s: 0 }); // alpha = 1 → est = target; minDelta_deg mặc định 1°
+    expect(f.compass(compass(10, T0))).not.toBeNull();
+    expect(f.compass(compass(30, T0 + 40))).toBeNull(); // 40 ms < 50 ms → vẫn quá sớm
+    expect(f.compass(compass(30, T0 + 50))?.heading).toBe(30); // đúng 50 ms, đổi 20° → phát
   });
 
   it('magnetic suy từ độ lệch của mẫu la bàn cuối, kể cả sau khi gyro xoay', () => {
