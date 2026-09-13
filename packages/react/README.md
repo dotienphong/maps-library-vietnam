@@ -15,7 +15,7 @@ Built on top of [`@mapslibvn/web`](https://www.npmjs.com/package/@mapslibvn/web)
 - 🧠 **Smart re-renders** — changing `apiKey`, `style`, `center` or `zoom` recreates the map; changing `onLoad`, `onPoiClick`, `className` or `children` does not, so inline handlers are safe to pass every render.
 - 🔎 **`usePlaces()` autocomplete hook** — debounced, cancels stale requests, keeps previous results while loading (SWR-style), and needs only 2 characters to start searching.
 - 🧭 **`useNavigation()`** — subscribe to turn-by-turn `status` and `progress` from anywhere in your component tree, backed by the same navigation engine as the web SDK.
-- 🇻🇳 **All of `@mapslibvn/core`'s Vietnamese search smarts** — diacritics-insensitive matching, address parsing, and configurable POI sources (OSM / Overture / Foursquare) — available through simple props.
+- 🇻🇳 **All of `@mapslibvn/core`'s Vietnamese search smarts** — diacritics-insensitive matching, address parsing, and configurable POI sources (OSM / Foursquare) — available through simple props.
 
 ## Install
 
@@ -66,7 +66,7 @@ Xây trên nền [`@mapslibvn/web`](https://www.npmjs.com/package/@mapslibvn/web
 - 🧠 **Re-render thông minh** — đổi `apiKey`, `style`, `center` hay `zoom` sẽ tạo lại bản đồ; đổi `onLoad`, `onPoiClick`, `className` hay `children` thì không, nên truyền handler dạng inline mỗi lần render vẫn an toàn.
 - 🔎 **Hook autocomplete `usePlaces()`** — có debounce, huỷ request cũ khi có request mới, giữ kết quả cũ trong lúc tải (kiểu SWR), chỉ cần 2 ký tự là bắt đầu tìm.
 - 🧭 **`useNavigation()`** — theo dõi `status` và `progress` dẫn đường từ bất kỳ đâu trong cây component, dùng chung engine dẫn đường với SDK web.
-- 🇻🇳 **Trọn vẹn khả năng tìm kiếm tiếng Việt của `@mapslibvn/core`** — khớp không phân biệt dấu, phân tích địa chỉ, và chọn nguồn POI (OSM / Overture / Foursquare) — tất cả chỉ qua vài prop đơn giản.
+- 🇻🇳 **Trọn vẹn khả năng tìm kiếm tiếng Việt của `@mapslibvn/core`** — khớp không phân biệt dấu, phân tích địa chỉ, và chọn nguồn POI (OSM / Foursquare) — tất cả chỉ qua vài prop đơn giản.
 
 ## Cài đặt
 

@@ -73,7 +73,7 @@ describe('createMap', () => {
     expect(ml.addProtocol.mock.calls[0]?.[0]).toBe('pmtiles');
     const opts = (m1.gl as unknown as { options: Record<string, unknown> }).options;
     expect(opts.style).toBe(
-      'https://api.test/v1/styles/light.json?key=mlv_live_t&sources=osm%2Coverture%2Cfsq',
+      'https://api.test/v1/styles/light.json?key=mlv_live_t&sources=osm%2Cfsq',
     );
     expect(opts.attributionControl).toBe(false);
     const ctl = (m1.gl.addControl as ReturnType<typeof vi.fn>).mock.calls[0]?.[0] as {
@@ -95,25 +95,26 @@ describe('createMap', () => {
     expect(ctl.options.customAttribution).toBe(attributionHtml());
   });
 
-  it('poiSources đi vào style URL và client Places; tổ hợp chưa có archive → ném lỗi sớm', () => {
+  it('poiSources đi vào style URL và client Places; giá trị lạ → ném lỗi sớm', () => {
     const { ml } = fakeMaplibre();
     const m = createMap({ ...base, poiSources: ['osm'] }, { maplibre: ml as never });
     expect((m.gl as unknown as { options: Record<string, unknown> }).options.style).toBe(
       'https://api.test/v1/styles/light.json?key=mlv_live_t&sources=osm',
     );
     expect(m.places.styleUrl('dark')).toContain('sources=osm');
+    // Mọi tổ hợp hợp lệ của osm/fsq đều có profile; chỉ giá trị ngoài POI_SOURCES mới bị chặn.
     expect(() =>
-      createMap({ ...base, poiSources: ['osm', 'overture'] }, { maplibre: ml as never }),
-    ).toThrowError(/osm,overture,fsq/);
+      createMap({ ...base, poiSources: ['overture' as never] }, { maplibre: ml as never }),
+    ).toThrowError(/poiSources "overture".*osm,fsq/);
   });
 
-  it('profile Overture + Foursquare đi vào map style và client Places', () => {
+  it('profile Foursquare đi vào map style và client Places', () => {
     const { ml } = fakeMaplibre();
-    const m = createMap({ ...base, poiSources: ['overture', 'fsq'] }, { maplibre: ml as never });
-    expect((m.gl as unknown as { options: Record<string, unknown> }).options.style).toContain(
-      'sources=overture%2Cfsq',
+    const m = createMap({ ...base, poiSources: ['fsq'] }, { maplibre: ml as never });
+    expect((m.gl as unknown as { options: Record<string, unknown> }).options.style).toMatch(
+      /sources=fsq$/,
     );
-    expect(m.places.styleUrl('dark')).toContain('sources=overture%2Cfsq');
+    expect(m.places.styleUrl('dark')).toMatch(/sources=fsq$/);
   });
 
   it('profile OSM + Foursquare đi vào map style và client Places', () => {

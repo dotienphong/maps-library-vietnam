@@ -41,12 +41,8 @@ describe('MapsLibVNMap', () => {
       poiSources: ['osm', 'fsq'],
     });
 
-    rerender(
-      <MapsLibVNMap apiKey="k" apiBase="https://api.test" poiSources={['overture', 'fsq']} />,
-    );
+    rerender(<MapsLibVNMap apiKey="k" apiBase="https://api.test" poiSources={['osm']} />);
     await waitFor(() => expect(createMapMock).toHaveBeenCalledTimes(3));
-    expect(createMapMock.mock.calls[2]?.[0]).toMatchObject({
-      poiSources: ['overture', 'fsq'],
-    });
+    expect(createMapMock.mock.calls[2]?.[0]).toMatchObject({ poiSources: ['osm'] });
   });
 });
