@@ -11,6 +11,11 @@ GRANT CREATE ON SCHEMA public TO pipeline;
 
 ALTER TABLE src_osm_place OWNER TO pipeline;
 ALTER TABLE src_fsq_place OWNER TO pipeline;
+-- Bảng thô tạm của geocode (osm-roads.mjs/raw-tables.mjs): mỗi lần chạy DROP bản cũ rồi RENAME
+-- bản _new vào; nếu chủ sở hữu trôi về superuser sau restore, DROP thất bại và data:update --poi
+-- dừng giữa chừng SAU KHI publish() đã ghi đè poi production (sự cố 13/09/2026).
+ALTER TABLE osm_road_raw OWNER TO pipeline;
+ALTER TABLE osm_admin_raw OWNER TO pipeline;
 ALTER TABLE category OWNER TO pipeline;
 ALTER TABLE category_map OWNER TO pipeline;
 ALTER TABLE poi OWNER TO pipeline;
