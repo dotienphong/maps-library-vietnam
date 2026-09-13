@@ -5,6 +5,35 @@ commit với code).
 
 ## 1. Trạng thái hiện tại
 
+- **13/09/2026 (sáng) — PHONG yêu cầu gỡ hoàn toàn nguồn POI Overture khỏi hệ thống; ĐÃ XONG trên
+  production, hai sự cố ngoài kế hoạch phát hiện và xử lý dọc đường.** Registry `POI_SOURCE_PROFILES`
+  còn `all`(=osm+fsq)/`osm`/`fsq`; bỏ `overture`, `overture-fsq`, `osm-fsq` (trùng `all` sau khi gỡ).
+  Sửa registry/attribution (core), API (`sources` 400 nếu có `overture`), SDK web/react/react-native
+  (0.7.0, chưa publish npm), docs site + Playground, pipeline (`ingest/overture.mjs` xoá, conflate còn
+  hai nguồn), migration `0013_drop_overture.sql` (DROP `src_overture_place`, xoá dòng `overture` khỏi
+  `category_map`/`poi_source_link`/`address_anchor`, siết CHECK) — 8 commit `b00dff5..b5081cc`, dùng
+  `superpowers:subagent-driven-development` (5 subagent song song cho core/API/SDK/docs/pipeline+scripts).
+  Đo trước khi gỡ: Overture VN 99,2 % là trang Facebook (dataset `meta`), 3,4 % POI chồng đúng toạ độ
+  tâm thành phố do Meta geocode thất bại, ~99 % trùng lặp liên nguồn bị 3 luật chặn `pairAllowed`
+  (khác nhóm category/số nhà/tên đường) — chi tiết `docs/evidence/overture-removal/`.
+  **Sự cố 1 (không liên quan Overture):** `osm_road_raw`/`osm_admin_raw`/`osm_admin_old_raw` bị thuộc
+  sở hữu superuser thay vì `pipeline` (dấu vết một lần phục hồi DB trước đây;
+  `scripts/lib/db-permissions.mjs` bỏ sót ba bảng thô này) → `data:update --poi` dừng ở
+  `DROP TABLE osm_road_raw` SAU KHI `publish()` đã ghi đè `poi` production. Sửa root cause (commit
+  `d4d15cb`, `b5081cc`), rà đủ 25 bảng + 8 sequence xác nhận sạch.
+  **Sự cố 2 (không liên quan Overture, CHƯA GIẢI QUYẾT):** `admin.mjs` chặn QA alias hành chính vì
+  **Xã Thanh Lân**/**Thị trấn Cô Tô** (huyện đảo Cô Tô, Quảng Ninh) không khớp ranh giới OSM hiện tại
+  — PHONG duyệt bỏ qua `admin.mjs` cho lần chạy này (tạm comment trong container, phục hồi ngay sau).
+  `admin_area`/`admin_area_old`/`admin_alias` **chưa rebuild**, giữ dữ liệu cũ trước 13/09; **cron thứ
+  Hai 02:00 VN sẽ gặp lại lỗi này** cho tới khi có seed override hoặc sửa dữ liệu OSM — cần xử lý
+  trước, an toàn (dừng sau khi `poi` đã publish) nhưng street/alley/anchor/tiles không được refresh.
+  Kết quả production: `poi` active 376.468 (osm 117.893, fsq 258.574, từ 1.515.983); release
+  `poi-20260913-101907-c4f8a1f9` (+`-osm-`/`-fsq-`); R2 đã xoá 3 archive Overture/osm-fsq (giữ
+  `poi-20260904`/`poi-osm-20260907`/`poi-fsq-20260909-…` vì còn trong `release:history`). Kiểm đủ:
+  attribution, style 3 profile + `sources=overture`→400, `healthz/db` migration `0013`, Playground.
+  Chi tiết: `docs/superpowers/plans/2026-09-13-go-bo-overture.md`,
+  `docs/evidence/overture-removal/2026-09-13-go-bo-overture.md`.
+
 - **13/09/2026 (khuya) — Lần 4: Android vẫn "giật, trễ nhẹ" sau ba vòng chỉnh bộ lọc; PHONG yêu cầu
   "mượt nhất có thể, không delay" → ĐỔI CÁCH VẼ chấm xanh + nón (lệch spec mục 7, ghi ở 10b).** Chấm +
   nón nay là view native trong `<Marker>` của MLRN (`user-location/puck.tsx`): góc nón là
