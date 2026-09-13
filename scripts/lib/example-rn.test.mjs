@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  BUNDLE_ID,
   DEFAULT_API,
   EXAMPLE_RN_DIR,
   KEY_ENV_NAME_RN,
@@ -16,6 +17,8 @@ import {
   parseArgs,
   parseDevicectlDevices,
   pickSingleDevice,
+  staleBundleDirs,
+  uninstallCommand,
 } from './example-rn.mjs';
 
 describe('parseArgs', () => {
@@ -226,5 +229,37 @@ describe('SDK Android', () => {
   it('androidEnv bù JAVA_HOME khi có JDK và env chưa đặt', () => {
     expect(androidEnv({}, '/sdk', '/jbr')).toEqual({ ANDROID_HOME: '/sdk', JAVA_HOME: '/jbr' });
     expect(androidEnv({ JAVA_HOME: '/co-san' }, '/sdk', '/jbr')).toEqual({ ANDROID_HOME: '/sdk' });
+  });
+});
+
+describe('uninstallCommand — gỡ bản cũ trước khi cài Release', () => {
+  // Cài đè (install lại) giữ nguyên app-data, gồm cache ambient của MapLibre Native (style/tile đã
+  // tải, độc lập APK/IPA) — release sẽ tiếp tục hiện dữ liệu cache cũ dù bundle JS mới đã đúng. Gỡ
+  // hẳn trước khi cài là cách duy nhất chắc chắn sạch (quyết định PHONG 13/09/2026).
+  it('android: adb uninstall theo serial', () => {
+    expect(uninstallCommand('android', 'bab02fbc')).toEqual({
+      cmd: 'adb',
+      args: ['-s', 'bab02fbc', 'uninstall', BUNDLE_ID],
+    });
+  });
+
+  it('ios: KHÔNG gỡ (null) — xoá app cuối của Apple ID cá nhân làm iPhone quên tin developer, lần cài kế bị từ chối mở (gặp thật 13/09/2026)', () => {
+    expect(uninstallCommand('ios', 'iPhone của Phong')).toBeNull();
+  });
+});
+
+describe('staleBundleDirs — output của task bundle Gradle phải xoá trước khi build Release', () => {
+  // Sự cố thật 13/09/2026: react-native-gradle-plugin loại `**/node_modules/**` khỏi input của
+  // createBundleReleaseJsAndAssets, nên cài SDK mới bằng npm install không làm task chạy lại →
+  // APK đóng gói bundle JS cũ (mtime 01:17, trước commit gỡ Overture) dù build "thành công".
+  it('android: hai thư mục output (assets + res) của biến thể release', () => {
+    expect(staleBundleDirs('android', '/repo/examples/embed-rn')).toEqual([
+      '/repo/examples/embed-rn/android/app/build/generated/assets/react/release',
+      '/repo/examples/embed-rn/android/app/build/generated/res/react/release',
+    ]);
+  });
+
+  it('ios: không có cache tương đương (script phase Xcode chạy mỗi lần) → rỗng', () => {
+    expect(staleBundleDirs('ios', '/repo/examples/embed-rn')).toEqual([]);
   });
 });

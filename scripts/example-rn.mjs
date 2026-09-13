@@ -16,7 +16,13 @@
 // Luôn cần máy thật + tên rõ ràng: iOS ghép nối nhiều máy thì Expo CLI hỏi chọn tương tác và TREO
 // trong môi trường không phím, nên script tự liệt kê máy đang có mặt và chỉ chạy tiếp khi đúng một
 // máy (hoặc đã truyền `--device-name`).
-import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from 'node:fs';
+// `--release` LUÔN xoá bundle JS Gradle đã cache (Android) và gỡ cài bản cũ trên máy (chỉ Android)
+// trước khi build/cài (quyết định PHONG 13/09/2026 — "release phải luôn là code mới nhất"). Sự cố
+// thật cùng ngày: Gradle báo `createBundleReleaseJsAndAssets UP-TO-DATE` và đóng gói bundle từ 01:17
+// vào APK dù SDK trong node_modules đã đổi lúc 07:06 — task đó không theo dõi node_modules (xem
+// `staleBundleDirs`). iOS không gỡ cài: xoá app làm iPhone quên tin developer Apple ID cá nhân, phải
+// Trust lại bằng tay mỗi lần (xem `uninstallCommand`). Không lỗi nếu thư mục cache chưa tồn tại.
+import { existsSync, mkdirSync, readFileSync, renameSync, rmSync, writeFileSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { join, resolve } from 'node:path';
 import 'dotenv/config';
@@ -38,6 +44,8 @@ import {
   parseArgs,
   parseDevicectlDevices,
   pickSingleDevice,
+  staleBundleDirs,
+  uninstallCommand,
 } from './lib/example-rn.mjs';
 import { resolveKey } from './lib/example-serve.mjs';
 import { capture, run } from './lib/run.mjs';
@@ -51,6 +59,13 @@ const appDir = resolve(EXAMPLE_RN_DIR);
 if (!existsSync(join(appDir, 'package.json'))) {
   throw new Error(`Không thấy ${EXAMPLE_RN_DIR}/package.json — chạy từ gốc repo`);
 }
+
+/**
+ * Serial Android thật (khác `resolvedDeviceName`, đã dịch sang model cho Expo CLI) — `adb -s` cho
+ * `uninstallCommand` phải nhắm bằng serial, không phải model. Rỗng trên iOS (không dùng tới).
+ * @type {string | undefined}
+ */
+let androidSerial;
 
 /**
  * Tên/UDID (iOS) hoặc model (Android) máy thật để truyền cho `expo run:<platform> --device` —
@@ -77,6 +92,7 @@ function resolveDeviceName() {
       devices.map((d) => d.serial),
       'Android',
     );
+  androidSerial = serial;
   return androidDeviceArg(devices, serial);
 }
 const resolvedDeviceName = release ? resolveDeviceName() : undefined;
@@ -102,6 +118,23 @@ run('npm', ['install', '--no-audit', '--no-fund', `./vendor/${TARBALL}`], { cwd:
 if (packOnly) {
   console.log('✓ --pack-only: xong. Chạy tay: cd examples/embed-rn && npx expo run:ios');
 } else {
+  if (release) {
+    // `release` true → resolveDeviceName() đã chạy và trả string thật; TS không tự narrow qua biến
+    // ngoài scope nên guard tường minh ở đây (không nên xảy ra ở runtime).
+    if (!resolvedDeviceName) throw new Error('resolvedDeviceName rỗng dù release=true');
+    const uninstall = uninstallCommand(platform, androidSerial ?? resolvedDeviceName);
+    if (uninstall) {
+      console.log('▶ gỡ bản cũ trên máy (Android: Release luôn cài sạch, không dính app-data cũ)');
+      capture(uninstall.cmd, uninstall.args); // không lỗi nếu app chưa từng cài trên máy
+    }
+    const stale = staleBundleDirs(platform, appDir);
+    if (stale.length > 0) {
+      console.log(
+        '▶ xoá bundle JS Gradle đã cache (task bundle bỏ qua node_modules → phải ép chạy lại)',
+      );
+      for (const dir of stale) rmSync(dir, { recursive: true, force: true });
+    }
+  }
   const runArgs = expoRunArgs(platform, device, release, resolvedDeviceName);
   console.log(`▶ 5/5 npx ${runArgs.join(' ')} (lần đầu prebuild + CocoaPods/Gradle, vài phút)`);
   /** @type {Record<string, string>} */

@@ -4,6 +4,8 @@ export const KEY_ENV_NAME_RN = 'KEY_EXAMPLE_RN';
 export const TARBALL = 'mapslibvn-react-native.tgz';
 export const DEFAULT_API = 'https://api.ai-solutions.io.vn';
 export const RN_PACKAGE_DIR = 'packages/react-native';
+/** `package` (Android) và `bundleIdentifier` (iOS) trong examples/embed-rn/app.json — phải khớp tay. */
+export const BUNDLE_ID = 'vn.mapslibvn.demo';
 
 /**
  * @param {string[]} argv
@@ -76,6 +78,44 @@ export function expoRunArgs(platform, device = false, release = false, deviceNam
     args.push('--no-bundler');
   }
   return args;
+}
+
+/**
+ * Gỡ cài bản cũ trước khi cài Release mới — chỉ Android (quyết định PHONG 13/09/2026): cài đè giữ
+ * nguyên app-data (gồm cache ambient MapLibre Native), gỡ hẳn thì chắc chắn sạch; `adb uninstall`
+ * không lỗi nếu app chưa từng cài, caller dùng `capture()` để bỏ qua trường hợp đó.
+ *
+ * iOS trả `null` — KHÔNG gỡ: app ký bằng Apple ID cá nhân, xoá app cuối cùng của developer đó khiến
+ * iPhone quên "tin developer" và lần cài kế bị từ chối mở (`FBSOpenApplicationErrorDomain 3`:
+ * "profile has not been explicitly trusted by the user", gặp thật 13/09/2026) → phải vào Cài đặt →
+ * Cài đặt chung → VPN & Quản lý thiết bị → Tin cậy sau MỖI lần release. Bundle JS nằm trong `.app`
+ * nên cài đè đã luôn là code mới; cache style/tile của MapLibre theo HTTP max-age 1 giờ, tự hết.
+ * @param {'ios' | 'android'} platform
+ * @param {string} deviceIdentifier serial Android (từ `parseAdbDevices`)
+ * @returns {{ cmd: string, args: string[] } | null}
+ */
+export function uninstallCommand(platform, deviceIdentifier) {
+  if (platform !== 'android') return null;
+  return { cmd: 'adb', args: ['-s', deviceIdentifier, 'uninstall', BUNDLE_ID] };
+}
+
+/**
+ * Output của task Gradle `createBundleReleaseJsAndAssets` (react-native-gradle-plugin) phải xoá
+ * trước khi build Release. Task này loại mọi đường dẫn `node_modules` khỏi input (glob exclude trong
+ * BundleHermesCTask.kt), nên
+ * cài SDK mới bằng `npm install` KHÔNG làm nó chạy lại → APK đóng gói bundle JS cũ dù Gradle báo
+ * BUILD SUCCESSFUL (sự cố 13/09/2026: bundle mtime 01:17 vẫn được dùng sau khi SDK đổi lúc 07:06).
+ * Xoá output → Gradle thấy thiếu → bundle lại từ node_modules hiện tại. iOS: script phase
+ * "Bundle React Native code and images" của Xcode chạy mỗi build, không có cache tương đương.
+ * Dùng `/` thay `path.join` để đường dẫn ổn định trên mọi hệ điều hành (fs Node nhận `/` trên Windows).
+ * @param {'ios' | 'android'} platform
+ * @param {string} appDir thư mục app Expo (examples/embed-rn)
+ * @returns {string[]}
+ */
+export function staleBundleDirs(platform, appDir) {
+  if (platform !== 'android') return [];
+  const generated = `${appDir}/android/app/build/generated`;
+  return [`${generated}/assets/react/release`, `${generated}/res/react/release`];
 }
 
 /**

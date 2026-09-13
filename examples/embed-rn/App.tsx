@@ -231,6 +231,8 @@ export default function App() {
         style={theme}
         lang={lang}
         {...(BUNDLE_ID ? { bundleId: BUNDLE_ID } : {})}
+        // Một dòng "© MapsLibVN · © OpenStreetMap contributors"; bấm vào (hoặc nút "i") mở đủ nguồn.
+        compactAttribution
         navigation={session}
         userLocation={{
           source: foregroundSource,
