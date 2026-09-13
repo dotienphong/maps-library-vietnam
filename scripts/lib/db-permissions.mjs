@@ -16,6 +16,7 @@ ALTER TABLE src_fsq_place OWNER TO pipeline;
 -- dừng giữa chừng SAU KHI publish() đã ghi đè poi production (sự cố 13/09/2026).
 ALTER TABLE osm_road_raw OWNER TO pipeline;
 ALTER TABLE osm_admin_raw OWNER TO pipeline;
+ALTER TABLE osm_admin_old_raw OWNER TO pipeline;
 ALTER TABLE category OWNER TO pipeline;
 ALTER TABLE category_map OWNER TO pipeline;
 ALTER TABLE poi OWNER TO pipeline;

@@ -21,6 +21,9 @@ describe('PERMISSIONS_SQL', () => {
     // data:update --poi dừng giữa chừng, sau khi publish() đã ghi đè poi production.
     expect(PERMISSIONS_SQL).toContain('ALTER TABLE osm_road_raw OWNER TO pipeline');
     expect(PERMISSIONS_SQL).toContain('ALTER TABLE osm_admin_raw OWNER TO pipeline');
+    // admin-old-source.mjs dùng cùng khuôn DROP+RENAME; cùng lớp lỗi, phát hiện ngay sau khi vá
+    // hai bảng trên (13/09/2026, lượt chạy thứ hai).
+    expect(PERMISSIONS_SQL).toContain('ALTER TABLE osm_admin_old_raw OWNER TO pipeline');
   });
 
   it('giữ hàm áp dụng edit (0006) thuộc pipeline và chỉ api được EXECUTE', () => {
