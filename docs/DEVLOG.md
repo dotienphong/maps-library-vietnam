@@ -2761,3 +2761,29 @@ nghiêng bằng gia tốc kế, easing linear cho camera), xem mục 1 bullet m�
 thực địa lần 2". Vẫn **CHỜ PHONG** đo lại sau `pnpm release:ios`.
 
 Không bump version, không push, không publish, không `pnpm deploy:docs` — để PHONG quyết định.
+
+## 15. Dòng phụ gợi ý theo đơn vị hành chính hiện hành suy từ toạ độ — 13/09/2026
+
+PHONG hỏi vì sao gợi ý "Phan Đăng Lưu" có dòng "Phở Phan Đăng Lưu" trống dòng phụ, có dòng lại hiện
+"…, Ho Chi Minh City, Thành phố Hồ Chí Minh". Gốc rễ (đo trên production): `secondary =
+concat_ws(street, ward, province)` lấy từ ba cột do `records.mjs` điền bằng `parseAddress` lên địa chỉ
+**của nguồn**. Foursquare không có địa chỉ → rỗng (`address: {}`); Foursquare ghi "Ho Chi Minh City"/"HCMC"
+mà `provinces.json` không có alias → rơi vào ô phường, thậm chí ô đường ("Quan 34 Phan Dang Luu" →
+"Ho Chi Minh City, HCMC"). Không có bước nào gán hành chính theo toạ độ dù `admin_area` đã có cho geocode.
+Địa chỉ nguồn còn theo hệ hành chính **cũ** (Q. Phú Nhuận, P. 3 Bình Thạnh) trong khi `admin_area` là hệ
+**mới 2025**, nên chỉ điền chỗ trống sẽ trộn hai hệ tên trong cùng một danh sách gợi ý.
+
+Hướng PHONG duyệt ("ok hướng này được"): chuẩn hoá theo toạ độ cho **tất cả** POI vào hai cột riêng
+`poi.admin_ward`/`admin_province` (migration `0014_poi_admin`), do bước mới `geocode/poi-admin.mjs` điền
+bằng `ST_Contains` với `admin_area` cấp 8/4 ngay sau `geocode/admin.mjs` (chỉ ghi dòng đổi, không đụng
+cột nguồn, không bump `updated_at`). API đọc `coalesce(admin_x, x)` cho `secondary` (ba bậc POI của
+autocomplete) và `address.ward/province` của Places; `address.text` giữ nguyên bản nguồn. Rủi ro đã cân:
+toạ độ FSQ rơi về tâm thành phố 0,4 % (evidence gỡ Overture 13/09) và POI sát ranh giới có thể gán sang
+phường liền kề; đổi lại một hệ hành chính duy nhất và POI không địa chỉ vẫn có dòng phụ. Kiểu SDK không
+đổi, không bump version. Plan: `docs/superpowers/plans/2026-09-13-dong-phu-hanh-chinh-theo-toa-do.md`.
+
+Cổng: API 251/251 xanh (test mới cho `poiSecondary` và `placeColumns`); dbtest `poi-admin.dbtest.mjs`
+2/2 xanh trong container pipeline (điền, ghi đè sai, xoá khi ra ngoài ranh giới, idempotent).
+Thứ tự phát hành: `pnpm server:migrate` → backfill `poi-admin.mjs` trên máy chủ → push (Deploy API).
+Số đo backfill production: xem mục cập nhật bên dưới.
+
