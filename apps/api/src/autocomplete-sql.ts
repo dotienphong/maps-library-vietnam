@@ -8,6 +8,14 @@ import { planStages } from './stages';
 
 type Sql = ReturnType<typeof getSql>;
 
+/**
+ * Dòng phụ của POI: phường/tỉnh HIỆN HÀNH suy từ toạ độ (pipelines/poi/src/geocode/poi-admin.mjs), fallback
+ * cột nguồn khi chưa backfill hoặc POI người dùng vừa tạo. Cột nguồn `ward` hay lệch ("Ho Chi Minh City" của
+ * Foursquare) và theo hệ hành chính cũ — chẩn đoán 13/09/2026 trên production với truy vấn "Phan Đăng Lưu".
+ */
+const poiSecondary = (sql: Sql) =>
+  sql`concat_ws(', ', street, coalesce(admin_ward, ward), coalesce(admin_province, province)) AS secondary`;
+
 export interface CandidateRow {
   type: ItemType;
   id: string | null;
@@ -126,7 +134,7 @@ export function poiCandidates(sql: Sql, input: CandidateQueryInput) {
         : sql`OR ${queryCore} <% name_norm`;
   return sql<CandidateRow[]>`
     SELECT 'poi' AS type, id, name,
-      concat_ws(', ', street, ward, province) AS secondary,
+      ${poiSecondary(sql)},
       ST_Y(geom) AS lat, ST_X(geom) AS lng, NULL AS precision,
       greatest(
         word_similarity(${queryNorm}, name_norm),
@@ -217,7 +225,7 @@ export function addressCandidates(
 export function poiTokenCandidates(sql: Sql, input: CandidateQueryInput) {
   const { queryNorm, tsQuery, near, sources } = input;
   return sql<CandidateRow[]>`
-    SELECT 'poi' AS type, id, name, concat_ws(', ', street, ward, province) AS secondary,
+    SELECT 'poi' AS type, id, name, ${poiSecondary(sql)},
       ST_Y(geom) AS lat, ST_X(geom) AS lng, NULL AS precision,
       word_similarity(${queryNorm}, name_norm) AS sim, false AS prefix,
       coalesce(popularity, 0) AS pop, ${distance(sql, near, 'geom')} AS d, NULL AS matched_alt
@@ -247,7 +255,7 @@ export function streetTokenCandidates(sql: Sql, input: CandidateQueryInput) {
 export function poiKeyCandidates(sql: Sql, input: CandidateQueryInput) {
   const { queryKey, near, sources } = input;
   return sql<CandidateRow[]>`
-    SELECT 'poi' AS type, id, name, concat_ws(', ', street, ward, province) AS secondary,
+    SELECT 'poi' AS type, id, name, ${poiSecondary(sql)},
       ST_Y(geom) AS lat, ST_X(geom) AS lng, NULL AS precision,
       word_similarity(${queryKey}, name_key) AS sim, false AS prefix,
       coalesce(popularity, 0) AS pop, ${distance(sql, near, 'geom')} AS d, NULL AS matched_alt

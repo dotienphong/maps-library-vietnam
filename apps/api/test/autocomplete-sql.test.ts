@@ -3,6 +3,8 @@ import {
   type CandidateQueryInput,
   collectCandidates,
   poiCandidates,
+  poiKeyCandidates,
+  poiTokenCandidates,
   streetCandidates,
 } from '../src/autocomplete-sql';
 import { fakeSql } from './helpers/fake-sql';
@@ -355,5 +357,19 @@ describe('collectCandidates — bậc 2/3 luôn chạy song song (spec 5.4–5.5
     const { sql, calls } = fakeSql([poiRow('1', 0.9)]);
     await collectCandidates(sql, { ...input, tsQuery: null, queryKey: '' }, new Set(['poi']));
     expect(calls.filter((c) => c.text.startsWith('SELECT'))).toHaveLength(1);
+  });
+});
+
+describe('autocomplete-sql — secondary dùng hành chính hiện hành suy từ toạ độ (13/09/2026)', () => {
+  const SECONDARY =
+    "concat_ws(', ', street, coalesce(admin_ward, ward), coalesce(admin_province, province)) AS secondary";
+  it('cả ba bậc POI dùng chung một biểu thức secondary, không còn đọc thẳng cột nguồn', async () => {
+    for (const fn of [poiCandidates, poiTokenCandidates, poiKeyCandidates]) {
+      const { sql, calls } = fakeSql([]);
+      await fn(sql, { ...input, tsQuery: 'coffee & highlands', queryKey: 'kofi hailan' });
+      const [query] = calls.filter((call) => call.text.startsWith('SELECT'));
+      expect(query?.text).toContain(SECONDARY);
+      expect(query?.text).not.toContain("concat_ws(', ', street, ward, province)");
+    }
   });
 });
