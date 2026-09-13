@@ -10,7 +10,7 @@ type Sql = ReturnType<typeof getSql>;
  * không lệch nhau. POI người dùng (`created_by='user'`, primary_source NULL) luôn được giữ.
  *
  * Mảng nguồn đi qua `textArray`: bind mảng JS rồi cast `::text[]` thì `postgres/cf` trong Workers
- * nối thành "osm,overture,fsq" và Postgres ném `malformed array literal` — lỗi này chỉ hiện ở
+ * nối thành "osm,fsq" và Postgres ném `malformed array literal` — lỗi này chỉ hiện ở
  * `test:api-db` và trên production, không hiện ở unit test không DB.
  */
 export function poiSourceFilter(sql: Sql, sources: readonly PoiSource[]) {

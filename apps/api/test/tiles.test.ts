@@ -38,23 +38,30 @@ describe('tiles fallback khi chưa có dữ liệu', () => {
     expect(present.status).not.toBe(404);
   });
 
-  it.each([
-    ['poi-osm-fsq', 'osm-fsq', 'poi-osm-fsq-20260909'],
-    ['poi-overture-fsq', 'overture-fsq', 'poi-overture-fsq-20260909'],
-    ['poi-overture', 'overture', 'poi-overture-20260909'],
-    ['poi-fsq', 'fsq', 'poi-fsq-20260909'],
-  ])('set %s đọc release từ manifest.poiProfiles.%s', async (set, profile, release) => {
+  it('set poi-fsq đọc release từ manifest.poiProfiles.fsq', async () => {
     await env.META.put(
       'release:current',
       JSON.stringify({
         vn: 'vn-20260826',
         poi: 'poi-20260901',
-        poiProfiles: { [profile]: release },
+        poiProfiles: { fsq: 'poi-fsq-20260909' },
       }),
     );
     // Có release nhưng R2 local trống → lỗi đọc archive, không phải 404 "chưa phát hành".
-    const present = await SELF.fetch(`https://api/v1/tiles/${set}.json`);
+    const present = await SELF.fetch('https://api/v1/tiles/poi-fsq.json');
     expect(present.status).not.toBe(404);
+  });
+
+  it('set poi-overture (nguồn đã gỡ) → 404 không có bộ tiles', async () => {
+    await env.META.put(
+      'release:current',
+      JSON.stringify({ vn: 'vn-20260826', poi: 'poi-20260901' }),
+    );
+    const res = await SELF.fetch('https://api/v1/tiles/poi-overture.json');
+    expect(res.status).toBe(404);
+    expect(((await res.json()) as { error: { message: string } }).error.message).toMatch(
+      /Không có bộ tiles/,
+    );
   });
 
   it('/r2/* trả 404 đúng định dạng khi R2 local trống', async () => {

@@ -47,12 +47,10 @@ export function parseTypes(raw: string | undefined): Set<ItemType> {
   return new Set(parts);
 }
 
-/** `sources=osm,overture,fsq` | `all`; rỗng → mặc định cả ba nguồn (spec 07/09 mục 6.1). */
+/** `sources=osm,fsq` | `all`; rỗng → mặc định cả hai nguồn. */
 export function parseSources(raw: string | undefined): PoiSource[] {
   const sources = parsePoiSourcesCsv(raw);
-  if (!sources) {
-    throw new ApiError(400, 'invalid_request', 'sources chỉ nhận osm,overture,fsq,all');
-  }
+  if (!sources) throw new ApiError(400, 'invalid_request', 'sources chỉ nhận osm,fsq,all');
   return sources;
 }
 

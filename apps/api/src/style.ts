@@ -17,7 +17,7 @@ export function isTheme(s: string): s is Theme {
 
 export interface RenderedStyle {
   body: string;
-  /** Giá trị header `x-poi-profile`: `osm`, `all` hoặc `all;fallback`. */
+  /** Giá trị header `x-poi-profile`: `osm`, `fsq`, `all` hoặc `all;fallback`. */
   profileHeader: string;
 }
 

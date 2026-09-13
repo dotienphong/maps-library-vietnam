@@ -207,15 +207,15 @@ describe('thang geocode và các route còn lại', () => {
   });
 
   // Postgres THẬT là tầng duy nhất bắt được lỗi này: `postgres/cf` trong Workers nối mảng JS thành
-  // "osm,overture,fsq" nên bind mảng rồi cast `::text[]` sẽ ném `malformed array literal`. Unit
+  // "osm,fsq" nên bind mảng rồi cast `::text[]` sẽ ném `malformed array literal`. Unit
   // test dùng fakeSql nên không thấy gì.
   it('sources= chạy thật trên 4 route, không ném malformed array literal', async () => {
     for (const path of [
       `/v1/search?q=${enc('Highlands')}&sources=osm`,
       `/v1/search?q=${enc('Highlands')}&sources=all`,
-      `/v1/search?q=${enc('Highlands')}&sources=overture,fsq`,
+      `/v1/search?q=${enc('Highlands')}&sources=fsq`,
       '/v1/nearby?lat=10.77&lng=106.70&radius=500&sources=osm',
-      '/v1/reverse?lat=10.77&lng=106.70&sources=osm,overture',
+      '/v1/reverse?lat=10.77&lng=106.70&sources=osm,fsq',
       `/v1/autocomplete?q=${enc('Highlands')}&near=10.77,106.70&sources=osm`,
     ]) {
       const { status, body } = await get(path);
@@ -223,11 +223,25 @@ describe('thang geocode và các route còn lại', () => {
     }
   });
 
+  it('sources=overture (nguồn đã gỡ) → 400 invalid_request trên 4 route', async () => {
+    for (const path of [
+      `/v1/search?q=${enc('Highlands')}&sources=overture`,
+      '/v1/nearby?lat=10.77&lng=106.70&radius=500&sources=overture',
+      '/v1/reverse?lat=10.77&lng=106.70&sources=osm,overture',
+      `/v1/autocomplete?q=${enc('Highlands')}&near=10.77,106.70&sources=overture`,
+    ]) {
+      const { status, body } = await get(path);
+      expect(status, `${path} → ${JSON.stringify(body)}`).toBe(400);
+      expect(body.error.code).toBe('invalid_request');
+    }
+  });
+
+  // Mỗi cụm có hai hàng fsq: "Foursquare Near" đứng gần điểm hỏi reverse nhất (thay hàng Overture cũ).
+  const PROFILE_SOURCES = { all: ['osm', 'fsq'], osm: ['osm'], fsq: ['fsq'] };
   const sourceIds = {
-    osm: 'R5SOURCEOSM000000000000001',
-    overture: 'R5SOURCEOVERTURE0000000001',
-    fsq: 'R5SOURCEFSQ000000000000001',
-    user: 'R5SOURCEUSER00000000000001',
+    osm: ['R5SOURCEOSM000000000000001'],
+    fsq: ['R5SOURCEFSQNEAR00000000001', 'R5SOURCEFSQ000000000000001'],
+    user: ['R5SOURCEUSER00000000000001'],
   };
   const ids = (response) => new Set(response.body.items.map((item) => item.id));
   const expectProfile = (actual, included, excluded) => {
@@ -235,26 +249,19 @@ describe('thang geocode và các route còn lại', () => {
     for (const id of excluded) expect(actual.has(id), `thừa ${id}`).toBe(false);
   };
   const expectedIdsFor = (profile, fixture = sourceIds) => {
-    const selected =
-      profile === 'all'
-        ? ['osm', 'overture', 'fsq']
-        : profile === 'osm,fsq'
-          ? ['osm', 'fsq']
-          : profile === 'overture,fsq'
-            ? ['overture', 'fsq']
-            : [profile];
-    const included = [...selected.map((source) => fixture[source]), fixture.user];
-    const excluded = ['osm', 'overture', 'fsq']
+    const selected = PROFILE_SOURCES[profile];
+    const included = [...selected, 'user'].flatMap((source) => fixture[source]);
+    const excluded = PROFILE_SOURCES.all
       .filter((source) => !selected.includes(source))
-      .map((source) => fixture[source]);
+      .flatMap((source) => fixture[source]);
     return { included, excluded };
   };
 
   it.each([
     ['search', `/v1/search?q=${enc('r5 profile alpha')}&limit=50`],
     ['nearby', '/v1/nearby?lat=11&lng=107&radius=100'],
-  ])('%s lọc đúng ID theo đủ sáu profile và luôn giữ user', async (_route, path) => {
-    for (const profile of ['all', 'osm', 'osm,fsq', 'overture,fsq', 'overture', 'fsq']) {
+  ])('%s lọc đúng ID theo đủ ba profile và luôn giữ user', async (_route, path) => {
+    for (const profile of ['all', 'osm', 'fsq']) {
       const actual = ids(await get(`${path}&sources=${profile}`));
       const expected = expectedIdsFor(profile);
       expectProfile(actual, expected.included, expected.excluded);
@@ -262,24 +269,20 @@ describe('thang geocode và các route còn lại', () => {
   });
 
   it('reverse chọn lại nearest_poi sau khi lọc nguồn, user vẫn đủ điều kiện', async () => {
+    const [fsqNear] = sourceIds.fsq;
+    const [osmId] = sourceIds.osm;
     const all = await get('/v1/reverse?lat=11&lng=107&sources=all');
     const osm = await get('/v1/reverse?lat=11&lng=107&sources=osm');
-    const osmFsq = await get('/v1/reverse?lat=11&lng=107&sources=osm,fsq');
-    const overtureFsq = await get('/v1/reverse?lat=11&lng=107&sources=overture,fsq');
-    const overture = await get('/v1/reverse?lat=11&lng=107&sources=overture');
     const fsq = await get('/v1/reverse?lat=11&lng=107&sources=fsq');
-    expect(all.body.nearest_poi.id).toBe(sourceIds.overture);
-    expect(osm.body.nearest_poi.id).toBe(sourceIds.osm);
-    expect(osmFsq.body.nearest_poi.id).toBe(sourceIds.osm);
-    expect(overtureFsq.body.nearest_poi.id).toBe(sourceIds.overture);
-    expect(overture.body.nearest_poi.id).toBe(sourceIds.overture);
-    expect(fsq.body.nearest_poi.id).toBe(sourceIds.fsq);
+    expect(all.body.nearest_poi.id).toBe(fsqNear);
+    // Hàng gần nhất là fsq → lọc osm phải chọn lại, không được lọc sau LIMIT 1.
+    expect(osm.body.nearest_poi.id).toBe(osmId);
+    expect(fsq.body.nearest_poi.id).toBe(fsqNear);
   });
 
   it.each([
-    ['alpha', 'osm', 'osm,fsq'],
-    ['alpha', 'overture', 'fsq'],
-    ['beta', 'fsq', 'overture,fsq'],
+    ['alpha', 'osm', 'all'],
+    ['beta', 'all', 'fsq'],
   ])('autocomplete cache tách profile theo chiều %s: %s → %s', async (query, first, second) => {
     const firstIds = ids(
       await get(`/v1/autocomplete?q=r5%20profile%20${query}&types=poi&limit=10&sources=${first}`),
@@ -289,10 +292,9 @@ describe('thang geocode và các route còn lại', () => {
     );
     const suffix = query === 'alpha' ? '1' : '2';
     const expected = {
-      osm: `R5SOURCEOSM00000000000000${suffix}`,
-      overture: `R5SOURCEOVERTURE000000000${suffix}`,
-      fsq: `R5SOURCEFSQ00000000000000${suffix}`,
-      user: `R5SOURCEUSER0000000000000${suffix}`,
+      osm: [`R5SOURCEOSM00000000000000${suffix}`],
+      fsq: [`R5SOURCEFSQNEAR0000000000${suffix}`, `R5SOURCEFSQ00000000000000${suffix}`],
+      user: [`R5SOURCEUSER0000000000000${suffix}`],
     };
     for (const [profile, actual] of [
       [first, firstIds],
@@ -304,26 +306,31 @@ describe('thang geocode và các route còn lại', () => {
   });
 
   it.each([
-    ['alias địa danh', 'r5 alias qui nhon', 'R5SOURCEUSERALIAS0000001', 'R5SOURCEOVERTUREALIAS001'],
-    ['tsvector', 'r5 token branch', 'R5SOURCEUSERTOKEN0000001', 'R5SOURCEOVERTURETOKEN001'],
-    ['viKey', 'r5 can bien', 'R5SOURCEUSERKEY000000001', 'R5SOURCEOVERTUREKEY00001'],
+    [
+      'alias địa danh',
+      'r5 alias qui nhon',
+      'R5SOURCEUSERALIAS0000001',
+      'R5SOURCEFSQALIAS0000000001',
+    ],
+    ['tsvector', 'r5 token branch', 'R5SOURCEUSERTOKEN0000001', 'R5SOURCEFSQTOKEN0000000001'],
+    ['viKey', 'r5 can bien', 'R5SOURCEUSERKEY000000001', 'R5SOURCEFSQKEY000000000001'],
     [
       'Telex fallback',
       'thuw vieenj quoocs gia',
       'R5SOURCEUSERTELEX0000001',
-      'R5SOURCEOVERTURETELEX001',
+      'R5SOURCEFSQTELEX0000000001',
     ],
-  ])('autocomplete nhánh %s lọc nguồn nhưng giữ user', async (_branch, query, user, overture) => {
+  ])('autocomplete nhánh %s lọc nguồn nhưng giữ user', async (_branch, query, user, commercial) => {
     const osm = ids(await get(`/v1/autocomplete?q=${enc(query)}&types=poi&limit=10&sources=osm`));
     const all = ids(await get(`/v1/autocomplete?q=${enc(query)}&types=poi&limit=10&sources=all`));
-    expectProfile(osm, [user], [overture]);
-    expectProfile(all, [user, overture], []);
+    expectProfile(osm, [user], [commercial]);
+    expectProfile(all, [user, commercial], []);
   });
 
   it('sources không lọc các nhánh street, address và area của autocomplete', async () => {
     const street = await get(`/v1/autocomplete?q=${enc('Nguyễn Lâm')}&types=street&sources=osm`);
     const address = await get(
-      `/v1/autocomplete?q=${enc('86 Nguyễn Lâm')}&types=address&sources=overture,fsq`,
+      `/v1/autocomplete?q=${enc('86 Nguyễn Lâm')}&types=address&sources=fsq`,
     );
     const area = await get(`/v1/autocomplete?q=${enc('Quận 10')}&types=area&sources=osm`);
     expect(street.body.items.some((item) => item.type === 'street')).toBe(true);

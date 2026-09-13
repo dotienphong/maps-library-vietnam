@@ -14,7 +14,7 @@ const input: CandidateQueryInput = {
   prefixPattern: 'coffee highlands%',
   near: null,
   parsed: { alleyChain: [], confidence: 0 },
-  sources: ['osm', 'overture', 'fsq'],
+  sources: ['osm', 'fsq'],
   queryAlias: 'coffee highlands',
   tsQuery: null,
   queryKey: '',

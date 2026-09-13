@@ -108,24 +108,19 @@ describe('GET /v1/styles/:theme.json', () => {
     );
   });
 
-  it.each([
-    ['osm,fsq', 'osm-fsq', 'poi-osm-fsq-20260909'],
-    ['overture,fsq', 'overture-fsq', 'poi-overture-fsq-20260909'],
-    ['overture', 'overture', 'poi-overture-20260909'],
-    ['fsq', 'fsq', 'poi-fsq-20260909'],
-  ])('sources=%s dùng profile %s và đúng archive', async (sources, profile, release) => {
+  it('sources=fsq dùng profile fsq và đúng archive', async () => {
     await env.META.put(
       'release:current',
       JSON.stringify({
         vn: 'vn-20260826',
         poi: 'poi-20260901',
-        poiProfiles: { [profile]: release },
+        poiProfiles: { fsq: 'poi-fsq-20260909' },
       }),
     );
-    const res = await SELF.fetch(`https://api/v1/styles/light.json?sources=${sources}`);
+    const res = await SELF.fetch('https://api/v1/styles/light.json?sources=fsq');
     expect(res.status).toBe(200);
-    expect(res.headers.get('x-poi-profile')).toBe(profile);
-    expect(JSON.stringify(await res.json())).toContain(`/tiles/${release}.pmtiles`);
+    expect(res.headers.get('x-poi-profile')).toBe('fsq');
+    expect(JSON.stringify(await res.json())).toContain('/tiles/poi-fsq-20260909.pmtiles');
   });
 
   it('profile hợp lệ nhưng chưa có release → dùng all và đánh dấu fallback', async () => {
@@ -139,12 +134,12 @@ describe('GET /v1/styles/:theme.json', () => {
     expect(JSON.stringify(await res.json())).toContain('/tiles/poi-20260901.pmtiles');
   });
 
-  it('tập nguồn chưa có profile → 400 kèm danh sách profile; giá trị lạ → 400', async () => {
-    const res = await SELF.fetch('https://api/v1/styles/light.json?sources=osm,overture');
+  it('sources=overture (nguồn đã gỡ) → 400 kèm danh sách nguồn; giá trị lạ → 400', async () => {
+    const res = await SELF.fetch('https://api/v1/styles/light.json?sources=overture');
     expect(res.status).toBe(400);
     const body = (await res.json()) as { error: { code: string; message: string } };
     expect(body.error.code).toBe('invalid_request');
-    expect(body.error.message).toContain('osm,overture,fsq');
+    expect(body.error.message).toBe('sources chỉ nhận osm,fsq,all');
     expect((await SELF.fetch('https://api/v1/styles/light.json?sources=banana')).status).toBe(400);
   });
 
@@ -157,11 +152,11 @@ describe('GET /v1/styles/:theme.json', () => {
 });
 
 describe('GET /v1/attribution', () => {
-  it('trả text đúng spec và 5 link', async () => {
+  it('trả text đúng spec và 4 link (MapsLibVN, OSM, OpenMapTiles, Foursquare)', async () => {
     const res = await SELF.fetch('https://api/v1/attribution');
     const body = (await res.json()) as { text: string; html: string; links: unknown[] };
     expect(body.text).toBe(attributionText());
-    expect(body.links).toHaveLength(5);
+    expect(body.links).toHaveLength(4);
     expect(res.headers.get('access-control-allow-origin')).toBe('*');
   });
 });

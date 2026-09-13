@@ -28,14 +28,29 @@ describe('params', () => {
     expect(() => parseTypes('poi,banana')).toThrowError(ApiError);
   });
 
-  it('parseSources: mặc định cả ba, all → ba nguồn, chuẩn hoá thứ tự, lạ → 400', () => {
-    expect(parseSources(undefined)).toEqual(['osm', 'overture', 'fsq']);
-    expect(parseSources('')).toEqual(['osm', 'overture', 'fsq']);
+  it('parseSources: mặc định cả hai, all → hai nguồn, chuẩn hoá thứ tự, lạ → 400', () => {
+    expect(parseSources(undefined)).toEqual(['osm', 'fsq']);
+    expect(parseSources('')).toEqual(['osm', 'fsq']);
     expect(parseSources('osm')).toEqual(['osm']);
-    expect(parseSources('all')).toEqual(['osm', 'overture', 'fsq']);
+    expect(parseSources('all')).toEqual(['osm', 'fsq']);
     expect(parseSources('fsq,osm')).toEqual(['osm', 'fsq']);
     expect(() => parseSources('osm,banana')).toThrowError(ApiError);
     expect(() => parseSources(',')).toThrowError(ApiError);
+  });
+
+  it('parseSources: overture đã gỡ → ApiError 400 nêu đúng danh sách nguồn còn lại', () => {
+    let caught: unknown;
+    try {
+      parseSources('overture');
+    } catch (error) {
+      caught = error;
+    }
+    expect(caught).toBeInstanceOf(ApiError);
+    expect(caught).toMatchObject({
+      status: 400,
+      code: 'invalid_request',
+      message: 'sources chỉ nhận osm,fsq,all',
+    });
   });
 
   it('parseBbox: nhận bbox hợp lệ, từ chối biên/toạ độ/thứ tự sai', () => {
