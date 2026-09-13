@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { type PlaceRow, toPlace } from '../src/place';
+import { type PlaceRow, placeColumns, toPlace } from '../src/place';
+import { fakeSql } from './helpers/fake-sql';
 
 describe('toPlace', () => {
   it('map category, address và timestamp Date sang Place chuẩn spec 6.1', () => {
@@ -74,5 +75,15 @@ describe('toPlace', () => {
     const place = toPlace(row);
     expect(place.category).toBeNull();
     expect(place.address).toEqual({});
+  });
+});
+
+describe('placeColumns', () => {
+  it('ward/province ưu tiên cột hành chính hiện hành suy từ toạ độ, fallback cột nguồn', () => {
+    const { sql } = fakeSql([]);
+    const text = (placeColumns(sql) as unknown as { text: string }).text;
+    expect(text).toContain('coalesce(p.admin_ward, p.ward) AS ward');
+    expect(text).toContain('coalesce(p.admin_province, p.province) AS province');
+    expect(text).toContain('p.address_text');
   });
 });

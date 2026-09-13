@@ -28,10 +28,13 @@ export interface PlaceRow {
   d?: number;
 }
 
-/** Cột SELECT chuẩn cho Place — luôn dùng alias `p` (poi) và `c` (category). */
+/**
+ * Cột SELECT chuẩn cho Place — luôn dùng alias `p` (poi) và `c` (category).
+ * ward/province: hành chính HIỆN HÀNH suy từ toạ độ (poi-admin.mjs), fallback cột nguồn; `address_text` giữ nguyên bản nguồn.
+ */
 export function placeColumns(sql: Sql) {
   return sql`p.id, p.name, ST_Y(p.geom) AS lat, ST_X(p.geom) AS lng,
-    p.housenumber, p.street, p.ward, p.province, p.address_text,
+    p.housenumber, p.street, coalesce(p.admin_ward, p.ward) AS ward, coalesce(p.admin_province, p.province) AS province, p.address_text,
     p.contact, p.hours, p.quality_score, p.status, p.updated_at,
     c.code AS cat_code, c.group_code AS cat_group, c.name_vi AS cat_vi, c.name_en AS cat_en`;
 }
