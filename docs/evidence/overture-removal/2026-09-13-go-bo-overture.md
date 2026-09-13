@@ -70,7 +70,35 @@ mới chết ở `DROP TABLE osm_road_raw` vì thiếu quyền — dừng pipeli
 (commit `d4d15cb`, `b5081cc`), áp trực tiếp lên production bằng superuser, rà toàn bộ 25 bảng + 8
 sequence trong `public` để xác nhận không còn bảng nào khác sai chủ.
 
-### 4.2 Quyết định sản phẩm: bỏ qua QA alias hành chính Cô Tô cho lần chạy này
+### 4.3 CẬP NHẬT — Cô Tô đã giải quyết dứt điểm (13/09/2026, cùng ngày)
+
+Mục 4.2 dưới đây là xử lý TẠM THỜI lúc đó (bỏ qua `admin.mjs`). Sau khi hoàn tất gỡ Overture, đã điều
+tra và giải quyết triệt để, không còn phải bỏ qua bước nào ở các lần chạy sau:
+
+1. **Xác minh nguyên nhân qua nguồn chính thức:** Nghị quyết 1679/NQ-UBTVQH15 (16/06/2025, hiệu lực
+   01/07/2025) — "sắp xếp toàn bộ diện tích tự nhiên, quy mô dân số của thị trấn Cô Tô, xã Đồng Tiến
+   và xã Thanh Lân thành đặc khu có tên gọi là đặc khu Cô Tô". Kiểm tra trực tiếp OSM (ingest
+   13/09/2026): "Đặc khu Cô Tô" (quan hệ 19269185, 41,45 km²) là MỘT đơn vị duy nhất thay ba đơn vị
+   cũ (Thanh Lân 638 km², Cô Tô 203 km², Đồng Tiến 211 km² — phần lớn diện tích cũ là biển). Đồng Tiến
+   tình cờ đạt 6,42 % phủ (qua ngưỡng 5 %) nên không nằm trong `unmatched`; hai đơn vị kia 2,56 %/
+   3,56 % (dưới ngưỡng) — cùng một hiện tượng, không phải khác biệt thực.
+2. **Thêm seed override** `db/seed/admin_alias_2025.csv` (commit `2854940`): ba dòng
+   Xã Thanh Lân / Thị trấn Cô Tô / Xã Đồng Tiến → Đặc khu Cô Tô, Thành phố Quảng Ninh.
+3. **Sửa root cause của cổng QA** (commit `2fa975a`): `unmatched` trước đây chỉ tính bằng overlay
+   hình học (`targets===0`), không biết seed đã trỏ đúng đích hay chưa — nên `admin.mjs` sẽ đỏ lại
+   **mỗi tuần mãi mãi** (snapshot cũ 2025-06-30 là sự thật tĩnh, không tự hết). Thêm hàm thuần
+   `unmatchedAfterSeed(coverage, keysByOldId, seedResolvedGroups)` loại các đơn vị có seed đúng khỏi
+   `unmatched`, tách biệt hoàn toàn khỏi `keyOwners`/dedup của nhánh overlay nên không đổi hành vi
+   alias ở nơi khác. Report thêm trường `unmatchedResolvedBySeed` để minh bạch. 8 test mới xanh.
+4. **Xác nhận bằng chạy thật:** `admin.mjs` **không cần `--accept-qa`** vẫn publish sạch —
+   `unmatched: []`, `unmatchedResolvedBySeed: [15015331, 15015333]`, `seedMisses: 0`,
+   `acceptedQa: undefined`. `admin_area 3353 (L4=34, L8=3319); admin_area_old 4972; admin_alias 37253`.
+5. Full gate cuối: Biome 456 file sạch, vitest gốc 127 file/1.302 test, typecheck sạch.
+
+**Kết luận: cron thứ Hai 02:00 VN sẽ chạy sạch, không còn cần can thiệp tay.** Mục "việc để sau" ở
+mục 6 (bản gốc cảnh báo cron sẽ gặp lại lỗi) **đã lỗi thời** — xem lại đoạn này thay vì mục 6.
+
+### 4.2 Quyết định sản phẩm: bỏ qua QA alias hành chính Cô Tô cho lần chạy này (xử lý TẠM THỜI, đã thay bằng mục 4.3)
 
 `admin.mjs` (dựng lại `admin_area`/`admin_area_old`/`admin_alias`) chặn với
 `QA alias hành chính đỏ: unmatched=2` — hai đơn vị **Xã Thanh Lân** và **Thị trấn Cô Tô** (huyện đảo
@@ -128,10 +156,7 @@ khi rebuild thành công — không còn sửa tạm nào tồn tại.
 
 ## 6. Việc để sau
 
-- **Cấp bách — hạn thứ Hai 02:00 VN:** QA alias hành chính Cô Tô (mục 4.2) cần seed override hoặc sửa
-  dữ liệu OSM trước khi cron `data:update` tự động chạy lại, nếu không cron sẽ dừng giữa chừng ở đúng
-  điểm `admin.mjs` mỗi tuần (an toàn — dừng sau khi `poi` đã publish, không hỏng dữ liệu — nhưng
-  street/alley/anchor/tiles sẽ không được refresh cho tới khi giải quyết).
+- ~~QA alias hành chính Cô Tô~~ — **ĐÃ GIẢI QUYẾT dứt điểm cùng ngày, xem mục 4.3.**
 - Publish npm `@mapslibvn/{core,web,react,react-native}@0.7.0` — PHONG quyết (kiểu `PoiSource` hẹp lại là breaking với người tích hợp đang truyền `'overture'`).
 - Sửa `pairAllowed` để gộp FSQ↔OSM (khác nhóm category, chặn số nhà/tên đường) — `docs/evidence/conflate/2026-09-07-dieu-tra-multisource-3-3.md` mục 10.
 - Tên CJK/emoji → `name_norm` rỗng (1.986 POI FSQ, 196 OSM) không gộp và không tìm được.

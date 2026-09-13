@@ -21,12 +21,19 @@ commit với code).
   `scripts/lib/db-permissions.mjs` bỏ sót ba bảng thô này) → `data:update --poi` dừng ở
   `DROP TABLE osm_road_raw` SAU KHI `publish()` đã ghi đè `poi` production. Sửa root cause (commit
   `d4d15cb`, `b5081cc`), rà đủ 25 bảng + 8 sequence xác nhận sạch.
-  **Sự cố 2 (không liên quan Overture, CHƯA GIẢI QUYẾT):** `admin.mjs` chặn QA alias hành chính vì
-  **Xã Thanh Lân**/**Thị trấn Cô Tô** (huyện đảo Cô Tô, Quảng Ninh) không khớp ranh giới OSM hiện tại
-  — PHONG duyệt bỏ qua `admin.mjs` cho lần chạy này (tạm comment trong container, phục hồi ngay sau).
-  `admin_area`/`admin_area_old`/`admin_alias` **chưa rebuild**, giữ dữ liệu cũ trước 13/09; **cron thứ
-  Hai 02:00 VN sẽ gặp lại lỗi này** cho tới khi có seed override hoặc sửa dữ liệu OSM — cần xử lý
-  trước, an toàn (dừng sau khi `poi` đã publish) nhưng street/alley/anchor/tiles không được refresh.
+  **Sự cố 2 (không liên quan Overture) — ĐÃ GIẢI QUYẾT DỨT ĐIỂM cùng ngày.** `admin.mjs` chặn QA
+  alias hành chính vì **Xã Thanh Lân**/**Thị trấn Cô Tô**/**Xã Đồng Tiến** (huyện đảo Cô Tô, Quảng
+  Ninh) không khớp ranh giới OSM hiện tại. Điều tra: Nghị quyết 1679/NQ-UBTVQH15 (hiệu lực 01/07/2025)
+  sáp nhập cả ba thành "Đặc khu Cô Tô" — ranh giới cũ bao gồm nhiều biển hơn đặc khu mới (chỉ vẽ đất
+  liền) nên tỉ lệ phủ hình học luôn <5% ở hai trong ba đơn vị, một sự thật TĨNH của snapshot
+  2025-06-30 không tự hết được. Sửa hai lớp: (1) seed override `db/seed/admin_alias_2025.csv`
+  (commit `2854940`) trỏ đúng ba tên cũ → Đặc khu Cô Tô; (2) root cause của cổng QA (commit
+  `2fa975a`) — `unmatched` trước đây không biết seed đã trỏ đúng hay chưa nên sẽ đỏ lại **mỗi tuần
+  mãi mãi**; thêm hàm thuần `unmatchedAfterSeed` loại trừ đúng, tách biệt hoàn toàn khỏi logic alias
+  hiện có (8 test mới, không đổi hành vi nơi khác). Xác nhận bằng chạy thật: `admin.mjs` **không cần
+  `--accept-qa`** vẫn publish sạch (`unmatched: []`, `seedMisses: 0`). Cron thứ Hai 02:00 VN sẽ chạy
+  sạch, không cần can thiệp tay. Full gate cuối: Biome 456 file, vitest gốc 127 file/1.302 test,
+  typecheck sạch.
   Kết quả production: `poi` active 376.468 (osm 117.893, fsq 258.574, từ 1.515.983); release
   `poi-20260913-101907-c4f8a1f9` (+`-osm-`/`-fsq-`); R2 đã xoá 3 archive Overture/osm-fsq (giữ
   `poi-20260904`/`poi-osm-20260907`/`poi-fsq-20260909-…` vì còn trong `release:history`). Kiểm đủ:
