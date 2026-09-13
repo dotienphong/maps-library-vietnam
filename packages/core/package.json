@@ -1,6 +1,6 @@
 {
   "name": "@mapslibvn/core",
-  "version": "0.7.0",
+  "version": "0.7.1",
   "description": "Client, kiểu dữ liệu và chuỗi ghi nguồn dùng chung cho MapsLibVN",
   "license": "MIT",
   "type": "module",
