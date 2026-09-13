@@ -10,8 +10,8 @@ import {
 } from '../src/export-snapshot.mjs';
 
 describe('snapshotRowIncluded', () => {
-  it('all giữ ba nguồn và POI user', () => {
-    for (const source of ['osm', 'overture', 'fsq']) {
+  it('all giữ hai nguồn và POI user', () => {
+    for (const source of ['osm', 'fsq']) {
       expect(snapshotRowIncluded({ primary_source: source, created_by: 'pipeline' }, 'all')).toBe(
         true,
       );

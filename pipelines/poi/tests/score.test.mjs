@@ -52,12 +52,12 @@ describe('popularity', () => {
 });
 
 describe('pickPrimary', () => {
-  it('điểm đầy đủ cao nhất; hoà → OSM > Overture > FSQ', () => {
-    expect(SOURCE_ORDER).toEqual({ osm: 0, overture: 1, fsq: 2 });
+  it('điểm đầy đủ cao nhất; hoà → OSM > FSQ', () => {
+    expect(SOURCE_ORDER).toEqual({ osm: 0, fsq: 1 });
     expect(
       pickPrimary([
-        { rid: 1, source: 'fsq', completeness: 8 },
-        { rid: 2, source: 'overture', completeness: 9 },
+        { rid: 1, source: 'osm', completeness: 8 },
+        { rid: 2, source: 'fsq', completeness: 9 },
       ]).rid,
     ).toBe(2);
     expect(
@@ -70,8 +70,8 @@ describe('pickPrimary', () => {
   it('cùng điểm và cùng nguồn → rid thấp hơn, không phụ thuộc thứ tự mảng', () => {
     expect(
       pickPrimary([
-        { rid: 9, source: 'overture', completeness: 8 },
-        { rid: 4, source: 'overture', completeness: 8 },
+        { rid: 9, source: 'fsq', completeness: 8 },
+        { rid: 4, source: 'fsq', completeness: 8 },
       ]).rid,
     ).toBe(4);
   });

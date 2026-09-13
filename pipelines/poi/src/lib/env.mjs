@@ -15,11 +15,6 @@ export const OSM_PBF = FIXTURE
   ? resolve(FIXTURES, 'q1.osm.pbf')
   : resolve(WORK, 'vietnam-patched.osm.pbf');
 
-/** @param {string} release ví dụ 2026-08-19.0 */
-export const overtureSource = (release) =>
-  FIXTURE
-    ? resolve(FIXTURES, 'overture-q1.parquet')
-    : `s3://overturemaps-us-west-2/release/${release}/theme=places/type=place/*.parquet`;
 /** FSQ OS Places qua Hugging Face (gated; S3 công khai đã đóng 2026). @param {string} dt ví dụ 2026-08-11 */
 export const fsqSource = (dt) =>
   FIXTURE

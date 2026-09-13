@@ -44,7 +44,6 @@ const ALL_TABLES = [
   'schema_migrations',
   'src_fsq_place',
   'src_osm_place',
-  'src_overture_place',
   'street',
   'tenant',
 ];
@@ -85,7 +84,6 @@ describe('lược đồ spec 5.2', () => {
     expect(has(/ON public\.poi USING btree \(status, category\)/)).toBe(true);
     for (const t of [
       'src_osm_place',
-      'src_overture_place',
       'src_fsq_place',
       'admin_area',
       'admin_area_old',
@@ -230,6 +228,6 @@ describe('lược đồ spec 5.2', () => {
       '0001_extensions.sql',
     ]);
     migrate();
-    expect((await tables()).length).toBe(17);
+    expect((await tables()).length).toBe(16);
   });
 });

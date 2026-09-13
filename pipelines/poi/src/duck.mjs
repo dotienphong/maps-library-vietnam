@@ -31,9 +31,6 @@ export async function openDuck({
           ),
         );
     },
-    /** Đọc S3 công khai không cần khoá. @param {string} region */
-    anonymousS3: (region) =>
-      conn.run(`CREATE OR REPLACE SECRET s3anon (TYPE s3, REGION '${region}')`),
     /** Dataset gated trên Hugging Face (FSQ). Cần HF_TOKEN; bỏ qua khi --fixture (đọc file local). */
     huggingface: () => {
       const token = process.env.HF_TOKEN;

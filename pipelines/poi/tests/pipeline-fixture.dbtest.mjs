@@ -13,7 +13,7 @@ import { CELL_PX_BY_ZOOM, globalCellKey } from '../src/display-selector.mjs';
 const OUT = process.env.MAPSLIBVN_OUT ?? resolve('out');
 const WORK = process.env.MAPSLIBVN_WORK ?? resolve('work');
 const LATE_USER_POI_ID = 'USERPOI0000000000000000002';
-const THIN_ALL_WINNER_ID = 'THINOVERTURE000000000000001';
+const THIN_ALL_WINNER_ID = 'THINFSQ0000000000000000001';
 const THIN_OSM_WINNER_ID = 'THINOSM00000000000000000001';
 const THIN_USER_ID = 'THINUSER0000000000000000001';
 // /app/work là Docker volume bền vững và PID container có thể lặp lại giữa các lần chạy.
@@ -22,9 +22,6 @@ const NEXT_SNAPSHOT_BUILD_ID = `${SNAPSHOT_BUILD_ID}-next`;
 const PROFILE_FIXTURES = [
   ['poi-fixture', 'all'],
   ['poi-osm-fixture', 'osm'],
-  ['poi-osm-fsq-fixture', 'osm-fsq'],
-  ['poi-overture-fsq-fixture', 'overture-fsq'],
-  ['poi-overture-fixture', 'overture'],
   ['poi-fsq-fixture', 'fsq'],
 ];
 const snapshotFile = (/** @type {string} */ buildId) =>
@@ -38,7 +35,7 @@ const node = (/** @type {string[]} */ ...args) =>
 
 beforeAll(async () => {
   node('scripts/db-migrate.mjs');
-  for (const source of ['osm', 'overture', 'fsq']) {
+  for (const source of ['osm', 'fsq']) {
     node(`pipelines/poi/src/ingest/${source}.mjs`, '--fixture');
   }
   node('pipelines/poi/src/taxonomy.mjs', 'load');
@@ -60,8 +57,8 @@ beforeAll(async () => {
   await sql`INSERT INTO poi (id, name, name_norm, category, geom, quality_score, popularity, status,
                             locked_fields, created_by, primary_source, primary_source_id)
     VALUES
-      (${THIN_ALL_WINNER_ID}, 'POI Overture thắng all', 'poi overture thang all', 'cafe',
-       ST_SetSRID(ST_MakePoint(108.6, 13.6), 4326), 99, 0.99, 'active', '{}', 'pipeline', 'overture', 'thin-overture'),
+      (${THIN_ALL_WINNER_ID}, 'POI FSQ thắng all', 'poi fsq thang all', 'cafe',
+       ST_SetSRID(ST_MakePoint(108.6, 13.6), 4326), 99, 0.99, 'active', '{}', 'pipeline', 'fsq', 'thin-fsq'),
       (${THIN_OSM_WINNER_ID}, 'POI OSM phục hồi', 'poi osm phuc hoi', 'cafe',
        ST_SetSRID(ST_MakePoint(108.6, 13.6), 4326), 70, 0.50, 'active', '{}', 'pipeline', 'osm', 'thin-osm'),
       (${THIN_USER_ID}, 'POI user cạnh tranh', 'poi user canh tranh', 'cafe',
@@ -112,7 +109,6 @@ describe('pipeline POI trọn vòng trên fixture', () => {
         count(*) FILTER (WHERE status = 'active' AND category <> 'other')::int AS mapped,
         (SELECT sum(n)::int FROM (
           SELECT count(*)::int AS n FROM src_osm_place
-          UNION ALL SELECT count(*)::int FROM src_overture_place
           UNION ALL SELECT count(*)::int FROM src_fsq_place
         ) source_counts) AS source_records
       FROM poi`;
@@ -187,7 +183,7 @@ describe('pipeline POI trọn vòng trên fixture', () => {
     });
   });
 
-  it('sáu profile chỉ xuất đúng nguồn cho phép và luôn giữ POI user không cạnh tranh', async () => {
+  it('ba profile chỉ xuất đúng nguồn cho phép và luôn giữ POI user không cạnh tranh', async () => {
     const readIds = (/** @type {string} */ release) =>
       new Set(
         readFileSync(resolve(WORK, 'poi', `${release}.geojsonseq`), 'utf8')
@@ -198,11 +194,8 @@ describe('pipeline POI trọn vòng trên fixture', () => {
     const active =
       await sql`SELECT id, primary_source, created_by FROM poi WHERE status = 'active'`;
     const sourceSets = {
-      all: new Set(['osm', 'overture', 'fsq']),
+      all: new Set(['osm', 'fsq']),
       osm: new Set(['osm']),
-      'osm-fsq': new Set(['osm', 'fsq']),
-      'overture-fsq': new Set(['overture', 'fsq']),
-      overture: new Set(['overture']),
       fsq: new Set(['fsq']),
     };
 
@@ -233,7 +226,7 @@ describe('pipeline POI trọn vòng trên fixture', () => {
     }
   });
 
-  it('thinning độc lập: Overture thắng all, OSM được phục hồi ở osm, user vẫn chịu thinning', () => {
+  it('thinning độc lập: FSQ thắng all, OSM được phục hồi ở osm, user vẫn chịu thinning', () => {
     const readFeatures = (/** @type {string} */ release) =>
       readFileSync(resolve(WORK, 'poi', `${release}.geojsonseq`), 'utf8')
         .trim()
@@ -272,7 +265,7 @@ describe('pipeline POI trọn vòng trên fixture', () => {
     }
   });
 
-  it('sáu profile giữ nguyên snapshot DB và chỉ nhận bản ghi mới ở build kế tiếp', () => {
+  it('ba profile giữ nguyên snapshot DB và chỉ nhận bản ghi mới ở build kế tiếp', () => {
     const readIds = (/** @type {string} */ release) =>
       new Set(
         readFileSync(resolve(WORK, 'poi', `${release}.geojsonseq`), 'utf8')

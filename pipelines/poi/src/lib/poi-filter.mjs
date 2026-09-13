@@ -4,11 +4,11 @@ import { POI_SOURCE_PROFILES, poiSourceClause } from '@mapslibvn/core';
 
 export { POI_SOURCE_PROFILES };
 
-/** @param {string} profile @returns {readonly ('osm' | 'overture' | 'fsq')[]} */
+/** @param {string} profile @returns {readonly ('osm' | 'fsq')[]} */
 export function sourcesForProfile(profile) {
-  const sources = /** @type {Record<string, readonly ('osm' | 'overture' | 'fsq')[]>} */ (
-    POI_SOURCE_PROFILES
-  )[profile];
+  const sources = /** @type {Record<string, readonly ('osm' | 'fsq')[]>} */ (POI_SOURCE_PROFILES)[
+    profile
+  ];
   if (!sources) {
     throw new Error(
       `profile nguồn không hợp lệ: ${profile} (có: ${Object.keys(POI_SOURCE_PROFILES).join(', ')})`,

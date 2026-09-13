@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Bước 1 gộp: quét src_osm_place / src_overture_place / src_fsq_place → poi_work_record. Idempotent (dựng lại toàn bộ).
+// Bước 1 gộp: quét src_osm_place / src_fsq_place → poi_work_record. Idempotent (dựng lại toàn bộ).
 import { filterNameAlt, nameCore, normalizeVi, parseAddress, searchKeys } from '@mapslibvn/core';
 import { domainsOf, phonesOf } from './lib/contacts.mjs';
 import { ewkt, pgArray, pgJson } from './lib/copy-format.mjs';
@@ -174,53 +174,6 @@ async function* osmRows(sql) {
 }
 
 /** @param {Sql} sql */
-async function* overtureRows(sql) {
-  for await (const rows of sql`SELECT id, name, names, category, categories, confidence, addresses, websites, phones, sources, ST_X(geom) AS lon, ST_Y(geom) AS lat FROM src_overture_place WHERE name IS NOT NULL ORDER BY id`.cursor(
-    2000,
-  )) {
-    for (const raw of rows) {
-      const r = /** @type {any} */ (raw);
-      const alt = /** @type {string[]} */ (r.categories?.alternate ?? []);
-      const cat = categoryFor(maps, 'overture', [r.category, ...alt]) ?? {
-        code: 'other',
-        group: 'other',
-      };
-      const a = r.addresses?.[0] ?? {};
-      const meta = (r.sources ?? []).find((/** @type {any} */ s) => s?.dataset === 'meta');
-      const extra =
-        (r.sources ?? []).find((/** @type {any} */ s) => s?.dataset === '_overture_extra') ?? {};
-      const fb =
-        (extra.socials ?? []).find((/** @type {any} */ u) =>
-          /facebook\.com|fb\.com/.test(String(u)),
-        ) ?? (meta?.record_id ? `https://www.facebook.com/${meta.record_id}` : null);
-      const common = r.names?.common ? Object.values(r.names.common) : [];
-      yield buildRow({
-        source: 'overture',
-        sourceId: r.id,
-        name: r.name,
-        nameAlt: /** @type {string[]} */ (
-          common.filter((x) => typeof x === 'string' && x !== r.name)
-        ),
-        cat: { code: refineSchool(cat.code, r.name), group: cat.group },
-        confidence: r.confidence ?? 0.5,
-        phones: r.phones ?? [],
-        websites: r.websites ?? [],
-        facebook: fb,
-        hours: null,
-        address: [a.freeform, a.locality, a.region].filter(Boolean).join(', ') || null,
-        updatedAt: r.sources?.[0]?.update_time ?? today,
-        closed:
-          extra.operating_status !== null &&
-          extra.operating_status !== undefined &&
-          extra.operating_status !== 'open',
-        lon: r.lon,
-        lat: r.lat,
-      });
-    }
-  }
-}
-
-/** @param {Sql} sql */
 async function* fsqRows(sql) {
   for await (const rows of sql`SELECT fsq_place_id, name, categories, address, locality, region, tel, website, date_closed, ST_X(geom) AS lon, ST_Y(geom) AS lat, release FROM src_fsq_place WHERE name IS NOT NULL ORDER BY fsq_place_id`.cursor(
     2000,
@@ -262,7 +215,7 @@ if (process.argv[1]?.endsWith('records.mjs')) {
       contact jsonb, hours jsonb, has_phone boolean, has_website boolean, has_hours boolean, has_housenumber boolean, has_category boolean,
       completeness real NOT NULL, updated_at date NOT NULL, closed boolean NOT NULL, geom geometry(Point, 4326) NOT NULL, UNIQUE (source, source_id))`);
     let n = 0;
-    for (const gen of [osmRows, overtureRows, fsqRows])
+    for (const gen of [osmRows, fsqRows])
       n += await copyInto(sql, 'poi_work_record', RECORD_COLUMNS, gen(sql));
     await sql.unsafe('CREATE INDEX poi_work_record_geom_idx ON poi_work_record USING gist (geom)');
     await sql.unsafe('CREATE INDEX poi_work_record_source_idx ON poi_work_record (source)');

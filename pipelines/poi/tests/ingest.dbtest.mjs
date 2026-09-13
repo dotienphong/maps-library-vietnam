@@ -22,20 +22,15 @@ const duckCount = (/** @type {string} */ file) =>
 beforeAll(() => {
   node('scripts/db-migrate.mjs');
   node('pipelines/poi/src/ingest/osm.mjs', '--fixture');
-  node('pipelines/poi/src/ingest/overture.mjs', '--fixture');
   node('pipelines/poi/src/ingest/fsq.mjs', '--fixture');
 });
 afterAll(() => sql.end());
 
 describe('ingest fixture Quận 1', () => {
-  it('src_overture_place và src_fsq_place khớp số dòng parquet (Quận 1 nằm trọn trong VN)', async () => {
-    const [[o], [f]] = await Promise.all([
-      sql`SELECT count(*)::int AS n FROM src_overture_place`,
-      sql`SELECT count(*)::int AS n FROM src_fsq_place`,
-    ]);
-    expect(o.n).toBe(duckCount('pipelines/poi/fixtures/overture-q1.parquet'));
+  it('src_fsq_place khớp số dòng parquet (Quận 1 nằm trọn trong VN)', async () => {
+    const [f] = await sql`SELECT count(*)::int AS n FROM src_fsq_place`;
     expect(f.n).toBe(duckCount('pipelines/poi/fixtures/fsq-q1.parquet'));
-    expect(o.n).toBeGreaterThan(1000);
+    expect(f.n).toBeGreaterThan(1000);
   });
   it('src_osm_place có Chợ Bến Thành, có POI dạng vùng (way) và có names jsonb', async () => {
     const [{ n }] = await sql`SELECT count(*)::int AS n FROM src_osm_place`;
@@ -47,9 +42,8 @@ describe('ingest fixture Quận 1', () => {
       await sql`SELECT count(*)::int AS ways FROM src_osm_place WHERE osm_type = 'w'`;
     expect(ways).toBeGreaterThan(50);
   });
-  it('geometry hợp lệ, SRID 4326; Overture/FSQ nằm trong bbox Quận 1, OSM trong VN (fixture -s smart giữ trọn relation)', async () => {
-    const [{ bad }] = await sql`SELECT count(*)::int AS bad FROM (
-      SELECT geom FROM src_overture_place UNION ALL SELECT geom FROM src_fsq_place) g
+  it('geometry hợp lệ, SRID 4326; FSQ nằm trong bbox Quận 1, OSM trong VN (fixture -s smart giữ trọn relation)', async () => {
+    const [{ bad }] = await sql`SELECT count(*)::int AS bad FROM src_fsq_place
       WHERE ST_SRID(geom) <> 4326 OR NOT ST_Within(geom, ST_MakeEnvelope(106.67, 10.75, 106.73, 10.81, 4326))`;
     expect(bad).toBe(0);
     const [{ badOsm }] = await sql`SELECT count(*)::int AS "badOsm" FROM src_osm_place

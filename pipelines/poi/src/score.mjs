@@ -1,4 +1,4 @@
-export const SOURCE_ORDER = /** @type {Record<string, number>} */ ({ osm: 0, overture: 1, fsq: 2 });
+export const SOURCE_ORDER = /** @type {Record<string, number>} */ ({ osm: 0, fsq: 1 });
 
 /** spec 5.5 quality_score 0–100. @param {{ hasPhone: boolean, hasWebsite: boolean, hasHours: boolean, hasHousenumber: boolean, sourceCount: number, confidence: number, monthsOld: number }} r */
 export function qualityScore(r) {
@@ -19,7 +19,7 @@ export function popularity(r) {
   );
 }
 
-/** Nguồn chính: điểm đầy đủ cao nhất; hoà → OSM > Overture > FSQ. @param {{ rid: number, source: string, completeness: number }[]} members */
+/** Nguồn chính: điểm đầy đủ cao nhất; hoà → OSM > FSQ. @param {{ rid: number, source: string, completeness: number }[]} members */
 export function pickPrimary(members) {
   return [...members].sort(
     (a, b) =>

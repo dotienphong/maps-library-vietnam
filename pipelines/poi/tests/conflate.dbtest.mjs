@@ -52,19 +52,18 @@ const runAll = async () => {
 
 beforeAll(async () => {
   await node('scripts/db-migrate.mjs');
-  for (const s of ['osm', 'overture', 'fsq'])
-    await node(`pipelines/poi/src/ingest/${s}.mjs`, '--fixture');
+  for (const s of ['osm', 'fsq']) await node(`pipelines/poi/src/ingest/${s}.mjs`, '--fixture');
   await node('pipelines/poi/src/taxonomy.mjs', 'load');
-  await sql`DELETE FROM src_overture_place WHERE id LIKE 'test-%'`;
+  await sql`DELETE FROM src_fsq_place WHERE fsq_place_id LIKE 'test-%'`;
   await sql`DELETE FROM src_osm_place WHERE osm_type = 'n' AND osm_id >= 900000000000`;
   await sql`INSERT INTO src_osm_place (osm_type, osm_id, name, names, tags, geom, release) VALUES
     ('n', 900000000001, 'Cà phê Cộng', '{"name":"Cà phê Cộng"}', '{"amenity":"cafe","name":"Cà phê Cộng"}', ST_SetSRID(ST_MakePoint(106.7000, 10.7760), 4326), current_date),
     ('n', 900000000002, 'Highlands Coffee Nguyễn Huệ', '{"name":"Highlands Coffee Nguyễn Huệ"}', '{"amenity":"cafe","name":"Highlands Coffee Nguyễn Huệ","addr:housenumber":"18","addr:street":"Nguyễn Huệ"}', ST_SetSRID(ST_MakePoint(106.7040, 10.7740), 4326), current_date)`;
-  await sql`INSERT INTO src_overture_place (id, name, names, category, categories, confidence, addresses, websites, phones, sources, geom, release) VALUES
-    ('test-cong', 'Cong Caphe', '{"primary":"Cong Caphe"}', 'coffee_shop', '{"primary":"coffee_shop"}', 0.8, '[{"freeform":"Quận 1"}]', '{}', '{}', '[]', ST_SetSRID(ST_MakePoint(106.7002, 10.7761), 4326), 'fixture-q1'),
-    ('test-hl-1', 'Highlands Nguyen Hue', '{"primary":"Highlands Nguyen Hue"}', 'coffee_shop', '{"primary":"coffee_shop"}', 0.8, '[{"freeform":"18 Nguyễn Huệ, Quận 1"}]', '{}', '{}', '[]', ST_SetSRID(ST_MakePoint(106.7041, 10.7741), 4326), 'fixture-q1'),
-    ('test-hl-2', 'Highlands Coffee', '{"primary":"Highlands Coffee"}', 'coffee_shop', '{"primary":"coffee_shop"}', 0.8, '[{"freeform":"76 Nguyễn Huệ, Quận 1"}]', '{}', '{}', '[]', ST_SetSRID(ST_MakePoint(106.7044, 10.7745), 4326), 'fixture-q1'),
-    ('test-lowconf', 'Quán Không Tên Rõ', '{"primary":"Quán Không Tên Rõ"}', 'restaurant', '{"primary":"restaurant"}', 0.2, '[]', '{}', '{}', '[]', ST_SetSRID(ST_MakePoint(106.6900, 10.7900), 4326), 'fixture-q1')`;
+  // Cột theo db/migrations/0002_sources.sql: categories jsonb (mảng nhãn FSQ), date_closed date, release date.
+  await sql`INSERT INTO src_fsq_place (fsq_place_id, name, categories, address, locality, region, tel, website, date_closed, geom, release) VALUES
+    ('test-cong', 'Cong Caphe', '["Dining and Drinking > Cafe, Coffee, and Tea House > Coffee Shop"]', NULL, 'Quận 1', 'Hồ Chí Minh', NULL, NULL, NULL, ST_SetSRID(ST_MakePoint(106.7002, 10.7761), 4326), current_date),
+    ('test-hl-1', 'Highlands Nguyen Hue', '["Dining and Drinking > Cafe, Coffee, and Tea House > Coffee Shop"]', '18 Nguyễn Huệ', 'Quận 1', 'Hồ Chí Minh', NULL, NULL, NULL, ST_SetSRID(ST_MakePoint(106.7041, 10.7741), 4326), current_date),
+    ('test-hl-2', 'Highlands Coffee', '["Dining and Drinking > Cafe, Coffee, and Tea House > Coffee Shop"]', '76 Nguyễn Huệ', 'Quận 1', 'Hồ Chí Minh', NULL, NULL, NULL, ST_SetSRID(ST_MakePoint(106.7044, 10.7745), 4326), current_date)`;
   await sql`DELETE FROM poi_edit WHERE note = ${EDIT_NOTE}`;
   await runAll();
 });
@@ -83,18 +82,15 @@ const poiOf = async (/** @type {string} */ source, /** @type {string} */ id) =>
 describe('gộp trên fixture Quận 1', () => {
   it('"Cà phê Cộng" ~ "Cong Caphe" gộp một poi, toạ độ lấy OSM, nguồn chính có 2 liên kết', async () => {
     const a = await poiOf('osm', 'n900000000001');
-    const b = await poiOf('overture', 'test-cong');
+    const b = await poiOf('fsq', 'test-cong');
     expect(a.id).toBe(b.id);
     const [{ x }] = await sql`SELECT ST_X(geom) AS x FROM poi WHERE id = ${a.id}`;
     expect(Number(x)).toBeCloseTo(106.7, 4);
   });
   it('"Highlands Coffee Nguyễn Huệ" ~ "Highlands Nguyen Hue" (cùng số 18) gộp; "Highlands Coffee" số 76 cách 60 m KHÔNG gộp', async () => {
     const osm = await poiOf('osm', 'n900000000002');
-    expect((await poiOf('overture', 'test-hl-1')).id).toBe(osm.id);
-    expect((await poiOf('overture', 'test-hl-2')).id).not.toBe(osm.id);
-  });
-  it('Overture confidence < 0,4 đơn lẻ → không tạo poi (spec 5.4.10)', async () => {
-    expect(await poiOf('overture', 'test-lowconf')).toBeUndefined();
+    expect((await poiOf('fsq', 'test-hl-1')).id).toBe(osm.id);
+    expect((await poiOf('fsq', 'test-hl-2')).id).not.toBe(osm.id);
   });
   it('report tách bare other, mapped *_other, và combined other', async () => {
     await node('pipelines/poi/src/report.mjs');
@@ -131,13 +127,13 @@ describe('gộp trên fixture Quận 1', () => {
     expect(Number(rerun.popularity)).toBeCloseTo(Number(after.popularity));
   });
   it('publish cập nhật mọi trường pipeline khi chỉ name_norm/name_alt/địa chỉ/popularity thay đổi', async () => {
-    const before = await poiOf('overture', 'test-hl-2');
+    const before = await poiOf('fsq', 'test-hl-2');
     await sql`UPDATE poi_work_record SET name_norm = 'highlands changed', name_alt = ARRAY['alias changed'],
       housenumber = '99', street = 'Đường đổi', ward = 'Phường đổi', province = 'Tỉnh đổi'
-      WHERE source = 'overture' AND source_id = 'test-hl-2'`;
+      WHERE source = 'fsq' AND source_id = 'test-hl-2'`;
     await sql`UPDATE poi_work_cluster_meta SET popularity = 9.25 WHERE poi_id = ${before.id}`;
     await node('pipelines/poi/src/publish.mjs', '--force');
-    const after = await poiOf('overture', 'test-hl-2');
+    const after = await poiOf('fsq', 'test-hl-2');
     expect(after.name_norm).toBe('highlands changed');
     expect(after.name_alt).toEqual(['alias changed']);
     expect(after.housenumber).toBe('99');
@@ -183,17 +179,17 @@ describe('gộp trên fixture Quận 1', () => {
     expect(afterAll).toEqual(beforeAll);
     await sql`DELETE FROM src_osm_place WHERE osm_type = 'n' AND osm_id = 900000000001`;
     await runAll();
-    const moved = await poiOf('overture', 'test-cong');
+    const moved = await poiOf('fsq', 'test-cong');
     expect(moved.id).toBe(before.id);
-    expect(moved.primary_source).toBe('overture');
+    expect(moved.primary_source).toBe('fsq');
   });
   it('merge/split giữ lịch sử theo previous primary dù record đó là secondary hiện tại', async () => {
-    const historicalPrimary = await poiOf('overture', 'test-cong');
-    const competingHistorical = await poiOf('overture', 'test-hl-2');
+    const historicalPrimary = await poiOf('fsq', 'test-cong');
+    const competingHistorical = await poiOf('fsq', 'test-hl-2');
     const [primaryRecord] =
-      await sql`SELECT rid FROM poi_work_record WHERE source = 'overture' AND source_id = 'test-cong'`;
+      await sql`SELECT rid FROM poi_work_record WHERE source = 'fsq' AND source_id = 'test-cong'`;
     const [linkedSecondary] =
-      await sql`SELECT rid FROM poi_work_record WHERE source = 'overture' AND source_id = 'test-hl-2'`;
+      await sql`SELECT rid FROM poi_work_record WHERE source = 'fsq' AND source_id = 'test-hl-2'`;
     const [outsidePrimary] =
       await sql`SELECT rid, source, source_id FROM poi_work_record WHERE rid NOT IN (${primaryRecord.rid}, ${linkedSecondary.rid}) ORDER BY rid LIMIT 1`;
     const [target] =
@@ -229,7 +225,7 @@ describe('gộp trên fixture Quận 1', () => {
       await sql`SELECT cluster_no FROM poi_work_cluster_meta ORDER BY cluster_no LIMIT 3`;
     expect(rows).toHaveLength(3);
     const [a, b, c] = rows;
-    const historical = await poiOf('overture', 'test-cong');
+    const historical = await poiOf('fsq', 'test-cong');
     await sql`UPDATE poi_work_cluster_meta SET stable_id = ${historical.id}, poi_id = ${historical.id}, popularity = 0 WHERE cluster_no = ${a.cluster_no}`;
     await sql`UPDATE poi_work_cluster_meta SET stable_id = 'stable-b', poi_id = ${historical.id}, popularity = 0 WHERE cluster_no = ${b.cluster_no}`;
     await sql`UPDATE poi_work_cluster_meta SET stable_id = 'stable-c', poi_id = 'stable-b', popularity = 0 WHERE cluster_no = ${c.cluster_no}`;

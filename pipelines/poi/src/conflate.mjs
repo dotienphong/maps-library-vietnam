@@ -11,7 +11,7 @@ import { stableId } from './lib/stable-id.mjs';
 import { connect, copyInto, countRows } from './pg.mjs';
 import { pickPrimary, popularity, qualityScore } from './score.mjs';
 
-const SOURCES = ['osm', 'overture', 'fsq'];
+const SOURCES = ['osm', 'fsq'];
 const sql = connect();
 try {
   await sql.unsafe('DROP TABLE IF EXISTS poi_work_pair, poi_work_cluster, poi_work_cluster_meta');
@@ -141,7 +141,6 @@ try {
       const srcs = new Set(m.map(sourceOf));
       const f = flags[primaryRid] ?? 0;
       const c = conf[primaryRid] ?? 0;
-      if (srcs.size === 1 && sourceOf(primaryRid) === 'overture' && c < 0.4) continue;
       const closed = m.some((rid) => ((flags[rid] ?? 0) >> 4) & 1);
       yield [
         cid,

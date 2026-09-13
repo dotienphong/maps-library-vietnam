@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Nạp fixture Quận 1 vào Postgres dev: ingest 3 nguồn → taxonomy → gộp → geocode → poi-fixture.pmtiles.
+// Nạp fixture Quận 1 vào Postgres dev: ingest 2 nguồn (OSM, FSQ) → taxonomy → gộp → geocode → poi-fixture.pmtiles.
 import 'dotenv/config';
 import { run } from './lib/run.mjs';
 
@@ -20,7 +20,6 @@ if (process.env.MAPSLIBVN_IN_CONTAINER !== '1') {
 const steps = [
   ['scripts/db-migrate.mjs'],
   ['pipelines/poi/src/ingest/osm.mjs', '--fixture'],
-  ['pipelines/poi/src/ingest/overture.mjs', '--fixture'],
   ['pipelines/poi/src/ingest/fsq.mjs', '--fixture'],
   ['pipelines/poi/src/taxonomy.mjs', 'load'],
   ['pipelines/poi/src/records.mjs'],

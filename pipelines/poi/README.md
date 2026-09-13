@@ -4,8 +4,8 @@ Chạy trong image (`PIPE pipeline …`, xem plan M2). Mọi bước idempotent:
 
 ## Chạy trọn vòng
 
-- `pnpm data:update --dry-run`: dò release OSM/Overture/FSQ và chỉ in kế hoạch.
-- `pnpm data:update --poi [--force]`: ingest 3 nguồn → taxonomy → gộp → geocode →
+- `pnpm data:update --dry-run`: dò release OSM/FSQ và chỉ in kế hoạch.
+- `pnpm data:update --poi [--force]`: ingest 2 nguồn → taxonomy → gộp → geocode →
   PMTiles/QA/upload/smoke/manifest/report. Ngoài máy chủ, lệnh mở Cloudflare Access
   Tunnel khi có `DB_TUNNEL_HOSTNAME` và `PIPELINE_DATABASE_URL`.
 - `pnpm db:fixture`: nạp toàn pipeline fixture Quận 1 vào DB dev.
@@ -15,8 +15,9 @@ Chạy trong image (`PIPE pipeline …`, xem plan M2). Mọi bước idempotent:
 | Bước | Lệnh | Đầu vào → đầu ra |
 |---|---|---|
 | Ingest OSM | `node pipelines/poi/src/ingest/osm.mjs [--fixture]` | `work/vietnam-patched.osm.pbf` → `src_osm_place` |
-| Ingest Overture | `node pipelines/poi/src/ingest/overture.mjs --release <ver>` | S3 parquet → `src_overture_place` |
 | Ingest FSQ | `node pipelines/poi/src/ingest/fsq.mjs --release <dt>` | Hugging Face parquet (cần `HF_TOKEN`) → `src_fsq_place` |
+
+**Overture đã gỡ 13/09/2026** (plan `docs/superpowers/plans/2026-09-13-go-bo-overture.md`); các số liệu Task 10 dưới đây là lịch sử khi còn ba nguồn.
 
 Số liệu ingest thật toàn VN (Task 10, 31/08/2026): `src_osm_place` 228.255 raw,
 124.476 record sau lọc; `src_overture_place`
@@ -74,12 +75,10 @@ Exporter in một dòng JSON gồm `activeRead`, `selected`, `thinned`, `byMinZo
 `invalidCoordinates`. Có tọa độ lỗi thì job dừng trước Tippecanoe. POI bị `thinned` chỉ bị ẩn khỏi
 nền bản đồ; bản ghi `poi.status='active'` vẫn nguyên và vẫn tìm được qua Search/Nearby.
 
-Taxonomy (Task 6): 164 mã lá (12 nhóm + `other`), 955 dòng ánh xạ (OSM 296, Overture 380, FSQ 279).
-Độ phủ đo trên dữ liệu VN thật: **thiếu ánh xạ** OSM 0,4 %, Overture 0,8 %, FSQ 0 % (ngưỡng 2 %).
+Taxonomy (Task 6): 164 mã lá (12 nhóm + `other`), 2 CSV ánh xạ (OSM 296, FSQ 279).
+Độ phủ đo trên dữ liệu VN thật: **thiếu ánh xạ** OSM 0,4 %, FSQ 0 % (ngưỡng 2 %).
 Phần rơi vào `<nhóm>_other` **có chủ đích** (nhóm cha chung chung của nguồn, không thể chi tiết hơn):
-OSM 7,5 %, Overture 23,1 %, FSQ 11,8 % — chủ yếu do Overture có `professional_services` (73.802) và
-`shopping` (53.637). Sau khi dùng cả `categories.alternate`, Overture còn 24,6 % `other` ở mức bản ghi;
-con số này sẽ giảm ở bảng `poi` sau gộp vì OSM phân loại chi tiết hơn (Task 7).
+OSM 7,5 %, FSQ 11,8 %; con số này giảm ở bảng `poi` sau gộp vì OSM phân loại chi tiết hơn (Task 7).
 
 Bảng phụ do pipeline tạo: `vn_boundary` (ranh giới VN đệm 2 km), `poi_work_*` (Task 7–8).
 

@@ -3,7 +3,7 @@ import { createClusterer, pairAllowed, pairScore } from '../src/lib/greedy.mjs';
 
 const base = {
   sa: 'osm',
-  sb: 'overture',
+  sb: 'fsq',
   sim: 0.9,
   dist_m: 20,
   ga: 'food_drink',
@@ -84,23 +84,23 @@ describe('pairAllowed (spec 5.4 bước 1–3 + luật chuỗi cửa hàng)', ()
 });
 
 describe('createClusterer — ghép tham lam, không bắc cầu', () => {
-  const src = { 1: 'osm', 2: 'overture', 3: 'fsq', 4: 'overture', 5: 'osm' };
+  const src = { 1: 'osm', 2: 'fsq', 3: 'fsq', 4: 'fsq', 5: 'osm' };
   it('mỗi bản ghi một cụm; tối đa 1 bản ghi mỗi nguồn; không gộp hai cụm đã có', () => {
     const c = createClusterer(5, { sourceOf: (r) => src[r], onePerSource: true });
-    c.consider(1, 2);
-    c.consider(2, 3);
-    c.consider(2, 4);
-    c.consider(4, 5);
-    c.consider(3, 5);
+    c.consider(1, 2); // osm+fsq → cụm A
+    c.consider(2, 3); // A đã có FSQ → 3 bị từ chối
+    c.consider(4, 5); // fsq+osm → cụm B
+    c.consider(2, 4); // A và B đều đã có → không bắc cầu
+    c.consider(3, 5); // B đã có FSQ → 3 vẫn lẻ
     const { clusterOf, members } = c.result();
     expect(clusterOf[1]).toBe(clusterOf[2]);
-    expect(clusterOf[3]).toBe(clusterOf[1]);
+    expect(clusterOf[3]).toBe(0);
     expect(clusterOf[4]).toBe(clusterOf[5]);
     expect(clusterOf[4]).not.toBe(clusterOf[1]);
-    expect(members.get(clusterOf[1])).toEqual([1, 2, 3]);
+    expect(members.get(clusterOf[1])).toEqual([1, 2]);
   });
   it('lượt trùng cùng nguồn: không giới hạn nguồn nhưng giới hạn kích cỡ', () => {
-    const c = createClusterer(5, { sourceOf: () => 'overture', onePerSource: false, maxSize: 2 });
+    const c = createClusterer(5, { sourceOf: () => 'fsq', onePerSource: false, maxSize: 2 });
     c.consider(1, 2);
     c.consider(2, 3);
     const { clusterOf } = c.result();

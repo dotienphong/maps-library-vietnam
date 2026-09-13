@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Taxonomy spec 5.6: đọc db/seed/category.json + 3 CSV ánh xạ; mapCategory(); lệnh `load` upsert vào Postgres.
+// Taxonomy spec 5.6: đọc db/seed/category.json + 2 CSV ánh xạ (OSM, FSQ); mapCategory(); lệnh `load` upsert vào Postgres.
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 
@@ -121,7 +121,6 @@ export function loadCategoryMaps() {
   const read = (/** @type {string} */ f) => parseMapCsv(readFileSync(resolve(SEED, f), 'utf8'));
   return {
     osm: read('category_map_osm.csv'),
-    overture: read('category_map_overture.csv'),
     fsq: read('category_map_fsq.csv'),
   };
 }
@@ -132,9 +131,9 @@ const OTHER = { code: 'other', group: 'other' };
 const withGroup = (code) => ({ code, group: GROUP_OF.get(code) ?? 'other' });
 
 /**
- * @param {{ osm: Map<string, string>, overture: Map<string, string>, fsq: Map<string, string> }} maps
- * @param {'osm' | 'overture' | 'fsq'} source
- * @param {string} value osm: "amenity=cafe"; overture: "coffee_shop"; fsq: "A > B > C"
+ * @param {{ osm: Map<string, string>, fsq: Map<string, string> }} maps
+ * @param {'osm' | 'fsq'} source
+ * @param {string} value osm: "amenity=cafe"; fsq: "A > B > C"
  */
 export function mapCategory(maps, source, value) {
   const m = maps[source];
@@ -184,9 +183,9 @@ export function refineSchool(code, name) {
 
 /**
  * Chọn loại cho một bản ghi: lấy ứng viên đầu tiên ánh xạ được (không phải *_other/other); nếu không có ứng viên nào → theo ứng viên đầu.
- * @param {{ osm: Map<string, string>, overture: Map<string, string>, fsq: Map<string, string> }} maps
- * @param {'osm' | 'overture' | 'fsq'} source
- * @param {Record<string, string> | (string | null | undefined)[]} input tags OSM, hoặc mảng giá trị (Overture: [primary, …alternate]; FSQ: nhãn)
+ * @param {{ osm: Map<string, string>, fsq: Map<string, string> }} maps
+ * @param {'osm' | 'fsq'} source
+ * @param {Record<string, string> | (string | null | undefined)[]} input tags OSM, hoặc mảng nhãn FSQ (`fsq_category_labels`, thử lần lượt)
  * @returns {{ code: string, group: string } | null} null khi đối tượng OSM không có tag POI nào
  */
 export function categoryFor(maps, source, input) {
@@ -222,9 +221,7 @@ if (process.argv[1]?.endsWith('taxonomy.mjs') && process.argv[2] === 'load') {
       }
     });
     const [row] = await sql`SELECT count(*)::int AS n FROM category`;
-    console.log(
-      `✓ category ${row?.n ?? 0} mã; category_map ${maps.osm.size + maps.overture.size + maps.fsq.size} dòng`,
-    );
+    console.log(`✓ category ${row?.n ?? 0} mã; category_map ${maps.osm.size + maps.fsq.size} dòng`);
   } finally {
     await sql.end();
   }

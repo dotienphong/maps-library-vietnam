@@ -32,7 +32,8 @@ describe('category.json', () => {
 });
 
 describe('category_map_*.csv', () => {
-  it('mọi mã đích tồn tại; không trùng giá trị nguồn', () => {
+  it('chỉ còn hai nguồn osm/fsq; mọi mã đích tồn tại; không trùng giá trị nguồn', () => {
+    expect(Object.keys(maps).sort()).toEqual(['fsq', 'osm']);
     for (const [source, m] of Object.entries(maps)) {
       expect(m.size).toBeGreaterThan(50);
       for (const [value, code] of m)
@@ -94,13 +95,6 @@ describe('mapCategory', () => {
     expect(refineSchool('school', 'Trường Mầm non Hoa Hồng')).toBe('kindergarten');
     expect(refineSchool('school', 'Trường Quốc tế ABC')).toBe('school');
     expect(refineSchool('cafe', 'Trường Tiểu học')).toBe('cafe');
-  });
-  it('Overture: primary rồi alternate', () => {
-    expect(mapCategory(maps, 'overture', 'coffee_shop').code).toBe('cafe');
-    expect(
-      categoryFor(maps, 'overture', ['not_a_real_category', 'vietnamese_restaurant']).code,
-    ).toBe('restaurant');
-    expect(categoryFor(maps, 'overture', []).code).toBe('other');
   });
   it('FSQ: lá cuối, rồi cấp 2, rồi cấp 1', () => {
     expect(

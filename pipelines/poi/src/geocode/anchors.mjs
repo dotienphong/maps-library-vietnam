@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Mốc địa chỉ từ OSM và record Overture/FSQ; gộp cùng số + đường trong 30 m.
+// Mốc địa chỉ từ OSM và record FSQ; gộp cùng số + đường trong 30 m.
 import { parseAddress } from '@mapslibvn/core';
 import { ewkt, pgArray } from '../lib/copy-format.mjs';
 import { vnDate } from '../lib/env.mjs';

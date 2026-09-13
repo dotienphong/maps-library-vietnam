@@ -51,7 +51,7 @@ const abortActiveChildren = async () => {
 
 beforeAll(async () => {
   await node('scripts/db-migrate.mjs');
-  for (const source of ['osm', 'overture', 'fsq']) {
+  for (const source of ['osm', 'fsq']) {
     await node(`pipelines/poi/src/ingest/${source}.mjs`, '--fixture');
   }
   await node('pipelines/poi/src/taxonomy.mjs', 'load');
@@ -59,23 +59,24 @@ beforeAll(async () => {
     VALUES ('n', 990000000001, 'Exact Priority OSM', '{"name":"Exact Priority OSM"}',
       '{"amenity":"cafe","addr:housenumber":"9002","addr:street":"Boundary Priority"}',
       ST_SetSRID(ST_MakePoint(106.6, 10.6), 4326), current_date)`;
-  await sql`INSERT INTO src_overture_place
-      (id, name, names, category, categories, confidence, addresses, websites, phones, sources, geom, release)
+  // Cột theo db/migrations/0002_sources.sql: categories jsonb (mảng nhãn FSQ), date_closed date, release date.
+  await sql`INSERT INTO src_fsq_place
+      (fsq_place_id, name, categories, address, locality, region, tel, website, date_closed, geom, release)
     VALUES
-      ('task8-exact-priority', 'Exact Priority Overture', '{"primary":"Exact Priority Overture"}',
-        'coffee_shop', '{"primary":"coffee_shop"}', 0.8,
-        '[{"freeform":"9002 Boundary Priority"}]', '{}', '{}', '[]',
+      ('task8-exact-priority', 'Exact Priority FSQ',
+        '["Dining and Drinking > Cafe, Coffee, and Tea House > Coffee Shop"]',
+        '9002 Boundary Priority', NULL, NULL, NULL, NULL, NULL,
         ST_Project(ST_SetSRID(ST_MakePoint(106.6, 10.6), 4326)::geography, 29.9, radians(90))::geometry,
-        'task8-fixture'),
-      ('task8-exact-over-1', 'Exact Over One', '{"primary":"Exact Over One"}',
-        'coffee_shop', '{"primary":"coffee_shop"}', 0.8,
-        '[{"freeform":"9001 Boundary Exact"}]', '{}', '{}', '[]',
-        ST_SetSRID(ST_MakePoint(106.55, 10.55), 4326), 'task8-fixture'),
-      ('task8-exact-over-2', 'Exact Over Two', '{"primary":"Exact Over Two"}',
-        'coffee_shop', '{"primary":"coffee_shop"}', 0.8,
-        '[{"freeform":"9001 Boundary Exact"}]', '{}', '{}', '[]',
+        current_date),
+      ('task8-exact-over-1', 'Exact Over One',
+        '["Dining and Drinking > Cafe, Coffee, and Tea House > Coffee Shop"]',
+        '9001 Boundary Exact', NULL, NULL, NULL, NULL, NULL,
+        ST_SetSRID(ST_MakePoint(106.55, 10.55), 4326), current_date),
+      ('task8-exact-over-2', 'Exact Over Two',
+        '["Dining and Drinking > Cafe, Coffee, and Tea House > Coffee Shop"]',
+        '9001 Boundary Exact', NULL, NULL, NULL, NULL, NULL,
         ST_Project(ST_SetSRID(ST_MakePoint(106.55, 10.55), 4326)::geography, 30.1, radians(90))::geometry,
-        'task8-fixture')`;
+        current_date)`;
   await node('pipelines/poi/src/records.mjs');
   await node('pipelines/poi/src/geocode/osm-roads.mjs', '--fixture');
   await sql`INSERT INTO osm_admin_raw (osm_relation_id, level, name, name_norm, geom)
