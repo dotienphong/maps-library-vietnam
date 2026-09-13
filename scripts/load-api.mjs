@@ -97,8 +97,8 @@ async function main() {
     throw new Error('Production cần cờ --confirm-production');
   }
   const levels = (arg('levels') ?? DEFAULT_LEVELS.join(',')).split(',').map(Number);
-  if (levels.some((value) => !Number.isInteger(value) || value < 1 || value > 100)) {
-    throw new Error('Mỗi level phải là số nguyên 1–100');
+  if (levels.some((value) => !Number.isInteger(value) || value < 1 || value > 1000)) {
+    throw new Error('Mỗi level phải là số nguyên 1–1000');
   }
   const result = await runRamp(base, key, levels);
   console.table(result.levels);
