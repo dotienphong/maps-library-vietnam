@@ -276,7 +276,13 @@ export function createNavigationSession(opts: NavigationSessionOptions): Navigat
     source.onBackgroundUnavailable?.((e) => emit('backgroundUnavailable', e));
     unsubscribe = source.subscribe(
       (fix) => engine.update(fix),
-      (error) => emit('positionError', error),
+      (error) => {
+        emit('positionError', error);
+        // `denied` là hỏng vĩnh viễn: sẽ không có fix nào nữa, nên giữ phiên "đang chạy" chỉ khiến
+        // chống khoá màn hình, vòng âm thanh im lặng và thông báo dịch vụ nền sống mãi trong khi
+        // bản đồ đứng im. Các mã khác (mất tín hiệu, timeout) là tạm thời — không đụng tới.
+        if (error.code === 'denied') void stop();
+      },
     );
     const headingSource = opts.heading;
     if (headingSource) {

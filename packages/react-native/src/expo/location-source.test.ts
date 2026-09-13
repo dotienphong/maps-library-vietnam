@@ -160,6 +160,34 @@ describe('expoLocationSource — đường nền', () => {
     expect(fixes).toHaveLength(2);
   });
 
+  /**
+   * `fixListeners` là Set cấp module, còn task nền là tài nguyên hệ điều hành DÙNG CHUNG cho mọi
+   * nguồn trong app. Hai `<MapsLibVNMap>` cùng lúc, hoặc một map mount đè lên map cũ chưa kịp gỡ,
+   * là có hai người nghe: người rời trước không được phép tắt GPS nền của người còn lại.
+   */
+  it('còn người nghe khác thì unsubscribe KHÔNG dừng task nền', async () => {
+    defineNavigationTask();
+    mocks.TaskManager.isTaskDefined.mockReturnValue(true);
+    const a = expoLocationSource();
+    const b = expoLocationSource();
+    const fixesA: GeoFix[] = [];
+    const fixesB: GeoFix[] = [];
+    const stopA = a.subscribe((f) => fixesA.push(f));
+    const stopB = b.subscribe((f) => fixesB.push(f));
+    await vi.waitFor(() =>
+      expect(mocks.Location.startLocationUpdatesAsync).toHaveBeenCalledTimes(2),
+    );
+
+    stopA();
+    expect(mocks.Location.stopLocationUpdatesAsync).not.toHaveBeenCalled();
+    executor()({ data: { locations: [location({}, 7)] }, error: null, executionInfo: info });
+    expect(fixesA).toHaveLength(0);
+    expect(fixesB.map((f) => f.timestamp)).toEqual([7]);
+
+    stopB();
+    expect(mocks.Location.stopLocationUpdatesAsync).toHaveBeenCalledWith(NAVIGATION_TASK);
+  });
+
   it('mode mặc định motorbike → activityType 2; executor báo error → positionError unavailable', async () => {
     defineNavigationTask();
     mocks.TaskManager.isTaskDefined.mockReturnValue(true);

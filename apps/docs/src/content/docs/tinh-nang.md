@@ -144,7 +144,7 @@ Vì tiles không chạm Worker, lượt tải bản đồ không tính vào hạ
 
 ## 10. Trạng thái và giới hạn hiện tại
 
-- **Bốn gói `@mapslibvn/*` đã public trên npm**; dist-tag `latest` hiện trỏ tới `0.4.0`. Bản UMD
+- **Bốn gói `@mapslibvn/*` đã public trên npm** dưới dist-tag `latest`. Bản UMD
   vẫn dùng được cho ứng dụng không có bundler. Xem [Cài đặt](/cai-dat/).
 - Endpoint `https://api.ai-solutions.io.vn` và `https://mapslibvn-docs.pages.dev` là **tạm thời**
   trong giai đoạn nội bộ, sẽ đổi khi MapsLibVN có tên miền riêng.

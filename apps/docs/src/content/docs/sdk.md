@@ -7,17 +7,53 @@ Trang này liệt kê **đúng những gì bốn gói xuất ra**, kèm mặc đ
 
 ## 1. Bốn gói
 
-| Gói | Phiên bản | Làm gì | Peer dependency |
-|---|---|---|---|
-| `@mapslibvn/core` | 0.4.0 | client REST, kiểu dữ liệu, chuỗi ghi nguồn, chuẩn hoá tiếng Việt | không có |
-| `@mapslibvn/web` | 0.4.0 | `createMap` bọc MapLibre GL JS, web component autocomplete | `maplibre-gl@^6.4.1` |
-| `@mapslibvn/react` | 0.4.0 | component và hook cho React | `maplibre-gl@^6.4.1`, `react>=18` |
-| `@mapslibvn/react-native` | 0.4.0 | component và hook cho iOS/Android | `@maplibre/maplibre-react-native@^11.3`, `react>=19.1`, `react-native>=0.80` |
+| Gói | Làm gì | Peer dependency |
+|---|---|---|
+| `@mapslibvn/core` | client REST, kiểu dữ liệu, chuỗi ghi nguồn, chuẩn hoá tiếng Việt | không có |
+| `@mapslibvn/web` | `createMap` bọc MapLibre GL JS, web component autocomplete | `maplibre-gl@^6.4.1` |
+| `@mapslibvn/react` | component và hook cho React | `maplibre-gl@^6.4.1`, `react>=18` |
+| `@mapslibvn/react-native` | component và hook cho iOS/Android | `@maplibre/maplibre-react-native@^11.3`, `react>=19.1`, `react-native>=0.80` |
+
+Bốn gói luôn phát hành cùng một version. Số hiện tại xem trên npm hoặc bằng
+`npm view @mapslibvn/core version` — trang này cố ý không ghi số cứng để không bao giờ lệch với
+registry.
 
 `@mapslibvn/web` phụ thuộc `@mapslibvn/core` và `pmtiles`; `@mapslibvn/react` phụ thuộc cả `core` và `web`. Bạn chỉ cần cài gói ngoài cùng.
 
-Cả bốn gói đã phát hành công khai lên npm với dist-tag `latest` trỏ tới `0.4.0`. Cách cài npm,
+Cả bốn gói đã phát hành công khai lên npm dưới dist-tag `latest`. Cách cài npm,
 UMD hoặc tarball được mô tả ở [Cài đặt](/cai-dat/).
+
+### Nâng từ 0.4.x lên 0.7.x — có một thay đổi phá vỡ
+
+Đây là chặng duy nhất từ trước tới nay **xoá** một giá trị khỏi contract công khai. Nếu app của bạn
+có nhắc tới `overture` ở bất cứ đâu thì phải sửa trước khi nâng, nếu không tìm kiếm sẽ hỏng.
+
+**0.7.0 — gỡ hẳn nguồn POI Overture.** Dữ liệu Overture đã được gỡ khỏi cơ sở dữ liệu ngày
+13/09/2026 vì đo được tỷ lệ trùng lặp và sai vị trí quá cao, nên nguồn này không còn tồn tại ở cả
+SDK lẫn máy chủ:
+
+- `POI_SOURCES` còn `['osm', 'fsq']`. Ba profile hợp lệ là mặc định cả hai (`all`), `['osm']` và
+  `['fsq']`.
+- Máy chủ trả **`400 invalid_request`** nếu tham số `sources=` chứa `overture`. Đây là chỗ đau
+  nhất: app cũ truyền `poiSources: ['overture']` hoặc `['osm', 'overture']` sẽ **mất toàn bộ tìm
+  kiếm**, không phải tự rơi về mặc định.
+- Chuỗi ghi nguồn bỏ dòng Overture Maps. Nếu bạn tự dựng chuỗi ghi nguồn thay vì dùng
+  `attributionText()`/`attributionHtml()`, hãy bỏ dòng đó đi.
+- `TypeScript`: `PoiSource` không còn nhận `'overture'`, nên chỗ nào gán cứng sẽ báo lỗi biên dịch.
+  Đó là tín hiệu tốt — nó chỉ đúng những chỗ cần sửa.
+
+Cách sửa: bỏ `overture` khỏi mọi `poiSources` và mọi `sources=`. Muốn giữ nguyên hành vi cũ thì bỏ
+hẳn tuỳ chọn để dùng mặc định.
+
+**0.6.0 — la bàn và chấm xanh (chỉ thêm).** `useHeading`, prop `userLocation` cho
+`<MapsLibVNMap>` React Native, lớp vẽ chấm xanh kèm nón hướng và vòng sai số; `createHeadingFilter`
+cùng các kiểu hướng ở core.
+
+**0.5.0 — dẫn đường React Native (chỉ thêm).** Entry `@mapslibvn/react-native/expo`,
+`createNavigationSession`, định vị nền, giọng đọc, phiên âm thanh và chống khoá màn hình, với các
+gói Expo khai báo là peer tuỳ chọn.
+
+Hai bản 0.5.0 và 0.6.0 không đổi gì ở web/React, chỉ thêm API mới.
 
 ### Nâng từ 0.2.x lên 0.3.0
 
@@ -41,7 +77,8 @@ poiSources: ['fsq'];
 POI người dùng luôn được giữ. Các list route lọc theo profile nhưng `getPlace(id)` không lọc; style
 fallback về archive `all` và trả `x-poi-profile: all;fallback` nếu archive riêng chưa phát hành.
 
-Source và bản npm `latest` hiện ở `0.4.0`; contract `poiSources` trên vẫn giữ nguyên.
+Contract `poiSources` trên vẫn giữ nguyên từ 0.3.0, trừ việc `overture` đã bị gỡ ở 0.7.0 — xem mục
+nâng cấp ngay bên trên.
 
 ### Nâng từ 0.1.x lên 0.2.0
 

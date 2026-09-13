@@ -34,7 +34,8 @@ export interface ClientOptions {
    */
   headers?: Record<string, string>;
   /**
-   * Tập nguồn POI cho bản đồ và Places API (spec 07/09). Mặc định cả ba nguồn.
+   * Tập nguồn POI cho bản đồ và Places API (spec 07/09). Mặc định cả hai nguồn `osm` và `fsq`
+   * (Overture đã gỡ ở 0.7.0).
    * Áp cho autocomplete/search/nearby/reverse và `styleUrl`; `getPlace`/`geocode` không lọc.
    */
   poiSources?: readonly PoiSource[];

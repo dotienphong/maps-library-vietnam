@@ -43,6 +43,38 @@ export function validateSdkCoverage(publicPackageDirs) {
   }
 }
 
+/**
+ * Mỗi subpath dạng object trong `exports` phải có điều kiện `default`.
+ *
+ * Thiếu nó thì `require('@mapslibvn/core')` trả `ERR_PACKAGE_PATH_NOT_EXPORTED` — kể cả trên Node
+ * 22 có `require(esm)` — nên host CommonJS, Jest mặc định và các bundler cũ không nạp được gói.
+ * `default` là nhánh cuối cùng mọi resolver đều hiểu, và vì bản build là ESM nên nó trỏ đúng file
+ * `import` đang trỏ. Kiểm ở đây để `pnpm sdk:publish` không phát hành lại gói hỏng resolve.
+ *
+ * @param {string} name tên package, chỉ dùng cho thông báo
+ * @param {Record<string, unknown> | undefined} exportsField
+ * @returns {string[]}
+ */
+export function exportsProblemsFor(name, exportsField) {
+  if (!exportsField) return [`${name} không khai báo "exports"`];
+  /** @type {string[]} */
+  const problems = [];
+  for (const [subpath, value] of Object.entries(exportsField)) {
+    // Subpath dạng chuỗi ("./umd": "./dist/x.umd.js") không có điều kiện nào để thiếu.
+    if (typeof value !== 'object' || value === null) continue;
+    if (!('default' in value)) problems.push(`${name} "${subpath}" thiếu điều kiện "default"`);
+  }
+  return problems;
+}
+
+/** @param {string} [rootDir] */
+export function sdkExportsProblems(rootDir = process.cwd()) {
+  return SDK_PACKAGE_DIRS.flatMap((dir) => {
+    const manifest = JSON.parse(readFileSync(resolve(rootDir, dir, 'package.json'), 'utf8'));
+    return exportsProblemsFor(manifest.name, manifest.exports);
+  });
+}
+
 /** @param {string} [rootDir] */
 export function readSdkPackages(rootDir = process.cwd()) {
   return SDK_PACKAGE_DIRS.map((dir) => {

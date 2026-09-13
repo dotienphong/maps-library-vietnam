@@ -71,6 +71,16 @@ const stopTask = (): void => {
 };
 
 /**
+ * Task nền là tài nguyên hệ điều hành DÙNG CHUNG, còn `fixListeners` là Set cấp module: chỉ được
+ * dừng khi người nghe cuối cùng đã rời. Trước 13/09/2026 mọi `cleanup` đều gọi `stopTask()` vô
+ * điều kiện, nên với hai `<MapsLibVNMap>` cùng lúc (hoặc map mới mount đè map cũ chưa kịp gỡ) thì
+ * người rời trước tắt GPS nền của người còn lại — app chủ mất dẫn đường mà không có lỗi nào.
+ */
+const stopTaskIfLast = (): void => {
+  if (fixListeners.size === 0) stopTask();
+};
+
+/**
  * Gọi ở PHẠM VI TOÀN CỤC của `index.ts`, trước `registerRootComponent` (yêu cầu của
  * expo-task-manager). Gọi lại là no-op. Executor đẩy fix cho nguồn đang đăng ký; không ai nghe (app
  * bị iOS đánh thức lại sau khi bị giết) thì tự dừng task để không thành task ma.
@@ -192,7 +202,7 @@ export function expoLocationSource(opts: ExpoLocationSourceOptions = {}): Sessio
         if (opts.background !== false) {
           const fallback = await tryBackground();
           if (stopped) {
-            if (fallback === null) stopTask();
+            if (fallback === null) stopTaskIfLast();
             return;
           }
           if (fallback === null) {
@@ -203,7 +213,7 @@ export function expoLocationSource(opts: ExpoLocationSourceOptions = {}): Sessio
             cleanup = () => {
               fixListeners.delete(fixFn);
               errorListeners.delete(errFn);
-              stopTask();
+              stopTaskIfLast();
             };
             return;
           }

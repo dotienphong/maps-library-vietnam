@@ -4,6 +4,7 @@ import {
   discoverPublicPackageDirs,
   parseSdkPublishArgs,
   readSdkPackages,
+  sdkExportsProblems,
   validateSdkCoverage,
   validateSdkPackages,
 } from './lib/npm-sdk-release.mjs';
@@ -12,6 +13,12 @@ import { run } from './lib/run.mjs';
 try {
   const options = parseSdkPublishArgs(process.argv.slice(2));
   validateSdkCoverage(discoverPublicPackageDirs());
+  // Thiếu điều kiện `default` là host CommonJS/Jest nạp gói không được — hỏng âm thầm, chỉ người
+  // nhúng mới phát hiện. Chặn ngay tại cổng phát hành.
+  const exportsProblems = sdkExportsProblems();
+  if (exportsProblems.length > 0) {
+    throw new Error(`exports không hợp lệ:\n  - ${exportsProblems.join('\n  - ')}`);
+  }
   const packages = readSdkPackages();
   const version = validateSdkPackages(packages);
   console.log(

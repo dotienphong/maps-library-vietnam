@@ -219,6 +219,40 @@ describe('createNavigationSession', () => {
     expect(errors).toEqual(['denied', 'task_not_defined']);
   });
 
+  /**
+   * Từ chối quyền vị trí là hỏng vĩnh viễn, không phải trục trặc tạm thời: sẽ không bao giờ có fix
+   * nào nữa. Trước 13/09/2026 phiên chỉ phát `positionError` rồi vẫn `running`, nên status kẹt ở
+   * `navigating` trong khi chống khoá màn hình, vòng âm thanh im lặng và thông báo dịch vụ nền cứ
+   * chạy cho tới khi app chủ tự nhận ra và gọi `stop()`.
+   */
+  it('quyền vị trí bị từ chối → phiên tự dừng, không kẹt ở navigating', async () => {
+    const calls: string[] = [];
+    const s = fakeSource(calls);
+    const session = createNavigationSession({ provider, source: s.source });
+    const statuses: string[] = [];
+    session.on('status', (e) => statuses.push(e.status));
+    const errors: string[] = [];
+    session.on('positionError', (e) => errors.push(e.code));
+    await session.start({ response });
+    expect(session.status).toBe('navigating');
+
+    s.fail({ code: 'denied', message: 'từ chối' });
+    await vi.waitFor(() => expect(session.status).toBe('idle'));
+    // Vẫn báo lỗi cho app chủ trước khi dừng — app cần biết vì sao.
+    expect(errors).toEqual(['denied']);
+    expect(statuses.at(-1)).toBe('idle');
+  });
+
+  it('lỗi vị trí tạm thời (unavailable) KHÔNG dừng phiên', async () => {
+    const calls: string[] = [];
+    const s = fakeSource(calls);
+    const session = createNavigationSession({ provider, source: s.source });
+    await session.start({ response });
+    s.fail({ code: 'unavailable', message: 'mất tín hiệu trong hầm' });
+    await Promise.resolve();
+    expect(session.status).toBe('navigating');
+  });
+
   it('start khi đang chạy → stop trước: gỡ nguồn cũ, end:stopped rồi route mới', async () => {
     const calls: string[] = [];
     const s = fakeSource(calls);

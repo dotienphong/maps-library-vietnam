@@ -92,6 +92,16 @@ pnpm server:setup
 ## Vận hành
 
 - Cập nhật mã/image: `pnpm server:update`.
+- **Release có migration — thứ tự bắt buộc là migration trước, deploy sau.** Chạy
+  `pnpm server:migrate` (chỉ áp migration, `--no-deps` nên không chạm container postgres đang phục
+  vụ, và mount `db/` của working tree nên không phụ thuộc `db/` nướng trong image). Kiểm
+  `/healthz/db` thấy `schema_migration` đúng bản mới, rồi mới push để `Deploy API` chạy. Làm ngược
+  lại là lặp sự cố 06–07/09/2026: Worker đọc cột chưa tồn tại, `/v1/autocomplete` trả 503 nhiều giờ
+  trong khi `Deploy API` vẫn xanh. Từ 13/09/2026 workflow deploy có bước `pnpm check:migration` tự
+  đối chiếu và chặn, nhưng nó chỉ là lưới an toàn — thứ tự vẫn do người vận hành giữ.
+  Revert một migration: `pnpm server:migrate -- --down`.
+- Kiểm thủ công cổng migration từ máy bất kỳ: `pnpm check:migration`
+  (mặc định gọi `https://api.ai-solutions.io.vn/healthz/db`, đổi bằng `--base`).
 - Chuyển máy: trên máy mới chép `infra/server/.env` an toàn từ password manager rồi chạy
   `pnpm server:restore` → dán lại `TUNNEL_TOKEN` (hoặc tạo tunnel mới rồi trỏ hostname) → xong
   < 1 giờ. Lệnh dùng đúng `infra/server/compose.yml`; không gọi nhầm restore của dev compose.

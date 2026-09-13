@@ -55,7 +55,11 @@ const optionalString = (value: unknown, name: string, max: number): string | und
   return (value as string).trim();
 };
 
-const stringArray = (value: unknown, name: string): string[] | undefined => {
+const stringArray = (
+  value: unknown,
+  name: string,
+  item?: { ok: (value: string) => boolean; reason: string },
+): string[] | undefined => {
   if (value === undefined) return undefined;
   if (
     !Array.isArray(value) ||
@@ -63,8 +67,31 @@ const stringArray = (value: unknown, name: string): string[] | undefined => {
     value.some((v) => typeof v !== 'string' || v.length > 200)
   )
     bad(`${name} phải là mảng ≤ 5 chuỗi`);
-  return value as string[];
+  const items = value as string[];
+  if (item && !items.every(item.ok)) bad(`${name} ${item.reason}`);
+  return items;
 };
+
+/**
+ * `contact` được trả nguyên văn qua `Place.contact` cho app nhúng, và một `update` chỉ đổi
+ * `hours`/`contact` trên POI quality ≥ 60 được TỰ DUYỆT (edits/rules.ts) — không người nào xem.
+ * Nên scheme thực thi được (`javascript:`, `data:`, `vbscript:`) lọt vào đây là XSS lưu trữ xuyên
+ * tenant ngay trong app của khách. Chỉ nhận URL tuyệt đối http/https.
+ */
+const isHttpUrl = (value: string): boolean => {
+  let url: URL;
+  try {
+    url = new URL(value);
+  } catch {
+    return false;
+  }
+  return url.protocol === 'http:' || url.protocol === 'https:';
+};
+
+/** Facebook lưu được cả handle trần (`xvn`) lẫn URL đầy đủ — chặn mọi thứ còn lại. */
+const FACEBOOK_HANDLE = /^[A-Za-z0-9._-]{1,100}$/;
+/** Chữ số, dấu cách và các ký tự định dạng số điện thoại. Không chữ, không dấu hai chấm. */
+const PHONE = /^[+0-9 ().-]{6,20}$/;
 
 function validateChanges(kind: EditKind, raw: Record<string, unknown>): EditChanges {
   const out: EditChanges = {};
@@ -85,9 +112,17 @@ function validateChanges(kind: EditKind, raw: Record<string, unknown>): EditChan
   if (raw.contact !== undefined) {
     const contact = asRecord(raw.contact, 'changes.contact');
     const clean: EditChanges = {};
-    const phone = stringArray(contact.phone, 'contact.phone');
-    const website = stringArray(contact.website, 'contact.website');
+    const phone = stringArray(contact.phone, 'contact.phone', {
+      ok: (value) => PHONE.test(value),
+      reason: 'chỉ nhận chữ số và ký tự + ( ) . - khoảng trắng, dài 6..20',
+    });
+    const website = stringArray(contact.website, 'contact.website', {
+      ok: isHttpUrl,
+      reason: 'phải là URL tuyệt đối http/https',
+    });
     const facebook = optionalString(contact.facebook, 'contact.facebook', 200);
+    if (facebook !== undefined && !FACEBOOK_HANDLE.test(facebook) && !isHttpUrl(facebook))
+      bad('contact.facebook phải là handle hoặc URL http/https');
     if (phone) clean.phone = phone;
     if (website) clean.website = website;
     if (facebook) clean.facebook = facebook;

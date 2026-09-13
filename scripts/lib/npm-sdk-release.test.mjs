@@ -3,7 +3,9 @@ import {
   createSdkPublishCommands,
   createSdkReleaseCommands,
   discoverPublicPackageDirs,
+  exportsProblemsFor,
   parseSdkPublishArgs,
+  sdkExportsProblems,
   validateSdkCoverage,
   validateSdkPackages,
 } from './npm-sdk-release.mjs';
@@ -119,5 +121,23 @@ describe('npm SDK release', () => {
     expect(parseSdkPublishArgs([])).toEqual({ dryRun: false });
     expect(parseSdkPublishArgs(['--dry-run'])).toEqual({ dryRun: true });
     expect(() => parseSdkPublishArgs(['--force'])).toThrow(/--force/);
+  });
+
+  it('mọi subpath exports của bốn SDK đều có điều kiện "default"', () => {
+    expect(sdkExportsProblems()).toEqual([]);
+  });
+
+  it('phát hiện subpath thiếu "default"', () => {
+    expect(
+      exportsProblemsFor('@mapslibvn/x', {
+        '.': { types: './dist/index.d.ts', import: './dist/index.js' },
+      }),
+    ).toEqual(['@mapslibvn/x "." thiếu điều kiện "default"']);
+    expect(
+      exportsProblemsFor('@mapslibvn/x', {
+        '.': { types: './dist/index.d.ts', import: './dist/index.js', default: './dist/index.js' },
+        './umd': './dist/x.umd.js',
+      }),
+    ).toEqual([]);
   });
 });

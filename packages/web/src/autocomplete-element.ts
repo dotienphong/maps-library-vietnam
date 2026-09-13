@@ -42,8 +42,18 @@ const TYPE_ICON: Record<AutocompleteType, string> = {
   area: '▣',
 };
 
+/**
+ * Lớp cơ sở của web component. `class … extends HTMLElement` đánh giá `HTMLElement` NGAY lúc nạp
+ * module, nên trước 13/09/2026 `import '@mapslibvn/web'` (và `@mapslibvn/react`, vì react import
+ * web) ném `ReferenceError: HTMLElement is not defined` trong mọi host dựng trang phía máy chủ —
+ * Next.js, Remix, Astro — trước khi kịp render gì. Ở môi trường không có DOM, kế thừa một lớp rỗng:
+ * component không bao giờ được khởi tạo ở đó, chỉ cần module nạp được.
+ */
+const ElementBase: typeof HTMLElement =
+  typeof HTMLElement === 'undefined' ? (class {} as unknown as typeof HTMLElement) : HTMLElement;
+
 /** Autocomplete Places không phụ thuộc framework, tự debounce và phát event `select`. */
-export class MapsLibVNAutocomplete extends HTMLElement {
+export class MapsLibVNAutocomplete extends ElementBase {
   static observedAttributes = ['api-key', 'api-base', 'placeholder', 'near', 'sources'];
 
   #map: NearSource | null = null;
@@ -269,6 +279,9 @@ export class MapsLibVNAutocomplete extends HTMLElement {
 }
 
 export function defineAutocomplete(): void {
+  // No-op ngoài trình duyệt: bản UMD gọi hàm này ở tầng module, và host SSR gọi nó trong đường
+  // dựng trang chung — cả hai không được nổ khi không có registry.
+  if (typeof customElements === 'undefined') return;
   if (!customElements.get('mapslibvn-autocomplete'))
     customElements.define('mapslibvn-autocomplete', MapsLibVNAutocomplete);
 }

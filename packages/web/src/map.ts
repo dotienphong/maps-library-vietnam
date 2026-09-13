@@ -31,8 +31,8 @@ export interface CreateMapOptions {
   /** Hiển thị lớp POI (khi đã phát hành) — mặc định true */
   poiLayer?: boolean;
   /**
-   * Tập nguồn POI cho bản đồ và `map.places` — mặc định cả ba. Chỉ nhận tổ hợp đã có bộ tiles
-   * (`['osm']` hoặc cả ba); tổ hợp khác ném lỗi ngay khi tạo map.
+   * Tập nguồn POI cho bản đồ và `map.places` — mặc định cả hai (`osm` + `fsq`). Chỉ nhận tổ hợp đã
+   * có bộ tiles (`['osm']` hoặc cả hai); tổ hợp khác ném lỗi ngay khi tạo map.
    */
   poiSources?: readonly PoiSource[];
   /** Attribution gọn (không có tuỳ chọn tắt) */

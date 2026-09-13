@@ -31,7 +31,7 @@ Chưa có khoá? Dùng [khoá demo](/khoa-api/) và chạy trên `http://localho
 ## 2. npm
 
 :::note[Gói npm đã public]
-Bốn gói `@mapslibvn/*` đã phát hành công khai; dist-tag `latest` hiện trỏ tới `0.4.0`.
+Bốn gói `@mapslibvn/*` đã phát hành công khai dưới dist-tag `latest`.
 :::
 
 ```bash

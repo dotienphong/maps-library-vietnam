@@ -11,7 +11,7 @@ dùng nằm ở [Bản đồ web](/ban-do-web/) và [Tìm kiếm & autocomplete]
 
 <Aside type="note" title="Bốn gói npm đã public">
 `@mapslibvn/core`, `@mapslibvn/web`, `@mapslibvn/react` và `@mapslibvn/react-native` đã phát hành
-công khai; dist-tag `latest` hiện trỏ tới `0.4.0`. Các lệnh npm/pnpm bên dưới chạy trực tiếp từ
+công khai dưới dist-tag `latest`. Các lệnh npm/pnpm bên dưới chạy trực tiếp từ
 registry. Bản UMD vẫn được phục vụ sẵn cho ứng dụng không dùng bundler.
 </Aside>
 
@@ -236,10 +236,11 @@ cd packages/core && pnpm pack --pack-destination /tmp/mlv && cd -
 cd packages/web  && pnpm pack --pack-destination /tmp/mlv && cd -
 
 # trong dự án của bạn
-npm install /tmp/mlv/mapslibvn-core-0.4.0.tgz /tmp/mlv/mapslibvn-web-0.4.0.tgz maplibre-gl
+# tên file mang version trong package.json, ví dụ mapslibvn-core-0.7.1.tgz — `ls /tmp/mlv` để lấy
+npm install /tmp/mlv/mapslibvn-core-*.tgz /tmp/mlv/mapslibvn-web-*.tgz maplibre-gl
 ```
 
-Khi cài tarball Web local, npm có thể tự tải `@mapslibvn/core@0.4.0` từ registry. Muốn kiểm thử
+Khi cài tarball Web local, npm có thể tự tải `@mapslibvn/core` cùng version từ registry. Muốn kiểm thử
 đồng thời source local của cả hai thì cài cả hai tarball như ví dụ. Dùng React local tương tự với
 ba tarball `core`, `web`, `react`. Riêng `@mapslibvn/react-native` gộp sẵn `core` vào `dist`, chỉ
 cần một tarball.

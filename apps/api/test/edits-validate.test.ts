@@ -125,6 +125,57 @@ describe('validateEditBody', () => {
     ).toThrowError(ApiError);
   });
 
+  /**
+   * `update` chỉ đổi `hours`/`contact` trên POI quality ≥ 60 được TỰ DUYỆT (edits/rules.ts), rồi
+   * `contact` được trả nguyên văn qua `Place.contact` cho mọi app nhúng. Một scheme thực thi được
+   * lọt vào đây là XSS lưu trữ xuyên tenant trong app của khách, không qua mắt người duyệt nào.
+   */
+  const contactEdit = (contact: unknown) =>
+    validateEditBody({ ...base, poi_id: '01ABC', kind: 'update', changes: { contact } });
+
+  it('contact.website chỉ nhận http/https tuyệt đối', () => {
+    expect(contactEdit({ website: ['https://x.vn'] }).changes.contact).toEqual({
+      website: ['https://x.vn'],
+    });
+    expect(contactEdit({ website: ['http://x.vn/a?b=1'] }).changes.contact).toEqual({
+      website: ['http://x.vn/a?b=1'],
+    });
+    for (const value of [
+      'javascript:alert(1)',
+      'JavaScript:alert(1)',
+      'data:text/html,<script>alert(1)</script>',
+      'vbscript:msgbox(1)',
+      'x.vn',
+      'ftp://x.vn',
+    ]) {
+      expect(() => contactEdit({ website: [value] })).toThrowError(ApiError);
+    }
+  });
+
+  it('contact.facebook nhận handle trần hoặc URL http/https, chặn scheme thực thi', () => {
+    expect(contactEdit({ facebook: 'xvn' }).changes.contact).toEqual({ facebook: 'xvn' });
+    expect(contactEdit({ facebook: 'https://facebook.com/xvn' }).changes.contact).toEqual({
+      facebook: 'https://facebook.com/xvn',
+    });
+    for (const value of [
+      'javascript:alert(1)',
+      'data:text/html,x',
+      'có khoảng trắng',
+      '<script>',
+    ]) {
+      expect(() => contactEdit({ facebook: value })).toThrowError(ApiError);
+    }
+  });
+
+  it('contact.phone chỉ nhận ký tự số điện thoại', () => {
+    expect(contactEdit({ phone: ['+84 90 123 4567', '(028) 3822-1234'] }).changes.contact).toEqual({
+      phone: ['+84 90 123 4567', '(028) 3822-1234'],
+    });
+    for (const value of ['javascript:alert(1)', '<script>', 'gọi cho tôi', '123']) {
+      expect(() => contactEdit({ phone: [value] })).toThrowError(ApiError);
+    }
+  });
+
   it('kind lạ → 400', () => {
     expect(() => validateEditBody({ ...base, poi_id: '01ABC', kind: 'delete' })).toThrowError(
       ApiError,

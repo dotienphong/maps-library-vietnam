@@ -24,6 +24,27 @@ export interface AuthInfo {
 }
 
 const KV_TTL_S = 300;
+/** TTL cache âm: ngắn hơn cache dương để khoá vừa cấp dùng được trong vòng một phút. 60 s cũng là
+ * mức tối thiểu Cloudflare KV chấp nhận cho `expirationTtl`. */
+const KV_TTL_MISS_S = 60;
+
+/** Entry KV đánh dấu "đã tra, không có khoá này" — phân biệt với AuthInfo bằng cờ `notFound`. */
+interface NotFoundEntry {
+  notFound: true;
+}
+
+/**
+ * Dạng khoá cấp ra (`scripts/lib/api-key.mjs` KEY_RE): `mlv_live_` + 24 ký tự [0-9A-Za-z].
+ *
+ * Dùng làm cổng chặn TRƯỚC khi chạm KV/Postgres. Trước 13/09/2026 mọi chuỗi bất kỳ trong header
+ * `X-Api-Key` đều đi thẳng xuống DB: KV không bao giờ cache kết quả âm, còn bộ giới hạn tần suất
+ * nằm trong `quotaMiddleware` chạy SAU `requireAuth`, nên request khoá rác không bị chặn ở đâu cả
+ * và mỗi lần là một kết nối Hyperdrive + một truy vấn vào Postgres máy chủ nhà. Khoá `web` vốn
+ * công khai nên giá trị khoá lưu hành rộng; đây là đường rẻ nhất để làm nghẽn DB.
+ */
+export function isApiKeyFormat(key: string): boolean {
+  return /^mlv_live_[0-9A-Za-z]{24}$/.test(key);
+}
 
 /** Hyperdrive dùng `fetch_types: false`, vì vậy PostgreSQL text[] có thể về dạng `{a,b}`. */
 export function normalizeTextArray(value: string[] | string): string[] {
@@ -95,19 +116,31 @@ export function selectApiKey(sql: ReturnType<typeof getSql>, keyHash: string) {
 async function loadAuth(c: Context<AppEnv>, key: string): Promise<AuthInfo | null> {
   const keyHash = await sha256Hex(key);
   const kvKey = `apikey:${keyHash}`;
-  const cached = await c.env.META.get<AuthInfo>(kvKey, 'json');
-  if (cached)
+  const cached = await c.env.META.get<AuthInfo | NotFoundEntry>(kvKey, 'json');
+  if (cached) {
+    if ((cached as NotFoundEntry).notFound === true) return null;
+    const info = cached as AuthInfo;
     return {
-      ...cached,
-      scopes: normalizeTextArray(cached.scopes as string[] | string),
-      allowedOrigins: normalizeTextArray(cached.allowedOrigins as string[] | string),
-      quotaDirectionsPerDay: cached.quotaDirectionsPerDay ?? null,
+      ...info,
+      scopes: normalizeTextArray(info.scopes as string[] | string),
+      allowedOrigins: normalizeTextArray(info.allowedOrigins as string[] | string),
+      quotaDirectionsPerDay: info.quotaDirectionsPerDay ?? null,
     };
+  }
 
   const sql = getSql(c.env);
   try {
     const [row] = await selectApiKey(sql, keyHash);
-    if (!row) return null;
+    // Cache cả kết quả âm: khoá đúng định dạng nhưng không có trong DB (đã thu hồi, gõ nhầm, hoặc
+    // dò bằng khoá ngẫu nhiên) nếu không cache thì mỗi request là một truy vấn vào Postgres.
+    if (!row) {
+      c.executionCtx.waitUntil(
+        c.env.META.put(kvKey, JSON.stringify({ notFound: true } satisfies NotFoundEntry), {
+          expirationTtl: KV_TTL_MISS_S,
+        }),
+      );
+      return null;
+    }
 
     const info: AuthInfo = {
       keyHash: row.key_hash,
@@ -136,6 +169,11 @@ export function requireAuth(scope = 'places:read') {
     const key = c.req.header('X-Api-Key');
     if (!key) {
       throw new ApiError(401, 'missing_key', 'Thiếu khoá API (header X-Api-Key)');
+    }
+    // Chặn trước KV/DB. Cùng mã lỗi với khoá không tồn tại: người gọi không cần biết mình trượt ở
+    // bước định dạng hay bước tra cứu.
+    if (!isApiKeyFormat(key)) {
+      throw new ApiError(401, 'invalid_key', 'Khoá API không hợp lệ hoặc đã thu hồi');
     }
 
     let info: AuthInfo | null;

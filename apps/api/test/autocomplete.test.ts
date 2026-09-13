@@ -21,8 +21,10 @@ describe('GET /v1/autocomplete — auth + validation (không DB)', () => {
   });
 
   it('key lạ (không có trong KV) + DB đóng → 503 upstream_unavailable', async () => {
+    // Phải ĐÚNG dạng `mlv_live_` + 24 ký tự, nếu không `isApiKeyFormat` chặn ở 401 trước khi tới
+    // DB và test mất ý nghĩa (khoá cũ ở đây chỉ có 23 ký tự).
     const response = await SELF.fetch(url('q=highlands'), {
-      headers: { 'X-Api-Key': 'mlv_live_unknown0000000000000000' },
+      headers: { 'X-Api-Key': 'mlv_live_unknown00000000000000000' },
     });
     expect(response.status).toBe(503);
     expect(await code(response)).toBe('upstream_unavailable');

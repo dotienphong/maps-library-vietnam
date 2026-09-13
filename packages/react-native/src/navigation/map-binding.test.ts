@@ -138,3 +138,68 @@ describe('createMapBinding — la bàn', () => {
     expect(onErr).toHaveBeenCalledTimes(1);
   });
 });
+
+/**
+ * Binding SỞ HỮU phiên mặc định mà nó tự tạo, nên nó phải dừng phiên đó. Phiên do app chủ truyền
+ * qua prop `navigation` thì app chủ sở hữu — binding chỉ gỡ listener, tuyệt đối không dừng.
+ *
+ * `map.tsx` gọi `dispose()` khi map unmount VÀ mỗi khi `places` đổi (apiKey/apiBase/poiSources đổi
+ * là `binding` được tạo lại). Trước 13/09/2026 `dispose()` chỉ `detach()` nên định vị nền, giọng
+ * đọc, chống khoá màn hình và vòng âm thanh im lặng chạy tiếp sau khi màn bản đồ đã đóng, mà app
+ * chủ không còn tay cầm nào để dừng.
+ */
+describe('dispose() và quyền sở hữu phiên', () => {
+  const makeBinding = () => {
+    const s = fakeSession({ response });
+    const store = createRoutesStore();
+    const removeAppSub = vi.fn();
+    const binding = createMapBinding({
+      camera: { current: null } as unknown as RefObject<CameraRef | null>,
+      store,
+      appState: {
+        currentState: 'active',
+        addEventListener: () => ({ remove: removeAppSub }),
+      },
+      createDefaultSession: () => s.session,
+    });
+    return { s, binding, store, removeAppSub };
+  };
+
+  it('dừng phiên mặc định mà chính binding đã tạo', () => {
+    const { s, binding } = makeBinding();
+    binding.api.start({ response } as never);
+    expect(s.session.start).toHaveBeenCalledTimes(1);
+    binding.dispose();
+    expect(s.session.stop).toHaveBeenCalledTimes(1);
+  });
+
+  it('KHÔNG dừng phiên do app chủ truyền vào', () => {
+    const { s, binding } = makeBinding();
+    binding.attach(s.session);
+    binding.dispose();
+    expect(s.session.stop).not.toHaveBeenCalled();
+  });
+
+  it('chưa từng tạo phiên mặc định thì dispose không tạo ra phiên để dừng', () => {
+    const { s, binding } = makeBinding();
+    binding.dispose();
+    expect(s.session.start).not.toHaveBeenCalled();
+    expect(s.session.stop).not.toHaveBeenCalled();
+  });
+
+  it('vẫn gỡ listener AppState và xoá tuyến như cũ', () => {
+    const { s, binding, store, removeAppSub } = makeBinding();
+    binding.attach(s.session);
+    binding.dispose();
+    expect(removeAppSub).toHaveBeenCalledTimes(1);
+    expect(store.getSnapshot().features.features).toHaveLength(0);
+  });
+
+  it('gọi dispose hai lần không dừng phiên mặc định hai lần', () => {
+    const { s, binding } = makeBinding();
+    binding.api.start({ response } as never);
+    binding.dispose();
+    binding.dispose();
+    expect(s.session.stop).toHaveBeenCalledTimes(1);
+  });
+});

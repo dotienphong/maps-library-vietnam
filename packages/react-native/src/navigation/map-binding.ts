@@ -310,6 +310,15 @@ export function createMapBinding(deps: MapBindingDeps): MapBinding {
       detach();
       appSub.remove();
       listeners.clear();
+      // Binding SỞ HỮU phiên mặc định nó tự tạo, nên phải dừng nó: `detach()` chỉ gỡ listener, còn
+      // định vị nền, giọng đọc, chống khoá màn hình và vòng âm thanh im lặng nằm trong phiên. Bỏ
+      // bước này thì chúng chạy tiếp sau khi map unmount (hoặc khi `places` đổi làm binding được
+      // tạo lại) mà app chủ không còn tay cầm nào để dừng. Phiên `explicit` do app chủ truyền vào
+      // thì app chủ sở hữu — tuyệt đối không dừng hộ.
+      const owned = fallback;
+      fallback = null;
+      // `stop()` là async; rejection không bắt sẽ thành red-box trong app chủ lúc unmount.
+      void owned?.stop().catch(() => {});
     },
   };
 }

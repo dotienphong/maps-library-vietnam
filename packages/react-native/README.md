@@ -68,7 +68,7 @@ await session.start({ response });               // GPS even when locked, Vietna
 const { status, progress } = useNavigation(session); // usable anywhere
 ```
 
-You'll need `npx expo install expo-location expo-task-manager expo-speech expo-audio expo-sensors` plus the corresponding `app.json` plugin config (see docs). Have your own GPS pipeline? Pass your own `source` instead of `expoNavigation()`.
+You'll need `npx expo install expo-location expo-task-manager expo-speech expo-audio expo-sensors expo-keep-awake` plus the corresponding `app.json` plugin config (see docs). Have your own GPS pipeline? Pass your own `source` instead of `expoNavigation()`.
 
 ## Compass and heading
 
@@ -157,7 +157,7 @@ await session.start({ response });            // GPS cả khi khoá máy, giọn
 const { status, progress } = useNavigation(session); // dùng ở bất kỳ đâu
 ```
 
-Cần `npx expo install expo-location expo-task-manager expo-speech expo-audio expo-sensors` và plugin trong `app.json` (xem docs). App có luồng GPS riêng: truyền `source` của bạn thay `expoNavigation()`.
+Cần `npx expo install expo-location expo-task-manager expo-speech expo-audio expo-sensors expo-keep-awake` và plugin trong `app.json` (xem docs). App có luồng GPS riêng: truyền `source` của bạn thay `expoNavigation()`.
 
 ## La bàn và hướng
 

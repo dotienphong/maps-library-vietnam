@@ -56,7 +56,8 @@ export interface MapsLibVNMapProps {
   lang?: Lang;
   /** Hiển thị lớp POI — mặc định true */
   poiLayer?: boolean;
-  /** Tập nguồn POI cho bản đồ và Places API — mặc định cả ba; đổi sau khi mount tạo lại map. */
+  /** Tập nguồn POI cho bản đồ và Places API — mặc định cả hai (`osm` + `fsq`); đổi sau khi mount
+   * tạo lại map. */
   poiSources?: readonly PoiSource[];
   /** Attribution gọn (không có tuỳ chọn tắt) */
   compactAttribution?: boolean;

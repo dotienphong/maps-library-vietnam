@@ -27,6 +27,12 @@ jobs:
       # Trang admin phải build trước: wrangler.toml khai báo [assets] directory = ../admin/dist
       - run: pnpm --filter @mapslibvn/admin build
       - run: pnpm --filter @mapslibvn/api test
+      # Cổng cuối trước khi Worker lên production. `apitest` chứng minh code khớp schema trong CI,
+      # KHÔNG nói gì về schema của DB máy chủ. 06–07/09/2026: Worker đọc admin_area_old/admin_alias
+      # được deploy trước migration 0008 nên /v1/autocomplete trả 503 nhiều giờ, trong khi
+      # `Deploy API` xanh và /healthz vẫn 200. Bước này so migration mới nhất trong repo với
+      # `schema_migration` mà /healthz/db báo, và fail closed nếu không đọc được.
+      - run: pnpm check:migration
       - run: pnpm --filter @mapslibvn/api exec wrangler deploy --env production
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
