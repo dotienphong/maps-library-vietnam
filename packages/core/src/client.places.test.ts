@@ -31,7 +31,7 @@ describe('client Places methods', () => {
       near: '10.77,106.7',
       limit: '5',
       types: 'poi,street',
-      sources: 'osm,overture,fsq',
+      sources: 'osm,fsq',
     });
     expect((calledInit().headers as Record<string, string>)['X-Api-Key']).toMatch(/^mlv_live_/);
   });
@@ -75,7 +75,7 @@ describe('client Places methods', () => {
       bbox: '106.6,10.6,106.8,10.8',
       limit: '12',
       offset: '24',
-      sources: 'osm,overture,fsq',
+      sources: 'osm,fsq',
     });
   });
 
@@ -89,7 +89,7 @@ describe('client Places methods', () => {
       radius: '300',
       category: 'cafe',
       limit: '8',
-      sources: 'osm,overture,fsq',
+      sources: 'osm,fsq',
     });
   });
 
@@ -109,7 +109,7 @@ describe('client Places methods', () => {
     expect(Object.fromEntries(calledUrl().searchParams)).toEqual({
       lat: '10.7647',
       lng: '106.6631',
-      sources: 'osm,overture,fsq',
+      sources: 'osm,fsq',
     });
   });
 

@@ -1,25 +1,21 @@
 /**
  * Nguồn POI và profile archive (spec 07/09 mục 4). Đây là nguồn sự thật duy nhất cho API, SDK và
  * pipeline: thêm profile mới = thêm một dòng vào POI_SOURCE_PROFILES + một lần export-tiles.
+ *
+ * Overture đã gỡ 13/09/2026 (plan `docs/superpowers/plans/2026-09-13-go-bo-overture.md`);
+ * `all` = OSM + Foursquare.
  */
-export const POI_SOURCES = ['osm', 'overture', 'fsq'] as const;
+export const POI_SOURCES = ['osm', 'fsq'] as const;
 export type PoiSource = (typeof POI_SOURCES)[number];
 
 export const POI_SOURCE_PROFILES = {
-  all: ['osm', 'overture', 'fsq'],
+  all: ['osm', 'fsq'],
   osm: ['osm'],
-  'osm-fsq': ['osm', 'fsq'],
-  'overture-fsq': ['overture', 'fsq'],
-  overture: ['overture'],
   fsq: ['fsq'],
 } as const satisfies Readonly<Record<string, readonly PoiSource[]>>;
 export type PoiSourceProfile = keyof typeof POI_SOURCE_PROFILES;
 
-/**
- * Mặc định ở mọi bề mặt (REST và SDK): cả ba nguồn, tức đúng hành vi trước khi có tuỳ chọn này.
- * Đo 07/09/2026 cho thấy OSM chỉ là nguồn chính của 7 % POI, nên mặc định `osm` sẽ làm bản đồ mất
- * ~93 % dữ liệu (`docs/evidence/poi-sources/do-truoc-primary-source.md`).
- */
+/** Mặc định ở mọi bề mặt (REST và SDK): cả hai nguồn. */
 export const DEFAULT_POI_SOURCES: readonly PoiSource[] = POI_SOURCE_PROFILES.all;
 
 const isPoiSource = (value: string): value is PoiSource =>
@@ -34,7 +30,7 @@ export function normalizePoiSources(list: readonly string[]): PoiSource[] | null
 
 /**
  * Chuỗi `sources=` của REST và thuộc tính `sources` của web component: phân cách dấu phẩy,
- * `all` là bí danh cả ba; undefined/rỗng → mặc định; giá trị lạ → null (caller quyết định lỗi).
+ * `all` là bí danh cả hai; undefined/rỗng → mặc định; giá trị lạ → null (caller quyết định lỗi).
  */
 export function parsePoiSourcesCsv(raw: string | undefined | null): PoiSource[] | null {
   const trimmed = raw?.trim() ?? '';

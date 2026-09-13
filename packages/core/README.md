@@ -13,10 +13,10 @@
 
 - 🇻🇳 **Vietnamese text handling, built in** — `normalizeVi`, `stripDiacritics`, `expandAbbrev`, `applyBrandAlias` normalize things like "chung cu", "P. Bến Thành" or "Cty" the way Vietnamese users actually search.
 - 🏠 **Real address parsing** — `parseAddress` splits a raw Vietnamese address string into house number, hẻm/ngõ, street, ward, district and province, with a confidence score.
-- 🌍 **Pick your POI sources** — mix OpenStreetMap, Overture Maps and Foursquare Open Places per request, or just use the sensible "all" default.
+- 🌍 **Pick your POI sources** — mix OpenStreetMap and Foursquare Open Places per request, or just use the sensible "all" default.
 - 🧭 **Headless turn-by-turn navigation** — a pure state machine (`createNavigator`) handling rerouting, off-route detection, maneuver formatting and voice-announcement timing, with zero UI dependency. It's the same engine powering the web and React Native navigation layers.
 - 📦 **Small and fully typed** — ESM-only, one flat export surface, gzip barrel kept under 20 kB by CI.
-- ⚖️ **Attribution helpers included** — `attributionText()` / `attributionHtml()` so you stay compliant with OSM/Overture/Foursquare data licenses even outside a map view.
+- ⚖️ **Attribution helpers included** — `attributionText()` / `attributionHtml()` so you stay compliant with OSM/Foursquare data licenses even outside a map view.
 
 ## Install
 
@@ -62,10 +62,10 @@ Source license: MIT. When you display map data, you must keep attribution as des
 
 - 🇻🇳 **Xử lý tiếng Việt có sẵn** — `normalizeVi`, `stripDiacritics`, `expandAbbrev`, `applyBrandAlias` chuẩn hoá "chung cư", "P. Bến Thành", "Cty" đúng cách người Việt hay tìm.
 - 🏠 **Phân tích địa chỉ thật** — `parseAddress` tách một chuỗi địa chỉ tiếng Việt thành số nhà, hẻm/ngõ, đường, phường, quận, tỉnh, kèm điểm tin cậy (`confidence`).
-- 🌍 **Tự chọn nguồn POI** — trộn OpenStreetMap, Overture Maps và Foursquare Open Places theo từng request, hoặc dùng mặc định "cả ba" (`all`).
+- 🌍 **Tự chọn nguồn POI** — trộn OpenStreetMap và Foursquare Open Places theo từng request, hoặc dùng mặc định "cả hai" (`all`).
 - 🧭 **Dẫn đường không giao diện** — một máy trạng thái thuần (`createNavigator`) lo việc tính lại tuyến, phát hiện lệch tuyến, định dạng chỉ dẫn rẽ và thời điểm đọc thoại — không phụ thuộc UI, dùng chung cho cả lớp dẫn đường web lẫn React Native.
 - 📦 **Nhỏ gọn và có kiểu đầy đủ** — chỉ ESM, một điểm export duy nhất, CI giữ trần gzip dưới 20 kB.
-- ⚖️ **Có sẵn hàm ghi nguồn** — `attributionText()` / `attributionHtml()` để tuân thủ giấy phép dữ liệu OSM/Overture/Foursquare kể cả khi không hiển thị bản đồ.
+- ⚖️ **Có sẵn hàm ghi nguồn** — `attributionText()` / `attributionHtml()` để tuân thủ giấy phép dữ liệu OSM/Foursquare kể cả khi không hiển thị bản đồ.
 
 ## Cài đặt
 

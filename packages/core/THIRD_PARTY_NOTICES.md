@@ -47,13 +47,12 @@ MapsLibVN đáp ứng bằng chuỗi attribution bắt buộc ở mục 3. Nguy�
 |---|---|---|
 | OpenStreetMap contributors | ODbL 1.0 | `© OpenStreetMap contributors` — https://www.openstreetmap.org/copyright |
 | OpenMapTiles | BSD-3-Clause + CC-BY 4.0 | `© OpenMapTiles` — https://openmaptiles.org/ |
-| Overture Maps Foundation (Places) | CDLA-Permissive 2.0 | `Places: Overture Maps Foundation` |
 | Foursquare OS Places | Apache-2.0 | `Foursquare OS Places` |
 
 Chuỗi đầy đủ do API trả tại `GET /v1/attribution`:
 
 ```
-© MapsLibVN · © OpenStreetMap contributors (ODbL) · © OpenMapTiles · Places: Overture Maps Foundation (CDLA-Permissive 2.0), Foursquare OS Places (Apache-2.0)
+© MapsLibVN · © OpenStreetMap contributors (ODbL) · © OpenMapTiles · Foursquare OS Places (Apache-2.0)
 ```
 
 SDK luôn hiển thị chuỗi này và **không có tuỳ chọn tắt**.

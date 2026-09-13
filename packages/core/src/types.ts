@@ -1,4 +1,6 @@
 /** Kiểu dữ liệu Places API (spec 6.1) dùng chung cho Worker và SDK. */
+import type { PoiSource } from './poi-sources';
+
 export interface PlaceCategory {
   code: string;
   group: string;
@@ -29,7 +31,7 @@ export interface Place {
 }
 
 export interface PlaceSource {
-  source: 'osm' | 'overture' | 'fsq';
+  source: PoiSource;
   source_id: string;
   role: 'primary' | 'secondary';
 }

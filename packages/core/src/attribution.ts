@@ -16,11 +16,6 @@ export const ATTRIBUTION_LINKS: readonly AttributionLink[] = [
   },
   { text: '© OpenMapTiles', href: 'https://openmaptiles.org/' },
   {
-    text: 'Places: Overture Maps Foundation',
-    href: 'https://overturemaps.org/',
-    license: 'CDLA-Permissive 2.0',
-  },
-  {
     text: 'Foursquare OS Places',
     href: 'https://opensource.foursquare.com/os-places/',
     license: 'Apache-2.0',
@@ -38,16 +33,10 @@ function escapeHtml(value: string): string {
     .replace(/"/g, '&quot;');
 }
 
-/** Ghép ba mục đầu bằng " · ", hai nguồn Places ngăn bằng ", ". */
+/** Ghép bốn mục bằng " · ". */
 function join(parts: string[]): string {
-  const [mapsLibVN, osm, openMapTiles, overture, foursquare] = parts as [
-    string,
-    string,
-    string,
-    string,
-    string,
-  ];
-  return `${mapsLibVN} · ${osm} · ${openMapTiles} · ${overture}, ${foursquare}`;
+  const [mapsLibVN, osm, openMapTiles, foursquare] = parts as [string, string, string, string];
+  return `${mapsLibVN} · ${osm} · ${openMapTiles} · ${foursquare}`;
 }
 
 export function attributionText(): string {

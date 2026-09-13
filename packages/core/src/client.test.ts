@@ -33,7 +33,7 @@ describe('createClient', () => {
       fetch: okFetch({}),
     });
     expect(client.styleUrl('dark')).toBe(
-      'https://api.example.test/v1/styles/dark.json?key=k%201&sources=osm%2Coverture%2Cfsq',
+      'https://api.example.test/v1/styles/dark.json?key=k%201&sources=osm%2Cfsq',
     );
   });
 
@@ -93,7 +93,7 @@ describe('createClient', () => {
     expect(headers['X-Api-Key']).toBe('mlv_live_abc');
     expect(headers['content-type']).toBe('application/json');
   });
-  it('poiSources mặc định: autocomplete/search/nearby/reverse đều gửi cả ba nguồn', async () => {
+  it('poiSources mặc định: autocomplete/search/nearby/reverse đều gửi cả hai nguồn', async () => {
     const fetch = okFetch({ items: [] });
     const client = createClient({ apiKey: 'k', baseUrl: 'https://api.example.test', fetch });
     await client.autocomplete('pho');
@@ -102,7 +102,7 @@ describe('createClient', () => {
     await client.reverse(10.7, 106.7);
     for (const call of fetch.mock.calls) {
       const url = (call as unknown as [URL])[0];
-      expect(url.searchParams.get('sources')).toBe('osm,overture,fsq');
+      expect(url.searchParams.get('sources')).toBe('osm,fsq');
     }
     expect(fetch).toHaveBeenCalledTimes(4);
   });
@@ -128,8 +128,7 @@ describe('createClient', () => {
 
   it.each([
     [['fsq', 'osm'], 'osm,fsq'],
-    [['fsq', 'overture'], 'overture,fsq'],
-    [['overture'], 'overture'],
+    [['osm'], 'osm'],
     [['fsq'], 'fsq'],
   ] as const)('chuẩn hoá poiSources %j cho REST và style', async (poiSources, expected) => {
     const fetch = okFetch({ items: [] });
@@ -147,7 +146,7 @@ describe('createClient', () => {
       createClient({
         apiKey: 'k',
         baseUrl: 'https://x',
-        poiSources: ['banana' as unknown as 'osm'],
+        poiSources: ['overture' as unknown as 'osm'],
       }),
     ).toThrowError(/poiSources/);
   });
