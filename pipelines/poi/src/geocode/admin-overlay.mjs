@@ -35,6 +35,25 @@ export function overlapMetrics(overlaps, level) {
   };
 }
 
+/**
+ * Loại khỏi `unmatched` các đơn vị cũ mà overlay hình học không tìm được đích (targets=0) NHƯNG có
+ * seed override đã áp thành công trỏ đúng — không thì cổng QA đỏ lại mỗi lần chạy dù đã sửa xong
+ * (điều tra Cô Tô 13/09/2026, huyện đảo sáp nhập thành đặc khu: ranh giới cũ bao nhiều biển hơn đặc
+ * khu mới nên tỉ lệ phủ luôn < 5%, một sự thật tĩnh của snapshot 2025-06-30, không tự hết được).
+ * Không đụng `keyOwners`/dedup của nhánh overlay — đây là tập dữ liệu tách biệt, chỉ để xét loại trừ.
+ * @param {{id:string, level:number, targets:number}[]} coverage
+ * @param {Map<string, string[]>} keysByOldId toàn bộ khoá `adminAliasKeys` sinh ra cho từng đơn vị
+ *   cũ, KHÔNG lọc theo targets (một đơn vị targets=0 vẫn có khoá, chỉ là overlay không tự dùng được)
+ * @param {Set<string>} seedResolvedGroups `${level}:${aliasNorm}` của mọi nhóm seed đã áp thành công
+ */
+export function unmatchedAfterSeed(coverage, keysByOldId, seedResolvedGroups) {
+  return coverage.filter((row) => {
+    if (row.targets > 0) return false;
+    const keys = keysByOldId.get(row.id) ?? [];
+    return !keys.some((key) => seedResolvedGroups.has(`${row.level}:${key}`));
+  });
+}
+
 const seedRows = () =>
   readFileSync(resolve('db/seed/admin_alias_2025.csv'), 'utf8')
     .split(/\r?\n/)
@@ -190,6 +209,9 @@ export async function buildOldAdmin(
   const provisional = [];
   /** @type {any[]} */
   const coverage = [];
+  // Không lọc theo targets — dùng để xét loại trừ `unmatched` khi seed đã trỏ đúng (mục Cô Tô).
+  /** @type {Map<string, string[]>} */
+  const keysByOldId = new Map();
   for (const old of oldRows) {
     const raw = byOld.get(String(old.id)) ?? [];
     const metrics = overlapMetrics(raw, Number(old.level));
@@ -224,6 +246,7 @@ export async function buildOldAdmin(
           : { province: old.name_norm, adminOriginal: { province: old.name } };
     // `adminAliasKeys` trả khoá đầy đủ nhất ở vị trí 0 (phường+quận+tỉnh), rồi ngắn dần.
     const keys = adminAliasKeys(input);
+    keysByOldId.set(String(old.id), keys);
     for (const [keyIndex, key] of keys.entries())
       for (const target of selected)
         provisional.push({
@@ -327,6 +350,8 @@ export async function buildOldAdmin(
   }
   /** @type {any[]} */
   const seedMisses = [];
+  /** @type {Set<string>} */
+  const seedResolvedGroups = new Set();
   /** @type {Map<string, any[]>} */
   const seedGroups = new Map();
   for (const seed of seedRows()) {
@@ -367,6 +392,7 @@ export async function buildOldAdmin(
       seedMisses.push({ group, reason: 'share phải có ở mọi dòng trong nhóm và lớn hơn 0' });
       continue;
     }
+    seedResolvedGroups.add(group);
     /** @type {Map<string,{target:any,rawShare:number}>} */
     const uniqueTargets = new Map();
     for (const row of resolved) {
@@ -415,7 +441,9 @@ export async function buildOldAdmin(
   const density = await measureGapPoiDensity(sql, currentTable, gapRows);
   for (const row of gapRows) Object.assign(row, density.get(String(row.id)) ?? {});
 
-  const unmatched = coverage.filter((row) => row.targets === 0);
+  const rawUnmatched = coverage.filter((row) => row.targets === 0);
+  const unmatched = unmatchedAfterSeed(coverage, keysByOldId, seedResolvedGroups);
+  const unmatchedResolvedBySeed = rawUnmatched.filter((row) => !unmatched.includes(row));
   const coverageGaps = coverage.filter((row) => row.rawCoverage < 0.95);
   const overlapErrors = coverage.filter((row) => row.rawCoverage > 1.01);
   /** @type {Record<string, any>} */
@@ -428,6 +456,7 @@ export async function buildOldAdmin(
     osmTagSource,
     coverage,
     unmatched,
+    unmatchedResolvedBySeed,
     coverageGaps,
     overlapErrors,
     splits: coverage.filter((row) => row.targets > 1 && row.rawMax < 0.9),
