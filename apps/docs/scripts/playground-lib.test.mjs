@@ -28,7 +28,7 @@ describe('parseState', () => {
       style: 'light',
       lang: 'vi',
       poi: true,
-      sources: 'osm-fsq',
+      sources: 'all',
       compact: false,
       center: [106.7, 10.776],
       zoom: 14,
@@ -66,20 +66,19 @@ describe('parseState', () => {
     expect(state.embed).toBe(true);
   });
 
-  it('đọc sources=osm và bỏ qua profile không hợp lệ (về mặc định osm-fsq)', () => {
+  it('đọc sources=osm và đưa profile lạ (ví dụ overture đã gỡ) về mặc định all', () => {
     expect(parseState('?sources=osm', API).sources).toBe('osm');
-    expect(parseState('?sources=osm,overture', API).sources).toBe('osm-fsq');
+    expect(parseState('?sources=overture', API).sources).toBe('all');
+    expect(parseState('?sources=osm,overture', API).sources).toBe('all');
   });
 
-  it('đọc sources=all khi chọn rõ tất cả nguồn', () => {
+  it('đọc sources=all khi chọn rõ tất cả nguồn, kể cả dạng liệt kê osm,fsq', () => {
     expect(parseState('?sources=all', API).sources).toBe('all');
+    expect(parseState('?sources=osm,fsq', API).sources).toBe('all');
   });
 
   it.each([
-    // osm-fsq là mặc định mới nên round-trip không in lại param `sources` (null).
-    ['?sources=osm,fsq', 'osm-fsq', null, "poiSources: ['osm', 'fsq']"],
-    ['?sources=overture,fsq', 'overture-fsq', 'overture,fsq', "poiSources: ['overture', 'fsq']"],
-    ['?sources=overture', 'overture', 'overture', "poiSources: ['overture']"],
+    ['?sources=osm', 'osm', 'osm', "poiSources: ['osm']"],
     ['?sources=fsq', 'fsq', 'fsq', "poiSources: ['fsq']"],
   ])('đọc, serialize và sinh snippet cho %s', (search, profile, urlSources, snippet) => {
     const state = parseState(search, API);
@@ -118,12 +117,12 @@ describe('toSearchParams', () => {
     expect(params.get('compact')).toBe('1');
   });
 
-  it('in sources chỉ khi khác mặc định osm-fsq; "all" in tường minh', () => {
+  it('in sources chỉ khi khác mặc định all', () => {
     const base = parseState('', API);
-    expect(base.sources).toBe('osm-fsq');
+    expect(base.sources).toBe('all');
     expect(toSearchParams(base, API).has('sources')).toBe(false);
     expect(toSearchParams({ ...base, sources: 'osm' }, API).get('sources')).toBe('osm');
-    expect(toSearchParams({ ...base, sources: 'all' }, API).get('sources')).toBe('all');
+    expect(toSearchParams({ ...base, sources: 'fsq' }, API).get('sources')).toBe('fsq');
   });
 
   it('in c khi tâm hoặc zoom đổi, và giữ embed', () => {
@@ -265,9 +264,9 @@ describe('buildSnippet', () => {
     expect(code).toContain("poiSources: ['osm']");
   });
 
-  it('in poiSources mặc định (osm-fsq khác mặc định "tất cả" của SDK)', () => {
+  it('không in poiSources khi giữ mặc định all (trùng mặc định của SDK)', () => {
     const code = buildSnippet(base, 'script');
-    expect(code).toContain("poiSources: ['osm', 'fsq']");
+    expect(code).not.toContain('poiSources');
   });
 
   it('bản esm import @mapslibvn/web và truyền maplibre', () => {

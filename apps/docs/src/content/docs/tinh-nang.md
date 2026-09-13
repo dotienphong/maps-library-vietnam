@@ -46,18 +46,15 @@ Search/Nearby. Biểu tượng chọn theo nhóm.
 
 Mã `code` dùng trực tiếp làm tham số `category` của `/v1/search` và `/v1/nearby`.
 
-Mặc định bản đồ và Places API dùng **cả ba nguồn** (`all`). Sáu profile là `all`
-(`osm,overture,fsq`), `osm`, `osm-fsq` (`osm,fsq`), `overture-fsq` (`overture,fsq`), `overture` và
-`fsq`. Trong SDK, các profile riêng dùng `poiSources: ['osm','fsq']`, `['overture','fsq']`,
-`['overture']`, `['fsq']`; REST dùng `sources=osm,fsq`, `sources=overture,fsq`, `sources=overture`,
-`sources=fsq`. Lớp POI cho từng tập nguồn được build
-thành archive riêng nên mật độ hiển thị luôn đúng, không có lỗ trống. Nếu archive hợp lệ chưa có,
-style fallback về `all` và báo `x-poi-profile: all;fallback`. POI người dùng luôn được giữ;
-`GET /v1/places/{id}` không lọc theo profile.
-Phân bố nguồn chính hiện tại: Overture 77 %, Foursquare 16 %, OpenStreetMap 7 %.
+Mặc định bản đồ và Places API dùng **cả hai nguồn** (`all`). Ba profile là `all` (`osm,fsq`), `osm`
+và `fsq`. Trong SDK, các profile riêng dùng `poiSources: ['osm']`, `['fsq']`; REST dùng
+`sources=osm`, `sources=fsq`. Lớp POI cho từng tập nguồn được build thành archive riêng nên mật độ
+hiển thị luôn đúng, không có lỗ trống. Nếu archive hợp lệ chưa có, style fallback về `all` và báo
+`x-poi-profile: all;fallback`. POI người dùng luôn được giữ; `GET /v1/places/{id}` không lọc theo
+profile.
 
-Dữ liệu POI gộp từ ba nguồn mở: OpenStreetMap (ODbL), Overture Maps Places (CDLA-Permissive 2.0)
-và Foursquare OS Places (Apache-2.0). Mỗi POI có **một nguồn chính** (`primary`) quyết định toạ độ
+Dữ liệu POI gộp từ hai nguồn mở: OpenStreetMap (ODbL) và Foursquare OS Places (Apache-2.0). Mỗi POI
+có **một nguồn chính** (`primary`) quyết định toạ độ
 và tên; các nguồn khác gắn vai trò `secondary` và hiện trong trường `sources` của
 `GET /v1/places/{id}`.
 
@@ -116,7 +113,7 @@ SDK luôn gắn `AttributionControl`, và file style cũng khai đúng chuỗi �
 tiles, nên bản đồ có ghi nguồn kể cả khi nạp thẳng vào MapLibre không qua SDK. MapLibre gộp hai
 chuỗi trùng nhau nên người xem chỉ thấy một lần. Có tuỳ chọn
 `compactAttribution` để hiển thị gọn, **không có tuỳ chọn tắt** — đây là nghĩa vụ giấy phép của
-ODbL, CDLA-Permissive 2.0 và Apache-2.0, không phải lựa chọn giao diện. Xem
+ODbL và Apache-2.0, không phải lựa chọn giao diện. Xem
 [Giấy phép & ghi nguồn](/giay-phep/).
 
 ## 8. SDK — bốn gói
@@ -139,7 +136,7 @@ bằng đúng một thẻ `<script>`, không cần bước build.
 | Tiles PMTiles nền Việt Nam và lớp POI | Cloudflare R2 kèm custom domain, client đọc thẳng bằng HTTP Range | 0 đồng egress |
 | Places API, styles, trang duyệt đóng góp | Cloudflare Worker chạy Hono | gói Workers Free đủ cho nội bộ |
 | Postgres 16 kèm PostGIS | máy nội bộ chạy 24/7 trong Docker, nối ra qua Cloudflare Tunnel rồi Access rồi Hyperdrive | tiền điện và máy |
-| Pipeline dữ liệu OSM, Overture, Foursquare | container `pipeline` trên máy chủ, cron thứ Hai 02:00 | — |
+| Pipeline dữ liệu OSM, Foursquare | container `pipeline` trên máy chủ, cron thứ Hai 02:00 | — |
 | Tài liệu | Cloudflare Pages | 0 đồng |
 
 Vì tiles không chạm Worker, lượt tải bản đồ không tính vào hạn mức request của Worker. Chi tiết ở

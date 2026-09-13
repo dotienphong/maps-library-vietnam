@@ -125,7 +125,7 @@ Gợi ý khi người dùng đang gõ. Trộn ba loại kết quả: POI, tên �
 | `near` | `"lat,lng"` | không | — | `lat` trong ±90, `lng` trong ±180 |
 | `limit` | số nguyên | không | `10` | 1–10 |
 | `types` | danh sách ngăn bằng dấu phẩy | không | cả ba loại | `poi`, `street`, `address` |
-| `sources` | danh sách ngăn bằng dấu phẩy | không | `all` | `osm`, `overture`, `fsq`; `all` = cả ba. Lọc POI theo **nguồn chính**; POI người dùng không bị loại vì nguồn |
+| `sources` | danh sách ngăn bằng dấu phẩy | không | `all` | `osm`, `fsq`; `all` = cả hai. Lọc POI theo **nguồn chính**; POI người dùng không bị loại vì nguồn |
 
 `sources` chỉ ảnh hưởng kết quả `poi`; `street`, `address` và `area` không có nguồn.
 
@@ -194,7 +194,7 @@ Tìm POI theo tên, theo loại, theo bán kính quanh một điểm hoặc theo
 | `radius` | số nguyên, mét | không | `5000` | 1–50000 (chỉ có tác dụng khi có `near`) |
 | `limit` | số nguyên | không | `20` | 1–50 |
 | `offset` | số nguyên | không | `0` | 0–500 |
-| `sources` | danh sách ngăn bằng dấu phẩy | không | `all` | `osm`, `overture`, `fsq`; `all` = cả ba. Lọc POI theo **nguồn chính**; POI người dùng không bị loại vì nguồn |
+| `sources` | danh sách ngăn bằng dấu phẩy | không | `all` | `osm`, `fsq`; `all` = cả hai. Lọc POI theo **nguồn chính**; POI người dùng không bị loại vì nguồn |
 
 Phải có **ít nhất một** trong `q`, `category`, `near`, `bbox`; thiếu cả bốn trả `400 invalid_request`. Bốn tham số này kết hợp theo kiểu "và": gửi cả `q` và `category` sẽ lọc theo cả hai.
 
@@ -239,7 +239,7 @@ Danh sách POI quanh một điểm, sắp xếp theo khoảng cách tăng dần.
 | `radius` | số nguyên, mét | không | `500` | 1–5000 |
 | `limit` | số nguyên | không | `20` | 1–100 |
 | `category` | chuỗi | không | — | một mã loại, khớp chính xác |
-| `sources` | danh sách ngăn bằng dấu phẩy | không | `all` | `osm`, `overture`, `fsq`; `all` = cả ba. Lọc POI theo **nguồn chính**; POI người dùng không bị loại vì nguồn |
+| `sources` | danh sách ngăn bằng dấu phẩy | không | `all` | `osm`, `fsq`; `all` = cả hai. Lọc POI theo **nguồn chính**; POI người dùng không bị loại vì nguồn |
 
 ```bash
 curl -H "X-Api-Key: mlv_live_…" \
@@ -299,8 +299,8 @@ curl -H "X-Api-Key: mlv_live_…" \
   "status": "active",
   "updated_at": "2026-08-30T16:17:52.491Z",
   "sources": [
-    { "source": "overture", "source_id": "7a87b865-c8b5-4c03-befd-9a7edb6be1d3", "role": "primary" },
-    { "source": "fsq", "source_id": "54e583b3498eb9818cab94c3", "role": "secondary" }
+    { "source": "fsq", "source_id": "4b0588c0f964a520e7cd22e3", "role": "primary" },
+    { "source": "osm", "source_id": "n4276546245", "role": "secondary" }
   ],
   "attribution": { "text": "© MapsLibVN · © OpenStreetMap contributors (ODbL) · …", "html": "<a href=\"…\">© MapsLibVN</a> · …" }
 }
@@ -365,7 +365,7 @@ Toạ độ thành địa chỉ, kèm POI gần nhất.
 |---|---|---|---|---|
 | `lat` | số | có | — | ±90 |
 | `lng` | số | có | — | ±180 |
-| `sources` | danh sách ngăn bằng dấu phẩy | không | `all` | `osm`, `overture`, `fsq`; `all` = cả ba. Lọc POI theo **nguồn chính**; POI người dùng không bị loại vì nguồn |
+| `sources` | danh sách ngăn bằng dấu phẩy | không | `all` | `osm`, `fsq`; `all` = cả hai. Lọc POI theo **nguồn chính**; POI người dùng không bị loại vì nguồn |
 
 Bán kính tìm kiếm cố định, không cấu hình được:
 
@@ -537,7 +537,7 @@ curl "https://api.ai-solutions.io.vn/v1/attribution"
 
 ```json
 {
-  "text": "© MapsLibVN · © OpenStreetMap contributors (ODbL) · © OpenMapTiles · Places: Overture Maps Foundation (CDLA-Permissive 2.0), Foursquare OS Places (Apache-2.0)",
+  "text": "© MapsLibVN · © OpenStreetMap contributors (ODbL) · © OpenMapTiles · Foursquare OS Places (Apache-2.0)",
   "html": "<a href=\"https://github.com/dotienphong/maps-library-vietnam\" target=\"_blank\" rel=\"noopener\">© MapsLibVN</a> · …",
   "links": [
     { "text": "© MapsLibVN", "href": "https://github.com/dotienphong/maps-library-vietnam" },
@@ -555,13 +555,12 @@ Style MapLibre của MapsLibVN, đã điền sẵn URL bộ tiles hiện hành.
 | Tham số | Kiểu | Bắt buộc | Mặc định | Khoảng |
 |---|---|---|---|---|
 | `theme` | chuỗi trong đường dẫn | có | — | `light` hoặc `dark` |
-| `sources` | chuỗi truy vấn | không | `all` | `osm,overture,fsq` (`all`), `osm`, `osm,fsq`, `overture,fsq`, `overture` hoặc `fsq`; tổ hợp khác trả `400 invalid_request` |
+| `sources` | chuỗi truy vấn | không | `all` | `osm,fsq` (`all`), `osm` hoặc `fsq`; tổ hợp khác trả `400 invalid_request` |
 
 Tên khác trả `404 not_found`. Cache 1 giờ. Route này **không kiểm khoá API**, nhưng SDK vẫn gắn `?key=` vào URL style để hành vi không đổi khi việc kiểm được bật về sau — đừng dựa vào việc endpoint hiện đang mở.
 
-Header `x-poi-profile` cho biết archive đang phục vụ: `all`, `osm`, `osm-fsq`, `overture-fsq`,
-`overture` hoặc `fsq`. Nếu archive của profile hợp lệ chưa phát hành, header là `all;fallback` và API tạm dùng
-archive đầy đủ thay vì trả lỗi. POI do người dùng đóng góp luôn được giữ trong mọi profile.
+Header `x-poi-profile` cho biết archive đang phục vụ: `all`, `osm` hoặc `fsq`. Nếu archive của profile
+hợp lệ chưa phát hành, header là `all;fallback` và API tạm dùng archive đầy đủ thay vì trả lỗi. POI do người dùng đóng góp luôn được giữ trong mọi profile.
 
 Khi bộ tiles POI chưa phát hành, nguồn và lớp `poi` bị lược khỏi style để MapLibre không tải một file rỗng.
 
@@ -640,7 +639,7 @@ interface Place {
 }
 
 interface PlaceSource {
-  source: 'osm' | 'overture' | 'fsq';
+  source: 'osm' | 'fsq';
   source_id: string;
   role: 'primary' | 'secondary';
 }

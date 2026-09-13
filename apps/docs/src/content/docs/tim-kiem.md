@@ -134,16 +134,13 @@ const client = createClient({
 
 `createClient` còn nhận `fetch` (tiêm bản `fetch` riêng cho test hoặc môi trường không có global),
 `headers` (header thêm cho mọi request, ví dụ `X-Bundle-Id` cho khoá `mobile`; không ghi đè được
-`X-Api-Key`) và `poiSources` (mặc định cả ba nguồn) — tập nguồn POI áp cho `autocomplete`, `search`,
+`X-Api-Key`) và `poiSources` (mặc định cả hai nguồn) — tập nguồn POI áp cho `autocomplete`, `search`,
 `nearby`, `reverse` và `styleUrl`; `getPlace` và `geocode` không lọc theo nguồn.
 
-Sáu profile là mặc định cả ba (`all`), `['osm']`, `['osm','fsq']`, `['overture','fsq']`,
-`['overture']` và `['fsq']`:
+Ba profile là mặc định cả hai (`all`), `['osm']` và `['fsq']`:
 
 ```ts
-createClient({ apiKey, baseUrl, poiSources: ['osm', 'fsq'] });
-createClient({ apiKey, baseUrl, poiSources: ['overture', 'fsq'] });
-createClient({ apiKey, baseUrl, poiSources: ['overture'] });
+createClient({ apiKey, baseUrl, poiSources: ['osm'] });
 createClient({ apiKey, baseUrl, poiSources: ['fsq'] });
 ```
 

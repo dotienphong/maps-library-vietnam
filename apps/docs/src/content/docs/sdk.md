@@ -21,7 +21,7 @@ UMD hoặc tarball được mô tả ở [Cài đặt](/cai-dat/).
 
 ### Nâng từ 0.2.x lên 0.3.0
 
-Bản 0.3.0 **chỉ thêm**, không đổi hành vi: mặc định vẫn là cả ba nguồn POI như 0.2.x, nên code đang
+Bản 0.3.0 **chỉ thêm**, không đổi hành vi: mặc định vẫn là toàn bộ nguồn POI (`all`) như 0.2.x, nên code đang
 chạy không phải sửa gì. Mới:
 
 - Tuỳ chọn `poiSources` cho `createMap`, `<MapsLibVNMap>` (React và React Native) và `createClient`;
@@ -30,14 +30,11 @@ chạy không phải sửa gì. Mới:
   `POI_SOURCE_PROFILES`, `DEFAULT_POI_SOURCES`, `normalizePoiSources`, `parsePoiSourcesCsv`,
   `poiSourcesKey`, `profileForSources`, `poiSourceClause`.
 
-Sáu profile là mặc định cả ba (`all`), `['osm']`, `['osm','fsq']`, `['overture','fsq']`,
-`['overture']` và `['fsq']`.
+Ba profile là mặc định cả hai (`all`), `['osm']` và `['fsq']`.
 Các cấu hình riêng dùng cùng contract trên cả bốn SDK:
 
 ```ts
-poiSources: ['osm', 'fsq'];
-poiSources: ['overture', 'fsq'];
-poiSources: ['overture'];
+poiSources: ['osm'];
 poiSources: ['fsq'];
 ```
 
@@ -95,7 +92,7 @@ const client = createClient({
 | `baseUrl` | `string` | bắt buộc | dấu `/` ở cuối được cắt bỏ |
 | `fetch` | `typeof fetch` | `globalThis.fetch` | tiêm fetch riêng cho test hoặc môi trường không có fetch toàn cục |
 | `headers` | `Record<string, string>` | `{}` | header thêm cho mọi request, ví dụ `X-Bundle-Id` với khoá `mobile`; **không ghi đè được** `X-Api-Key` |
-| `poiSources` | `PoiSource[]` | cả ba nguồn (`all`) | nhận sáu profile nêu trên; áp cho autocomplete/search/nearby/reverse và URL style; `getPlace`/geocode không lọc |
+| `poiSources` | `PoiSource[]` | cả hai nguồn (`all`) | nhận ba profile nêu trên; áp cho autocomplete/search/nearby/reverse và URL style; `getPlace`/geocode không lọc |
 
 ### Phương thức client ứng với endpoint nào
 

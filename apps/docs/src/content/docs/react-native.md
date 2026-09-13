@@ -53,7 +53,7 @@ export function Screen() {
       style="light"                 // 'light' | 'dark' | URL style riêng
       center={[106.7, 10.776]} zoom={13}
       lang="vi"                     // 'en' đổi nhãn; nhãn chủ quyền luôn tiếng Việt
-      poiSources={['osm']}          // mặc định: cả ba nguồn (osm, overture, fsq)
+      poiSources={['osm']}          // mặc định: cả hai nguồn (osm, fsq)
       bundleId={Application.applicationId ?? undefined}
       onPoiClick={(poi) => console.log(poi.name, poi.category)}
       onLoad={(map) => map.flyTo([106.7, 10.776], 15)}
@@ -69,13 +69,10 @@ cây con của `<MapsLibVNMap>` (tự lấy client) hoặc truyền `client` ri�
 (không phải con của nó) nằm ngoài context: hãy giữ `MapHandle` mà `onLoad` trả về rồi truyền
 `client={map?.places}`, nếu không hook im lặng trả mảng rỗng.
 
-`poiSources` có đúng sáu profile: mặc định cả ba (`all`), `['osm']`, `['osm','fsq']`,
-`['overture','fsq']`, `['overture']` và `['fsq']`. Các profile riêng:
+`poiSources` có đúng ba profile: mặc định cả hai (`all`), `['osm']` và `['fsq']`. Các profile riêng:
 
 ```tsx
-<MapsLibVNMap poiSources={['osm', 'fsq']} {...props} />
-<MapsLibVNMap poiSources={['overture', 'fsq']} {...props} />
-<MapsLibVNMap poiSources={['overture']} {...props} />
+<MapsLibVNMap poiSources={['osm']} {...props} />
 <MapsLibVNMap poiSources={['fsq']} {...props} />
 ```
 

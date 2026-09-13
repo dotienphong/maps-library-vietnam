@@ -1,6 +1,6 @@
 ---
 title: Giấy phép & ghi nguồn
-description: SDK MIT; dữ liệu OpenStreetMap (ODbL), Overture (CDLA-Permissive 2.0), Foursquare OS Places (Apache-2.0); chuỗi ghi nguồn bắt buộc.
+description: SDK MIT; dữ liệu OpenStreetMap (ODbL), Foursquare OS Places (Apache-2.0); chuỗi ghi nguồn bắt buộc.
 ---
 
 ## 1. Mã nguồn SDK — MIT
@@ -9,13 +9,12 @@ description: SDK MIT; dữ liệu OpenStreetMap (ODbL), Overture (CDLA-Permissiv
 
 Phần máy chủ (Worker API, pipeline dữ liệu, hạ tầng) không được phân phối trong giai đoạn nội bộ.
 
-## 2. Dữ liệu — bốn nguồn, bốn giấy phép
+## 2. Dữ liệu — ba nguồn, ba giấy phép
 
 | Nguồn | Dùng cho | Giấy phép | Nghĩa vụ của bạn |
 |---|---|---|---|
 | OpenStreetMap contributors | tiles nền, đường, hẻm, ranh giới, một phần POI | ODbL 1.0 | giữ ghi nguồn `© OpenStreetMap contributors` |
 | OpenMapTiles | lược đồ lớp tiles và thiết kế style | BSD-3-Clause + CC-BY 4.0 | giữ ghi nguồn `© OpenMapTiles` |
-| Overture Maps Foundation | địa điểm (POI) | CDLA-Permissive 2.0 | giữ ghi nguồn |
 | Foursquare OS Places | địa điểm (POI) | Apache-2.0 | giữ ghi nguồn |
 
 Dữ liệu do người dùng cuối đóng góp qua [Đóng góp & sửa POI](/dong-gop/) là dữ liệu riêng của MapsLibVN.
@@ -25,7 +24,7 @@ Dữ liệu do người dùng cuối đóng góp qua [Đóng góp & sửa POI](/
 SDK luôn hiển thị điều khiển attribution. Có tuỳ chọn `compact` nhưng **không có tuỳ chọn tắt** — yêu cầu này đến từ giấy phép của dữ liệu và của style nền, không phải lựa chọn của MapsLibVN.
 
 ```
-© MapsLibVN · © OpenStreetMap contributors (ODbL) · © OpenMapTiles · Places: Overture Maps Foundation (CDLA-Permissive 2.0), Foursquare OS Places (Apache-2.0)
+© MapsLibVN · © OpenStreetMap contributors (ODbL) · © OpenMapTiles · Foursquare OS Places (Apache-2.0)
 ```
 
 Chuỗi này được khai ở hai nơi: SDK thêm vào điều khiển attribution, và file style cũng mang đúng nó ở từng nguồn tiles. MapLibre gộp hai chuỗi trùng nhau nên bạn chỉ thấy một lần. Làm vậy để bản đồ vẫn có ghi nguồn cả khi ai đó nạp thẳng file style vào MapLibre mà không qua SDK, lẫn khi bạn ẩn lớp POI.

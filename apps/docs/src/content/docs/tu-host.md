@@ -12,7 +12,7 @@ MapsLibVN được thiết kế để dựng lại **bằng một lệnh** trên
 | Tiles PMTiles nền Việt Nam và lớp POI | Cloudflare R2 kèm custom domain, client đọc thẳng bằng HTTP Range | 0 đồng egress |
 | Places API, styles, trang duyệt đóng góp | Cloudflare Worker chạy Hono | gói Workers Free đủ cho nội bộ |
 | Postgres 16 kèm PostGIS | máy nội bộ chạy 24/7 trong Docker, nối ra qua Cloudflare Tunnel rồi Access rồi Hyperdrive | tiền điện và máy |
-| Pipeline dữ liệu OSM, Overture, Foursquare | container `pipeline` trên máy chủ, cron thứ Hai 02:00 | — |
+| Pipeline dữ liệu OSM, Foursquare | container `pipeline` trên máy chủ, cron thứ Hai 02:00 | — |
 | Tài liệu | Cloudflare Pages | 0 đồng |
 
 Cơ sở dữ liệu **không mở cổng ra Internet**. Worker nối vào qua Hyperdrive, Hyperdrive xác thực bằng service token của Cloudflare Access, Access mới cho đi qua Tunnel.
@@ -47,7 +47,7 @@ Chuyển sang máy khác: chạy `pnpm server:setup` trên máy mới, rồi `pn
 
 ```bash
 pnpm data:update --tiles   # build tiles nền, QA chủ quyền, upload R2, cập nhật manifest
-pnpm data:update           # POI: OSM, Overture, Foursquare, gộp, nạp Postgres, build lớp POI
+pnpm data:update           # POI: OSM, Foursquare, gộp, nạp Postgres, build lớp POI
 pnpm data:rollback         # đổi manifest về bản trước, có hiệu lực ngay
 pnpm export:odbl           # xuất các bảng dẫn xuất OSM theo ODbL
 ```

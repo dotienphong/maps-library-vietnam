@@ -179,14 +179,14 @@ test('Nguồn POI mới đồng bộ selector, URL, snippet và style request', 
     unexpectedErrors.push(`${response.status()} ${url.pathname}`);
   });
   await page.goto('/playground.html');
-  await expect(page.locator('#f-sources option')).toHaveCount(6);
+  await expect(page.locator('#f-sources option')).toHaveCount(3);
 
-  // osm-fsq là mặc định mới của Playground nên round-trip không in lại `sources` trên URL (null).
-  const sourceCases: [string, string, string | null, string][] = [
-    ['osm-fsq', 'osm,fsq', null, "poiSources: ['osm', 'fsq']"],
-    ['overture-fsq', 'overture,fsq', 'overture,fsq', "poiSources: ['overture', 'fsq']"],
-    ['overture', 'overture', 'overture', "poiSources: ['overture']"],
+  // `all` là mặc định (trùng SDK) nên round-trip không in `sources` trên URL (null) và snippet
+  // không có dòng `poiSources`; SDK vẫn gửi `sources=osm,fsq` khi xin style.
+  const sourceCases: [string, string, string | null, string | null][] = [
+    ['osm', 'osm', 'osm', "poiSources: ['osm']"],
     ['fsq', 'fsq', 'fsq', "poiSources: ['fsq']"],
+    ['all', 'osm,fsq', null, null],
   ];
   for (const [profile, sources, urlSources, snippet] of sourceCases) {
     const styleRequest = page.waitForRequest((request) => {
@@ -203,7 +203,8 @@ test('Nguồn POI mới đồng bộ selector, URL, snippet và style request', 
     });
     expect(new URL(page.url()).searchParams.get('sources')).toBe(urlSources);
     await page.locator('#tab-ma-nhung').click();
-    await expect(page.locator('#snippet-script')).toContainText(snippet);
+    if (snippet) await expect(page.locator('#snippet-script')).toContainText(snippet);
+    else await expect(page.locator('#snippet-script')).not.toContainText('poiSources');
     await page.locator('#tab-ban-do').click();
   }
 

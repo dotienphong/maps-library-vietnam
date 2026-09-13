@@ -31,16 +31,13 @@ const LANGS = ['vi', 'en'];
 
 /** Profile Playground → danh sách nguồn SDK/API chuẩn. */
 export const POI_PROFILE_SOURCES = {
-  all: ['osm', 'overture', 'fsq'],
+  all: ['osm', 'fsq'],
   osm: ['osm'],
-  'osm-fsq': ['osm', 'fsq'],
-  'overture-fsq': ['overture', 'fsq'],
-  overture: ['overture'],
   fsq: ['fsq'],
 };
 
-/** Profile nguồn POI mặc định của Playground — khác mặc định "tất cả" của SDK. */
-export const DEFAULT_SOURCES = 'osm-fsq';
+/** Profile nguồn POI mặc định của Playground — trùng mặc định `all` (OSM + Foursquare) của SDK. */
+export const DEFAULT_SOURCES = 'all';
 
 /** @param {string} profile @returns {string[] | undefined} */
 export function poiSourcesForProfile(profile) {
@@ -65,7 +62,7 @@ function profileForSources(raw) {
  * @property {string} style `light` hoặc `dark`.
  * @property {string} lang `vi` hoặc `en`.
  * @property {boolean} poi Bật lớp POI.
- * @property {'all' | 'osm' | 'osm-fsq' | 'overture-fsq' | 'overture' | 'fsq'} sources Profile nguồn POI.
+ * @property {'all' | 'osm' | 'fsq'} sources Profile nguồn POI.
  * @property {boolean} compact Attribution gọn.
  * @property {[number, number]} center Tâm bản đồ `[lng, lat]`.
  * @property {number} zoom Mức zoom.
