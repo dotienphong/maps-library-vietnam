@@ -45,6 +45,7 @@
     "server:setup": "node scripts/server-setup.mjs",
     "server:restore": "node scripts/server-restore.mjs",
     "server:update": "node scripts/server-update.mjs",
+    "server:migrate": "node scripts/server-migrate.mjs",
     "db:restore": "node scripts/db-restore.mjs",
     "db:fixture": "node scripts/db-fixture.mjs",
     "poi:profile": "node scripts/poi-profile-publish.mjs"
