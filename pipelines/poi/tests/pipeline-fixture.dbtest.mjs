@@ -43,7 +43,7 @@ beforeAll(async () => {
   node('pipelines/poi/src/conflate.mjs');
   node('pipelines/poi/src/publish.mjs', '--force');
   node('pipelines/poi/src/geocode/osm-roads.mjs', '--fixture');
-  for (const stage of ['admin', 'streets', 'alleys', 'anchors']) {
+  for (const stage of ['admin', 'poi-admin', 'streets', 'alleys', 'anchors']) {
     node(`pipelines/poi/src/geocode/${stage}.mjs`, ...(stage === 'admin' ? ['--fixture'] : []));
   }
   // POI người dùng: primary_source NULL, phải có mặt ở MỌI profile (spec 07/09 mục 4). Chèn sau
@@ -103,6 +103,18 @@ afterAll(async () => {
 });
 
 describe('pipeline POI trọn vòng trên fixture', () => {
+  it('POI fixture Quận 1 có phường/tỉnh hiện hành suy từ toạ độ (poi-admin.mjs)', async () => {
+    const [row] = await sql`SELECT count(*)::int AS n,
+        count(*) FILTER (WHERE admin_province IS NOT NULL)::int AS with_province,
+        count(*) FILTER (WHERE admin_ward IS NOT NULL)::int AS with_ward
+      FROM poi WHERE created_by = 'pipeline' AND status = 'active'`;
+    const stats = /** @type {{ n: number, with_province: number, with_ward: number }} */ (row);
+    expect(stats.n).toBeGreaterThan(0);
+    // Fixture Quận 1 nằm trọn trong TP.HCM và có ranh giới phường; điểm lệch ra ngoài ranh giới là ngoại lệ hiếm.
+    expect(stats.with_province / stats.n).toBeGreaterThan(0.95);
+    expect(stats.with_ward / stats.n).toBeGreaterThan(0.9);
+  });
+
   it('số POI active hợp lý so với record nguồn, ≥ 90 % không rơi vào bare other', async () => {
     const [summary] = await sql`SELECT count(*)::int AS n,
         count(*) FILTER (WHERE status = 'active')::int AS active,

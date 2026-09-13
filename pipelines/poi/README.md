@@ -31,6 +31,7 @@ Số liệu ingest thật toàn VN (Task 10, 31/08/2026): `src_osm_place` 228.25
 | Publish | `node pipelines/poi/src/publish.mjs [--force]` | gộp vào `poi`, `poi_source_link`; sanity giảm active tối đa 10 % |
 | Trích đường/ranh giới | `node pipelines/poi/src/geocode/osm-roads.mjs [--fixture]` | PBF đã patch → `osm_road_raw` (kèm `name_alt` từ `old_name`/`alt_name`/`short_name`/`name:vi`/`official_name`), `osm_admin_raw` |
 | Hành chính | `node pipelines/poi/src/geocode/admin.mjs [--fixture]` | current raw + snapshot 250101 + seed/tag → publish nguyên tử `admin_area`, `admin_area_old`, `admin_alias`; QA ở `out/admin-alias/report.json` |
+| POI ↔ hành chính hiện hành | `node pipelines/poi/src/geocode/poi-admin.mjs` | `admin_area` cấp 8/4 chứa `poi.geom` → `poi.admin_ward`, `poi.admin_province` (chỉ ghi dòng đổi; không đụng `ward`/`province` nguồn; API đọc `coalesce(admin_x, x)`) |
 | Chỉ dựng lại alias cũ | `node pipelines/poi/src/geocode/admin-old.mjs [--fixture]` | giữ current đã publish; thay nguyên tử old + alias dưới cùng advisory lock |
 | Đường/hẻm | `node pipelines/poi/src/geocode/streets.mjs && node pipelines/poi/src/geocode/alleys.mjs` | raw road → `street` (kèm `name_alt`, `name_key`, `name_alt_norm`, `name_tsv`), `alley` + parent/entrance |
 | Mốc địa chỉ | `node pipelines/poi/src/geocode/anchors.mjs` | `src_osm_place` + `poi_work_record` → `address_anchor` |

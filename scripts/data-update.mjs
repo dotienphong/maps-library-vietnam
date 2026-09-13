@@ -147,6 +147,7 @@ if (work.poi) {
     run('node', ['pipelines/poi/src/publish.mjs', ...(flags.force ? ['--force'] : [])]);
     run('node', ['pipelines/poi/src/geocode/osm-roads.mjs']);
     run('node', ['pipelines/poi/src/geocode/admin.mjs']);
+    run('node', ['pipelines/poi/src/geocode/poi-admin.mjs']);
     run('node', ['pipelines/poi/src/geocode/streets.mjs']);
     run('node', ['pipelines/poi/src/geocode/alleys.mjs']);
     run('node', ['pipelines/poi/src/geocode/anchors.mjs']);
