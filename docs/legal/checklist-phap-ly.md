@@ -22,7 +22,7 @@ Mười hạng mục mục A đã được đối chiếu lại với mã nguồ
 | A6 | Điều khoản tenant công bố công khai: cấm cào và xuất hàng loạt, bắt buộc giữ attribution, tenant chịu trách nhiệm xin phép vị trí theo Nghị định 13/2023 | `docs/legal/dieu-khoan-tenant.md`, đăng tại `/dieu-khoan/` | ☑ |
 | A7 | Không lưu địa chỉ IP thô: `poi_edit` chỉ có `ip_hash` (băm kèm ngày **và pepper bí mật phía máy chủ** từ 04/09/2026, xem C4) và `end_user_hash` (băm từ token do app cấp, cũng kèm pepper) | `apps/api/src/edits/hash.ts`, `db/migrations/0003_core.sql` | ☑ |
 | A8 | Nominatim và Overpass công cộng chỉ dùng khi phát triển; production chạy hoàn toàn trên dữ liệu tự host | spec 12.5; pipeline không gọi hai dịch vụ này | ☑ |
-| A9 | Không có nguồn dữ liệu từ Google, Apple hay Grab | `pipelines/poi/src/ingest/` chỉ có OSM, Overture, Foursquare | ☑ |
+| A9 | Không có nguồn dữ liệu từ Google, Apple hay Grab | `pipelines/poi/src/ingest/` chỉ có OSM, Foursquare | ☑ |
 | A10 | Trang "Giấy phép & ghi nguồn" và "Độ chính xác geocode" đã công bố | `/giay-phep/`, `/do-chinh-xac/` trên `mapslibvn-docs.pages.dev` | ☑ |
 
 ## B. Việc tay còn lại — chặn việc thương mại hoá, không chặn dùng nội bộ

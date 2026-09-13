@@ -41,7 +41,6 @@ jobs:
       CF_ACCESS_CLIENT_ID: ${{ secrets.CF_ACCESS_CLIENT_ID }}
       CF_ACCESS_CLIENT_SECRET: ${{ secrets.CF_ACCESS_CLIENT_SECRET }}
       PIPELINE_DATABASE_URL: ${{ secrets.PIPELINE_DATABASE_URL }}
-      OVERTURE_RELEASE: ""
       FSQ_RELEASE: ""
     steps:
       - name: data:update

@@ -3,6 +3,7 @@ import 'dotenv/config';
 import { execFileSync } from 'node:child_process';
 import { existsSync } from 'node:fs';
 import { pathToFileURL } from 'node:url';
+import { POI_SOURCE_PROFILES } from '../pipelines/poi/src/lib/poi-filter.mjs';
 import { run } from './lib/run.mjs';
 
 /** @param {unknown} value */
@@ -19,9 +20,15 @@ export function rollbackTarget(value) {
  * @param {(checksumName: string) => string} readChecksum
  */
 export function verifyRollbackArchives(target, listed, readChecksum) {
-  const releases = [
-    ...new Set([target.vn, target.poi, ...Object.values(target.poiProfiles ?? {})]),
-  ].filter((release) => typeof release === 'string' && release.length > 0);
+  // Profile đã gỡ khỏi registry không thể phục vụ nên không kiểm archive — bản history cũ vẫn có
+  // thể mang khoá đó dù archive đã xoá trên R2 (xem ca test tương ứng).
+  const registryProfiles = new Set(Object.keys(POI_SOURCE_PROFILES));
+  const profileReleases = Object.entries(target.poiProfiles ?? {})
+    .filter(([profile]) => registryProfiles.has(profile))
+    .map(([, release]) => release);
+  const releases = [...new Set([target.vn, target.poi, ...profileReleases])].filter(
+    (release) => typeof release === 'string' && release.length > 0,
+  );
   return releases.map((release) => {
     const archiveName = `${release}.pmtiles`;
     const checksumName = `${archiveName}.sha256`;

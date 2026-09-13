@@ -9,7 +9,7 @@ MapsLibVN **không liên kết với, không được tài trợ hay chứng th�
 nhãn hiệu của bên thứ ba; tên đó xuất hiện ở đây và trong tài liệu chỉ để mô tả nguồn gốc kỹ
 thuật của thư viện mà MapsLibVN sử dụng.
 
-Cập nhật: 12/09/2026.
+Cập nhật: 13/09/2026.
 
 ## 1. Thư viện được đóng gói hoặc là peer dependency của SDK
 

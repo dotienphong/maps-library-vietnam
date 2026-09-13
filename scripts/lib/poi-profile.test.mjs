@@ -41,19 +41,17 @@ describe('profilePublishSteps', () => {
     expect(() => profilePublishSteps('all', 'poi-20260907', '/app/out')).toThrowError(/all/);
   });
 
-  it('profile lạ bị từ chối', () => {
+  it('profile lạ hoặc đã gỡ khỏi registry (overture) bị từ chối', () => {
     expect(() => profilePublishSteps('banana', 'x', '/app/out')).toThrowError(/profile/);
+    expect(() => profilePublishSteps('overture', 'x', '/app/out')).toThrowError(/profile/);
+    expect(() => profilePublishSteps('overture-fsq', 'x', '/app/out')).toThrowError(/profile/);
   });
 });
 
 describe('profileBatchSteps', () => {
   const input = {
-    profiles: ['overture-fsq', 'overture', 'fsq'],
-    releases: {
-      'overture-fsq': 'poi-overture-fsq-run',
-      overture: 'poi-overture-run',
-      fsq: 'poi-fsq-run',
-    },
+    profiles: ['osm', 'fsq'],
+    releases: { osm: 'poi-osm-run', fsq: 'poi-fsq-run' },
     buildId: 'run',
     snapshot: '/app/work/poi/snapshot-run.jsonl',
     out: '/app/out',
@@ -62,26 +60,22 @@ describe('profileBatchSteps', () => {
   it('export/QA cả batch trước upload/smoke và chỉ set manifest một lần cuối', () => {
     const steps = profileBatchSteps(input);
     expect(steps.map(({ id }) => id)).toEqual([
-      'export-overture-fsq',
-      'qa-overture-fsq',
-      'export-overture',
-      'qa-overture',
+      'export-osm',
+      'qa-osm',
       'export-fsq',
       'qa-fsq',
-      'upload-overture-fsq',
-      'upload-overture',
+      'upload-osm',
       'upload-fsq',
-      'smoke-overture-fsq',
-      'smoke-overture',
+      'smoke-osm',
       'smoke-fsq',
       'manifest',
     ]);
     expect(steps[0]?.args).toEqual([
       'pipelines/poi/src/export-tiles.mjs',
       '--release',
-      'poi-overture-fsq-run',
+      'poi-osm-run',
       '--sources',
-      'overture-fsq',
+      'osm',
       '--snapshot',
       '/app/work/poi/snapshot-run.jsonl',
       '--build-id',
@@ -91,15 +85,13 @@ describe('profileBatchSteps', () => {
       'pipelines/tiles/src/manifest.mjs',
       'set',
       '--poi-profile',
-      'overture-fsq=poi-overture-fsq-run',
-      '--poi-profile',
-      'overture=poi-overture-run',
+      'osm=poi-osm-run',
       '--poi-profile',
       'fsq=poi-fsq-run',
     ]);
   });
 
-  it.each(['export-fsq', 'upload-overture', 'smoke-overture-fsq'])(
+  it.each(['export-fsq', 'upload-osm', 'smoke-fsq'])(
     'lỗi tại %s không bao giờ chạy manifest',
     (failedId) => {
       /** @type {string[]} */
@@ -114,9 +106,10 @@ describe('profileBatchSteps', () => {
     },
   );
 
-  it('từ chối all, profile lạ, release thiếu và danh sách trùng', () => {
+  it('từ chối all, profile lạ hoặc đã gỡ (overture), release thiếu và danh sách trùng', () => {
     expect(() => profileBatchSteps({ ...input, profiles: ['all'] })).toThrow(/all/);
     expect(() => profileBatchSteps({ ...input, profiles: ['banana'] })).toThrow(/profile/);
+    expect(() => profileBatchSteps({ ...input, profiles: ['overture-fsq'] })).toThrow(/profile/);
     expect(() => profileBatchSteps({ ...input, releases: { fsq: 'poi-fsq-run' } })).toThrow(
       /release/,
     );

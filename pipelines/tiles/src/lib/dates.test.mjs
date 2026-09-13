@@ -34,18 +34,10 @@ describe('poiReleasePair', () => {
 
 describe('poiReleaseSet', () => {
   it('dùng chung build id cho batch profile bất kỳ', () => {
-    expect(
-      poiReleaseSet(
-        ['osm-fsq', 'overture-fsq', 'overture', 'fsq'],
-        new Date('2026-09-08T10:00:00Z'),
-        'a1b2c3d4',
-      ),
-    ).toEqual({
+    expect(poiReleaseSet(['osm', 'fsq'], new Date('2026-09-08T10:00:00Z'), 'a1b2c3d4')).toEqual({
       buildId: '20260908-170000-a1b2c3d4',
       releases: {
-        'osm-fsq': 'poi-osm-fsq-20260908-170000-a1b2c3d4',
-        'overture-fsq': 'poi-overture-fsq-20260908-170000-a1b2c3d4',
-        overture: 'poi-overture-20260908-170000-a1b2c3d4',
+        osm: 'poi-osm-20260908-170000-a1b2c3d4',
         fsq: 'poi-fsq-20260908-170000-a1b2c3d4',
       },
     });

@@ -69,33 +69,46 @@ describe('nextManifest', () => {
     expect(
       nextManifest(
         current,
-        [
-          '--poi-profile',
-          'overture-fsq=poi-overture-fsq-2',
-          '--poi-profile',
-          'overture=poi-overture-2',
-          '--poi-profile',
-          'fsq=poi-fsq-2',
-        ],
+        ['--poi-profile', 'osm=poi-osm-2', '--poi-profile', 'fsq=poi-fsq-2'],
         at,
       ),
     ).toEqual({
       vn: 'vn-1',
       poi: 'poi-1',
-      poiProfiles: {
-        osm: 'poi-osm-1',
-        'overture-fsq': 'poi-overture-fsq-2',
-        overture: 'poi-overture-2',
-        fsq: 'poi-fsq-2',
-      },
+      poiProfiles: { osm: 'poi-osm-2', fsq: 'poi-fsq-2' },
       updatedAt: at,
     });
   });
 
-  it('--poi-profile từ chối profile lạ và cặp thiếu profile/release', () => {
+  it('khoá poiProfiles ngoài registry (overture*, osm-fsq) trong manifest hiện hành bị bỏ khi set', () => {
+    const stale = {
+      vn: 'vn-1',
+      poi: 'poi-1',
+      poiProfiles: {
+        osm: 'poi-osm-1',
+        overture: 'poi-overture-1',
+        'overture-fsq': 'poi-overture-fsq-1',
+        'osm-fsq': 'poi-osm-fsq-1',
+      },
+    };
+    expect(nextManifest(stale, ['--poi-profile', 'fsq=poi-fsq-2'], at)).toEqual({
+      vn: 'vn-1',
+      poi: 'poi-1',
+      poiProfiles: { osm: 'poi-osm-1', fsq: 'poi-fsq-2' },
+      updatedAt: at,
+    });
+  });
+
+  it('--poi-profile từ chối profile lạ, profile đã gỡ (overture) và cặp thiếu profile/release', () => {
     expect(() => nextManifest(current, ['--poi-profile', 'banana=poi-banana-2'], at)).toThrowError(
       /profile/i,
     );
+    expect(() =>
+      nextManifest(current, ['--poi-profile', 'overture=poi-overture-2'], at),
+    ).toThrowError(/profile/i);
+    expect(() =>
+      nextManifest(current, ['--poi-profile', 'overture-fsq=poi-overture-fsq-2'], at),
+    ).toThrowError(/profile/i);
     expect(() => nextManifest(current, ['--poi-profile', 'fsq'], at)).toThrowError(/profile/i);
     expect(() => nextManifest(current, ['--poi-profile'], at)).toThrowError(/Thiếu/);
   });

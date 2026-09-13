@@ -1,16 +1,18 @@
+// Không import @mapslibvn/core trực tiếp: workspace gốc không khai nó, `poi-filter.mjs` mới có.
+import { POI_SOURCE_PROFILES } from '../../pipelines/poi/src/lib/poi-filter.mjs';
 import { profileBatchSteps } from './poi-profile.mjs';
 
 /**
- * @typedef {{ osm?: { lastModified: string, md5: string }, overture?: { release: string }, fsq?: { release: string },
+ * @typedef {{ osm?: { lastModified: string, md5: string }, fsq?: { release: string },
  *   releases?: { vn: string | null, poi: string | null, poiOsm?: string | null,
  *     poiProfiles?: Record<string, string> },
  *   pending?: { tiles?: boolean, poi?: boolean } }} State
- * @typedef {{ osm: { lastModified: string, md5: string }, overture: { release: string }, fsq: { release: string } }} Versions
+ * @typedef {{ osm: { lastModified: string, md5: string }, fsq: { release: string } }} Versions
  * @typedef {{ force?: boolean, onlyTiles?: boolean, onlyPoi?: boolean, skipRouting?: boolean }} Flags
  */
 
 /**
- * Spec 5.9 bước 2: OSM đổi → tiles + poi; Overture/FSQ đổi → chỉ poi.
+ * Spec 5.9 bước 2: OSM đổi → tiles + poi; FSQ đổi → chỉ poi.
  * @param {State} state
  * @param {Versions} versions
  * @param {Flags} flags
@@ -18,30 +20,21 @@ import { profileBatchSteps } from './poi-profile.mjs';
 export function decideWork(state, versions, flags) {
   const reasons = [];
   const osmChanged = !state.osm || state.osm.md5 !== versions.osm.md5;
-  const overtureChanged = !state.overture || state.overture.release !== versions.overture.release;
   const fsqChanged = !state.fsq || state.fsq.release !== versions.fsq.release;
   if (osmChanged) {
     reasons.push(`OSM đổi (md5 ${state.osm?.md5 ?? '∅'} → ${versions.osm.md5})`);
-  }
-  if (overtureChanged) {
-    reasons.push(`Overture đổi (${state.overture?.release ?? '∅'} → ${versions.overture.release})`);
   }
   if (fsqChanged) {
     reasons.push(`FSQ đổi (${state.fsq?.release ?? '∅'} → ${versions.fsq.release})`);
   }
   if (state.pending?.tiles && !osmChanged) reasons.push('tiles còn pending từ lần chạy giới hạn');
-  if (state.pending?.poi && !osmChanged && !overtureChanged && !fsqChanged) {
+  if (state.pending?.poi && !osmChanged && !fsqChanged) {
     reasons.push('POI còn pending từ lần chạy giới hạn');
   }
   if (flags.force) reasons.push('--force');
 
   let tiles = osmChanged || Boolean(state.pending?.tiles) || Boolean(flags.force);
-  let poi =
-    osmChanged ||
-    overtureChanged ||
-    fsqChanged ||
-    Boolean(state.pending?.poi) ||
-    Boolean(flags.force);
+  let poi = osmChanged || fsqChanged || Boolean(state.pending?.poi) || Boolean(flags.force);
   if (flags.onlyTiles) poi = false;
   if (flags.onlyPoi) tiles = false;
   return { tiles, poi, reasons };
@@ -55,24 +48,25 @@ export function decideWork(state, versions, flags) {
  */
 export function nextState(state, versions, built) {
   const osmChanged = !state.osm || state.osm.md5 !== versions.osm.md5;
-  const overtureChanged = !state.overture || state.overture.release !== versions.overture.release;
   const fsqChanged = !state.fsq || state.fsq.release !== versions.fsq.release;
   const legacyOsm = built.poiOsm ?? state.releases?.poiOsm;
-  const poiProfiles = {
-    ...(legacyOsm ? { osm: legacyOsm } : {}),
-    ...state.releases?.poiProfiles,
-    ...built.poiProfiles,
-  };
+  // Gộp state cũ nhưng chỉ giữ profile còn trong registry: khoá của profile đã gỡ nếu không lọc sẽ
+  // kẹt lại trong state/manifest mãi và làm rollback đòi archive đã xoá.
+  const allowed = new Set(Object.keys(POI_SOURCE_PROFILES));
+  const poiProfiles = Object.fromEntries(
+    Object.entries({
+      ...(legacyOsm ? { osm: legacyOsm } : {}),
+      ...state.releases?.poiProfiles,
+      ...built.poiProfiles,
+    }).filter(([profile]) => allowed.has(profile)),
+  );
   const pending = {
     tiles: built.vn ? false : Boolean(state.pending?.tiles || osmChanged),
-    poi: built.poi
-      ? false
-      : Boolean(state.pending?.poi || osmChanged || overtureChanged || fsqChanged),
+    poi: built.poi ? false : Boolean(state.pending?.poi || osmChanged || fsqChanged),
   };
   /** @type {State} */
   const next = {
     osm: versions.osm,
-    overture: versions.overture,
     fsq: versions.fsq,
     releases: {
       vn: built.vn ?? state.releases?.vn ?? null,

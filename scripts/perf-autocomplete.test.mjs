@@ -304,27 +304,32 @@ describe('parseCliArgs', () => {
         'https://api.test',
         'mlv_live_test',
         '--paired-sources',
-        'overture,fsq',
+        'fsq',
         '--rounds',
         '5',
       ]),
     ).toMatchObject({
       base: 'https://api.test',
       key: 'mlv_live_test',
-      pairedSources: 'overture,fsq',
+      pairedSources: 'fsq',
       rounds: 5,
     });
     expect(parseCliArgs(['https://a', 'k', '--paired-sources']).pairedSources).toBe('osm');
     expect(parseCliArgs(['https://a', 'k']).pairedSources).toBeUndefined();
   });
 
-  it('chuẩn hóa thứ tự, bỏ trùng và từ chối source ngoài registry', () => {
-    expect(parseCliArgs(['https://a', 'k', '--paired-sources', 'fsq,osm,fsq']).pairedSources).toBe(
-      'osm,fsq',
+  it('bỏ trùng; từ chối cặp nguồn không phải profile riêng và source ngoài registry', () => {
+    expect(parseCliArgs(['https://a', 'k', '--paired-sources', 'fsq,fsq']).pairedSources).toBe(
+      'fsq',
     );
-    expect(
-      parseCliArgs(['https://a', 'k', '--paired-sources', 'fsq,overture,fsq']).pairedSources,
-    ).toBe('overture,fsq');
+    // osm,fsq chuẩn hoá thành profile `all` — không phải profile riêng để so cohort.
+    expect(() => parseCliArgs(['https://a', 'k', '--paired-sources', 'fsq,osm,fsq'])).toThrow(
+      'sources không hợp lệ',
+    );
+    // Overture đã gỡ khỏi registry (13/09/2026).
+    expect(() => parseCliArgs(['https://a', 'k', '--paired-sources', 'overture,fsq'])).toThrow(
+      'sources không hợp lệ',
+    );
     expect(() => parseCliArgs(['https://a', 'k', '--paired-sources', 'osm,unknown'])).toThrow(
       'sources không hợp lệ',
     );

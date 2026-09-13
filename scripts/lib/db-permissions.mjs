@@ -10,7 +10,6 @@ GRANT USAGE ON SCHEMA public TO api, pipeline;
 GRANT CREATE ON SCHEMA public TO pipeline;
 
 ALTER TABLE src_osm_place OWNER TO pipeline;
-ALTER TABLE src_overture_place OWNER TO pipeline;
 ALTER TABLE src_fsq_place OWNER TO pipeline;
 ALTER TABLE category OWNER TO pipeline;
 ALTER TABLE category_map OWNER TO pipeline;
@@ -31,7 +30,7 @@ ALTER SEQUENCE alley_id_seq OWNER TO pipeline;
 ALTER SEQUENCE address_anchor_id_seq OWNER TO pipeline;
 ALTER SEQUENCE vn_boundary_id_seq OWNER TO pipeline;
 
-GRANT SELECT ON src_osm_place, src_overture_place, src_fsq_place TO api;
+GRANT SELECT ON src_osm_place, src_fsq_place TO api;
 GRANT SELECT ON category, category_map, poi, poi_source_link, poi_edit TO api;
 GRANT INSERT ON poi_edit TO api;
 GRANT USAGE, SELECT ON SEQUENCE poi_edit_id_seq TO api;

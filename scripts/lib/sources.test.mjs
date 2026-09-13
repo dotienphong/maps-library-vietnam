@@ -1,35 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
-import {
-  detectSources,
-  fetchWithRetry,
-  latestFsqRelease,
-  latestOvertureRelease,
-  parseS3Prefixes,
-} from './sources.mjs';
+import { detectSources, fetchWithRetry, latestFsqRelease } from './sources.mjs';
 
-const XML = `<?xml version="1.0"?><ListBucketResult><Name>overturemaps-us-west-2</Name><Prefix>release/</Prefix><Delimiter>/</Delimiter>
-<CommonPrefixes><Prefix>release/2026-06-25.0/</Prefix></CommonPrefixes><CommonPrefixes><Prefix>release/2026-08-20.0/</Prefix></CommonPrefixes>
-<CommonPrefixes><Prefix>release/2026-07-23.1/</Prefix></CommonPrefixes></ListBucketResult>`;
-
-describe('parseS3Prefixes / latest*', () => {
-  it('lấy CommonPrefixes, bỏ Prefix gốc', () => {
-    expect(parseS3Prefixes(XML, 'release/')).toEqual([
-      'release/2026-06-25.0/',
-      'release/2026-08-20.0/',
-      'release/2026-07-23.1/',
-    ]);
-  });
-
-  it('Overture: bản mới nhất theo thứ tự chuỗi YYYY-MM-DD.N', () => {
-    expect(
-      latestOvertureRelease([
-        'release/2026-06-25.0/',
-        'release/2026-08-20.0/',
-        'release/2026-07-23.1/',
-      ]),
-    ).toBe('2026-08-20.0');
-  });
-
+describe('latestFsqRelease', () => {
   it('FSQ: partition dt= mới nhất từ cây thư mục Hugging Face', () => {
     expect(
       latestFsqRelease([
@@ -42,7 +14,7 @@ describe('parseS3Prefixes / latest*', () => {
 });
 
 describe('detectSources', () => {
-  it('gộp metadata MD5 Geofabrik + Overture S3 + FSQ Hugging Face, không phụ thuộc HEAD PBF', async () => {
+  it('gộp metadata MD5 Geofabrik + FSQ Hugging Face, không phụ thuộc HEAD PBF, không gọi Overture', async () => {
     const fetchFn = vi.fn(async (url, _init) => {
       const value = String(url);
       if (value.endsWith('.md5')) {
@@ -53,13 +25,11 @@ describe('detectSources', () => {
       if (value.includes('geofabrik')) {
         return new Response('proxy mismatch', { status: 502 });
       }
-      if (value.includes('overturemaps')) return new Response(XML);
       return new Response(JSON.stringify([{ path: 'release/dt=2026-08-11', type: 'directory' }]));
     });
 
     expect(await detectSources(fetchFn, 'hf_test')).toEqual({
       osm: { lastModified: 'Mon, 24 Aug 2026 20:00:00 GMT', md5: 'abc123' },
-      overture: { release: '2026-08-20.0' },
       fsq: { release: '2026-08-11' },
     });
     expect(
@@ -69,6 +39,8 @@ describe('detectSources', () => {
           init?.headers?.Authorization === 'Bearer hf_test',
       ),
     ).toBe(true);
+    // Nguồn Overture đã gỡ (13/09/2026): không được dò S3 overturemaps nữa.
+    expect(fetchFn.mock.calls.some(([url]) => String(url).includes('overturemaps'))).toBe(false);
   });
 });
 

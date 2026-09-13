@@ -16,16 +16,15 @@ import {
 
 const state = {
   osm: { lastModified: 'Mon, 18 Aug 2026 20:00:00 GMT', md5: 'aaa' },
-  overture: { release: '2026-07-23.1' },
   fsq: { release: '2026-07-08' },
   releases: { vn: 'vn-20260819', poi: 'poi-20260819' },
 };
-const same = { osm: state.osm, overture: state.overture, fsq: state.fsq };
+const same = { osm: state.osm, fsq: state.fsq };
 const osmNew = {
   ...same,
   osm: { lastModified: 'Mon, 25 Aug 2026 20:00:00 GMT', md5: 'bbb' },
 };
-const overtureNew = { ...same, overture: { release: '2026-08-20.0' } };
+const fsqNew = { ...same, fsq: { release: '2026-08-05' } };
 
 describe('decideWork (spec 5.9)', () => {
   it('không có gì mới → không làm gì', () => {
@@ -40,13 +39,12 @@ describe('decideWork (spec 5.9)', () => {
     });
   });
 
-  it('Overture/FSQ mới → chỉ poi', () => {
-    expect(decideWork(state, overtureNew, {})).toEqual({
+  it('FSQ mới → chỉ poi', () => {
+    expect(decideWork(state, fsqNew, {})).toEqual({
       tiles: false,
       poi: true,
-      reasons: ['Overture đổi (2026-07-23.1 → 2026-08-20.0)'],
+      reasons: ['FSQ đổi (2026-07-08 → 2026-08-05)'],
     });
-    expect(decideWork(state, { ...same, fsq: { release: '2026-08-05' } }, {}).tiles).toBe(false);
   });
 
   it('--force làm tất cả; --tiles/--poi giới hạn', () => {
@@ -59,17 +57,16 @@ describe('decideWork (spec 5.9)', () => {
     expect(decideWork(state, osmNew, { onlyPoi: true }).tiles).toBe(false);
   });
 
-  it('state rỗng (lần đầu) → làm tất cả với 3 lý do', () => {
-    expect(decideWork({}, same, {}).reasons).toHaveLength(3);
+  it('state rỗng (lần đầu) → làm tất cả với 2 lý do (OSM, FSQ)', () => {
+    expect(decideWork({}, same, {}).reasons).toHaveLength(2);
   });
 });
 
 describe('nextState', () => {
-  it('ghi cả 3 nguồn và release mới, giữ release cũ nếu không build', () => {
-    expect(nextState(state, overtureNew, { poi: 'poi-20260826' })).toEqual({
+  it('ghi cả 2 nguồn và release mới, giữ release cũ nếu không build', () => {
+    expect(nextState(state, fsqNew, { poi: 'poi-20260826' })).toEqual({
       osm: state.osm,
-      overture: { release: '2026-08-20.0' },
-      fsq: state.fsq,
+      fsq: { release: '2026-08-05' },
       releases: { vn: 'vn-20260819', poi: 'poi-20260826' },
     });
   });
@@ -78,23 +75,13 @@ describe('nextState', () => {
     const next = nextState(state, same, {
       poi: 'poi-20260910',
       poiOsm: 'poi-osm-20260910',
-      poiProfiles: {
-        osm: 'poi-osm-20260910',
-        'overture-fsq': 'poi-overture-fsq-20260910',
-        overture: 'poi-overture-20260910',
-        fsq: 'poi-fsq-20260910',
-      },
+      poiProfiles: { osm: 'poi-osm-20260910', fsq: 'poi-fsq-20260910' },
     });
     expect(next.releases).toEqual({
       vn: 'vn-20260819',
       poi: 'poi-20260910',
       poiOsm: 'poi-osm-20260910',
-      poiProfiles: {
-        osm: 'poi-osm-20260910',
-        'overture-fsq': 'poi-overture-fsq-20260910',
-        overture: 'poi-overture-20260910',
-        fsq: 'poi-fsq-20260910',
-      },
+      poiProfiles: { osm: 'poi-osm-20260910', fsq: 'poi-fsq-20260910' },
     });
     expect(nextState(state, same, { poi: 'poi-20260910' }).releases).toEqual({
       vn: 'vn-20260819',
@@ -117,14 +104,39 @@ describe('nextState', () => {
     });
   });
 
+  it('lọc khoá poiProfiles ngoài registry (overture*, osm-fsq) khi gộp state cũ', () => {
+    const stale = {
+      ...state,
+      releases: {
+        ...state.releases,
+        poiProfiles: {
+          osm: 'poi-osm-1',
+          overture: 'poi-overture-x',
+          'overture-fsq': 'poi-overture-fsq-x',
+          'osm-fsq': 'poi-osm-fsq-x',
+          fsq: 'poi-fsq-1',
+        },
+      },
+    };
+    expect(nextState(stale, same, { poi: 'poi-moi' }).releases?.poiProfiles).toEqual({
+      osm: 'poi-osm-1',
+      fsq: 'poi-fsq-1',
+    });
+    // Khoá lạ từ `built` cũng không được lọt vào state.
+    expect(
+      nextState(state, same, { poi: 'poi-moi', poiProfiles: { fsq: 'poi-fsq-2', overture: 'x' } })
+        .releases?.poiProfiles,
+    ).toEqual({ fsq: 'poi-fsq-2' });
+  });
+
   it('--poi khi OSM đổi giữ pending tiles cho lần chạy sau', () => {
     const afterPoi = nextState(state, osmNew, { poi: 'poi-20260826' });
     expect(afterPoi.pending).toEqual({ tiles: true, poi: false });
     expect(decideWork(afterPoi, osmNew, {})).toMatchObject({ tiles: true, poi: false });
   });
 
-  it('--tiles không nuốt pending POI do OSM/Overture đổi', () => {
-    const versions = { ...osmNew, overture: overtureNew.overture };
+  it('--tiles không nuốt pending POI do OSM/FSQ đổi', () => {
+    const versions = { ...osmNew, fsq: fsqNew.fsq };
     const afterTiles = nextState(state, versions, { vn: 'vn-20260826' });
     expect(afterTiles.pending).toEqual({ tiles: false, poi: true });
     expect(decideWork(afterTiles, versions, {})).toMatchObject({ tiles: false, poi: true });
@@ -315,9 +327,6 @@ describe('POI release transaction', () => {
     releases: {
       all: 'poi-20260908-120000-abcd',
       osm: 'poi-osm-20260908-120000-abcd',
-      'osm-fsq': 'poi-osm-fsq-20260908-120000-abcd',
-      'overture-fsq': 'poi-overture-fsq-20260908-120000-abcd',
-      overture: 'poi-overture-20260908-120000-abcd',
       fsq: 'poi-fsq-20260908-120000-abcd',
     },
     buildId: '20260908-120000-abcd',
@@ -360,21 +369,30 @@ describe('POI release transaction', () => {
     return { external, oldChecksums, execute };
   };
 
-  it('dựng đủ sáu profile từ cùng snapshot và chỉ commit manifest ở bước cuối', () => {
+  it('dựng đủ ba profile registry (all, osm, fsq) từ cùng snapshot và chỉ commit manifest ở bước cuối', () => {
     const steps = poiReleaseSteps(releaseInput);
-    expect(steps.filter((step) => step.id.startsWith('export-'))).toHaveLength(6);
-    expect(steps.filter((step) => step.id.startsWith('qa-'))).toHaveLength(6);
-    expect(steps.filter((step) => step.id.startsWith('upload-'))).toHaveLength(6);
-    expect(steps.filter((step) => step.id.startsWith('smoke-'))).toHaveLength(6);
+    expect(steps.filter((step) => step.id.startsWith('export-'))).toHaveLength(3);
+    expect(steps.filter((step) => step.id.startsWith('qa-'))).toHaveLength(3);
+    expect(steps.filter((step) => step.id.startsWith('upload-'))).toHaveLength(3);
+    expect(steps.filter((step) => step.id.startsWith('smoke-'))).toHaveLength(3);
     expect(steps.at(-1)?.id).toBe('manifest');
     expect(
       steps.filter((step) => step.id.startsWith('export-')).map((step) => step.args.slice(-4)),
     ).toEqual(
-      Array(6).fill(['--snapshot', releaseInput.snapshot, '--build-id', releaseInput.buildId]),
+      Array(3).fill(['--snapshot', releaseInput.snapshot, '--build-id', releaseInput.buildId]),
     );
   });
 
-  for (const faultAt of ['export-fsq', 'upload-overture-fsq', 'smoke-all', 'smoke-overture']) {
+  it('release có profile ngoài registry (overture) bị từ chối trước khi chạy bước nào', () => {
+    expect(() =>
+      poiReleaseSteps({
+        ...releaseInput,
+        releases: { ...releaseInput.releases, overture: 'poi-overture-20260908-120000-abcd' },
+      }),
+    ).toThrow(/profile/);
+  });
+
+  for (const faultAt of ['export-fsq', 'upload-osm', 'smoke-all', 'smoke-fsq']) {
     it(`lỗi ${faultAt} giữ manifest hiện hành và checksum archive cũ`, () => {
       const { external, oldChecksums, execute } = executeWithFault(faultAt);
       const current = structuredClone(external.current);
@@ -389,7 +407,7 @@ describe('POI release transaction', () => {
     });
   }
 
-  it('chỉ commit manifest sau khi năm upload và năm smoke đều thành công', () => {
+  it('chỉ commit manifest sau khi ba upload và ba smoke đều thành công', () => {
     const { external, execute } = executeWithFault(undefined);
     runPoiReleaseSteps(poiReleaseSteps(releaseInput), execute);
     expect(external.current).toEqual({

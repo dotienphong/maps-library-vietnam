@@ -3,7 +3,7 @@
 // Chỉ ĐỌC bảng poi; không ingest, không đụng archive `all`. Dùng khi thêm profile mới giữa hai
 // lần `pnpm data:update --poi`.
 // Dùng: pnpm poi:profile --profile osm [--release poi-osm-YYYYMMDD] [--dry-run]
-//   hoặc pnpm poi:profile --profiles osm-fsq,overture-fsq [--dry-run]
+//   hoặc pnpm poi:profile --profiles osm,fsq [--dry-run]
 // Ngoài container: tự chạy lại trong image pipeline (cần tippecanoe, rclone, cloudflared).
 import 'dotenv/config';
 import { poiReleasePrefix } from '../pipelines/poi/src/lib/poi-filter.mjs';

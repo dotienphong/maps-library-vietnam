@@ -61,7 +61,9 @@ describe('rollback verification', () => {
     expect(() => rollbackTarget({ current: {}, history: [] })).toThrow(/Không có bản trước/);
   });
 
-  it('khóa rollback bằng release ID và checksum của cả all lẫn osm', () => {
+  it('khóa rollback bằng release ID và checksum của all/osm/fsq; profile ngoài registry (overture) không kiểm archive', () => {
+    // R2 KHÔNG còn archive poi-overture-old (đã xoá 13/09/2026) — không được ném lỗi vì profile đó
+    // không còn trong registry nên rollback cũng không phục vụ nó.
     const listed = new Set([
       'vn-old.pmtiles',
       'vn-old.pmtiles.sha256',
@@ -69,8 +71,6 @@ describe('rollback verification', () => {
       'poi-old.pmtiles.sha256',
       'poi-osm-old.pmtiles',
       'poi-osm-old.pmtiles.sha256',
-      'poi-overture-old.pmtiles',
-      'poi-overture-old.pmtiles.sha256',
       'poi-fsq-old.pmtiles',
       'poi-fsq-old.pmtiles.sha256',
     ]);
@@ -78,16 +78,16 @@ describe('rollback verification', () => {
       ['vn-old.pmtiles.sha256', 'e'.repeat(64)],
       ['poi-old.pmtiles.sha256', 'a'.repeat(64)],
       ['poi-osm-old.pmtiles.sha256', 'b'.repeat(64)],
-      ['poi-overture-old.pmtiles.sha256', 'c'.repeat(64)],
       ['poi-fsq-old.pmtiles.sha256', 'd'.repeat(64)],
     ]);
-    expect(verifyRollbackArchives(previous, listed, (name) => checksums.get(name) ?? '')).toEqual([
+    const verified = verifyRollbackArchives(previous, listed, (name) => checksums.get(name) ?? '');
+    expect(verified).toEqual([
       { release: 'vn-old', sha256: 'e'.repeat(64) },
       { release: 'poi-old', sha256: 'a'.repeat(64) },
       { release: 'poi-osm-old', sha256: 'b'.repeat(64) },
-      { release: 'poi-overture-old', sha256: 'c'.repeat(64) },
       { release: 'poi-fsq-old', sha256: 'd'.repeat(64) },
     ]);
+    expect(verified.map(({ release }) => release)).not.toContain('poi-overture-old');
   });
 
   it('thiếu archive/checksum hoặc checksum sai thì dừng trước rollback', () => {

@@ -1,7 +1,7 @@
 # MapsLibVN
 
 Nền tảng bản đồ nhúng cho web và mobile, dựng trên MapLibre GL và dữ liệu mở
-(OpenStreetMap, Overture, Foursquare OS). Việt Nam trước.
+(OpenStreetMap, Foursquare OS). Việt Nam trước.
 
 ## Bắt đầu (máy mới)
 
@@ -63,7 +63,7 @@ publish tuần tự core → web → react → react-native với public access.
 
 ## Cập nhật dữ liệu bản đồ và POI
 
-Nên kiểm tra trước xem OSM, Overture hoặc Foursquare có phiên bản mới hay không:
+Nên kiểm tra trước xem OSM hoặc Foursquare có phiên bản mới hay không:
 
 ```bash
 pnpm data:update --dry-run
@@ -77,8 +77,8 @@ pnpm data:update
 
 Lệnh này tự dò phiên bản nguồn, chỉ build phần thay đổi, chạy QA, cập nhật
 database POI, upload các bản phát hành lên R2 và chuyển manifest sang bản mới.
-OSM thay đổi sẽ cập nhật cả map tiles và POI; Overture hoặc Foursquare thay đổi
-chỉ cập nhật POI.
+OSM thay đổi sẽ cập nhật cả map tiles và POI; Foursquare thay đổi chỉ cập nhật
+POI.
 
 Các chế độ giới hạn:
 

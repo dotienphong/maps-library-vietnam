@@ -1,3 +1,5 @@
+import { POI_SOURCE_PROFILES } from '@mapslibvn/core';
+
 /** @param {string} raw @param {string} filename */
 export function hasListedFile(raw, filename) {
   return raw
@@ -74,10 +76,13 @@ export function nextManifest(current, rest, updatedAt) {
       'set cần ít nhất --vn <release>, --poi <release>, --poi-osm <release> hoặc --poi-profile <profile=release>',
     );
   }
-  const poiProfiles = {
-    ...(current.poiProfiles ?? {}),
-    ...profileUpdates,
-  };
+  // Chỉ giữ profile còn trong registry: khoá của profile đã gỡ trong manifest hiện hành không được
+  // gộp sang manifest mới, nếu không rollback sẽ đòi archive đã xoá trên R2.
+  const poiProfiles = Object.fromEntries(
+    Object.entries({ ...(current.poiProfiles ?? {}), ...profileUpdates }).filter(([profile]) =>
+      availableProfiles.has(profile),
+    ),
+  );
   return {
     vn: vn ?? current.vn,
     poi: poi ?? current.poi,
@@ -85,4 +90,3 @@ export function nextManifest(current, rest, updatedAt) {
     updatedAt,
   };
 }
-import { POI_SOURCE_PROFILES } from '@mapslibvn/core';

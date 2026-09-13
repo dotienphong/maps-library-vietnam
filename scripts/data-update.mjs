@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // Một lệnh cập nhật dữ liệu (spec 5.9). Ngoài container: tự chạy lại trong image pipeline (compose dev).
-// Trong container: dò 3 nguồn → so state R2 → build tiles/POI có điều kiện → QA → upload → manifest
+// Trong container: dò 2 nguồn (OSM, FSQ) → so state R2 → build tiles/POI có điều kiện → QA → upload → manifest
 // → routing graph (máy chủ) → manifest → state.
 import 'dotenv/config';
 import { execFileSync, spawn } from 'node:child_process';
@@ -92,9 +92,7 @@ const writeState = (state) =>
 const versions = await detectSources();
 const state = readState();
 const work = decideWork(state, versions, flags);
-log(
-  `Phiên bản: OSM md5 ${versions.osm.md5} · Overture ${versions.overture.release} · FSQ ${versions.fsq.release}`,
-);
+log(`Phiên bản: OSM md5 ${versions.osm.md5} · FSQ ${versions.fsq.release}`);
 log(`Kế hoạch: ${JSON.stringify(work)}`);
 if (flags.dryRun || (!work.tiles && !work.poi)) {
   console.log(flags.dryRun ? '(dry-run) dừng.' : 'Không có gì mới. Dừng.');
@@ -142,7 +140,6 @@ if (work.poi) {
     ensurePatchedPbf();
     // Không migrate ở đây: trên máy chủ role pipeline không phải superuser; server:setup/update quản lý migration.
     run('node', ['pipelines/poi/src/ingest/osm.mjs']);
-    run('node', ['pipelines/poi/src/ingest/overture.mjs', '--release', versions.overture.release]);
     run('node', ['pipelines/poi/src/ingest/fsq.mjs', '--release', versions.fsq.release]);
     run('node', ['pipelines/poi/src/taxonomy.mjs', 'load']);
     run('node', ['pipelines/poi/src/records.mjs']);

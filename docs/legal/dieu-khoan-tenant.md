@@ -7,7 +7,7 @@
 - **MapsLibVN**: nền tảng bản đồ (tiles, Places API, SDK web/React) do Đỗ Tiến Phong vận hành. MapsLibVN là thư viện độc lập, không gắn với bất kỳ ứng dụng cụ thể nào.
 - **Tenant**: tổ chức hoặc cá nhân được cấp khoá API (`mlv_live_…`) để nhúng MapsLibVN vào ứng dụng của mình.
 - **Người dùng cuối**: người sử dụng ứng dụng của tenant.
-- **Dữ liệu nền**: dữ liệu bản đồ và địa điểm MapsLibVN cung cấp qua tiles và API, gồm dữ liệu OpenStreetMap (ODbL), Overture Maps (CDLA-Permissive 2.0), Foursquare OS Places (Apache-2.0) và dữ liệu do người dùng đóng góp.
+- **Dữ liệu nền**: dữ liệu bản đồ và địa điểm MapsLibVN cung cấp qua tiles và API, gồm dữ liệu OpenStreetMap (ODbL), Foursquare OS Places (Apache-2.0) và dữ liệu do người dùng đóng góp.
 
 ## 2. Khoá API
 
@@ -18,7 +18,7 @@
 
 ## 3. Ghi nguồn (attribution)
 
-1. Tenant **phải giữ nguyên** chuỗi ghi nguồn do SDK hiển thị hoặc do `GET /v1/attribution` trả về, gồm ít nhất: `© MapsLibVN · © OpenStreetMap contributors (ODbL) · © OpenMapTiles · Places: Overture Maps Foundation (CDLA-Permissive 2.0), Foursquare OS Places (Apache-2.0)`.
+1. Tenant **phải giữ nguyên** chuỗi ghi nguồn do SDK hiển thị hoặc do `GET /v1/attribution` trả về, gồm ít nhất: `© MapsLibVN · © OpenStreetMap contributors (ODbL) · © OpenMapTiles · Foursquare OS Places (Apache-2.0)`.
 2. Không được che, thu nhỏ đến mức không đọc được, hoặc gỡ điều khiển attribution của SDK. Chế độ `compact` được phép.
 3. Khi hiển thị kết quả API ngoài bản đồ (danh sách, chi tiết địa điểm), tenant phải kèm dòng ghi nguồn dạng văn bản ở cùng màn hình.
 4. Yêu cầu ghi nguồn OpenMapTiles đến từ giấy phép thiết kế của style nền (CC-BY 4.0), không phải lựa chọn của MapsLibVN — xem `THIRD_PARTY_NOTICES.md` mục 2.

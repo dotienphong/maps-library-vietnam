@@ -119,7 +119,6 @@ Ghi nguồn bắt buộc: **© OpenStreetMap contributors** — https://www.open
 ${rows}
 
 Không nằm trong bản xuất này (không phải dẫn xuất OSM hoặc là dữ liệu riêng): \`poi\`,
-\`poi_source_link\`, \`address_anchor\`, \`src_overture_place\` (CDLA-Permissive 2.0),
-\`src_fsq_place\` (Apache-2.0), \`poi_edit\`.
+\`poi_source_link\`, \`address_anchor\`, \`src_fsq_place\` (Apache-2.0), \`poi_edit\`.
 `;
 }
