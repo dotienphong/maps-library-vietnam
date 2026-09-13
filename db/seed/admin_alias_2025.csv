@@ -35,3 +35,11 @@ thua thien hue,4,Huế,
 thua thien-hue,4,Huế,
 # Phường/xã cũ → mới (ví dụ spec 5.7; bổ sung theo NQ UBTVQH 2025):
 phuong 6 quan 10,8,Phường Diên Hồng,Thành phố Hồ Chí Minh
+# Huyện đảo Cô Tô (Quảng Ninh) sáp nhập thành đặc khu — NQ 1679/NQ-UBTVQH15 (16/06/2025, hiệu lực
+# 01/07/2025): "sắp xếp toàn bộ diện tích tự nhiên, quy mô dân số của thị trấn Cô Tô, xã Đồng Tiến
+# và xã Thanh Lân thành đặc khu Cô Tô". Ranh giới OSM cũ (snapshot 2025-06-30) của cả ba đơn vị bao
+# nhiều biển hơn ranh giới đặc khu mới (chỉ vẽ quanh đất liền), nên tỉ lệ phủ hình học chỉ 2,6-6,4%
+# — dưới ngưỡng 5% ở hai trong ba đơn vị (điều tra 13/09/2026, `docs/evidence/overture-removal/`).
+xa thanh lan huyen co to quang ninh,8,Đặc khu Cô Tô,Thành phố Quảng Ninh
+thi tran co to huyen co to quang ninh,8,Đặc khu Cô Tô,Thành phố Quảng Ninh
+xa dong tien huyen co to quang ninh,8,Đặc khu Cô Tô,Thành phố Quảng Ninh
