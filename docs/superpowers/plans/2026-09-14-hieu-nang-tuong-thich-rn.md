@@ -772,8 +772,9 @@ export function parseGfxinfo(text) {
 }
 
 /**
- * Kịch bản cử chỉ cố định: hai lần kéo ngang, một lần kéo dọc, một lần chụm zoom giả bằng kéo
- * chậm. Toạ độ suy từ kích thước màn hình để chạy được trên mọi thiết bị.
+ * Kịch bản cử chỉ cố định: hai lần kéo ngang, hai lần kéo dọc, mỗi lần 400 ms. `adb shell input`
+ * chỉ mô phỏng một ngón nên KHÔNG chụm zoom được — đây là phép đo kéo bản đồ thuần, không có zoom.
+ * Toạ độ suy từ kích thước màn hình để chạy được trên mọi thiết bị.
  * @param {number} width
  * @param {number} height
  * @returns {string[][]} mỗi phần tử là argv cho `adb`
@@ -794,16 +795,30 @@ export function gestureCommands(width, height) {
 
 /**
  * Số commit React của cây map trên mỗi fix GPS, đọc từ sự kiện `nav_done` mà perf-screen phát ra
- * lúc phiên giả lập tới nơi. null khi pha dẫn đường không chạy xong — thà thiếu số còn hơn số sai.
+ * lúc phiên giả lập tới nơi (hoặc dừng sớm). null khi: không có `nav_done`; 0 fix; hoặc
+ * `profiler === false` — bản Release, nơi `Profiler.onRender` của React không chạy (chuỗi
+ * "onRender" không tồn tại trong bundle `ReactFabric-prod.js`), nên `commits` luôn là 0 vô nghĩa.
+ * Thiếu hẳn trường `profiler` (log cũ) được coi như `true`.
  * @param {Record<string, unknown>[]} events
  * @returns {number | null}
  */
 export function navCommitsPerFix(events) {
   const done = events.find((e) => e.kind === 'nav_done');
   if (!done) return null;
+  if (done.profiler === false) return null;
   const { fixes, commits } = done;
   if (typeof fixes !== 'number' || typeof commits !== 'number' || fixes === 0) return null;
   return Math.round((commits / fixes) * 100) / 100;
+}
+
+/**
+ * true nếu có bất kỳ sự kiện `error` nào (khoá API hết hạn, mất mạng…) — để CLI báo lỗi rõ ràng
+ * thay vì để evidence hiện dấu gạch giống hệt "chưa đo được".
+ * @param {Record<string, unknown>[]} events
+ * @returns {boolean}
+ */
+export function hasErrorEvent(events) {
+  return events.some((e) => e.kind === 'error');
 }
 
 /** @param {number | null} n @param {string} [unit] */
@@ -828,7 +843,7 @@ export function formatEvidence(r) {
     `| Thời gian mở màn hình bản đồ (p50) | ${num(r.mapReady.p50, ' ms')} |`,
     `| Thời gian mở màn hình bản đồ (p95) | ${num(r.mapReady.p95, ' ms')} |`,
     `| Số lần đo | ${r.mapReady.n} |`,
-    `| Tổng frame khi kéo/zoom | ${r.gfx ? r.gfx.total : '—'} |`,
+    `| Tổng frame khi kéo bản đồ | ${r.gfx ? r.gfx.total : '—'} |`,
     `| Frame giật | ${r.gfx ? `${r.gfx.janky} (${r.gfx.jankyPct} %)` : '—'} |`,
     `| Commit React mỗi fix GPS | ${num(r.commitsPerFix)} |`,
     '',
@@ -846,7 +861,9 @@ export function formatEvidence(r) {
 pnpm vitest run scripts/lib/perf-rn.test.mjs
 ```
 
-Kỳ vọng: PASS, 15 test.
+Kỳ vọng: PASS. Đếm số test bằng output vitest thật — đừng tin một con số cố định ghi sẵn trong
+plan (bài học từ chính plan này: số ghi ở đây từng sai 2 lần vì nội dung test đổi sau khi viết
+số).
 
 - [ ] **Step 5: Typecheck rồi commit**
 
@@ -871,6 +888,12 @@ Phạm vi CLI: **Android**. iOS không có công cụ tương đương `gfxinfo`
 
 `scripts/perf-rn.mjs`:
 
+> **Cập nhật sau review Task 5:** bản dưới đây đã khác bản đầu tiên của plan — có dùng
+> `hasErrorEvent` (Task 5) để thoát sớm khi gặp lỗi thật (khoá API hết hạn, mất mạng…) thay vì
+> chờ hết hạn mức rồi âm thầm in dấu gạch. Không có bước này, một khoá chết sẽ làm cả 10 lượt chờ
+> đủ 30 giây (5 phút) rồi mới báo — đúng kiểu lỗi từng xảy ra thật với dự án (khoá `KEY_EXAMPLE_RN`
+> từng bị thu hồi).
+
 ```js
 #!/usr/bin/env node
 import { mkdirSync, writeFileSync } from 'node:fs';
@@ -878,6 +901,7 @@ import { BUNDLE_ID } from './lib/example-rn.mjs';
 import {
   formatEvidence,
   gestureCommands,
+  hasErrorEvent,
   navCommitsPerFix,
   parseGfxinfo,
   parsePerfLines,
@@ -902,7 +926,13 @@ function deviceLabel() {
   return `${serial} · ${model} · Android ${release}`;
 }
 
-/** Mở lại app từ đầu và đợi dòng map_ready, trả số ms hoặc null nếu quá hạn. */
+/** @param {Record<string, unknown>[]} events */
+function errorMessage(events) {
+  const err = events.find((e) => e.kind === 'error');
+  return typeof err?.message === 'string' ? err.message : '(không rõ)';
+}
+
+/** Mở lại app từ đầu và đợi dòng map_ready, trả số ms; null nếu quá hạn HOẶC có lỗi thật. */
 async function oneRound() {
   run('adb', ['shell', 'am', 'force-stop', BUNDLE_ID]);
   run('adb', ['logcat', '-c']);
@@ -912,6 +942,12 @@ async function oneRound() {
   for (let waited = 0; waited < 30_000; waited += 500) {
     await sleep(500);
     const events = parsePerfLines(capture('adb', ['logcat', '-d']));
+    // Thoát sớm khi lỗi thật (khoá/mạng…) — đừng chờ hết 30s rồi mới báo, và đừng lẫn với
+    // "chưa đo được" (timeout bình thường).
+    if (hasErrorEvent(events)) {
+      console.error(`  lỗi: ${errorMessage(events)}`);
+      return null;
+    }
     const ready = events.find((e) => e.kind === 'map_ready');
     if (ready && typeof ready.ms === 'number') return ready.ms;
   }
@@ -939,29 +975,43 @@ async function main() {
   for (let i = 0; i < ROUNDS; i++) {
     const ms = await oneRound();
     if (ms !== null) readyMs.push(ms);
-    console.log(`  lượt ${i + 1}/${ROUNDS}: ${ms === null ? 'quá hạn' : `${ms} ms`}`);
+    console.log(`  lượt ${i + 1}/${ROUNDS}: ${ms === null ? 'quá hạn/lỗi (xem ở trên)' : `${ms} ms`}`);
   }
 
   // Lượt cuối để app sống. Bắn cử chỉ NGAY, trong khoảng NAV_DELAY_MS của perf-screen, để số
-  // frame giật phản ánh kéo/zoom thuần chứ không lẫn với camera tự bám lúc dẫn đường.
+  // frame giật phản ánh kéo bản đồ thuần chứ không lẫn với camera tự bám lúc dẫn đường.
   run('adb', ['shell', 'dumpsys', 'gfxinfo', BUNDLE_ID, 'reset'], { stdio: 'ignore' });
   const { width, height } = screenSize();
   for (const args of gestureCommands(width, height)) {
     run('adb', args, { stdio: 'ignore' });
     await sleep(300);
   }
-  const gfx = parseGfxinfo(capture('adb', ['shell', 'dumpsys', 'gfxinfo', BUNDLE_ID]));
+  const gfxRaw = capture('adb', ['shell', 'dumpsys', 'gfxinfo', BUNDLE_ID]);
+  const gfx = parseGfxinfo(gfxRaw);
+  // null có 2 nghĩa: không có output (app không chạy — đã biết) hoặc có output nhưng parse thất
+  // bại (định dạng Android đã đổi). Phân biệt ở đây vì đây là chỗ duy nhất có cả 2 mảnh thông tin.
+  if (gfx === null && gfxRaw.trim()) {
+    console.warn('  cảnh báo: gfxinfo có output nhưng không parse được — định dạng Android đổi?');
+  }
 
-  // Rồi mới tới pha dẫn đường giả lập của lượt cuối; chờ tối đa 3 phút cho nó tới nơi.
+  // Rồi mới tới pha dẫn đường giả lập của lượt cuối; chờ tối đa 3 phút cho nó tới nơi, nhưng
+  // thoát ngay nếu thấy lỗi thật — không chờ hết hạn mức cho một khoá đã chết.
   console.log('Chờ pha dẫn đường giả lập…');
   /** @type {number | null} */
   let commitsPerFix = null;
+  let navFailed = false;
   for (let waited = 0; waited < 180_000; waited += 2000) {
     await sleep(2000);
-    commitsPerFix = navCommitsPerFix(parsePerfLines(capture('adb', ['logcat', '-d'])));
+    const events = parsePerfLines(capture('adb', ['logcat', '-d']));
+    if (hasErrorEvent(events)) {
+      console.log(`  lỗi trong pha dẫn đường: ${errorMessage(events)} — dừng sớm`);
+      navFailed = true;
+      break;
+    }
+    commitsPerFix = navCommitsPerFix(events);
     if (commitsPerFix !== null) break;
   }
-  if (commitsPerFix === null) console.log('  không thấy nav_done — ô này ghi dấu gạch');
+  if (commitsPerFix === null && !navFailed) console.log('  không thấy nav_done — ô này ghi dấu gạch');
 
   const md = formatEvidence({
     device,
