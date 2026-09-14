@@ -1246,8 +1246,8 @@ export function appPackageJson(c, tarballPath) {
  */
 export function classifyFailure(output) {
   if (/ERESOLVE|peer dep/i.test(output)) return 'peer';
-  if (/Unable to resolve module|Metro/i.test(output)) return 'metro';
   if (/BUILD FAILED|Build failed|CompileError|ld: error/i.test(output)) return 'build';
+  if (/Unable to resolve module|Metro/i.test(output)) return 'metro';
   return 'khác';
 }
 
@@ -1271,7 +1271,7 @@ export function formatMatrixTable(results) {
 pnpm vitest run scripts/lib/compat-matrix.test.mjs
 ```
 
-Kỳ vọng: PASS, 9 test.
+Kỳ vọng: PASS. Đếm số test bằng output vitest thật — đừng dùng số cố định.
 
 - [ ] **Step 5: Typecheck rồi commit**
 
@@ -1291,6 +1291,14 @@ git commit -m "feat(compat): ma trận tổ hợp RN và phân loại lỗi dạ
 
 Mặc định chỉ chạy tới bước **cài dependency** (nhanh, trả lời được câu hỏi peer deps của C1).
 Cờ `--build` mới dựng Android Release — đắt, chỉ chạy cho ô đầu và ô cuối.
+
+> **Cập nhật sau review Task 7:** bản dưới đây khác bản đầu tiên của plan — thêm `--legacy-peer-deps`
+> vào `npm install` (đúng spec mục 4b đã chỉ định nhưng bản đầu tiên của plan bỏ sót) và in ra vài
+> dòng cuối của output khi một ô hỏng. Không có `--legacy-peer-deps`: `@maplibre/maplibre-react-native@11.3.8`
+> tự khai báo `react>=19.1.0 / react-native>=0.80.0 / expo>=54.0.0` — CẢ HAI ô C1 cần trả lời
+> (React 18, RN 0.79) đều nằm dưới sàn đó, nên `npm install` trơn sẽ luôn báo `HỎNG (peer)` ngay
+> từ cổng cài đặt, không bao giờ trả lời được câu hỏi thật (mã nguồn `@mapslibvn/react-native` có
+> chạy được không) — bảng sẽ luôn nói "hỏng" vì lý do sai.
 
 - [ ] **Step 1: Viết CLI**
 
@@ -1343,10 +1351,15 @@ async function main() {
     );
 
     console.log(`\n=== ${id} ===`);
-    const install = tryRun('npm', ['install', '--no-audit', '--no-fund'], dir);
+    // --legacy-peer-deps: một số ô cố ý nằm dưới sàn peer mà chính @maplibre/maplibre-react-native
+    // khai báo (xem ghi chú trên) — không có cờ này, npm chặn NGAY tại bước cài, không bao giờ tới
+    // được bước build để trả lời câu hỏi thật (mã của @mapslibvn/react-native có chạy được không).
+    const install = tryRun('npm', ['install', '--no-audit', '--no-fund', '--legacy-peer-deps'], dir);
     if (!install.ok) {
-      console.log(`  cài: HỎNG (${classifyFailure(install.output)})`);
-      results.push({ combo, ok: false, failure: classifyFailure(install.output) });
+      const kind = classifyFailure(install.output);
+      console.log(`  cài: HỎNG (${kind})`);
+      console.log(install.output.split('\n').slice(-15).join('\n'));
+      results.push({ combo, ok: false, failure: kind });
       continue;
     }
     console.log('  cài: ĐẠT');
@@ -1358,12 +1371,10 @@ async function main() {
 
     const build = tryRun('npx', ['expo', 'prebuild', '--platform', 'android', '--clean'], dir);
     const verdict = build.ok;
-    console.log(`  dựng: ${verdict ? 'ĐẠT' : `HỎNG (${classifyFailure(build.output)})`}`);
-    results.push({
-      combo,
-      ok: verdict,
-      failure: verdict ? null : classifyFailure(build.output),
-    });
+    const buildKind = verdict ? null : classifyFailure(build.output);
+    console.log(`  dựng: ${verdict ? 'ĐẠT' : `HỎNG (${buildKind})`}`);
+    if (!verdict) console.log(build.output.split('\n').slice(-15).join('\n'));
+    results.push({ combo, ok: verdict, failure: buildKind });
     // Ô dựng xong chiếm hàng trăm MB; dọn ngay.
     rmSync(join(dir, 'android'), { recursive: true, force: true });
   }
