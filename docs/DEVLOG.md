@@ -2787,3 +2787,69 @@ Cổng: API 251/251 xanh (test mới cho `poiSecondary` và `placeColumns`); dbt
 Thứ tự phát hành: `pnpm server:migrate` → backfill `poi-admin.mjs` trên máy chủ → push (Deploy API).
 Số đo backfill production: xem mục cập nhật bên dưới.
 
+
+## 16. Bộ đo hiệu năng + ma trận tương thích RN, giai đoạn 1 (spec `2026-09-14-hieu-nang-tuong-thich-rn-design.md`) — 14/09/2026
+
+Ba lệnh mới: `pnpm perf:size` (bảng kích thước toàn bộ SDK + bundle Metro), `pnpm perf:rn` (thời
+gian mở màn hình bản đồ, frame giật, commit React mỗi fix GPS trên Android), `pnpm compat:matrix`
+(cài thử 5 tổ hợp React/RN/Expo). Cả ba đều tách logic thuần ở `scripts/lib/*.mjs` (có test) khỏi
+phần chạm thế giới thật ở `scripts/*.mjs`, đúng nếp `perf-autocomplete.mjs`.
+
+**Phát hiện kỹ thuật, tìm ra ngay khi viết chứ chưa cần chạy thật:**
+
+1. tsup tách code dùng chung giữa 2 entry của `@mapslibvn/react-native` (`dist/index.js` và
+   `dist/expo/index.js`) ra một `chunk-*.js` riêng — đo/gác kích thước kiểu ngây thơ (chỉ nhìn
+   file entry) bỏ sót 49–74 % kích thước thật. Vá nhất quán ở cả `size-limit` (Task 1) lẫn
+   `perf:size` (Task 3): cộng dồn entry + chunk, dò chunk bằng `readdirSync` chứ không hardcode
+   tên (hash đổi theo nội dung). Task 1 còn thêm guard chặn build nếu chunk biến mất mà không ai
+   biết (`ls dist/chunk-*.js || exit 1`).
+2. `Profiler.onRender` của React **không chạy ở bản Release** — xác nhận tĩnh: chuỗi `"onRender"`
+   không tồn tại trong `ReactFabric-prod.js` (bundle Release dùng bản này), chỉ có ở `-dev`/
+   `-profiling`. Vá bằng cờ `profiler: __DEV__` trong sự kiện `nav_done` của màn hình đo
+   (`examples/embed-rn/perf-screen.tsx`) + điều kiện tương ứng trong `navCommitsPerFix` — evidence
+   ghi `—` thay vì `0` sai một cách im lặng đúng ở cấu hình PHONG sẽ đo thật (Release trên Mi 9).
+
+**Sự cố an toàn thiết bị, xảy ra 2 lần:** `pnpm example:rn --android` (không `--release`) tự cài
+và mở app đo lên máy Mi 9 thật của PHONG thay vì emulator — 2 lần liên tiếp, 2 cách khắc phục
+tưởng đúng đều không cứu được (`ANDROID_SERIAL` không có tác dụng ở bước resolve-device của
+Expo CLI; `--device-name` cũng không tác dụng vì script wrapper của dự án chỉ xử lý cờ đó khi có
+`--release`). Đã force-stop trên máy thật theo đúng lệnh PHONG duyệt cả 2 lần, không mất/hỏng gì.
+Cách chắc chắn duy nhất: rút dây máy thật khi chạy `pnpm example:rn --android` trên máy có > 1
+thiết bị Android. Chi tiết đầy đủ trong bộ nhớ dự án (`expo-run-android-chon-nham-may-that.md`).
+
+**Phát hiện về công cụ đo, không phải lỗi code:** `dumpsys gfxinfo <package>` **không đo được**
+frame của MapLibre Native — bản đồ vẽ vào `SurfaceView` riêng, `SurfaceFlinger` ghép lớp trực
+tiếp, không qua pipeline HWUI mà gfxinfo profile. Xác nhận bằng thí nghiệm: pan 10 lần, 9/10 lần
+cho trạng thái hình ảnh khác nhau nhưng gfxinfo chỉ đếm được 6 frame — không thể. Cột "Tổng
+frame"/"Frame giật" trong evidence ghi rõ "không đo được", không bịa số 0. Ba công cụ thay thế
+khả thi đã đánh giá (`SurfaceFlinger --latency`/`--timestats`, Perfetto Frame Timeline) nhưng
+chưa cài — để dành giai đoạn sau.
+
+**Món C1 (nới `peerDependencies`) — đã có câu trả lời, KHÔNG nới được, nhưng không phải lỗi mã
+mình.** Ma trận `compat:matrix` (cài bằng `--legacy-peer-deps`) cho 5/5 ĐẠT nhưng không trả lời
+được câu hỏi — `--legacy-peer-deps` bỏ qua toàn bộ kiểm tra peer nên kết quả gần như hằng đúng
+(bằng chứng: cả 5 tổ hợp đều thiếu đúng 5 peer `expo-*` bắt buộc, kể cả tổ hợp mới nhất). Câu trả
+lời thật, rẻ và quyết định hơn: `npm view` xác nhận **toàn bộ 20 bản ổn định** của
+`@maplibre/maplibre-react-native@11.x` (peer bắt buộc) đều đòi `react>=19.1`/`react-native>=0.80`
+— không có ngoại lệ, không có bản cũ hơn còn rộng. Đối chiếu mã nguồn: `@mapslibvn/react-native`
+tự nó **sạch React 18** (không dùng API riêng React 19 nào ngoài file mock test). Kết luận:
+`peerDependencies` giữ nguyên, sàn nghẽn ở maplibre chứ không ở mã mình — nếu sau này đổi/hạ được
+nền bản đồ, thư viện không cần sửa dòng nào. Chi tiết đầy đủ:
+`docs/evidence/perf/2026-09-14-compat-matrix.md`, bộ nhớ dự án
+`c1-san-peer-maplibre-khong-phai-ma-minh.md`.
+
+**Baseline đo được** (emulator Pixel 7, bản Debug, 14/09/2026 ~13:25 giờ VN, xem
+`docs/evidence/perf/2026-09-14-baseline-rn.md`): mở màn hình bản đồ p50 196 ms / p95 248 ms
+(10/10 lượt); 1,01 commit React mỗi fix GPS; bundle Metro Android của app thử 1109,9 kB thô /
+280,1 kB gzip. Máy dev đạt load average 22–31 lúc đo (2 phiên Claude Code khác + ứng dụng nền
+chạy song song) — một lần chạy sau đó gặp ANR thật do tải, không phải lỗi harness; bảng số dùng
+lần chạy thành công trước đó. Nên đo lại trên máy rảnh hơn trước khi dùng để so sánh nghiêm ngặt
+qua các lần phát hành.
+
+**CHỜ PHONG:** FPS Android trên Mi 9 (Release), quan sát iOS trên iPhone 14 Plus (Release), kích
+thước APK Release. Không việc nào trong 3 việc này máy tự làm được.
+
+Cổng: `pnpm test` xanh (135 file, số test tăng thêm cho `perf-size`/`perf-rn`/`compat-matrix`),
+`pnpm typecheck` 14/14, `pnpm lint` sạch, `notices-sync --check` khớp. Không bump version, không
+push, không publish, không deploy — giai đoạn 2 (PHONG chọn món tối ưu trong nhóm A/B của spec)
+và giai đoạn 3 (thực thi) còn ở phía trước.

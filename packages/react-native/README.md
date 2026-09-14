@@ -22,6 +22,8 @@ Works with Expo (bare or managed, not Expo Go) and bare React Native apps alike.
 
 React ≥ 19.1, React Native ≥ 0.80, New Architecture, Expo ≥ 54 (does not run on Expo Go). Full guide: the "React Native" page in the docs.
 
+Verified 14/09/2026: this floor comes from the required peer `@maplibre/maplibre-react-native@^11.3.0`, not from this package's own code — every 11.x release of that library (checked all 20 stable versions, 11.0.0 through 11.3.10) has required React ≥ 19.1 and React Native ≥ 0.80. `@mapslibvn/react-native`'s own source only uses hooks available since React 18 (`useSyncExternalStore`, `useEffect`, `useMemo`, `useRef`, `useContext`, `useCallback`, `useState`) — if the map renderer's floor ever drops, this package won't need a code change to follow. See `docs/evidence/perf/2026-09-14-compat-matrix.md` for the full analysis.
+
 ## Install
 
 ```bash

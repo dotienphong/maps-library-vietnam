@@ -122,9 +122,9 @@ describe('navCommitsPerFix', () => {
   });
 
   it('nav_done có profiler === true (hoặc thiếu trường, log cũ) vẫn tính bình thường', () => {
-    expect(
-      navCommitsPerFix([{ kind: 'nav_done', fixes: 40, commits: 80, profiler: true }]),
-    ).toBe(2);
+    expect(navCommitsPerFix([{ kind: 'nav_done', fixes: 40, commits: 80, profiler: true }])).toBe(
+      2,
+    );
     expect(navCommitsPerFix([{ kind: 'nav_done', fixes: 40, commits: 80 }])).toBe(2);
   });
 });

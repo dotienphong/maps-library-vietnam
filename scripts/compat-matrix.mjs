@@ -47,7 +47,11 @@ async function main() {
     // --legacy-peer-deps: một số ô cố ý nằm dưới sàn peer mà chính @maplibre/maplibre-react-native
     // khai báo — không có cờ này, npm chặn NGAY tại bước cài, không bao giờ tới được bước build để
     // trả lời câu hỏi thật (mã của @mapslibvn/react-native có chạy được không).
-    const install = tryRun('npm', ['install', '--no-audit', '--no-fund', '--legacy-peer-deps'], dir);
+    const install = tryRun(
+      'npm',
+      ['install', '--no-audit', '--no-fund', '--legacy-peer-deps'],
+      dir,
+    );
     if (!install.ok) {
       const kind = classifyFailure(install.output);
       console.log(`  cài: HỎNG (${kind})`);

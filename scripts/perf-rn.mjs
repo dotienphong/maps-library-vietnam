@@ -86,7 +86,9 @@ async function main() {
   for (let i = 0; i < ROUNDS; i++) {
     const ms = await oneRound();
     if (ms !== null) readyMs.push(ms);
-    console.log(`  lượt ${i + 1}/${ROUNDS}: ${ms === null ? 'quá hạn/lỗi (xem ở trên)' : `${ms} ms`}`);
+    console.log(
+      `  lượt ${i + 1}/${ROUNDS}: ${ms === null ? 'quá hạn/lỗi (xem ở trên)' : `${ms} ms`}`,
+    );
   }
 
   // Lượt cuối để app sống. Bắn cử chỉ NGAY, trong khoảng NAV_DELAY_MS của perf-screen, để số
@@ -122,7 +124,8 @@ async function main() {
     commitsPerFix = navCommitsPerFix(events);
     if (commitsPerFix !== null) break;
   }
-  if (commitsPerFix === null && !navFailed) console.log('  không thấy nav_done — ô này ghi dấu gạch');
+  if (commitsPerFix === null && !navFailed)
+    console.log('  không thấy nav_done — ô này ghi dấu gạch');
 
   const md = formatEvidence({
     device,
