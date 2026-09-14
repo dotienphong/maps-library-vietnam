@@ -110,12 +110,43 @@ phải ở độ mượt khi dẫn đường.
 
 | # | Món | Vấn đề hiện tại | Phá API |
 |---|---|---|---|
-| C1 | Nới peer deps | Đang đòi React ≥ 19.1 và RN ≥ 0.80. App khách còn React 18 hoặc RN 0.7x là không cài được. Đây là rào lớn nhất, lớn hơn mọi chuyện tốc độ | Không, nới là mở rộng |
+| C1 | Nới peer deps | Đang đòi React ≥ 19.1 và RN ≥ 0.80. App khách còn React 18 hoặc RN 0.7x là không cài được. Đây là rào lớn nhất, lớn hơn mọi chuyện tốc độ. **Xem mục 4b: rào này không nằm ở code ta** | Không, nới là mở rộng |
 | C2 | New Architecture (Fabric) | Chưa có bằng chứng đã chạy thử với Fabric bật và tắt | Không |
 | C3 | PNG puck nhúng data URI | `PUCK_PNG_DATA_URI` nằm thẳng trong bundle JS | Không |
 
 > **Phạm vi của plan đầu tiên:** chỉ giai đoạn 1 (bộ đo + baseline) và món C1. Giai đoạn 3
 > không lập plan được trước khi PHONG tick món, nên sẽ có plan riêng sau giai đoạn 2.
+
+### 4b. Phát hiện 14/09/2026 về C1 — rào nằm ở thư viện nền
+
+Kiểm lại khi lập plan: `peerDependencies` của `@mapslibvn/react-native` đang **sao chép đúng**
+`peerDependencies` của `@maplibre/maplibre-react-native@11.3.8`:
+
+```
+react >= 19.1.0 · react-native >= 0.80.0 · expo >= 54.0.0 · @types/react >= 19.1.0
+```
+
+Code của ta **không** dùng gì riêng của React 19 — toàn bộ gói RN chỉ dùng `useSyncExternalStore`,
+`useEffect`, `useMemo`, `useRef`, `useState`, `useContext`, `useCallback`, đều có từ React 18.
+Nghĩa là ràng buộc hẹp đến từ thư viện nền, không đến từ ta.
+
+Bản `@maplibre/maplibre-react-native@10` rộng hơn hẳn (`react >= 16.6.1`, `react-native >= 0.59.9`)
+nhưng là **API khác hẳn v11** (tên component và cách khai báo layer đều đổi), nên hỗ trợ song song
+hai bản là việc lớn, không phải một dòng `peerDependencies`.
+
+C1 vì vậy đổi từ "sửa một dòng" thành một câu hỏi cần đo: **peer range của v11 có bảo thủ quá
+không.** Ma trận tương thích sẽ cài bằng `--legacy-peer-deps` rồi build và chạy thật trên
+React 18 / RN 0.79 để biết con số `>= 19.1 / >= 0.80` là ràng buộc thật hay chỉ là khai báo
+phòng xa. Ba kết cục và việc tương ứng:
+
+| Kết cục | Việc |
+|---|---|
+| Build và chạy được trên React 18 / RN 0.79 | Nới `peerDependencies` của ta xuống, ghi rõ trong docs là "đã thử tới đâu" |
+| Vỡ ở bước build hoặc lúc chạy | Giữ nguyên, ghi yêu cầu tối thiểu vào README gói RN và trang docs; C1 khép lại với kết luận có bằng chứng |
+| Chỉ vỡ ở một vài ô | Nới tới ngưỡng thấp nhất còn chạy được, ghi rõ ngưỡng đó |
+
+Việc hỗ trợ song song v10 cho RN 0.7x **nằm ngoài phạm vi** spec này; nếu ma trận cho thấy đó là
+cách duy nhất chạm tới nhóm khách hàng đó thì lập spec riêng.
 
 ## 5. Giai đoạn 2 — PHONG chọn món
 
