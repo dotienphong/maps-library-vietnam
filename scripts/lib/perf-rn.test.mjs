@@ -30,6 +30,17 @@ describe('parsePerfLines', () => {
   it('văn bản rỗng trả mảng rỗng', () => {
     expect(parsePerfLines('')).toEqual([]);
   });
+
+  it('bỏ qua JSON hợp lệ nhưng không phải object (null, số, chuỗi, mảng)', () => {
+    const text = [
+      `${PERF_PREFIX}null`,
+      `${PERF_PREFIX}42`,
+      `${PERF_PREFIX}"chuỗi"`,
+      `${PERF_PREFIX}[1,2,3]`,
+      `${PERF_PREFIX}{"kind":"map_ready","ms":1}`,
+    ].join('\n');
+    expect(parsePerfLines(text)).toEqual([{ kind: 'map_ready', ms: 1 }]);
+  });
 });
 
 describe('summarize', () => {

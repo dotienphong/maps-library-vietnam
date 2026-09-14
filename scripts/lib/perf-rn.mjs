@@ -16,7 +16,11 @@ export function parsePerfLines(text) {
     const at = line.indexOf(PERF_PREFIX);
     if (at === -1) continue;
     try {
-      out.push(JSON.parse(line.slice(at + PERF_PREFIX.length)));
+      const v = JSON.parse(line.slice(at + PERF_PREFIX.length));
+      // JSON hợp lệ nhưng không phải object (null, số, chuỗi, mảng) không ném lỗi ở trên — lọc
+      // tay ở đây để giữ đúng lời hứa `Record<string, unknown>[]`, tránh việc downstream đọc
+      // `.kind` trên một giá trị không phải object.
+      if (v && typeof v === 'object' && !Array.isArray(v)) out.push(v);
     } catch {
       // bỏ qua
     }
@@ -39,6 +43,9 @@ export function summarize(values) {
 
 /**
  * Đọc `adb shell dumpsys gfxinfo <pkg>`. Hai dòng cần là "Total frames rendered" và "Janky frames".
+ * `null` gộp chung hai tình huống khác nhau: gfxinfo không in gì (app chưa vẽ frame nào), hoặc có
+ * in nhưng định dạng đã đổi (bản Android mới) nên hai regex không khớp — hàm này không phân biệt
+ * hai trường hợp đó; việc cảnh báo đúng nguyên nhân là của CLI gọi nó (scripts/perf-rn.mjs).
  * @param {string} text
  * @returns {{ total: number, janky: number, jankyPct: number } | null}
  */
@@ -54,8 +61,9 @@ export function parseGfxinfo(text) {
 }
 
 /**
- * Kịch bản cử chỉ cố định: hai lần kéo ngang, một lần kéo dọc, một lần chụm zoom giả bằng kéo
- * chậm. Toạ độ suy từ kích thước màn hình để chạy được trên mọi thiết bị.
+ * Kịch bản cử chỉ cố định: hai lần kéo ngang (phải sang trái, trái sang phải) và hai lần kéo dọc
+ * (xuống lên, lên xuống), mỗi lần 400ms. Không có zoom: `adb shell input swipe` chỉ mô phỏng một
+ * ngón nên không chụm/zoom được. Toạ độ suy từ kích thước màn hình để chạy được trên mọi thiết bị.
  * @param {number} width
  * @param {number} height
  * @returns {string[][]} mỗi phần tử là argv cho `adb`
@@ -126,7 +134,7 @@ export function formatEvidence(r) {
     `| Thời gian mở màn hình bản đồ (p50) | ${num(r.mapReady.p50, ' ms')} |`,
     `| Thời gian mở màn hình bản đồ (p95) | ${num(r.mapReady.p95, ' ms')} |`,
     `| Số lần đo | ${r.mapReady.n} |`,
-    `| Tổng frame khi kéo/zoom | ${r.gfx ? r.gfx.total : '—'} |`,
+    `| Tổng frame khi kéo bản đồ | ${r.gfx ? r.gfx.total : '—'} |`,
     `| Frame giật | ${r.gfx ? `${r.gfx.janky} (${r.gfx.jankyPct} %)` : '—'} |`,
     `| Commit React mỗi fix GPS | ${num(r.commitsPerFix)} |`,
     '',
