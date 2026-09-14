@@ -29,3 +29,6 @@ apps/docs/src/content/docs/thong-bao-ben-thu-ba.md
 
 # Mockup phiên brainstorming (superpowers visual companion)
 .superpowers/
+
+# Worktree cô lập cho subagent-driven-development (superpowers)
+.worktrees/
