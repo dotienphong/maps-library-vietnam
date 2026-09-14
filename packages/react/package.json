@@ -21,7 +21,7 @@
   ],
   "sideEffects": false,
   "scripts": {
-    "build": "tsup src/index.ts --format esm --dts --clean --target es2022 --external react --external maplibre-gl --external pmtiles",
+    "build": "tsup src/index.ts --format esm --dts --clean --target es2022 --external react --external maplibre-gl --external pmtiles && size-limit",
     "typecheck": "tsc --noEmit"
   },
   "peerDependencies": {
@@ -33,9 +33,11 @@
     "@mapslibvn/web": "workspace:*"
   },
   "devDependencies": {
+    "@size-limit/file": "^11.1.0",
     "@types/react": "^19.3.0",
     "maplibre-gl": "^6.8.0",
     "react": "^19.3.0",
+    "size-limit": "^11.1.0",
     "tsup": "^8.3.0",
     "typescript": "^5.6.0"
   }

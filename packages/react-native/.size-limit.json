@@ -1,0 +1,14 @@
+[
+  {
+    "name": "barrel dist/index.js + chunk dùng chung (size-limit đo CẢ file, không tree-shake)",
+    "path": ["dist/index.js", "dist/chunk-*.js"],
+    "limit": "32 kB",
+    "gzip": true
+  },
+  {
+    "name": "barrel dist/expo/index.js + chunk dùng chung (size-limit đo CẢ file, không tree-shake)",
+    "path": ["dist/expo/index.js", "dist/chunk-*.js"],
+    "limit": "22 kB",
+    "gzip": true
+  }
+]
