@@ -61,7 +61,7 @@ chạm tới `GeoJSONSource`/`Layer` là một lượt serialize đi qua cầu. 
 - Modify: `packages/react/package.json` (script `build`)
 - Modify: `packages/react-native/package.json` (script `build`, `devDependencies`)
 
-- [ ] **Step 1: Đo kích thước hiện tại để đặt ngưỡng có căn cứ**
+- [x] **Step 1: Đo kích thước hiện tại để đặt ngưỡng có căn cứ**
 
 ```bash
 pnpm --filter @mapslibvn/react build && pnpm --filter @mapslibvn/react-native build
@@ -73,7 +73,7 @@ done
 Ghi lại ba số gzip. Ngưỡng đặt ở **số đo hiện tại làm tròn lên rồi cộng 15 %** — đủ chỗ cho
 thay đổi bình thường, đủ chặt để bắt một lần phình bất ngờ.
 
-- [ ] **Step 2: Viết hai file ngưỡng**
+- [x] **Step 2: Viết hai file ngưỡng**
 
 `packages/react/.size-limit.json` (thay `<N>` bằng số ở bước 1):
 
@@ -92,7 +92,7 @@ thay đổi bình thường, đủ chặt để bắt một lần phình bất n
 ]
 ```
 
-- [ ] **Step 3: Nối size-limit vào build của hai gói**
+- [x] **Step 3: Nối size-limit vào build của hai gói**
 
 Trong `packages/react/package.json`, đổi script `build` thành:
 
@@ -113,7 +113,7 @@ và thêm vào `devDependencies` của cả hai gói:
 "@size-limit/file": "^11.1.0"
 ```
 
-- [ ] **Step 4: Cài và chạy**
+- [x] **Step 4: Cài và chạy**
 
 ```bash
 pnpm install
@@ -122,7 +122,7 @@ pnpm --filter @mapslibvn/react build && pnpm --filter @mapslibvn/react-native bu
 
 Kỳ vọng: cả hai in bảng size-limit và **không** vượt ngưỡng.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add packages/react/.size-limit.json packages/react-native/.size-limit.json \
@@ -138,7 +138,7 @@ git commit -m "build(sdk): gác kích thước cho @mapslibvn/react và react-na
 - Create: `scripts/lib/perf-size.mjs`
 - Test: `scripts/lib/perf-size.test.mjs`
 
-- [ ] **Step 1: Viết test đang đỏ**
+- [x] **Step 1: Viết test đang đỏ**
 
 `scripts/lib/perf-size.test.mjs`:
 
@@ -170,7 +170,7 @@ describe('formatSizeTable', () => {
 });
 ```
 
-- [ ] **Step 2: Chạy test để chắc chắn nó đỏ**
+- [x] **Step 2: Chạy test để chắc chắn nó đỏ**
 
 ```bash
 pnpm vitest run scripts/lib/perf-size.test.mjs
@@ -178,7 +178,7 @@ pnpm vitest run scripts/lib/perf-size.test.mjs
 
 Kỳ vọng: FAIL, `Failed to load .../perf-size.mjs`.
 
-- [ ] **Step 3: Viết cài đặt tối thiểu**
+- [x] **Step 3: Viết cài đặt tối thiểu**
 
 `scripts/lib/perf-size.mjs`:
 
@@ -203,7 +203,7 @@ export function formatSizeTable(rows) {
 }
 ```
 
-- [ ] **Step 4: Chạy test để chắc chắn nó xanh**
+- [x] **Step 4: Chạy test để chắc chắn nó xanh**
 
 ```bash
 pnpm vitest run scripts/lib/perf-size.test.mjs
@@ -214,7 +214,7 @@ Kỳ vọng: PASS, 3 test.
 > Hàm tính chênh lệch trước/sau **chưa viết ở đây** — mốc "trước" chỉ tồn tại ở giai đoạn 3, khi
 > so từng món. Viết lúc cần, không viết trước.
 
-- [ ] **Step 5: Typecheck rồi commit**
+- [x] **Step 5: Typecheck rồi commit**
 
 ```bash
 pnpm typecheck
@@ -230,7 +230,7 @@ git commit -m "feat(perf): hàm thuần dựng bảng kích thước cho perf:si
 - Create: `scripts/perf-size.mjs`
 - Modify: `package.json` (thêm script `perf:size`)
 
-- [ ] **Step 1: Viết CLI**
+- [x] **Step 1: Viết CLI**
 
 `scripts/perf-size.mjs`:
 
@@ -307,7 +307,7 @@ cd examples/embed-rn && npx expo export:embed \
   --bundle-output ../../work/perf/embed-rn.android.bundle; cd ../..
 ```
 
-- [ ] **Step 2: Nối vào `package.json`**
+- [x] **Step 2: Nối vào `package.json`**
 
 Thêm vào `scripts` (giữ nguyên thứ tự các dòng khác, đặt cạnh `load:api`):
 
@@ -315,7 +315,7 @@ Thêm vào `scripts` (giữ nguyên thứ tự các dòng khác, đặt cạnh `
 "perf:size": "node scripts/perf-size.mjs",
 ```
 
-- [ ] **Step 3: Chạy thật**
+- [x] **Step 3: Chạy thật**
 
 ```bash
 pnpm build && pnpm perf:size
@@ -324,7 +324,7 @@ pnpm build && pnpm perf:size
 Kỳ vọng: bảng Markdown 7 dòng (9 nếu đã dựng bundle Metro và APK Release), mỗi dòng có kích
 thước thô và gzip.
 
-- [ ] **Step 4: Kiểm tra nhánh lỗi**
+- [x] **Step 4: Kiểm tra nhánh lỗi**
 
 ```bash
 mv packages/react/dist/index.js /tmp/index.js.bak && pnpm perf:size; echo "exit=$?"
@@ -333,7 +333,7 @@ mv /tmp/index.js.bak packages/react/dist/index.js
 
 Kỳ vọng: in "Thiếu file dist — chạy `pnpm build` trước" và `exit=1`.
 
-- [ ] **Step 5: Typecheck rồi commit**
+- [x] **Step 5: Typecheck rồi commit**
 
 ```bash
 pnpm typecheck
@@ -353,7 +353,7 @@ Màn hình này in các dòng log có tiền tố `MLVPERF ` kèm JSON để `sc
 từ `adb logcat`. Nó **không** thay màn hình demo: chỉ hiện khi
 `EXPO_PUBLIC_MLV_PERF=1`.
 
-- [ ] **Step 1: Viết màn hình đo**
+- [x] **Step 1: Viết màn hình đo**
 
 `examples/embed-rn/perf-screen.tsx`:
 
@@ -503,7 +503,7 @@ const styles = StyleSheet.create({
 });
 ```
 
-- [ ] **Step 2: Rẽ nhánh trong `App.tsx`**
+- [x] **Step 2: Rẽ nhánh trong `App.tsx`**
 
 Thêm import cạnh các import cục bộ sẵn có (`import { MODES, NavigationPanel } from './navigation-ui';`):
 
@@ -524,7 +524,7 @@ chấp nhận rằng `PerfScreen` là một cây khác hẳn — React unmount t
 trường đọc lúc bundle nên giá trị cố định suốt phiên chạy, không có chuyện đổi giữa chừng làm
 số hook lệch nhau.
 
-- [ ] **Step 3: Kiểm tra typecheck của app thử**
+- [x] **Step 3: Kiểm tra typecheck của app thử**
 
 ```bash
 cd examples/embed-rn && npx tsc --noEmit; cd ../..
@@ -532,7 +532,7 @@ cd examples/embed-rn && npx tsc --noEmit; cd ../..
 
 Kỳ vọng: không lỗi.
 
-- [ ] **Step 4: Chạy thử trên emulator ở chế độ đo**
+- [x] **Step 4: Chạy thử trên emulator ở chế độ đo**
 
 ```bash
 EXPO_PUBLIC_MLV_PERF=1 pnpm example:rn --android
@@ -547,7 +547,7 @@ adb logcat -d | grep MLVPERF | head
 Kỳ vọng: thấy dòng `MLVPERF {"kind":"map_ready","ms":...}`, rồi sau vài chục giây thấy
 `MLVPERF {"kind":"nav_done","fixes":...,"commits":...}` khi phiên giả lập chạy tới nơi.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add examples/embed-rn/perf-screen.tsx examples/embed-rn/App.tsx
@@ -562,7 +562,7 @@ git commit -m "feat(examples/embed-rn): màn hình đo bật bằng EXPO_PUBLIC_
 - Create: `scripts/lib/perf-rn.mjs`
 - Test: `scripts/lib/perf-rn.test.mjs`
 
-- [ ] **Step 1: Viết test đang đỏ**
+- [x] **Step 1: Viết test đang đỏ**
 
 `scripts/lib/perf-rn.test.mjs`:
 
@@ -703,7 +703,7 @@ describe('formatEvidence', () => {
 });
 ```
 
-- [ ] **Step 2: Chạy test để chắc chắn nó đỏ**
+- [x] **Step 2: Chạy test để chắc chắn nó đỏ**
 
 ```bash
 pnpm vitest run scripts/lib/perf-rn.test.mjs
@@ -711,7 +711,7 @@ pnpm vitest run scripts/lib/perf-rn.test.mjs
 
 Kỳ vọng: FAIL, không nạp được module.
 
-- [ ] **Step 3: Viết cài đặt**
+- [x] **Step 3: Viết cài đặt**
 
 `scripts/lib/perf-rn.mjs`:
 
@@ -855,7 +855,7 @@ export function formatEvidence(r) {
 }
 ```
 
-- [ ] **Step 4: Chạy test để chắc chắn nó xanh**
+- [x] **Step 4: Chạy test để chắc chắn nó xanh**
 
 ```bash
 pnpm vitest run scripts/lib/perf-rn.test.mjs
@@ -865,7 +865,7 @@ Kỳ vọng: PASS. Đếm số test bằng output vitest thật — đừng tin 
 plan (bài học từ chính plan này: số ghi ở đây từng sai 2 lần vì nội dung test đổi sau khi viết
 số).
 
-- [ ] **Step 5: Typecheck rồi commit**
+- [x] **Step 5: Typecheck rồi commit**
 
 ```bash
 pnpm typecheck
@@ -884,7 +884,7 @@ git commit -m "feat(perf): hàm thuần parse log và gfxinfo cho perf:rn"
 Phạm vi CLI: **Android**. iOS không có công cụ tương đương `gfxinfo`, nên script từ chối thẳng
 `--ios` kèm lời nhắc đo tay, đúng như spec mục 3.1.
 
-- [ ] **Step 1: Viết CLI**
+- [x] **Step 1: Viết CLI**
 
 `scripts/perf-rn.mjs`:
 
@@ -1033,13 +1033,13 @@ async function main() {
 await main();
 ```
 
-- [ ] **Step 2: Nối vào `package.json`**
+- [x] **Step 2: Nối vào `package.json`**
 
 ```json
 "perf:rn": "node scripts/perf-rn.mjs",
 ```
 
-- [ ] **Step 3: Kiểm tra nhánh từ chối iOS**
+- [x] **Step 3: Kiểm tra nhánh từ chối iOS**
 
 ```bash
 pnpm perf:rn --ios; echo "exit=$?"
@@ -1047,7 +1047,7 @@ pnpm perf:rn --ios; echo "exit=$?"
 
 Kỳ vọng: in lời nhắc đo tay và `exit=2`.
 
-- [ ] **Step 4: Chạy thật trên emulator**
+- [x] **Step 4: Chạy thật trên emulator**
 
 Cài app ở chế độ đo trước (Task 4 bước 4 đã cài), rồi:
 
@@ -1060,7 +1060,7 @@ Kỳ vọng: in 10 dòng "lượt i/10: N ms", rồi phần cử chỉ, rồi "C
 Nếu **mọi lượt đều quá hạn**, kiểm tra lại app đang chạy đúng bản có `EXPO_PUBLIC_MLV_PERF=1`
 bằng `adb logcat -d | grep MLVPERF`.
 
-- [ ] **Step 5: Typecheck rồi commit**
+- [x] **Step 5: Typecheck rồi commit**
 
 ```bash
 pnpm typecheck
@@ -1076,7 +1076,7 @@ git commit -m "feat(perf): pnpm perf:rn đo thời gian mở map và frame giậ
 - Create: `scripts/lib/compat-matrix.mjs`
 - Test: `scripts/lib/compat-matrix.test.mjs`
 
-- [ ] **Step 1: Viết test đang đỏ**
+- [x] **Step 1: Viết test đang đỏ**
 
 `scripts/lib/compat-matrix.test.mjs`:
 
@@ -1174,7 +1174,7 @@ describe('formatMatrixTable', () => {
 });
 ```
 
-- [ ] **Step 2: Chạy test để chắc chắn nó đỏ**
+- [x] **Step 2: Chạy test để chắc chắn nó đỏ**
 
 ```bash
 pnpm vitest run scripts/lib/compat-matrix.test.mjs
@@ -1182,7 +1182,7 @@ pnpm vitest run scripts/lib/compat-matrix.test.mjs
 
 Kỳ vọng: FAIL, không nạp được module.
 
-- [ ] **Step 3: Viết cài đặt**
+- [x] **Step 3: Viết cài đặt**
 
 `scripts/lib/compat-matrix.mjs`:
 
@@ -1265,7 +1265,7 @@ export function formatMatrixTable(results) {
 }
 ```
 
-- [ ] **Step 4: Chạy test để chắc chắn nó xanh**
+- [x] **Step 4: Chạy test để chắc chắn nó xanh**
 
 ```bash
 pnpm vitest run scripts/lib/compat-matrix.test.mjs
@@ -1273,7 +1273,7 @@ pnpm vitest run scripts/lib/compat-matrix.test.mjs
 
 Kỳ vọng: PASS. Đếm số test bằng output vitest thật — đừng dùng số cố định.
 
-- [ ] **Step 5: Typecheck rồi commit**
+- [x] **Step 5: Typecheck rồi commit**
 
 ```bash
 pnpm typecheck
@@ -1300,7 +1300,7 @@ Cờ `--build` mới dựng Android Release — đắt, chỉ chạy cho ô đ�
 > từ cổng cài đặt, không bao giờ trả lời được câu hỏi thật (mã nguồn `@mapslibvn/react-native` có
 > chạy được không) — bảng sẽ luôn nói "hỏng" vì lý do sai.
 
-- [ ] **Step 1: Viết CLI**
+- [x] **Step 1: Viết CLI**
 
 `scripts/compat-matrix.mjs`:
 
@@ -1396,19 +1396,19 @@ async function main() {
 await main();
 ```
 
-- [ ] **Step 2: Bảo đảm `work/` không bị commit**
+- [x] **Step 2: Bảo đảm `work/` không bị commit**
 
 ```bash
 grep -n "^work" .gitignore || echo "work/" >> .gitignore
 ```
 
-- [ ] **Step 3: Nối vào `package.json`**
+- [x] **Step 3: Nối vào `package.json`**
 
 ```json
 "compat:matrix": "node scripts/compat-matrix.mjs",
 ```
 
-- [ ] **Step 4: Dựng tarball rồi chạy**
+- [x] **Step 4: Dựng tarball rồi chạy**
 
 ```bash
 pnpm --filter @mapslibvn/react-native build
@@ -1421,7 +1421,7 @@ Kỳ vọng: 5 ô chạy xong, bảng Markdown ở cuối, dòng tổng kết "N
 **Ô `react18.3.1-rn0.79.0-expo53.0.0-oldarch` là ô quyết định món C1** — ghi lại nó ĐẠT hay
 HỎNG và loại lỗi.
 
-- [ ] **Step 5: Typecheck rồi commit**
+- [x] **Step 5: Typecheck rồi commit**
 
 ```bash
 pnpm typecheck
@@ -1439,7 +1439,7 @@ git commit -m "feat(compat): pnpm compat:matrix dựng app thử cho từng tổ
 - Modify: `packages/react-native/README.md` (mục yêu cầu tối thiểu)
 - Modify: `docs/DEVLOG.md` (mục mới)
 
-- [ ] **Step 1: Chạy cả ba phép đo, ghi file**
+- [x] **Step 1: Chạy cả ba phép đo, ghi file**
 
 ```bash
 pnpm build
@@ -1453,13 +1453,13 @@ pnpm compat:matrix --write
 pnpm perf:rn --write
 ```
 
-- [ ] **Step 2: Bổ sung bảng kích thước vào evidence baseline**
+- [x] **Step 2: Bổ sung bảng kích thước vào evidence baseline**
 
 Mở `docs/evidence/perf/2026-09-14-baseline-rn.md`, thêm mục "Kích thước" và dán bảng từ
 `/tmp/perf-size.md` vào. Thêm một câu nói rõ bản dựng là Debug hay Release và app thử chạy
 trên emulator nào.
 
-- [ ] **Step 3: Viết kết luận C1**
+- [x] **Step 3: Viết kết luận C1**
 
 Thêm vào `docs/evidence/perf/2026-09-14-compat-matrix.md` một mục "Kết luận C1" trả lời đúng
 một câu hỏi: **ô React 18 / RN 0.79 ĐẠT hay HỎNG.** Rồi làm đúng một trong ba việc theo bảng
@@ -1472,13 +1472,13 @@ kết cục ở mục 4b của spec:
   do (ràng buộc đến từ `@maplibre/maplibre-react-native@11`, không phải từ code MapsLibVN)
 - ô ĐẠT ở bước cài nhưng HỎNG ở bước dựng → nới tới mức thấp nhất còn dựng được và ghi rõ
 
-- [ ] **Step 4: Cập nhật README gói RN**
+- [x] **Step 4: Cập nhật README gói RN**
 
 Thêm vào `packages/react-native/README.md` một mục "Yêu cầu tối thiểu" ghi bản React / RN /
 Expo thấp nhất đã thử thật, kèm ngày đo. **Không ghi version của chính SDK vào README** —
 badge npm đã tự động.
 
-- [ ] **Step 5: Chạy toàn bộ cổng**
+- [x] **Step 5: Chạy toàn bộ cổng**
 
 ```bash
 pnpm lint && pnpm typecheck && pnpm test && pnpm notices:sync --check
@@ -1486,7 +1486,7 @@ pnpm lint && pnpm typecheck && pnpm test && pnpm notices:sync --check
 
 Kỳ vọng: cả bốn xanh. `pnpm test` phải có thêm các test mới của Task 2, 5, 7.
 
-- [ ] **Step 6: Ghi DEVLOG rồi commit**
+- [x] **Step 6: Ghi DEVLOG rồi commit**
 
 Thêm mục mới vào `docs/DEVLOG.md` theo đúng giọng các mục sẵn có: baseline đo được gì, ô nào
 của ma trận hỏng, kết luận C1, và danh sách hạng mục **CHỜ PHONG** (FPS máy thật Android,
