@@ -209,7 +209,7 @@ export function formatSizeTable(rows) {
 pnpm vitest run scripts/lib/perf-size.test.mjs
 ```
 
-Kỳ vọng: PASS, 4 test.
+Kỳ vọng: PASS, 3 test.
 
 > Hàm tính chênh lệch trước/sau **chưa viết ở đây** — mốc "trước" chỉ tồn tại ở giai đoạn 3, khi
 > so từng món. Viết lúc cần, không viết trước.
