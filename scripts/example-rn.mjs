@@ -22,7 +22,24 @@
 // vào APK dù SDK trong node_modules đã đổi lúc 07:06 — task đó không theo dõi node_modules (xem
 // `staleBundleDirs`). iOS không gỡ cài: xoá app làm iPhone quên tin developer Apple ID cá nhân, phải
 // Trust lại bằng tay mỗi lần (xem `uninstallCommand`). Không lỗi nếu thư mục cache chưa tồn tại.
-import { existsSync, mkdirSync, readFileSync, renameSync, rmSync, writeFileSync } from 'node:fs';
+//
+// Cái trên chỉ đảm bảo JS luôn mới — KHÔNG đảm bảo cấu hình NATIVE (`app.json`, config plugin,
+// native dependency) luôn mới. `npx expo run:<platform>` (`ensureNativeProjectAsync` trong
+// `@expo/cli`) chỉ prebuild khi `ios/`/`android/` CHƯA tồn tại; còn thư mục là dùng nguyên bản cũ,
+// im lặng bỏ qua mọi thay đổi app.json kể từ lần prebuild trước (README có ghi "phải prebuild lại
+// sau khi đổi plugin" nhưng chỉ dựa trí nhớ, phát hiện 14/09/2026 khi rà lại toàn bộ script này).
+// `--release` giờ CHẶN sớm nếu hash `@expo/fingerprint` của thư mục native lệch với lần build gần
+// nhất (xem `lib/native-fingerprint.mjs`) — báo lỗi kèm đúng lệnh khắc phục thay vì âm thầm cài
+// app dùng quyền/plugin cũ.
+import {
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  renameSync,
+  rmSync,
+  writeFileSync,
+} from 'node:fs';
 import { homedir } from 'node:os';
 import { join, resolve } from 'node:path';
 import 'dotenv/config';
@@ -48,10 +65,17 @@ import {
   uninstallCommand,
 } from './lib/example-rn.mjs';
 import { resolveKey } from './lib/example-serve.mjs';
+import {
+  assertNativeFingerprintFresh,
+  recordNativeFingerprint,
+} from './lib/native-fingerprint.mjs';
 import { capture, run } from './lib/run.mjs';
 
 const argv = process.argv.slice(2);
-const { platform, packOnly, device, release, deviceName } = parseArgs(argv, process.platform);
+const { platform, packOnly, device, release, deviceName, acceptNative } = parseArgs(
+  argv,
+  process.platform,
+);
 const key = resolveKey(argv, process.env, { envName: KEY_ENV_NAME_RN, hint: 'pnpm example:rn' });
 const api = process.env.EXAMPLE_RN_API ?? DEFAULT_API;
 
@@ -105,9 +129,20 @@ console.log('▶ 2/5 pnpm pack → vendor/');
 const vendor = join(appDir, 'vendor');
 mkdirSync(vendor, { recursive: true });
 // `pnpm pack` không nhận `--filter` (pnpm hiểu thành `--recursive`) → chạy trong thư mục gói.
-run('pnpm', ['pack', '--pack-destination', vendor], { cwd: resolve(RN_PACKAGE_DIR) });
+//
+// Tên file pnpm pack sinh ra (packedTarballName) chỉ phụ thuộc tên+version gói — GIỐNG NHAU ở mọi
+// lần chạy, và TARBALL (tên đích cuối) cũng là hằng số dùng chung. Pack thẳng vào `vendor/` khiến
+// hai lệnh release chạy gần nhau (vd `release:ios` và `release:android` cùng lúc, hoặc test lại
+// nhanh hai lần) tranh nhau đúng hai tên file đó: bên chạy sau ENOENT khi renameSync vì bên kia đã
+// "cướp" mất file nguồn bằng chính renameSync của nó (rename là MOVE, không phải copy — sự cố thật
+// 14/09/2026). Pack vào thư mục tạm RIÊNG cho mỗi lần chạy rồi mới chuyển vào tên dùng chung: chỉ
+// còn bước cuối (rename vào TARBALL) là dùng chung, và đó là move từ một nguồn riêng nên không còn
+// ENOENT (tối đa "ai xong sau ghi đè", không phải crash).
+const packTmp = mkdtempSync(join(vendor, '.tmp-pack-'));
+run('pnpm', ['pack', '--pack-destination', packTmp], { cwd: resolve(RN_PACKAGE_DIR) });
 const pkg = JSON.parse(readFileSync(join(RN_PACKAGE_DIR, 'package.json'), 'utf8'));
-renameSync(join(vendor, packedTarballName(pkg.name, pkg.version)), join(vendor, TARBALL));
+renameSync(join(packTmp, packedTarballName(pkg.name, pkg.version)), join(vendor, TARBALL));
+rmSync(packTmp, { recursive: true, force: true });
 
 console.log('▶ 3/5 ghi examples/embed-rn/.env (không commit)');
 writeFileSync(join(appDir, '.env'), envFileContent(key, api));
@@ -122,6 +157,16 @@ if (packOnly) {
     // `release` true → resolveDeviceName() đã chạy và trả string thật; TS không tự narrow qua biến
     // ngoài scope nên guard tường minh ở đây (không nên xảy ra ở runtime).
     if (!resolvedDeviceName) throw new Error('resolvedDeviceName rỗng dù release=true');
+    // Chặn TRƯỚC khi đụng máy: thư mục ios/android có thể đã lệch app.json/plugin (xem chú thích
+    // đầu file) mà expo run:<platform> không tự phát hiện được.
+    if (acceptNative) {
+      console.log(
+        '▶ --accept-native: bỏ qua kiểm fingerprint lần này, ghi lại mốc mới sau khi build xong',
+      );
+    } else {
+      console.log('▶ kiểm thư mục native còn khớp app.json/plugin không (@expo/fingerprint)');
+      await assertNativeFingerprintFresh(appDir, platform);
+    }
     const uninstall = uninstallCommand(platform, androidSerial ?? resolvedDeviceName);
     if (uninstall) {
       console.log('▶ gỡ bản cũ trên máy (Android: Release luôn cài sạch, không dính app-data cũ)');
@@ -153,6 +198,9 @@ if (packOnly) {
   }
   run('npx', runArgs, { cwd: appDir, env: { ...process.env, ...extraEnv } });
   if (release) {
+    // Build vừa thành công → thư mục native (dù mới prebuild hay dùng lại) khớp app.json hiện tại.
+    // Ghi mốc để lần release kế tiếp so sánh.
+    await recordNativeFingerprint(appDir, platform);
     console.log(
       `✓ Đã cài bản Release lên "${resolvedDeviceName}". Rút dây/tắt Metro: app vẫn chạy độc lập.`,
     );

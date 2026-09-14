@@ -56,6 +56,37 @@ USB debugging). Vì JS đã đóng gói sẵn, **sửa code JS xong phải chạ
 mới — không có live reload như Debug. Build đầu tiên (hoặc sau khi đổi native plugin) vẫn phải
 prebuild + CocoaPods/Gradle nên mất vài phút; các lần sau nhanh hơn.
 
+**JS luôn mới, nhưng cấu hình native thì không tự động** (phát hiện 14/09/2026): `npx expo
+run:<platform>` chỉ prebuild khi `ios/`/`android/` **chưa tồn tại** — hai thư mục này không bị xoá
+giữa các lần chạy, nên nếu bạn sửa `app.json`/plugin mà quên `npx expo prebuild --clean`, JS vẫn
+mới nhất nhưng app cài lên máy vẫn mang quyền/plugin/cấu hình native CŨ, không báo lỗi gì. Từ
+14/09/2026 `pnpm release:*` tự kiểm bằng `@expo/fingerprint` (chính cơ chế Expo dùng cho EAS Build
+local cache) và **chặn sớm** nếu cấu hình đã đổi kể từ lần release gần nhất, kèm đúng lệnh khắc
+phục ngay trong thông điệp lỗi.
+
+Bị chặn thì làm theo đúng thứ tự:
+
+```bash
+# 1. Nếu app.json/plugin vừa đổi mà chưa tái tạo thư mục native:
+cd examples/embed-rn && npx expo prebuild --clean
+
+# 2. Rồi release lại như bình thường (từ gốc repo)
+pnpm release:ios        # hoặc pnpm release:android
+```
+
+Nếu **đã** `prebuild --clean` rồi mà vẫn bị chặn (máy chưa từng ghi mốc — ví dụ máy mới, hoặc lần
+đầu bật cờ này trên một máy đã có sẵn `ios/`/`android/` từ trước), thêm `--accept-native` vào
+**đúng một lần** chạy tiếp theo để xác nhận thư mục hiện tại là mốc tin cậy mới — build vẫn chạy đủ
+như thường, chỉ bỏ qua cổng kiểm lần này:
+
+```bash
+pnpm release:ios --accept-native
+pnpm release:android --accept-native
+```
+
+Từ lần sau, cổng kiểm hoạt động bình thường không cần cờ này nữa — chỉ dùng lại khi bị chặn sau khi
+đã prebuild đúng cách.
+
 ## La bàn và con quay hồi chuyển
 
 Chấm xanh có nón hướng hiện trước khi dẫn đường (nguồn `expoLocationSource({ background: false })` +

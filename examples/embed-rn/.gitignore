@@ -5,3 +5,5 @@ android/
 vendor/
 .env
 *.log
+# Mốc @expo/fingerprint của lần release gần nhất — xem scripts/lib/native-fingerprint.mjs.
+.native-fingerprint.*.json

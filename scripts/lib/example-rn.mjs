@@ -10,7 +10,7 @@ export const BUNDLE_ID = 'vn.mapslibvn.demo';
 /**
  * @param {string[]} argv
  * @param {string} platform process.platform
- * @returns {{ platform: 'ios' | 'android', packOnly: boolean, device: boolean, release: boolean, deviceName?: string }}
+ * @returns {{ platform: 'ios' | 'android', packOnly: boolean, device: boolean, release: boolean, deviceName?: string, acceptNative?: boolean }}
  */
 export function parseArgs(argv, platform) {
   /** @type {'ios' | 'android'} */
@@ -18,6 +18,7 @@ export function parseArgs(argv, platform) {
   let packOnly = false;
   let device = false;
   let release = false;
+  let acceptNative = false;
   /** @type {string | undefined} */
   let deviceName;
   for (let i = 0; i < argv.length; i++) {
@@ -34,11 +35,16 @@ export function parseArgs(argv, platform) {
     } else if (a === '--device-name') {
       deviceName = argv[i + 1];
       i += 1;
+    } else if (a === '--accept-native') {
+      // Thoát vòng luẩn quẩn: sau `npx expo prebuild --clean`, mốc fingerprint cũ chưa cập nhật
+      // (chỉ cập nhật sau một lần release THÀNH CÔNG) nên `assertNativeFingerprintFresh` vẫn chặn
+      // dù thư mục native đã đúng. Cờ này bỏ qua ĐÚNG một lần kiểm đó, không bỏ qua gì khác.
+      acceptNative = true;
     } else if (a === '--key')
       break; // phần còn lại do resolveKey đọc
     else
       throw new Error(
-        `Không hiểu tham số ${a}. Dùng: --ios | --android | --device | --release | --device-name <tên> | --pack-only | --key mlv_live_…`,
+        `Không hiểu tham số ${a}. Dùng: --ios | --android | --device | --release | --device-name <tên> | --accept-native | --pack-only | --key mlv_live_…`,
       );
   }
   return {
@@ -47,6 +53,7 @@ export function parseArgs(argv, platform) {
     device,
     release,
     ...(deviceName !== undefined ? { deviceName } : {}),
+    ...(acceptNative ? { acceptNative } : {}),
   };
 }
 

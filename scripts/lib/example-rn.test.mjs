@@ -83,6 +83,25 @@ describe('parseArgs', () => {
   it('cờ lạ → lỗi', () => {
     expect(() => parseArgs(['--web'], 'darwin')).toThrow(/--web/);
   });
+
+  /**
+   * Sau `npx expo prebuild --clean`, `assertNativeFingerprintFresh` (lib/native-fingerprint.mjs)
+   * vẫn chặn vì mốc cũ chưa được cập nhật — mà mốc chỉ cập nhật sau một lần release THÀNH CÔNG,
+   * và lần release đó lại bị chính cổng kiểm chặn ngay từ đầu (kẹt vòng, phát hiện 14/09/2026 khi
+   * người dùng thật gặp phải). `--accept-native` là lối thoát tường minh: bỏ qua đúng một lần kiểm
+   * này, KHÔNG bỏ qua gì khác (build/uninstall/bundle vẫn chạy đủ như thường).
+   */
+  it('--accept-native bỏ qua cổng kiểm fingerprint đúng một lần', () => {
+    expect(parseArgs(['--ios', '--release', '--accept-native'], 'darwin')).toEqual({
+      platform: 'ios',
+      packOnly: false,
+      device: true,
+      release: true,
+      acceptNative: true,
+    });
+    // Mặc định false — không xuất hiện trong object (khớp quy ước deviceName ở trên).
+    expect(parseArgs(['--ios', '--release'], 'darwin')).not.toHaveProperty('acceptNative');
+  });
 });
 
 describe('hằng số và chuỗi sinh', () => {
