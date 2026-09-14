@@ -35,6 +35,7 @@
     "export:odbl": "node scripts/export-odbl.mjs",
     "report:weekly": "node scripts/weekly-report.mjs",
     "load:api": "node scripts/load-api.mjs",
+    "perf:size": "node scripts/perf-size.mjs",
     "smoke:rate-limit": "node scripts/smoke-rate-limit.mjs",
     "smoke:directions": "node scripts/smoke-directions.mjs",
     "check:git": "node scripts/check-git-identity.mjs",
