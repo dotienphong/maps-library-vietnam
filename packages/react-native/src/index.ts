@@ -36,6 +36,7 @@ export {
   ALT_ROUTE_COLOR,
   DESTINATION_COLOR,
   ROUTE_COLOR,
+  ROUTE_ALT_SOURCE_ID,
   ROUTE_LAYER_IDS,
   ROUTE_SOURCE_ID,
 } from './navigation/route-layers';

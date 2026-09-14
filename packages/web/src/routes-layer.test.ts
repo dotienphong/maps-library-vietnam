@@ -122,9 +122,10 @@ describe('createRoutesLayer', () => {
     const routes = createRoutesLayer(f.gl as never, f.ml as never, onRouteClick);
     routes.show(withAlt, { active: 0 });
     let data = lastData(f.setData);
+    // `alt` luôn đứng trước phần sống trong collection; thứ tự vẽ do layer quyết, không do thứ tự này.
     expect(data.features.map((x) => [x.properties.kind, x.properties.index])).toEqual([
-      ['active', 0],
       ['alt', 1],
+      ['active', 0],
     ]);
     routes.setActive(1);
     data = lastData(f.setData);

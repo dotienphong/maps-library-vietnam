@@ -3,8 +3,9 @@ import {
   EMPTY_ROUTE_FEATURES,
   type RouteFeatureCollection,
   type RouteProgressCut,
+  altRouteFeatures,
   decodeRoutes,
-  routeFeatures,
+  liveRouteFeatures,
 } from '@mapslibvn/core';
 
 export interface RoutesSnapshot {
@@ -12,7 +13,13 @@ export interface RoutesSnapshot {
   active: number;
   progress: RouteProgressCut | null;
   puck: boolean;
-  features: RouteFeatureCollection;
+  /**
+   * Tuyến thay thế. Tham chiếu CHỈ đổi khi tập tuyến hoặc tuyến đang chọn đổi — mỗi lần định vị
+   * không đụng tới, nên source của chúng không phải đẩy lại qua cầu native (B1).
+   */
+  altFeatures: RouteFeatureCollection;
+  /** Tuyến đang đi (đã cắt theo tiến độ) và puck — phần duy nhất đổi theo từng lần định vị. */
+  liveFeatures: RouteFeatureCollection;
 }
 
 /** Nguồn sự thật cho lớp vẽ tuyến; `useSyncExternalStore` đọc `getSnapshot` (object mới mỗi lần đổi). */
@@ -33,14 +40,28 @@ export function createRoutesStore(): RoutesStore {
     active: 0,
     progress: null,
     puck: true,
-    features: EMPTY_ROUTE_FEATURES,
+    altFeatures: EMPTY_ROUTE_FEATURES,
+    liveFeatures: EMPTY_ROUTE_FEATURES,
   };
   const listeners = new Set<() => void>();
 
-  const set = (patch: Partial<Omit<RoutesSnapshot, 'features'>>): void => {
-    const next: RoutesSnapshot = { ...snapshot, ...patch };
-    next.features = next.response
-      ? routeFeatures(coords, { active: next.active, progress: next.progress, puck: next.puck })
+  /**
+   * `rebuildAlt` chỉ bật khi tập toạ độ đổi (`show`); đổi `active` cũng phải dựng lại vì tuyến vừa
+   * rời khỏi vai trò active nay là alt. Mọi đường khác — nhất là `setProgress` chạy 1 Hz — dùng lại
+   * nguyên tham chiếu cũ.
+   */
+  const set = (
+    patch: Partial<Omit<RoutesSnapshot, 'altFeatures' | 'liveFeatures'>>,
+    rebuildAlt = false,
+  ): void => {
+    const next = { ...snapshot, ...patch } as RoutesSnapshot;
+    next.altFeatures = !next.response
+      ? EMPTY_ROUTE_FEATURES
+      : rebuildAlt || next.active !== snapshot.active || !snapshot.response
+        ? altRouteFeatures(coords, next.active)
+        : snapshot.altFeatures;
+    next.liveFeatures = next.response
+      ? liveRouteFeatures(coords, { active: next.active, progress: next.progress, puck: next.puck })
       : EMPTY_ROUTE_FEATURES;
     snapshot = next;
     for (const fn of listeners) fn();
@@ -56,7 +77,7 @@ export function createRoutesStore(): RoutesStore {
     },
     show(response, opts = {}) {
       coords = decodeRoutes(response);
-      set({ response, active: opts.active ?? 0, progress: null });
+      set({ response, active: opts.active ?? 0, progress: null }, true);
     },
     setActive(index) {
       set({ active: index, progress: null });

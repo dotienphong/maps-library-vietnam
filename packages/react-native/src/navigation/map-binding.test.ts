@@ -34,7 +34,9 @@ function setup(
   if (follow !== undefined) binding.setFollow(follow);
   binding.attach(s.session);
   const puckBearing = (): number | undefined => {
-    const puck = store.getSnapshot().features.features.find((f) => f.properties.kind === 'puck');
+    const puck = store
+      .getSnapshot()
+      .liveFeatures.features.find((f) => f.properties.kind === 'puck');
     return puck && puck.properties.kind === 'puck' ? puck.properties.bearing : undefined;
   };
   const lastEase = () => easeTo.mock.calls.at(-1)?.[0] as Record<string, unknown> | undefined;
@@ -192,7 +194,7 @@ describe('dispose() và quyền sở hữu phiên', () => {
     binding.attach(s.session);
     binding.dispose();
     expect(removeAppSub).toHaveBeenCalledTimes(1);
-    expect(store.getSnapshot().features.features).toHaveLength(0);
+    expect(store.getSnapshot().liveFeatures.features).toHaveLength(0);
   });
 
   it('gọi dispose hai lần không dừng phiên mặc định hai lần', () => {

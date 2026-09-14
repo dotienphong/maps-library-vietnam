@@ -4,8 +4,12 @@ import fixture from '../../../core/tests/fixtures/directions-q1.json';
 import { createRoutesStore } from './routes-store';
 
 const response = fixture as unknown as DirectionsResponse;
-const kinds = (store: ReturnType<typeof createRoutesStore>) =>
-  store.getSnapshot().features.features.map((f) => f.properties.kind);
+const kinds = (store: ReturnType<typeof createRoutesStore>) => {
+  const snap = store.getSnapshot();
+  return [...snap.altFeatures.features, ...snap.liveFeatures.features].map(
+    (f) => f.properties.kind,
+  );
+};
 
 describe('createRoutesStore', () => {
   it('show → active; setProgress → traveled/active/puck; setPuck(false) bỏ puck; setActive reset progress', () => {
@@ -24,6 +28,32 @@ describe('createRoutesStore', () => {
     expect(store.getSnapshot().progress).toBeNull();
     expect(kinds(store)).toEqual(['active']);
     expect(onChange).toHaveBeenCalledTimes(4);
+  });
+
+  it('setProgress giữ nguyên tham chiếu altFeatures; show/setActive mới dựng lại (B1)', () => {
+    const store = createRoutesStore();
+    store.show(response);
+    const alt = store.getSnapshot().altFeatures;
+    const live = store.getSnapshot().liveFeatures;
+    store.setProgress({ shapeIndex: 5, snapped: [106.6985, 10.7791], bearing: 90 });
+    // Đây là điều kiện để MLRN không đẩy lại tuyến thay thế qua cầu native mỗi lần định vị.
+    expect(store.getSnapshot().altFeatures).toBe(alt);
+    expect(store.getSnapshot().liveFeatures).not.toBe(live);
+    store.setActive(1); // đổi tuyến đang chọn: tuyến vừa rời vai active nay là alt → phải dựng lại
+    expect(store.getSnapshot().altFeatures).not.toBe(alt);
+    expect(kinds(store)).toEqual(['alt']);
+  });
+
+  it('không sao chép toạ độ tuyến: feature dùng chung mảng với bản giải mã', () => {
+    const store = createRoutesStore();
+    store.show(response);
+    const first = store.getSnapshot().liveFeatures.features[0];
+    if (!first || first.geometry.type !== 'LineString') throw new Error('không phải LineString');
+    const before = first.geometry.coordinates;
+    store.setProgress(null);
+    const after = store.getSnapshot().liveFeatures.features[0];
+    if (!after || after.geometry.type !== 'LineString') throw new Error('không phải LineString');
+    expect(after.geometry.coordinates).toBe(before);
   });
 
   it('clear xoá response và features; snapshot ổn định khi không đổi; unsubscribe ngừng báo', () => {

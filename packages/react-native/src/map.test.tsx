@@ -1,8 +1,16 @@
 // @vitest-environment jsdom
+import { nameExpression } from '@mapslibvn/core';
 import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { MapsLibVNMap, useMap } from './map';
-import { cameraRefMock, getLastMapProps, mapRefMock, resetMocks } from './test/mlrn-mock';
+import { MapsLibVNMap, POI_TOUCH_RADIUS_PX, prefetchBounds, useMap } from './map';
+import {
+  OfflineManager,
+  cameraRefMock,
+  getLastMapProps,
+  mapRefMock,
+  offlinePacks,
+  resetMocks,
+} from './test/mlrn-mock';
 
 vi.mock('react-native', () => import('./test/react-native-mock'));
 vi.mock('@maplibre/maplibre-react-native', () => import('./test/mlrn-mock'));
@@ -79,7 +87,7 @@ describe('MapsLibVNMap', () => {
     });
   });
 
-  it('onPress → queryRenderedFeatures lớp poi → onPoiClick', async () => {
+  it('onPress → queryRenderedFeatures ô vuông quanh điểm chạm, lớp poi → onPoiClick', async () => {
     mapRefMock.queryRenderedFeatures.mockResolvedValueOnce([
       {
         type: 'Feature',
@@ -91,7 +99,14 @@ describe('MapsLibVNMap', () => {
     render(<MapsLibVNMap {...base} onPoiClick={onPoiClick} />);
     const props = getLastMapProps() as unknown as { onPress: (e: PressEvent) => Promise<void> };
     await act(() => props.onPress(press()));
-    expect(mapRefMock.queryRenderedFeatures).toHaveBeenCalledWith([10, 20], { layers: ['poi'] });
+    // Điểm chạm (10, 20) nở ra ±POI_TOUCH_RADIUS_PX: chạm lệch vài pixel vẫn trúng POI (B2).
+    expect(mapRefMock.queryRenderedFeatures).toHaveBeenCalledWith(
+      [
+        [10 - POI_TOUCH_RADIUS_PX, 20 - POI_TOUCH_RADIUS_PX],
+        [10 + POI_TOUCH_RADIUS_PX, 20 + POI_TOUCH_RADIUS_PX],
+      ],
+      { layers: ['poi'] },
+    );
     expect(onPoiClick).toHaveBeenCalledWith({
       id: 'p1',
       name: 'Cafe',
@@ -160,5 +175,91 @@ describe('MapsLibVNMap', () => {
       </MapsLibVNMap>,
     );
     expect(screen.getByTestId('probe').textContent).toBe('https://api.test');
+  });
+});
+
+describe('MapsLibVNMap — style đóng gói sẵn (A2)', () => {
+  it('styleJson: vẽ ngay bằng chính JSON đó, không gọi mạng', () => {
+    const json = { version: 8, sources: {}, layers: [] } as never;
+    const fetchSpy = vi.spyOn(globalThis, 'fetch');
+    render(<MapsLibVNMap {...base} styleJson={json} />);
+    // Không qua nhịp "đang tải" nào: map có mặt ngay ở lần render đầu.
+    expect(screen.getByTestId('mlrn-map').dataset.style).toBe(JSON.stringify(json));
+    expect(fetchSpy).not.toHaveBeenCalled();
+  });
+
+  it('styleJson + lang=en: vẫn áp ngôn ngữ, vẫn không gọi mạng', () => {
+    const json = {
+      version: 8,
+      sources: {},
+      layers: [
+        { id: 'city', type: 'symbol', source: 's', layout: { 'text-field': ['get', 'name'] } },
+      ],
+    } as never;
+    const fetchSpy = vi.spyOn(globalThis, 'fetch');
+    render(<MapsLibVNMap {...base} styleJson={json} lang="en" />);
+    const style = JSON.parse(screen.getByTestId('mlrn-map').dataset.style ?? 'null');
+    expect(style.layers[0].layout['text-field']).toEqual(nameExpression('en'));
+    expect(fetchSpy).not.toHaveBeenCalled();
+  });
+});
+
+describe('MapsLibVNMap — đổi theme không dựng lại map (A3)', () => {
+  it('đổi style/lang/poiLayer: giữ nguyên map native, chỉ đổi mapStyle', () => {
+    const { rerender } = render(<MapsLibVNMap {...base} />);
+    const before = screen.getByTestId('mlrn-map');
+    rerender(<MapsLibVNMap {...base} style="dark" />);
+    const after = screen.getByTestId('mlrn-map');
+    // Cùng một node DOM = React không unmount/mount lại <Map> → không trắng màn, không tải lại tile.
+    expect(after).toBe(before);
+    expect(after.dataset.style).toContain('/v1/styles/dark.json');
+  });
+
+  it('đổi apiKey/poiSources thì vẫn dựng lại map (client đổi theo)', () => {
+    const { rerender } = render(<MapsLibVNMap {...base} />);
+    const before = screen.getByTestId('mlrn-map');
+    rerender(<MapsLibVNMap {...base} poiSources={['osm']} />);
+    expect(screen.getByTestId('mlrn-map')).not.toBe(before);
+  });
+});
+
+describe('MapsLibVNMap — tải trước tile (A4)', () => {
+  it('mặc định không tải trước gì', async () => {
+    render(<MapsLibVNMap {...base} />);
+    await waitFor(() => expect(screen.getByTestId('mlrn-map')).toBeTruthy());
+    expect(OfflineManager.createPack).not.toHaveBeenCalled();
+  });
+
+  it('prefetch: tạo đúng một pack, đúng hộp bao và zoom mặc định', async () => {
+    render(<MapsLibVNMap {...base} prefetch center={[106.7, 10.776]} />);
+    await waitFor(() => expect(offlinePacks).toHaveLength(1));
+    const pack = offlinePacks[0];
+    expect(pack?.bounds).toEqual(prefetchBounds([106.7, 10.776], 2));
+    expect(pack?.minZoom).toBe(12);
+    expect(pack?.maxZoom).toBe(15);
+    expect(pack?.mapStyle).toBe(
+      'https://api.test/v1/styles/light.json?key=mlv_live_k&sources=osm%2Cfsq',
+    );
+  });
+
+  it('prefetch nhận tuỳ chọn riêng và không tạo pack trùng ở lần mount sau', async () => {
+    render(<MapsLibVNMap {...base} prefetch={{ radiusKm: 5, maxZoom: 14 }} />);
+    await waitFor(() => expect(offlinePacks).toHaveLength(1));
+    expect(offlinePacks[0]?.bounds).toEqual(prefetchBounds([106.7, 10.776], 5));
+    expect(offlinePacks[0]?.maxZoom).toBe(14);
+
+    cleanup();
+    render(<MapsLibVNMap {...base} prefetch={{ radiusKm: 5, maxZoom: 14 }} />);
+    await waitFor(() => expect(OfflineManager.getPacks).toHaveBeenCalledTimes(2));
+    expect(offlinePacks).toHaveLength(1);
+  });
+
+  it('getPacks lỗi → onError, bản đồ vẫn hiện', async () => {
+    OfflineManager.getPacks.mockRejectedValueOnce(new Error('hết dung lượng'));
+    const onError = vi.fn();
+    render(<MapsLibVNMap {...base} prefetch onError={onError} />);
+    await waitFor(() => expect(onError).toHaveBeenCalled());
+    expect(onError.mock.calls[0]?.[0].message).toBe('hết dung lượng');
+    expect(screen.getByTestId('mlrn-map')).toBeTruthy();
   });
 });

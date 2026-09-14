@@ -2,8 +2,17 @@
 import type { StyleSpecification } from '@maplibre/maplibre-react-native';
 import { type MapsLibVNClient, createClient, nameExpression } from '@mapslibvn/core';
 import { renderHook, waitFor } from '@testing-library/react';
-import { describe, expect, it, vi } from 'vitest';
-import { needsTransform, styleUrlFor, transformStyle, useResolvedStyle } from './use-style';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import {
+  clearStyleCache,
+  needsTransform,
+  styleUrlFor,
+  transformStyle,
+  useResolvedStyle,
+} from './use-style';
+
+// Cache style sống theo tiến trình → phải xoá giữa các test, nếu không test sau ăn JSON của test trước.
+beforeEach(clearStyleCache);
 
 const places: MapsLibVNClient = createClient({ apiKey: 'mlv_live_k', baseUrl: 'https://api.test' });
 
@@ -92,5 +101,112 @@ describe('useResolvedStyle', () => {
     );
     await waitFor(() => expect(result.current.status).toBe('error'));
     expect((result.current as { error: Error }).error.message).toMatch(/Không tải được style/);
+  });
+});
+
+describe('useResolvedStyle — cache style JSON (A1)', () => {
+  it('mount lần hai cùng URL: ready ngay, không loading, không fetch lại', async () => {
+    const doFetch = vi.fn(async () => new Response(JSON.stringify(styleJson), { status: 200 }));
+    const first = renderHook(() =>
+      useResolvedStyle(places, { style: 'light', lang: 'en', poiLayer: true }, doFetch as never),
+    );
+    await waitFor(() => expect(first.result.current.status).toBe('ready'));
+    expect(doFetch).toHaveBeenCalledTimes(1);
+    first.unmount();
+
+    const second = renderHook(() =>
+      useResolvedStyle(places, { style: 'light', lang: 'en', poiLayer: true }, doFetch as never),
+    );
+    // Không qua trạng thái loading một nhịp nào — đây mới là thứ cắt được thời gian mở màn hình.
+    expect(second.result.current.status).toBe('ready');
+    expect(doFetch).toHaveBeenCalledTimes(1);
+  });
+
+  it('cache theo JSON thô: đổi lang dùng lại JSON cũ, biến đổi lại, vẫn không fetch', async () => {
+    const doFetch = vi.fn(async () => new Response(JSON.stringify(styleJson), { status: 200 }));
+    const en = renderHook(() =>
+      useResolvedStyle(places, { style: 'light', lang: 'en', poiLayer: true }, doFetch as never),
+    );
+    await waitFor(() => expect(en.result.current.status).toBe('ready'));
+    en.unmount();
+
+    const vi2 = renderHook(() =>
+      useResolvedStyle(places, { style: 'light', lang: 'vi', poiLayer: false }, doFetch as never),
+    );
+    expect(vi2.result.current.status).toBe('ready');
+    expect(doFetch).toHaveBeenCalledTimes(1);
+    const ready = vi2.result.current as { status: 'ready'; mapStyle: StyleSpecification };
+    // Biến đổi áp theo tuỳ chọn MỚI chứ không trả lại kết quả đã biến đổi của lần trước.
+    expect(ready.mapStyle).toEqual(transformStyle(styleJson, { lang: 'vi', poiLayer: false }));
+  });
+
+  it('clearStyleCache() buộc tải lại', async () => {
+    const doFetch = vi.fn(async () => new Response(JSON.stringify(styleJson), { status: 200 }));
+    const a = renderHook(() =>
+      useResolvedStyle(places, { style: 'light', lang: 'en', poiLayer: true }, doFetch as never),
+    );
+    await waitFor(() => expect(a.result.current.status).toBe('ready'));
+    a.unmount();
+    clearStyleCache();
+
+    const b = renderHook(() =>
+      useResolvedStyle(places, { style: 'light', lang: 'en', poiLayer: true }, doFetch as never),
+    );
+    expect(b.result.current).toEqual({ status: 'loading' });
+    await waitFor(() => expect(b.result.current.status).toBe('ready'));
+    expect(doFetch).toHaveBeenCalledTimes(2);
+  });
+});
+
+describe('useResolvedStyle — style đóng gói sẵn (A2)', () => {
+  it('có styleJson: ready ngay bằng chính object đó, không fetch', () => {
+    const doFetch = vi.fn();
+    const { result } = renderHook(() =>
+      useResolvedStyle(
+        places,
+        { style: 'light', lang: 'vi', poiLayer: true, styleJson },
+        doFetch as never,
+      ),
+    );
+    expect(result.current).toEqual({ status: 'ready', mapStyle: styleJson });
+    expect(doFetch).not.toHaveBeenCalled();
+  });
+
+  it('styleJson vẫn được áp lang/poiLayer như style tải từ server', () => {
+    const doFetch = vi.fn();
+    const { result } = renderHook(() =>
+      useResolvedStyle(
+        places,
+        { style: 'light', lang: 'en', poiLayer: false, styleJson },
+        doFetch as never,
+      ),
+    );
+    const ready = result.current as { status: 'ready'; mapStyle: StyleSpecification };
+    expect(ready.mapStyle.layers[0]?.layout).toEqual({ 'text-field': nameExpression('en') });
+    const poi = (
+      ready.mapStyle.layers as unknown as { source?: string; layout?: { visibility?: string } }[]
+    ).filter((l) => l.source === 'poi');
+    for (const l of poi) expect(l.layout?.visibility).toBe('none');
+    expect(doFetch).not.toHaveBeenCalled();
+  });
+
+  it('styleJson không ghi vào cache dùng chung theo URL', async () => {
+    const packaged = renderHook(() =>
+      useResolvedStyle(
+        places,
+        { style: 'light', lang: 'en', poiLayer: true, styleJson },
+        vi.fn() as never,
+      ),
+    );
+    expect(packaged.result.current.status).toBe('ready');
+    packaged.unmount();
+
+    const doFetch = vi.fn(async () => new Response(JSON.stringify(styleJson), { status: 200 }));
+    const fromServer = renderHook(() =>
+      useResolvedStyle(places, { style: 'light', lang: 'en', poiLayer: true }, doFetch as never),
+    );
+    expect(fromServer.result.current).toEqual({ status: 'loading' });
+    await waitFor(() => expect(fromServer.result.current.status).toBe('ready'));
+    expect(doFetch).toHaveBeenCalledTimes(1);
   });
 });

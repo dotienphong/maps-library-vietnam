@@ -80,6 +80,27 @@ POI người dùng luôn được giữ. Search/nearby/reverse/autocomplete dùn
 `getPlace(id)` không lọc; nếu archive profile hợp lệ chưa phát hành, style tạm dùng `all` với header
 `x-poi-profile: all;fallback`.
 
+### Mở bản đồ nhanh hơn
+
+Hai prop tuỳ chọn, cả hai đều tắt mặc định:
+
+| Prop | Kiểu | Tác dụng |
+|---|---|---|
+| `styleJson` | `StyleSpecification` | Dùng thẳng style JSON app tự đóng gói, không chờ vòng HTTP lấy style. `lang`/`poiLayer` vẫn được áp như style tải từ máy chủ. |
+| `prefetch` | `boolean \| { radiusKm?, minZoom?, maxZoom? }` | Tải trước tile quanh `center` (mặc định 2 km, zoom 12–15) bằng offline pack của MapLibre. Gọi lại nhiều lần không tạo pack trùng. |
+
+```tsx
+import style from './assets/mapslibvn-light.json';
+
+<MapsLibVNMap {...props} styleJson={style} prefetch={{ radiusKm: 3 }} />;
+```
+
+`prefetch` tốn dữ liệu và dung lượng máy người dùng — chỉ bật khi app thật sự cần mở bản đồ ở một
+vùng biết trước. Lỗi tải trước đi qua `onError`, bản đồ vẫn chạy bình thường.
+
+Ngoài ra style JSON đã tải được giữ trong bộ nhớ tiến trình: rời màn hình bản đồ rồi quay lại không
+phải tải style lần nữa.
+
 ## 4. Khác với web
 
 | Web (`@mapslibvn/react`) | React Native |
@@ -91,7 +112,9 @@ POI người dùng luôn được giữ. Search/nearby/reverse/autocomplete dùn
 | Attribution `AttributionControl` | dòng MapsLibVN chồng góc dưới trái + nút "i" native; `compactAttribution` gọn, **không tắt được** |
 | không có chấm xanh/la bàn | `userLocation={{ source, heading, follow }}`, `useHeading()`, puck dẫn đường theo la bàn khi đứng yên — xem mục 6 |
 
-Đổi `apiKey`, `apiBase`, `style`, `lang`, `poiLayer`, `poiSources` sau khi mount sẽ tạo lại map và gọi `onLoad` lần nữa.
+Đổi `apiKey`, `apiBase` hoặc `poiSources` sau khi mount sẽ tạo lại map và gọi `onLoad` lần nữa. Đổi
+`style`, `lang` hoặc `poiLayer` thì **không**: SDK đẩy style mới vào map đang chạy, nên đổi sáng ↔ tối
+không trắng màn hình và không tải lại tile — đổi lại là `onLoad` chỉ gọi một lần cho mỗi map.
 
 ## 5. Khoá `mobile`
 

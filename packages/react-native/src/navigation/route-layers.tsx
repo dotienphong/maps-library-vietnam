@@ -14,6 +14,12 @@ import { PUCK_IMAGE_KEY, PUCK_PNG_DATA_URI } from './puck-image';
 import type { RoutesStore } from './routes-store';
 
 export const ROUTE_SOURCE_ID = 'mapslibvn-route';
+/**
+ * Source riêng cho tuyến thay thế (B1). Tách khỏi `ROUTE_SOURCE_ID` vì dữ liệu của nó chỉ đổi khi
+ * đổi tập tuyến / tuyến đang chọn, còn source chính đổi mỗi lần định vị: gộp chung thì mỗi giây
+ * phải đẩy cả tuyến thay thế qua cầu native rồi bắt MapLibre dựng lại tile của chúng.
+ */
+export const ROUTE_ALT_SOURCE_ID = 'mapslibvn-route-alt-source';
 export const ROUTE_LAYER_IDS = {
   alt: 'mapslibvn-route-alt',
   casing: 'mapslibvn-route-casing',
@@ -79,19 +85,21 @@ export function RouteLayers({ store, routeStyle, beforeId, onRouteClick }: Route
     <>
       <Images images={{ [PUCK_IMAGE_KEY]: { source: { uri: PUCK_PNG_DATA_URI } } }} />
       <GeoJSONSource
-        id={ROUTE_SOURCE_ID}
-        data={snap.features as GeoJSON.FeatureCollection}
+        id={ROUTE_ALT_SOURCE_ID}
+        data={snap.altFeatures as GeoJSON.FeatureCollection}
         onPress={onPress}
       >
         <Layer
           type="line"
           id={ROUTE_LAYER_IDS.alt}
-          source={ROUTE_SOURCE_ID}
+          source={ROUTE_ALT_SOURCE_ID}
           filter={kindIs('alt')}
           layout={ROUND}
           paint={{ 'line-color': altColor, 'line-width': 5 }}
           {...before}
         />
+      </GeoJSONSource>
+      <GeoJSONSource id={ROUTE_SOURCE_ID} data={snap.liveFeatures as GeoJSON.FeatureCollection}>
         <Layer
           type="line"
           id={ROUTE_LAYER_IDS.casing}

@@ -16,6 +16,15 @@ export const USER_LOCATION_LAYER_IDS = {
   accuracy: 'mapslibvn-user-accuracy',
 } as const;
 
+/**
+ * Bước làm tròn khi dựng bán kính vòng sai số (B3). Không có chúng thì mỗi định vị (1 Hz) sinh một
+ * object `paint` mới, MLRN đẩy qua cầu và MapLibre đặt lại thuộc tính vẽ của layer mỗi giây — trong
+ * khi bán kính thật gần như không đổi: GPS thường giữ nguyên mức sai số hàng chục giây, còn `lat`
+ * chỉ vào công thức qua `cos(lat)`, dịch 0,1° làm bán kính lệch dưới 0,2 %.
+ */
+const ACCURACY_STEP_M = 1;
+const LAT_STEP_DEG = 0.1;
+
 interface UserLocationLayersProps {
   store: UserLocationStore;
   /** Có tiến độ dẫn đường → không vẽ (puck dẫn đường thay thế). */
@@ -50,6 +59,20 @@ export function UserLocationLayers({
     routesStore.getSnapshot,
   );
   const features = useMemo(() => (fix ? userLocationFeature(fix, null) : null), [fix]);
+  // Làm tròn TRƯỚC khi vào deps: `fix` là object mới mỗi giây, nhưng hai số này đứng yên rất lâu nên
+  // `paint` giữ nguyên tham chiếu. Hook phải nằm trên lệnh return sớm bên dưới để thứ tự hook ổn định.
+  const accuracyM =
+    Math.round((fix?.accuracy_m ?? DEFAULT_USER_ACCURACY_M) / ACCURACY_STEP_M) * ACCURACY_STEP_M;
+  const latStep = Math.round((fix?.lat ?? 0) / LAT_STEP_DEG) * LAT_STEP_DEG;
+  const accuracyPaint = useMemo(
+    () => ({
+      'circle-radius': accuracyRadiusExpression(accuracyM, latStep),
+      'circle-color': ROUTE_COLOR,
+      'circle-opacity': 0.12,
+      'circle-stroke-width': 0,
+    }),
+    [accuracyM, latStep],
+  );
   if (!fix || !features || routes.progress !== null) return null;
   const before = beforeId ? { beforeId } : {};
   return (
@@ -60,15 +83,7 @@ export function UserLocationLayers({
             type="circle"
             id={USER_LOCATION_LAYER_IDS.accuracy}
             source={USER_LOCATION_SOURCE_ID}
-            paint={{
-              'circle-radius': accuracyRadiusExpression(
-                fix.accuracy_m ?? DEFAULT_USER_ACCURACY_M,
-                fix.lat,
-              ),
-              'circle-color': ROUTE_COLOR,
-              'circle-opacity': 0.12,
-              'circle-stroke-width': 0,
-            }}
+            paint={accuracyPaint}
             {...before}
           />
         </GeoJSONSource>

@@ -59,28 +59,40 @@ const line = (
 });
 
 /**
- * Dựng FeatureCollection cho source tuyến: tuyến khác `active` là `alt`; tuyến `active` bị cắt tại
- * `progress` thành `traveled` + `active` (cả hai đi qua điểm bám); không có `progress` thì nguyên
- * tuyến là `active`. `puck` thêm một Point tại điểm bám mang `bearing`. Không đột biến `coords`.
+ * Các feature `alt` — chỉ phụ thuộc `coords` và `active`, KHÔNG phụ thuộc `progress`. Tách riêng để
+ * lớp dán giữ nguyên tham chiếu qua mỗi lần định vị (B1): tuyến thay thế có thể dài hàng nghìn đỉnh,
+ * dựng lại rồi đẩy qua cầu native mỗi giây là việc thừa hoàn toàn.
  */
-export function routeFeatures(
+export function altRouteFeatures(
+  coords: readonly (readonly [number, number][])[],
+  active: number,
+): RouteFeatureCollection {
+  const features: RouteFeature[] = [];
+  for (const [i, c] of coords.entries()) {
+    if (i !== active) features.push(line('alt', i, c as [number, number][]));
+  }
+  return { type: 'FeatureCollection', features };
+}
+
+/**
+ * Phần đổi theo từng lần định vị: tuyến `active` (bị `progress` cắt thành `traveled` + `active`, cả
+ * hai đi qua điểm bám) và Point `puck` tại điểm bám. Không có `progress` thì nguyên tuyến là `active`.
+ */
+export function liveRouteFeatures(
   coords: readonly (readonly [number, number][])[],
   opts: RouteFeaturesOptions,
 ): RouteFeatureCollection {
   const progress = opts.progress ?? null;
   const features: RouteFeature[] = [];
-  for (const [i, c] of coords.entries()) {
-    if (i !== opts.active) {
-      features.push(line('alt', i, [...c]));
-      continue;
-    }
+  const c = coords[opts.active];
+  if (c) {
     if (progress && progress.shapeIndex < c.length - 1) {
       features.push(
-        line('traveled', i, [...c.slice(0, progress.shapeIndex + 1), progress.snapped]),
-        line('active', i, [progress.snapped, ...c.slice(progress.shapeIndex + 1)]),
+        line('traveled', opts.active, [...c.slice(0, progress.shapeIndex + 1), progress.snapped]),
+        line('active', opts.active, [progress.snapped, ...c.slice(progress.shapeIndex + 1)]),
       );
     } else {
-      features.push(line('active', i, [...c]));
+      features.push(line('active', opts.active, c as [number, number][]));
     }
   }
   if (opts.puck && progress) {
@@ -91,4 +103,25 @@ export function routeFeatures(
     });
   }
   return { type: 'FeatureCollection', features };
+}
+
+/**
+ * Toàn bộ feature của source tuyến: `alt` trước, rồi phần sống (`traveled`/`active`/`puck`). Thứ tự
+ * giữa các `kind` không ảnh hưởng cách vẽ — mỗi `kind` là một layer riêng, thứ tự vẽ do layer quyết.
+ *
+ * Toạ độ của feature `alt` và của `active` khi không bị cắt DÙNG CHUNG mảng với `coords` (không sao
+ * chép): người gọi không được đột biến toạ độ trả về. Đây là nguồn cơ bản nhất của việc tiết kiệm —
+ * sao chép hàng nghìn cặp số mỗi giây chỉ để đọc là lãng phí.
+ */
+export function routeFeatures(
+  coords: readonly (readonly [number, number][])[],
+  opts: RouteFeaturesOptions,
+): RouteFeatureCollection {
+  return {
+    type: 'FeatureCollection',
+    features: [
+      ...altRouteFeatures(coords, opts.active).features,
+      ...liveRouteFeatures(coords, opts).features,
+    ],
+  };
 }

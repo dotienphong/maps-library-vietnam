@@ -5,10 +5,10 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import fixture from '../../core/tests/fixtures/directions-q1.json';
 import type { MapHandle } from './context';
 import { MapsLibVNMap, type MapsLibVNMapProps } from './map';
-import { ROUTE_LAYER_IDS, ROUTE_SOURCE_ID } from './navigation/route-layers';
+import { ROUTE_ALT_SOURCE_ID, ROUTE_LAYER_IDS, ROUTE_SOURCE_ID } from './navigation/route-layers';
 import { MISSING_SOURCE_MESSAGE, type SessionPositionSource } from './navigation/session';
 import { fakeSession, progressAt } from './test/fake-session';
-import { cameraRefMock, getLastMapProps, getLastSourceProps, resetMocks } from './test/mlrn-mock';
+import { cameraRefMock, getLastMapProps, getSourceProps, resetMocks } from './test/mlrn-mock';
 import { setAppState } from './test/react-native-mock';
 
 vi.mock('react-native', () => import('./test/react-native-mock'));
@@ -145,7 +145,7 @@ describe('MapsLibVNMap + navigation', () => {
     const { handle, rerender } = mount({ onRouteClick, puck: false, follow: false });
     act(() => handle.routes.show(response));
     expect(kinds()).toEqual(['active']);
-    getLastSourceProps()?.onPress?.({
+    getSourceProps(ROUTE_ALT_SOURCE_ID)?.onPress?.({
       nativeEvent: { features: [{ properties: { kind: 'alt', index: 1 } }] },
     });
     expect(onRouteClick).toHaveBeenCalledWith(1);

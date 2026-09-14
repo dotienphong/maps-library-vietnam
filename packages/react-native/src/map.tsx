@@ -1,9 +1,12 @@
 import {
   Camera,
   type CameraRef,
+  type LngLatBounds,
   type MapRef,
   Map as NativeMap,
+  OfflineManager,
   type PressEvent,
+  type StyleSpecification,
   type ViewStateChangeEvent,
 } from '@maplibre/maplibre-react-native';
 import {
@@ -36,7 +39,7 @@ import {
   createNavigationSession,
 } from './navigation/session';
 import { toPoiFeature } from './to-poi-feature';
-import { isTheme, useResolvedStyle } from './use-style';
+import { isTheme, styleUrlFor, useResolvedStyle } from './use-style';
 import { type UserLocationOptions, createUserLocationBinding } from './user-location/binding';
 import { UserLocationLayers } from './user-location/layers';
 import { createUserLocationStore } from './user-location/store';
@@ -44,12 +47,57 @@ import { createUserLocationStore } from './user-location/store';
 export const DEFAULT_CENTER: [number, number] = [106.7, 10.776];
 export const DEFAULT_ZOOM = 12;
 
+/**
+ * Nửa cạnh ô vuông (px) quanh điểm chạm khi tìm POI. `queryRenderedFeatures` tại ĐÚNG một điểm thì
+ * lệch ~10 px là trượt — ngón tay thật không bấm chính xác tới từng pixel (DEVLOG mục 11).
+ */
+export const POI_TOUCH_RADIUS_PX = 12;
+
+/** Tuỳ chọn tải trước tile quanh vị trí khởi tạo (A4). Mặc định TẮT — có tải là có tốn dữ liệu. */
+export interface PrefetchOptions {
+  /** Bán kính quanh `center`, km — mặc định 2. */
+  radiusKm?: number;
+  /** Zoom thấp nhất tải trước — mặc định 12. */
+  minZoom?: number;
+  /** Zoom cao nhất tải trước — mặc định 15. Cao hơn là số tile tăng theo cấp số nhân. */
+  maxZoom?: number;
+}
+
+const PREFETCH_DEFAULTS = { radiusKm: 2, minZoom: 12, maxZoom: 15 } as const;
+/** Khoá metadata đánh dấu pack do SDK tạo, để không tạo trùng mỗi lần mount. */
+const PREFETCH_TAG_KEY = 'mapslibvnPrefetch';
+const KM_PER_DEG_LAT = 110.574;
+const KM_PER_DEG_LNG_AT_EQUATOR = 111.32;
+
+/** Hộp bao quanh `center` bán kính `radiusKm`, theo thứ tự [tây, nam, đông, bắc] của MLRN. */
+export function prefetchBounds(center: readonly [number, number], radiusKm: number): LngLatBounds {
+  const [lng, lat] = center;
+  const dLat = radiusKm / KM_PER_DEG_LAT;
+  // Kẹp cos để không chia cho ~0 ở vĩ độ cực; Việt Nam không chạm tới nhưng prop này ai cũng dùng được.
+  const cos = Math.max(Math.cos((lat * Math.PI) / 180), 0.01);
+  const dLng = radiusKm / (KM_PER_DEG_LNG_AT_EQUATOR * cos);
+  return [lng - dLng, lat - dLat, lng + dLng, lat + dLat];
+}
+
 export interface MapsLibVNMapProps {
   apiKey: string;
   /** Gốc API MapsLibVN, ví dụ https://api.ai-solutions.io.vn */
   apiBase: string;
   /** Theme 'light' | 'dark' hoặc URL style tuỳ biến — giống @mapslibvn/react. */
   style?: Theme | string;
+  /**
+   * Style JSON app tự đóng gói sẵn: bản đồ vẽ được ngay khi mở, không chờ một vòng HTTP lấy style.
+   * Vẫn áp `lang`/`poiLayer` như style tải từ server. `style` khi đó chỉ còn dùng để chọn lớp chèn
+   * tuyến mặc định và (nếu bật `prefetch`) để biết URL style cần tải tile.
+   */
+  styleJson?: StyleSpecification;
+  /**
+   * Tải trước tile quanh `center` để lần mở đầu không phải chờ kéo tile. `true` = mặc định
+   * (bán kính 2 km, zoom 12–15). TẮT mặc định: tải trước là tốn dữ liệu và dung lượng máy người
+   * dùng, phải do app chủ động chọn. Dùng offline pack của MapLibre; gọi lại nhiều lần không tạo
+   * trùng pack.
+   */
+  prefetch?: PrefetchOptions | boolean;
   /** Giá trị KHỞI TẠO camera; đổi sau khi mount không tạo lại map — dùng useMap().flyTo. */
   center?: [number, number];
   zoom?: number;
@@ -91,6 +139,8 @@ export function MapsLibVNMap({
   apiKey,
   apiBase,
   style = 'light',
+  styleJson,
+  prefetch,
   center = DEFAULT_CENTER,
   zoom = DEFAULT_ZOOM,
   lang = 'vi',
@@ -221,20 +271,79 @@ export function MapsLibVNMap({
     [places, store, binding, userBinding],
   );
 
-  const resolved = useResolvedStyle(places, { style, lang, poiLayer });
+  const resolved = useResolvedStyle(places, {
+    style,
+    lang,
+    poiLayer,
+    ...(styleJson ? { styleJson } : {}),
+  });
   useEffect(() => {
     if (resolved.status === 'error') handlers.current.onError?.(resolved.error);
   }, [resolved]);
 
-  // Đổi một trong các giá trị này → tạo lại map (như @mapslibvn/react); onLoad gọi lại một lần.
-  const mapKey = `${apiKey}|${apiBase}|${style}|${lang}|${poiLayer}|${poiSourcesKey}`;
+  // Tải trước tile quanh vị trí khởi tạo (A4). Chỉ chạy khi app bật `prefetch`; lấy URL style vì
+  // offline pack cần URL, kể cả khi app dùng `styleJson`. Lỗi báo qua onError, không ném ra ngoài:
+  // tải trước hỏng thì bản đồ vẫn phải chạy bình thường.
+  // `prefetch`/`center` là object/mảng inline phía app → đổi tham chiếu mỗi render. Đọc lại từ chuỗi
+  // ngay trong effect (cùng lối với `followKey` ở trên) để deps chỉ còn giá trị nguyên thuỷ.
+  const prefetchKey = JSON.stringify(prefetch ?? null);
+  const centerKey = JSON.stringify(center);
+  useEffect(() => {
+    const want = JSON.parse(prefetchKey) as PrefetchOptions | boolean | null;
+    if (!want) return;
+    const o = want === true ? PREFETCH_DEFAULTS : { ...PREFETCH_DEFAULTS, ...want };
+    const mapStyle = styleUrlFor(places, style);
+    const bounds = prefetchBounds(JSON.parse(centerKey) as [number, number], o.radiusKm);
+    const tag = `${mapStyle}|${bounds.join(',')}|${o.minZoom}-${o.maxZoom}`;
+    let cancelled = false;
+    (async () => {
+      try {
+        const packs = await OfflineManager.getPacks();
+        if (cancelled) return;
+        if (packs.some((p) => p.metadata[PREFETCH_TAG_KEY] === tag)) return;
+        await OfflineManager.createPack(
+          {
+            mapStyle,
+            bounds,
+            minZoom: o.minZoom,
+            maxZoom: o.maxZoom,
+            metadata: { [PREFETCH_TAG_KEY]: tag },
+          },
+          () => undefined,
+          (_pack, error) => handlers.current.onError?.(new Error(error.message)),
+        );
+      } catch (cause) {
+        if (!cancelled) {
+          handlers.current.onError?.(
+            cause instanceof Error ? cause : new Error('Không tải trước được tile'),
+          );
+        }
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [prefetchKey, centerKey, places, style]);
+
+  // Đổi `apiKey`/`apiBase`/`poiSources` → tạo lại map (client đổi theo). `style`/`lang`/`poiLayer`
+  // KHÔNG nằm ở đây (A3): đổi sáng↔tối chỉ cần đẩy `mapStyle` mới, dựng lại cả map native là màn
+  // hình trắng rồi tải lại style + tile từ đầu. Đánh đổi: `onLoad` chỉ gọi một lần cho mỗi map,
+  // không gọi lại sau khi đổi theme — đúng ngữ nghĩa "map đã sẵn sàng".
+  const mapKey = `${apiKey}|${apiBase}|${poiSourcesKey}`;
   const loadedFor = useRef<string | null>(null);
 
   const onPress = async (e: NativeSyntheticEvent<PressEvent>) => {
     if (!poiLayer || !handlers.current.onPoiClick) return;
-    const features = await native.current?.queryRenderedFeatures(e.nativeEvent.point, {
-      layers: [POI_LAYER_ID],
-    });
+    // Ô vuông quanh điểm chạm thay vì đúng một điểm (B2) — chạm lệch vài pixel vẫn trúng POI.
+    const [x, y] = e.nativeEvent.point;
+    const r = POI_TOUCH_RADIUS_PX;
+    const features = await native.current?.queryRenderedFeatures(
+      [
+        [x - r, y - r],
+        [x + r, y + r],
+      ],
+      { layers: [POI_LAYER_ID] },
+    );
     const poi = toPoiFeature(features?.[0]);
     if (poi) handlers.current.onPoiClick?.(poi);
   };

@@ -10,6 +10,32 @@ export const mapRefMock = {
 };
 export const cameraRefMock = { flyTo: vi.fn(), fitBounds: vi.fn(), easeTo: vi.fn() };
 
+/** Pack offline giả — test đọc để kiểm `prefetch` đã tạo đúng vùng/zoom chưa. */
+export type FakeOfflinePack = {
+  id: string;
+  metadata: Record<string, unknown>;
+  bounds: unknown;
+  minZoom: number | undefined;
+  maxZoom: number | undefined;
+  mapStyle: string | undefined;
+};
+export const offlinePacks: FakeOfflinePack[] = [];
+export const OfflineManager = {
+  getPacks: vi.fn(async () => offlinePacks as FakeOfflinePack[]),
+  createPack: vi.fn(async (options: Record<string, unknown>) => {
+    const pack: FakeOfflinePack = {
+      id: `pack-${offlinePacks.length + 1}`,
+      metadata: (options.metadata as Record<string, unknown>) ?? {},
+      bounds: options.bounds,
+      minZoom: options.minZoom as number | undefined,
+      maxZoom: options.maxZoom as number | undefined,
+      mapStyle: options.mapStyle as string | undefined,
+    };
+    offlinePacks.push(pack);
+    return pack;
+  }),
+};
+
 type MapProps = Record<string, unknown> & {
   children?: ReactNode;
   ref?: Ref<unknown>;
@@ -20,8 +46,12 @@ export const getLastMapProps = () => lastMapProps;
 export const resetMocks = () => {
   lastMapProps = null;
   lastSourceProps = null;
+  for (const id of Object.keys(sourceProps)) delete sourceProps[id];
+  for (const id of Object.keys(layerProps)) delete layerProps[id];
+  offlinePacks.length = 0;
   for (const fn of Object.values(mapRefMock)) fn.mockClear();
   for (const fn of Object.values(cameraRefMock)) fn.mockClear();
+  for (const fn of Object.values(OfflineManager)) fn.mockClear();
 };
 
 // biome-ignore lint/suspicious/noShadowRestrictedNames: tên phải khớp export của wrapper để vi.mock thay được
@@ -72,9 +102,13 @@ type SourceProps = {
 };
 let lastSourceProps: SourceProps | null = null;
 export const getLastSourceProps = () => lastSourceProps;
+/** Props theo id source — cần từ khi tuyến có hai source (chính + thay thế). */
+const sourceProps: Record<string, SourceProps> = {};
+export const getSourceProps = (id: string): SourceProps | undefined => sourceProps[id];
 
 export function GeoJSONSource(props: SourceProps) {
   lastSourceProps = props;
+  if (props.id) sourceProps[props.id] = props;
   return (
     <div data-testid={`mlrn-source-${props.id ?? 'x'}`} data-geojson={JSON.stringify(props.data)}>
       {props.children}
@@ -82,7 +116,14 @@ export function GeoJSONSource(props: SourceProps) {
   );
 }
 
+/**
+ * Props lần render gần nhất của mỗi layer, theo id — test đọc để kiểm tham chiếu `paint` có đổi
+ * không. Là object thường chứ không phải `Map` vì `Map` trong file này là component giả của MLRN.
+ */
+export const layerProps: Record<string, Record<string, unknown>> = {};
+
 export function Layer(props: Record<string, unknown> & { id?: string }) {
+  layerProps[String(props.id)] = props;
   return <div data-testid={`mlrn-layer-${String(props.id)}`} data-layer={JSON.stringify(props)} />;
 }
 

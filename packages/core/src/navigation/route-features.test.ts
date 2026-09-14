@@ -5,7 +5,9 @@ import type { DirectionsResponse } from '../types';
 import {
   EMPTY_ROUTE_FEATURES,
   type RouteFeature,
+  altRouteFeatures,
   decodeRoutes,
+  liveRouteFeatures,
   routeFeatures,
 } from './route-features';
 
@@ -79,5 +81,33 @@ describe('routeFeatures', () => {
     routeFeatures(coords, { active: 0, progress: { shapeIndex: 3, snapped: [1, 2] } });
     expect(JSON.stringify(coords)).toBe(before);
     expect(EMPTY_ROUTE_FEATURES.features).toEqual([]);
+  });
+});
+
+describe('altRouteFeatures / liveRouteFeatures', () => {
+  it('tách đúng hai phần và ghép lại bằng routeFeatures', () => {
+    const opts = { active: 1, progress: { shapeIndex: 5, snapped: [0, 0] as [number, number] } };
+    expect(kinds(altRouteFeatures(two, 1).features)).toEqual(['alt']);
+    expect(kinds(liveRouteFeatures(two, opts).features)).toEqual(['traveled', 'active']);
+    expect(routeFeatures(two, opts)).toEqual({
+      type: 'FeatureCollection',
+      features: [...altRouteFeatures(two, 1).features, ...liveRouteFeatures(two, opts).features],
+    });
+  });
+
+  it('altRouteFeatures không phụ thuộc progress: cùng (coords, active) cho kết quả bằng nhau', () => {
+    expect(altRouteFeatures(two, 1)).toEqual(altRouteFeatures(two, 1));
+    expect(kinds(altRouteFeatures(two, 0).features)).toEqual(['alt']);
+    expect(altRouteFeatures(coords, 0).features).toEqual([]);
+  });
+
+  it('không sao chép toạ độ khi không phải cắt tuyến', () => {
+    // Mấu chốt của B1: tuyến dài hàng nghìn đỉnh không bị nhân bản mỗi lần định vị.
+    expect(lineCoords(altRouteFeatures(two, 1).features[0])).toBe(two[0]);
+    expect(lineCoords(liveRouteFeatures(coords, { active: 0 }).features[0])).toBe(coords[0]);
+  });
+
+  it('active nằm ngoài danh sách tuyến → không có feature sống', () => {
+    expect(liveRouteFeatures(coords, { active: 9 }).features).toEqual([]);
   });
 });

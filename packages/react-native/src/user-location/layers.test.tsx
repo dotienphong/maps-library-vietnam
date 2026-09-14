@@ -5,6 +5,7 @@ import { Animated } from 'react-native';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import fixture from '../../../core/tests/fixtures/directions-q1.json';
 import { createRoutesStore } from '../navigation/routes-store';
+import { layerProps } from '../test/mlrn-mock';
 import { animatedTimingCalls } from '../test/react-native-mock';
 import { USER_LOCATION_LAYER_IDS, USER_LOCATION_SOURCE_ID, UserLocationLayers } from './layers';
 import { USER_LOCATION_CONE_TEST_ID, USER_LOCATION_PUCK_TEST_ID } from './puck';
@@ -114,5 +115,22 @@ describe('<UserLocationLayers>', () => {
     });
     rerender(el);
     expect(container.innerHTML).toBe('');
+  });
+
+  it('vòng sai số không vẽ lại mỗi giây: paint giữ nguyên tham chiếu khi sai số/vĩ độ chưa đổi đáng kể (B3)', () => {
+    const { store } = mount();
+    act(() => store.setFix(fix));
+    const paint = layerProps[USER_LOCATION_LAYER_IDS.accuracy]?.paint;
+    expect(paint).toBeTruthy();
+    // Định vị mới mỗi giây: toạ độ nhích, sai số lệch dưới nửa mét → không có lý do đặt lại paint.
+    act(() =>
+      store.setFix({ ...fix, lng: 106.7001, lat: 10.7801, accuracy_m: 25.2, timestamp: T0 + 1000 }),
+    );
+    expect(layerProps[USER_LOCATION_LAYER_IDS.accuracy]?.paint).toBe(paint);
+    // Sai số đổi thật → bán kính phải đổi theo.
+    act(() => store.setFix({ ...fix, accuracy_m: 40, timestamp: T0 + 2000 }));
+    const next = layerProps[USER_LOCATION_LAYER_IDS.accuracy]?.paint;
+    expect(next).not.toBe(paint);
+    expect(next).not.toEqual(paint);
   });
 });

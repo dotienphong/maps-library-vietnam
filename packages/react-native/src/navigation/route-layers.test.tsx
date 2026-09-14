@@ -4,8 +4,8 @@ import { act, cleanup, render, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import fixture from '../../../core/tests/fixtures/directions-q1.json';
 import { MapContext, type MapHandle } from '../context';
-import { getLastSourceProps, resetMocks } from '../test/mlrn-mock';
-import { ROUTE_LAYER_IDS, ROUTE_SOURCE_ID, RouteLayers } from './route-layers';
+import { getSourceProps, resetMocks } from '../test/mlrn-mock';
+import { ROUTE_ALT_SOURCE_ID, ROUTE_LAYER_IDS, ROUTE_SOURCE_ID, RouteLayers } from './route-layers';
 import { createRoutesStore } from './routes-store';
 
 vi.mock('react-native', () => import('../test/react-native-mock'));
@@ -114,13 +114,32 @@ describe('RouteLayers', () => {
       </MapContext.Provider>,
     );
     expect(screen.queryByTestId(`mlrn-layer-${ROUTE_LAYER_IDS.puck}`)).toBeNull();
-    getLastSourceProps()?.onPress?.({
+    getSourceProps(ROUTE_ALT_SOURCE_ID)?.onPress?.({
       nativeEvent: { features: [{ properties: { kind: 'alt', index: 1 } }] },
     });
     expect(onRouteClick).toHaveBeenCalledWith(1);
-    getLastSourceProps()?.onPress?.({
+    getSourceProps(ROUTE_ALT_SOURCE_ID)?.onPress?.({
       nativeEvent: { features: [{ properties: { kind: 'active', index: 0 } }] },
     });
     expect(onRouteClick).toHaveBeenCalledTimes(1);
+  });
+
+  it('tuyến thay thế nằm ở source riêng; định vị mới không đẩy lại dữ liệu của nó (B1)', () => {
+    const store = createRoutesStore();
+    store.show(withAlt, { active: 0 });
+    const el = (
+      <MapContext.Provider value={handle}>
+        <RouteLayers store={store} beforeId={null} />
+      </MapContext.Provider>
+    );
+    const { rerender } = render(el);
+    expect(layer(ROUTE_LAYER_IDS.alt).source).toBe(ROUTE_ALT_SOURCE_ID);
+    const altData = getSourceProps(ROUTE_ALT_SOURCE_ID)?.data;
+    const liveData = getSourceProps(ROUTE_SOURCE_ID)?.data;
+    act(() => store.setProgress({ shapeIndex: 5, snapped: [106.6985, 10.7791], bearing: 0 }));
+    rerender(el);
+    // Cùng tham chiếu → MLRN không gửi lại GeoJSON tuyến thay thế qua cầu native mỗi giây.
+    expect(getSourceProps(ROUTE_ALT_SOURCE_ID)?.data).toBe(altData);
+    expect(getSourceProps(ROUTE_SOURCE_ID)?.data).not.toBe(liveData);
   });
 });
