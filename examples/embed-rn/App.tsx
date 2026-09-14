@@ -39,6 +39,7 @@ import {
   View,
 } from 'react-native';
 import { MODES, NavigationPanel } from './navigation-ui';
+import { PerfScreen } from './perf-screen';
 
 const API_KEY = process.env.EXPO_PUBLIC_MAPSLIBVN_KEY ?? '';
 const API_BASE = process.env.EXPO_PUBLIC_MAPSLIBVN_API ?? 'https://api.ai-solutions.io.vn';
@@ -111,6 +112,9 @@ function Search({ near, onPick }: { near: [number, number]; onPick: (p: Point) =
 }
 
 export default function App() {
+  // Chế độ đo (scripts/perf-rn.mjs) — hoàn toàn tách khỏi màn hình demo.
+  if (process.env.EXPO_PUBLIC_MLV_PERF === '1') return <PerfScreen />;
+
   const [theme, setTheme] = useState<Theme>('light');
   const [lang, setLang] = useState<Lang>('vi');
   const [map, setMap] = useState<MapHandle | null>(null);
