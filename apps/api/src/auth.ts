@@ -143,7 +143,7 @@ async function loadAuth(
         quotaDirectionsPerDay: info.quotaDirectionsPerDay ?? null,
         quotaMode: info.quotaMode ?? 'legacy',
       } satisfies AuthInfo;
-      return validateCommercialAuth(c, normalized, admissionGate, deferRevocation);
+      return await validateCommercialAuth(c, normalized, admissionGate, deferRevocation);
     }
   }
 
@@ -177,7 +177,7 @@ async function loadAuth(
     c.executionCtx.waitUntil(
       c.env.META.put(kvKey, JSON.stringify(info), { expirationTtl: KV_TTL_S }),
     );
-    return validateCommercialAuth(c, info, admissionGate, deferRevocation);
+    return await validateCommercialAuth(c, info, admissionGate, deferRevocation);
   } finally {
     c.executionCtx.waitUntil(sql.end({ timeout: 1 }));
   }

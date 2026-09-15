@@ -1,9 +1,13 @@
 {
+  // `types` phải liệt kê tường minh từ TypeScript 6 (xem chú thích packages/core/tsconfig.json);
+  // `node` cần cho các test dùng `node:fs`/`process`/`Buffer`. Đây là danh sách TRẮNG: bỏ tên nào
+  // ra là mất luôn @types đó.
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
     "jsx": "react-jsx",
     "lib": ["ES2022", "DOM", "DOM.Iterable"],
-    "noEmit": true
+    "noEmit": true,
+    "types": ["react", "geojson", "node"]
   },
   "include": ["src"]
 }

@@ -1,9 +1,10 @@
-import { SELF, env, fetchMock } from 'cloudflare:test';
+import { SELF, env } from 'cloudflare:test';
 import { beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { vnDay } from '../src/quota';
 import { parseDirectionsParams } from '../src/routing/params';
 import { valhallaBody } from '../src/routing/valhalla';
 import fixture from './fixtures/valhalla/two-legs.json';
+import { fetchMock } from './helpers/fetch-mock';
 import { seedKey, sha256Hex } from './helpers/seed-key';
 
 const KEY = 'mlv_live_route0000000000000000000';

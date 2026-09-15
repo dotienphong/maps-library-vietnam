@@ -1,8 +1,13 @@
 {
+  // `types: ["node"]` là BẮT BUỘC từ TypeScript 6: bản này không còn tự nạp `@types/*` ở cấu hình
+  // `moduleResolution: bundler`, nên `tests/*.test.ts` nhập `node:fs`/`node:url` sẽ báo TS2591
+  // (kèm một loạt TS7006 ăn theo vì kiểu sụp). TS 5.9 thì tự nạp được. `@types/node` cũng đã khai
+  // thành devDependency của gói này thay vì mượn bản hoisted ở gốc workspace.
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
     "lib": ["ES2022", "DOM"],
-    "noEmit": true
+    "noEmit": true,
+    "types": ["node"]
   },
   "include": ["src", "tests"]
 }

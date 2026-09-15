@@ -1,5 +1,6 @@
-import { SELF, fetchMock } from 'cloudflare:test';
+import { SELF } from 'cloudflare:test';
 import { beforeAll, beforeEach, describe, expect, it } from 'vitest';
+import { fetchMock } from './helpers/fetch-mock';
 
 let privateKey: CryptoKey;
 let jwk: JsonWebKey & { kid: string };

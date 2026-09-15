@@ -34,6 +34,7 @@
   },
   "devDependencies": {
     "@size-limit/file": "^14.0.0",
+    "@types/node": "^26",
     "@types/react": "^19.3.0",
     "maplibre-gl": "^6.9.1",
     "react": "^19.3.0",

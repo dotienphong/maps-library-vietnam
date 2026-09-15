@@ -8,7 +8,14 @@ export const mapRefMock = {
   showAttribution: vi.fn(async () => undefined),
   setSourceVisibility: vi.fn(async () => undefined),
 };
-export const cameraRefMock = { flyTo: vi.fn(), fitBounds: vi.fn(), easeTo: vi.fn() };
+// Có implementation `() => undefined` chứ không để `vi.fn()` trần: vitest 4 làm kiểu suy ra của
+// `vi.fn()` không đặt tên được nếu không tham chiếu `Procedure` của @vitest/spy, và TypeScript 6
+// chặn việc đó bằng TS2883.
+export const cameraRefMock = {
+  flyTo: vi.fn(() => undefined),
+  fitBounds: vi.fn(() => undefined),
+  easeTo: vi.fn(() => undefined),
+};
 
 /** Pack offline giả — test đọc để kiểm `prefetch` đã tạo đúng vùng/zoom chưa. */
 export type FakeOfflinePack = {

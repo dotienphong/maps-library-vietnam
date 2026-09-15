@@ -1,5 +1,7 @@
 {
+  // `types: ["node"]` bắt buộc từ TypeScript 6 (xem chú thích trong packages/core/tsconfig.json):
+  // `src/debounce-trace.test.ts` dùng `node:fs` và `process`.
   "extends": "../../tsconfig.base.json",
-  "compilerOptions": { "lib": ["ES2022", "DOM"], "noEmit": true },
+  "compilerOptions": { "lib": ["ES2022", "DOM"], "noEmit": true, "types": ["node"] },
   "include": ["src"]
 }

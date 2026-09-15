@@ -1,4 +1,3 @@
-import { fetchMock } from 'cloudflare:test';
 import { beforeAll, describe, expect, it } from 'vitest';
 import { ApiError } from '../src/errors';
 import {
@@ -9,6 +8,7 @@ import {
   routingHeaders,
   valhallaBody,
 } from '../src/routing/valhalla';
+import { fetchMock } from './helpers/fetch-mock';
 
 const env = { ROUTING_BASE: 'https://routing.test/' } as never;
 const params = {
