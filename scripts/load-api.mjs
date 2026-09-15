@@ -161,30 +161,81 @@ export async function runRamp(base, key, levels, options = {}) {
 }
 
 /**
- * A/B trên CÙNG bộ URL: mỗi nhánh một khoá, chạy lần lượt, nghỉ hết cửa sổ burst ở giữa. Chênh
- * lệch p50/p95/p99 so với nhánh đầu là chi phí quota thương mại cộng thêm.
+ * Trên ngưỡng này thì origin đã xếp hàng, và hàng giây chờ Postgres nuốt trọn vài chục mili-giây
+ * chi phí quota cần đo. Đo ở đó ra số nhưng số đó không nói về quota.
+ */
+const SATURATED_P95_MS = 2_000;
+/** Cache nội bộ được ghi trong `waitUntil`, tức SAU khi response đã trả. Chờ nó lắng. */
+const WARMUP_SETTLE_MS = 1_500;
+
+/**
+ * A/B: mỗi nhánh một khoá, chạy lần lượt, nghỉ hết cửa sổ burst ở giữa. Chênh lệch p50/p95/p99 so
+ * với nhánh đầu là chi phí quota thương mại cộng thêm.
  *
- * Chạy lần lượt chứ không song song là có chủ ý: hai nhánh chạy cùng lúc sẽ tranh chính origin
- * đang đo, và phần chênh lệch đo được sẽ lẫn cả tải do nhánh kia gây ra.
+ * Ba quyết định đều rút ra từ một lượt đo HỎNG trên production ngày 15/09/2026:
+ *
+ * 1. **Mỗi nhánh một dải URL riêng**, không dùng chung. Dùng chung thì nhánh chạy sau hưởng cache
+ *    do nhánh trước làm nóng — lượt đo hỏng cho `cacheHits` 2 với 19 và "chi phí quota" âm
+ *    1.184 ms. Hai dải khác ô lưới nhưng cùng hình dạng truy vấn, nên vẫn là cùng một workload.
+ * 2. **Chế độ warm mồi TẤT CẢ các nhánh rồi mới đo nhánh nào**, và chờ cache lắng. Mồi ngay trước
+ *    lượt đo của từng nhánh vẫn để nhánh đầu gánh phần nạp cache cho cả wave đồng thời.
+ * 3. **Cảnh báo khi số đo không dùng được**: origin bão hoà, hoặc có timeout làm p99 chạm trần
+ *    client. Im lặng trả về một con số trông hợp lý là cách tệ nhất.
+ *
+ * Chạy lần lượt chứ không song song cũng là có chủ ý: hai nhánh chạy cùng lúc sẽ tranh chính
+ * origin đang đo.
  * @param {string} base
  * @param {{label: string, key: string}[]} arms
  * @param {number} users
  * @param {{ fetchImpl?: typeof fetch, timeoutMs?: number, group?: 'places'|'directions',
- *   cache?: 'cold'|'warm', cooldownMs?: number, sleepImpl?: (ms: number) => Promise<void> }} [options]
+ *   cache?: 'cold'|'warm', cooldownMs?: number, saturatedP95Ms?: number,
+ *   sleepImpl?: (ms: number) => Promise<void> }} [options]
  */
 export async function runComparison(base, arms, users, options = {}) {
   const cooldownMs = options.cooldownMs ?? DEFAULT_COOLDOWN_MS;
+  const saturatedP95Ms = options.saturatedP95Ms ?? SATURATED_P95_MS;
   const sleepImpl =
     options.sleepImpl ?? ((ms) => new Promise((resolve) => setTimeout(resolve, ms)));
+  /** @param {number} index */
+  const armOptions = (index) => ({ ...options, seed: index + 1 });
+
+  if (options.cache === 'warm') {
+    for (const [index, arm] of arms.entries()) {
+      await runLevel(base, arm.key, 1, armOptions(index));
+    }
+    await sleepImpl(WARMUP_SETTLE_MS);
+  }
+
   const measured = [];
   for (const [index, arm] of arms.entries()) {
     if (index > 0 && cooldownMs > 0) await sleepImpl(cooldownMs);
-    // Ở chế độ warm phải mồi trước, nếu không nhánh đầu tiên gánh toàn bộ chi phí nạp cache và
-    // "chi phí quota" đo được sẽ mang dấu âm.
-    if (options.cache === 'warm') await runLevel(base, arm.key, 1, options);
-    measured.push({ label: arm.label, ...(await runLevel(base, arm.key, users, options)) });
+    measured.push({
+      label: arm.label,
+      ...(await runLevel(base, arm.key, users, armOptions(index))),
+    });
   }
   const baseline = measured[0];
+
+  /** @type {string[]} */
+  const warnings = [];
+  if ((baseline?.p95 ?? 0) > saturatedP95Ms) {
+    warnings.push(
+      `Origin đã bão hoà (nhánh nền p95 ${baseline?.p95} ms > ${saturatedP95Ms} ms). Chênh lệch dưới đây phần lớn là nhiễu xếp hàng, KHÔNG phải chi phí quota. Hạ --levels rồi đo lại.`,
+    );
+  }
+  const timedOut = measured.filter((arm) => arm.timeouts > 0);
+  if (timedOut.length > 0) {
+    warnings.push(
+      `${timedOut.map((arm) => arm.label).join(', ')} có timeout: p99 chạm trần timeout của client, không phải độ trễ thật. Bỏ cột p99 của lượt này.`,
+    );
+  }
+  const spread = measured.map((arm) => arm.cacheHits);
+  if (Math.max(...spread) - Math.min(...spread) > Math.max(1, Math.round(users * 0.2))) {
+    warnings.push(
+      `cacheHits lệch nhau nhiều giữa các nhánh (${spread.join(' vs ')}): hai nhánh không gặp cùng điều kiện cache, chênh lệch không so sánh được.`,
+    );
+  }
+
   return {
     arms: measured,
     overhead: measured.slice(1).map((arm) => ({
@@ -194,6 +245,8 @@ export async function runComparison(base, arms, users, options = {}) {
       p95: arm.p95 - (baseline?.p95 ?? 0),
       p99: arm.p99 - (baseline?.p99 ?? 0),
     })),
+    warnings,
+    usable: warnings.length === 0,
   };
 }
 
@@ -264,10 +317,16 @@ async function main() {
       const ab = await runComparison(base, arms, users, { group, cache, cooldownMs });
       console.table(ab.arms);
       console.table(ab.overhead);
-      console.log(
-        'Chênh lệch trên là chi phí quota thương mại cộng thêm ở CÙNG bộ URL. Burst limit còn ' +
-          'hoạt động hay không phải nghiệm thu riêng bằng `pnpm smoke:rate-limit`.',
-      );
+      if (ab.usable) {
+        console.log(
+          'Chênh lệch trên là chi phí quota thương mại cộng thêm. Burst limit còn hoạt động hay không phải nghiệm thu riêng bằng `pnpm smoke:rate-limit`.',
+        );
+        return;
+      }
+      // Thoát khác 0: lượt đo này KHÔNG được chép vào evidence.
+      for (const warning of ab.warnings) console.error(`⚠ ${warning}`);
+      console.error('✗ Lượt đo không dùng được. Đừng ghi các con số trên vào evidence.');
+      process.exitCode = 1;
       return;
     }
     const mixed = await runMixed(base, arms, users, { group, cache });

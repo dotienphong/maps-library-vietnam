@@ -135,7 +135,7 @@ describe('load API', () => {
 });
 
 describe('A/B chi phí quota', () => {
-  it('chạy hai nhánh trên ĐÚNG cùng bộ URL và báo chênh lệch p95', async () => {
+  it('cho hai nhánh workload tương đương nhưng KHÔNG dùng chung URL', async () => {
     /** @type {Record<string, string[]>} */
     const byKey = { legacy: [], commercial: [] };
     const fetchImpl = async (/** @type {any} */ url, /** @type {any} */ init) => {
@@ -154,7 +154,12 @@ describe('A/B chi phí quota', () => {
       3,
       { fetchImpl, cooldownMs: 0 },
     );
-    expect(byKey.legacy).toEqual(byKey.commercial);
+    // Cùng bộ truy vấn (workload tương đương) nhưng ô lưới rời nhau, để nhánh chạy sau không
+    // hưởng cache do nhánh trước làm nóng.
+    const queries = (/** @type {string[]} */ urls) =>
+      urls.map((url) => new URL(url).searchParams.get('q')).sort();
+    expect(queries(byKey.legacy ?? [])).toEqual(queries(byKey.commercial ?? []));
+    expect((byKey.legacy ?? []).some((url) => (byKey.commercial ?? []).includes(url))).toBe(false);
     expect(result.arms.map((arm) => arm.label)).toEqual(['legacy', 'commercial']);
     expect(result.overhead[0]?.against).toBe('legacy');
     expect(result.overhead[0]?.p95).toBeGreaterThan(0);
@@ -179,28 +184,6 @@ describe('A/B chi phí quota', () => {
       },
     );
     expect(waits).toEqual([65_000]);
-  });
-
-  it('mồi cache trước mỗi nhánh khi đo warm, nếu không nhánh đầu gánh hết chi phí nạp', async () => {
-    let calls = 0;
-    await runComparison(
-      'https://api.test',
-      [
-        { label: 'a', key: 'a' },
-        { label: 'b', key: 'b' },
-      ],
-      3,
-      {
-        cache: 'warm',
-        cooldownMs: 0,
-        fetchImpl: async () => {
-          calls += 1;
-          return new Response('{}', { status: 200 });
-        },
-      },
-    );
-    // 2 nhánh × (1 lượt mồi + 3 lượt đo)
-    expect(calls).toBe(8);
   });
 });
 
@@ -297,5 +280,121 @@ describe('ACK receipt của tenant thương mại', () => {
       },
     });
     expect(paths.some((p) => p.includes('/quota/receipts/'))).toBe(false);
+  });
+});
+
+describe('A/B từ chối lượt đo không dùng được', () => {
+  /** Ba kiểu hỏng đã gặp thật trên production 15/09/2026. */
+  /** @param {(key: string) => {ms: number, status?: number, cacheHit?: boolean}} plan */
+  function server(plan) {
+    return /** @type {typeof fetch} */ (
+      /** @type {unknown} */ (
+        async (/** @type {any} */ _url, /** @type {any} */ init) => {
+          // Phân biệt nhánh theo API KEY, không đoán từ URL: hai dải ô lưới nằm cùng một khoảng
+          // kinh độ nên không suy ngược ra nhánh được.
+          const shape = plan(init?.headers?.['X-Api-Key'] ?? '');
+          // Tôn trọng AbortSignal như fetch thật, nếu không thì không tái hiện được timeout.
+          await new Promise((resolve, reject) => {
+            const timer = setTimeout(resolve, shape.ms);
+            init?.signal?.addEventListener('abort', () => {
+              clearTimeout(timer);
+              reject(new Error('aborted'));
+            });
+          });
+          return new Response('{}', {
+            status: shape.status ?? 200,
+            headers: shape.cacheHit ? { 'x-mlv-cache': 'hit' } : {},
+          });
+        }
+      )
+    );
+  }
+
+  const arms = [
+    { label: 'legacy', key: 'kA' },
+    { label: 'commercial', key: 'kB' },
+  ];
+
+  it('cho mỗi nhánh một dải URL riêng để nhánh sau không hưởng cache của nhánh trước', async () => {
+    /** @type {string[]} */
+    const urls = [];
+    await runComparison('https://api.test', arms, 3, {
+      cooldownMs: 0,
+      fetchImpl: /** @type {typeof fetch} */ (
+        /** @type {unknown} */ (
+          async (/** @type {any} */ url) => {
+            urls.push(String(url));
+            return new Response('{}', { status: 200 });
+          }
+        )
+      ),
+    });
+    const armA = new Set(urls.slice(0, 3));
+    const armB = new Set(urls.slice(3));
+    expect(armA.size).toBe(3);
+    expect(armB.size).toBe(3);
+    expect([...armA].some((url) => armB.has(url))).toBe(false);
+  });
+
+  it('cảnh báo và đánh dấu không dùng được khi origin đã bão hoà', async () => {
+    // Ngưỡng bão hoà hạ xuống 20 ms để test không phải chờ thật 2 giây.
+    const healthy = await runComparison('https://api.test', arms, 2, {
+      cooldownMs: 0,
+      saturatedP95Ms: 200,
+      fetchImpl: server(() => ({ ms: 5 })),
+    });
+    expect(healthy.usable).toBe(true);
+
+    const saturated = await runComparison('https://api.test', arms, 2, {
+      cooldownMs: 0,
+      saturatedP95Ms: 20,
+      fetchImpl: server(() => ({ ms: 40 })),
+    });
+    expect(saturated.usable).toBe(false);
+    expect(saturated.warnings.join(' ')).toContain('bão hoà');
+  });
+
+  it('cảnh báo khi có timeout, vì p99 lúc đó là trần của client', async () => {
+    const result = await runComparison('https://api.test', arms, 2, {
+      cooldownMs: 0,
+      timeoutMs: 40,
+      fetchImpl: server((key) => ({ ms: key === 'kB' ? 200 : 5 })),
+    });
+    expect(result.usable).toBe(false);
+    expect(result.warnings.join(' ')).toContain('timeout');
+  });
+
+  it('cảnh báo khi cacheHits lệch nhau giữa hai nhánh', async () => {
+    const result = await runComparison('https://api.test', arms, 5, {
+      cooldownMs: 0,
+      fetchImpl: server((key) => ({ ms: 5, cacheHit: key === 'kB' })),
+    });
+    expect(result.usable).toBe(false);
+    expect(result.warnings.join(' ')).toContain('cacheHits');
+  });
+
+  it('warm mồi mọi nhánh trước rồi mới đo, và chờ cache lắng', async () => {
+    /** @type {number[]} */
+    const waits = [];
+    let calls = 0;
+    await runComparison('https://api.test', arms, 2, {
+      cache: 'warm',
+      cooldownMs: 65_000,
+      sleepImpl: async (ms) => {
+        waits.push(ms);
+      },
+      fetchImpl: /** @type {typeof fetch} */ (
+        /** @type {unknown} */ (
+          async () => {
+            calls += 1;
+            return new Response('{}', { status: 200 });
+          }
+        )
+      ),
+    });
+    // 2 lượt mồi + 2 nhánh × 2 request
+    expect(calls).toBe(6);
+    // Chờ cache lắng trước, rồi mới tới cooldown giữa hai nhánh.
+    expect(waits).toEqual([1_500, 65_000]);
   });
 });
