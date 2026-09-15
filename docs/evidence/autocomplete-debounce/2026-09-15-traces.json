@@ -1,0 +1,2337 @@
+{
+  "recordedAt": "2026-09-15T04:00:47.032Z",
+  "device": "iphone 14",
+  "keyboard": "Gboard tiếng việt",
+  "typist": "Phong",
+  "note": "Ghi từ trình duyệt trên điện thoại, không phải TextInput của React Native. Bàn phím này không phát compositionstart/compositionend cho tiếng Việt Latin — chỉ có sự kiện input.",
+  "traces": [
+    {
+      "id": "poi-ben-thanh",
+      "group": "poi",
+      "target": "Chợ Bến Thành",
+      "events": [
+        {
+          "t": 0,
+          "type": "input",
+          "value": "C"
+        },
+        {
+          "t": 841,
+          "type": "input",
+          "value": "Ch"
+        },
+        {
+          "t": 1084,
+          "type": "input",
+          "value": "Cho"
+        },
+        {
+          "t": 1994,
+          "type": "input",
+          "value": "Ch"
+        },
+        {
+          "t": 1995,
+          "type": "input",
+          "value": "Chơ"
+        },
+        {
+          "t": 2269,
+          "type": "input",
+          "value": "Ch"
+        },
+        {
+          "t": 2271,
+          "type": "input",
+          "value": "Chợ"
+        },
+        {
+          "t": 2755,
+          "type": "input",
+          "value": "Chợ "
+        },
+        {
+          "t": 3674,
+          "type": "input",
+          "value": "Chợ B"
+        },
+        {
+          "t": 3848,
+          "type": "input",
+          "value": "Chợ Be"
+        },
+        {
+          "t": 4286,
+          "type": "input",
+          "value": "Chợ Ben"
+        },
+        {
+          "t": 4972,
+          "type": "input",
+          "value": "Chợ Be"
+        },
+        {
+          "t": 4976,
+          "type": "input",
+          "value": "Chợ B"
+        },
+        {
+          "t": 4978,
+          "type": "input",
+          "value": "Chợ Bên"
+        },
+        {
+          "t": 5124,
+          "type": "input",
+          "value": "Chợ Bê"
+        },
+        {
+          "t": 5126,
+          "type": "input",
+          "value": "Chợ B"
+        },
+        {
+          "t": 5128,
+          "type": "input",
+          "value": "Chợ Bến"
+        },
+        {
+          "t": 5727,
+          "type": "input",
+          "value": "Chợ Bến "
+        },
+        {
+          "t": 6420,
+          "type": "input",
+          "value": "Chợ Bến T"
+        },
+        {
+          "t": 6945,
+          "type": "input",
+          "value": "Chợ Bến Th"
+        },
+        {
+          "t": 7244,
+          "type": "input",
+          "value": "Chợ Bến Tha"
+        },
+        {
+          "t": 7644,
+          "type": "input",
+          "value": "Chợ Bến Than"
+        },
+        {
+          "t": 7915,
+          "type": "input",
+          "value": "Chợ Bến Thanh"
+        },
+        {
+          "t": 8255,
+          "type": "input",
+          "value": "Chợ Bến Than"
+        },
+        {
+          "t": 8258,
+          "type": "input",
+          "value": "Chợ Bến Tha"
+        },
+        {
+          "t": 8259,
+          "type": "input",
+          "value": "Chợ Bến Th"
+        },
+        {
+          "t": 8261,
+          "type": "input",
+          "value": "Chợ Bến Thành"
+        }
+      ]
+    },
+    {
+      "id": "poi-highlands",
+      "group": "poi",
+      "target": "Highlands Coffee",
+      "events": [
+        {
+          "t": 0,
+          "type": "input",
+          "value": "H"
+        },
+        {
+          "t": 832,
+          "type": "input",
+          "value": "Hi"
+        },
+        {
+          "t": 1242,
+          "type": "input",
+          "value": "Hig"
+        },
+        {
+          "t": 1438,
+          "type": "input",
+          "value": "High"
+        },
+        {
+          "t": 1641,
+          "type": "input",
+          "value": "Hight"
+        },
+        {
+          "t": 2067,
+          "type": "input",
+          "value": "Hightl"
+        },
+        {
+          "t": 2267,
+          "type": "input",
+          "value": "Hightla"
+        },
+        {
+          "t": 2424,
+          "type": "input",
+          "value": "Hightlan"
+        },
+        {
+          "t": 2875,
+          "type": "input",
+          "value": "Hightland"
+        },
+        {
+          "t": 3334,
+          "type": "input",
+          "value": "Hightlands"
+        },
+        {
+          "t": 3735,
+          "type": "input",
+          "value": "Hightlands "
+        },
+        {
+          "t": 4298,
+          "type": "input",
+          "value": "Hightlands C"
+        },
+        {
+          "t": 4599,
+          "type": "input",
+          "value": "Hightlands Co"
+        },
+        {
+          "t": 4856,
+          "type": "input",
+          "value": "Hightlands Cof"
+        },
+        {
+          "t": 5062,
+          "type": "input",
+          "value": "Hightlands Coff"
+        },
+        {
+          "t": 5274,
+          "type": "input",
+          "value": "Hightlands Coffe"
+        },
+        {
+          "t": 5939,
+          "type": "input",
+          "value": "Hightlands Coffee"
+        }
+      ]
+    },
+    {
+      "id": "poi-cho-ray",
+      "group": "poi",
+      "target": "Bệnh viện Chợ Rẫy",
+      "events": [
+        {
+          "t": 0,
+          "type": "input",
+          "value": "B"
+        },
+        {
+          "t": 718,
+          "type": "input",
+          "value": "Be"
+        },
+        {
+          "t": 935,
+          "type": "input",
+          "value": "Ben"
+        },
+        {
+          "t": 1150,
+          "type": "input",
+          "value": "Benh"
+        },
+        {
+          "t": 1310,
+          "type": "input",
+          "value": "Ben"
+        },
+        {
+          "t": 1314,
+          "type": "input",
+          "value": "Be"
+        },
+        {
+          "t": 1316,
+          "type": "input",
+          "value": "B"
+        },
+        {
+          "t": 1317,
+          "type": "input",
+          "value": "Bênh"
+        },
+        {
+          "t": 1520,
+          "type": "input",
+          "value": "Bên"
+        },
+        {
+          "t": 1521,
+          "type": "input",
+          "value": "Bê"
+        },
+        {
+          "t": 1522,
+          "type": "input",
+          "value": "B"
+        },
+        {
+          "t": 1525,
+          "type": "input",
+          "value": "Bệnh"
+        },
+        {
+          "t": 1829,
+          "type": "input",
+          "value": "Bệnh "
+        },
+        {
+          "t": 2256,
+          "type": "input",
+          "value": "Bệnh v"
+        },
+        {
+          "t": 2334,
+          "type": "input",
+          "value": "Bệnh vi"
+        },
+        {
+          "t": 2450,
+          "type": "input",
+          "value": "Bệnh vie"
+        },
+        {
+          "t": 2543,
+          "type": "input",
+          "value": "Bệnh vien"
+        },
+        {
+          "t": 2769,
+          "type": "input",
+          "value": "Bệnh vie"
+        },
+        {
+          "t": 2771,
+          "type": "input",
+          "value": "Bệnh vi"
+        },
+        {
+          "t": 2772,
+          "type": "input",
+          "value": "Bệnh viên"
+        },
+        {
+          "t": 3126,
+          "type": "input",
+          "value": "Bệnh viê"
+        },
+        {
+          "t": 3128,
+          "type": "input",
+          "value": "Bệnh vi"
+        },
+        {
+          "t": 3129,
+          "type": "input",
+          "value": "Bệnh viện"
+        },
+        {
+          "t": 3448,
+          "type": "input",
+          "value": "Bệnh viện "
+        },
+        {
+          "t": 3965,
+          "type": "input",
+          "value": "Bệnh viện C"
+        },
+        {
+          "t": 4223,
+          "type": "input",
+          "value": "Bệnh viện Ch"
+        },
+        {
+          "t": 4439,
+          "type": "input",
+          "value": "Bệnh viện Cho"
+        },
+        {
+          "t": 4717,
+          "type": "input",
+          "value": "Bệnh viện Ch"
+        },
+        {
+          "t": 4719,
+          "type": "input",
+          "value": "Bệnh viện Chơ"
+        },
+        {
+          "t": 5018,
+          "type": "input",
+          "value": "Bệnh viện Ch"
+        },
+        {
+          "t": 5023,
+          "type": "input",
+          "value": "Bệnh viện Chợ"
+        },
+        {
+          "t": 5468,
+          "type": "input",
+          "value": "Bệnh viện Chợ "
+        },
+        {
+          "t": 6416,
+          "type": "input",
+          "value": "Bệnh viện Chợ R"
+        },
+        {
+          "t": 6701,
+          "type": "input",
+          "value": "Bệnh viện Chợ Ra"
+        },
+        {
+          "t": 6955,
+          "type": "input",
+          "value": "Bệnh viện Chợ Ray"
+        },
+        {
+          "t": 7126,
+          "type": "input",
+          "value": "Bệnh viện Chợ Ra"
+        },
+        {
+          "t": 7128,
+          "type": "input",
+          "value": "Bệnh viện Chợ R"
+        },
+        {
+          "t": 7130,
+          "type": "input",
+          "value": "Bệnh viện Chợ Rây"
+        },
+        {
+          "t": 7418,
+          "type": "input",
+          "value": "Bệnh viện Chợ Râ"
+        },
+        {
+          "t": 7423,
+          "type": "input",
+          "value": "Bệnh viện Chợ R"
+        },
+        {
+          "t": 7425,
+          "type": "input",
+          "value": "Bệnh viện Chợ Rẫy"
+        }
+      ]
+    },
+    {
+      "id": "addr-nguyen-hue",
+      "group": "address",
+      "target": "123 Nguyễn Huệ",
+      "events": [
+        {
+          "t": 0,
+          "type": "input",
+          "value": "1"
+        },
+        {
+          "t": 316,
+          "type": "input",
+          "value": "12"
+        },
+        {
+          "t": 705,
+          "type": "input",
+          "value": "123"
+        },
+        {
+          "t": 1067,
+          "type": "input",
+          "value": "123n"
+        },
+        {
+          "t": 1757,
+          "type": "input",
+          "value": "123"
+        },
+        {
+          "t": 2012,
+          "type": "input",
+          "value": "123 "
+        },
+        {
+          "t": 2634,
+          "type": "input",
+          "value": "123 N"
+        },
+        {
+          "t": 2845,
+          "type": "input",
+          "value": "123 Ng"
+        },
+        {
+          "t": 2955,
+          "type": "input",
+          "value": "123 Ngu"
+        },
+        {
+          "t": 3029,
+          "type": "input",
+          "value": "123 Nguy"
+        },
+        {
+          "t": 3196,
+          "type": "input",
+          "value": "123 Nguye"
+        },
+        {
+          "t": 3518,
+          "type": "input",
+          "value": "123 Nguyen"
+        },
+        {
+          "t": 3808,
+          "type": "input",
+          "value": "123 Nguye"
+        },
+        {
+          "t": 3809,
+          "type": "input",
+          "value": "123 Nguy"
+        },
+        {
+          "t": 3810,
+          "type": "input",
+          "value": "123 Nguyên"
+        },
+        {
+          "t": 4412,
+          "type": "input",
+          "value": "123 Nguyê"
+        },
+        {
+          "t": 4414,
+          "type": "input",
+          "value": "123 Nguy"
+        },
+        {
+          "t": 4415,
+          "type": "input",
+          "value": "123 Nguyễn"
+        },
+        {
+          "t": 4567,
+          "type": "input",
+          "value": "123 Nguyễn "
+        },
+        {
+          "t": 4846,
+          "type": "input",
+          "value": "123 Nguyễn a"
+        },
+        {
+          "t": 4929,
+          "type": "input",
+          "value": "123 Nguyễn ae"
+        },
+        {
+          "t": 5028,
+          "type": "input",
+          "value": "123 Nguyễn aed"
+        },
+        {
+          "t": 5335,
+          "type": "input",
+          "value": "123 Nguyễn ae"
+        },
+        {
+          "t": 5563,
+          "type": "input",
+          "value": "123 Nguyễn a"
+        },
+        {
+          "t": 5896,
+          "type": "input",
+          "value": "123 Nguyễn "
+        },
+        {
+          "t": 6313,
+          "type": "input",
+          "value": "123 Nguyễn H"
+        },
+        {
+          "t": 6513,
+          "type": "input",
+          "value": "123 Nguyễn Hu"
+        },
+        {
+          "t": 6863,
+          "type": "input",
+          "value": "123 Nguyễn Hu6"
+        },
+        {
+          "t": 7113,
+          "type": "input",
+          "value": "123 Nguyễn Hu6e"
+        },
+        {
+          "t": 7485,
+          "type": "input",
+          "value": "123 Nguyễn Hu6"
+        },
+        {
+          "t": 7639,
+          "type": "input",
+          "value": "123 Nguyễn Hu"
+        },
+        {
+          "t": 7817,
+          "type": "input",
+          "value": "123 Nguyễn Hue"
+        },
+        {
+          "t": 8121,
+          "type": "input",
+          "value": "123 Nguyễn Hu"
+        },
+        {
+          "t": 8123,
+          "type": "input",
+          "value": "123 Nguyễn Huê"
+        },
+        {
+          "t": 8546,
+          "type": "input",
+          "value": "123 Nguyễn Hu"
+        },
+        {
+          "t": 8548,
+          "type": "input",
+          "value": "123 Nguyễn Huệ"
+        }
+      ]
+    },
+    {
+      "id": "addr-le-loi",
+      "group": "address",
+      "target": "45 Lê Lợi Quận 1",
+      "events": [
+        {
+          "t": 0,
+          "type": "input",
+          "value": "4"
+        },
+        {
+          "t": 336,
+          "type": "input",
+          "value": "45"
+        },
+        {
+          "t": 712,
+          "type": "input",
+          "value": "45 "
+        },
+        {
+          "t": 1234,
+          "type": "input",
+          "value": "45 L"
+        },
+        {
+          "t": 1458,
+          "type": "input",
+          "value": "45 Le"
+        },
+        {
+          "t": 1879,
+          "type": "input",
+          "value": "45 L"
+        },
+        {
+          "t": 1883,
+          "type": "input",
+          "value": "45 Lê"
+        },
+        {
+          "t": 2496,
+          "type": "input",
+          "value": "45 Lê "
+        },
+        {
+          "t": 2777,
+          "type": "input",
+          "value": "45 Lê L"
+        },
+        {
+          "t": 3057,
+          "type": "input",
+          "value": "45 Lê Lo"
+        },
+        {
+          "t": 3145,
+          "type": "input",
+          "value": "45 Lê Loi"
+        },
+        {
+          "t": 3449,
+          "type": "input",
+          "value": "45 Lê Lo"
+        },
+        {
+          "t": 3450,
+          "type": "input",
+          "value": "45 Lê L"
+        },
+        {
+          "t": 3451,
+          "type": "input",
+          "value": "45 Lê Lơi"
+        },
+        {
+          "t": 3810,
+          "type": "input",
+          "value": "45 Lê Lơ"
+        },
+        {
+          "t": 3811,
+          "type": "input",
+          "value": "45 Lê L"
+        },
+        {
+          "t": 3817,
+          "type": "input",
+          "value": "45 Lê Lợi"
+        },
+        {
+          "t": 4254,
+          "type": "input",
+          "value": "45 Lê Lợi "
+        },
+        {
+          "t": 4919,
+          "type": "input",
+          "value": "45 Lê Lợi Q"
+        },
+        {
+          "t": 5069,
+          "type": "input",
+          "value": "45 Lê Lợi Qu"
+        },
+        {
+          "t": 5234,
+          "type": "input",
+          "value": "45 Lê Lợi Qua"
+        },
+        {
+          "t": 5376,
+          "type": "input",
+          "value": "45 Lê Lợi Quan"
+        },
+        {
+          "t": 5558,
+          "type": "input",
+          "value": "45 Lê Lợi Qua"
+        },
+        {
+          "t": 5560,
+          "type": "input",
+          "value": "45 Lê Lợi Qu"
+        },
+        {
+          "t": 5562,
+          "type": "input",
+          "value": "45 Lê Lợi Quân"
+        },
+        {
+          "t": 5759,
+          "type": "input",
+          "value": "45 Lê Lợi Quâ"
+        },
+        {
+          "t": 5761,
+          "type": "input",
+          "value": "45 Lê Lợi Qu"
+        },
+        {
+          "t": 5763,
+          "type": "input",
+          "value": "45 Lê Lợi Quận"
+        },
+        {
+          "t": 6001,
+          "type": "input",
+          "value": "45 Lê Lợi Quận "
+        },
+        {
+          "t": 6421,
+          "type": "input",
+          "value": "45 Lê Lợi Quận 1"
+        }
+      ]
+    },
+    {
+      "id": "cat-ca-phe",
+      "group": "category",
+      "target": "quán cà phê",
+      "events": [
+        {
+          "t": 0,
+          "type": "input",
+          "value": "q"
+        },
+        {
+          "t": 98,
+          "type": "input",
+          "value": "qu"
+        },
+        {
+          "t": 257,
+          "type": "input",
+          "value": "qua"
+        },
+        {
+          "t": 357,
+          "type": "input",
+          "value": "quan"
+        },
+        {
+          "t": 442,
+          "type": "input",
+          "value": "qua"
+        },
+        {
+          "t": 443,
+          "type": "input",
+          "value": "qu"
+        },
+        {
+          "t": 444,
+          "type": "input",
+          "value": "quán"
+        },
+        {
+          "t": 580,
+          "type": "input",
+          "value": "quán "
+        },
+        {
+          "t": 980,
+          "type": "input",
+          "value": "quán c"
+        },
+        {
+          "t": 1204,
+          "type": "input",
+          "value": "quán ca"
+        },
+        {
+          "t": 1491,
+          "type": "input",
+          "value": "quán c"
+        },
+        {
+          "t": 1495,
+          "type": "input",
+          "value": "quán cà"
+        },
+        {
+          "t": 2107,
+          "type": "input",
+          "value": "quán cà "
+        },
+        {
+          "t": 2430,
+          "type": "input",
+          "value": "quán cà p"
+        },
+        {
+          "t": 2549,
+          "type": "input",
+          "value": "quán cà ph"
+        },
+        {
+          "t": 2774,
+          "type": "input",
+          "value": "quán cà phe"
+        },
+        {
+          "t": 2914,
+          "type": "input",
+          "value": "quán cà ph"
+        },
+        {
+          "t": 2915,
+          "type": "input",
+          "value": "quán cà phê"
+        }
+      ]
+    },
+    {
+      "id": "cat-cay-xang",
+      "group": "category",
+      "target": "cây xăng gần đây",
+      "events": [
+        {
+          "t": 0,
+          "type": "input",
+          "value": "c"
+        },
+        {
+          "t": 213,
+          "type": "input",
+          "value": "ca"
+        },
+        {
+          "t": 477,
+          "type": "input",
+          "value": "cay"
+        },
+        {
+          "t": 709,
+          "type": "input",
+          "value": "ca"
+        },
+        {
+          "t": 711,
+          "type": "input",
+          "value": "c"
+        },
+        {
+          "t": 711,
+          "type": "input",
+          "value": "cây"
+        },
+        {
+          "t": 1155,
+          "type": "input",
+          "value": "cây "
+        },
+        {
+          "t": 1461,
+          "type": "input",
+          "value": "cây x"
+        },
+        {
+          "t": 1677,
+          "type": "input",
+          "value": "cây xa"
+        },
+        {
+          "t": 1967,
+          "type": "input",
+          "value": "cây xan"
+        },
+        {
+          "t": 2149,
+          "type": "input",
+          "value": "cây xang"
+        },
+        {
+          "t": 2284,
+          "type": "input",
+          "value": "cây xan"
+        },
+        {
+          "t": 2285,
+          "type": "input",
+          "value": "cây xa"
+        },
+        {
+          "t": 2286,
+          "type": "input",
+          "value": "cây x"
+        },
+        {
+          "t": 2289,
+          "type": "input",
+          "value": "cây xăng"
+        },
+        {
+          "t": 2977,
+          "type": "input",
+          "value": "cây xăng "
+        },
+        {
+          "t": 3384,
+          "type": "input",
+          "value": "cây xăng g"
+        },
+        {
+          "t": 3480,
+          "type": "input",
+          "value": "cây xăng ga"
+        },
+        {
+          "t": 3559,
+          "type": "input",
+          "value": "cây xăng gan"
+        },
+        {
+          "t": 3879,
+          "type": "input",
+          "value": "cây xăng ga"
+        },
+        {
+          "t": 3884,
+          "type": "input",
+          "value": "cây xăng g"
+        },
+        {
+          "t": 3886,
+          "type": "input",
+          "value": "cây xăng gân"
+        },
+        {
+          "t": 4170,
+          "type": "input",
+          "value": "cây xăng gâ"
+        },
+        {
+          "t": 4172,
+          "type": "input",
+          "value": "cây xăng g"
+        },
+        {
+          "t": 4176,
+          "type": "input",
+          "value": "cây xăng gần"
+        },
+        {
+          "t": 4393,
+          "type": "input",
+          "value": "cây xăng gần "
+        },
+        {
+          "t": 4603,
+          "type": "input",
+          "value": "cây xăng gần d"
+        },
+        {
+          "t": 4813,
+          "type": "input",
+          "value": "cây xăng gần d0"
+        },
+        {
+          "t": 5467,
+          "type": "input",
+          "value": "cây xăng gần d0a"
+        },
+        {
+          "t": 5875,
+          "type": "input",
+          "value": "cây xăng gần d0"
+        },
+        {
+          "t": 6059,
+          "type": "input",
+          "value": "cây xăng gần d"
+        },
+        {
+          "t": 6334,
+          "type": "input",
+          "value": "cây xăng gần "
+        },
+        {
+          "t": 6692,
+          "type": "input",
+          "value": "cây xăng gần d"
+        },
+        {
+          "t": 6954,
+          "type": "input",
+          "value": "cây xăng gần "
+        },
+        {
+          "t": 6957,
+          "type": "input",
+          "value": "cây xăng gần đ"
+        },
+        {
+          "t": 7209,
+          "type": "input",
+          "value": "cây xăng gần đa"
+        },
+        {
+          "t": 7362,
+          "type": "input",
+          "value": "cây xăng gần đay"
+        },
+        {
+          "t": 7599,
+          "type": "input",
+          "value": "cây xăng gần đa"
+        },
+        {
+          "t": 7602,
+          "type": "input",
+          "value": "cây xăng gần đ"
+        },
+        {
+          "t": 7603,
+          "type": "input",
+          "value": "cây xăng gần đây"
+        }
+      ]
+    },
+    {
+      "id": "route-from-bach-khoa",
+      "group": "route",
+      "target": "Đại học Bách Khoa",
+      "events": [
+        {
+          "t": 0,
+          "type": "input",
+          "value": "D"
+        },
+        {
+          "t": 288,
+          "type": "input",
+          "value": ""
+        },
+        {
+          "t": 289,
+          "type": "input",
+          "value": "Đ"
+        },
+        {
+          "t": 498,
+          "type": "input",
+          "value": "Đa"
+        },
+        {
+          "t": 721,
+          "type": "input",
+          "value": "Đai"
+        },
+        {
+          "t": 1105,
+          "type": "input",
+          "value": "Đa"
+        },
+        {
+          "t": 1108,
+          "type": "input",
+          "value": "Đ"
+        },
+        {
+          "t": 1110,
+          "type": "input",
+          "value": "Đại"
+        },
+        {
+          "t": 1527,
+          "type": "input",
+          "value": "Đại "
+        },
+        {
+          "t": 1876,
+          "type": "input",
+          "value": "Đại h"
+        },
+        {
+          "t": 2013,
+          "type": "input",
+          "value": "Đại ho"
+        },
+        {
+          "t": 2271,
+          "type": "input",
+          "value": "Đại hoc"
+        },
+        {
+          "t": 2766,
+          "type": "input",
+          "value": "Đại ho"
+        },
+        {
+          "t": 2768,
+          "type": "input",
+          "value": "Đại h"
+        },
+        {
+          "t": 2769,
+          "type": "input",
+          "value": "Đại học"
+        },
+        {
+          "t": 3238,
+          "type": "input",
+          "value": "Đại học "
+        },
+        {
+          "t": 3651,
+          "type": "input",
+          "value": "Đại học B"
+        },
+        {
+          "t": 3881,
+          "type": "input",
+          "value": "Đại học Ba"
+        },
+        {
+          "t": 4238,
+          "type": "input",
+          "value": "Đại học Bac"
+        },
+        {
+          "t": 4472,
+          "type": "input",
+          "value": "Đại học Bach"
+        },
+        {
+          "t": 4688,
+          "type": "input",
+          "value": "Đại học Bac"
+        },
+        {
+          "t": 4690,
+          "type": "input",
+          "value": "Đại học Ba"
+        },
+        {
+          "t": 4691,
+          "type": "input",
+          "value": "Đại học B"
+        },
+        {
+          "t": 4692,
+          "type": "input",
+          "value": "Đại học Bách"
+        },
+        {
+          "t": 4905,
+          "type": "input",
+          "value": "Đại học Bách "
+        },
+        {
+          "t": 5443,
+          "type": "input",
+          "value": "Đại học Bách k"
+        },
+        {
+          "t": 5811,
+          "type": "input",
+          "value": "Đại học Bách kh"
+        },
+        {
+          "t": 6032,
+          "type": "input",
+          "value": "Đại học Bách kho"
+        },
+        {
+          "t": 6580,
+          "type": "input",
+          "value": "Đại học Bách kh"
+        },
+        {
+          "t": 6749,
+          "type": "input",
+          "value": "Đại học Bách k"
+        },
+        {
+          "t": 6942,
+          "type": "input",
+          "value": "Đại học Bách "
+        },
+        {
+          "t": 7435,
+          "type": "input",
+          "value": "Đại học Bách K"
+        },
+        {
+          "t": 7975,
+          "type": "input",
+          "value": "Đại học Bách Kh"
+        },
+        {
+          "t": 8100,
+          "type": "input",
+          "value": "Đại học Bách Kho"
+        },
+        {
+          "t": 8464,
+          "type": "input",
+          "value": "Đại học Bách Khoa"
+        }
+      ]
+    },
+    {
+      "id": "route-to-tan-son-nhat",
+      "group": "route",
+      "target": "Sân bay Tân Sơn Nhất",
+      "events": [
+        {
+          "t": 0,
+          "type": "input",
+          "value": "S"
+        },
+        {
+          "t": 193,
+          "type": "input",
+          "value": "Sa"
+        },
+        {
+          "t": 359,
+          "type": "input",
+          "value": "San"
+        },
+        {
+          "t": 629,
+          "type": "input",
+          "value": "Sa"
+        },
+        {
+          "t": 630,
+          "type": "input",
+          "value": "S"
+        },
+        {
+          "t": 631,
+          "type": "input",
+          "value": "Sân"
+        },
+        {
+          "t": 897,
+          "type": "input",
+          "value": "Sân "
+        },
+        {
+          "t": 1036,
+          "type": "input",
+          "value": "Sân b"
+        },
+        {
+          "t": 1202,
+          "type": "input",
+          "value": "Sân ba"
+        },
+        {
+          "t": 1428,
+          "type": "input",
+          "value": "Sân bay"
+        },
+        {
+          "t": 1839,
+          "type": "input",
+          "value": "Sân bay "
+        },
+        {
+          "t": 2222,
+          "type": "input",
+          "value": "Sân bay T"
+        },
+        {
+          "t": 2785,
+          "type": "input",
+          "value": "Sân bay Ta"
+        },
+        {
+          "t": 3097,
+          "type": "input",
+          "value": "Sân bay Tan"
+        },
+        {
+          "t": 3388,
+          "type": "input",
+          "value": "Sân bay Ta"
+        },
+        {
+          "t": 3393,
+          "type": "input",
+          "value": "Sân bay T"
+        },
+        {
+          "t": 3395,
+          "type": "input",
+          "value": "Sân bay Tân"
+        },
+        {
+          "t": 3771,
+          "type": "input",
+          "value": "Sân bay Tân "
+        },
+        {
+          "t": 4126,
+          "type": "input",
+          "value": "Sân bay Tân S"
+        },
+        {
+          "t": 4327,
+          "type": "input",
+          "value": "Sân bay Tân So"
+        },
+        {
+          "t": 4730,
+          "type": "input",
+          "value": "Sân bay Tân Son"
+        },
+        {
+          "t": 5706,
+          "type": "input",
+          "value": "Sân bay Tân So"
+        },
+        {
+          "t": 5710,
+          "type": "input",
+          "value": "Sân bay Tân S"
+        },
+        {
+          "t": 5712,
+          "type": "input",
+          "value": "Sân bay Tân Sơn"
+        },
+        {
+          "t": 5928,
+          "type": "input",
+          "value": "Sân bay Tân Sơn "
+        },
+        {
+          "t": 6354,
+          "type": "input",
+          "value": "Sân bay Tân Sơn N"
+        },
+        {
+          "t": 6613,
+          "type": "input",
+          "value": "Sân bay Tân Sơn Nh"
+        },
+        {
+          "t": 7159,
+          "type": "input",
+          "value": "Sân bay Tân Sơn Nha"
+        },
+        {
+          "t": 7897,
+          "type": "input",
+          "value": "Sân bay Tân Sơn Nhat"
+        },
+        {
+          "t": 8117,
+          "type": "input",
+          "value": "Sân bay Tân Sơn Nha"
+        },
+        {
+          "t": 8119,
+          "type": "input",
+          "value": "Sân bay Tân Sơn Nh"
+        },
+        {
+          "t": 8120,
+          "type": "input",
+          "value": "Sân bay Tân Sơn Nhât"
+        },
+        {
+          "t": 8263,
+          "type": "input",
+          "value": "Sân bay Tân Sơn Nhâ"
+        },
+        {
+          "t": 8268,
+          "type": "input",
+          "value": "Sân bay Tân Sơn Nh"
+        },
+        {
+          "t": 8270,
+          "type": "input",
+          "value": "Sân bay Tân Sơn Nhất"
+        }
+      ]
+    },
+    {
+      "id": "fix-ben-thanh",
+      "group": "fix",
+      "target": "Chợ Bến Thành",
+      "events": [
+        {
+          "t": 0,
+          "type": "input",
+          "value": "C"
+        },
+        {
+          "t": 616,
+          "type": "input",
+          "value": "Ch"
+        },
+        {
+          "t": 865,
+          "type": "input",
+          "value": "Cho"
+        },
+        {
+          "t": 1315,
+          "type": "input",
+          "value": "Ch"
+        },
+        {
+          "t": 1317,
+          "type": "input",
+          "value": "Chơ"
+        },
+        {
+          "t": 1656,
+          "type": "input",
+          "value": "Ch"
+        },
+        {
+          "t": 1658,
+          "type": "input",
+          "value": "Chợ"
+        },
+        {
+          "t": 1944,
+          "type": "input",
+          "value": "Chợ "
+        },
+        {
+          "t": 2564,
+          "type": "input",
+          "value": "Chợ B"
+        },
+        {
+          "t": 2807,
+          "type": "input",
+          "value": "Chợ Be"
+        },
+        {
+          "t": 2952,
+          "type": "input",
+          "value": "Chợ Ben"
+        },
+        {
+          "t": 3205,
+          "type": "input",
+          "value": "Chợ Be"
+        },
+        {
+          "t": 3207,
+          "type": "input",
+          "value": "Chợ B"
+        },
+        {
+          "t": 3212,
+          "type": "input",
+          "value": "Chợ Bên"
+        },
+        {
+          "t": 3514,
+          "type": "input",
+          "value": "Chợ Bê"
+        },
+        {
+          "t": 3517,
+          "type": "input",
+          "value": "Chợ B"
+        },
+        {
+          "t": 3520,
+          "type": "input",
+          "value": "Chợ Bến"
+        },
+        {
+          "t": 3859,
+          "type": "input",
+          "value": "Chợ Bến "
+        },
+        {
+          "t": 4398,
+          "type": "input",
+          "value": "Chợ Bến T"
+        },
+        {
+          "t": 4654,
+          "type": "input",
+          "value": "Chợ Bến Th"
+        },
+        {
+          "t": 4958,
+          "type": "input",
+          "value": "Chợ Bến Tha"
+        },
+        {
+          "t": 5164,
+          "type": "input",
+          "value": "Chợ Bến Than"
+        },
+        {
+          "t": 5415,
+          "type": "input",
+          "value": "Chợ Bến Thanh"
+        },
+        {
+          "t": 5602,
+          "type": "input",
+          "value": "Chợ Bến Than"
+        },
+        {
+          "t": 5605,
+          "type": "input",
+          "value": "Chợ Bến Tha"
+        },
+        {
+          "t": 5606,
+          "type": "input",
+          "value": "Chợ Bến Th"
+        },
+        {
+          "t": 5607,
+          "type": "input",
+          "value": "Chợ Bến Thành"
+        },
+        {
+          "t": 8890,
+          "type": "input",
+          "value": "Chợ Bến Thàn"
+        },
+        {
+          "t": 9082,
+          "type": "input",
+          "value": "Chợ Bến Thà"
+        },
+        {
+          "t": 9244,
+          "type": "input",
+          "value": "Chợ Bến Th"
+        },
+        {
+          "t": 9430,
+          "type": "input",
+          "value": "Chợ Bến T"
+        },
+        {
+          "t": 9712,
+          "type": "input",
+          "value": "Chợ Bến "
+        },
+        {
+          "t": 12366,
+          "type": "input",
+          "value": "Chợ Bến T"
+        },
+        {
+          "t": 12490,
+          "type": "input",
+          "value": "Chợ Bến Th"
+        },
+        {
+          "t": 12590,
+          "type": "input",
+          "value": "Chợ Bến Tha"
+        },
+        {
+          "t": 12709,
+          "type": "input",
+          "value": "Chợ Bến Than"
+        },
+        {
+          "t": 12804,
+          "type": "input",
+          "value": "Chợ Bến Thanh"
+        },
+        {
+          "t": 12982,
+          "type": "input",
+          "value": "Chợ Bến Than"
+        },
+        {
+          "t": 12984,
+          "type": "input",
+          "value": "Chợ Bến Tha"
+        },
+        {
+          "t": 12986,
+          "type": "input",
+          "value": "Chợ Bến Th"
+        },
+        {
+          "t": 12988,
+          "type": "input",
+          "value": "Chợ Bến Thành"
+        }
+      ]
+    },
+    {
+      "id": "fix-highlands",
+      "group": "fix",
+      "target": "Highlands Coffee",
+      "events": [
+        {
+          "t": 0,
+          "type": "input",
+          "value": "G"
+        },
+        {
+          "t": 797,
+          "type": "input",
+          "value": ""
+        },
+        {
+          "t": 1469,
+          "type": "input",
+          "value": "H"
+        },
+        {
+          "t": 1740,
+          "type": "input",
+          "value": "Hi"
+        },
+        {
+          "t": 2018,
+          "type": "input",
+          "value": "Hig"
+        },
+        {
+          "t": 2680,
+          "type": "input",
+          "value": "High"
+        },
+        {
+          "t": 3238,
+          "type": "input",
+          "value": "Highl"
+        },
+        {
+          "t": 3394,
+          "type": "input",
+          "value": "Highla"
+        },
+        {
+          "t": 3511,
+          "type": "input",
+          "value": "Highlan"
+        },
+        {
+          "t": 3651,
+          "type": "input",
+          "value": "Highland"
+        },
+        {
+          "t": 4204,
+          "type": "input",
+          "value": "Highlands"
+        },
+        {
+          "t": 5158,
+          "type": "input",
+          "value": "Highlands "
+        },
+        {
+          "t": 5502,
+          "type": "input",
+          "value": "Highlands c"
+        },
+        {
+          "t": 5815,
+          "type": "input",
+          "value": "Highlands co"
+        },
+        {
+          "t": 6175,
+          "type": "input",
+          "value": "Highlands c"
+        },
+        {
+          "t": 6350,
+          "type": "input",
+          "value": "Highlands "
+        },
+        {
+          "t": 6728,
+          "type": "input",
+          "value": "Highlands C"
+        },
+        {
+          "t": 6880,
+          "type": "input",
+          "value": "Highlands Co"
+        },
+        {
+          "t": 7064,
+          "type": "input",
+          "value": "Highlands Cof"
+        },
+        {
+          "t": 7235,
+          "type": "input",
+          "value": "Highlands Coff"
+        },
+        {
+          "t": 7530,
+          "type": "input",
+          "value": "Highlands Coffe"
+        },
+        {
+          "t": 7672,
+          "type": "input",
+          "value": "Highlands Coffee"
+        }
+      ]
+    },
+    {
+      "id": "fix-nguyen-hue",
+      "group": "fix",
+      "target": "123 Nguyễn Huệ",
+      "events": [
+        {
+          "t": 0,
+          "type": "input",
+          "value": "1"
+        },
+        {
+          "t": 275,
+          "type": "input",
+          "value": "12"
+        },
+        {
+          "t": 567,
+          "type": "input",
+          "value": "123"
+        },
+        {
+          "t": 1009,
+          "type": "input",
+          "value": "1233"
+        },
+        {
+          "t": 1754,
+          "type": "input",
+          "value": "123"
+        },
+        {
+          "t": 2303,
+          "type": "input",
+          "value": "123 "
+        },
+        {
+          "t": 2640,
+          "type": "input",
+          "value": "123 N"
+        },
+        {
+          "t": 2803,
+          "type": "input",
+          "value": "123 Ng"
+        },
+        {
+          "t": 2959,
+          "type": "input",
+          "value": "123 Ngu"
+        },
+        {
+          "t": 3029,
+          "type": "input",
+          "value": "123 Nguy"
+        },
+        {
+          "t": 3439,
+          "type": "input",
+          "value": "123 Nguye"
+        },
+        {
+          "t": 3603,
+          "type": "input",
+          "value": "123 Nguyen"
+        },
+        {
+          "t": 3815,
+          "type": "input",
+          "value": "123 Nguye"
+        },
+        {
+          "t": 3818,
+          "type": "input",
+          "value": "123 Nguy"
+        },
+        {
+          "t": 3819,
+          "type": "input",
+          "value": "123 Nguyên"
+        },
+        {
+          "t": 4154,
+          "type": "input",
+          "value": "123 Nguyê"
+        },
+        {
+          "t": 4155,
+          "type": "input",
+          "value": "123 Nguy"
+        },
+        {
+          "t": 4156,
+          "type": "input",
+          "value": "123 Nguyễn"
+        },
+        {
+          "t": 4544,
+          "type": "input",
+          "value": "123 Nguyễn "
+        },
+        {
+          "t": 5282,
+          "type": "input",
+          "value": "123 Nguyễn H"
+        },
+        {
+          "t": 5623,
+          "type": "input",
+          "value": "123 Nguyễn Hu"
+        },
+        {
+          "t": 5811,
+          "type": "input",
+          "value": "123 Nguyễn Hue"
+        },
+        {
+          "t": 5983,
+          "type": "input",
+          "value": "123 Nguyễn Hu"
+        },
+        {
+          "t": 5985,
+          "type": "input",
+          "value": "123 Nguyễn Huê"
+        },
+        {
+          "t": 6323,
+          "type": "input",
+          "value": "123 Nguyễn Huêc"
+        },
+        {
+          "t": 6813,
+          "type": "input",
+          "value": "123 Nguyễn Huê"
+        },
+        {
+          "t": 7413,
+          "type": "input",
+          "value": "123 Nguyễn Hu"
+        },
+        {
+          "t": 7418,
+          "type": "input",
+          "value": "123 Nguyễn Huệ"
+        }
+      ]
+    },
+    {
+      "id": "fix-ca-phe",
+      "group": "fix",
+      "target": "quán cà phê",
+      "events": [
+        {
+          "t": 0,
+          "type": "input",
+          "value": "q"
+        },
+        {
+          "t": 148,
+          "type": "input",
+          "value": "qu"
+        },
+        {
+          "t": 277,
+          "type": "input",
+          "value": "qua"
+        },
+        {
+          "t": 462,
+          "type": "input",
+          "value": "quan"
+        },
+        {
+          "t": 898,
+          "type": "input",
+          "value": "qua"
+        },
+        {
+          "t": 899,
+          "type": "input",
+          "value": "qu"
+        },
+        {
+          "t": 901,
+          "type": "input",
+          "value": "quán"
+        },
+        {
+          "t": 1432,
+          "type": "input",
+          "value": "quán "
+        },
+        {
+          "t": 1655,
+          "type": "input",
+          "value": "quán c"
+        },
+        {
+          "t": 1890,
+          "type": "input",
+          "value": "quán ca"
+        },
+        {
+          "t": 2148,
+          "type": "input",
+          "value": "quán c"
+        },
+        {
+          "t": 2149,
+          "type": "input",
+          "value": "quán cà"
+        },
+        {
+          "t": 2798,
+          "type": "input",
+          "value": "quán cà "
+        },
+        {
+          "t": 3373,
+          "type": "input",
+          "value": "quán cà"
+        },
+        {
+          "t": 3573,
+          "type": "input",
+          "value": "quán càa"
+        },
+        {
+          "t": 4006,
+          "type": "input",
+          "value": "quán cà"
+        },
+        {
+          "t": 4008,
+          "type": "input",
+          "value": "quán càà"
+        },
+        {
+          "t": 4283,
+          "type": "input",
+          "value": "quán cà"
+        },
+        {
+          "t": 4615,
+          "type": "input",
+          "value": "quán c"
+        },
+        {
+          "t": 5070,
+          "type": "input",
+          "value": "quán ca"
+        },
+        {
+          "t": 5316,
+          "type": "input",
+          "value": "quán c"
+        },
+        {
+          "t": 5318,
+          "type": "input",
+          "value": "quán cà"
+        },
+        {
+          "t": 5498,
+          "type": "input",
+          "value": "quán c"
+        },
+        {
+          "t": 5500,
+          "type": "input",
+          "value": "quán ca"
+        },
+        {
+          "t": 5501,
+          "type": "input",
+          "value": "quán ca2"
+        },
+        {
+          "t": 5992,
+          "type": "input",
+          "value": "quán ca"
+        },
+        {
+          "t": 6514,
+          "type": "input",
+          "value": "quán c"
+        },
+        {
+          "t": 6516,
+          "type": "input",
+          "value": "quán cà"
+        },
+        {
+          "t": 6823,
+          "type": "input",
+          "value": "quán cà "
+        },
+        {
+          "t": 7105,
+          "type": "input",
+          "value": "quán cà p"
+        },
+        {
+          "t": 7290,
+          "type": "input",
+          "value": "quán cà ph"
+        },
+        {
+          "t": 7454,
+          "type": "input",
+          "value": "quán cà phe"
+        },
+        {
+          "t": 7604,
+          "type": "input",
+          "value": "quán cà ph"
+        },
+        {
+          "t": 7606,
+          "type": "input",
+          "value": "quán cà phê"
+        }
+      ]
+    },
+    {
+      "id": "fix-tan-son-nhat",
+      "group": "fix",
+      "target": "Sân bay Tân Sơn Nhất",
+      "events": [
+        {
+          "t": 0,
+          "type": "input",
+          "value": "S"
+        },
+        {
+          "t": 278,
+          "type": "input",
+          "value": "Sa"
+        },
+        {
+          "t": 512,
+          "type": "input",
+          "value": "San"
+        },
+        {
+          "t": 755,
+          "type": "input",
+          "value": "Sa"
+        },
+        {
+          "t": 757,
+          "type": "input",
+          "value": "S"
+        },
+        {
+          "t": 758,
+          "type": "input",
+          "value": "Sân"
+        },
+        {
+          "t": 1165,
+          "type": "input",
+          "value": "Sân "
+        },
+        {
+          "t": 1881,
+          "type": "input",
+          "value": "Sân b"
+        },
+        {
+          "t": 2135,
+          "type": "input",
+          "value": "Sân ba"
+        },
+        {
+          "t": 2353,
+          "type": "input",
+          "value": "Sân bay"
+        },
+        {
+          "t": 2643,
+          "type": "input",
+          "value": "Sân bay "
+        },
+        {
+          "t": 3247,
+          "type": "input",
+          "value": "Sân bay T"
+        },
+        {
+          "t": 3472,
+          "type": "input",
+          "value": "Sân bay Ta"
+        },
+        {
+          "t": 4051,
+          "type": "input",
+          "value": "Sân bay Tan"
+        },
+        {
+          "t": 4297,
+          "type": "input",
+          "value": "Sân bay Ta"
+        },
+        {
+          "t": 4299,
+          "type": "input",
+          "value": "Sân bay T"
+        },
+        {
+          "t": 4301,
+          "type": "input",
+          "value": "Sân bay Tân"
+        },
+        {
+          "t": 4817,
+          "type": "input",
+          "value": "Sân bay Tâ"
+        },
+        {
+          "t": 4819,
+          "type": "input",
+          "value": "Sân bay T"
+        },
+        {
+          "t": 4819,
+          "type": "input",
+          "value": "Sân bay Tan"
+        },
+        {
+          "t": 4820,
+          "type": "input",
+          "value": "Sân bay Tan6"
+        },
+        {
+          "t": 5257,
+          "type": "input",
+          "value": "Sân bay Tan"
+        },
+        {
+          "t": 6450,
+          "type": "input",
+          "value": "Sân bay Ta"
+        },
+        {
+          "t": 6452,
+          "type": "input",
+          "value": "Sân bay T"
+        },
+        {
+          "t": 6453,
+          "type": "input",
+          "value": "Sân bay Tân"
+        },
+        {
+          "t": 6845,
+          "type": "input",
+          "value": "Sân bay Tân "
+        },
+        {
+          "t": 7332,
+          "type": "input",
+          "value": "Sân bay Tân S"
+        },
+        {
+          "t": 7515,
+          "type": "input",
+          "value": "Sân bay Tân So"
+        },
+        {
+          "t": 7872,
+          "type": "input",
+          "value": "Sân bay Tân S"
+        },
+        {
+          "t": 7876,
+          "type": "input",
+          "value": "Sân bay Tân Sơ"
+        },
+        {
+          "t": 8108,
+          "type": "input",
+          "value": "Sân bay Tân Sơn"
+        },
+        {
+          "t": 8481,
+          "type": "input",
+          "value": "Sân bay Tân Sơn "
+        },
+        {
+          "t": 9044,
+          "type": "input",
+          "value": "Sân bay Tân Sơn N"
+        },
+        {
+          "t": 9251,
+          "type": "input",
+          "value": "Sân bay Tân Sơn Nh"
+        },
+        {
+          "t": 9393,
+          "type": "input",
+          "value": "Sân bay Tân Sơn Nha"
+        },
+        {
+          "t": 9718,
+          "type": "input",
+          "value": "Sân bay Tân Sơn Nhat"
+        },
+        {
+          "t": 9845,
+          "type": "input",
+          "value": "Sân bay Tân Sơn Nha"
+        },
+        {
+          "t": 9847,
+          "type": "input",
+          "value": "Sân bay Tân Sơn Nh"
+        },
+        {
+          "t": 9848,
+          "type": "input",
+          "value": "Sân bay Tân Sơn Nhât"
+        },
+        {
+          "t": 10262,
+          "type": "input",
+          "value": "Sân bay Tân Sơn Nhâ"
+        },
+        {
+          "t": 10264,
+          "type": "input",
+          "value": "Sân bay Tân Sơn Nh"
+        },
+        {
+          "t": 10266,
+          "type": "input",
+          "value": "Sân bay Tân Sơn Nhất"
+        }
+      ]
+    }
+  ]
+}
