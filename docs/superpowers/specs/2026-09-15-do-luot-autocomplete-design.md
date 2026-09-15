@@ -85,9 +85,9 @@ logic rồi đo chính bản dựng lại đó thì không nói lên điều gì
 Mỗi lượt được phân loại thêm: **khớp chuỗi cuối cùng** hay **chuỗi dở dang rồi bị bỏ**. Phân loại này
 suy ra được từ trace nên không tốn công đo thêm, và chính nó là phần lãng phí.
 
-Tệp chạy trong `pnpm test` và đối chiếu với `docs/evidence/autocomplete-debounce/2026-09-15-counts.json`
-(xem mục 7) — tệp đó vừa là kết quả đo, vừa là mốc đối chiếu. Về sau ai sửa debounce làm số lượt
-đổi thì test đỏ ngay.
+Tệp chạy trong `pnpm test` và đối chiếu với bảng số đã chốt ngay trong chính tệp test, theo đúng
+cách `scripts/admin-alias-fixtures.test.mjs` ghim hash và kích thước. Về sau ai sửa debounce làm
+số lượt đổi thì test đỏ ngay.
 
 ## 6. Thay đổi SDK trong phạm vi bước này
 
@@ -109,7 +109,9 @@ giá trị debounce mặc định của bất kỳ gói nào.
 Theo khuôn `docs/evidence/capacity/`. Thư mục `docs/evidence/autocomplete-debounce/`:
 
 - `2026-09-15-traces.json` — trace thô, kèm thiết bị, bàn phím và người gõ.
-- `2026-09-15-counts.json` — bảng số lượt theo (kịch bản × gói × mức debounce), kèm phân loại dở dang.
+- `2026-09-15-counts-react.json`, `-react-native.json`, `-web.json` — bảng số lượt theo
+  (kịch bản × mức debounce), kèm phân loại dở dang. Tách ba tệp vì mỗi gói có một tệp phát lại
+  riêng chạy độc lập; gộp một tệp thì ba tệp test chạy song song sẽ ghi đè lẫn nhau.
 - `2026-09-15-do-luot-autocomplete.md` — kết luận và giới hạn.
 
 ## 8. Giới hạn, ghi thẳng vào kết luận
