@@ -306,6 +306,17 @@ export class QuotaObject extends DurableObject<Env> {
     return receipt;
   }
 
+  /**
+   * Vòng gọi RPC KHÔNG chạm storage. Chỉ để chẩn đoán, bật bằng var `QUOTA_PROBE`.
+   *
+   * Tách bạch hai nguyên nhân mà số tổng không phân biệt được: nếu `ping` cũng tốn ~250 ms thì
+   * chi phí nằm ở đường mạng tới object; nếu `ping` vài mili-giây mà `reserve`/`prepare` vẫn
+   * ~250 ms thì chi phí nằm ở việc chờ ghi bền vững, và đổi vị trí object sẽ không cứu được.
+   */
+  async ping(): Promise<number> {
+    return Date.now();
+  }
+
   async readUsage(): Promise<UsageSnapshot> {
     const entitlement = this.entitlement();
     if (!entitlement) return { ...emptyUsage(), maintenance: this.maintenance() };

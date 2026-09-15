@@ -1,4 +1,5 @@
 import { type Context, Hono } from 'hono';
+import { quotaObject } from '../billing/object';
 import type { EntitlementCommand, JournalEntry, SnapshotPage } from '../billing/types';
 import { getSql } from '../db';
 import type { AppEnv, Env } from '../env';
@@ -125,7 +126,7 @@ export function billingAdmin(dependencies: BillingAdminDependencies = {}) {
 
   routes.get('/v1/admin/billing/:tenantId/usage', async (c) => {
     const tenantId = c.req.param('tenantId');
-    const object = c.env.QUOTA.get(c.env.QUOTA.idFromName(tenantId));
+    const object = quotaObject(c.env, tenantId);
     const usage = await object.readUsage();
     return c.json(usage, 200, { 'cache-control': 'private, no-store' });
   });
@@ -150,7 +151,7 @@ export function billingAdmin(dependencies: BillingAdminDependencies = {}) {
     try {
       const receipt = dependencies.applyCommand
         ? await dependencies.applyCommand(tenantId, command, c.env)
-        : await c.env.QUOTA.get(c.env.QUOTA.idFromName(tenantId)).applyCommand(command);
+        : await quotaObject(c.env, tenantId).applyCommand(command);
       return c.json(receipt, 200, { 'cache-control': 'private, no-store' });
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
@@ -174,7 +175,7 @@ export function billingAdmin(dependencies: BillingAdminDependencies = {}) {
       return c.json({ error: { code: 'invalid_unlock' } }, 400);
     }
     const tenantId = c.req.param('tenantId') as string;
-    const object = c.env.QUOTA.get(c.env.QUOTA.idFromName(tenantId));
+    const object = quotaObject(c.env, tenantId);
     try {
       const receipt = await object.unlockMissingAcks(
         body.operationId,
@@ -234,7 +235,7 @@ export function billingAdmin(dependencies: BillingAdminDependencies = {}) {
       const existing = await sql<{ key_hash: string }[]>`SELECT key_hash FROM api_key
         WHERE tenant_id=${tenantId}::uuid AND key_hash=${keyHash}`;
       if (existing.length === 0) return c.json({ error: { code: 'key_not_found' } }, 404);
-      const object = c.env.QUOTA.get(c.env.QUOTA.idFromName(tenantId));
+      const object = quotaObject(c.env, tenantId);
       const applyToObject = () =>
         object.setKeyRevoked(keyHash, revoked, operationId, c.get('reviewer') ?? '', reason);
       const updateDatabase = async () => {
@@ -269,10 +270,7 @@ export function billingAdmin(dependencies: BillingAdminDependencies = {}) {
 
   const quota = (c: Context<AppEnv>): QuotaBackupPort => {
     const tenantId = c.req.param('tenantId') as string;
-    return (
-      dependencies.quotaBackup?.(tenantId, c.env) ??
-      c.env.QUOTA.get(c.env.QUOTA.idFromName(tenantId))
-    );
+    return dependencies.quotaBackup?.(tenantId, c.env) ?? quotaObject(c.env, tenantId);
   };
 
   // Sao lưu/phục hồi nằm dưới tiền tố riêng để CHỈ MỘT middleware canh được cả nhóm; thêm route

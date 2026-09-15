@@ -12,6 +12,7 @@
     "build": "turbo run build",
     "deploy:api": "pnpm build && pnpm --filter @mapslibvn/api exec wrangler deploy --env production",
     "deploy:api:open-commercial": "pnpm build && pnpm --filter @mapslibvn/api exec wrangler deploy --env production --var COMMERCIAL_ADMISSION:1",
+    "deploy:api:probe": "pnpm build && pnpm --filter @mapslibvn/api exec wrangler deploy --env production --var COMMERCIAL_ADMISSION:1 --var QUOTA_PROBE:1",
     "deploy:docs": "pnpm build && pnpm --filter @mapslibvn/docs exec wrangler pages deploy dist --project-name mapslibvn-docs",
     "lint": "biome check .",
     "lint:fix": "biome check --write .",

@@ -1,5 +1,6 @@
 import type { Context, Next } from 'hono';
 import type { AuthInfo } from './auth';
+import { quotaObject } from './billing/object';
 import type { ReserveResult, SettlementReceipt } from './billing/types';
 import type { AppEnv, Env } from './env';
 import { ApiError } from './errors';
@@ -206,7 +207,11 @@ async function commercialQuota(
   // này. Nhân đôi ở đây chỉ tạo hai bản thông điệp phải giữ đồng bộ, mà nhánh dưới không bao giờ
   // chạy tới trong production. Hàm này chỉ lo phần ĐO ĐẾM.
   const requestId = crypto.randomUUID();
-  const object = c.env.QUOTA.get(c.env.QUOTA.idFromName(auth.tenantId));
+  const object = quotaObject(c.env, auth.tenantId);
+  // Chỉ chạy khi đang đo. Nó cộng một vòng mạng, nên để bật mặc định là tự làm chậm production.
+  if (c.env.QUOTA_PROBE === '1') {
+    await timed(c, 'ping', () => object.ping()).catch(() => 0);
+  }
   const reservation = await timed(c, 'reserve', () =>
     quotaRpc(
       () => object.reserve(requestId, group, auth.keyHash) as unknown as Promise<ReserveResult>,

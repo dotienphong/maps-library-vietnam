@@ -14,6 +14,11 @@ export interface Env {
   QUOTA_ENABLED?: string;
   /** Cổng độc lập để commercial fail closed trong lúc rollout/rollback. */
   COMMERCIAL_ADMISSION?: string;
+  /**
+   * '1' = thêm một vòng gọi `ping()` không chạm storage vào mỗi request thương mại, để tách
+   * chi phí mạng khỏi chi phí ghi bền vững. CHỈ bật trong lượt đo: nó cộng đúng một vòng mạng.
+   */
+  QUOTA_PROBE?: string;
   /** Trần request đồng thời mỗi tenant. Bỏ trống = mốc đã đo (50 Places / 16 directions). */
   MAX_INFLIGHT_PLACES?: string;
   MAX_INFLIGHT_DIRECTIONS?: string;

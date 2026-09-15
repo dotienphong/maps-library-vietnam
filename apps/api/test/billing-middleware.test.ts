@@ -273,4 +273,15 @@ describe('commercial quota middleware', () => {
     expect(response.status).toBe(404);
     expect(response.headers.get('server-timing')).toBeNull();
   });
+
+  it('chỉ thêm vòng gọi ping khi QUOTA_PROBE bật', async () => {
+    const { app } = await fixture(200);
+    const off = await app.request('https://api.test/fixture', {}, env);
+    expect(off.headers.get('server-timing') ?? '').not.toContain('ping;');
+
+    const on = await app.request('https://api.test/fixture', {}, { ...env, QUOTA_PROBE: '1' });
+    // Một vòng mạng cộng thêm cho mỗi request: chỉ chấp nhận được trong lượt đo, không phải
+    // mặc định của production.
+    expect(on.headers.get('server-timing') ?? '').toMatch(/ping;dur=\d+/);
+  });
 });

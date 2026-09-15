@@ -1,5 +1,6 @@
 import { Hono } from 'hono';
 import { requireAuth } from '../auth';
+import { quotaObject } from '../billing/object';
 import type { AppEnv } from '../env';
 import { ApiError } from '../errors';
 import { burstLimiterFor, enforceBurstLimit } from '../quota';
@@ -30,7 +31,7 @@ quotaReceipts.post(
     if (typeof token !== 'string' || token.length === 0 || token.length > 512) {
       throw new ApiError(400, 'invalid_receipt', 'Receipt ACK không hợp lệ');
     }
-    const object = c.env.QUOTA.get(c.env.QUOTA.idFromName(auth.tenantId));
+    const object = quotaObject(c.env, auth.tenantId);
     const requestId = c.req.param('requestId');
     if (!requestId) throw new ApiError(400, 'invalid_receipt', 'Receipt ACK không hợp lệ');
     try {

@@ -1,4 +1,5 @@
 import type { Context, Next } from 'hono';
+import { quotaObject } from './billing/object';
 import { getSql } from './db';
 import { sha256Hex } from './edits/hash';
 import type { AppEnv } from './env';
@@ -206,7 +207,7 @@ async function validateCommercialAuth(
   // 15/09/2026: ~126 ms, đúng bằng một phần ba tổng chi phí quota. Mặc định vẫn kiểm ở đây, để
   // route mới quên khai báo thì chậm chứ không hở.
   if (deferRevocation) return info;
-  const object = c.env.QUOTA.get(c.env.QUOTA.idFromName(info.tenantId));
+  const object = quotaObject(c.env, info.tenantId);
   if (await timed(c, 'revoke', () => object.isKeyRevoked(info.keyHash))) return null;
   return info;
 }
