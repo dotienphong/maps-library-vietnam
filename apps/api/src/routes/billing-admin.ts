@@ -163,6 +163,34 @@ export function billingAdmin(dependencies: BillingAdminDependencies = {}) {
     }
   });
 
+  /**
+   * Mở sớm khoá `ack_required`. Cửa sổ trượt 24 giờ tự mở, nhưng khi nguyên nhân đã rõ và đã sửa
+   * — ví dụ một công cụ vận hành gọi API rồi quên ACK — bắt tenant chờ hết 24 giờ là phạt nhầm
+   * người. Có operationId nên gọi lại không mở hai lần, và có audit ai mở vì lý do gì.
+   */
+  routes.post('/v1/admin/billing/:tenantId/missing-acks/unlock', async (c) => {
+    const body = await readSmallJson(c.req.raw);
+    if (!body || typeof body.operationId !== 'string' || typeof body.reason !== 'string') {
+      return c.json({ error: { code: 'invalid_unlock' } }, 400);
+    }
+    const tenantId = c.req.param('tenantId') as string;
+    const object = c.env.QUOTA.get(c.env.QUOTA.idFromName(tenantId));
+    try {
+      const receipt = await object.unlockMissingAcks(
+        body.operationId,
+        c.get('reviewer') ?? '',
+        body.reason,
+      );
+      return c.json(receipt, 200, { 'cache-control': 'private, no-store' });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      if (message === 'invalid_unlock') return c.json({ error: { code: message } }, 400);
+      if (message === 'operation_conflict') return c.json({ error: { code: message } }, 409);
+      console.error('billing unlock', error);
+      return c.json({ error: { code: 'upstream_unavailable' } }, 503);
+    }
+  });
+
   routes.post('/v1/admin/billing/:tenantId/mode', async (c) => {
     const tenantId = c.req.param('tenantId');
     const body = await readSmallJson(c.req.raw);

@@ -222,4 +222,29 @@ describe('billing admin routes', () => {
       expect([code, response.status]).toEqual([code, status]);
     }
   });
+
+  it('mở sớm khoá ack_required, và chỉ người có quyền quản trị thuê bao mới mở được', async () => {
+    const anonymous = await request(appFor(), `/v1/admin/billing/${tenantId}/missing-acks/unlock`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ operationId: crypto.randomUUID(), reason: 'cong cu quen ACK' }),
+    });
+    expect(anonymous.status).toBe(401);
+
+    const app = appFor({ email: 'billing@test.local' });
+    const response = await request(app, `/v1/admin/billing/${tenantId}/missing-acks/unlock`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ operationId: crypto.randomUUID(), reason: 'cong cu quen ACK' }),
+    });
+    expect(response.status).toBe(200);
+    expect(await response.json()).toHaveProperty('unlocked');
+
+    const malformed = await request(app, `/v1/admin/billing/${tenantId}/missing-acks/unlock`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ reason: 'thiếu operationId' }),
+    });
+    expect(malformed.status).toBe(400);
+  });
 });
