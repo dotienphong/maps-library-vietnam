@@ -113,7 +113,10 @@ describe('MapsLibVNAutocomplete — vùng hành chính', () => {
     await vi.advanceTimersByTimeAsync(200);
 
     expect(createClientMock).not.toHaveBeenCalled();
-    expect(mapAutocomplete).toHaveBeenCalledWith('high', { near: [10.77, 106.7] });
+    expect(mapAutocomplete).toHaveBeenCalledWith(
+      'high',
+      expect.objectContaining({ near: [10.77, 106.7], signal: expect.any(AbortSignal) }),
+    );
     expect(element.shadowRoot?.querySelector('li')?.textContent).toContain(poi.name);
   });
 
@@ -149,7 +152,10 @@ describe('MapsLibVNAutocomplete — vùng hành chính', () => {
     input.value = 'new query';
     input.dispatchEvent(new Event('input', { bubbles: true }));
     await vi.advanceTimersByTimeAsync(200);
-    expect(newAutocomplete).toHaveBeenCalledWith('new query', { near: [11, 107] });
+    expect(newAutocomplete).toHaveBeenCalledWith(
+      'new query',
+      expect.objectContaining({ near: [11, 107], signal: expect.any(AbortSignal) }),
+    );
     expect(element.shadowRoot?.querySelector('li')?.textContent).toContain(area.name);
 
     resolveOld?.({ items: [poi] });
@@ -317,5 +323,64 @@ describe('MapsLibVNAutocomplete — attribute debounce', () => {
     input.dispatchEvent(new Event('input', { bubbles: true }));
     await vi.advanceTimersByTimeAsync(200);
     expect(autocomplete).toHaveBeenCalledTimes(2);
+  });
+});
+
+describe('MapsLibVNAutocomplete — huỷ request cũ ở mạng', () => {
+  beforeEach(() => vi.useFakeTimers());
+  afterEach(() => {
+    vi.useRealTimers();
+    autocomplete.mockReset();
+    document.body.replaceChildren();
+  });
+
+  function mount() {
+    const element = new MapsLibVNAutocomplete();
+    element.setAttribute('api-key', 'mlv_test');
+    element.setAttribute('api-base', 'https://api.test');
+    document.body.append(element);
+    const input = element.shadowRoot?.querySelector('input');
+    if (!input) throw new Error('không dựng được input');
+    return input;
+  }
+
+  function typeInto(input: HTMLInputElement, value: string) {
+    input.value = value;
+    input.dispatchEvent(new Event('input', { bubbles: true }));
+  }
+
+  it('request cũ bị huỷ ở mạng khi gõ tiếp trước khi nó xong', async () => {
+    const signals: AbortSignal[] = [];
+    autocomplete.mockImplementation((_q: string, opts: { signal?: AbortSignal }) => {
+      if (opts?.signal) signals.push(opts.signal);
+      return new Promise(() => {});
+    });
+    const input = mount();
+    typeInto(input, 'ben thanh');
+    await vi.advanceTimersByTimeAsync(200);
+    expect(signals).toHaveLength(1);
+    expect(signals[0]?.aborted).toBe(false);
+
+    typeInto(input, 'ben thanh q1');
+    await vi.advanceTimersByTimeAsync(200);
+    expect(signals).toHaveLength(2);
+    expect(signals[0]?.aborted).toBe(true);
+    expect(signals[1]?.aborted).toBe(false);
+  });
+
+  it('Escape huỷ request đang chờ ở mạng', async () => {
+    const signals: AbortSignal[] = [];
+    autocomplete.mockImplementation((_q: string, opts: { signal?: AbortSignal }) => {
+      if (opts?.signal) signals.push(opts.signal);
+      return new Promise(() => {});
+    });
+    const input = mount();
+    typeInto(input, 'ben thanh');
+    await vi.advanceTimersByTimeAsync(200);
+    expect(signals).toHaveLength(1);
+    expect(signals[0]?.aborted).toBe(false);
+
+    input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+    expect(signals[0]?.aborted).toBe(true);
   });
 });

@@ -70,7 +70,7 @@ export class MapsLibVNAutocomplete extends ElementBase {
     if (value === this.#map) return;
     this.#map = value;
     clearTimeout(this.#timer);
-    this.#seq++;
+    this.#cancelPending();
     this.#render([]);
   }
 
@@ -81,6 +81,7 @@ export class MapsLibVNAutocomplete extends ElementBase {
   #items: AutocompleteItem[] = [];
   #timer: ReturnType<typeof setTimeout> | undefined;
   #seq = 0;
+  #abortController: AbortController | undefined;
   #activeIndex = -1;
   #listId = `mapslibvn-autocomplete-${++instanceId}`;
 
@@ -101,7 +102,7 @@ export class MapsLibVNAutocomplete extends ElementBase {
 
   disconnectedCallback() {
     clearTimeout(this.#timer);
-    this.#seq++;
+    this.#cancelPending();
     this.#input?.removeEventListener('input', this.#onInput);
     this.#input?.removeEventListener('keydown', this.#onKeydown);
     this.#input?.removeEventListener('blur', this.#onBlur);
@@ -114,7 +115,7 @@ export class MapsLibVNAutocomplete extends ElementBase {
   attributeChangedCallback(name: string) {
     if (name === 'api-key' || name === 'api-base' || name === 'sources') {
       this.#client = null;
-      this.#seq++;
+      this.#cancelPending();
     }
     if (name === 'placeholder' && this.#input)
       this.#input.placeholder = this.getAttribute('placeholder') ?? 'Tìm địa điểm…';
@@ -122,10 +123,10 @@ export class MapsLibVNAutocomplete extends ElementBase {
 
   #onInput = () => {
     clearTimeout(this.#timer);
-    this.#seq++;
+    this.#cancelPending();
     const value = this.#input?.value ?? '';
     if (value.trim().length < 2) {
-      this.#seq++;
+      this.#cancelPending();
       this.#render([]);
       this.#announce('');
       return;
@@ -135,14 +136,14 @@ export class MapsLibVNAutocomplete extends ElementBase {
   };
 
   #onBlur = () => {
-    this.#seq++;
+    this.#cancelPending();
     this.#timer = setTimeout(() => this.#render([]), 150);
   };
 
   #onKeydown = (event: KeyboardEvent) => {
     if (event.key === 'Escape') {
       clearTimeout(this.#timer);
-      this.#seq++;
+      this.#cancelPending();
       this.#render([]);
       return;
     }
@@ -202,6 +203,12 @@ export class MapsLibVNAutocomplete extends ElementBase {
     return value;
   }
 
+  /** Vô hiệu hoá truy vấn đang chờ: tăng seq (che kết quả trễ) và huỷ request đang bay ra mạng. */
+  #cancelPending(): void {
+    this.#seq++;
+    this.#abortController?.abort();
+  }
+
   #near(): [number, number] | undefined {
     if (this.#map) {
       const center = this.#map.gl.getCenter();
@@ -224,9 +231,14 @@ export class MapsLibVNAutocomplete extends ElementBase {
       return;
     }
     const seq = ++this.#seq;
+    const controller = new AbortController();
+    this.#abortController = controller;
     try {
       const near = this.#near();
-      const { items } = await client.autocomplete(query, near ? { near } : {});
+      const { items } = await client.autocomplete(query, {
+        ...(near ? { near } : {}),
+        signal: controller.signal,
+      });
       if (seq !== this.#seq) return;
       this.#render(items);
       this.#announce(items.length > 0 ? `Có ${items.length} kết quả.` : 'Không tìm thấy kết quả.');
