@@ -43,6 +43,12 @@ GRANT USAGE, SELECT ON SEQUENCE poi_edit_id_seq TO api;
 GRANT SELECT, UPDATE ON poi_edit TO pipeline;
 GRANT SELECT ON admin_area, admin_area_old, admin_alias, street, alley, address_anchor TO api;
 GRANT SELECT ON tenant, api_key TO api, pipeline;
+-- Hai quyền ghi DUY NHẤT của Worker ngoài poi_edit, cấp theo cột (0015 và 0016). Thiếu chúng thì
+-- route đổi quota_mode và route thu hồi khoá trả upstream_unavailable — mà chỉ lộ ra trên máy chủ
+-- thật, vì test nối DB bằng role chủ sở hữu. pg_restore bỏ hết privilege nên phải có ở đây,
+-- không chỉ trong migration.
+GRANT UPDATE (quota_mode) ON tenant TO api;
+GRANT UPDATE (active, revoked_at) ON api_key TO api;
 
 -- M4 (0006): hàm SECURITY DEFINER phải thuộc pipeline — nếu rơi về superuser sau restore thì
 -- Worker ghi poi với quyền superuser. PUBLIC bị thu hồi, chỉ api được EXECUTE.

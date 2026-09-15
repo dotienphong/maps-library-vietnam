@@ -133,6 +133,22 @@ describe('lược đồ spec 5.2', () => {
     expect(owner.tableowner).toBe('pipeline');
   });
 
+  it('0015/0016: api được UPDATE đúng ba cột, không thừa không thiếu', async () => {
+    // Danh sách khớp chính xác, cả hai chiều. Thiếu một dòng nghĩa là một route quản trị sẽ trả
+    // upstream_unavailable trên máy chủ thật (sự cố 15/09/2026: thu hồi khoá đổ vì 0005 chỉ cấp
+    // SELECT trên api_key). Thừa một dòng nghĩa là Worker ghi được cột lẽ ra không được đụng.
+    // Test API không bắt được nhóm lỗi này vì nó nối DB bằng role chủ sở hữu, không phải `api`.
+    const updates =
+      await sql`SELECT table_name, column_name FROM information_schema.column_privileges
+      WHERE grantee = 'api' AND table_schema = 'public' AND privilege_type = 'UPDATE'
+      ORDER BY table_name, column_name`;
+    expect(updates.map((row) => `${row.table_name}.${row.column_name}`)).toEqual([
+      'api_key.active',
+      'api_key.revoked_at',
+      'tenant.quota_mode',
+    ]);
+  });
+
   it('0007: pg_trgm.word_similarity_threshold = 0.5 ở cấp database, phiên mới đọc được', async () => {
     const [setting] = await sql`SELECT setconfig FROM pg_db_role_setting
       WHERE setdatabase = (SELECT oid FROM pg_database WHERE datname = current_database())
