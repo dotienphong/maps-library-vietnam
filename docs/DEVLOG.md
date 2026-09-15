@@ -5,6 +5,17 @@ commit với code).
 
 ## 1. Trạng thái hiện tại
 
+- **15/09/2026 — Huỷ request autocomplete cũ ở tầng mạng bằng AbortController.** Theo
+  [kết luận đo debounce](evidence/autocomplete-debounce/2026-09-15-do-luot-autocomplete.md)
+  (94% lượt ở 200 ms là dở dang nhưng vẫn tốn tiền thật, vì "huỷ" cũ chỉ bỏ qua kết quả ở client).
+  `client.autocomplete()` nhận thêm `signal?: AbortSignal` (cộng thêm, không đổi chữ ký cũ);
+  `usePlaces()` (react + react-native) và `<mapslibvn-autocomplete>` tự tạo và huỷ
+  `AbortController` tại mọi chỗ đã có sẵn logic vô hiệu hoá truy vấn cũ — web component gom 7 chỗ
+  `#seq++` thành helper `#cancelPending()`. Không lộ API mới cho người dùng hook/element.
+  `pnpm test` 1468 bài xanh (+8 bài mới), typecheck 14/14. Không đổi
+  `search`/`nearby`/`geocode`/`reverse`/`directions`, không đổi giá trị debounce mặc định, chưa
+  bump version SDK.
+
 - **15/09/2026 — Đo số lượt Places của autocomplete theo mức debounce, kết luận trong
   [evidence](evidence/autocomplete-debounce/2026-09-15-do-luot-autocomplete.md).** 14 trace gõ
   tìm kiếm tiếng Việt ghi từ điện thoại thật (iPhone 14, Gboard tiếng Việt), phát lại qua mã thật

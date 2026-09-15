@@ -151,11 +151,13 @@ Tham số của `opts` khớp một-một với query string của endpoint tư�
 
 | Phương thức | `opts` |
 |---|---|
-| `autocomplete` | `near`, `limit`, `types` |
+| `autocomplete` | `near`, `limit`, `types`, `signal` |
 | `search` | `category`, `near`, `radius`, `bbox`, `limit`, `offset` |
 | `nearby` | `lat`, `lng` (bắt buộc), `radius`, `category`, `limit` |
 | `geocode` | `near`, `limit` |
 | `directions` | `from`, `to` (bắt buộc, `[lat, lng]`), `via`, `mode`, `lang`, `alternatives` |
+
+`signal` là `AbortSignal` phía client để huỷ request đang bay — không giống các trường còn lại trong bảng, nó không phải tham số gửi lên server và không xuất hiện trong query string. `usePlaces()` và `<mapslibvn-autocomplete>` tự quản lý `AbortController` bên trong nên không cần tự truyền; chỉ cần đến nó khi gọi thẳng `client.autocomplete()`.
 
 Lưu ý về thứ tự toạ độ: `near` là `[lat, lng]` (**vĩ độ trước**, đúng như tham số `near` của API), còn `bbox` là `[minLng, minLat, maxLng, maxLat]` và `center` của bản đồ là `[lng, lat]`. Tham số `undefined` bị bỏ khỏi URL, nên client không tự áp mặc định nào — mặc định do máy chủ quyết định, xem [REST API](/api/) mục 4.
 
