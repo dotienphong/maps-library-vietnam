@@ -315,7 +315,11 @@ docs/evidence/billing/2026-09-15-quota-rollout.md, DEVLOG.md.
   hoặc payment chưa xây. Phân biệt rate-limit theo edge với quota thương mại theo tenant.
 - [x] Fixture đo warm/cold, hit/miss, một tenant nóng/nhiều tenant; giữ pace không vướng burst
   trong đo overhead quota, có lượt đo riêng chứng minh burst còn hoạt động. Đo A/B cùng dữ liệu.
-- [ ] **CHỜ PHONG — chưa có tenant commercial nên không đo được, và không suy ra thay.**
+- [ ] **MỘT NỬA 15/09.** ĐÃ CÓ: p50/p95/p99 và errors trên production, chi phí quota tách theo
+  từng vòng gọi bằng `Server-Timing`, và nguyên nhân độ trễ đã truy tới gốc (object đặt sai chỗ;
+  `locationHint: apac-se` đưa một vòng gọi từ ~280 ms xuống ~50–76 ms). CÒN THIẾU: reservation
+  backlog, CPU/storage/request counts, và chi phí tiền theo giá Cloudflare chính thức — chưa mở
+  Usage/Billing lần nào. Còn ~208 ms chênh giữa đo đầu-cuối và tổng `Server-Timing` chưa giải thích.
   Lưu p50/p95/p99, errors, reservation backlog, CPU/storage/request counts; tính chi phí
   theo giá Cloudflare chính thức tại thời điểm đo, gồm rows/index/delete/alarm/duration/storage,
   backup và outcome recovery. Giới hạn Free là toàn account, không mỗi tenant. Không suy RPS từ
@@ -327,9 +331,14 @@ pnpm lint
 pnpm test
 git diff --check
 ```
-- [ ] **CHỜ PHONG.** Smoke staging commercial tenant: trial hết ngày/tổng/thời hạn, paid hết nhóm, credits,
+- [ ] **MỘT NỬA 15/09.** `pnpm smoke:commercial` ĐẠT 25/25 trên production: receipt, chưa ACK chưa
+  trừ, ACK idempotent, 4xx không trừ, HEAD 405, hai khoá chung sổ, bảo trì 503, đình chỉ 403. Thêm
+  trần ngày trial và thu hồi khoá chứng minh ngoài kịch bản. CHƯA: trial hết tổng, trial hết hạn
+  30 ngày, paid hết nhóm, credits, DO outage, restart — và chưa đối chiếu có hệ thống 15 tiêu chí
+  gốc với evidence. Smoke staging commercial tenant: trial hết ngày/tổng/thời hạn, paid hết nhóm, credits,
   DO outage, restart, nhiều key. Đối chiếu 15 tiêu chí gốc + spec 14.9 với evidence cụ thể.
-- [ ] **CHỜ PHONG.** Trước bật production: đạt ngưỡng latency/cost do PHONG duyệt từ báo cáo đo, CI đúng commit,
+- [ ] **CHỜ PHONG.** Chưa có: ngưỡng chưa được duyệt, backup+rollback chưa diễn tập thật, inventory
+  tenant/mode chưa lập. Trước bật production: đạt ngưỡng latency/cost do PHONG duyệt từ báo cáo đo, CI đúng commit,
   inventory tenant/mode, backup+rollback verified; chưa có evidence thì giữ commercial không mở.
 - [ ] Checkpoint `docs(billing): record commercial quota acceptance` chỉ khi đủ bằng chứng;
   cập nhật kết quả thật và việc còn lại vào DEVLOG, không tick hộ bước chưa chạy.
