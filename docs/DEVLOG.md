@@ -3158,7 +3158,25 @@ cắt khi checkpoint nhích, nên backup ngừng chạy thì nó lớn không gi
 test` 44 file/333 test xanh, `pnpm test:api-db` 3 file/53 test xanh, `pnpm typecheck` 14/14,
 `pnpm lint` sạch, `git diff --check` sạch. Không deploy, không publish, không bump version.
 
-**CHỜ PHONG (máy không tự làm được):** deploy + provision tenant thử, chạy A/B/mixed rồi điền số
-vào mục 7 của runbook, đối chiếu Cloudflare Usage/Billing, diễn tập phục hồi trên tenant thử, duyệt
-ngưỡng latency/chi phí, đặt `BILLING_BACKUP_EMAILS` cho production, rồi mới bật
-`COMMERCIAL_ADMISSION=1`.
+**Cập nhật cuối ngày 15/09 — pilot đã chạy thật trên production.** PHONG deploy, provision tenant
+thử `…bb`, và chạy hết Bước 1–6 của runbook. Kết quả:
+
+- **Nghiệm thu chức năng ĐẠT 25/25** (`pnpm smoke:commercial`). Thêm hai tiêu chí spec mục 12 được
+  chứng minh ngoài kịch bản: trần ngày của trial chặn đúng với `resetAt` thật, và thu hồi khoá có
+  hiệu lực qua route quản trị.
+- **Chi phí độ trễ KHÔNG đạt ngưỡng đề xuất**: +557 ms p50 trên đường cache-hit, so với p95 ≤ 100 ms
+  mà Task 0 đề xuất. Nguyên nhân đã xác định bằng `Server-Timing`: một vòng gọi Durable Object tốn
+  **257 ms**, và `ping()` (không chạm storage) cũng 257 ms — tức toàn bộ là đường mạng tới object,
+  không phải chờ ghi bền vững. Task 0 đo ở staging chỉ ~12 ms mỗi vòng.
+- **Ba lỗi thật lộ ra khi chạy production**, không cổng local nào bắt được: `BILLING_*` chưa từng
+  được đặt trên production (API quản trị deny tất cả); role `api` thiếu `GRANT UPDATE` trên
+  `api_key` nên route thu hồi khoá trả `upstream_unavailable`; và service token Access không dùng
+  được vì JWT của nó thiếu claim `email`.
+- **Bộ đo tải phải sửa năm lần** mới đủ tin. Hai lỗi nguy hiểm nhất: báo "dùng được" cho lượt chạy
+  mà **không request nào thành công**, và cho lượt chạy mà **không nhánh nào chạm sổ quota** — cả
+  hai đều in ra con số trông hoàn toàn hợp lý.
+
+**CHỜ PHONG:** chốt ngưỡng độ trễ dựa trên số thật (ngưỡng 100 ms rút từ staging không đại diện cho
+production); đo một tenant thương mại trên object mới tạo kèm `locationHint` để biết vị trí có cứu
+được không; đối chiếu Cloudflare Usage/Billing; diễn tập phục hồi. Chưa tenant thật nào được chuyển
+sang commercial.

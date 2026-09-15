@@ -3,8 +3,14 @@
 Tài liệu vận hành cho plan `2026-09-15-quota-thue-bao.md` Task 6–7. Gồm quy trình bật/tắt
 commercial, sao lưu sổ quota và diễn tập phục hồi.
 
-**Trạng thái: commercial VẪN ĐÓNG.** `COMMERCIAL_ADMISSION=0` ở cả dev lẫn production. Mọi số
-trong file này là kết quả cổng LOCAL; phần staging/production đánh dấu **CHỜ PHONG** chưa chạy.
+**Trạng thái 15/09/2026: pilot đang chạy trên production.** Tenant thử
+`00000000-0000-4000-8000-0000000000bb` đã ở `quota_mode=commercial`, gói Starter, và cổng
+`COMMERCIAL_ADMISSION` đang được MỞ bằng `--var` cho đợt đo. `wrangler.toml` vẫn ghi `"0"`, nên mọi
+lần `pnpm deploy:api` thường sẽ đóng lại — mặc định của kho mã vẫn là đóng.
+
+**Chưa mở bán.** Nghiệm thu chức năng đạt 25/25, nhưng chi phí độ trễ đang vượt ngưỡng đề xuất
+khoảng 5–6 lần (mục 7). Không tenant thật nào được chuyển sang commercial cho tới khi PHONG chốt
+ngưỡng dựa trên số thật.
 
 ## 1. Sổ quota được sao lưu như thế nào
 
@@ -45,11 +51,13 @@ nên trả chỗ về cho khách là sai số nghiêng đúng phía theo quyết
 | `BILLING_ADMIN_EMAILS` | `wrangler secret put … --env production` | Cấp gói, trial, credits, đổi mode |
 | `BILLING_BACKUP_EMAILS` | `wrangler secret put … --env production` | **Tách riêng** — sao lưu/ghi đè sổ. Rỗng = deny |
 | `BILLING_ACCESS_JWT` | môi trường shell của máy vận hành | JWT **người dùng** từ `cloudflared access token` |
+| `BACKUP_PASSPHRASE` | `infra/server/.env` | Cùng passphrase với backup DB; mất là không giải mã được |
+| `BACKUP_BUCKET` | `infra/server/.env` | Phải là bucket riêng không gắn custom domain |
 
 Hai danh sách email đặt bằng `wrangler secret put` chứ không viết vào `wrangler.toml`: khối
-`[env.production] vars` nằm trong git, mà đây là danh sách kiểm soát truy cập. Cả hai hiện **chưa
-được đặt** trên production, nghĩa là API quản trị billing đang deny mọi người — phải đặt trước khi
-provision tenant đầu tiên.
+`[env.production] vars` nằm trong git, mà đây là danh sách kiểm soát truy cập. Cả hai đã được đặt
+trên production ngày 15/09/2026; trước đó chúng vắng mặt, nghĩa là API quản trị billing deny mọi
+người — đây là thứ chặn ngay bước provision đầu tiên.
 
 Xác thực CLI phải dùng JWT **người dùng**, không dùng service token: `verifyAccessJwt` bắt buộc có
 claim `email` để ghi `actor` vào audit, mà JWT của service token chỉ mang `common_name`. Service
@@ -59,8 +67,6 @@ token qua được biên Access rồi chết ở Worker với `invalid_access_jw
 cloudflared access login https://api.ai-solutions.io.vn/v1/admin
 export BILLING_ACCESS_JWT=$(cloudflared access token -app=https://api.ai-solutions.io.vn/v1/admin)
 ```
-| `BACKUP_PASSPHRASE` | `infra/server/.env` | Cùng passphrase với backup DB; mất là không giải mã được |
-| `BACKUP_BUCKET` | `infra/server/.env` | Phải là bucket riêng không gắn custom domain |
 
 Quyền cấp gói **không** kéo theo quyền ghi đè sổ tiêu thụ: đó là hai việc khác hẳn nhau, và
 `billing_backup_forbidden` là bằng chứng cổng này thật sự tách (test `billing-admin.test.ts`).
@@ -199,23 +205,72 @@ Bốn quyết định thiết kế đáng ghi:
 - **`mixed` báo số của từng tenant**, kèm p95 tệ nhất. Gộp thành một p95 chung sẽ giấu mất chuyện
   một tenant đang bị tenant khác làm chậm.
 
-### Số đo: CHƯA CÓ
+### Số đo trên production — 15/09/2026
 
-**Chưa chạy được lượt đo nào có ý nghĩa**, và không có số nào trong mục này được suy ra thay.
-Lý do: `COMMERCIAL_ADMISSION=0` ở mọi môi trường và chưa có tenant commercial nào được provision,
-nên nhánh B của A/B không tồn tại. Đo nhánh A rồi gọi đó là "chi phí quota" sẽ là con số bịa.
+Tenant pilot `…bb` trên production, `COMMERCIAL_ADMISSION=1`, gói Starter. Nhánh nền là tenant
+legacy (`KEY_EXAMPLE_EMBED`, plan `internal`).
 
-Cần PHONG làm trước khi có số:
+**Nghiệm thu chức năng — ĐẠT.** `pnpm smoke:commercial` cho **25/25**, gồm: receipt đủ ba header
+và `private, no-store`; chưa ACK thì chưa trừ lượt; ACK trừ đúng một lượt và ACK lặp không trừ
+thêm; 4xx không trừ; HEAD trả 405 + `Allow`; hai khoá cùng tenant cộng chung một sổ; bảo trì trả
+503 `quota_unavailable`; đình chỉ trả 403 `subscription_expired`.
 
-1. Deploy bản hiện tại lên staging (hoặc production với `COMMERCIAL_ADMISSION` vẫn `0`).
-2. Provision một tenant thử: `activateTrial` hoặc `grantPeriod`, đặt `quota_mode=commercial`.
-3. Cấp hai khoá: một của tenant legacy, một của tenant thử.
-4. Chạy ba lệnh ở trên, lưu bảng kết quả vào chính mục này.
-5. Đối chiếu Cloudflare **Usage/Billing** thật cho DO requests, rows read/written, duration và
+Thêm hai tiêu chí của spec mục 12 được chứng minh ngoài kịch bản: **trần ngày của trial chặn đúng**
+(lượt thứ 201 trả `quota_exceeded` / `reason: daily` / `resetAt` thật, không phải hằng số), và
+**thu hồi khoá có hiệu lực** qua route quản trị.
+
+**Chi phí độ trễ — KHÔNG ĐẠT ngưỡng đề xuất.** Đo A/B warm, 3 đồng thời × 10 wave, gộp 30 mẫu:
+
+| Lượt | Số vòng gọi DO | Chênh lệch p50 |
+|---|---|---:|
+| Trước khi gộp `revoke` | 3 | **+677 ms** |
+| Sau khi gộp `revoke` vào `reserve` | 2 | **+557 ms** |
+
+Bỏ một vòng lấy lại đúng ~120 ms. Ngưỡng Task 0 đề xuất là p95 ≤ 100 ms; thực tế vượt khoảng 5–6 lần.
+
+**Chi phí nằm ở đâu — đã xác định.** `Server-Timing` đo bên trong Worker (n=29, p50):
+
+| Vòng gọi | p50 | Ghi chú |
+|---|---:|---|
+| `ping` | **257 ms** | KHÔNG chạm storage, chỉ trả `Date.now()` |
+| `reserve` | 282 ms | +25 ms so với ping = việc thật bên trong |
+| `prepare` | 268 ms | +11 ms |
+
+`ping` là phép đo quyết định: chi phí **không phải** chờ ghi bền vững (~10–25 ms, bình thường) mà
+là **đường mạng tới object**, nhân theo số vòng gọi. Xác nhận chéo bằng đường quản trị: `/usage`
+của tenant pilot 761 ms p50 so với 533 ms của một tenant không tồn tại (404 trước khi chạm DO) →
+228 ms cho một vòng gọi, khớp với 257 ms đo từ trong Worker.
+
+Đối chiếu: Task 0 đo cả **ba** vòng ở staging chỉ 37 ms p95, tức ~12 ms mỗi vòng. Chênh ~20 lần
+với cùng một đoạn mã. Nghĩa là 250 ms không phải bản chất của Durable Object mà là đặc tính của
+**object cụ thể này** — nó được tạo bởi một lệnh quản trị chứ không phải bởi traffic thật, đúng
+kiểu tài liệu Cloudflare cảnh báo làm xấu độ trễ, và object đã tạo thì không đổi chỗ được.
+
+**`locationHint` có cứu được không — CHƯA KẾT LUẬN.** Hai object mới tạo kèm `apac-se` đo qua
+đường quản trị cho 584 ms và 865 ms p50 — chênh nhau 280 ms dù cùng điều kiện. Hint là best-effort
+và nhiễu phía client quá lớn để kết luận. Phép đo dứt điểm cần một tenant **thương mại** trên
+object mới, đo bằng `Server-Timing` (không có nhiễu client).
+
+### Độ nhiễu của chính phép đo — phải ghi lại
+
+Sáu trong chín lượt đo bị từ chối, và bộ đo phải sửa năm lần mới bắt được hết các kiểu hỏng:
+nhánh sau hưởng cache của nhánh trước; `--repeat` biến cold thành warm; không ACK receipt làm
+tenant tự khoá; **không request nào thành công mà vẫn báo số**; **mọi request thành công nhưng
+không nhánh nào chạm sổ quota**. Hai cái cuối nguy hiểm nhất vì con số in ra trông hoàn toàn hợp lý.
+
+Một lượt chạy 30 mẫu trên production **không** phân biệt được 250 ms với 400 ms. Mọi kết luận ở
+trên chỉ dựa vào `Server-Timing` đo bên trong Worker, hoặc vào chênh lệch đủ lớn để vượt nhiễu.
+
+### Việc đo còn thiếu
+
+1. Một tenant thương mại trên object mới tạo kèm `apac-se`, đo `Server-Timing`. Đây là phép đo
+   quyết định `locationHint` có cứu được không, và nó cần một dòng `tenant` mới trong Postgres
+   production (không dùng `…001`/`…002` vì đó là tenant internal của trang tài liệu — chuyển sang
+   commercial sẽ làm hỏng khoá demo).
+2. Đối chiếu Cloudflare **Usage/Billing** thật cho DO requests, rows read/written, duration và
    storage — GraphQL Analytics theo tài liệu Cloudflare không phải hoá đơn chính xác.
-
-Ngưỡng đề xuất từ Task 0 (chưa phải SLA, PHONG duyệt sau khi có số thật): overhead quota
-p95 ≤ 100 ms và p99 ≤ 250 ms trên request cache-hit; không có lỗi nào do quota gây ra ở mức tải pilot.
+3. PHONG chốt ngưỡng dựa trên số thật. Ngưỡng Task 0 đề xuất (p95 ≤ 100 ms) được rút ra từ staging
+   nơi một vòng gọi tốn ~12 ms; nó không đại diện cho production và cần xem lại.
 
 ### Chi phí: phần suy ra được, và phần phải đo
 
