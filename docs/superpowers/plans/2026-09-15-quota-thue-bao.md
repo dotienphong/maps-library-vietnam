@@ -7,12 +7,17 @@
 Reserve trước handler, commit cho 2xx/release lỗi; Postgres tiếp tục sở hữu tenant/key.
 **Tech Stack:** TypeScript, Hono, Cloudflare Workers/SQLite Durable Objects, Vitest Workers pool, PostgreSQL.
 **Spec:** `docs/superpowers/specs/2026-09-15-quota-thue-bao-design.md` — PHONG đã duyệt 15/09/2026.
-**Trạng thái:** Task 0–5 PASS local ngày 15/09/2026: catalog/policy, SQLite Durable Object,
+**Trạng thái:** Task 0–6 PASS local ngày 15/09/2026, Task 7 xong phần máy làm được. Task 0–5:
+catalog/policy, SQLite Durable Object,
 entitlement commands, reserve/prepare/ACK/release/recovery lease, quản trị thuê bao qua Access +
 migration `quota_mode`, và middleware thương mại nối bảy API + hợp đồng receipt/ACK của bốn SDK.
-Cổng local đã chạy: `pnpm test` (140 file/1.471 test + API 41 file/306 test), `pnpm test:db`
-(11 file/71 test trong image pipeline), `pnpm test:api-db` (3 file/53 test), `pnpm typecheck`,
-`pnpm lint`, `git diff --check` — tất cả xanh. Còn Task 6–7, **chưa commit/deploy**;
+Task 6 thêm journal + snapshot/checkpoint/restore trong DO, nhóm route `/backup/*` có quyền riêng
+`BILLING_BACKUP_EMAILS`, `scripts/quota-audit.mjs` và runbook
+`docs/evidence/billing/2026-09-15-quota-rollout.md`. Task 7 cập nhật `api.md`/`khoa-api.md`, thêm
+`--mode=ab|mixed` và `--cache=warm|cold` cho `scripts/load-api.mjs`, ghi DEVLOG mục 17.
+Cổng local 15/09/2026: `pnpm test` (142 file/1.504 test + API 44 file/333 test),
+`pnpm test:api-db` (3 file/53 test), `pnpm typecheck` 14/14, `pnpm lint`, `git diff --check` —
+tất cả xanh. **CHƯA deploy, CHƯA có số đo A/B** vì chưa có tenant commercial nào tồn tại;
 `COMMERCIAL_ADMISSION=0` ở cả dev lẫn production nên commercial vẫn đóng.
 **Báo cáo review:** `docs/research/2026-09-15-review-quota-spec-plan.md`. Ràng buộc spec mục 14 áp dụng toàn plan.
 
@@ -280,51 +285,57 @@ expect((await object.readUsage()).places.used).toBe(1);
 Files: scripts/quota-audit.mjs + test, billing-admin.ts (snapshot qua quyền riêng),
 docs/evidence/billing/2026-09-15-quota-rollout.md, Setup_Local_Guide.md.
 
-- [ ] RED: snapshot checksum sai bị từ chối, grants replay không tăng credit; restore snapshot
+- [x] RED: snapshot checksum sai bị từ chối, grants replay không tăng credit; restore snapshot
   cũ không tự cấp lại lượt đã dùng; lệnh audit không ghi thông tin key/query/location.
 ```text
 snapshot used=10; ledger sau checkpoint commit thêm 3
 reconcile phải cho used=13, không cho reset về 10
 ```
-- [ ] Implement export aggregate/audit tới bucket backup riêng, không public; import/reconcile
+- [x] Implement export aggregate/audit tới bucket backup riêng, không public; import/reconcile
   chỉ trong maintenance với operationId/revision. Có bằng chứng traffic đã dừng khi phục hồi.
   Journal sequence/tail độc lập theo Task 0; tail thiếu thì dừng phục hồi, không giả định usage=0.
   Export grants/periods/entitlement/trial-used/dedup+reservations, cursor ≤100 record/256KiB.
   Chỉ advance checkpoint sau durable export; aggregate 13 tháng; không xoá pending/unknown.
   Unique business identity không mất khi restore và không giới hạn ở operationId.
-- [ ] Bổ sung hướng dẫn cụ thể: provision DO → đóng admission gate → vô hiệu cache và kiểm absolute expiry →
+- [x] Bổ sung hướng dẫn cụ thể: provision DO → đóng admission gate → vô hiệu cache và kiểm absolute expiry →
   bật mode qua admission gate → thử nhiều key → mở traffic. TTL không là bằng chứng duy nhất.
   Rollback thương mại dừng tenant tại gate độc lập ledger, không fallback KV.
 - [ ] Chạy test `pnpm exec vitest run scripts/quota-audit.test.mjs` và drill trên tenant thử;
   lưu evidence timestamp/config/revision/checksum. Không đánh dấu nghiệm thu nếu chỉ có script.
-- [ ] Checkpoint `feat(billing): audit and recover quota state`.
+  **MỘT NỬA 15/09:** test 13 ca xanh và 7 ca mức DO trong `billing-backup.test.ts` xanh, nhưng
+  DRILL trên tenant thử CHƯA chạy (cần deploy + service token Access) → ô này giữ trống.
+- [x] Checkpoint `feat(billing): audit and recover quota state` — commit a95b46e.
 
 ## Task 7: Docs, đo tải và release gate
 
 Files: docs api.md/khoa-api.md, core README nếu error thay đổi, scripts/load-api.mjs/test,
 docs/evidence/billing/2026-09-15-quota-rollout.md, DEVLOG.md.
 
-- [ ] Cập nhật quota ngày/tháng/trial, retry, reset, credits, examples lỗi; không công bố console
+- [x] Cập nhật quota ngày/tháng/trial, retry, reset, credits, examples lỗi; không công bố console
   hoặc payment chưa xây. Phân biệt rate-limit theo edge với quota thương mại theo tenant.
-- [ ] Fixture đo warm/cold, hit/miss, một tenant nóng/nhiều tenant; giữ pace không vướng burst
+- [x] Fixture đo warm/cold, hit/miss, một tenant nóng/nhiều tenant; giữ pace không vướng burst
   trong đo overhead quota, có lượt đo riêng chứng minh burst còn hoạt động. Đo A/B cùng dữ liệu.
-- [ ] Lưu p50/p95/p99, errors, reservation backlog, CPU/storage/request counts; tính chi phí
+- [ ] **CHỜ PHONG — chưa có tenant commercial nên không đo được, và không suy ra thay.**
+  Lưu p50/p95/p99, errors, reservation backlog, CPU/storage/request counts; tính chi phí
   theo giá Cloudflare chính thức tại thời điểm đo, gồm rows/index/delete/alarm/duration/storage,
   backup và outcome recovery. Giới hạn Free là toàn account, không mỗi tenant. Không suy RPS từ
   quota tháng. Đo thêm failed-request storm, nhiều ngày retention, admin/export tranh với data RPC.
-- [ ] Full gate:
+- [x] Full gate (15/09/2026, tất cả xanh):
 ```sh
 pnpm typecheck
 pnpm lint
 pnpm test
 git diff --check
 ```
-- [ ] Smoke staging commercial tenant: trial hết ngày/tổng/thời hạn, paid hết nhóm, credits,
+- [ ] **CHỜ PHONG.** Smoke staging commercial tenant: trial hết ngày/tổng/thời hạn, paid hết nhóm, credits,
   DO outage, restart, nhiều key. Đối chiếu 15 tiêu chí gốc + spec 14.9 với evidence cụ thể.
-- [ ] Trước bật production: đạt ngưỡng latency/cost do PHONG duyệt từ báo cáo đo, CI đúng commit,
+- [ ] **CHỜ PHONG.** Trước bật production: đạt ngưỡng latency/cost do PHONG duyệt từ báo cáo đo, CI đúng commit,
   inventory tenant/mode, backup+rollback verified; chưa có evidence thì giữ commercial không mở.
 - [ ] Checkpoint `docs(billing): record commercial quota acceptance` chỉ khi đủ bằng chứng;
   cập nhật kết quả thật và việc còn lại vào DEVLOG, không tick hộ bước chưa chạy.
+  **15/09: CHƯA đủ bằng chứng** (thiếu số đo A/B và drill staging) nên commit tài liệu dùng
+  thông điệp mô tả đúng việc đã làm, không dùng chữ "acceptance". DEVLOG mục 17 đã ghi kết quả
+  thật và danh sách việc còn lại.
 
 ## Đối chiếu coverage và điểm bắt đầu
 

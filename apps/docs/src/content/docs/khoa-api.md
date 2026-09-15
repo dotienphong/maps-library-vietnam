@@ -113,6 +113,17 @@ Vượt hạn mức trả `429 quota_exceeded`; `error.details` cho biết nhóm
 do, thời điểm reset khi xác định được và lựa chọn nâng gói/mua thêm. Giới hạn đóng góp cũng trả
 `quota_exceeded` nhưng theo bộ đếm riêng của `/v1/edits`.
 
+Hạn mức từng gói, quy tắc reset, lượt mua thêm và ví dụ JSON của từng lỗi nằm ở
+[REST API mục 3](/api/#3-quota-và-cache). Ba điều hay bị hiểu nhầm:
+
+- **Hết lượt và hết quyền là hai chuyện.** Hết lượt trả `429 quota_exceeded` và có thể mua thêm;
+  hết hạn dùng thử, hết hạn thuê bao hoặc bị tạm dừng trả `403 subscription_expired` — mua thêm
+  lượt không mở lại được, phải gia hạn.
+- **Cấp thêm khoá không cấp thêm hạn mức.** Mọi khoá của một tenant tiêu chung một sổ; thu hồi rồi
+  cấp lại khoá cũng không reset bộ đếm.
+- **Chỉ tổng dùng thử theo ngày mới có mốc reset chắc chắn.** Hạn mức của kỳ trả phí không kèm
+  `resetAt`, vì kỳ sau chỉ được cấp sau khi xác nhận thanh toán.
+
 ## 6. Khoá demo
 
 Để thử nhanh, không cần xin gì:

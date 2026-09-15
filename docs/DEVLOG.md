@@ -3100,3 +3100,65 @@ Cổng: `pnpm test` xanh (135 file, số test tăng thêm cho `perf-size`/`perf-
 `pnpm typecheck` 14/14, `pnpm lint` sạch, `notices-sync --check` khớp. Không bump version, không
 push, không publish, không deploy — giai đoạn 2 (PHONG chọn món tối ưu trong nhóm A/B của spec)
 và giai đoạn 3 (thực thi) còn ở phía trước.
+
+## 17. Quota thương mại — sao lưu, đối soát và tài liệu (plan quota Task 6–7) — 15/09/2026
+
+**Commercial VẪN ĐÓNG.** `COMMERCIAL_ADMISSION=0` ở cả dev lẫn production, chưa deploy, chưa có
+tenant commercial nào. Task 6 xong trọn vẹn; Task 7 xong phần máy làm được, phần đo tải thật
+CHỜ PHONG. Chi tiết vận hành: `docs/evidence/billing/2026-09-15-quota-rollout.md`.
+
+**Task 6 — sao lưu và phục hồi sổ quota.** Sổ tiêu thụ nằm trong Durable Object, nên backup
+Postgres hằng ngày **không** chạm tới nó — đây là lỗ hổng thật, không phải chuyện lý thuyết: mất
+object là mất sạch số dư của mọi thuê bao. Thêm đường sao lưu riêng gồm snapshot nhất quán cộng
+đuôi journal:
+
+- Snapshot dựng trong **một** transaction rồi mới cắt trang (≤100 bản ghi / 256 KiB). Xuất từng
+  bảng bằng nhiều lần đọc rời sẽ cho bản chắp vá — `counter` đã cộng một lượt mà `reservation` thì
+  chưa — và nạp lại bản đó là tính tiền sai.
+- Số thứ tự journal cấp trong **cùng** transaction với thay đổi nó mô tả, nên rollback không tiêu
+  số. Vì vậy một lỗ thủng trong dãy luôn nghĩa là mất dữ liệu thật: `restoreJournal` dừng hẳn
+  (`journal_gap`) chứ không áp một nửa rồi báo xong.
+- `reserved` **không** được phục hồi. Sau sự cố mọi request đang bay đều đã hỏng; trả chỗ về cho
+  khách là sai số nghiêng đúng phía theo quyết định mục 6 của spec.
+- Ba cổng chặn ghi đè sổ: `not_in_maintenance`, `snapshot_stale` (bản sao lưu cũ hơn sổ) và
+  `traffic_active` (object còn thấy reservation trong 60 giây qua). Cổng thứ ba là **bằng chứng**
+  traffic đã dừng chứ không phải lời hứa của người vận hành — cổng admission đóng ở tầng ngoài vẫn
+  có thể còn request dở đang bay tới.
+- Checkpoint chỉ nhích khi người gọi đưa lại đúng checksum của chuỗi byte đã ghi bền vững, và chỉ
+  sau đó journal mới bị cắt. Chốt trước khi R2 nhận xong là cách chắc chắn nhất để mất đúng đoạn
+  vừa xoá; test khoá thứ tự này bằng cách cho `persist` ném lỗi rồi kiểm checkpoint không được gọi.
+- Quyền sao lưu tách khỏi quyền quản trị thuê bao (`BILLING_BACKUP_EMAILS`): cấp gói là việc hằng
+  ngày, ghi đè sổ tiêu thụ thì xoá được lịch sử của cả một thuê bao.
+- `pnpm audit:quota export|verify|restore`; bản sao lưu mã hoá AES-256 bằng đúng tham số của backup
+  DB (dùng lại `encryptCommand` thay vì chép tham số), đẩy lên bucket riêng. Báo cáo kèm evidence
+  chỉ có số đếm và checksum — không băm khoá, không truy vấn, không toạ độ.
+
+**Bẫy công cụ gặp lại:** cho lỗi bay qua ranh giới RPC của Durable Object trong test làm
+vitest-pool-workers báo "Failed to pop isolated storage stack frame" thay vì lỗi thật — một kiểu
+ĐỎ GIẢ che mất nguyên nhân. Cách đi: bắt lỗi ngay trong object bằng `runInDurableObject`, còn
+nhánh lỗi của route thì tiêm cổng giả (`quotaBackup`) thay vì gọi DO thật.
+
+**Task 7 — tài liệu và bộ đo.** `api.md` thêm bảng hạn mức từng gói, quy tắc reset (chỉ trần ngày
+của bản dùng thử mới có `resetAt` chắc chắn; hạn mức kỳ trả phí **không** hứa mốc reset), quy tắc
+lượt mua thêm, ví dụ JSON của ba lỗi hạn mức, và bảng phân biệt burst limit ở edge với quota
+thương mại theo tenant. `khoa-api.md` nhấn ba điểm hay bị hiểu nhầm, trong đó có "cấp thêm khoá
+không cấp thêm hạn mức". Không công bố trang tự đăng ký hay tự thanh toán vì chưa xây.
+
+`scripts/load-api.mjs` thêm `--mode=ab` (A/B cùng bộ URL, chạy lần lượt, nghỉ hết cửa sổ burst
+giữa hai nhánh), `--mode=mixed` (nhiều tenant cùng lúc, mỗi tenant một dải URL, báo số **từng**
+tenant) và `--cache=warm|cold`.
+
+**CHƯA CÓ số đo A/B, và không suy ra thay.** Nhánh B của A/B cần một tenant commercial đã deploy;
+chưa có thì đo nhánh A rồi gọi đó là "chi phí quota" sẽ là con số bịa. Phần chi phí suy được đã
+ghi rõ là **suy ra, chưa đo**: journal thêm khoảng +2 ghi / +1 đọc mỗi lượt tính tiền so với
+11 đọc / 14 ghi mà Task 0 đã đo, và dung lượng journal là chi phí mới Task 0 chưa tính — nó chỉ bị
+cắt khi checkpoint nhích, nên backup ngừng chạy thì nó lớn không giới hạn.
+
+**Cổng đã chạy 15/09/2026:** `pnpm test` 142 file/1.504 test xanh (3 skip), `pnpm --filter @mapslibvn/api
+test` 44 file/333 test xanh, `pnpm test:api-db` 3 file/53 test xanh, `pnpm typecheck` 14/14,
+`pnpm lint` sạch, `git diff --check` sạch. Không deploy, không publish, không bump version.
+
+**CHỜ PHONG (máy không tự làm được):** deploy + provision tenant thử, chạy A/B/mixed rồi điền số
+vào mục 7 của runbook, đối chiếu Cloudflare Usage/Billing, diễn tập phục hồi trên tenant thử, duyệt
+ngưỡng latency/chi phí, đặt `BILLING_BACKUP_EMAILS` cho production, rồi mới bật
+`COMMERCIAL_ADMISSION=1`.

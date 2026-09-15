@@ -113,6 +113,115 @@ Sáu endpoint đọc dữ liệu địa điểm (`/v1/autocomplete`, `/v1/search
 
 **Quota Chỉ đường.** `GET /v1/directions` có quota **riêng**, cũng theo ngày Việt Nam và cũng chặn ở 2× hạn mức: plan `free` mặc định **2.000** lượt/ngày, khoá có thể được đặt hạn riêng (`quota_directions_per_day`). Tenant `internal` không bị đếm theo ngày. Burst **20 request/phút** cho mỗi cặp khoá + IP (riêng, không dùng chung 60 của Places). Ngoài ra khoá `web` và `mobile` — kể cả của tenant `internal`, vì khoá loại này nằm công khai trong trang/app — chịu **trần 100 request/phút cho cả khoá** (mọi IP cộng lại); khoá `server` không chịu trần này. Vượt trả `429 rate_limit_exceeded` với `retry-after: 60`.
 
+### Hai lớp giới hạn khác nhau
+
+Đừng gộp hai thứ này làm một — chúng chặn vì lý do khác nhau và cách xử lý cũng khác:
+
+| | Burst limit (edge) | Quota thương mại (tenant) |
+|---|---|---|
+| Đếm theo | cặp khoá + IP, từng điểm Cloudflare | **tenant** — mọi khoá cộng chung |
+| Cửa sổ | mỗi phút | ngày giờ VN (trial) và kỳ thuê bao |
+| Tính cả request lỗi? | **có** | không, chỉ 2xx đã ACK |
+| Mã lỗi | `rate_limit_exceeded` (429) | `quota_exceeded` (429), `subscription_expired` (403) |
+| Cách xử lý | chờ `retry-after: 60` rồi thử lại | giảm nhịp gọi, mua thêm hoặc nâng gói |
+
+Đổi khoá **không** làm mới hạn mức thương mại: hai khoá của cùng một tenant tiêu chung một sổ, và
+thu hồi rồi cấp lại khoá cũng không reset. Bộ đếm burst thì ngược lại — nó là lớp chống spam chạy
+bất đồng bộ theo từng điểm Cloudflare, không phải số liệu tính cước.
+
+### Hạn mức theo gói
+
+| Gói | Places mỗi kỳ | Chỉ đường mỗi kỳ | Trần ngày (giờ VN) |
+|---|---:|---:|---|
+| Dùng thử 30 ngày | 2.000 **tổng** | 200 **tổng** | 200 Places + 20 tuyến |
+| Starter | 30.000 | 3.000 | không có trần ngày riêng |
+| Professional | 100.000 | 10.000 | không có trần ngày riêng |
+| Business | 400.000 | 40.000 | không có trần ngày riêng |
+
+Hai nhóm **độc lập**: hết Places không chặn Chỉ đường và ngược lại.
+
+Kỳ thuê bao chạy theo ngày kích hoạt chứ không theo đầu tháng lịch, và giữ nguyên mốc gốc khi
+tháng thiếu ngày — kích hoạt 31/01 thì kỳ sau kết thúc ngày cuối tháng 02, rồi trở lại 31/03.
+
+### Cái gì reset, cái gì không
+
+- **Trần ngày của bản dùng thử** reset lúc 00:00 giờ VN. Đây là trường hợp duy nhất có
+  `details.resetAt` chắc chắn.
+- **Tổng 2.000/200 của bản dùng thử** không reset. Hết là hết, kể cả khi chưa qua 30 ngày.
+- **Hết 30 ngày dùng thử** chặn ngay cả khi vẫn còn lượt, và trả `403 subscription_expired`.
+- **Hạn mức kỳ trả phí** chỉ mở lại khi kỳ tiếp theo được cấp sau xác nhận thanh toán — máy chủ
+  **không hứa** mốc reset nên `resetAt` sẽ vắng mặt. Đừng tự suy ra ngày reset rồi chờ.
+
+### Lượt mua thêm
+
+Mua theo khối tròn 1.000 lượt, tách riêng cho từng nhóm: mua thêm Places không mở lại Chỉ đường.
+Lượt trong gói được dùng **trước**, hết mới tới lượt mua thêm; trong số lượt mua thêm thì khối nào
+hết hạn sớm hơn sẽ đi trước. Lượt mua thêm hết hạn **cùng kỳ đã mua**, không chuyển sang kỳ sau, và
+chỉ dùng được khi thuê bao trả phí còn hoạt động.
+
+MapsLibVN đang ở giai đoạn nội bộ: chưa có trang tự đăng ký hay tự thanh toán. Cấp gói, gia hạn và
+mua thêm lượt hiện làm qua email ở [Khoá API](/khoa-api/#7-xin-khoá-riêng).
+
+### Ví dụ lỗi hạn mức
+
+Hết trần ngày của bản dùng thử — có mốc reset, nên ứng dụng chờ được:
+
+```json
+{
+  "error": {
+    "code": "quota_exceeded",
+    "message": "Hết hạn mức trong ngày (places)",
+    "request_id": "0f0a…",
+    "details": {
+      "group": "places",
+      "reason": "daily",
+      "resetAt": "2026-09-16T17:00:00.000Z",
+      "actions": ["wait", "upgrade"]
+    }
+  }
+}
+```
+
+Hết hạn mức của kỳ trả phí — **không** có `resetAt`, vì chưa có gì bảo đảm kỳ sau:
+
+```json
+{
+  "error": {
+    "code": "quota_exceeded",
+    "message": "Hết hạn mức của kỳ (directions)",
+    "request_id": "7c21…",
+    "details": {
+      "group": "directions",
+      "reason": "period",
+      "resetAt": null,
+      "actions": ["upgrade", "buy_more"]
+    }
+  }
+}
+```
+
+Hết **quyền** chứ không phải hết lượt — mua thêm lượt không giải quyết được nên không có `buy_more`:
+
+```json
+{
+  "error": {
+    "code": "subscription_expired",
+    "message": "Bản dùng thử đã hết hạn (places)",
+    "request_id": "b5de…",
+    "details": {
+      "group": "places",
+      "reason": "trial_expired",
+      "resetAt": null,
+      "actions": ["upgrade"]
+    }
+  }
+}
+```
+
+`reason` là trường đáng tin để phân nhánh; đừng đoán từ `message`. Các giá trị hiện có:
+`daily`, `period`, `trial_total`, `trial_expired`, `subscription_expired`, `no_entitlement`,
+`suspended`, `ack_required`, `concurrency_limit`, `maintenance`.
+
 ### Xác nhận receipt khi gọi REST trực tiếp
 
 Phản hồi 2xx của tenant thương mại có bốn header được CORS expose:

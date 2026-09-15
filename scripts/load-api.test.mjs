@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { runLevel, runRamp } from './load-api.mjs';
+import { runComparison, runLevel, runMixed, runRamp } from './load-api.mjs';
 
 const ok =
   (delayMs = 0) =>
@@ -116,5 +116,115 @@ describe('load API', () => {
     expect(result.stopped).toBe(true);
     expect(result.levels).toHaveLength(1);
     expect(result.levels[0]?.clientErrors).toBe(2);
+  });
+
+  it('chế độ warm cho mọi VU dùng cùng một URL để đo đường cache', async () => {
+    /** @type {string[]} */
+    const urls = [];
+    const record = async (/** @type {any} */ url) => {
+      urls.push(String(url));
+      return new Response('{}', { status: 200 });
+    };
+    await runLevel('https://api.test', 'key', 4, { cache: 'warm', fetchImpl: record });
+    expect(new Set(urls).size).toBe(1);
+
+    urls.length = 0;
+    await runLevel('https://api.test', 'key', 4, { cache: 'cold', fetchImpl: record });
+    expect(new Set(urls).size).toBe(4);
+  });
+});
+
+describe('A/B chi phí quota', () => {
+  it('chạy hai nhánh trên ĐÚNG cùng bộ URL và báo chênh lệch p95', async () => {
+    /** @type {Record<string, string[]>} */
+    const byKey = { legacy: [], commercial: [] };
+    const fetchImpl = async (/** @type {any} */ url, /** @type {any} */ init) => {
+      const key = init.headers['X-Api-Key'];
+      byKey[key]?.push(String(url));
+      // Nhánh thương mại chậm hơn một chút — đúng hình dạng chi phí sổ quota.
+      await new Promise((resolve) => setTimeout(resolve, key === 'commercial' ? 25 : 5));
+      return new Response('{}', { status: 200 });
+    };
+    const result = await runComparison(
+      'https://api.test',
+      [
+        { label: 'legacy', key: 'legacy' },
+        { label: 'commercial', key: 'commercial' },
+      ],
+      3,
+      { fetchImpl, cooldownMs: 0 },
+    );
+    expect(byKey.legacy).toEqual(byKey.commercial);
+    expect(result.arms.map((arm) => arm.label)).toEqual(['legacy', 'commercial']);
+    expect(result.overhead[0]?.against).toBe('legacy');
+    expect(result.overhead[0]?.p95).toBeGreaterThan(0);
+  });
+
+  it('nghỉ hết cửa sổ burst giữa hai nhánh, không nghỉ trước nhánh đầu', async () => {
+    /** @type {number[]} */
+    const waits = [];
+    await runComparison(
+      'https://api.test',
+      [
+        { label: 'a', key: 'a' },
+        { label: 'b', key: 'b' },
+      ],
+      2,
+      {
+        fetchImpl: ok(),
+        cooldownMs: 65_000,
+        sleepImpl: async (ms) => {
+          waits.push(ms);
+        },
+      },
+    );
+    expect(waits).toEqual([65_000]);
+  });
+
+  it('mồi cache trước mỗi nhánh khi đo warm, nếu không nhánh đầu gánh hết chi phí nạp', async () => {
+    let calls = 0;
+    await runComparison(
+      'https://api.test',
+      [
+        { label: 'a', key: 'a' },
+        { label: 'b', key: 'b' },
+      ],
+      3,
+      {
+        cache: 'warm',
+        cooldownMs: 0,
+        fetchImpl: async () => {
+          calls += 1;
+          return new Response('{}', { status: 200 });
+        },
+      },
+    );
+    // 2 nhánh × (1 lượt mồi + 3 lượt đo)
+    expect(calls).toBe(8);
+  });
+});
+
+describe('nhiều tenant cùng lúc', () => {
+  it('cho mỗi tenant một dải URL riêng và báo số của từng tenant', async () => {
+    /** @type {string[]} */
+    const urls = [];
+    const result = await runMixed(
+      'https://api.test',
+      [
+        { label: 't1', key: 'k1' },
+        { label: 't2', key: 'k2' },
+      ],
+      2,
+      {
+        fetchImpl: async (/** @type {any} */ url) => {
+          urls.push(String(url));
+          return new Response('{}', { status: 200 });
+        },
+      },
+    );
+    expect(result.totalRequests).toBe(4);
+    expect(new Set(urls).size).toBe(4);
+    expect(result.arms.map((arm) => arm.label)).toEqual(['t1', 't2']);
+    expect(Number.isFinite(result.worstP95)).toBe(true);
   });
 });

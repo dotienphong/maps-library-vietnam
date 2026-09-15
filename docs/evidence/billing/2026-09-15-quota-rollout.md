@@ -120,7 +120,8 @@ kill switch.
 | Cổng | Kết quả | Ngày |
 |---|---|---|
 | `pnpm --filter @mapslibvn/api test` | 44 file / 333 test xanh (gồm `billing-backup.test.ts` 7 ca) | 15/09/2026 |
-| `pnpm test` (gốc) | 142 file / 1.499 test xanh, gồm `quota-audit` 13 ca | 15/09/2026 |
+| `pnpm test` (gốc) | 142 file / 1.504 test xanh (3 skip), gồm `quota-audit` 13 ca và A/B `load-api` | 15/09/2026 |
+| `pnpm test:api-db` | 3 file / 53 test xanh trên DB cô lập | 15/09/2026 |
 | `pnpm typecheck` | 14/14 | 15/09/2026 |
 | `pnpm lint` | sạch | 15/09/2026 |
 | Diễn tập phục hồi trên tenant thử (staging) | **CHỜ PHONG** — cần deploy + service token Access | — |
@@ -138,4 +139,86 @@ Ca đã khoá bằng test, mức Durable Object:
 
 ## 7. Đo tải và chi phí
 
-Xem mục "Đo tải commercial" bên dưới — cập nhật ở Task 7.
+### Bộ đo đã có
+
+`scripts/load-api.mjs` nhận thêm ba chế độ để trả lời đúng câu hỏi "quota thương mại đắt thêm bao
+nhiêu", thay vì chỉ đo được năng lực tổng:
+
+```sh
+# A/B: cùng bộ URL, nhánh A khoá tenant legacy, nhánh B khoá tenant commercial
+MAPSLIBVN_API_KEY=<legacy> MAPSLIBVN_API_KEY_B=<commercial> \
+  pnpm load:api --mode=ab --levels=25 --cache=cold
+
+# Đường cache: mọi VU dùng chung một URL đã mồi → đo cache hit thay vì đo DB
+… pnpm load:api --mode=ab --levels=25 --cache=warm
+
+# Nhiều tenant cùng lúc, mỗi tenant một dải URL riêng
+… pnpm load:api --mode=mixed --levels=10
+```
+
+Bốn quyết định thiết kế đáng ghi:
+
+- **Hai nhánh chạy lần lượt, không song song.** Chạy cùng lúc thì hai nhánh tranh chính origin
+  đang đo, và phần chênh lệch sẽ lẫn cả tải do nhánh kia gây ra.
+- **Cùng bộ URL.** `targetPath` chỉ phụ thuộc `(users, index, group, cache)` nên hai nhánh chạm
+  đúng cùng dữ liệu; test khoá điều này bằng cách so danh sách URL của hai nhánh.
+- **Nghỉ 65 giây giữa hai nhánh** để burst limit không làm bẩn số đo. Đo overhead thì phải giữ
+  nhịp dưới burst — chuyện "burst còn hoạt động không" là nghiệm thu **riêng** bằng
+  `pnpm smoke:rate-limit`, không trộn vào cùng một lượt chạy.
+- **Chế độ warm mồi cache trước mỗi nhánh.** Không mồi thì nhánh đầu gánh toàn bộ chi phí nạp
+  cache và "chi phí quota" đo được sẽ mang dấu âm.
+- **`mixed` báo số của từng tenant**, kèm p95 tệ nhất. Gộp thành một p95 chung sẽ giấu mất chuyện
+  một tenant đang bị tenant khác làm chậm.
+
+### Số đo: CHƯA CÓ
+
+**Chưa chạy được lượt đo nào có ý nghĩa**, và không có số nào trong mục này được suy ra thay.
+Lý do: `COMMERCIAL_ADMISSION=0` ở mọi môi trường và chưa có tenant commercial nào được provision,
+nên nhánh B của A/B không tồn tại. Đo nhánh A rồi gọi đó là "chi phí quota" sẽ là con số bịa.
+
+Cần PHONG làm trước khi có số:
+
+1. Deploy bản hiện tại lên staging (hoặc production với `COMMERCIAL_ADMISSION` vẫn `0`).
+2. Provision một tenant thử: `activateTrial` hoặc `grantPeriod`, đặt `quota_mode=commercial`.
+3. Cấp hai khoá: một của tenant legacy, một của tenant thử.
+4. Chạy ba lệnh ở trên, lưu bảng kết quả vào chính mục này.
+5. Đối chiếu Cloudflare **Usage/Billing** thật cho DO requests, rows read/written, duration và
+   storage — GraphQL Analytics theo tài liệu Cloudflare không phải hoá đơn chính xác.
+
+Ngưỡng đề xuất từ Task 0 (chưa phải SLA, PHONG duyệt sau khi có số thật): overhead quota
+p95 ≤ 100 ms và p99 ≤ 250 ms trên request cache-hit; không có lỗi nào do quota gây ra ở mức tải pilot.
+
+### Chi phí: phần suy ra được, và phần phải đo
+
+Task 0 đã **đo** chuỗi reserve→prepare→ACK bằng `SqlStorageCursor`: **11 rows read, 14 rows
+written** mỗi lượt thành công, đã gồm index.
+
+Task 6 thêm sổ journal vào đúng đường nóng đó. Mỗi lượt ACK thành công ghi thêm một dòng
+`journal` và một lần cập nhật `ledger_meta` — **ước tính +2 ghi và +1 đọc**, tức khoảng
+**16 ghi / 12 đọc** mỗi lượt. Đây là con số **suy ra từ số câu lệnh SQL, chưa đo**; phải đo lại
+bằng chính cursor billing counters khi có tenant thử, vì index và ghi thực tế không nhất thiết
+khớp số câu lệnh.
+
+Quy đổi thô cho Business 440.000 lượt/tháng: khoảng 1,32 triệu DO request và **7,04 triệu row
+writes** (Task 0 tính 6,16 triệu khi chưa có journal), vẫn nằm trong Workers Paid (1 triệu DO
+request và 50 triệu writes/tháng trong gói). Phần vượt gói vẫn ở mức vài xu mỗi tháng.
+
+Dung lượng journal là chi phí **mới** Task 0 chưa tính: journal chỉ bị cắt khi checkpoint nhích,
+nên nếu sao lưu chạy hằng ngày thì nó giữ khoảng một ngày lưu lượng. Ở mức Business
+(~14.700 lượt/ngày) đó là cỡ vài MB mỗi tenant — nhỏ, nhưng **backup ngừng chạy thì nó lớn không
+giới hạn**. `pending` trong `/backup/journal` là con số phải theo dõi, không phải chi tiết nội bộ.
+
+Free tier của Workers là hạn mức **toàn tài khoản**, không phải mỗi tenant: cạn allocation có thể
+làm outage hàng loạt tenant cùng lúc. Phải xác nhận tài khoản đang ở Workers Paid trước khi mở bán.
+
+## 8. Việc còn lại trước khi bật commercial
+
+| Việc | Ai làm | Vì sao máy không tự làm được |
+|---|---|---|
+| Deploy + provision tenant thử | PHONG | Cần deploy và ghi vào DB máy chủ production |
+| Chạy A/B, mixed, warm/cold rồi điền mục 7 | PHONG | Phụ thuộc tenant thử ở trên |
+| Đối chiếu Cloudflare Usage/Billing | PHONG | Cần đăng nhập dashboard |
+| Diễn tập phục hồi trên tenant thử | PHONG | Cần service token Access và object thật |
+| Duyệt ngưỡng latency/chi phí | PHONG | Quyết định kinh doanh |
+| Đặt `BILLING_BACKUP_EMAILS` cho production | PHONG | Là cấu hình Worker, không nằm trong repo |
+| Bật `COMMERCIAL_ADMISSION=1` | PHONG | Chỉ sau khi năm việc trên xong |
