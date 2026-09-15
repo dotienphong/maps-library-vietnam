@@ -350,6 +350,14 @@ export async function runComparison(base, arms, users, options = {}) {
       `Nhánh ${arm.label}: chỉ ${arm.ok}/${arm.requests} request thành công (429: ${arm.rateLimited}, lỗi: ${arm.errors}; mã: ${arm.codes.join(', ') || 'không rõ'}). Số đo là thời gian nhận về lỗi, không phải độ trễ của API.`,
     );
   }
+  // Không nhánh nào chạm sổ quota thì lượt chạy không nói gì về chi phí quota, dù mọi request đều
+  // 200. Lỗi 15/09/2026: hai biến môi trường bị gán ngược nên cả hai nhánh cùng là tenant legacy,
+  // và bảng vẫn in ra một chênh lệch 130 ms trông rất hợp lý.
+  if (measured.every((arm) => Object.keys(arm.timings ?? {}).length === 0)) {
+    warnings.push(
+      'Không nhánh nào đi qua đường thương mại: không có Server-Timing và acked = 0. Nhiều khả năng cả hai khoá đều là tenant legacy. Chênh lệch chỉ là nhiễu giữa hai dải URL.',
+    );
+  }
   if ((baseline?.p95 ?? 0) > saturatedP95Ms) {
     warnings.push(
       `Origin đã bão hoà (nhánh nền p95 ${baseline?.p95} ms > ${saturatedP95Ms} ms). Chênh lệch dưới đây phần lớn là nhiễu xếp hàng, KHÔNG phải chi phí quota. Hạ --levels rồi đo lại.`,

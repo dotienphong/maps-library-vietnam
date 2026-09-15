@@ -301,9 +301,13 @@ describe('A/B từ chối lượt đo không dùng được', () => {
               reject(new Error('aborted'));
             });
           });
+          // Fixture đại diện nhánh THƯƠNG MẠI: có Server-Timing như request đi qua sổ quota thật.
           return new Response('{}', {
             status: shape.status ?? 200,
-            headers: shape.cacheHit ? { 'x-mlv-cache': 'hit' } : {},
+            headers: {
+              'server-timing': 'reserve;dur=5, prepare;dur=5',
+              ...(shape.cacheHit ? { 'x-mlv-cache': 'hit' } : {}),
+            },
           });
         }
       )
@@ -579,5 +583,26 @@ describe('mã lỗi trong lượt đo hỏng', () => {
     expect(result.usable).toBe(false);
     expect(result.arms[0]?.codes).toEqual(['quota_exceeded']);
     expect(result.warnings.join(' ')).toContain('quota_exceeded');
+  });
+});
+
+describe('A/B mà không nhánh nào là tenant thương mại', () => {
+  it('từ chối khi không nhánh nào sinh Server-Timing, dù mọi request đều 200', async () => {
+    const result = await runComparison(
+      'https://api.test',
+      [
+        { label: 'legacy', key: 'kA' },
+        { label: 'commercial', key: 'kB' },
+      ],
+      3,
+      {
+        cooldownMs: 0,
+        fetchImpl: /** @type {typeof fetch} */ (
+          /** @type {unknown} */ (async () => new Response('{}', { status: 200 }))
+        ),
+      },
+    );
+    expect(result.usable).toBe(false);
+    expect(result.warnings.join(' ')).toContain('đường thương mại');
   });
 });
