@@ -35,11 +35,16 @@ export function usePlaces(query: string, options: UsePlacesOptions = {}): UsePla
     }
 
     let cancelled = false;
+    const controller = new AbortController();
     setLoading(true);
     setError(null);
     const timer = setTimeout(async () => {
       try {
-        const requestOptions: { near?: [number, number]; limit?: number } = {};
+        const requestOptions: {
+          near?: [number, number];
+          limit?: number;
+          signal: AbortSignal;
+        } = { signal: controller.signal };
         if (nearKey) requestOptions.near = nearKey.split(',').map(Number) as [number, number];
         if (options.limit !== undefined) requestOptions.limit = options.limit;
         const response = await client.autocomplete(normalizedQuery, requestOptions);
@@ -54,6 +59,7 @@ export function usePlaces(query: string, options: UsePlacesOptions = {}): UsePla
     return () => {
       cancelled = true;
       clearTimeout(timer);
+      controller.abort();
     };
   }, [client, query, nearKey, options.limit, options.debounceMs]);
 
