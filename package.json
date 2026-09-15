@@ -36,6 +36,7 @@
     "report:weekly": "node scripts/weekly-report.mjs",
     "load:api": "node scripts/load-api.mjs",
     "perf:size": "node scripts/perf-size.mjs",
+    "debounce:report": "node scripts/debounce-report.mjs",
     "perf:rn": "node scripts/perf-rn.mjs",
     "compat:matrix": "node scripts/compat-matrix.mjs",
     "smoke:rate-limit": "node scripts/smoke-rate-limit.mjs",

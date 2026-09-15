@@ -5,6 +5,16 @@ commit với code).
 
 ## 1. Trạng thái hiện tại
 
+- **15/09/2026 — Đo số lượt Places của autocomplete theo mức debounce, kết luận trong
+  [evidence](evidence/autocomplete-debounce/2026-09-15-do-luot-autocomplete.md).** 14 trace gõ
+  tìm kiếm tiếng Việt ghi từ điện thoại thật (iPhone 14, Gboard tiếng Việt), phát lại qua mã thật
+  của cả ba gói SDK (`react`/`react-native`/`web`) bằng đồng hồ giả, không chạm mạng. Ở debounce
+  200 ms (mặc định hiện tại) tốn 238 lượt cho 14 kịch bản, 94% là chuỗi dở dang; 500 ms còn 62
+  lượt (giảm 74%). Ba gói cho ra đúng cùng số ở mọi mức đo. Nhân tiện mở attribute `debounce` cho
+  `<mapslibvn-autocomplete>` (trước đó hard-code 200 ms, không chỉnh được), mặc định không đổi.
+  Chưa đổi giá trị debounce mặc định của gói nào — đó là quyết định riêng, chờ PHONG đọc kết luận.
+  `AbortController`/huỷ request ở phía mạng và xử lý IME vẫn ngoài phạm vi, để lại cho vòng sau.
+
 - **13/09/2026 (sáng) — PHONG yêu cầu gỡ hoàn toàn nguồn POI Overture khỏi hệ thống; ĐÃ XONG trên
   production, hai sự cố ngoài kế hoạch phát hiện và xử lý dọc đường.** Registry `POI_SOURCE_PROFILES`
   còn `all`(=osm+fsq)/`osm`/`fsq`; bỏ `overture`, `overture-fsq`, `osm-fsq` (trùng `all` sau khi gỡ).
