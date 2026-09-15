@@ -508,3 +508,51 @@ describe('đọc Server-Timing của sổ quota', () => {
     expect(timings.reserve?.p50).toBe(220);
   });
 });
+
+describe('lượt đo mà không request nào thành công', () => {
+  const arms = [
+    { label: 'legacy', key: 'kA' },
+    { label: 'commercial', key: 'kB' },
+  ];
+
+  /** @param {number} status */
+  const allStatus = (status) =>
+    /** @type {typeof fetch} */ (
+      /** @type {unknown} */ (async () => new Response('{}', { status }))
+    );
+
+  it('từ chối khi mọi request dính 429 — chúng không chạm tới sổ quota', async () => {
+    const result = await runComparison('https://api.test', arms, 2, {
+      cooldownMs: 0,
+      fetchImpl: allStatus(429),
+    });
+    expect(result.usable).toBe(false);
+    expect(result.warnings.join(' ')).toContain('0/2 request thành công');
+  });
+
+  it('từ chối khi mọi request dính 401 vì khoá rỗng hoặc sai', async () => {
+    const result = await runComparison('https://api.test', arms, 2, {
+      cooldownMs: 0,
+      fetchImpl: allStatus(401),
+    });
+    expect(result.usable).toBe(false);
+    expect(result.warnings.join(' ')).toContain('commercial');
+  });
+
+  it('từ chối cả khi chỉ MỘT phần request hỏng', async () => {
+    let call = 0;
+    const result = await runComparison('https://api.test', arms, 5, {
+      cooldownMs: 0,
+      fetchImpl: /** @type {typeof fetch} */ (
+        /** @type {unknown} */ (
+          async () => {
+            call += 1;
+            return new Response('{}', { status: call === 7 ? 429 : 200 });
+          }
+        )
+      ),
+    });
+    expect(result.usable).toBe(false);
+    expect(result.warnings.join(' ')).toContain('4/5 request thành công');
+  });
+});

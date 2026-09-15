@@ -319,6 +319,16 @@ export async function runComparison(base, arms, users, options = {}) {
 
   /** @type {string[]} */
   const warnings = [];
+  // Câu hỏi CƠ BẢN NHẤT, và là câu tôi quên hỏi cho tới 15/09/2026: có request nào thành công
+  // không? Một lượt chạy mà cả hai nhánh `ok = 0` vẫn cho ra p50/p95 trông rất hợp lý — đó là
+  // thời gian để nhận về một trang lỗi. Bất kỳ phản hồi non-2xx nào cũng làm phép so sánh vô nghĩa:
+  // request bị 429 ở biên không hề chạm tới sổ quota, nên nó đo một đường đi hoàn toàn khác.
+  for (const arm of measured) {
+    if (arm.ok === arm.requests) continue;
+    warnings.push(
+      `Nhánh ${arm.label}: chỉ ${arm.ok}/${arm.requests} request thành công (429: ${arm.rateLimited}, lỗi: ${arm.errors}). Số đo là thời gian nhận về lỗi, không phải độ trễ của API.`,
+    );
+  }
   if ((baseline?.p95 ?? 0) > saturatedP95Ms) {
     warnings.push(
       `Origin đã bão hoà (nhánh nền p95 ${baseline?.p95} ms > ${saturatedP95Ms} ms). Chênh lệch dưới đây phần lớn là nhiễu xếp hàng, KHÔNG phải chi phí quota. Hạ --levels rồi đo lại.`,
