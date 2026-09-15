@@ -44,7 +44,10 @@ describe('usePlaces', () => {
     await advance(199);
     expect(client.autocomplete).not.toHaveBeenCalled();
     await advance(1);
-    expect(client.autocomplete).toHaveBeenCalledWith('highlands', { near: [10.776, 106.7] });
+    expect(client.autocomplete).toHaveBeenCalledWith(
+      'highlands',
+      expect.objectContaining({ near: [10.776, 106.7], signal: expect.any(AbortSignal) }),
+    );
     expect(result.current.items).toEqual([highlands]);
     expect(result.current.loading).toBe(false);
   });
@@ -58,7 +61,10 @@ describe('usePlaces', () => {
     rerender({ query: 'highlands' });
     await advance(200);
     expect(client.autocomplete).toHaveBeenCalledTimes(1);
-    expect(client.autocomplete).toHaveBeenCalledWith('highlands', {});
+    expect(client.autocomplete).toHaveBeenCalledWith(
+      'highlands',
+      expect.objectContaining({ signal: expect.any(AbortSignal) }),
+    );
   });
 
   it('response cũ về muộn không ghi đè items của query mới', async () => {
@@ -112,5 +118,43 @@ describe('usePlaces', () => {
     expect(result.current.items).toEqual([area]);
     expect(result.current.items[0]?.bbox).toEqual([106.65, 10.75, 106.68, 10.79]);
     expect(result.current.items[0]?.precision).toBe('district');
+  });
+
+  it('request cũ bị huỷ ở mạng khi query đổi trước khi nó xong', async () => {
+    const signals: AbortSignal[] = [];
+    const client = {
+      autocomplete: vi.fn((_query: string, opts: { signal?: AbortSignal }) => {
+        if (opts.signal) signals.push(opts.signal);
+        return new Promise<{ items: AutocompleteItem[] }>(() => {});
+      }),
+    } as unknown as MapsLibVNClient;
+    const { rerender } = renderHook(({ query }) => usePlaces(query, { client }), {
+      initialProps: { query: 'high' },
+    });
+    await advance(200);
+    expect(signals).toHaveLength(1);
+    expect(signals[0]?.aborted).toBe(false);
+
+    rerender({ query: 'highlands' });
+    await advance(200);
+    expect(signals).toHaveLength(2);
+    expect(signals[0]?.aborted).toBe(true);
+    expect(signals[1]?.aborted).toBe(false);
+  });
+
+  it('unmount huỷ request đang chờ ở mạng', async () => {
+    const signals: AbortSignal[] = [];
+    const client = {
+      autocomplete: vi.fn((_query: string, opts: { signal?: AbortSignal }) => {
+        if (opts.signal) signals.push(opts.signal);
+        return new Promise<{ items: AutocompleteItem[] }>(() => {});
+      }),
+    } as unknown as MapsLibVNClient;
+    const { unmount } = renderHook(() => usePlaces('highlands', { client }));
+    await advance(200);
+    expect(signals).toHaveLength(1);
+    expect(signals[0]?.aborted).toBe(false);
+    unmount();
+    expect(signals[0]?.aborted).toBe(true);
   });
 });
