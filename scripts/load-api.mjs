@@ -125,6 +125,8 @@ export async function runLevel(base, key, users, options = {}) {
     clientErrors,
     cacheHits: samples.filter(({ cache }) => cache === 'hit').length,
     acked,
+    /** Mẫu thô đã sắp xếp, để nhiều wave gộp lại thành một phân phối đủ dày. */
+    times,
     rps: Math.round((samples.length / elapsedMs) * 1000 * 10) / 10,
     p50: Math.round(percentile(times, 50)),
     p95: Math.round(percentile(times, 95)),
@@ -167,6 +169,37 @@ export async function runRamp(base, key, levels, options = {}) {
 const SATURATED_P95_MS = 2_000;
 /** Cache nội bộ được ghi trong `waitUntil`, tức SAU khi response đã trả. Chờ nó lắng. */
 const WARMUP_SETTLE_MS = 1_500;
+/** Nghỉ giữa các wave gộp mẫu: đủ để không dồn thành một burst, đủ ngắn để điều kiện không đổi. */
+const REPEAT_GAP_MS = 2_000;
+
+/**
+ * Gộp nhiều wave của CÙNG một nhánh thành một phân phối. Ở mức đồng thời thấp — mức duy nhất
+ * đo được chi phí quota vì origin chưa xếp hàng — một wave chỉ cho vài mẫu, và p95 của 5 mẫu
+ * chính là mẫu chậm nhất. Gộp mẫu là cách lấy percentile có nghĩa mà không phải tăng tải.
+ * @param {any[]} waves
+ */
+function pool(waves) {
+  const times = waves.flatMap((wave) => wave.times).sort((a, b) => a - b);
+  const sum = (/** @type {string} */ field) =>
+    waves.reduce((total, wave) => total + wave[field], 0);
+  return {
+    users: waves[0]?.users ?? 0,
+    waves: waves.length,
+    requests: sum('requests'),
+    ok: sum('ok'),
+    rateLimited: sum('rateLimited'),
+    errors: sum('errors'),
+    timeouts: sum('timeouts'),
+    serverErrors: sum('serverErrors'),
+    clientErrors: sum('clientErrors'),
+    cacheHits: sum('cacheHits'),
+    acked: sum('acked'),
+    rps: Math.round((sum('rps') / Math.max(1, waves.length)) * 10) / 10,
+    p50: Math.round(percentile(times, 50)),
+    p95: Math.round(percentile(times, 95)),
+    p99: Math.round(percentile(times, 99)),
+  };
+}
 
 /**
  * A/B: mỗi nhánh một khoá, chạy lần lượt, nghỉ hết cửa sổ burst ở giữa. Chênh lệch p50/p95/p99 so
@@ -188,12 +221,19 @@ const WARMUP_SETTLE_MS = 1_500;
  * @param {{label: string, key: string}[]} arms
  * @param {number} users
  * @param {{ fetchImpl?: typeof fetch, timeoutMs?: number, group?: 'places'|'directions',
- *   cache?: 'cold'|'warm', cooldownMs?: number, saturatedP95Ms?: number,
+ *   cache?: 'cold'|'warm', cooldownMs?: number, saturatedP95Ms?: number, repeat?: number,
  *   sleepImpl?: (ms: number) => Promise<void> }} [options]
  */
 export async function runComparison(base, arms, users, options = {}) {
   const cooldownMs = options.cooldownMs ?? DEFAULT_COOLDOWN_MS;
   const saturatedP95Ms = options.saturatedP95Ms ?? SATURATED_P95_MS;
+  const repeat = Math.max(1, options.repeat ?? 1);
+  // Trần burst là 60/phút cho mỗi cặp khoá+IP. Vượt nó thì lượt đo biến thành lượt đo 429.
+  if (users * repeat > 50) {
+    throw new Error(
+      `users × repeat = ${users * repeat} vượt ngân sách burst an toàn (50). Hạ --levels hoặc --repeat.`,
+    );
+  }
   const sleepImpl =
     options.sleepImpl ?? ((ms) => new Promise((resolve) => setTimeout(resolve, ms)));
   /** @param {number} index */
@@ -209,10 +249,13 @@ export async function runComparison(base, arms, users, options = {}) {
   const measured = [];
   for (const [index, arm] of arms.entries()) {
     if (index > 0 && cooldownMs > 0) await sleepImpl(cooldownMs);
-    measured.push({
-      label: arm.label,
-      ...(await runLevel(base, arm.key, users, armOptions(index))),
-    });
+    /** @type {any[]} */
+    const waves = [];
+    for (let round = 0; round < repeat; round += 1) {
+      if (round > 0) await sleepImpl(REPEAT_GAP_MS);
+      waves.push(await runLevel(base, arm.key, users, armOptions(index)));
+    }
+    measured.push({ label: arm.label, ...pool(waves) });
   }
   const baseline = measured[0];
 
@@ -230,7 +273,8 @@ export async function runComparison(base, arms, users, options = {}) {
     );
   }
   const spread = measured.map((arm) => arm.cacheHits);
-  if (Math.max(...spread) - Math.min(...spread) > Math.max(1, Math.round(users * 0.2))) {
+  const totalRequests = baseline?.requests ?? users;
+  if (Math.max(...spread) - Math.min(...spread) > Math.max(1, Math.round(totalRequests * 0.2))) {
     warnings.push(
       `cacheHits lệch nhau nhiều giữa các nhánh (${spread.join(' vs ')}): hai nhánh không gặp cùng điều kiện cache, chênh lệch không so sánh được.`,
     );
@@ -313,8 +357,9 @@ async function main() {
       { label: arg('label-b') ?? 'commercial', key: keyB },
     ];
     const users = levels[0] ?? 10;
+    const repeat = Number(arg('repeat') ?? 1);
     if (mode === 'ab') {
-      const ab = await runComparison(base, arms, users, { group, cache, cooldownMs });
+      const ab = await runComparison(base, arms, users, { group, cache, cooldownMs, repeat });
       console.table(ab.arms);
       console.table(ab.overhead);
       if (ab.usable) {

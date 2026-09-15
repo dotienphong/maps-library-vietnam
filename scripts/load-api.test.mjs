@@ -398,3 +398,36 @@ describe('A/B từ chối lượt đo không dùng được', () => {
     expect(waits).toEqual([1_500, 65_000]);
   });
 });
+
+describe('gộp mẫu qua nhiều wave', () => {
+  const arms = [
+    { label: 'legacy', key: 'kA' },
+    { label: 'commercial', key: 'kB' },
+  ];
+
+  it('gộp mẫu của mọi wave thành một phân phối thay vì lấy p95 của 5 mẫu', async () => {
+    let call = 0;
+    const result = await runComparison('https://api.test', arms, 5, {
+      repeat: 4,
+      cooldownMs: 0,
+      sleepImpl: async () => {},
+      fetchImpl: /** @type {typeof fetch} */ (
+        /** @type {unknown} */ (
+          async () => {
+            call += 1;
+            return new Response('{}', { status: 200 });
+          }
+        )
+      ),
+    });
+    expect(call).toBe(40); // 2 nhánh × 4 wave × 5 request
+    expect(result.arms[0]?.waves).toBe(4);
+    expect(result.arms[0]?.requests).toBe(20);
+  });
+
+  it('từ chối cấu hình vượt ngân sách burst thay vì đo ra một đống 429', async () => {
+    await expect(
+      runComparison('https://api.test', arms, 25, { repeat: 4, cooldownMs: 0 }),
+    ).rejects.toThrow('vượt ngân sách burst');
+  });
+});
