@@ -1,7 +1,9 @@
 import type { AuthInfo } from './auth';
+import type { QuotaObject } from './billing/quota-object';
 
 export interface Env {
   META: KVNamespace;
+  QUOTA: DurableObjectNamespace<QuotaObject>;
   TILES: R2Bucket;
   DB: Hyperdrive;
   /** Chống burst theo key tại edge: 60 request/phút/colo. */
@@ -10,11 +12,20 @@ export interface Env {
   ENVIRONMENT: string;
   /** '1' = bật đếm quota KV cho tenant free/paid (spec 6.4). Mặc định '0'. */
   QUOTA_ENABLED?: string;
+  /** Cổng độc lập để commercial fail closed trong lúc rollout/rollback. */
+  COMMERCIAL_ADMISSION?: string;
+  /** Trần request đồng thời mỗi tenant. Bỏ trống = mốc đã đo (50 Places / 16 directions). */
+  MAX_INFLIGHT_PLACES?: string;
+  MAX_INFLIGHT_DIRECTIONS?: string;
   /** Workers Analytics Engine — optional, code phải hoạt động khi vắng binding. */
   ANALYTICS?: AnalyticsEngineDataset;
   /** Cloudflare Access cho /admin + /v1/admin (M4). Không phải secret. */
   ACCESS_TEAM_DOMAIN?: string; // vd: myteam.cloudflareaccess.com
   ACCESS_AUD?: string; // AUD tag của Access application
+  /** Danh sách email được quản trị billing, phân cách bằng dấu phẩy. Rỗng = deny. */
+  BILLING_ADMIN_EMAILS?: string;
+  /** Origin chính xác của UI billing nếu route mutation được gọi từ browser. */
+  BILLING_ADMIN_ORIGIN?: string;
   /** Override URL JWKS cho test/E2E (Access giả lập). */
   ACCESS_CERTS_URL?: string;
   /** Secret băm `ip_hash`/`end_user_hash` (checklist C4). Đặt bằng `wrangler secret put`. */
@@ -41,5 +52,12 @@ export interface Env {
 export type AppEnv = {
   Bindings: Env;
   /** `stageHit`: bậc cao nhất đã cho ra kết quả autocomplete (0 = rỗng) — spec 5.7, ghi vào analytics. */
-  Variables: { auth?: AuthInfo; reviewer?: string; stageHit?: number };
+  Variables: {
+    auth?: AuthInfo;
+    reviewer?: string;
+    stageHit?: number;
+    /** Tham số đã parse ở preflight quota, dùng lại trong handler — spec 14.4 cấm parse hai lần.
+     * Mỗi route tự biết kiểu thật của mình; middleware chỉ mang hộ qua context. */
+    params?: unknown;
+  };
 };

@@ -37,6 +37,7 @@ const validPayload = () => ({
   aud: ['test-aud'],
   email: 'phong@test.local',
   exp: Math.floor(Date.now() / 1000) + 600,
+  iss: 'https://test.cloudflareaccess.com',
 });
 const code = async (response: Response) =>
   ((await response.json()) as { error: { code: string } }).error.code;
@@ -88,9 +89,10 @@ describe('GET /v1/admin/edits — Cloudflare Access JWT', () => {
     expect(await code(response)).toBe('invalid_access_jwt');
   });
 
-  it('aud sai → 401; exp quá hạn → 401', async () => {
+  it('aud/issuer sai hoặc exp quá hạn → 401', async () => {
     for (const payload of [
       { ...validPayload(), aud: ['aud-khac'] },
+      { ...validPayload(), iss: 'https://attacker.invalid' },
       { ...validPayload(), exp: Math.floor(Date.now() / 1000) - 60 },
     ]) {
       const response = await SELF.fetch('https://api/v1/admin/edits', {
@@ -135,5 +137,14 @@ describe('GET /v1/admin/edits — Cloudflare Access JWT', () => {
     });
     expect(response.status).toBe(401);
     expect(await code(response)).toBe('missing_access_jwt');
+  });
+
+  it('billing dùng allowlist riêng và rỗng/không khớp luôn deny', async () => {
+    const response = await SELF.fetch(
+      'https://api/v1/admin/billing/00000000-0000-4000-8000-0000000000c1/usage',
+      { headers: { 'Cf-Access-Jwt-Assertion': await sign(validPayload()) } },
+    );
+    expect(response.status).toBe(403);
+    expect(await code(response)).toBe('billing_admin_forbidden');
   });
 });

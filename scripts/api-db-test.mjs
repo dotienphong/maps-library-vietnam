@@ -6,7 +6,7 @@ import { existsSync, rmSync } from 'node:fs';
 import { readFile } from 'node:fs/promises';
 import crossSpawn from 'cross-spawn';
 import postgres from 'postgres';
-import { CERTS_PORT, FAKE_AUD } from './lib/access-fake.mjs';
+import { CERTS_PORT, FAKE_AUD, FAKE_TEAM_DOMAIN } from './lib/access-fake.mjs';
 import { DBTEST_DATABASE, isolatedDbUrl } from './lib/db-test.mjs';
 import { databaseUrlFromEnv } from './lib/migrations.mjs';
 
@@ -109,6 +109,8 @@ const wrangler = crossSpawn(
     String(PORT),
     '--var',
     `ACCESS_AUD:${FAKE_AUD}`,
+    '--var',
+    `ACCESS_TEAM_DOMAIN:${FAKE_TEAM_DOMAIN}`,
     '--var',
     `ACCESS_CERTS_URL:http://127.0.0.1:${CERTS_PORT}/certs`,
     '--var',

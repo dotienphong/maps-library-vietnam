@@ -29,12 +29,12 @@ Mười hạng mục mục A đã được đối chiếu lại với mã nguồ
 
 | # | Việc | Căn cứ | Hạn | Trạng thái |
 |---|---|---|---|---|
-| B1 | Hỏi luật sư: kinh doanh nền tảng bản đồ số có thuộc danh mục cần **giấy phép hoạt động đo đạc và bản đồ** theo Điều 51 Luật Đo đạc và bản đồ 2018 và Nghị định 18/2020 hay không | spec 12.4 | trước khi thu phí | ☐ |
-| B2 | Hỏi luật sư xác nhận cách đọc **ODbL Collective Database**: bảng POI chỉ liên kết bằng ID nên không phải Derivative Database, và kết quả API là Produced Work chỉ cần ghi nguồn | spec 12.2 | trước khi thu phí | ☐ |
+| B1 | Hỏi luật sư: kinh doanh nền tảng bản đồ số có thuộc danh mục cần **giấy phép hoạt động đo đạc và bản đồ** theo Điều 51 Luật Đo đạc và bản đồ 2018 và Nghị định 18/2020 hay không | spec 12.4 | trước khi thu phí | ☑ **PHONG xác nhận OK 15/09/2026** trong hội thoại; đóng theo xác nhận chủ dự án. Không suy diễn thêm hồ sơ hay ý kiến luật sư chưa được cung cấp. |
+| B2 | Hỏi luật sư xác nhận cách đọc **ODbL Collective Database**: bảng POI chỉ liên kết bằng ID nên không phải Derivative Database, và kết quả API là Produced Work chỉ cần ghi nguồn | spec 12.2 | trước khi thu phí | ☑ **PHONG xác nhận OK 15/09/2026** trong hội thoại; đóng theo xác nhận chủ dự án. Không suy diễn thêm hồ sơ hay ý kiến luật sư chưa được cung cấp. |
 | B3 | Rà soát **nhãn hiệu** tên "MapsLibVN" với chính sách nhãn hiệu của MapLibre; nếu bị phản đối thì đổi tên gói trước khi publish npm công khai | spec 12.4 và 14 | trước khi publish npm | ☑ **PHONG chấp thuận 09/09/2026.** Hồ sơ `docs/legal/b3-ra-soat-nhan-hieu.md`: không có đơn trùng tại WIPO/Cục SHTT, có miễn trừ liên kết trong notices. Chủ dự án chấp nhận rủi ro thấp–trung bình và cho phép publish trước phản hồi MapLibre; thư hỏi `team@maplibre.org` vẫn được khuyến nghị nhưng không còn chặn npm. Scope `@mapslibvn` đã xác minh thuộc tài khoản `dotienphong1993`. |
-| B4 | Luật sư rà soát **điều khoản tenant** trước khi ký với tenant bên ngoài | spec 9 | trước tenant ngoài | ☐ |
-| B5 | Khi thương mại hoá: chuyển dữ liệu đóng góp lên hạ tầng có kiểm soát vật lý, không giữ ở nhà riêng | spec 12.4 và 11.6 | khi có tenant trả phí | ☐ |
-| B6 | Mua **tên miền riêng** cho MapsLibVN, đổi endpoint tiles và API trong docs và cấu hình, mang theo cặp Cache Rule đã ghi ở sự cố SC-1 | DEVLOG mục 3 ngày 27/08 | trước khi mở cho developer ngoài | ☐ |
+| B4 | Luật sư rà soát **điều khoản tenant** trước khi ký với tenant bên ngoài | spec 9 | trước tenant ngoài | ☑ **PHONG xác nhận OK 15/09/2026** trong hội thoại; đóng theo xác nhận chủ dự án. Không suy diễn thêm hồ sơ hay ý kiến luật sư chưa được cung cấp. |
+| B5 | Chuyển hạ tầng khỏi nhà riêng | spec 12.4 và 11.6; ngoại lệ PHONG 15/09/2026 | Rà lại khi tăng tải | ☑ **PASS giai đoạn đầu theo PHONG 15/09/2026:** cho phép tạm vận hành tại nhà khi ít user; chưa chuyển hạ tầng. |
+| B6 | Mua **tên miền riêng** cho MapsLibVN, đổi endpoint tiles và API trong docs và cấu hình, mang theo cặp Cache Rule đã ghi ở sự cố SC-1 | DEVLOG mục 3 ngày 27/08 | Hoãn, chưa định ngày | **PHONG quyết định mua sau 15/09/2026**; không chặn giai đoạn đầu, chưa hoàn thành mua tên miền |
 
 ## C. Việc kỹ thuật còn treo — không thuộc pháp lý, ghi để không quên
 
@@ -49,7 +49,8 @@ Mười hạng mục mục A đã được đối chiếu lại với mã nguồ
 
 ---
 
-**Ý nghĩa của việc duyệt.** Người ký xác nhận mục A đúng với hệ thống đang chạy tại ngày duyệt, và cam
-kết hoàn thành các việc ở mục B trước mốc ghi ở cột "Hạn". Sáu việc mục B **chưa làm** và vẫn để trống.
-Tài liệu này chưa được luật sư rà soát và không thay thế ý kiến pháp lý; việc duyệt ở đây là quyết định
-nội bộ cho giai đoạn dùng nội bộ, không phải kết luận pháp lý.
+**Ý nghĩa của việc duyệt.** Giữ nguyên hồ sơ nghiệm thu mục A và lịch sử B3.
+Cập nhật 15/09/2026: B1/B2/B4 đóng theo xác nhận OK của PHONG; B5 được miễn điều kiện
+chuyển hạ tầng trong giai đoạn đầu, cho phép đặt tại nhà; B6 hoãn mua tên miền theo PHONG.
+Các trạng thái này ghi lại quyết định chủ dự án, không tự tạo bằng chứng tư vấn pháp lý
+hay khẳng định việc chuyển hạ tầng/mua tên miền đã thực hiện.

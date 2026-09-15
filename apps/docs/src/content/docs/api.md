@@ -75,21 +75,61 @@ Mọi lỗi trả JSON cùng một hình dạng:
 | `not_found` | 404 | không có route, không có POI, không có theme hoặc bộ tiles |
 | `no_route` | 404 | `GET /v1/directions`: không có đường giữa các điểm, hoặc điểm quá xa mạng đường / vùng không kết nối |
 | `rate_limit_exceeded` | 429 | vượt burst/phút của Places hoặc Chỉ đường |
-| `quota_exceeded` | 429 | vượt quota ngày của Places hoặc Chỉ đường, hoặc vượt giới hạn đóng góp theo ngày |
+| `quota_exceeded` | 429 | hết hạn mức Places/Chỉ đường; `details` có `group`, `reason` (`daily`/`period`/`trial_total`), `resetAt` khi thật sự có mốc cấp lại, và `actions` |
+| `subscription_expired` | 403 | hết **quyền** dùng chứ không phải hết lượt: trial hết hạn, thuê bao hết hạn, bị tạm dừng, hoặc chưa được cấp quyền. Không gợi ý mua thêm lượt |
+| `ack_required` | 429 | còn quá nhiều receipt chưa xác nhận; hãy ACK receipt cũ. Cửa sổ tự mở, **không** phải hết quota |
+| `concurrency_limit` | 429 | quá nhiều request đồng thời của cùng tenant — nghẽn tạm thời, kèm `retry-after` ngắn. Hạn mức vẫn còn nguyên |
+| `quota_unavailable` | 503 | sổ quota không truy cập được, hoặc quota thương mại đang tạm đóng để bảo trì |
+| `quota_ack_pending` | client SDK | SDK chưa xác nhận được receipt trước nên tạm không gửi request tính lượt mới |
 | `upstream_unavailable` | 503 | không truy vấn được cơ sở dữ liệu, không tra được khoá, chưa có phiên bản tiles, dịch vụ chỉ đường không phản hồi (kể cả lúc build lại graph) hoặc lỗi không xác định |
 | `server_misconfigured` | 503 | máy chủ thiếu cấu hình bắt buộc; hiện chỉ xảy ra ở `POST /v1/edits` khi chưa đặt secret băm |
 
-Header `retry-after` phân biệt theo loại giới hạn: `quota_exceeded` (quota ngày) trả **3600** giây; `rate_limit_exceeded` (burst/phút) trả **60** giây; `upstream_unavailable` trả **30** giây. Các mã 4xx khác không có `retry-after` vì thử lại ngay cũng vô ích.
+Header `retry-after` chỉ có khi máy chủ biết thời gian thử lại hợp lệ. Burst/phút trả **60** giây và `upstream_unavailable` trả **30** giây. Quota thương mại không dùng giá trị 3600 chung; ứng dụng đọc `error.details.resetAt` khi trường này có mặt.
+
+`details.actions` nói rõ việc nên làm, đừng suy từ mã lỗi: `upgrade` (nâng gói), `buy_more` (mua thêm lượt), `renew` (gia hạn/khôi phục thuê bao), `wait` (chờ rồi thử lại). Chỉ hết hạn mức thật mới có `buy_more` — nghẽn tạm thời và thiếu ACK thì không, vì mua thêm lượt không giải quyết được.
 
 Route quản trị `/v1/admin/*` dùng thêm hai mã `missing_access_jwt` và `invalid_access_jwt` (401) — xem mục 6.
 
+:::caution[Thay đổi hành vi: `HEAD` trên bảy API dữ liệu trả 405]
+Bảy endpoint dữ liệu (sáu API Places và `/v1/directions`) nay trả **`405` kèm `Allow: GET`** cho
+`HEAD`, thay vì chạy như `GET` rồi trả 200 không body như trước. Lý do: `HEAD` vẫn chạy trọn truy
+vấn ở máy chủ nhưng không trả dữ liệu gì cho người gọi — vừa tốn tài nguyên vừa bị tính vào hạn
+mức. Nếu bạn đang dùng `HEAD` để kiểm tra dịch vụ sống, hãy đổi sang `GET /healthz`
+(hoặc `/healthz/db`, `/healthz/routing`) — các endpoint đó không cần khoá và không tính lượt.
+Phản hồi 405 này **không có body** — đúng chuẩn HTTP cho `HEAD` — nên nó không mang `error.code`
+như các lỗi khác; hãy nhận biết bằng status và header `Allow`.
+`OPTIONS` vẫn kết thúc ở CORS như cũ. Các route tiles/styles/metadata không đổi.
+:::
+
 ## 3. Quota và cache
 
-**Quota Places.** Tính theo ngày giờ Việt Nam (UTC+7, mốc 00:00). Plan `free` mặc định **20.000** lượt/ngày, khoá có thể được đặt hạn riêng. Bộ đếm nằm trong KV nên là **đếm xấp xỉ**: request được chặn khi bộ đếm đạt **2×** hạn mức, để việc đếm trễ không chặn oan. Tenant plan `internal` không bị đếm. Vượt hạn trả `429 quota_exceeded`.
+Tenant cũ dùng quota KV theo ngày cho tới khi quản trị viên chuyển `quota_mode` sang `commercial`.
+Tenant thương mại dùng sổ quota chính xác theo tenant: Free có tổng 2.000 Places + 200 tuyến trong
+30 ngày và trần 200 + 20 mỗi ngày; các gói trả phí dùng kỳ thuê bao và credit mua thêm. Một phản hồi
+2xx, kể cả kết quả rỗng hoặc lấy từ cache, chỉ được cộng lượt sau khi client xác nhận receipt. Lỗi
+4xx/5xx không cộng lượt. Burst limit vẫn kiểm mọi request.
 
 Sáu endpoint đọc dữ liệu địa điểm (`/v1/autocomplete`, `/v1/search`, `/v1/nearby`, `/v1/places/{id}`, `/v1/geocode`, `/v1/reverse`) tính vào quota này. `POST /v1/edits` có giới hạn riêng theo ngày (mục 5), không tính vào quota Places.
 
 **Quota Chỉ đường.** `GET /v1/directions` có quota **riêng**, cũng theo ngày Việt Nam và cũng chặn ở 2× hạn mức: plan `free` mặc định **2.000** lượt/ngày, khoá có thể được đặt hạn riêng (`quota_directions_per_day`). Tenant `internal` không bị đếm theo ngày. Burst **20 request/phút** cho mỗi cặp khoá + IP (riêng, không dùng chung 60 của Places). Ngoài ra khoá `web` và `mobile` — kể cả của tenant `internal`, vì khoá loại này nằm công khai trong trang/app — chịu **trần 100 request/phút cho cả khoá** (mọi IP cộng lại); khoá `server` không chịu trần này. Vượt trả `429 rate_limit_exceeded` với `retry-after: 60`.
+
+### Xác nhận receipt khi gọi REST trực tiếp
+
+Phản hồi 2xx của tenant thương mại có bốn header được CORS expose:
+`X-MapsLibVN-Receipt-Id`, `X-MapsLibVN-Receipt-Token`, `X-MapsLibVN-Receipt-Expires-At`
+(ISO UTC) và `X-MapsLibVN-Receipt-Version`. Quá `Expires-At` thì receipt tự hết hiệu lực và
+**không bị tính lượt** — client nên bỏ nó đi thay vì ACK, vì ACK muộn chỉ nhận 409.
+Sau khi nhận và đọc xong response, lưu receipt bền vững rồi ACK bằng chính API key đã gọi dữ liệu:
+
+```bash
+curl -X POST -H "X-Api-Key: mlv_live_…" -H "Content-Type: application/json" \
+  -d '{"token":"TOKEN_TRONG_HEADER"}' \
+  "https://api.ai-solutions.io.vn/v1/quota/receipts/RECEIPT_ID/ack"
+```
+
+ACK lặp lại là an toàn và không cộng lượt lần hai. Token sai trả 403; receipt đã đóng hoặc hết hạn
+trả 409. Không ghi token vào log và không cache response chứa receipt. Bốn SDK MapsLibVN tự thực
+hiện quy trình này.
 
 **Cache.** Một số phản hồi được cache ở biên Cloudflare:
 

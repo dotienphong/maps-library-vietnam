@@ -12,22 +12,44 @@ import { quotaMiddleware } from '../quota';
 
 export const search = new Hono<AppEnv>();
 
-search.get('/v1/search', requireAuth(), quotaMiddleware('places'), async (c) => {
-  const query = (c.req.query('q') ?? '').trim();
-  const category = c.req.query('category');
-  const near = parseLatLngPair(c.req.query('near'), 'near');
-  const bbox = parseBbox(c.req.query('bbox'));
-  if (!query && !category && !near && !bbox) {
-    throw new ApiError(400, 'invalid_request', 'Cần ít nhất một trong q, category, near, bbox');
+/**
+ * Parse + validate MỘT lần mỗi request, nhớ trên context: preflight quota gọi trước khi giữ lượt,
+ * handler gọi lại nhận đúng object cũ — spec 14.4 cấm parse hai lần.
+ */
+function searchParams(c: import('hono').Context<AppEnv>) {
+  const cached = c.get('params') as ReturnType<typeof parse> | undefined;
+  if (cached) return cached;
+  const parsed = parse();
+  c.set('params', parsed);
+  return parsed;
+
+  function parse() {
+    const query = (c.req.query('q') ?? '').trim();
+    const category = c.req.query('category');
+    const near = parseLatLngPair(c.req.query('near'), 'near');
+    const bbox = parseBbox(c.req.query('bbox'));
+    if (!query && !category && !near && !bbox)
+      throw new ApiError(400, 'invalid_request', 'Cần ít nhất một trong q, category, near, bbox');
+    const queryNorm = query ? normalizeVi(query) : '';
+    if (query && !queryNorm)
+      throw new ApiError(400, 'invalid_request', 'q không có ký tự tra cứu được');
+    return {
+      query,
+      category,
+      near,
+      bbox,
+      queryNorm,
+      radius: clampInt(c.req.query('radius'), 1, 50_000, 5_000, 'radius'),
+      limit: clampInt(c.req.query('limit'), 1, 50, 20, 'limit'),
+      offset: clampInt(c.req.query('offset'), 0, 500, 0, 'offset'),
+      sources: parseSources(c.req.query('sources')),
+    };
   }
-  const radius = clampInt(c.req.query('radius'), 1, 50_000, 5_000, 'radius');
-  const limit = clampInt(c.req.query('limit'), 1, 50, 20, 'limit');
-  const offset = clampInt(c.req.query('offset'), 0, 500, 0, 'offset');
-  const sources = parseSources(c.req.query('sources'));
-  const queryNorm = query ? normalizeVi(query) : '';
-  if (query && !queryNorm) {
-    throw new ApiError(400, 'invalid_request', 'q không có ký tự tra cứu được');
-  }
+}
+
+search.get('/v1/search', requireAuth(), quotaMiddleware('places', searchParams), async (c) => {
+  const { query, category, near, bbox, queryNorm, radius, limit, offset, sources } =
+    searchParams(c);
   // LIKE tận dụng gin_trgm_ops; starts_with trong OR buộc quét cả bảng (xem 72f78a2).
   const prefixPattern = `${queryNorm.replace(/[\\%_]/g, '\\$&')}%`;
   const fuzzy = useSimilarityBranch(queryNorm);

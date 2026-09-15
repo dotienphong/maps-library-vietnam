@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from 'vitest';
 import fixture from '../../tests/fixtures/directions-q1.json';
 import { syntheticTwoLegRoute } from '../../tests/helpers/synthetic-route';
 import type { DirectionsOptions } from '../client';
+import { MapsLibVNError } from '../errors';
 import type { DirectionsResponse, Route } from '../types';
 import { createNavigator } from './navigator';
 import { simulateFixes } from './simulate';
@@ -33,6 +34,19 @@ function deferred<T>() {
 }
 
 describe('createNavigator — reroute auto', () => {
+  it('hết quota dừng auto-reroute ngay và giữ tuyến hiện tại', async () => {
+    const directions = vi.fn(async () => {
+      throw new MapsLibVNError(429, 'quota_exceeded', 'hết lượt');
+    });
+    const nav = createNavigator({ response, provider: { directions } });
+    const failed = vi.fn();
+    nav.on('rerouteFailed', failed);
+    await feed(nav, shiftFrom(simulateFixes(route), 20).slice(0, 120));
+    expect(directions).toHaveBeenCalledTimes(1);
+    expect(failed).toHaveBeenCalledWith(expect.objectContaining({ final: true }));
+    expect(nav.status).toBe('off_route');
+  });
+
   it('lệch xác nhận → gọi provider đúng tham số → rerouting → reroute → navigating, lịch đọc reset', async () => {
     const directions = vi.fn(async (_o: DirectionsOptions) => response);
     const provider: RouteProvider = { directions };

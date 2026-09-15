@@ -10,19 +10,37 @@ import { quotaMiddleware } from '../quota';
 
 export const nearby = new Hono<AppEnv>();
 
-nearby.get('/v1/nearby', requireAuth(), quotaMiddleware('places'), async (c) => {
-  const latRaw = c.req.query('lat')?.trim();
-  const lngRaw = c.req.query('lng')?.trim();
-  const lat = latRaw ? Number(latRaw) : Number.NaN;
-  const lng = lngRaw ? Number(lngRaw) : Number.NaN;
-  if (!Number.isFinite(lat) || !Number.isFinite(lng) || Math.abs(lat) > 90 || Math.abs(lng) > 180) {
-    throw new ApiError(400, 'invalid_request', 'lat, lng bắt buộc và phải hợp lệ');
-  }
-  const radius = clampInt(c.req.query('radius'), 1, 5_000, 500, 'radius');
-  const limit = clampInt(c.req.query('limit'), 1, 100, 20, 'limit');
-  const category = c.req.query('category');
-  const sources = parseSources(c.req.query('sources'));
+/**
+ * Parse + validate MỘT lần mỗi request, nhớ trên context: preflight quota gọi trước khi giữ lượt,
+ * handler gọi lại nhận đúng object cũ — spec 14.4 cấm parse hai lần.
+ */
+function nearbyParams(c: import('hono').Context<AppEnv>) {
+  const cached = c.get('params') as ReturnType<typeof parse> | undefined;
+  if (cached) return cached;
+  const parsed = parse();
+  c.set('params', parsed);
+  return parsed;
 
+  function parse() {
+    const latRaw = c.req.query('lat')?.trim();
+    const lngRaw = c.req.query('lng')?.trim();
+    const lat = latRaw ? Number(latRaw) : Number.NaN;
+    const lng = lngRaw ? Number(lngRaw) : Number.NaN;
+    if (!Number.isFinite(lat) || !Number.isFinite(lng) || Math.abs(lat) > 90 || Math.abs(lng) > 180)
+      throw new ApiError(400, 'invalid_request', 'lat, lng bắt buộc và phải hợp lệ');
+    return {
+      lat,
+      lng,
+      radius: clampInt(c.req.query('radius'), 1, 5_000, 500, 'radius'),
+      limit: clampInt(c.req.query('limit'), 1, 100, 20, 'limit'),
+      sources: parseSources(c.req.query('sources')),
+    };
+  }
+}
+
+nearby.get('/v1/nearby', requireAuth(), quotaMiddleware('places', nearbyParams), async (c) => {
+  const { lat, lng, radius, limit, sources } = nearbyParams(c);
+  const category = c.req.query('category');
   const sql = getSql(c.env);
   try {
     const point = sql`ST_SetSRID(ST_MakePoint(${lng}, ${lat}), 4326)`;

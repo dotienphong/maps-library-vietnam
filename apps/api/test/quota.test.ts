@@ -47,6 +47,29 @@ describe('quota (QUOTA_ENABLED=1 trong vitest.config)', () => {
     expect(res.headers.get('retry-after')).toBeTruthy();
   });
 
+  it('HEAD trả 405 và KHÔNG tính lượt cho tenant legacy', async () => {
+    await seedFree(10);
+    const key = await quotaKey(FREE_KEY);
+    await env.META.put(key, '3');
+    const response = await SELF.fetch('https://api/v1/autocomplete?q=highlands', {
+      method: 'HEAD',
+      headers: { 'X-Api-Key': FREE_KEY },
+    });
+    expect(response.status).toBe(405);
+    expect(response.headers.get('allow')).toBe('GET');
+    // Trước đây HEAD chạy trọn handler GET rồi tăng bộ đếm — tức bị tính lượt, trái spec mục 6.
+    expect(await env.META.get(key)).toBe('3');
+  });
+
+  it('HEAD bị chặn trước cả validate tham số: sai method thì không bàn tới tham số', async () => {
+    await seedFree(10);
+    const response = await SELF.fetch('https://api/v1/autocomplete?q=x', {
+      method: 'HEAD',
+      headers: { 'X-Api-Key': FREE_KEY },
+    });
+    expect(response.status).toBe(405);
+  });
+
   it('plan internal không bị đếm/chặn dù counter cao', async () => {
     const key = 'mlv_live_test00000000000000000000';
     await seedKey(key, { tenantId: 't', quotaPlacesPerDay: 1 });

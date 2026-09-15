@@ -7,6 +7,12 @@ compatibility_flags = ["nodejs_compat"]
 TILES_BASE = "https://tiles.ai-solutions.io.vn"
 ENVIRONMENT = "dev"
 QUOTA_ENABLED = "0"
+COMMERCIAL_ADMISSION = "0"
+# Trần request đồng thời mỗi tenant. Bỏ trống = mốc đo lại 15/09/2026 (50 Places / 32 tuyến,
+# docs/evidence/capacity/2026-09-15-inflight-ramp.md). Hạ ngay bằng `wrangler deploy --var` nếu origin
+# nghẽn; đây là trần THEO TỪNG tenant còn origin dùng chung, phải đo lại khi có tenant thứ hai.
+# MAX_INFLIGHT_PLACES = "50"
+# MAX_INFLIGHT_DIRECTIONS = "32"
 ROUTING_BASE = "http://127.0.0.1:8002"
 # Chỉ cho dev/test. Production KHÔNG lấy giá trị này (khối [env.production] ghi đè toàn bộ vars)
 # mà đọc secret đặt bằng `wrangler secret put IP_HASH_PEPPER --env production`.
@@ -27,6 +33,14 @@ dataset = "mapslibvn_api"
 binding = "META"
 id = "a50e778ff63a4ad7956f783eba456ed5"
 
+[[durable_objects.bindings]]
+name = "QUOTA"
+class_name = "QuotaObject"
+
+[[migrations]]
+tag = "billing-quota-v1"
+new_sqlite_classes = ["QuotaObject"]
+
 [[r2_buckets]]
 binding = "TILES"
 bucket_name = "mapslibvn-tiles"
@@ -40,8 +54,9 @@ localConnectionString = "postgres://mapslibvn:mapslibvn@localhost:5432/mapslibvn
 enabled = true
 
 [env.production]
-vars = { TILES_BASE = "https://tiles.ai-solutions.io.vn", ENVIRONMENT = "production", QUOTA_ENABLED = "1", ROUTING_BASE = "https://maps-route.ai-solutions.io.vn", ACCESS_TEAM_DOMAIN = "snowy-credit-f444.cloudflareaccess.com", ACCESS_AUD = "26088029373e358f9a24e68f66fe85ccc0c771e53cde538638a54151969cc6f5" }
+vars = { TILES_BASE = "https://tiles.ai-solutions.io.vn", ENVIRONMENT = "production", QUOTA_ENABLED = "1", COMMERCIAL_ADMISSION = "0", ROUTING_BASE = "https://maps-route.ai-solutions.io.vn", ACCESS_TEAM_DOMAIN = "snowy-credit-f444.cloudflareaccess.com", ACCESS_AUD = "26088029373e358f9a24e68f66fe85ccc0c771e53cde538638a54151969cc6f5" }
 kv_namespaces = [{ binding = "META", id = "a50e778ff63a4ad7956f783eba456ed5" }]
+durable_objects = { bindings = [{ name = "QUOTA", class_name = "QuotaObject" }] }
 r2_buckets = [{ binding = "TILES", bucket_name = "mapslibvn-tiles" }]
 hyperdrive = [{ binding = "DB", id = "71d7a62b89e9462e91bb0094af1f750f" }]
 analytics_engine_datasets = [{ binding = "ANALYTICS", dataset = "mapslibvn_api" }]

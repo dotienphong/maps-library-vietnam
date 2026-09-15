@@ -70,6 +70,12 @@ Khoá thiếu scope cần thiết trả `403` với code `scope` và message nê
 
 ## 5. Quota
 
+Quota thương mại tính chung theo **tenant**, không tách riêng từng key. Free dùng thử có tổng
+2.000 Places + 200 tuyến trong 30 ngày, đồng thời tối đa 200 + 20 mỗi ngày. Starter,
+Professional và Business dùng hạn mức theo kỳ thuê bao. Chỉ response 2xx đã được client xác nhận
+mới cộng lượt; lỗi 4xx/5xx không cộng. SDK tự xác nhận, còn người gọi REST trực tiếp phải ACK receipt
+theo [REST API](/api/#xác-nhận-receipt-khi-gọi-rest-trực-tiếp).
+
 | Giới hạn | Giá trị | Áp cho |
 |---|---|---|
 | Burst Places | 60 lượt / phút / điểm Cloudflare | mỗi cặp khoá + IP, gộp 6 endpoint `places:read` |
@@ -86,8 +92,8 @@ Bốn điều cần biết:
   đồng bộ, nên đây là lớp chống spam chứ không phải số liệu tính cước chính xác; IP thô không được
   đưa vào counter key.
 - **Ngày tính theo giờ Việt Nam** (UTC+7, không có giờ mùa hè). Bộ đếm về 0 lúc 00:00 giờ VN.
-- Bộ đếm lượt Places là **đếm xấp xỉ** (ghi bất đồng bộ vào KV), nên máy chủ chỉ trả `429` khi vượt
-  **2 lần** hạn mức — để không chặn nhầm vì đếm trễ. Đừng dựa vào đó: hãy coi 20.000 là mức thật.
+- Dòng 20.000/ngày trong bảng là cơ chế legacy cho tenant chưa chuyển đổi. Tenant thương mại dùng
+  Durable Object theo tenant và chặn đúng hạn mức còn lại của kỳ/ngày.
 - Tenant nội bộ (plan `internal`) không bị quota ngày, kể cả khoá demo; burst limit vẫn áp dụng.
 
 Người vận hành có thể nghiệm thu burst limit bằng một URL autocomplete đã warm cache, không biến
@@ -103,8 +109,9 @@ response không đúng `rate_limit_exceeded` + `Retry-After: 60`. Do bộ đếm
 request 61 có thể còn được cho qua; tiêu chí là quan sát được 429 trong 75 request, không phải dùng
 số thứ tự bị chặn để tính cước.
 
-Vượt hạn mức trả `429 quota_exceeded` kèm header `retry-after: 3600`. Giới hạn đóng góp cũng trả
-`429 quota_exceeded` nhưng theo bộ đếm riêng của `/v1/edits`.
+Vượt hạn mức trả `429 quota_exceeded`; `error.details` cho biết nhóm `places` hoặc `directions`, lý
+do, thời điểm reset khi xác định được và lựa chọn nâng gói/mua thêm. Giới hạn đóng góp cũng trả
+`quota_exceeded` nhưng theo bộ đếm riêng của `/v1/edits`.
 
 ## 6. Khoá demo
 

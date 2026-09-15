@@ -160,6 +160,25 @@ Dừng database dev khi không dùng:
 pnpm db:down
 ```
 
+### 4.1 Quota thuê bao local
+
+Migration `0015_tenant_quota_mode.sql` thêm `tenant.quota_mode` với mặc định `legacy` và đặt
+`statement_timeout=29s` cho role `api`. Worker có binding Durable Object `QUOTA`/class
+`QuotaObject`. Sau khi đổi migration hoặc mã DO, rebuild pipeline image rồi kiểm tra cả schema và
+API dùng DB:
+
+```bash
+pnpm image:build
+pnpm test:db
+pnpm test:api-db
+```
+
+`COMMERCIAL_ADMISSION` mặc định `0`, nên tenant commercial bị fail closed cho tới khi hoàn tất gate
+phát hành và chủ động bật thành `1`. API quản trị billing còn yêu cầu Cloudflare Access và
+`BILLING_ADMIN_EMAILS` là danh sách email chính xác, phân cách bằng dấu phẩy; danh sách rỗng từ chối
+mọi người. Có thể đặt `BILLING_ADMIN_ORIGIN` để các mutation chỉ nhận đúng Origin của trang admin.
+Không đưa các giá trị production hoặc Access token vào Git.
+
 ## 5. Chế độ B — khôi phục full production data
 
 ### 5.1 Chuẩn bị secrets

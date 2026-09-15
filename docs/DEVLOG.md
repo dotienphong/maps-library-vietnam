@@ -5,6 +5,175 @@ commit với code).
 
 ## 1. Trạng thái hiện tại
 
+- **15/09/2026 — review sâu Task 1–5 theo yêu cầu PHONG: 15 phát hiện, đã sửa 8, chưa commit.**
+  Kết luận "Task 4–5 hoàn tất, cổng xanh" ở lần trước là **sai**: bộ test xanh nhưng code có lỗi
+  chặn phát hành, và một test tự thêm còn đóng đinh nhầm hành vi sai. Ba lỗi nặng nhất đều dựng
+  test tái hiện trước khi sửa.
+
+  **Đã sửa:**
+  1. *SDK chết trên trang `http://` LAN, kể cả tenant legacy.* `defaultReceiptStore` gọi
+     `crypto.subtle`, thứ **không tồn tại ngoài secure context** (đúng cách thử app trên máy thật).
+     Hệ quả: `quota_ack_pending` ngay lần gọi đầu, **0 request mạng**, với cả khách chưa hề bật
+     commercial. Bỏ hẳn băm, khoá kho dùng tiền tố công khai của API key; lỗi đọc/ghi kho không
+     còn được coi là "đang chờ ACK"; thêm dò `localStorage` để chịu được Safari private mode.
+  2. *Response mang receipt token bị đánh dấu `public, max-age=3600`.* Hono `set res` chép **mọi**
+     header của response cũ đè lên response mới, nên `cache-control` của `cachedJson` thắng
+     `private, no-store`. Sửa: ghi header tại chỗ, không gán `c.res = new Response(...)`.
+  3. *Receipt hết hạn làm SDK kẹt vĩnh viễn.* 403/404/409 là kết cục vĩnh viễn nhưng receipt không
+     bao giờ bị xoá khỏi kho, nên mọi request sau đều hỏng — trên web thì hỏng qua cả reload.
+     Sửa: gặp mã vĩnh viễn thì bỏ receipt (khách không bị tính lượt), chỉ giữ lại khi còn cơ hội ACK.
+  5. *Sổ quota lỗi lúc `release` nuốt mất lỗi thật*, biến 400/404 của handler thành 503. Sửa:
+     `releaseQuietly` nuốt lỗi release và ghi log, giữ nguyên lỗi gốc cho khách.
+  6. *Cổng admission ném `Error` trần* nên `requireAuth` gói thành `upstream_unavailable`
+     ("Không tra được khoá API") — lúc rollback vận hành sẽ đi truy DB thay vì nhìn ra cổng đóng.
+     Sửa thành `quota_unavailable`/`billing_configuration_error` và cho `requireAuth` giữ nguyên
+     `ApiError`. **Test lần trước khẳng định `upstream_unavailable` là đúng — đã sửa lại.**
+  7. *Mọi lý do từ chối đều thành "hết quota, mua thêm".* Nay tách theo spec mục 9/14.1/14.4:
+     hết **quyền** → 403 `subscription_expired`; thiếu ACK → 429 `ack_required`; nghẽn tạm →
+     429 `concurrency_limit` kèm retry-after ngắn; chỉ hết hạn mức thật mới gợi ý `buy_more`.
+     Thêm lý do `trial_total` và đổi `inflight_limit` → `concurrency_limit` cho khớp từ vựng spec.
+  8. *Hai response song song làm mất một receipt* (kho một ô + promise ACK bị gộp), dẫn tới
+     `missed_ack` rồi khoá cả tenant. Sửa: kho thành hàng đợi có trần 20, ACK tuần tự theo chuỗi.
+  9. *Lỗi lệnh quản trị trả sai status.* Sửa lúc làm còn lộ ra điều **nặng hơn báo cáo**:
+     `error instanceof BillingCommandError` **không bao giờ đúng** vì lỗi ném trong Durable Object
+     đi qua RPC về Worker dưới dạng `Error` thường, mất class — tức nhánh đó chưa từng chạy ở
+     production và mọi lỗi validation đều rơi xuống 503. Nay khớp theo bảng mã tường minh.
+
+  **Không sửa mục 10 (báo cáo tự động đề nghị điền `resetAt` từ ngày kết thúc kỳ):** trái spec
+  mục 9 — "paid chưa thanh toán kỳ sau không hứa reset". `resetAt: null` hiện tại là đúng; chỉ
+  hạn mức ngày của trial mới có mốc reset thật, và nay có `retry-after` tính từ mốc đó.
+
+  **Khiếm khuyết test tự lộ ra khi sửa mục 7:** ca "denies exhausted quota" thật ra đang kiểm trần
+  đồng thời chứ không phải hết quota — trước đây hai lý do cùng trả `quota_exceeded` nên không ai
+  thấy. Đã tách thành hai ca riêng.
+
+  **Mục 4 đã xử lý sau đó theo yêu cầu "nâng lên mức tối đa có thể":** gốc rễ không phải con số.
+  (a) Trần in-flight đếm cả `awaiting_ack` — trạng thái handler ĐÃ XONG, response đã gửi, chỉ chờ
+  client ACK, **không tải origin chút nào**; nay chỉ đếm `reserved`. (b) Reservation đang chạy
+  nhận hạn 120 giây bằng lease ACK, nên request bị client huỷ (SDK huỷ autocomplete mỗi phím gõ)
+  giữ chỗ suốt 2 phút; nay tách `PROCESSING_DEADLINE_MS = 45s` (handler bị giết ở 30s + biên cho
+  vòng RPC `prepare`), lease 120s chỉ dành cho `awaiting_ack` đúng như spec mục 7.
+  (c) Trần nâng từ 2/1 lên **50 Places / 32 directions**.
+
+  **Đo lại từ đầu theo yêu cầu PHONG — trần cũ hoá ra chưa từng là số đo.**
+  Evidence: `docs/evidence/capacity/2026-09-15-inflight-ramp.md`. Probe Task 0 đặt
+  `budget = 50 Places / 16 directions` rồi **ném lỗi với mọi mức vượt budget**, nên "50/16" là rào
+  chắn của harness (chọn để không vượt burst 60/20 mỗi phút) chứ không phải trần origin — origin
+  chưa bao giờ bị đẩy quá 50. Tôi đã gán nhầm nhãn "mốc đã đo" cho con số đó ở lượt trước.
+  `scripts/load-api.mjs` nay dừng ramp vì **ba** lý do chứ không chỉ lỗi hạ tầng: `errors`,
+  `rate_limited` (429 làm số đo mất nghĩa) và `latency` (p95 vượt ngưỡng) — vì một wave 0 lỗi mà
+  p95 9 giây vẫn là dịch vụ hỏng. Thêm `--group=directions`, `--max-p95`, `--cooldown`, nghỉ 65
+  giây giữa các mức, và 8 test cho harness.
+  Kết quả với bar p95 ≤ 5 s: **Places 10→1.870 ms, 25→2.479, 50→4.390, 75→6.046 (trượt)** nên trần
+  là 50. **Directions 4→1.224, 8→790, 12→733, 16→719, 24→816, 32→1.171, 48→840 nhưng dính 4/48
+  rate limit** — không tìm thấy điểm gãy độ trễ; thứ chặn ở 48 là rate limit biên chứ không phải
+  Valhalla đuối, nên 32 là mức sạch cao nhất và trần thật của Valhalla còn cao hơn, chưa biết.
+  Lưu ý: 0 rateLimited ở mức 75 Places cho thấy burst limiter permissive/bất đồng bộ **không** chặn
+  burst tức thời — đừng coi đó là bằng chứng rate limit đang chạy.
+  Thêm var `MAX_INFLIGHT_PLACES`/`MAX_INFLIGHT_DIRECTIONS` để chỉnh không cần sửa code.
+  Đây là trần CỨNG chống một tenant kéo sập origin, không phải mục tiêu vận hành: ở mức 50 thì p95
+  autocomplete đã 4,4 s; muốn p95 ≤ 2 s thì đặt places ≈ 25. Vẫn là trần theo TỪNG tenant trong khi
+  origin dùng chung, và đo khi CHƯA có DO trong đường đi → phải đo lại trước khi mở tenant thứ hai.
+
+  **Mục 11–15 đã xong (thứ tự PHONG duyệt 13 → 12 → 11 → 14 → 15):**
+  - **13 — HEAD.** PHONG chọn phương án A: `405` + `Allow: GET` cho **mọi** tenant, nhất quán nên
+    không có bất ngờ lúc cutover. Nửa legacy vốn là lỗi đang sống: HEAD chạy trọn handler GET rồi
+    **tăng cả bộ đếm KV**, tức bị tính lượt trái spec mục 6. Chặn nay đặt sau burst limit (HEAD
+    flood vẫn phải bị rate limit) nhưng trước preflight (sai method thì khỏi bàn tham số).
+    Đã ghi vào docs như thay đổi hành vi, kèm gợi ý đổi sang `GET /healthz`. Lưu ý: 405 cho HEAD
+    **không có body** đúng chuẩn HTTP nên không mang `error.code` — ban đầu tôi viết nhầm vào bảng
+    mã lỗi rồi sửa lại.
+  - **12 — thông điệp lỗi.** Preflight chạy trước nhánh commercial nên áp cho cả tenant legacy;
+    rà ra **5 endpoint** đều lệch chứ không riêng autocomplete. Đã cho preflight trả đúng thông điệp
+    handler (autocomplete phải tách lại thành hai ca: quá ngắn / không có ký tự tra cứu được).
+    Thêm `apps/api/test/error-messages.test.ts` khoá 7 chuỗi này làm hợp đồng.
+  - **11 — header `Expires-At`.** `SettlementReceipt` nay mang `expiresAt` do **DO** cấp (DO giữ
+    đồng hồ lease, không để Worker tự suy từ hằng số). Response phát
+    `X-MapsLibVN-Receipt-Expires-At`, CORS expose thêm. SDK dùng nó để **bỏ receipt quá hạn ngay
+    tại client, không tốn vòng mạng** — bù nốt cho lỗi 3. Giữ luôn `-Version` (spec mục 6 ghi "ba
+    header", nhưng plan Task 5 đòi "contract versioned"; giữ cả hai rẻ hơn là mất guard phiên bản —
+    đây là sai lệch có chủ ý so với spec, cần PHONG xác nhận nếu muốn bỏ).
+  - **14 — kho receipt bền vững.** Không thêm peer dependency: core xuất `createReceiptStore(storage)`
+    nhận interface khoá-giá trị tối thiểu (khớp sẵn AsyncStorage/SecureStore/localStorage), RN nhận
+    qua prop `receiptStore`. Kho RAM nay **cảnh báo một lần** khi nhận receipt, để lập trình viên
+    tích hợp thấy ngay thay vì âm thầm mất receipt. 5 test cho factory.
+  - **15 — parse hai lần.** Mỗi route có `xParams(c)` parse + validate một lần rồi nhớ trên
+    `c.set('params')`; preflight quota và handler gọi cùng hàm đó. Bỏ toàn bộ đoạn parse trùng ở
+    5 handler.
+
+  Cổng sau 11–15: `pnpm test` 141 file/1.485 test + API 42 file/**322** test, `pnpm test:db`
+  11 file/71 test, `pnpm test:api-db` 3 file/53 test, typecheck · lint · `git diff --check` sạch.
+
+  **Phát sinh khi PHONG hỏi `COMMERCIAL_ADMISSION=0` là gì — tìm ra kill switch tự gây sự cố.**
+  Cổng admission được kiểm trong `validateCommercialAuth`, tức áp cho **mọi** route dùng
+  `requireAuth`, kể cả `POST /v1/quota/receipts/:id/ack`. Đã dựng test: cổng đóng thì ACK trả
+  503 `quota_unavailable`. Hệ quả dây chuyền: receipt đã phát không chốt được → hết lease 120 giây →
+  `cleanupExpired` ghi `missed_ack` → tenant nào đang có ≥3 receipt trong không trung lúc đóng cổng
+  sẽ bị khoá `ack_required` tới 24 giờ **sau khi mở lại**. Tức dùng kill switch quá 2 phút là tự
+  tạo sự cố cho mọi tenant đang có traffic. Spec 14.1 đã lường trước đúng lớp lỗi này cho
+  revoke/suspend ("không được tính thành missing-ACK", và code làm đúng: `releasePendingRows` đặt
+  `released` chứ không `expired`), nhưng cổng admission thì bị bỏ sót.
+  Sửa: `requireAuth(scope, { admissionGate: false })` cho riêng endpoint ACK — nó không tiêu quota,
+  không chạm origin, chỉ chốt lại receipt đã phát; kiểm khoá thu hồi và cấu hình sai vẫn giữ nguyên.
+  Test `apps/api/test/admission-gate.test.ts`.
+  Dọn kèm: bỏ hai nhánh trùng trong `quota.ts` (`COMMERCIAL_ADMISSION` và xung đột plan internal).
+  Đó là CHÍNH SÁCH ai được dùng thương mại — thuộc tầng auth và đã chạy ở `validateCommercialAuth`
+  trước khi tới middleware; nhân đôi chỉ tạo hai bản thông điệp phải giữ đồng bộ còn nhánh dưới
+  không bao giờ chạy tới. `commercialQuota` nay chỉ lo ĐO ĐẾM. Đã xác minh cả 7 route dùng
+  `quotaMiddleware` đều có `requireAuth()` mặc định (cổng bật) đứng ngay trước, và route duy nhất
+  miễn cổng là ACK thì không dùng `quotaMiddleware`.
+
+  **Tồn đọng còn lại:** chưa commit/deploy; `COMMERCIAL_ADMISSION=0`. Task 6–7 chưa làm.
+
+  Cổng sau khi sửa: `pnpm test` 140 file/1.474 test + API 41 file/**311** test, `pnpm test:db`
+  11 file/71 test, `pnpm test:api-db` 3 file/53 test, `pnpm typecheck`, `pnpm lint`,
+  `git diff --check` — tất cả xanh. Vẫn chưa commit; `COMMERCIAL_ADMISSION=0`.
+
+- **15/09/2026 — Quota thương mại Tasks 4–5 hoàn tất local, chưa commit/deploy.** Đã thêm control
+  plane billing qua Cloudflare Access issuer/audience/expiry + allowlist email riêng; endpoint usage,
+  entitlement command, chuyển `quota_mode` và revoke/restore key theo thứ tự fail closed. Migration
+  0015 giữ mặc định legacy, cấp đúng quyền đổi mode và đặt statement timeout role API 29 giây.
+  Bảy API đã nối nhánh commercial sau auth/burst, validate rẻ trước reserve, 2xx tạo receipt còn
+  4xx/5xx release; HEAD không chạy GET. REST ACK ràng buộc tenant/key, response private/no-store;
+  SDK lưu receipt rồi ACK nền và chặn request mới bằng `quota_ack_pending` nếu ACK cũ chưa rõ.
+  Navigation dừng reroute tự động khi hết quota và giữ tuyến hiện tại. Production vẫn khóa bằng
+  `COMMERCIAL_ADMISSION=0`; chưa mở bán. Tài liệu REST, API key, core SDK và setup local đã cập nhật.
+
+  **Cổng đã chạy thật (trước đó entry này viết sớm, chưa có số):** `pnpm test` root 140 file/1.471
+  test + API 41 file/306 test, `pnpm test:db` 11 file/71 test trong image pipeline, `pnpm test:api-db`
+  3 file/53 test, `pnpm typecheck`, `pnpm lint`, `git diff --check` — tất cả xanh.
+
+  **Hai hồi quy chỉ lộ ra khi chạy đủ cổng, đã sửa:**
+  1. `errors.ts` bỏ `retry-after` mặc định cho **mọi** 429 trong khi plan chỉ yêu cầu bỏ hằng số
+     3600 của nhánh commercial → quota ngày legacy và giới hạn edit mất header (`quota.test.ts` đỏ).
+     Sửa bằng `secondsUntilVnDayReset()`: legacy reset đúng 00:00 giờ VN nên trả số giây thật,
+     vừa khôi phục header vừa đúng nguyên tắc "chỉ trả retry-after khi biết thời điểm reset".
+  2. Kiểm `iss` mới trong `access.ts` yêu cầu `ACCESS_TEAM_DOMAIN`, nhưng harness Access giả lập
+     (`scripts/lib/access-fake.mjs`) không ký `iss` và `api-db-test.mjs` không truyền var đó →
+     3 test admin itest 401. Thêm `FAKE_TEAM_DOMAIN` dùng chung cho cả itest lẫn E2E Playwright.
+     Đây là lớp lỗi chỉ bộ api-db bắt được, đúng như bài học khoá cũ.
+
+  Bổ sung 2 test cho hai ca RED plan nêu mà chưa ai viết: cổng `COMMERCIAL_ADMISSION=0` phải fail
+  closed **ở tầng auth** (khẳng định bằng sổ quota trống, không chỉ bằng status 503 — đã kiểm test
+  đỏ khi gỡ cổng), và tenant commercial không được bỏ tính lượt khi `QUOTA_ENABLED=0`.
+  `pnpm lint` root nay xanh: thư mục `docs/evidence/**` được loại khỏi biome vì là tang chứng đo
+  đạc, phải giữ nguyên văn bản đã chạy chứ không sửa cho hợp lint.
+
+  Bước tiếp theo là Task 6 backup/đối soát; sau Task 7 mới được cân nhắc bật admission.
+
+- **15/09/2026 — Quota thương mại Tasks 1–3 hoàn tất local, chưa commit/deploy.** Đã thêm catalog
+  giá và hạn mức đã chốt, policy 2xx/thời gian/ngày Việt Nam, SQLite Durable Object theo tenant,
+  entitlement command có revision/idempotency/business identity, credits mua thêm và sổ
+  reserve→prepare→client ACK/release. Reserve dùng transaction, base trước credit sắp hết hạn;
+  trial áp cả trần ngày và tổng. Lease 120 giây được dọn lazy/alarm có giới hạn; 3 lần thiếu ACK
+  trong 24 giờ khóa tenant, admin có lệnh mở khóa audit/idempotent; compensation hoàn lượt đã
+  commit khi không giao được response. Namespace/migration `QuotaObject` đã bundle được ở dry-run
+  dev và production; chưa nối vào bảy API nên production hiện vẫn dùng quota KV cũ.
+  TDD mục tiêu **28/28**, toàn API **288/288**, API typecheck và lint các file đổi đều xanh.
+  Root `pnpm lint` khi ấy đỏ do lỗi trong các file evidence capacity có sẵn, ngoài Tasks 1–3;
+  đã xử lý ở Tasks 4–5 bằng cách loại `docs/evidence/**` khỏi biome.
+  Tasks 4–5 đã tiếp tục trong cùng working tree; PHONG yêu cầu chưa commit/push.
+
 - **15/09/2026 — Huỷ request autocomplete cũ ở tầng mạng bằng AbortController.** Theo
   [kết luận đo debounce](evidence/autocomplete-debounce/2026-09-15-do-luot-autocomplete.md)
   (94% lượt ở 200 ms là dở dang nhưng vẫn tốn tiền thật, vì "huỷ" cũ chỉ bỏ qua kết quả ở client).
@@ -25,6 +194,63 @@ commit với code).
   `<mapslibvn-autocomplete>` (trước đó hard-code 200 ms, không chỉnh được), mặc định không đổi.
   Chưa đổi giá trị debounce mặc định của gói nào — đó là quyết định riêng, chờ PHONG đọc kết luận.
   `AbortController`/huỷ request ở phía mạng và xử lý IME vẫn ngoài phạm vi, để lại cho vòng sau.
+
+- **15/09/2026 — Task 0 quota PASS và staging đã dọn sạch.** Fixture 29/29 xanh; strict ACK,
+  cutover cache, snapshot+journal recovery, SQL billing counters, Postgres/Valhalla cancellation
+  và tải mixed/sustained đã có evidence. Cap pilot: tenant 2 Places+1 tuyến, origin 10+4.
+  Worker `mapslibvn-quota-preflight-20260915` không có binding production; migration đã xóa
+  `QuotaProbe`/`RecoveryProbe`, Worker URL 404 và namespace REST rỗng. Đây là PASS cho quyết
+  định kiến trúc để bắt đầu Task 1; runtime thương mại vẫn phải hoàn tất Task 1–7 trước khi mở bán.
+  Không commit/push.
+
+- **15/09/2026 — PHONG chốt protocol quota client ACK nghiêm ngặt.** Chỉ cộng `used` khi client/SDK ACK receipt của response 2xx; giới hạn pilot 3 missing-ACK trong 24 giờ/tenant, tự mở sau cửa sổ, admin mở sớm cần operationId/actor/reason/audit. Spec và plan đã đổi từ settle server-side sang reserve→prepare→client ACK; raw REST dùng endpoint ACK riêng. Sau load Task 0, SDK contract được làm rõ: resolve data ngay sau decode, lưu receipt bền vững và ACK nền; request kế tiếp flush ACK cũ trước khi tạo receipt mới. Đây mới là contract mục tiêu; chưa tích hợp runtime. Fixture fault matrix ban đầu xanh, nhưng sustained/mixed staging, triển khai SDK/raw REST và false-positive pilot vẫn là gate.
+
+- **15/09/2026 — Task 0 quota local, cổng thương mại vẫn FAIL.** [Evidence](evidence/billing/2026-09-15-quota-preflight.md): 23/23 fixture test pass. Protocol cũ commit trước HTTP 503 trừ sai; protocol thử nghiệm client ACK giữ `used=0` khi response mất/Worker dừng giữa request, alarm khôi phục sau restart. Fixture cố ý đặt `MAX_PENDING=2`: 20 request đồng thời cùng tenant chỉ 2 pending; đây không phải cap production. 10 tenant có sổ độc lập; sau 3 lần thiếu ACK, fixture khóa tenant, có thể khóa oan khách lỗi mạng. Đường ACK cần 3 DO requests/lượt; Business đầy gói vượt ngưỡng 100.000 SQLite writes/ngày của Workers Free theo mô hình tối thiểu. Postgres container riêng chứng minh `statement_timeout=100ms` hủy `pg_sleep(5)` và giải phóng truy vấn. Contract REST/SDK đã ghi vào spec. Theo quyết định PHONG, **chưa làm Task 1, chưa commit/push**. Sau khi hoàn tất plan Quota, lập tức triển khai Admin như ghi bên dưới.
+
+- **15/09/2026 — PHONG yêu cầu đo lại tải ngay và chốt thứ tự sau Quota.** Sau nghiệm thu Quota,
+  ngay lập tức thiết kế/triển khai Admin quản lý khách hàng, gói, key/phân quyền, usage và giám sát
+  DO/Postgres/Valhalla, cảnh báo chết/nghẽn và audit. Chi tiết bắt buộc đã thêm cuối plan Quota.
+  **Đã đo:** [báo cáo tải mới](evidence/capacity/2026-09-15-capacity.md): autocomplete 50/50
+  đồng thời p95 3.698ms, mức 20 p95 1.636ms; cache hit 20/20 p95 470ms. Tuyến nội đô
+  16/16 p95 831ms. Tổng 182 HTTP200, không 429/5xx/timeout ở các wave hợp lệ; DO chưa có.
+  Đây là burst theo fixture, không phải max user/sustained RPS. Không bypass rate limit.
+
+- **15/09/2026 — review sâu spec/plan quota theo PHONG.** [Báo cáo 12 nhóm rủi ro](research/2026-09-15-review-quota-spec-plan.md),
+  bổ sung spec mục 14 và Task 0 trước tích hợp: outcome/compensation khi mất ACK, cutover cache,
+  HEAD bypass (đã tái hiện local Hono handlerCalls=1), external cache, concurrency/origin,
+  dedup business receipt, journal recovery, 2 RPC latency/cost, cleanup bounds, timeout và SDK.
+  Chưa đóng các gate runtime bằng load/fault test; chỉ sửa tài liệu, không triển khai/deploy.
+  Bước tiếp theo hiện là **Task 0** trong plan, thay điểm bắt đầu Task 1 của ghi chú trước review.
+
+- **15/09/2026 — PHONG duyệt spec quota (“ok chốt spec”).** Đã đánh dấu spec được duyệt,
+  lập [plan triển khai 7 task](superpowers/plans/2026-09-15-quota-thue-bao.md): catalog/policy,
+  DO entitlements, reserve/settle, admin/migration, API/SDK, recovery, release gate.
+  Chỉ trừ 2xx đã chốt; triển khai theo spec. Chưa task code nào chạy; bắt đầu Task 1 tiếp theo.
+
+- **15/09/2026 — bắt đầu đặc tả quota thương mại theo yêu cầu “làm tiếp”.** Bản thiết kế
+  [quota thuê bao](superpowers/specs/2026-09-15-quota-thue-bao-design.md) đối chiếu runtime KV
+  hiện tại, đề xuất DO SQLite theo tenant, reserve/settle, trial 30 ngày, chu kỳ trả phí,
+  grant mua thêm idempotent, migration/rollback và 15 tiêu chí nghiệm thu. Chính sách trừ
+  request thành công **PHONG đã duyệt 15/09**: tính cả empty/cache, không tính 4xx/5xx;
+  chống abuse vẫn áp dụng request lỗi. Điều khoản credits/chu kỳ vẫn là đề xuất.
+  Chưa triển khai code hoặc thay đổi production; bước tiếp theo review spec rồi lập plan.
+
+- **15/09/2026 — cập nhật quyết định thương mại của PHONG:** B1/B2/B4 xác nhận OK;
+  B5 pass giai đoạn đầu, tạm đặt hạ tầng tại nhà; B6 mua tên miền sau. Mua thêm
+  **$1/1.000 Places, $3/1.000 tuyến**; hết quota chặn nhóm API tương ứng và gợi ý
+  nâng gói/mua thêm. Hỗ trợ online T2–T6 08:00–20:00, T7/CN 08:00–17:00 giờ VN.
+  Đã cập nhật checklist và ghi chú giá; tiles/băng thông, chu kỳ, tiền thanh toán cần
+  đặc tả thêm. Chưa sửa cơ chế quota runtime trong phiên này.
+
+- **14/09/2026 — PHONG chốt giá thương mại API/SDK và yêu cầu lưu lại.** Free: tổng
+  **2.000 Places + 200 tuyến/30 ngày**, trần **200 + 20/ngày**. Starter **$25/tháng**
+  (30.000 + 3.000, không support online), Professional **$100/tháng** (100.000 + 10.000,
+  support online), Business **$400/tháng** (400.000 + 40.000, support online).
+  Quyết định và rà soát khoảng thiếu: [giá chốt và thương mại hoá](research/2026-09-14-thuong-mai-hoa-va-gia-chot.md).
+  **Chưa triển khai các gói:** quota code vẫn là KV xấp xỉ theo ngày/key, mặc định Free
+  20.000/2.000, chặn 2×; production config đã bật quota. Cần entitlement/metering/thử
+  30 ngày, console khách, vòng đời thanh toán và nghiệm thu vận hành trước mở bán.
+  Bước tiếp theo đề xuất: đặc tả thương mại hoá; giá mua thêm, VAT, chu kỳ và tiles chưa chốt.
 
 - **13/09/2026 (sáng) — PHONG yêu cầu gỡ hoàn toàn nguồn POI Overture khỏi hệ thống; ĐÃ XONG trên
   production, hai sự cố ngoài kế hoạch phát hiện và xử lý dọc đường.** Registry `POI_SOURCE_PROFILES`
@@ -1507,7 +1733,7 @@ lộ qua `/v1/search`, duyệt bằng `apply_poi_edit` → `active`; free sửa 
 429; POI closed thì `update` → 400 còn `reopen` → `active`. Hai điều khác plan: khoá seed
 `mlv_live_edit0…` trong plan thiếu 1 ký tự (CHECK đòi đúng 24 sau prefix) và test scope 403 trong
 itest bị bỏ vì KV cache auth 5 phút làm nó không dứt khoát (đã phủ ở tầng workers).
-Gate: `pnpm test:api-db` 18/18, api 79/79, root 486/486, typecheck sạch, lint 212 file.
+Gate: `pnpm test:api-db` 23/23, api 79/79, root 486/486, typecheck sạch, lint 212 file.
 
 **M4 Task 3 xong 01/09/2026.** `POST /v1/edits` (`apps/api/src/routes/edits.ts`):
 `requireAuth('edits:write')` — `requireAuth` giờ nhận tham số scope, mặc định `places:read` nên
@@ -2571,7 +2797,7 @@ rõ ở mục 2 và không chặn M2: kiểm trên Windows, và bật lại `req
   (list/approve/reject) + `access-fake.mjs` tiến trình riêng + `admin.itest.mjs`; api 87/87,
   api-db 22/22 · (commit này)
 - 2026-09-01 · M4 T4 · POI pending cho tenant tạo trong `routes/places.ts` + `edits.itest.mjs`
-  (6 test DB thật) + seed itest M4; api-db 18/18, api 79/79, root 486/486 · (commit này)
+  (6 test DB thật) + seed itest M4; api-db 23/23, api 79/79, root 486/486 · (commit này)
 - 2026-09-01 · M4 T3 · `POST /v1/edits` + `requireAuth(scope)` + seed `edits:write`; sửa lỗi
   double-encode jsonb (phải dùng `sql.json`) phát hiện bằng smoke test wrangler dev; api 79/79,
   root 486/486, lint 211 file sạch · (commit này)

@@ -8,7 +8,7 @@ import { ulid } from '../edits/ulid';
 import { validateEditBody } from '../edits/validate';
 import type { AppEnv } from '../env';
 import { ApiError } from '../errors';
-import { vnDay, vnDayStartUtc } from '../quota';
+import { secondsUntilVnDayReset, vnDay, vnDayStartUtc } from '../quota';
 
 export const edits = new Hono<AppEnv>();
 
@@ -60,7 +60,12 @@ edits.post('/v1/edits', requireAuth('edits:write'), async (c) => {
       (counts?.by_user ?? 0) >= EDITS_PER_USER_PER_DAY ||
       (counts?.by_key ?? 0) >= EDITS_PER_KEY_PER_DAY
     ) {
-      throw new ApiError(429, 'quota_exceeded', 'Vượt giới hạn edit theo ngày');
+      throw new ApiError(
+        429,
+        'quota_exceeded',
+        'Vượt giới hạn edit theo ngày',
+        secondsUntilVnDayReset(),
+      );
     }
 
     // 3) Phiếu trùng trong 30 ngày (spec 6.5) — đẳng thức jsonb. Audit 09/09/2026: `end_user_token`

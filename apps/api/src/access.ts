@@ -13,6 +13,7 @@ interface AccessPayload {
   aud?: string | string[];
   exp?: number;
   email?: string;
+  iss?: string;
 }
 
 const CERTS_KV_KEY = 'access:certs';
@@ -83,9 +84,36 @@ export async function verifyAccessJwt(c: Context<AppEnv>, token: string): Promis
   const aud = Array.isArray(payload.aud) ? payload.aud : [payload.aud];
   if (!c.env.ACCESS_AUD || !aud.includes(c.env.ACCESS_AUD))
     return invalid('aud không khớp Access application');
+  const teamDomain = c.env.ACCESS_TEAM_DOMAIN;
+  if (!teamDomain) return invalid('Access team chưa cấu hình');
+  const expectedIssuer = `https://${teamDomain}`;
+  if (!payload.iss || payload.iss.replace(/\/$/, '') !== expectedIssuer) {
+    return invalid('iss không khớp Access team');
+  }
   if (!payload.exp || payload.exp * 1000 < Date.now()) return invalid('JWT hết hạn');
   if (!payload.email) return invalid('JWT thiếu email');
   return payload.email;
+}
+
+export function requireBillingAccess() {
+  const access = requireAccess();
+  return async (c: Context<AppEnv>, next: Next) => {
+    await access(c, async () => {
+      const email = (c.get('reviewer') ?? '').trim().toLowerCase();
+      const allowed = (c.env.BILLING_ADMIN_EMAILS ?? '')
+        .split(',')
+        .map((value) => value.trim().toLowerCase())
+        .filter(Boolean);
+      if (!allowed.includes(email)) {
+        throw new ApiError(
+          403,
+          'billing_admin_forbidden',
+          'Tài khoản không có quyền quản trị billing',
+        );
+      }
+      await next();
+    });
+  };
 }
 
 /** Middleware cho /v1/admin/*: yêu cầu JWT do Cloudflare Access chèn (spec 6.5). */

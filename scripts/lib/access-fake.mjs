@@ -9,6 +9,9 @@ import { fileURLToPath } from 'node:url';
 
 export const CERTS_PORT = 8790;
 export const FAKE_AUD = 'itest-aud';
+// `iss` phải khớp `https://${ACCESS_TEAM_DOMAIN}` mà Worker được cấu hình, nếu không
+// verifyAccessJwt từ chối JWT. Harness truyền đúng giá trị này cho wrangler dev.
+export const FAKE_TEAM_DOMAIN = 'itest.cloudflareaccess.com';
 // Tuyệt đối theo vị trí file này (<repo>/scripts/lib/) — KHÔNG theo cwd: Playwright chạy spec
 // với cwd = apps/admin, nếu dùng đường dẫn tương đối sẽ sinh cặp khoá thứ hai và JWT không khớp
 // JWKS mà harness đang phục vụ ("Chữ ký JWT không hợp lệ").
@@ -44,7 +47,15 @@ export function signAccessJwt(options = {}) {
   const { jwk, privatePem } = ensureKeys();
   const header = b64url(JSON.stringify({ alg: 'RS256', kid: jwk.kid }));
   const now = Math.floor(Date.now() / 1000);
-  const payload = b64url(JSON.stringify({ aud: [aud], email, iat: now, exp: now + expiresInS }));
+  const payload = b64url(
+    JSON.stringify({
+      aud: [aud],
+      iss: `https://${FAKE_TEAM_DOMAIN}`,
+      email,
+      iat: now,
+      exp: now + expiresInS,
+    }),
+  );
   const signer = createSign('RSA-SHA256');
   signer.update(`${header}.${payload}`);
   return `${header}.${payload}.${signer.sign(privatePem, 'base64url')}`;

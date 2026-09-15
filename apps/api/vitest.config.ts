@@ -11,9 +11,11 @@ export default defineWorkersConfig({
             TILES_BASE: 'https://tiles.test',
             ENVIRONMENT: 'test',
             QUOTA_ENABLED: '1',
+            COMMERCIAL_ADMISSION: '1',
             ROUTING_BASE: 'https://routing.test',
             ACCESS_TEAM_DOMAIN: 'test.cloudflareaccess.com',
             ACCESS_AUD: 'test-aud',
+            BILLING_ADMIN_EMAILS: 'billing@test.local',
             IP_HASH_PEPPER: 'test-pepper',
           },
           // Tầng test này KHÔNG được cần Postgres (dbtest là workflow riêng). Trỏ binding

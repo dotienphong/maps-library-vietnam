@@ -21,6 +21,10 @@ export interface AuthInfo {
   quotaPlacesPerDay: number | null;
   /** NULL → mặc định plan (FREE_DIRECTIONS_PER_DAY). Cột thêm ở migration 0012. */
   quotaDirectionsPerDay: number | null;
+  /** Rollout mới đọc tương thích từ tenant; cache cũ thiếu trường được coi là legacy. */
+  quotaMode?: 'legacy' | 'commercial';
+  /** Hạn tuyệt đối của cache auth để TTL KV không phải bằng chứng duy nhất. */
+  cacheExpiresAt?: number;
 }
 
 const KV_TTL_S = 300;
@@ -97,6 +101,7 @@ interface ApiKeyRow {
   quota_directions_per_day: number | null;
   tenant_id: string;
   plan: AuthInfo['plan'];
+  quota_mode: 'legacy' | 'commercial';
 }
 
 /**
@@ -108,24 +113,35 @@ export function selectApiKey(sql: ReturnType<typeof getSql>, keyHash: string) {
   return sql<ApiKeyRow[]>`SELECT k.key_hash, k.key_prefix, k.kind, k.scopes, k.allowed_origins,
         k.quota_places_per_day,
         (to_jsonb(k) ->> 'quota_directions_per_day')::int AS quota_directions_per_day,
-        t.id AS tenant_id, t.plan
+        t.id AS tenant_id, t.plan,
+        coalesce(to_jsonb(t) ->> 'quota_mode', 'legacy') AS quota_mode
       FROM api_key k JOIN tenant t ON t.id = k.tenant_id
       WHERE k.key_hash = ${keyHash} AND k.active AND k.revoked_at IS NULL`;
 }
 
-async function loadAuth(c: Context<AppEnv>, key: string): Promise<AuthInfo | null> {
+async function loadAuth(
+  c: Context<AppEnv>,
+  key: string,
+  admissionGate: boolean,
+): Promise<AuthInfo | null> {
   const keyHash = await sha256Hex(key);
   const kvKey = `apikey:${keyHash}`;
   const cached = await c.env.META.get<AuthInfo | NotFoundEntry>(kvKey, 'json');
   if (cached) {
     if ((cached as NotFoundEntry).notFound === true) return null;
     const info = cached as AuthInfo;
-    return {
-      ...info,
-      scopes: normalizeTextArray(info.scopes as string[] | string),
-      allowedOrigins: normalizeTextArray(info.allowedOrigins as string[] | string),
-      quotaDirectionsPerDay: info.quotaDirectionsPerDay ?? null,
-    };
+    if (info.cacheExpiresAt !== undefined && info.cacheExpiresAt <= Date.now()) {
+      await c.env.META.delete(kvKey);
+    } else {
+      const normalized = {
+        ...info,
+        scopes: normalizeTextArray(info.scopes as string[] | string),
+        allowedOrigins: normalizeTextArray(info.allowedOrigins as string[] | string),
+        quotaDirectionsPerDay: info.quotaDirectionsPerDay ?? null,
+        quotaMode: info.quotaMode ?? 'legacy',
+      } satisfies AuthInfo;
+      return validateCommercialAuth(c, normalized, admissionGate);
+    }
   }
 
   const sql = getSql(c.env);
@@ -152,18 +168,50 @@ async function loadAuth(c: Context<AppEnv>, key: string): Promise<AuthInfo | nul
       allowedOrigins: normalizeTextArray(row.allowed_origins),
       quotaPlacesPerDay: row.quota_places_per_day,
       quotaDirectionsPerDay: row.quota_directions_per_day,
+      quotaMode: row.quota_mode,
+      cacheExpiresAt: Date.now() + KV_TTL_S * 1000,
     };
     c.executionCtx.waitUntil(
       c.env.META.put(kvKey, JSON.stringify(info), { expirationTtl: KV_TTL_S }),
     );
-    return info;
+    return validateCommercialAuth(c, info, admissionGate);
   } finally {
     c.executionCtx.waitUntil(sql.end({ timeout: 1 }));
   }
 }
 
+async function validateCommercialAuth(
+  c: Context<AppEnv>,
+  info: AuthInfo,
+  admissionGate: boolean,
+): Promise<AuthInfo | null> {
+  if ((info.quotaMode ?? 'legacy') !== 'commercial') return info;
+  // Ném ApiError chứ không phải Error trần: requireAuth gói mọi lỗi lạ thành
+  // `upstream_unavailable` ("Không tra được khoá API"), làm lúc rollback trông như hỏng DB.
+  if (info.plan === 'internal') {
+    throw new ApiError(
+      503,
+      'billing_configuration_error',
+      'Tenant commercial không được dùng plan internal',
+    );
+  }
+  if (admissionGate && c.env.COMMERCIAL_ADMISSION !== '1') {
+    throw new ApiError(503, 'quota_unavailable', 'Quota thương mại đang tạm đóng');
+  }
+  const object = c.env.QUOTA.get(c.env.QUOTA.idFromName(info.tenantId));
+  if (await object.isKeyRevoked(info.keyHash)) return null;
+  return info;
+}
+
 /** Middleware cho các route places/edits: 401 thiếu/sai khoá, 403 sai origin/scope. */
-export function requireAuth(scope = 'places:read') {
+/**
+ * `admissionGate: false` cho route chỉ CHỐT LẠI receipt đã phát (endpoint ACK). Cổng admission dùng
+ * để chặn traffic thương mại MỚI; nếu nó chặn luôn ACK thì receipt đang chờ sẽ hết lease, bị ghi
+ * `missed_ack`, và tenant nào đang có ≥3 receipt trong không trung lúc đóng cổng sẽ bị khoá
+ * `ack_required` tới 24 giờ sau khi mở lại — tức kill switch tự gây sự cố. ACK không tiêu quota,
+ * không chạm origin; kiểm khoá thu hồi và cấu hình sai vẫn áp dụng bình thường.
+ */
+export function requireAuth(scope = 'places:read', options: { admissionGate?: boolean } = {}) {
   return async (c: Context<AppEnv>, next: Next) => {
     // Chỉ nhận header: khoá trên URL lọt vào log CDN, Referer và cache trung gian.
     const key = c.req.header('X-Api-Key');
@@ -178,8 +226,9 @@ export function requireAuth(scope = 'places:read') {
 
     let info: AuthInfo | null;
     try {
-      info = await loadAuth(c, key);
+      info = await loadAuth(c, key, options.admissionGate ?? true);
     } catch (err) {
+      if (err instanceof ApiError) throw err;
       console.error('auth', err);
       throw new ApiError(503, 'upstream_unavailable', 'Không tra được khoá API');
     }

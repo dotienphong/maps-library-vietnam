@@ -15,6 +15,7 @@ import {
   POI_LAYER_ID,
   type PoiFeature,
   type PoiSource,
+  type QuotaReceiptStore,
   type Theme,
   createClient,
 } from '@mapslibvn/core';
@@ -109,6 +110,10 @@ export interface MapsLibVNMapProps {
   poiSources?: readonly PoiSource[];
   /** Attribution gọn (không có tuỳ chọn tắt) */
   compactAttribution?: boolean;
+  /** Kho lưu receipt quota bền vững. React Native không có `localStorage` nên mặc định chỉ giữ
+   * trong RAM và mất khi app khởi động lại — mỗi receipt mất là một lần thiếu ACK. Nên truyền:
+   * `receiptStore={createReceiptStore(AsyncStorage)}` (`createReceiptStore` xuất từ gói này). */
+  receiptStore?: QuotaReceiptStore;
   /** Bundle id / application id của app → header X-Bundle-Id cho khoá mobile */
   bundleId?: string;
   /** Style của khung View bọc ngoài */
@@ -147,6 +152,7 @@ export function MapsLibVNMap({
   poiLayer = true,
   poiSources,
   compactAttribution = false,
+  receiptStore,
   bundleId,
   containerStyle,
   navigation,
@@ -173,8 +179,9 @@ export function MapsLibVNMap({
         baseUrl: apiBase,
         ...(bundleId ? { headers: { 'X-Bundle-Id': bundleId } } : {}),
         ...(poiSourcesKey ? { poiSources: poiSourcesKey.split(',') as PoiSource[] } : {}),
+        ...(receiptStore ? { receiptStore } : {}),
       }),
-    [apiKey, apiBase, bundleId, poiSourcesKey],
+    [apiKey, apiBase, bundleId, poiSourcesKey, receiptStore],
   );
   const native = useRef<MapRef | null>(null);
   const camera = useRef<CameraRef | null>(null);

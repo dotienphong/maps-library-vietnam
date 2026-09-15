@@ -95,7 +95,7 @@ describe('lược đồ spec 5.2', () => {
     }
   });
 
-  it('ràng buộc: status, created_by, plan, api_key hash format', async () => {
+  it('ràng buộc: status, created_by, plan, quota_mode, api_key hash format', async () => {
     await expect(
       sql`INSERT INTO poi (id, name, name_norm, geom, status, created_by)
           VALUES ('x', 'A', 'a', ST_SetSRID(ST_MakePoint(106.7, 10.77), 4326), 'weird', 'pipeline')`,
@@ -103,6 +103,9 @@ describe('lược đồ spec 5.2', () => {
     await expect(sql`INSERT INTO tenant (name, plan) VALUES ('t', 'gold')`).rejects.toThrow(
       /tenant_plan_check/,
     );
+    await expect(
+      sql`INSERT INTO tenant (name, plan, quota_mode) VALUES ('t', 'free', 'bypass')`,
+    ).rejects.toThrow(/tenant_quota_mode_check/);
     const [t] = await sql`INSERT INTO tenant (name, plan) VALUES ('t', 'internal') RETURNING id`;
     await expect(
       sql`INSERT INTO api_key (key_hash, key_prefix, tenant_id, kind)
@@ -155,6 +158,12 @@ describe('lược đồ spec 5.2', () => {
     } finally {
       await fresh.end();
     }
+  });
+
+  it('0015: role api hủy truy vấn trước deadline Worker và không dùng session SET', async () => {
+    const [setting] = await sql`SELECT setconfig FROM pg_db_role_setting
+      WHERE setdatabase = 0 AND setrole = (SELECT oid FROM pg_roles WHERE rolname = 'api')`;
+    expect(setting?.setconfig).toContain('statement_timeout=29s');
   });
 
   it('0009: cột dẫn xuất tìm kiếm và chỉ số GIN (quyết định 1: name_tsv là cột THƯỜNG)', async () => {

@@ -1,4 +1,5 @@
 import type { DirectionsOptions } from '../client';
+import { MapsLibVNError } from '../errors';
 import type { DirectionsLang, DirectionsResponse, Route } from '../types';
 import { planAnnouncements } from './announce';
 import { bearingDeg, haversineM } from './geometry';
@@ -160,12 +161,15 @@ export function createNavigator(opts: NavigatorOptions): Navigator {
     } catch (error) {
       inflight = false;
       if (token !== rerouteToken) return;
-      rerouteAttempts += 1;
+      const quotaStopped =
+        error instanceof MapsLibVNError &&
+        ['quota_exceeded', 'quota_ack_pending'].includes(error.code);
+      rerouteAttempts = quotaStopped ? rs.th.rerouteMaxFailures : rerouteAttempts + 1;
       if (status === 'rerouting') setStatus('off_route');
       emit('rerouteFailed', {
         error,
         attempts: rerouteAttempts,
-        final: rerouteAttempts >= rs.th.rerouteMaxFailures,
+        final: quotaStopped || rerouteAttempts >= rs.th.rerouteMaxFailures,
       });
     }
   }

@@ -11,16 +11,30 @@ import { quotaMiddleware } from '../quota';
 
 export const reverse = new Hono<AppEnv>();
 
-reverse.get('/v1/reverse', requireAuth(), quotaMiddleware('places'), async (c) => {
-  const latRaw = c.req.query('lat')?.trim();
-  const lngRaw = c.req.query('lng')?.trim();
-  const lat = latRaw ? Number(latRaw) : Number.NaN;
-  const lng = lngRaw ? Number(lngRaw) : Number.NaN;
-  if (!Number.isFinite(lat) || !Number.isFinite(lng) || Math.abs(lat) > 90 || Math.abs(lng) > 180) {
-    throw new ApiError(400, 'invalid_request', 'lat, lng bắt buộc và phải hợp lệ');
-  }
-  const sources = parseSources(c.req.query('sources'));
+/**
+ * Parse + validate MỘT lần mỗi request, nhớ trên context: preflight quota gọi trước khi giữ lượt,
+ * handler gọi lại nhận đúng object cũ — spec 14.4 cấm parse hai lần.
+ */
+function reverseParams(c: import('hono').Context<AppEnv>) {
+  const cached = c.get('params') as ReturnType<typeof parse> | undefined;
+  if (cached) return cached;
+  const parsed = parse();
+  c.set('params', parsed);
+  return parsed;
 
+  function parse() {
+    const latRaw = c.req.query('lat')?.trim();
+    const lngRaw = c.req.query('lng')?.trim();
+    const lat = latRaw ? Number(latRaw) : Number.NaN;
+    const lng = lngRaw ? Number(lngRaw) : Number.NaN;
+    if (!Number.isFinite(lat) || !Number.isFinite(lng) || Math.abs(lat) > 90 || Math.abs(lng) > 180)
+      throw new ApiError(400, 'invalid_request', 'lat, lng bắt buộc và phải hợp lệ');
+    return { lat, lng, sources: parseSources(c.req.query('sources')) };
+  }
+}
+
+reverse.get('/v1/reverse', requireAuth(), quotaMiddleware('places', reverseParams), async (c) => {
+  const { lat, lng, sources } = reverseParams(c);
   const sql = getSql(c.env);
   try {
     const point = sql`ST_SetSRID(ST_MakePoint(${lng}, ${lat}), 4326)`;

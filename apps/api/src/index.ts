@@ -1,22 +1,27 @@
 import { ATTRIBUTION_LINKS, attributionHtml, attributionText } from '@mapslibvn/core';
 import { Hono } from 'hono';
 import { cors } from 'hono/cors';
+import { requireBillingAccess } from './access';
 import { analyticsMiddleware } from './analytics';
 import { getSql } from './db';
 import type { AppEnv } from './env';
 import { ApiError, errorResponse } from './errors';
 import { admin } from './routes/admin';
 import { autocomplete } from './routes/autocomplete';
+import { billingAdmin } from './routes/billing-admin';
 import { directions } from './routes/directions';
 import { edits } from './routes/edits';
 import { geocodeRoute } from './routes/geocode';
 import { nearby } from './routes/nearby';
 import { places } from './routes/places';
+import { quotaReceipts } from './routes/quota-receipts';
 import { r2 } from './routes/r2';
 import { reverse } from './routes/reverse';
 import { search } from './routes/search';
 import { styles } from './routes/styles';
 import { tiles } from './routes/tiles';
+
+export { QuotaObject } from './billing/quota-object';
 
 const app = new Hono<AppEnv>();
 app.use(
@@ -25,6 +30,13 @@ app.use(
     origin: '*',
     allowMethods: ['GET', 'HEAD', 'POST', 'OPTIONS'],
     allowHeaders: ['X-Api-Key', 'Range', 'Content-Type'],
+    exposeHeaders: [
+      'X-MapsLibVN-Receipt-Id',
+      'X-MapsLibVN-Receipt-Token',
+      'X-MapsLibVN-Receipt-Expires-At',
+      'X-MapsLibVN-Receipt-Version',
+      'Retry-After',
+    ],
   }),
 );
 app.use('/v1/*', analyticsMiddleware());
@@ -32,6 +44,8 @@ app.onError((err, c) => errorResponse(c, err));
 app.notFound((c) => errorResponse(c, new ApiError(404, 'not_found', 'Không có route này')));
 
 app.get('/healthz', (c) => c.json({ ok: true, environment: c.env.ENVIRONMENT }));
+app.use('/v1/admin/billing/*', requireBillingAccess());
+app.route('/', billingAdmin());
 app.get('/healthz/db', async (c) => {
   const sql = getSql(c.env);
   try {
@@ -79,6 +93,7 @@ app.route('/', places);
 app.route('/', geocodeRoute);
 app.route('/', reverse);
 app.route('/', directions);
+app.route('/', quotaReceipts);
 app.route('/', edits);
 app.route('/', admin);
 app.route('/', styles);

@@ -30,16 +30,23 @@ async function graphBuiltAt(c: Context<AppEnv>): Promise<string | null> {
   }
 }
 
-directions.get('/v1/directions', requireAuth(), quotaMiddleware('directions'), async (c) => {
-  const params = parseDirectionsParams(c.req.query());
-  return cachedJson(c.executionCtx, directionsCacheUrl(params), 60, 300, async () => {
-    const [json, graph] = await Promise.all([
-      callValhalla(c.env, valhallaBody(params, crypto.randomUUID())),
-      graphBuiltAt(c),
-    ]);
-    return translateDirections(json, params.mode, graph, params.lang);
-  });
-});
+directions.get(
+  '/v1/directions',
+  requireAuth(),
+  quotaMiddleware('directions', (c) => {
+    parseDirectionsParams(c.req.query());
+  }),
+  async (c) => {
+    const params = parseDirectionsParams(c.req.query());
+    return cachedJson(c.executionCtx, directionsCacheUrl(params), 60, 300, async () => {
+      const [json, graph] = await Promise.all([
+        callValhalla(c.env, valhallaBody(params, crypto.randomUUID())),
+        graphBuiltAt(c),
+      ]);
+      return translateDirections(json, params.mode, graph, params.lang);
+    });
+  },
+);
 
 directions.get('/healthz/routing', async (c) => {
   const t0 = Date.now();
