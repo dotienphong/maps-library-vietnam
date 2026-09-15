@@ -246,10 +246,29 @@ với cùng một đoạn mã. Nghĩa là 250 ms không phải bản chất củ
 **object cụ thể này** — nó được tạo bởi một lệnh quản trị chứ không phải bởi traffic thật, đúng
 kiểu tài liệu Cloudflare cảnh báo làm xấu độ trễ, và object đã tạo thì không đổi chỗ được.
 
-**`locationHint` có cứu được không — CHƯA KẾT LUẬN.** Hai object mới tạo kèm `apac-se` đo qua
-đường quản trị cho 584 ms và 865 ms p50 — chênh nhau 280 ms dù cùng điều kiện. Hint là best-effort
-và nhiễu phía client quá lớn để kết luận. Phép đo dứt điểm cần một tenant **thương mại** trên
-object mới, đo bằng `Server-Timing` (không có nhiễu client).
+**`locationHint` CÓ cứu được — đã chứng minh.** Tenant thử `…dc` được tạo riêng cho phép đo này
+(seed `db/seed/tenant_quota_probe.sql`), nên object của nó ra đời SAU khi mã có hint. So sánh hai
+object thương mại, cùng mã, cùng thời điểm, đo bằng `Server-Timing` (n=24 mỗi lượt):
+
+| Object | `reserve` p50 | `prepare` p50 | Tổng |
+|---|---:|---:|---:|
+| `…bb` — tạo trước khi có hint | 291 ms | 270 ms | ~560 ms |
+| `…dc` — `apac-se`, lượt 1 | **52 ms** | **42 ms** | **~94 ms** |
+| `…dc` — `apac-se`, lượt 2 | **76 ms** | **49 ms** | **~125 ms** |
+
+Nhanh hơn **4–6 lần**, ổn định qua hai lượt độc lập. Kết hợp với phép đo `ping` ở trên, chuỗi
+suy luận khép kín: chi phí là đường mạng tới object → object đặt sai chỗ → đặt đúng chỗ thì hết.
+
+**Hệ quả vận hành: không cần di chuyển gì.** `quotaObject()` đã gắn hint cho mọi lần cấp phát, nên
+tenant mới tự động được đặt đúng. Object đặt sai duy nhất là `…bb`, một tenant thử. Nếu sau này có
+tenant THẬT rơi vào object đặt sai, đường di chuyển là export/restore của Task 6 kèm đổi tên object
+(ví dụ thêm tiền tố phiên bản) — nhưng hiện chưa cần, và spec 14.7 cấm đổi `idFromName` tuỳ tiện.
+
+**Một chỗ chưa khớp, ghi lại thay vì lờ đi.** Lượt đo legacy so với `…dc` cho chênh lệch đầu-cuối
+333 ms p50 trong khi hai vòng gọi chỉ 125 ms — dư ~208 ms không giải thích được. Ở object cũ thì
+hai con số khớp nhau (557 so với 550). Nhiều khả năng là nhiễu giữa hai tenant khác nhau trên
+production, nhưng **chưa được chứng minh**, nên chi phí thật của một object đặt đúng chỗ nằm đâu đó
+trong khoảng 125–333 ms chứ không phải một con số chốt.
 
 ### Độ nhiễu của chính phép đo — phải ghi lại
 
@@ -263,10 +282,8 @@ trên chỉ dựa vào `Server-Timing` đo bên trong Worker, hoặc vào chênh
 
 ### Việc đo còn thiếu
 
-1. Một tenant thương mại trên object mới tạo kèm `apac-se`, đo `Server-Timing`. Đây là phép đo
-   quyết định `locationHint` có cứu được không, và nó cần một dòng `tenant` mới trong Postgres
-   production (không dùng `…001`/`…002` vì đó là tenant internal của trang tài liệu — chuyển sang
-   commercial sẽ làm hỏng khoá demo).
+1. Giải thích ~208 ms chênh giữa đo đầu-cuối và tổng `Server-Timing` trên object đặt đúng chỗ,
+   hoặc chạy đủ nhiều lượt để chứng minh đó chỉ là nhiễu.
 2. Đối chiếu Cloudflare **Usage/Billing** thật cho DO requests, rows read/written, duration và
    storage — GraphQL Analytics theo tài liệu Cloudflare không phải hoá đơn chính xác.
 3. PHONG chốt ngưỡng dựa trên số thật. Ngưỡng Task 0 đề xuất (p95 ≤ 100 ms) được rút ra từ staging

@@ -3176,7 +3176,24 @@ thử `…bb`, và chạy hết Bước 1–6 của runbook. Kết quả:
   mà **không request nào thành công**, và cho lượt chạy mà **không nhánh nào chạm sổ quota** — cả
   hai đều in ra con số trông hoàn toàn hợp lý.
 
-**CHỜ PHONG:** chốt ngưỡng độ trễ dựa trên số thật (ngưỡng 100 ms rút từ staging không đại diện cho
-production); đo một tenant thương mại trên object mới tạo kèm `locationHint` để biết vị trí có cứu
-được không; đối chiếu Cloudflare Usage/Billing; diễn tập phục hồi. Chưa tenant thật nào được chuyển
-sang commercial.
+**Nguyên nhân đã tìm ra và đã chứng minh: object đặt sai chỗ.** Tenant thử `…dc` được tạo riêng để
+đo (`db/seed/tenant_quota_probe.sql` + `pnpm server:seed-tenant`), nên object của nó ra đời SAU khi
+mã có `locationHint: apac-se`. Cùng mã, cùng thời điểm, đo bằng `Server-Timing`:
+
+| Object | `reserve` | `prepare` | Tổng |
+|---|---:|---:|---:|
+| `…bb` tạo trước khi có hint | 291 ms | 270 ms | ~560 ms |
+| `…dc` có hint | 52–76 ms | 42–49 ms | **~94–125 ms** |
+
+Nhanh hơn 4–6 lần, ổn định qua hai lượt độc lập. Chuỗi suy luận khép kín: `ping` 257 ms chứng minh
+chi phí là đường mạng chứ không phải chờ ghi bền vững → object đặt sai chỗ → đặt đúng thì hết.
+
+**Không cần di chuyển gì:** `quotaObject()` đã gắn hint cho mọi lần cấp phát nên tenant mới tự động
+đặt đúng; object sai duy nhất là tenant thử `…bb`.
+
+**Còn một chỗ chưa khớp, đã ghi vào evidence chứ không lờ đi:** trên object đặt đúng chỗ, chênh lệch
+đầu-cuối 333 ms trong khi tổng hai vòng gọi chỉ 125 ms — dư ~208 ms chưa giải thích được (ở object
+cũ thì hai con số khớp nhau). Nên chi phí thật nằm trong khoảng 125–333 ms chứ chưa phải một con số chốt.
+
+**CHỜ PHONG:** chốt ngưỡng dựa trên số thật; giải thích nốt ~208 ms dư; đối chiếu Cloudflare
+Usage/Billing; diễn tập phục hồi. Chưa tenant thật nào được chuyển sang commercial.
