@@ -1,6 +1,6 @@
 {
   "name": "@mapslibvn/web",
-  "version": "0.8.0",
+  "version": "0.8.1",
   "description": "SDK web MapsLibVN: bọc maplibre-gl, pmtiles, attribution bắt buộc",
   "license": "MIT",
   "type": "module",
