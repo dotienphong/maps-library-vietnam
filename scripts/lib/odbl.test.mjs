@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { ODBL_TABLES, copySql, exportDirFor, readmeFor } from './odbl.mjs';
+import { copySql, exportDirFor, ODBL_TABLES, readmeFor } from './odbl.mjs';
 
 describe('ODBL_TABLES', () => {
   it('đúng 6 bảng ODbL, geometry xuất WKT', () => {

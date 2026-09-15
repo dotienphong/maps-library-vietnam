@@ -1,4 +1,5 @@
 import {
+  createNavigator,
   type DirectionsLang,
   type DirectionsResponse,
   type MapsLibVNClient,
@@ -12,12 +13,11 @@ import {
   type PositionSource,
   type RouteProvider,
   type TravelMode,
-  createNavigator,
 } from '@mapslibvn/core';
 import type * as maplibregl from 'maplibre-gl';
 import { geolocationSource } from './position-source';
 import type { RoutesLayer } from './routes-layer';
-import { type Speech, type SpeechOptions, createSpeech } from './speech';
+import { createSpeech, type Speech, type SpeechOptions } from './speech';
 
 export interface NavigationStartOptions {
   response: DirectionsResponse;

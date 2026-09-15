@@ -1,5 +1,6 @@
 import {
   type CompassSample,
+  createHeadingFilter,
   type HeadingAccuracy,
   type HeadingError,
   type HeadingFilterOptions,
@@ -7,7 +8,6 @@ import {
   type HeadingSource,
   type RotationRate3,
   type Vec3,
-  createHeadingFilter,
   yawRateDps,
 } from '@mapslibvn/core';
 import { AppState, type AppStateStatus, Platform } from 'react-native';

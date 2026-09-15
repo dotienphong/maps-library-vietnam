@@ -1,10 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import {
-  RN_MATRIX,
   appPackageJson,
   classifyFailure,
   comboId,
   formatMatrixTable,
+  RN_MATRIX,
 } from './compat-matrix.mjs';
 
 describe('RN_MATRIX', () => {

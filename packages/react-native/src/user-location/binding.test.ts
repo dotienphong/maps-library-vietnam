@@ -11,7 +11,7 @@ import { describe, expect, it, vi } from 'vitest';
 import fixture from '../../../core/tests/fixtures/directions-q1.json';
 import type { AppStateLike, AppStateStatus } from '../navigation/map-binding';
 import { createRoutesStore } from '../navigation/routes-store';
-import { USER_FOLLOW_ZOOM, type UserLocationOptions, createUserLocationBinding } from './binding';
+import { createUserLocationBinding, USER_FOLLOW_ZOOM, type UserLocationOptions } from './binding';
 import { createUserLocationStore } from './store';
 
 const response = fixture as unknown as DirectionsResponse;

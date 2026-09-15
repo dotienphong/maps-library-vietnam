@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import provinces from '../../../packages/core/src/provinces.json';
 import addresses from '../../../packages/core/tests/fixtures/addresses.jsonl?raw';
 import type { ValhallaRouteResponse } from '../src/routing/valhalla';
-import { VI_PHRASE_RULES, applyViPhrases } from '../src/routing/vi-phrases';
+import { applyViPhrases, VI_PHRASE_RULES } from '../src/routing/vi-phrases';
 import q1 from './fixtures/valhalla/q1-motorbike.json';
 import twoLegs from './fixtures/valhalla/two-legs.json';
 

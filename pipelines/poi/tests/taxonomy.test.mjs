@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
-  GROUPS,
   categoryFor,
+  GROUPS,
   loadCategories,
   loadCategoryMaps,
   mapCategory,

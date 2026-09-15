@@ -95,7 +95,7 @@ export async function loadOldAdminRaw(sql, { pbfPath, snapshot = '2025-01-02' })
       const level = Number(properties.admin_level);
       const name = properties['name:vi'] ?? properties.name;
       const geometry = feature.geometry ? ewktOf(feature.geometry) : null;
-      if (!id || id.type !== 'r' || ![4, 6, 8].includes(level) || !name || !geometry) continue;
+      if (id?.type !== 'r' || ![4, 6, 8].includes(level) || !name || !geometry) continue;
       yield [
         id.id,
         level,

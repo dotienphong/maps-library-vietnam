@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { type QuotaReceipt, createClient } from './client';
+import { createClient, type QuotaReceipt } from './client';
 import type { MapsLibVNError } from './errors';
 
 const okFetch = (body: unknown) =>
@@ -123,7 +123,7 @@ describe('createClient', () => {
     const store = listStore([]);
     const acked: string[] = [];
     let issued = 0;
-    const fetch = vi.fn(async (input: URL | RequestInfo, init?: RequestInit) => {
+    const fetch = vi.fn(async (input: URL | RequestInfo, _init?: RequestInit) => {
       const url = new URL(String(input));
       const ack = /\/receipts\/([^/]+)\/ack$/.exec(url.pathname);
       if (ack) {

@@ -1,10 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import {
-  PERF_PREFIX,
   formatEvidence,
   gestureCommands,
   hasErrorEvent,
   navCommitsPerFix,
+  PERF_PREFIX,
   parseGfxinfo,
   parsePerfLines,
   summarize,

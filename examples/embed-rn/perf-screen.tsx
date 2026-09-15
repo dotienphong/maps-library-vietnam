@@ -1,10 +1,10 @@
 import {
+  createClient,
+  createNavigationSession,
   type DirectionsResponse,
   type MapHandle,
   MapsLibVNMap,
   type NavigationSession,
-  createClient,
-  createNavigationSession,
   playbackSource,
   simulateFixes,
 } from '@mapslibvn/react-native';

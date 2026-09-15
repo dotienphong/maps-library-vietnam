@@ -3,13 +3,13 @@
  * Sở hữu mọi phần tử `#nav-*`; không đọc/ghi URL hay state playground — báo qua `onChange`.
  */
 import {
-  TRAVEL_MODES,
   directionsRequest,
   etaLabel,
   pointFromAutocomplete,
   pointFromLngLat,
   pointFromPoi,
   routeSummary,
+  TRAVEL_MODES,
 } from '/playground-lib.js';
 
 /** @typedef {import('/playground-lib.js').NavPoint} NavPoint */
@@ -275,7 +275,7 @@ export function initNavigation(deps) {
 
   /** @param {number} index */
   function selectRoute(index) {
-    if (!response || !response.routes[index]) return;
+    if (!response?.routes[index]) return;
     activeRoute = index;
     map.routes.setActive(index);
     renderRoutes();

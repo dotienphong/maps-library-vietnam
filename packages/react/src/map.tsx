@@ -1,9 +1,9 @@
 import type { PoiSource } from '@mapslibvn/core';
 import {
   type CreateMapOptions,
+  createMap,
   type PoiFeature,
   type MapsLibVNMap as WebMap,
-  createMap,
 } from '@mapslibvn/web';
 import * as maplibregl from 'maplibre-gl';
 import { type CSSProperties, type ReactNode, useContext, useEffect, useRef, useState } from 'react';

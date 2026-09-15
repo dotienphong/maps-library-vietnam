@@ -1,12 +1,12 @@
 import { EventEmitter } from 'node:events';
 import { describe, expect, it } from 'vitest';
 import {
-  TEST_KEY,
   assertPortAvailable,
   createProcessStopper,
   createRoutingCleanup,
   parseRoutingTestArgs,
   shouldStopAttemptedValhalla,
+  TEST_KEY,
   testAuthInfo,
   waitForProcessOk,
 } from './routing-test.mjs';

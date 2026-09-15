@@ -1,8 +1,8 @@
 import type { GeoFix, HeadingFix } from '@mapslibvn/core';
 import { describe, expect, it } from 'vitest';
 import {
-  DEFAULT_USER_ACCURACY_M,
   accuracyRadiusExpression,
+  DEFAULT_USER_ACCURACY_M,
   metersPerPixel,
   userLocationFeature,
 } from './feature';

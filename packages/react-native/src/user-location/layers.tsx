@@ -3,7 +3,7 @@ import { useMemo, useSyncExternalStore } from 'react';
 import type { Animated } from 'react-native';
 import { ROUTE_COLOR } from '../navigation/route-layers';
 import type { RoutesStore } from '../navigation/routes-store';
-import { DEFAULT_USER_ACCURACY_M, accuracyRadiusExpression, userLocationFeature } from './feature';
+import { accuracyRadiusExpression, DEFAULT_USER_ACCURACY_M, userLocationFeature } from './feature';
 import { UserLocationPuck } from './puck';
 import type { UserLocationStore } from './store';
 

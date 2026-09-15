@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { pgArray } from '../src/lib/copy-format.mjs';
-import { RECORD_COLUMNS, buildRow } from '../src/records.mjs';
+import { buildRow, RECORD_COLUMNS } from '../src/records.mjs';
 
 const base = {
   source: 'osm',

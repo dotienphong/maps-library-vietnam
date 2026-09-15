@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { MapsLibVNAutocomplete, defineAutocomplete } from './autocomplete-element';
+import { defineAutocomplete, MapsLibVNAutocomplete } from './autocomplete-element';
 
 const DIR = 'docs/evidence/autocomplete-debounce';
 const LEVELS = [200, 300, 500, 800];

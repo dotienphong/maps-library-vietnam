@@ -3,12 +3,12 @@
 // Trong container: dò 2 nguồn (OSM, FSQ) → so state R2 → build tiles/POI có điều kiện → QA → upload → manifest
 // → routing graph (máy chủ) → manifest → state.
 import 'dotenv/config';
-import { execFileSync, spawn } from 'node:child_process';
+import { execFileSync } from 'node:child_process';
 import { existsSync } from 'node:fs';
 import { POI_SOURCE_PROFILES } from '../pipelines/poi/src/lib/poi-filter.mjs';
 import { poiReleaseSet, releaseName } from '../pipelines/tiles/src/lib/dates.mjs';
 import { hasListedFile } from '../pipelines/tiles/src/lib/manifest-state.mjs';
-import { run, sleep } from './lib/run.mjs';
+import { run } from './lib/run.mjs';
 import { detectSources } from './lib/sources.mjs';
 import { openDatabaseTunnel } from './lib/tunnel.mjs';
 import {

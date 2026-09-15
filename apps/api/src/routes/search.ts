@@ -52,8 +52,8 @@ search.get(
   requireAuth('places:read', { deferRevocation: true }),
   quotaMiddleware('places', searchParams),
   async (c) => {
-    const { query, category, near, bbox, queryNorm, radius, limit, offset, sources } =
-      searchParams(c);
+    // `query` thô không dùng ở handler — nhánh nào cũng chạy trên `queryNorm` (dạng chuẩn hoá).
+    const { category, near, bbox, queryNorm, radius, limit, offset, sources } = searchParams(c);
     // LIKE tận dụng gin_trgm_ops; starts_with trong OR buộc quét cả bảng (xem 72f78a2).
     const prefixPattern = `${queryNorm.replace(/[\\%_]/g, '\\$&')}%`;
     const fuzzy = useSimilarityBranch(queryNorm);

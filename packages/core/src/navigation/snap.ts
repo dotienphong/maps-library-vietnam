@@ -1,4 +1,4 @@
-import { type LngLat, angleDiffDeg, bearingDeg, projectOnSegment } from './geometry';
+import { angleDiffDeg, bearingDeg, type LngLat, projectOnSegment } from './geometry';
 import type { RouteIndex } from './progress';
 
 export interface SnapResult {

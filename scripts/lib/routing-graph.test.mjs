@@ -1,3 +1,6 @@
+// biome-ignore-all lint/suspicious/noTemplateCurlyInString: file này khẳng định nội dung script
+// BASH sinh ra có đúng `${JOURNAL}`, `${ENTRYPOINT}`... — đó là cú pháp biến shell nằm trong chuỗi
+// nháy đơn của JS, không phải ai quên dùng template literal.
 import { spawn, spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import {
@@ -5,8 +8,8 @@ import {
   existsSync,
   mkdirSync,
   mkdtempSync,
-  readFileSync,
   readdirSync,
+  readFileSync,
   rmSync,
   writeFileSync,
 } from 'node:fs';
@@ -15,12 +18,12 @@ import { resolve } from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
 import {
   GRAPH_FILES,
-  PREPARE_FAULT_POINTS,
-  ROLLBACK_FAULT_POINTS,
   graphMeta,
+  PREPARE_FAULT_POINTS,
   parseGraphMeta,
   parseRoutingGraphArgs,
   preparePlan,
+  ROLLBACK_FAULT_POINTS,
   rollbackPlan,
 } from './routing-graph.mjs';
 
@@ -728,7 +731,7 @@ describe('Valhalla wrapper race contract', () => {
       const fakeEntrypoint = resolve(state.root, 'fake-entrypoint.sh');
       writeFileSync(
         fakeEntrypoint,
-        `#!/usr/bin/env bash\nprintf '%s\\n' "\$\$" > "${upstreamPid}"\ntrap 'exit 0' TERM INT\nwhile true; do sleep 1; done\n`,
+        `#!/usr/bin/env bash\nprintf '%s\\n' "$$" > "${upstreamPid}"\ntrap 'exit 0' TERM INT\nwhile true; do sleep 1; done\n`,
       );
       chmodSync(fakeEntrypoint, 0o755);
       writeFileSync(resolve(state.graph, 'reload.in-progress'), 'rebuild\n');
@@ -789,7 +792,7 @@ describe('Valhalla wrapper race contract', () => {
       const fakeEntrypoint = resolve(state.root, 'fake-hanging-ready.sh');
       writeFileSync(
         fakeEntrypoint,
-        `#!/usr/bin/env bash\ncount=0\n[[ -f "${countFile}" ]] && count=\$(cat "${countFile}")\nprintf '%s\\n' \$((count + 1)) > "${countFile}"\ntrap 'exit 0' TERM INT\nwhile true; do sleep 1; done\n`,
+        `#!/usr/bin/env bash\ncount=0\n[[ -f "${countFile}" ]] && count=$(cat "${countFile}")\nprintf '%s\\n' $((count + 1)) > "${countFile}"\ntrap 'exit 0' TERM INT\nwhile true; do sleep 1; done\n`,
       );
       chmodSync(fakeEntrypoint, 0o755);
       writeFileSync(resolve(state.graph, 'reload.in-progress'), 'rebuild\n');

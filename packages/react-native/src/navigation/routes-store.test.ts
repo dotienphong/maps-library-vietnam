@@ -48,11 +48,11 @@ describe('createRoutesStore', () => {
     const store = createRoutesStore();
     store.show(response);
     const first = store.getSnapshot().liveFeatures.features[0];
-    if (!first || first.geometry.type !== 'LineString') throw new Error('không phải LineString');
+    if (first?.geometry.type !== 'LineString') throw new Error('không phải LineString');
     const before = first.geometry.coordinates;
     store.setProgress(null);
     const after = store.getSnapshot().liveFeatures.features[0];
-    if (!after || after.geometry.type !== 'LineString') throw new Error('không phải LineString');
+    if (after?.geometry.type !== 'LineString') throw new Error('không phải LineString');
     expect(after.geometry.coordinates).toBe(before);
   });
 

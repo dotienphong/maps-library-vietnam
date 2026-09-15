@@ -1,10 +1,10 @@
 import type { StyleSpecification } from '@maplibre/maplibre-react-native';
 import {
+  hidePoiLayer,
   type Lang,
+  localizeStyle,
   type MapsLibVNClient,
   type Theme,
-  hidePoiLayer,
-  localizeStyle,
 } from '@mapslibvn/core';
 import { useEffect, useState } from 'react';
 
@@ -138,7 +138,7 @@ export function useResolvedStyle(
   doFetch: typeof globalThis.fetch = globalThis.fetch,
 ): ResolvedStyle {
   const url = styleUrlFor(places, options.style);
-  const transform = needsTransform(options);
+  const _transform = needsTransform(options);
   const { lang, poiLayer, styleJson } = options;
   const [state, setState] = useState<ResolvedStyle>(
     () => resolveSync(url, options, styleJson) ?? { status: 'loading' },

@@ -1,4 +1,4 @@
-import { SELF, env, runInDurableObject } from 'cloudflare:test';
+import { env, runInDurableObject, SELF } from 'cloudflare:test';
 import { describe, expect, it } from 'vitest';
 import { seedKey } from './helpers/seed-key';
 

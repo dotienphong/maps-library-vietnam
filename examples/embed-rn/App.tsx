@@ -1,5 +1,7 @@
 import {
   type AutocompleteItem,
+  createClient,
+  createNavigationSession,
   type DirectionsResponse,
   type Lang,
   type MapHandle,
@@ -7,12 +9,10 @@ import {
   MapsLibVNMap,
   Marker,
   type NavigationSession,
-  type Theme,
-  type TravelMode,
-  createClient,
-  createNavigationSession,
   playbackSource,
   simulateFixes,
+  type Theme,
+  type TravelMode,
   usePlaces,
 } from '@mapslibvn/react-native';
 import {
@@ -111,10 +111,18 @@ function Search({ near, onPick }: { near: [number, number]; onPick: (p: Point) =
   );
 }
 
+/**
+ * Chọn màn hình TRƯỚC khi gọi hook. Trước đây `App` tự early-return sang `<PerfScreen />` rồi mới
+ * gọi `useState`, tức vi phạm rules-of-hooks (biome: `useHookAtTopLevel`). Thực tế không nổ vì
+ * `EXPO_PUBLIC_MLV_PERF` là hằng build-time do Metro thay sẵn, nhưng để vậy thì cái sai vẫn nằm
+ * trong app ví dụ mà người khác sẽ copy.
+ */
 export default function App() {
   // Chế độ đo (scripts/perf-rn.mjs) — hoàn toàn tách khỏi màn hình demo.
-  if (process.env.EXPO_PUBLIC_MLV_PERF === '1') return <PerfScreen />;
+  return process.env.EXPO_PUBLIC_MLV_PERF === '1' ? <PerfScreen /> : <DemoScreen />;
+}
 
+function DemoScreen() {
   const [theme, setTheme] = useState<Theme>('light');
   const [lang, setLang] = useState<Lang>('vi');
   const [map, setMap] = useState<MapHandle | null>(null);

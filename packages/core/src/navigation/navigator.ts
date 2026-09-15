@@ -4,7 +4,7 @@ import type { DirectionsLang, DirectionsResponse, Route } from '../types';
 import { planAnnouncements } from './announce';
 import { bearingDeg, haversineM } from './geometry';
 import { MOVING_SPEED_MPS } from './heading';
-import { type FlatStep, type RouteIndex, buildRouteIndex, progressAt } from './progress';
+import { buildRouteIndex, type FlatStep, progressAt, type RouteIndex } from './progress';
 import { snapToRoute } from './snap';
 import {
   type GeoFix,

@@ -6,7 +6,6 @@
 //   hoặc pnpm poi:profile --profiles osm,fsq [--dry-run]
 // Ngoài container: tự chạy lại trong image pipeline (cần tippecanoe, rclone, cloudflared).
 import 'dotenv/config';
-import { poiReleasePrefix } from '../pipelines/poi/src/lib/poi-filter.mjs';
 import { poiReleaseSet } from '../pipelines/tiles/src/lib/dates.mjs';
 import {
   missingProfileEnv,

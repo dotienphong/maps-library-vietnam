@@ -3,7 +3,7 @@ import { Hono } from 'hono';
 import { Compression, PMTiles } from 'pmtiles';
 import type { Env } from '../env';
 import { ApiError } from '../errors';
-import { type Manifest, getManifest } from '../manifest';
+import { getManifest, type Manifest } from '../manifest';
 import { R2Source } from '../r2-source';
 
 export const tiles = new Hono<{ Bindings: Env }>();

@@ -4,7 +4,7 @@ import type { RefObject } from 'react';
 import { describe, expect, it, vi } from 'vitest';
 import fixture from '../../../core/tests/fixtures/directions-q1.json';
 import { fakeSession, progressAt } from '../test/fake-session';
-import { type AppStateLike, type FollowOptions, createMapBinding } from './map-binding';
+import { type AppStateLike, createMapBinding, type FollowOptions } from './map-binding';
 import { createRoutesStore } from './routes-store';
 
 const response = fixture as unknown as DirectionsResponse;

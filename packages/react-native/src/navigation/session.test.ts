@@ -11,10 +11,10 @@ import {
 import { describe, expect, it, vi } from 'vitest';
 import fixture from '../../../core/tests/fixtures/directions-q1.json';
 import {
+  createNavigationSession,
   MISSING_SOURCE_MESSAGE,
   type SessionEvents,
   type SessionPositionSource,
-  createNavigationSession,
 } from './session';
 
 const response = fixture as unknown as DirectionsResponse;

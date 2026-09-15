@@ -6,7 +6,7 @@
 // Dùng: node pipelines/poi/scripts/category-coverage.mjs [--top 200]
 import { arg } from '../src/lib/env.mjs';
 import { connect } from '../src/pg.mjs';
-import { OSM_DROP, OSM_KEYS, loadCategoryMaps, mapCategory } from '../src/taxonomy.mjs';
+import { loadCategoryMaps, mapCategory, OSM_DROP, OSM_KEYS } from '../src/taxonomy.mjs';
 
 const top = Number(arg('--top', '200'));
 const maps = loadCategoryMaps();

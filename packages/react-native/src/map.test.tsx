@@ -4,10 +4,10 @@ import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-libra
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { MapsLibVNMap, POI_TOUCH_RADIUS_PX, prefetchBounds, useMap } from './map';
 import {
-  OfflineManager,
   cameraRefMock,
   getLastMapProps,
   mapRefMock,
+  OfflineManager,
   offlinePacks,
   resetMocks,
 } from './test/mlrn-mock';

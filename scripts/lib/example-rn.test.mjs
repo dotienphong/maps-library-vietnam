@@ -1,23 +1,23 @@
 import { describe, expect, it } from 'vitest';
 import {
-  BUNDLE_ID,
-  DEFAULT_API,
-  EXAMPLE_RN_DIR,
-  KEY_ENV_NAME_RN,
-  TARBALL,
   androidDeviceArg,
   androidEnv,
   androidStudioJdk,
   availableIosDevices,
+  BUNDLE_ID,
+  DEFAULT_API,
   defaultAndroidSdk,
+  EXAMPLE_RN_DIR,
   envFileContent,
   expoRunArgs,
+  KEY_ENV_NAME_RN,
   packedTarballName,
   parseAdbDevices,
   parseArgs,
   parseDevicectlDevices,
   pickSingleDevice,
   staleBundleDirs,
+  TARBALL,
   uninstallCommand,
 } from './example-rn.mjs';
 

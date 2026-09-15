@@ -3,11 +3,11 @@ import fixture from '../../tests/fixtures/directions-q1.json';
 import { decodePolyline6 } from '../polyline';
 import type { DirectionsResponse } from '../types';
 import {
-  EMPTY_ROUTE_FEATURES,
-  type RouteFeature,
   altRouteFeatures,
   decodeRoutes,
+  EMPTY_ROUTE_FEATURES,
   liveRouteFeatures,
+  type RouteFeature,
   routeFeatures,
 } from './route-features';
 
@@ -18,7 +18,7 @@ const two = [first, first];
 
 const kinds = (features: readonly RouteFeature[]) => features.map((f) => f.properties.kind);
 const lineCoords = (f: RouteFeature | undefined): [number, number][] => {
-  if (!f || f.geometry.type !== 'LineString') throw new Error('không phải LineString');
+  if (f?.geometry.type !== 'LineString') throw new Error('không phải LineString');
   return f.geometry.coordinates;
 };
 

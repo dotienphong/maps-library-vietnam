@@ -1,13 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import {
-  DEFAULT_KEY,
-  PRECISION_ZOOM,
   buildSnippet,
   circleGeoJson,
+  DEFAULT_KEY,
   directionsRequest,
   etaLabel,
   maskKey,
   navSnippet,
+  PRECISION_ZOOM,
   parseState,
   pointFromAutocomplete,
   pointFromLngLat,

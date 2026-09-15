@@ -27,7 +27,12 @@ for (const [name, aliases] of Object.entries(provincesJson as Record<string, str
 // Số nhà: "12", "130C", "272A4", "12-14"; đứng đầu còn nhận "E4", "C33", "BT2" (không nhận p6/q10/f6/tp — đó là phường/quận)
 const NUM = String.raw`(?:\d+(?:[a-z](?![a-z])\d*)?(?:-\d+[a-z]?)?|[a-z]{1,2}\d+[a-z]?)`;
 const NUM_LEAD = String.raw`(?:\d+(?:[a-z](?![a-z])\d*)?(?:-\d+[a-z]?)?|(?![pqf]\d|tp\d|ql\d|tl\d|dt\d|hl\d)[a-z]{1,2}\d+[a-z]?)`;
+// Giữ String.raw cho CẢ khối mảnh regex bên dưới: hai dòng này tình cờ chưa có escape nào, nhưng
+// bỏ lẻ chúng ra thì khối thành không nhất quán và người thêm `\d` vào sau sẽ âm thầm nhận
+// regex sai.
+// biome-ignore lint/complexity/noUselessStringRaw: xem ngay trên
 const HN = String.raw`${NUM_LEAD}(?:/${NUM})*`;
+// biome-ignore lint/complexity/noUselessStringRaw: xem chú thích ở HN phía trên.
 const ALLEY_KW = String.raw`(?:hem|ngo|ngach|kiet)`;
 const PREFIX = String.raw`(?:(?:so(?:\s*nha)?|sn|lo|can|kiot)\.?\s*)?`;
 const RE_PREFIX = new RegExp(`^${PREFIX}`);

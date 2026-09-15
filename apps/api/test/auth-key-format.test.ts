@@ -1,4 +1,4 @@
-import { SELF, env } from 'cloudflare:test';
+import { env, SELF } from 'cloudflare:test';
 import { beforeAll, describe, expect, it } from 'vitest';
 import { isApiKeyFormat } from '../src/auth';
 import { seedKey as seedHashedKey, sha256Hex } from './helpers/seed-key';

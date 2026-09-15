@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { getSql } from '../src/db';
-import { INTEGER_HOUSE_NUMBER_PATTERN, geocode } from '../src/geocode';
+import { geocode, INTEGER_HOUSE_NUMBER_PATTERN } from '../src/geocode';
 import { fakeSql } from './helpers/fake-sql';
 
 describe('geocode helpers', () => {

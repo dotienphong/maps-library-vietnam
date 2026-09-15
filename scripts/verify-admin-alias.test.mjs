@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import {
-  PRECISION_RANK,
   evaluateCoverage,
   evaluateGeocode,
   isHighPrecision,
+  PRECISION_RANK,
 } from './verify-admin-alias.mjs';
 
 /**

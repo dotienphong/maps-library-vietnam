@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { FIRST_SYMBOL_LAYER_ID, attributionHtml } from '@mapslibvn/core';
+import { attributionHtml, FIRST_SYMBOL_LAYER_ID } from '@mapslibvn/core';
 import { describe, expect, it } from 'vitest';
 import { addPoiLayers } from './poi-layers.mjs';
 import { transformStyle } from './transform.mjs';

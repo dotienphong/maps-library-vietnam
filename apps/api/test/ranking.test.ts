@@ -1,12 +1,12 @@
 import { describe, expect, it } from 'vitest';
 import {
   COEFF,
-  STAGE_PENALTY,
   gridKey,
   isAdminOnlyQuery,
   priorFor,
   proxScore,
   rankScore,
+  STAGE_PENALTY,
   withAreaSlot,
 } from '../src/ranking';
 

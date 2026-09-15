@@ -2,7 +2,7 @@
 // Dùng: node scripts/db-migrate.mjs        — áp dụng migration mới (db/migrations/NNNN_ten.sql)
 //       node scripts/db-migrate.mjs --down — revert đúng MỘT migration cuối bằng NNNN_ten.down.sql
 import 'dotenv/config';
-import { readFileSync, readdirSync } from 'node:fs';
+import { readdirSync, readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import postgres from 'postgres';
 import {

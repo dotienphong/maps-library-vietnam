@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import {
-  KEY_ENV_NAME,
   contentType,
   exampleUrl,
+  KEY_ENV_NAME,
   openCommand,
   resolveKey,
   safeFile,

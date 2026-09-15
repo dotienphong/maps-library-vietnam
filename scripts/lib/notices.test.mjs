@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { NOTICE_FILES, SDK_PACKAGES, noticePlan, staleCopies } from './notices.mjs';
+import { NOTICE_FILES, noticePlan, SDK_PACKAGES, staleCopies } from './notices.mjs';
 
 describe('noticePlan', () => {
   it('mỗi gói SDK nhận đủ LICENSE và THIRD_PARTY_NOTICES.md', () => {

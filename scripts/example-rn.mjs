@@ -44,24 +44,24 @@ import { homedir } from 'node:os';
 import { join, resolve } from 'node:path';
 import 'dotenv/config';
 import {
-  DEFAULT_API,
-  EXAMPLE_RN_DIR,
-  KEY_ENV_NAME_RN,
-  RN_PACKAGE_DIR,
-  TARBALL,
   androidDeviceArg,
   androidEnv,
   androidStudioJdk,
   availableIosDevices,
+  DEFAULT_API,
   defaultAndroidSdk,
+  EXAMPLE_RN_DIR,
   envFileContent,
   expoRunArgs,
+  KEY_ENV_NAME_RN,
   packedTarballName,
   parseAdbDevices,
   parseArgs,
   parseDevicectlDevices,
   pickSingleDevice,
+  RN_PACKAGE_DIR,
   staleBundleDirs,
+  TARBALL,
   uninstallCommand,
 } from './lib/example-rn.mjs';
 import { resolveKey } from './lib/example-serve.mjs';

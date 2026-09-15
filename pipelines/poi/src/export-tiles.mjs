@@ -11,7 +11,7 @@ import { poiReleasePair } from '../../tiles/src/lib/dates.mjs';
 import { displayFields, priorityOrderSql } from './display-priority.mjs';
 import { createDisplaySelector } from './display-selector.mjs';
 import { readSnapshotRows, snapshotRowIncluded } from './export-snapshot.mjs';
-import { OUT, POI_WORK, arg } from './lib/env.mjs';
+import { arg, OUT, POI_WORK } from './lib/env.mjs';
 import { activePoiWhereSql, poiReleasePrefix } from './lib/poi-filter.mjs';
 import { connect } from './pg.mjs';
 

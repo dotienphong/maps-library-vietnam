@@ -31,7 +31,9 @@ body {
 }
 
 body {
-  font: 14px / 1.5 system-ui, sans-serif;
+  font:
+    14px / 1.5 system-ui,
+    sans-serif;
   color: var(--pg-fg);
 }
 
@@ -42,6 +44,7 @@ body {
 
 /* Nhiều khối dùng display: grid hoặc flex nên phải thắng lại thuộc tính hidden. */
 [hidden] {
+  /* biome-ignore lint/complexity/noImportantStyles: bắt buộc — panel hidden còn nhận display:grid/flex từ selector khác, bỏ !important là panel vẫn hiện */
   display: none !important;
 }
 

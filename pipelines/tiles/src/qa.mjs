@@ -89,8 +89,7 @@ for (const theme of ['light', 'dark']) {
     ),
   );
   const sov = tpl.layers.find((/** @type {{ id: string }} */ l) => l.id === 'sovereignty-label');
-  if (!sov || sov.minzoom !== 4)
-    violations.push(`style ${theme}: thiếu lớp sovereignty-label minzoom 4`);
+  if (sov?.minzoom !== 4) violations.push(`style ${theme}: thiếu lớp sovereignty-label minzoom 4`);
   if (tpl.sources?.sovereignty?.data?.features?.length !== 2) {
     violations.push(`style ${theme}: nguồn sovereignty phải có 2 nhãn`);
   }

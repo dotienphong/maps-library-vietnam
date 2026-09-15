@@ -1,8 +1,8 @@
 import {
   type AutocompleteItem,
   type AutocompleteType,
-  type MapsLibVNClient,
   createClient,
+  type MapsLibVNClient,
   parsePoiSourcesCsv,
 } from '@mapslibvn/core';
 

@@ -1,8 +1,8 @@
 import {
+  formatDistanceShort,
   type MapHandle,
   type NavigationSession,
   type TravelMode,
-  formatDistanceShort,
   useHeading,
   useNavigation,
 } from '@mapslibvn/react-native';

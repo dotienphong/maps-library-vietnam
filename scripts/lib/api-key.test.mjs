@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { KEY_RE, generateKey, hashKey, keyPrefix, parseIssueArgs } from './api-key.mjs';
+import { generateKey, hashKey, KEY_RE, keyPrefix, parseIssueArgs } from './api-key.mjs';
 
 describe('generateKey', () => {
   it('khớp ràng buộc DB ^mlv_live_[0-9A-Za-z]{24}$ và khác nhau mỗi lần', () => {

@@ -4,7 +4,7 @@ import { fileURLToPath } from 'node:url';
 import { validateStyleMin } from '@maplibre/maplibre-gl-style-spec';
 import { attributionHtml } from '@mapslibvn/core';
 import { describe, expect, it } from 'vitest';
-import { POI_GROUP_ICONS, addPoiLayers } from './poi-layers.mjs';
+import { addPoiLayers, POI_GROUP_ICONS } from './poi-layers.mjs';
 import { fillTemplate, transformStyle } from './transform.mjs';
 
 const here = fileURLToPath(new URL('.', import.meta.url));

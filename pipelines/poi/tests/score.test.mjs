@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { SOURCE_ORDER, pickPrimary, popularity, qualityScore } from '../src/score.mjs';
+import { pickPrimary, popularity, qualityScore, SOURCE_ORDER } from '../src/score.mjs';
 
 describe('qualityScore (spec 5.5)', () => {
   it('đủ mọi trường, 2 nguồn, mới → 100', () => {

@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import {
   DEFAULT_POI_SOURCES,
-  POI_SOURCES,
-  POI_SOURCE_PROFILES,
   normalizePoiSources,
+  POI_SOURCE_PROFILES,
+  POI_SOURCES,
   parsePoiSourcesCsv,
   poiSourceClause,
   poiSourcesKey,

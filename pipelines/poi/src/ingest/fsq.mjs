@@ -5,8 +5,8 @@ import { mkdirSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { openDuck } from '../duck.mjs';
 import { ewkt, pgJson } from '../lib/copy-format.mjs';
-import { FIXTURE, POI_WORK, arg, fsqSource } from '../lib/env.mjs';
-import { VN_BBOX, lonLatWhere } from '../lib/vn-bbox.mjs';
+import { arg, FIXTURE, fsqSource, POI_WORK } from '../lib/env.mjs';
+import { lonLatWhere, VN_BBOX } from '../lib/vn-bbox.mjs';
 import {
   connect,
   copyInto,

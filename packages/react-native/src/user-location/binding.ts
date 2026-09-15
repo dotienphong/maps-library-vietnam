@@ -1,10 +1,10 @@
 import type { CameraRef } from '@maplibre/maplibre-react-native';
 import {
+  angleDiffDeg,
   type GeoFix,
   type HeadingFix,
   type HeadingSource,
   type PositionSource,
-  angleDiffDeg,
 } from '@mapslibvn/core';
 import type { RefObject } from 'react';
 import type { AppStateLike } from '../navigation/map-binding';

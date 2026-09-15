@@ -1,11 +1,11 @@
-import { SELF, env } from 'cloudflare:test';
+import { env, SELF } from 'cloudflare:test';
 import { describe, expect, it } from 'vitest';
 import {
-  FREE_DIRECTIONS_PER_DAY,
-  FREE_PLACES_PER_DAY,
   burstLimiterFor,
   dailyLimit,
   enforceBurstLimit,
+  FREE_DIRECTIONS_PER_DAY,
+  FREE_PLACES_PER_DAY,
   keyCapLimiterFor,
   rateLimitActor,
   vnDay,

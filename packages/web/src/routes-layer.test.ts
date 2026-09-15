@@ -1,7 +1,7 @@
 import type { DirectionsResponse } from '@mapslibvn/core';
 import { describe, expect, it, vi } from 'vitest';
 import fixture from '../../core/tests/fixtures/directions-q1.json';
-import { ROUTE_LAYER_IDS, ROUTE_SOURCE_ID, createRoutesLayer } from './routes-layer';
+import { createRoutesLayer, ROUTE_LAYER_IDS, ROUTE_SOURCE_ID } from './routes-layer';
 
 const response = fixture as unknown as DirectionsResponse;
 const withAlt: DirectionsResponse = {

@@ -1,8 +1,8 @@
 import { MapsLibVNError } from './errors';
 import {
   DEFAULT_POI_SOURCES,
-  type PoiSource,
   normalizePoiSources,
+  type PoiSource,
   poiSourcesKey,
 } from './poi-sources';
 import type {

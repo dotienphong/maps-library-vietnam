@@ -1,11 +1,11 @@
 import type { CameraRef, ViewPadding } from '@maplibre/maplibre-react-native';
 import {
+  angleDiffDeg,
   type HeadingFix,
   MOVING_SPEED_MPS,
   type NavigationProgress,
   type NavigationStatus,
   type TravelMode,
-  angleDiffDeg,
 } from '@mapslibvn/core';
 import type { RefObject } from 'react';
 import type { RoutesStore } from './routes-store';
@@ -175,7 +175,7 @@ export function createMapBinding(deps: MapBindingDeps): MapBinding {
     if (stationary(p)) {
       deps.store.setProgress({ shapeIndex: p.shapeIndex, snapped: p.snapped, bearing: h.heading });
     }
-    if (!follow || follow.bearing !== 'heading' || !following) return;
+    if (follow?.bearing !== 'heading' || !following) return;
     if (deps.appState.currentState !== 'active') return;
     const prev = lastCameraBearing;
     if (

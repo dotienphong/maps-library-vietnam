@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { MANEUVER_KINDS, VALHALLA_MANEUVER_KIND, maneuverKindFromValhalla } from './maneuver';
+import { MANEUVER_KINDS, maneuverKindFromValhalla, VALHALLA_MANEUVER_KIND } from './maneuver';
 
 describe('maneuver', () => {
   it('ánh xạ đủ các mã Valhalla dùng cho đường bộ (spec A mục 5.2)', () => {

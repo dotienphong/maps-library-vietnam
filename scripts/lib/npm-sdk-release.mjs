@@ -1,4 +1,4 @@
-import { readFileSync, readdirSync } from 'node:fs';
+import { readdirSync, readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 
 /** @typedef {{ command: string, args: string[], cwd?: string }} ReleaseCommand */

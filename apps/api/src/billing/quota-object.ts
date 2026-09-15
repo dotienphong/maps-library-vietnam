@@ -2,7 +2,7 @@ import { DurableObject } from 'cloudflare:workers';
 import type { Env } from '../env';
 import { PLAN_CATALOG } from './catalog';
 import { BillingCommandError, businessHash, commandHash, validateCommand } from './commands';
-import { SNAPSHOT_TABLES, type SnapshotTable, initializeLedger } from './ledger';
+import { initializeLedger, SNAPSHOT_TABLES, type SnapshotTable } from './ledger';
 import { trialEndsAt, vnBillingDay } from './policy';
 import type {
   CheckpointReceipt,
@@ -233,7 +233,7 @@ export class QuotaObject extends DurableObject<Env> {
         );
         Object.assign(receipt, { status, tier });
       } else if (command.kind === 'addCredits') {
-        if (!entitlement || entitlement.status !== 'active' || entitlement.tier === 'trial') {
+        if (entitlement?.status !== 'active' || entitlement.tier === 'trial') {
           throw new BillingCommandError('credits_require_paid_active');
         }
         const period = this.currentPeriod(now);

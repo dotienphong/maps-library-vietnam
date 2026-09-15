@@ -12,7 +12,7 @@ import { basename, resolve } from 'node:path';
 import { Readable } from 'node:stream';
 import { pipeline } from 'node:stream/promises';
 import { priorityOrderSql } from './display-priority.mjs';
-import { POI_WORK, arg } from './lib/env.mjs';
+import { arg, POI_WORK } from './lib/env.mjs';
 import { sourcesForProfile } from './lib/poi-filter.mjs';
 import { connect, readJsonl } from './pg.mjs';
 

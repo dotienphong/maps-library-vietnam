@@ -6,10 +6,9 @@ import { ADMIN_OLD_FIXTURE_PBF, ADMIN_OLD_MANIFEST, ADMIN_OLD_PBF, FIXTURE } fro
 import { fillSearchKeys } from '../lib/search-keys.mjs';
 import { connect, countRows, createNewTable, publishNew, withAdvisoryLock } from '../pg.mjs';
 import { downloadVerified, loadOldAdminRaw } from './admin-old-source.mjs';
-import { bootstrapMissingProvince } from './raw-tables.mjs';
-
 /** @typedef {import('postgres').Sql} Sql */
 import { buildOldAdmin } from './admin-overlay.mjs';
+import { bootstrapMissingProvince } from './raw-tables.mjs';
 
 const provinceNorms = () =>
   Object.keys(JSON.parse(readFileSync('packages/core/src/provinces.json', 'utf8'))).map((name) =>

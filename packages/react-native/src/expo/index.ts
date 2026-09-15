@@ -1,28 +1,38 @@
 import type { NavigationSessionOptions } from '../navigation/session';
-import { KEEP_AWAKE_TAG, expoAudioSession, expoKeepAwake } from './device';
+import { expoAudioSession, expoKeepAwake, KEEP_AWAKE_TAG } from './device';
 import {
   type ExpoHeadingOptions,
-  HEADING_ACCURACY_LEVELS,
   expoHeadingSource,
+  HEADING_ACCURACY_LEVELS,
   toAccuracy,
   toCompassSample,
 } from './heading-source';
 import {
-  type ExpoLocationSourceOptions,
-  NAVIGATION_TASK,
   defineNavigationTask,
+  type ExpoLocationSourceOptions,
   expoLocationSource,
+  NAVIGATION_TASK,
   toGeoFix,
 } from './location-source';
 import { type ExpoSpeechOptions, expoSpeech } from './speech';
 
-export { NAVIGATION_TASK, defineNavigationTask, expoLocationSource, toGeoFix };
-export type { ExpoLocationAccuracy, ExpoLocationSourceOptions } from './location-source';
-export { expoSpeech };
-export type { ExpoSpeechOptions } from './speech';
-export { KEEP_AWAKE_TAG, expoAudioSession, expoKeepAwake };
-export { HEADING_ACCURACY_LEVELS, expoHeadingSource, toAccuracy, toCompassSample };
 export type { ExpoHeadingOptions } from './heading-source';
+export type { ExpoLocationAccuracy, ExpoLocationSourceOptions } from './location-source';
+export type { ExpoSpeechOptions } from './speech';
+export {
+  defineNavigationTask,
+  expoAudioSession,
+  expoHeadingSource,
+  expoKeepAwake,
+  expoLocationSource,
+  expoSpeech,
+  HEADING_ACCURACY_LEVELS,
+  KEEP_AWAKE_TAG,
+  NAVIGATION_TASK,
+  toAccuracy,
+  toCompassSample,
+  toGeoFix,
+};
 
 export type ExpoNavigationOptions = ExpoLocationSourceOptions & {
   speech?: ExpoSpeechOptions;

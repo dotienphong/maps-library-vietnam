@@ -1,8 +1,6 @@
 {
-  "$schema": "https://biomejs.dev/schemas/1.9.4/schema.json",
-  "organizeImports": {
-    "enabled": true
-  },
+  "$schema": "https://biomejs.dev/schemas/2.5.13/schema.json",
+  "assist": { "actions": { "source": { "organizeImports": "on" } } },
   "formatter": {
     "enabled": true,
     "indentStyle": "space",
@@ -13,7 +11,7 @@
   "linter": {
     "enabled": true,
     "rules": {
-      "recommended": true
+      "preset": "recommended"
     }
   },
   "javascript": {
@@ -24,15 +22,27 @@
     }
   },
   "files": {
-    "ignore": [
-      "**/dist/**",
-      "apps/docs/public/sdk/**",
-      "docs/evidence/**",
-      "**/node_modules/**",
-      "**/.astro/**",
-      "**/fixtures/**",
-      "**/*.json",
-      "**/.wrangler/**"
+    "includes": [
+      "**",
+      "!**/dist",
+      "!**/apps/docs/public/sdk",
+      "!**/docs/evidence",
+      "!**/node_modules",
+      "!**/.astro",
+      "!**/fixtures",
+      "!**/*.json",
+      "!**/.wrangler",
+      "!examples/*/android",
+      "!examples/*/ios",
+      "!examples/*/.expo",
+      "!examples/*/vendor",
+      "!.superpowers"
     ]
-  }
+  },
+  "overrides": [
+    {
+      "includes": ["scripts/**", "infra/**"],
+      "linter": { "rules": { "suspicious": { "noUndeclaredEnvVars": "off" } } }
+    }
+  ]
 }

@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import type { AutocompleteItem, MapsLibVNClient } from '@mapslibvn/core';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { MapsLibVNAutocomplete, defineAutocomplete } from './autocomplete-element';
+import { defineAutocomplete, MapsLibVNAutocomplete } from './autocomplete-element';
 
 const autocomplete = vi.fn();
 const createClientMock = vi.fn(() => ({ autocomplete }));

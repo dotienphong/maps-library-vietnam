@@ -2,7 +2,7 @@
 import { type DirectionsResponse, type Route, simulateFixes } from '@mapslibvn/core';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import fixture from '../../core/tests/fixtures/directions-q1.json';
-import { FOLLOW_ZOOM, createNavigation } from './navigation';
+import { createNavigation, FOLLOW_ZOOM } from './navigation';
 import { playbackSource } from './position-source';
 
 const response = fixture as unknown as DirectionsResponse;
@@ -103,7 +103,8 @@ describe('createNavigation', () => {
     expect(d.wakeLock.request).toHaveBeenCalledWith('screen');
     // warmUp trong gesture
     expect(d.synth.speak).toHaveBeenCalledTimes(1);
-    expect((d.synth.speak.mock.calls[0]?.[0] as FakeUtterance).text).toBe('');
+    const utter = d.synth.speak.mock.calls[0]?.[0] as FakeUtterance | undefined;
+    expect(utter?.text).toBe('');
 
     await vi.runAllTimersAsync();
 

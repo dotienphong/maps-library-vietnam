@@ -1,6 +1,6 @@
 import type { CameraRef, MapRef } from '@maplibre/maplibre-react-native';
 import type { DirectionsResponse, MapsLibVNClient } from '@mapslibvn/core';
-import { type RefObject, createContext } from 'react';
+import { createContext, type RefObject } from 'react';
 import type { MapNavigationBinding } from './navigation/map-binding';
 import type { UserLocationHandle } from './user-location/binding';
 

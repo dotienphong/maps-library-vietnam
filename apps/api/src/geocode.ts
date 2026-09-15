@@ -1,4 +1,4 @@
-import { type GeocodeItem, type ParsedAddress, normalizeVi, parseAddress } from '@mapslibvn/core';
+import { type GeocodeItem, normalizeVi, type ParsedAddress, parseAddress } from '@mapslibvn/core';
 import { type AdminScope, resolveAdminScope } from './admin-scope';
 import { useSimilarityBranch } from './autocomplete-sql';
 import type { getSql } from './db';

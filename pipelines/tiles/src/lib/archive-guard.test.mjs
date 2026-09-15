@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import {
-  MAX_POI_ARCHIVE_BYTES,
   assertPoiArchiveSize,
   immutableUploadAction,
+  MAX_POI_ARCHIVE_BYTES,
 } from './archive-guard.mjs';
 
 describe('assertPoiArchiveSize', () => {

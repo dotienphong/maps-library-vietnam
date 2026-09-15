@@ -3,11 +3,11 @@ import { mkdirSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import crossSpawn from 'cross-spawn';
 import {
-  RN_MATRIX,
   appPackageJson,
   classifyFailure,
   comboId,
   formatMatrixTable,
+  RN_MATRIX,
 } from './lib/compat-matrix.mjs';
 
 const WORK_DIR = 'work/compat';

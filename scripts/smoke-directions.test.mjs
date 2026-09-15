@@ -1,11 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import {
-  SMOKE_ROUTES,
   assertDirectionsTarget,
   estimateDirectionsDurationMs,
   parseDirectionsArgs,
   percentile,
   runDirectionsSmoke,
+  SMOKE_ROUTES,
   validateDirectionsSmoke,
 } from './smoke-directions.mjs';
 

@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import type { StyleSpecification } from '@maplibre/maplibre-react-native';
-import { type MapsLibVNClient, createClient, nameExpression } from '@mapslibvn/core';
+import { createClient, type MapsLibVNClient, nameExpression } from '@mapslibvn/core';
 import { renderHook, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {

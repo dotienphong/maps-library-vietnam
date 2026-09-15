@@ -2,7 +2,7 @@
 // Đồng bộ LICENSE + THIRD_PARTY_NOTICES.md vào các gói SDK. `--check` chỉ kiểm (CI), thoát 1 nếu lệch.
 import { copyFileSync, existsSync, readFileSync } from 'node:fs';
 import { pathToFileURL } from 'node:url';
-import { SDK_PACKAGES, noticePlan, staleCopies } from './lib/notices.mjs';
+import { noticePlan, SDK_PACKAGES, staleCopies } from './lib/notices.mjs';
 
 /** @param {string} path */
 const read = (path) => (existsSync(path) ? readFileSync(path, 'utf8') : undefined);

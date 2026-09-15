@@ -10,9 +10,9 @@ import { createServer } from 'node:http';
 import { join, resolve } from 'node:path';
 import 'dotenv/config';
 import {
+  contentType,
   EXAMPLE_DIR,
   EXAMPLE_PORT,
-  contentType,
   exampleUrl,
   openCommand,
   resolveKey,

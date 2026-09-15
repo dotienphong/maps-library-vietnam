@@ -1,4 +1,5 @@
 import {
+  createNavigator,
   type DirectionsLang,
   type DirectionsResponse,
   type HeadingError,
@@ -14,7 +15,6 @@ import {
   type PositionSource,
   type RouteProvider,
   type TravelMode,
-  createNavigator,
 } from '@mapslibvn/core';
 
 /** Bộ đọc câu — mặc định Expo ở `@mapslibvn/react-native/expo`; app thay bằng TTS riêng được. */

@@ -30,27 +30,7 @@ if (workerUrl && !maplibregl.getWorkerUrl()) maplibregl.setWorkerUrl(workerUrl);
 
 defineAutocomplete();
 
-// Liệt kê tường minh (không dùng export * để tránh trùng tên createMap)
-export {
-  applyLanguage,
-  nameExpression,
-  attributionHtml,
-  attributionText,
-  createClient,
-  createNavigator,
-  formatDistance,
-  formatDistanceShort,
-  MapsLibVNError,
-  NAVIGATION_THRESHOLDS,
-  simulateFixes,
-  ROUTE_LAYER_IDS,
-  ROUTE_SOURCE_ID,
-  FOLLOW_ZOOM,
-  geolocationSource,
-  playbackSource,
-  toGeoFix,
-  createSpeech,
-} from './index';
+export { defineAutocomplete, MapsLibVNAutocomplete } from './autocomplete-element';
 export type {
   Announcement,
   AttributionResponse,
@@ -76,15 +56,35 @@ export type {
   Route,
   RouteLeg,
   RouteProvider,
-  RoutesLayer,
   RouteStep,
+  RoutesLayer,
   Speech,
   SpeechOptions,
   Theme,
   TravelMode,
   WebNavigationEvents,
 } from './index';
-export { MapsLibVNAutocomplete, defineAutocomplete } from './autocomplete-element';
+// Liệt kê tường minh (không dùng export * để tránh trùng tên createMap)
+export {
+  applyLanguage,
+  attributionHtml,
+  attributionText,
+  createClient,
+  createNavigator,
+  createSpeech,
+  FOLLOW_ZOOM,
+  formatDistance,
+  formatDistanceShort,
+  geolocationSource,
+  MapsLibVNError,
+  NAVIGATION_THRESHOLDS,
+  nameExpression,
+  playbackSource,
+  ROUTE_LAYER_IDS,
+  ROUTE_SOURCE_ID,
+  simulateFixes,
+  toGeoFix,
+} from './index';
 export type { CreateMapOptions, MapEvents, MapsLibVNMap, MarkerOptions, PoiFeature } from './map';
 
 /** Bản UMD: maplibre đã đóng gói sẵn, không cần truyền deps. */

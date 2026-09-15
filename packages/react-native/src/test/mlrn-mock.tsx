@@ -89,6 +89,9 @@ export function Marker(props: {
   testID?: string;
 }) {
   return (
+    // Mock thay cho Marker native trong test, không bao giờ render cho người dùng thật nên quy tắc
+    // a11y không áp dụng.
+    // biome-ignore lint/a11y/noStaticElementInteractions: xem ngay trên
     <div
       data-testid={props.testID ?? 'mlrn-marker'}
       data-lnglat={props.lngLat.join(',')}

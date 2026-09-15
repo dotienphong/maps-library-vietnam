@@ -43,7 +43,7 @@ vi.mock('./modules', () => ({
   Speech: {},
 }));
 
-import { KEEP_AWAKE_TAG, expoAudioSession, expoKeepAwake } from './device';
+import { expoAudioSession, expoKeepAwake, KEEP_AWAKE_TAG } from './device';
 import { SILENT_AUDIO_DATA_URI } from './silence-audio';
 
 beforeEach(() => {

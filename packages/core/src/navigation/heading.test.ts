@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import {
   type CompassSample,
-  MOVING_SPEED_MPS,
   createHeadingFilter,
+  MOVING_SPEED_MPS,
   signedDiffDeg,
   wrapDeg,
   yawRateDps,

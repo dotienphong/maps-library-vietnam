@@ -3,7 +3,7 @@ import { requireAuth } from '../auth';
 import { invalidateCachedJson, placeCacheUrl } from '../cache';
 import { endSql, getSql } from '../db';
 import { endUserHash, ipHash, requirePepper } from '../edits/hash';
-import { EDITS_PER_KEY_PER_DAY, EDITS_PER_USER_PER_DAY, decideStatus } from '../edits/rules';
+import { decideStatus, EDITS_PER_KEY_PER_DAY, EDITS_PER_USER_PER_DAY } from '../edits/rules';
 import { ulid } from '../edits/ulid';
 import { validateEditBody } from '../edits/validate';
 import type { AppEnv } from '../env';

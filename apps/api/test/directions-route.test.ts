@@ -1,4 +1,4 @@
-import { SELF, env } from 'cloudflare:test';
+import { env, SELF } from 'cloudflare:test';
 import { beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { vnDay } from '../src/quota';
 import { parseDirectionsParams } from '../src/routing/params';

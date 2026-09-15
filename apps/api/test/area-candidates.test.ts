@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { areaCandidates } from '../src/area-candidates';
 import type { CandidateQueryInput } from '../src/autocomplete-sql';
-import { type RecordedQuery, fakeSql } from './helpers/fake-sql';
+import { fakeSql, type RecordedQuery } from './helpers/fake-sql';
 
 const input: CandidateQueryInput = {
   queryNorm: 'quan 10',

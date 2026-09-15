@@ -8,12 +8,12 @@ import { openDuck } from '../src/duck.mjs';
 import {
   ADMIN_OLD_FIXTURE_PBF,
   ADMIN_OLD_PBF,
-  FIXTURES,
-  WORK,
   arg,
+  FIXTURES,
   fsqSource,
+  WORK,
 } from '../src/lib/env.mjs';
-import { Q1_BBOX, lonLatWhere } from '../src/lib/vn-bbox.mjs';
+import { lonLatWhere, Q1_BBOX } from '../src/lib/vn-bbox.mjs';
 
 const fsq = arg('--fsq', process.env.FSQ_RELEASE);
 const snapshot = arg('--snapshot', undefined);

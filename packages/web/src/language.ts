@@ -1,4 +1,4 @@
-import { type Lang, isNameLabelLayer, nameExpression } from '@mapslibvn/core';
+import { isNameLabelLayer, type Lang, nameExpression } from '@mapslibvn/core';
 
 export type { Lang };
 export { nameExpression };

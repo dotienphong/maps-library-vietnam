@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { normalizeVi } from '../src/normalize';
-import { TOPONYM_ALIAS, applyToponymAlias } from '../src/toponym';
+import { applyToponymAlias, TOPONYM_ALIAS } from '../src/toponym';
 import { viKey } from '../src/vi-key';
 
 const entries = Object.entries(TOPONYM_ALIAS);

@@ -10,6 +10,7 @@ import {
   type ViewStateChangeEvent,
 } from '@maplibre/maplibre-react-native';
 import {
+  createClient,
   FIRST_SYMBOL_LAYER_ID,
   type Lang,
   POI_LAYER_ID,
@@ -17,7 +18,6 @@ import {
   type PoiSource,
   type QuotaReceiptStore,
   type Theme,
-  createClient,
 } from '@mapslibvn/core';
 import { type ReactNode, useContext, useEffect, useMemo, useRef } from 'react';
 import {
@@ -31,17 +31,17 @@ import {
 } from 'react-native';
 import { Attribution } from './attribution';
 import { MapContext, type MapHandle } from './context';
-import { type FollowOptions, createMapBinding } from './navigation/map-binding';
+import { createMapBinding, type FollowOptions } from './navigation/map-binding';
 import { RouteLayers, type RouteStyle } from './navigation/route-layers';
 import { createRoutesStore } from './navigation/routes-store';
 import {
+  createNavigationSession,
   type NavigationSession,
   type NavigationSessionOptions,
-  createNavigationSession,
 } from './navigation/session';
 import { toPoiFeature } from './to-poi-feature';
 import { isTheme, styleUrlFor, useResolvedStyle } from './use-style';
-import { type UserLocationOptions, createUserLocationBinding } from './user-location/binding';
+import { createUserLocationBinding, type UserLocationOptions } from './user-location/binding';
 import { UserLocationLayers } from './user-location/layers';
 import { createUserLocationStore } from './user-location/store';
 

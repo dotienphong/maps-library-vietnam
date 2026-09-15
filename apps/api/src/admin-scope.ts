@@ -1,4 +1,4 @@
-import { type ParsedAddress, adminAliasKeys, normalizeVi } from '@mapslibvn/core';
+import { adminAliasKeys, normalizeVi, type ParsedAddress } from '@mapslibvn/core';
 import type { getSql } from './db';
 
 type Sql = ReturnType<typeof getSql>;

@@ -140,6 +140,9 @@ export function RouteLayers({ store, routeStyle, beforeId, onRouteClick }: Route
       {waypoints.map((w, i) =>
         i === 0 ? null : (
           <Marker
+            // Waypoint định danh THEO vị trí trong tuyến nên index là phần của định danh; toạ độ đã
+            // nằm trong key để phân biệt khi trùng chỉ số.
+            // biome-ignore lint/suspicious/noArrayIndexKey: xem ngay trên
             key={`${i}-${w.snapped[0]}-${w.snapped[1]}`}
             lng={w.snapped[0]}
             lat={w.snapped[1]}

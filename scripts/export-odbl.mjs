@@ -12,7 +12,7 @@ import { pipeline } from 'node:stream/promises';
 import { createGzip } from 'node:zlib';
 import postgres from 'postgres';
 import { databaseUrlFromEnv } from './lib/migrations.mjs';
-import { ODBL_TABLES, copySql, exportDirFor, readmeFor } from './lib/odbl.mjs';
+import { copySql, exportDirFor, ODBL_TABLES, readmeFor } from './lib/odbl.mjs';
 
 const argv = process.argv.slice(2);
 const outIdx = argv.indexOf('--out');

@@ -1,20 +1,20 @@
 import {
+  attributionHtml,
+  createClient,
   DEFAULT_POI_SOURCES,
+  isPoiStyleLayer,
   type MapsLibVNClient,
   POI_SOURCE_PROFILES,
   type PoiFeature,
   type PoiSource,
-  type Theme,
-  attributionHtml,
-  createClient,
-  isPoiStyleLayer,
   profileForSources,
+  type Theme,
 } from '@mapslibvn/core';
 import type * as maplibregl from 'maplibre-gl';
-import { type Lang, applyLanguage } from './language';
-import { type NavigationController, createNavigation } from './navigation';
-import { type ProtocolHost, ensurePmtilesProtocol } from './protocol';
-import { type RoutesLayer, createRoutesLayer } from './routes-layer';
+import { applyLanguage, type Lang } from './language';
+import { createNavigation, type NavigationController } from './navigation';
+import { ensurePmtilesProtocol, type ProtocolHost } from './protocol';
+import { createRoutesLayer, type RoutesLayer } from './routes-layer';
 
 export type { PoiFeature };
 
@@ -134,7 +134,7 @@ export function createMap(opts: CreateMapOptions, deps?: Deps): MapsLibVNMap {
   gl.on('click', (e: maplibregl.MapMouseEvent) => {
     if (listeners.poiClick.size === 0 || !gl.getLayer('poi')) return;
     const f = gl.queryRenderedFeatures(e.point, { layers: ['poi'] })[0];
-    if (!f || f.geometry.type !== 'Point') return;
+    if (f?.geometry.type !== 'Point') return;
     const p = f.properties as Record<string, unknown>;
     emit('poiClick', {
       id: String(p.id),

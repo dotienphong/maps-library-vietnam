@@ -74,16 +74,12 @@ function ewktOf(geometry) {
   const ring = (/** @type {number[][]} */ coordinates) => `(${coordinates.map(point).join(',')})`;
   if (geometry.type === 'LineString') {
     return `SRID=4326;LINESTRING(${
-      /** @type {number[][]} */ (geometry.coordinates)
-        .map(point)
-        .join(',')
+      /** @type {number[][]} */ (geometry.coordinates).map(point).join(',')
     })`;
   }
   if (geometry.type === 'Polygon') {
     return `SRID=4326;MULTIPOLYGON((${
-      /** @type {number[][][]} */ (geometry.coordinates)
-        .map(ring)
-        .join(',')
+      /** @type {number[][][]} */ (geometry.coordinates).map(ring).join(',')
     }))`;
   }
   if (geometry.type === 'MultiPolygon') {
@@ -101,8 +97,7 @@ async function* roadRows() {
     const properties = feature.properties ?? {};
     const id = parseOsmiumId(feature.id ?? properties.id);
     if (
-      !id ||
-      id.type !== 'w' ||
+      id?.type !== 'w' ||
       !properties.name ||
       !ROAD_TYPES.has(properties.highway) ||
       feature.geometry?.type !== 'LineString'
@@ -141,7 +136,7 @@ async function* adminRows() {
     const id = parseOsmiumId(feature.id ?? properties.id);
     const level = Number(properties.admin_level);
     const name = properties['name:vi'] ?? properties.name;
-    if (!id || id.type !== 'r' || !Number.isInteger(level) || !name || !feature.geometry) {
+    if (id?.type !== 'r' || !Number.isInteger(level) || !name || !feature.geometry) {
       continue;
     }
     const wkt = ewktOf(feature.geometry);

@@ -31,10 +31,10 @@ vi.mock('./modules', () => ({
 }));
 
 import {
-  NAVIGATION_TASK,
   __resetNavigationTaskForTests,
   defineNavigationTask,
   expoLocationSource,
+  NAVIGATION_TASK,
   toGeoFix,
 } from './location-source';
 
