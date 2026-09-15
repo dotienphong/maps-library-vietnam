@@ -58,7 +58,12 @@ export interface MapNavigationBinding {
 export type AppStateStatus = 'active' | 'background' | 'inactive' | 'unknown' | 'extension';
 /** Phần của `AppState` (react-native) mà binding cần; tiêm được cho test. */
 export interface AppStateLike {
-  currentState: AppStateStatus;
+  /**
+   * Rộng hơn `AppStateStatus` vì react-native 0.87 khai `AppState.currentState` là
+   * `string | null | undefined` — chưa có giá trị khi app vừa khởi động. Giá trị có nghĩa vẫn là
+   * `AppStateStatus`, và mọi chỗ đọc đều chỉ so với `'active'`, nên kiểu rộng không đổi logic.
+   */
+  currentState: string | null | undefined;
   addEventListener(type: 'change', cb: (s: AppStateStatus) => void): { remove(): void };
 }
 
