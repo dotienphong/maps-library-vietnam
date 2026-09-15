@@ -33,6 +33,27 @@ function targetPath(users, index, group, cache = 'cold', seed = 0) {
   return `/v1/autocomplete?q=${encodeURIComponent(q)}&near=${near}`;
 }
 
+/**
+ * Xác nhận một receipt của tenant thương mại. Lỗi ở đây KHÔNG làm hỏng phép đo — nó chỉ khiến
+ * lượt đó không được tính tiền — nên chỉ đếm, không ném.
+ * @param {typeof fetch} fetchImpl @param {string} base @param {string} key
+ * @param {string} receiptId @param {string} token @param {number} timeoutMs
+ */
+function acknowledge(fetchImpl, base, key, receiptId, token, timeoutMs) {
+  return fetchImpl(
+    `${base.replace(/\/+$/, '')}/v1/quota/receipts/${encodeURIComponent(receiptId)}/ack`,
+    {
+      method: 'POST',
+      headers: { 'X-Api-Key': key, 'content-type': 'application/json' },
+      body: JSON.stringify({ token }),
+      signal: AbortSignal.timeout(timeoutMs),
+    },
+  ).then((response) => {
+    if (!response.ok) throw new Error(`ack ${response.status}`);
+    return response.arrayBuffer();
+  });
+}
+
 /** @param {number[]} sorted @param {number} p */
 const percentile = (sorted, p) =>
   sorted[Math.max(0, Math.ceil((p / 100) * sorted.length) - 1)] ?? 0;
@@ -49,6 +70,8 @@ export async function runLevel(base, key, users, options = {}) {
   const group = options.group ?? 'places';
   const cache = options.cache ?? 'cold';
   const seed = options.seed ?? 0;
+  /** @type {Promise<unknown>[]} */
+  const acks = [];
   const started = performance.now();
   const samples = await Promise.all(
     Array.from({ length: users }, async (_, index) => {
@@ -59,17 +82,30 @@ export async function runLevel(base, key, users, options = {}) {
           { headers: { 'X-Api-Key': key }, signal: AbortSignal.timeout(timeoutMs) },
         );
         await response.arrayBuffer();
-        return {
+        const sample = {
           ms: performance.now() - t0,
           status: response.status,
           cache: response.headers.get('x-mlv-cache') ?? 'none',
         };
+        // Tenant thương mại: KHÔNG ACK là bộ đo tự phá phép đo của chính nó. Mỗi 2xx bỏ quên
+        // thành một `missed_ack`, và ba cái trong 24 giờ khoá tenant bằng `ack_required` —
+        // sau đúng ba request đầu, phần còn lại của ramp chỉ đo được lỗi 429.
+        // ACK gửi SAU khi đã chốt `ms`, đúng như SDK làm: trả dữ liệu trước, xác nhận sau.
+        const receiptId = response.headers.get('x-mapslibvn-receipt-id');
+        const token = response.headers.get('x-mapslibvn-receipt-token');
+        if (receiptId && token) {
+          acks.push(acknowledge(fetchImpl, base, key, receiptId, token, timeoutMs));
+        }
+        return sample;
       } catch {
         return { ms: performance.now() - t0, status: 0, cache: 'none' };
       }
     }),
   );
   const elapsedMs = Math.max(1, performance.now() - started);
+  // Chờ ACK xong rồi mới trả kết quả, nhưng sau khi đã chốt `elapsedMs`: ACK không được tính
+  // vào độ trễ lẫn RPS, vì khách không phải chờ nó để có dữ liệu.
+  const acked = (await Promise.allSettled(acks)).filter((r) => r.status === 'fulfilled').length;
   const times = samples.map(({ ms }) => ms).sort((a, b) => a - b);
   const rateLimited = samples.filter(({ status }) => status === 429).length;
   const timeouts = samples.filter(({ status }) => status === 0).length;
@@ -88,6 +124,7 @@ export async function runLevel(base, key, users, options = {}) {
     serverErrors,
     clientErrors,
     cacheHits: samples.filter(({ cache }) => cache === 'hit').length,
+    acked,
     rps: Math.round((samples.length / elapsedMs) * 1000 * 10) / 10,
     p50: Math.round(percentile(times, 50)),
     p95: Math.round(percentile(times, 95)),

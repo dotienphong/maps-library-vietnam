@@ -228,3 +228,74 @@ describe('nhiều tenant cùng lúc', () => {
     expect(Number.isFinite(result.worstP95)).toBe(true);
   });
 });
+
+describe('ACK receipt của tenant thương mại', () => {
+  /** @param {{ackDelayMs?: number, ackStatus?: number}} [opts] */
+  function commercialServer(opts = {}) {
+    /** @type {{path: string, body: any}[]} */
+    const acks = [];
+    let issued = 0;
+    const fetchImpl = /** @type {typeof fetch} */ (
+      /** @type {unknown} */ (
+        async (/** @type {any} */ url, /** @type {any} */ init) => {
+          const path = new URL(String(url)).pathname;
+          if (path.includes('/quota/receipts/')) {
+            if (opts.ackDelayMs) await new Promise((r) => setTimeout(r, opts.ackDelayMs));
+            acks.push({ path, body: JSON.parse(init.body) });
+            return new Response('{}', { status: opts.ackStatus ?? 200 });
+          }
+          issued += 1;
+          return new Response('{}', {
+            status: 200,
+            headers: {
+              'x-mapslibvn-receipt-id': `r${issued}`,
+              'x-mapslibvn-receipt-token': `t${issued}`,
+            },
+          });
+        }
+      )
+    );
+    return { fetchImpl, acks };
+  }
+
+  it('ACK từng receipt bằng đúng API key và token trong body', async () => {
+    const { fetchImpl, acks } = commercialServer();
+    const result = await runLevel('https://api.test', 'kA', 3, { fetchImpl });
+    expect(result.acked).toBe(3);
+    expect(acks).toHaveLength(3);
+    expect(acks.map((a) => a.path).sort()).toEqual([
+      '/v1/quota/receipts/r1/ack',
+      '/v1/quota/receipts/r2/ack',
+      '/v1/quota/receipts/r3/ack',
+    ]);
+    expect(acks.map((a) => a.body.token).sort()).toEqual(['t1', 't2', 't3']);
+  });
+
+  it('không tính thời gian ACK vào độ trễ đo được', async () => {
+    // ACK chậm 60 ms; dữ liệu trả ngay. p95 phải bám theo dữ liệu, không bám theo ACK.
+    const { fetchImpl } = commercialServer({ ackDelayMs: 60 });
+    const result = await runLevel('https://api.test', 'kA', 3, { fetchImpl });
+    expect(result.acked).toBe(3);
+    expect(result.p95).toBeLessThan(40);
+  });
+
+  it('ACK hỏng chỉ bị đếm thiếu, không biến thành lỗi của phép đo', async () => {
+    const { fetchImpl } = commercialServer({ ackStatus: 409 });
+    const result = await runLevel('https://api.test', 'kA', 2, { fetchImpl });
+    expect(result.acked).toBe(0);
+    expect(result.ok).toBe(2);
+    expect(result.errors).toBe(0);
+  });
+
+  it('tenant legacy không có receipt thì không gửi ACK nào', async () => {
+    /** @type {string[]} */
+    const paths = [];
+    await runLevel('https://api.test', 'kA', 3, {
+      fetchImpl: async (/** @type {any} */ url) => {
+        paths.push(new URL(String(url)).pathname);
+        return new Response('{}', { status: 200 });
+      },
+    });
+    expect(paths.some((p) => p.includes('/quota/receipts/'))).toBe(false);
+  });
+});
