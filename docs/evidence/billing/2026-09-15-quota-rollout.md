@@ -128,6 +128,18 @@ số dư đúng chính là kiểu hỏng mà spec 14.6 cấm.
    reset quota.
 6. Mở traffic thật.
 
+Hai lệnh điều khiển cổng admission:
+
+```sh
+pnpm deploy:api:open-commercial   # deploy kèm --var COMMERCIAL_ADMISSION:1 → MỞ
+pnpm deploy:api                   # deploy thường → wrangler.toml đưa về "0" → ĐÓNG
+```
+
+`--var` chỉ sống trong đúng bản deploy mang nó. `wrangler.toml` vẫn ghi `"0"`, nên mặc định của
+kho mã là đóng và mọi lần `pnpm deploy:api` thường đều đóng lại. Đó là tính chất mong muốn, nhưng
+nó sẽ cắn người đang đo tải nếu deploy giữa chừng mà quên. Sau mỗi lần dùng `--var`, kiểm
+`/healthz/routing` để chắc cờ chỉ ghi đè đúng một biến chứ không thay cả khối vars.
+
 **Rollback**: dừng tenant tại cổng admission (bước 2), **giữ nguyên** DO và ledger rồi sửa.
 Không `deleteAll`, không reset object, không fallback về bộ đếm KV — đổi mode trong DB không phải
 kill switch.
