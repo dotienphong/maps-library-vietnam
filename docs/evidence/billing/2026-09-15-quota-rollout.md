@@ -312,6 +312,69 @@ giới hạn**. `pending` trong `/backup/journal` là con số phải theo dõi,
 Free tier của Workers là hạn mức **toàn tài khoản**, không phải mỗi tenant: cạn allocation có thể
 làm outage hàng loạt tenant cùng lúc. Phải xác nhận tài khoản đang ở Workers Paid trước khi mở bán.
 
+## 7b. Diễn tập phục hồi — ĐẠT 15/09/2026
+
+Chạy thật trên production, tenant nguồn `…dc` → tenant đích `…dd` (object khác, theo spec mục 10
+cấm nạp lên object đang nhận traffic).
+
+```sh
+pnpm server:seed-tenant db/seed/tenant_quota_probe.sql   # tạo tenant đích
+node scripts/quota-audit.mjs export  --tenant …dc --no-upload
+node scripts/quota-audit.mjs verify  --file out/quota-audit/quota-20260915-2324.json.enc
+node scripts/quota-audit.mjs restore --tenant …dd --file … --yes
+```
+
+| Bước | Kết quả |
+|---|---|
+| Xuất | 4 bản ghi, 1 trang, checkpoint chốt ở sequence 51 |
+| Kiểm file `.enc` độc lập | `✓ Bản sao lưu toàn vẹn` |
+| Nạp sang object đích | `applied`, sổ đích vào bảo trì |
+| Đối chiếu | `tier`, `used=50`, `limit=2000`, `periodId`, `endsAt` **khớp từng trường** |
+| Khép chu trình | tắt bảo trì trên đích, `maintenance: false` |
+
+Script cố tình để sổ đích trong bảo trì sau khi nạp; người vận hành phải đối chiếu số rồi mới tắt.
+
+## 7c. Đối chiếu 15 tiêu chí nghiệm thu (spec mục 12)
+
+**P** = chứng minh trên production hôm nay. **T** = chỉ có test (Durable Object hoặc API). **—** = chưa kiểm.
+
+| # | Tiêu chí | | Bằng chứng |
+|---|---|---|---|
+| 1 | Trần ngày Places/directions, hai nhóm độc lập | **P** một phần | Places thứ 201 trả `quota_exceeded`/`daily` kèm `resetAt` thật. Directions chưa kiểm |
+| 2 | Hết tổng trial không mở lại; hết 30 ngày chặn | **T** | Cần 2.000 request hoặc chờ 30 ngày |
+| 3 | Nhiều khoá chung sổ; tenant độc lập; revoke không reset | **P** | Smoke 25/25; hai tenant thử có sổ riêng; thu hồi khoá không đổi `used` |
+| 4 | 50 reserve tranh lượt cuối, chỉ 1 allowed | **T** | `billing-reservations.test.ts` |
+| 5 | 2xx kể cả cache chỉ tính sau ACK; 4xx/5xx không tính | **P** | Smoke: `chưa ACK thì chưa trừ`, `lỗi 4xx không trừ` |
+| 6 | Worker crash sau reserve: lease giải phóng, idempotent | **T** | `billing-reservations.test.ts` |
+| 7 | Qua giao ngày/kỳ khi request còn chạy | **—** | |
+| 8 | Mua 1 khối = 1.000, replay không tăng, payload khác bị từ chối | **P** | `credits=1000`; replay trả receipt cũ; `business_identity_conflict` 409 |
+| 9 | Hết nhóm này không chặn nhóm kia; mua thêm mở đúng nhóm; hết quyền vẫn chặn | **P** một phần | Credits chỉ vào Places, directions vẫn 0; đình chỉ → 403. Chưa cạn nhóm trả phí |
+| 10 | Tháng 28–31 ngày, revision out-of-order, trial→paid, cấp kỳ lặp | **P** một phần | trial→paid chạy thật, kỳ mới không mang `used` cũ. Còn lại là test |
+| 11 | DO lỗi/timeout fail closed 503, không fallback KV | **P** | Bảo trì → 503 `quota_unavailable`; `reserve` quá 2 giây → 503 |
+| 12 | Không lộ usage qua khoá public; admin có quyền, audit, idempotency | **P** | 401 thiếu Access, 403 `billing_backup_forbidden`, replay lệnh trả receipt cũ |
+| 13 | Bảo toàn burst/internal, cache, envelope lỗi; docs đúng runtime | **P** | `smoke:rate-limit` chặn ở request 61; tenant legacy vẫn `public, max-age=3600`, không receipt header |
+| 14 | A/B hiệu năng và chi phí DO | **P** một phần | Độ trễ xong (mục 7). Chi phí tiền chưa — chưa mở Usage/Billing |
+| 15 | Nghiệm thu rollout/rollback và recovery trên tenant thử | **P** | Mục 7b; rollback bằng cổng admission đã dùng thật nhiều lần |
+
+**10/15 chứng minh trên production, 4 dựa vào test, 1 chưa kiểm.** Ba tiêu chí còn thiếu bằng chứng
+production đều tốn thời gian thật (2.000 request, 30 ngày, giao ngày) chứ không thiếu cơ chế.
+
+## 7d. Inventory tenant/mode — 15/09/2026
+
+`pnpm server:tenants`:
+
+| Tenant | plan | quota_mode | khoá hoạt động |
+|---|---|---|---:|
+| `…001` MapsLibVN nội bộ | internal | legacy | 3 |
+| `…002` Ứng dụng nhúng thử nghiệm | internal | legacy | 2 |
+| `…bb` Free thử nghiệm | free | **commercial** | 4 |
+| `…dc` Đo vị trí DO | free | **commercial** | 1 |
+| `…dd` Đích phục hồi | free | legacy | 0 |
+
+**5 tenant, 2 ở chế độ commercial — cả hai đều là tenant thử.** Không tenant nào vừa `internal`
+vừa `commercial` (cấu hình đó bị `validateCommercialAuth` chặn thẳng). Không khách thật nào đang ở
+chế độ commercial. Lệnh tự thoát khác 0 nếu phát hiện internal + commercial.
+
 ## 8. Việc còn lại trước khi bật commercial
 
 | Việc | Ai làm | Vì sao máy không tự làm được |

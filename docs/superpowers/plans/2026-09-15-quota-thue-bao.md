@@ -300,10 +300,11 @@ reconcile phải cho used=13, không cho reset về 10
 - [x] Bổ sung hướng dẫn cụ thể: provision DO → đóng admission gate → vô hiệu cache và kiểm absolute expiry →
   bật mode qua admission gate → thử nhiều key → mở traffic. TTL không là bằng chứng duy nhất.
   Rollback thương mại dừng tenant tại gate độc lập ledger, không fallback KV.
-- [ ] Chạy test `pnpm exec vitest run scripts/quota-audit.test.mjs` và drill trên tenant thử;
+- [x] Chạy test `pnpm exec vitest run scripts/quota-audit.test.mjs` và drill trên tenant thử;
   lưu evidence timestamp/config/revision/checksum. Không đánh dấu nghiệm thu nếu chỉ có script.
-  **MỘT NỬA 15/09:** test 13 ca xanh và 7 ca mức DO trong `billing-backup.test.ts` xanh, nhưng
-  DRILL trên tenant thử CHƯA chạy (cần deploy + service token Access) → ô này giữ trống.
+  **XONG 15/09:** test xanh, và drill chạy THẬT trên production — xuất sổ tenant `…dc`, kiểm file
+  `.enc` độc lập, nạp sang object khác `…dd`, đối chiếu khớp từng trường (`tier`, `used=50`,
+  `limit`, `periodId`, `endsAt`), rồi tắt bảo trì khép chu trình. Evidence mục 7b.
 - [x] Checkpoint `feat(billing): audit and recover quota state` — commit a95b46e.
 
 ## Task 7: Docs, đo tải và release gate
@@ -331,14 +332,19 @@ pnpm lint
 pnpm test
 git diff --check
 ```
-- [ ] **MỘT NỬA 15/09.** `pnpm smoke:commercial` ĐẠT 25/25 trên production: receipt, chưa ACK chưa
+- [ ] **GẦN XONG 15/09.** `pnpm smoke:commercial` ĐẠT 25/25 trên production; thêm credits, replay,
+  business identity và trial→paid chạy thật; đối chiếu 15 tiêu chí gốc cho **10/15 chứng minh trên
+  production, 4 dựa test, 1 chưa kiểm** (evidence mục 7c). Ba tiêu chí còn thiếu bằng chứng
+  production đều tốn thời gian thật (2.000 request, 30 ngày, giao ngày) chứ không thiếu cơ chế.
+  `pnpm smoke:commercial` ĐẠT 25/25 trên production: receipt, chưa ACK chưa
   trừ, ACK idempotent, 4xx không trừ, HEAD 405, hai khoá chung sổ, bảo trì 503, đình chỉ 403. Thêm
   trần ngày trial và thu hồi khoá chứng minh ngoài kịch bản. CHƯA: trial hết tổng, trial hết hạn
   30 ngày, paid hết nhóm, credits, DO outage, restart — và chưa đối chiếu có hệ thống 15 tiêu chí
   gốc với evidence. Smoke staging commercial tenant: trial hết ngày/tổng/thời hạn, paid hết nhóm, credits,
   DO outage, restart, nhiều key. Đối chiếu 15 tiêu chí gốc + spec 14.9 với evidence cụ thể.
-- [ ] **CHỜ PHONG.** Chưa có: ngưỡng chưa được duyệt, backup+rollback chưa diễn tập thật, inventory
-  tenant/mode chưa lập. Trước bật production: đạt ngưỡng latency/cost do PHONG duyệt từ báo cáo đo, CI đúng commit,
+- [ ] **CHỜ PHONG.** ĐÃ CÓ: backup+rollback diễn tập thật (mục 7b), inventory tenant/mode đã lập
+  bằng `pnpm server:tenants` (5 tenant, 2 commercial, cả hai là tenant thử, không có internal +
+  commercial). CÒN THIẾU: ngưỡng latency/cost do PHONG duyệt, và chi phí tiền theo Usage/Billing. Trước bật production: đạt ngưỡng latency/cost do PHONG duyệt từ báo cáo đo, CI đúng commit,
   inventory tenant/mode, backup+rollback verified; chưa có evidence thì giữ commercial không mở.
 - [ ] Checkpoint `docs(billing): record commercial quota acceptance` chỉ khi đủ bằng chứng;
   cập nhật kết quả thật và việc còn lại vào DEVLOG, không tick hộ bước chưa chạy.

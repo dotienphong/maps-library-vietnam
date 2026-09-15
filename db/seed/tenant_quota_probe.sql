@@ -12,3 +12,9 @@
 INSERT INTO tenant (id, name, plan)
 VALUES ('00000000-0000-4000-8000-0000000000dc', 'Đo vị trí DO', 'free')
 ON CONFLICT (id) DO NOTHING;
+
+-- Đích của diễn tập phục hồi: sổ của tenant trên được nạp sang đây rồi đối chiếu số.
+-- Phải là object KHÁC, vì spec mục 10 cấm nạp bản sao lưu lên object đang nhận traffic.
+INSERT INTO tenant (id, name, plan)
+VALUES ('00000000-0000-4000-8000-0000000000dd', 'Đích phục hồi', 'free')
+ON CONFLICT (id) DO NOTHING;

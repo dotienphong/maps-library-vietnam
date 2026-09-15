@@ -26,16 +26,31 @@ export function missingServerSeedEnv(env) {
  * @param {string[]} files đường dẫn seed tương đối gốc repo, ví dụ `db/seed/tenant_x.sql`
  */
 export function serverSeedRun(env, files) {
+  return serverNodeRun(env, 'scripts/db-seed-tenant.mjs', files, { seedCheck: true });
+}
+
+/**
+ * Chạy một script Node của repo bên trong container `pipeline`, nối tới DB máy chủ bằng quyền
+ * siêu người dùng. Mount cả `db/` lẫn `scripts/` của working tree đè lên image: image có thể cũ
+ * hơn repo, và script vừa viết xong thì chắc chắn chưa có trong image.
+ * @param {Record<string, string | undefined>} env
+ * @param {string} script đường dẫn script trong repo, ví dụ `scripts/db-seed-tenant.mjs`
+ * @param {string[]} [argv] tham số chuyển tiếp
+ * @param {{seedCheck?: boolean}} [options]
+ */
+export function serverNodeRun(env, script, argv = [], options = {}) {
   const missing = missingServerSeedEnv(env);
   if (missing.length > 0) {
     throw new Error(`Thiếu biến bắt buộc trong infra/server/.env: ${missing.join(', ')}`);
   }
-  if (files.length === 0) throw new Error('Phải chỉ rõ ít nhất một file seed');
-  // Chỉ nhận seed nằm trong db/: thư mục này là thứ được mount vào container, đường dẫn khác sẽ
-  // không tồn tại bên trong và lỗi sẽ khó hiểu.
-  const outside = files.filter((file) => !toPosixPath(file).startsWith('db/'));
-  if (outside.length > 0) {
-    throw new Error(`Seed phải nằm trong db/: ${outside.join(', ')}`);
+  if (options.seedCheck) {
+    if (argv.length === 0) throw new Error('Phải chỉ rõ ít nhất một file seed');
+    // Chỉ nhận seed nằm trong db/: thư mục này là thứ được mount vào container, đường dẫn khác sẽ
+    // không tồn tại bên trong và lỗi sẽ khó hiểu.
+    const outside = argv.filter((file) => !toPosixPath(file).startsWith('db/'));
+    if (outside.length > 0) {
+      throw new Error(`Seed phải nằm trong db/: ${outside.join(', ')}`);
+    }
   }
   const dir = resolve('infra/server');
   return {
@@ -51,14 +66,16 @@ export function serverSeedRun(env, files) {
       '--no-deps',
       '-v',
       `${toPosixPath(resolve('db'))}:/app/db:ro`,
+      '-v',
+      `${toPosixPath(resolve('scripts'))}:/app/scripts:ro`,
       '-e',
       'POSTGRES_USER',
       '-e',
       'POSTGRES_PASSWORD',
       'pipeline',
       'node',
-      'scripts/db-seed-tenant.mjs',
-      ...files.map(toPosixPath),
+      script,
+      ...argv.map(toPosixPath),
     ],
     env: {
       ...process.env,

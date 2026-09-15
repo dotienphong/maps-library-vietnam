@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { missingServerSeedEnv, serverSeedRun } from './server-seed.mjs';
+import { missingServerSeedEnv, serverNodeRun, serverSeedRun } from './server-seed.mjs';
 
 const env = { POSTGRES_SUPER_PASSWORD: 'sieu-bi-mat' };
 
@@ -29,5 +29,18 @@ describe('serverSeedRun', () => {
   it('báo rõ biến còn thiếu thay vì chạy rồi hỏng giữa chừng', () => {
     expect(missingServerSeedEnv({})).toEqual(['POSTGRES_SUPER_PASSWORD']);
     expect(() => serverSeedRun({}, ['db/seed/x.sql'])).toThrow('POSTGRES_SUPER_PASSWORD');
+  });
+});
+
+describe('serverNodeRun', () => {
+  it('mount cả scripts/ lẫn db/, vì script vừa viết chưa có trong image', () => {
+    const { args } = serverNodeRun(env, 'scripts/db-tenant-inventory.mjs');
+    expect(args.some((a) => a.endsWith('/scripts:/app/scripts:ro'))).toBe(true);
+    expect(args.some((a) => a.endsWith('/db:/app/db:ro'))).toBe(true);
+    expect(args.at(-1)).toBe('scripts/db-tenant-inventory.mjs');
+  });
+
+  it('không bắt buộc tham số khi không phải lệnh seed', () => {
+    expect(() => serverNodeRun(env, 'scripts/db-tenant-inventory.mjs')).not.toThrow();
   });
 });
