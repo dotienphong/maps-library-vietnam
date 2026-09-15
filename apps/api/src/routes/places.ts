@@ -2,7 +2,7 @@ import { attributionHtml, attributionText } from '@mapslibvn/core';
 import { Hono } from 'hono';
 import { requireAuth } from '../auth';
 import { cachedJson, placeCacheUrl } from '../cache';
-import { getSql } from '../db';
+import { endSql, getSql } from '../db';
 import type { AppEnv } from '../env';
 import { ApiError } from '../errors';
 import { type PlaceRow, placeColumns, toPlace } from '../place';
@@ -43,7 +43,7 @@ places.get(
           console.error('places/:id', error);
           throw new ApiError(503, 'upstream_unavailable', 'Không truy vấn được DB');
         } finally {
-          c.executionCtx.waitUntil(sql.end({ timeout: 1 }));
+          endSql(c.executionCtx, sql);
         }
       });
     } catch (error) {
@@ -71,7 +71,7 @@ places.get(
         console.error('places/:id pending', err);
         throw new ApiError(503, 'upstream_unavailable', 'Không truy vấn được DB');
       } finally {
-        c.executionCtx.waitUntil(sql.end({ timeout: 1 }));
+        endSql(c.executionCtx, sql);
       }
     }
   },

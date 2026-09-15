@@ -10,7 +10,7 @@ import { Hono } from 'hono';
 import { requireAuth } from '../auth';
 import { collectCandidates } from '../autocomplete-sql';
 import { cachedJson } from '../cache';
-import { getSql } from '../db';
+import { endSql, getSql } from '../db';
 import type { AppEnv } from '../env';
 import { ApiError } from '../errors';
 import { clampInt, parseLatLngPair, parseSources, parseTypes } from '../params';
@@ -156,7 +156,7 @@ autocomplete.get(
         console.error('autocomplete', error);
         throw new ApiError(503, 'upstream_unavailable', 'Không truy vấn được DB');
       } finally {
-        c.executionCtx.waitUntil(sql.end({ timeout: 1 }));
+        endSql(c.executionCtx, sql);
       }
     });
     // cachedJson bỏ qua callback khi trúng cache, nên stageHit chưa được đặt. Phải phân biệt ba

@@ -1,7 +1,7 @@
 import { Hono } from 'hono';
 import { requireAccess } from '../access';
 import { invalidateCachedJson, placeCacheUrl } from '../cache';
-import { getSql } from '../db';
+import { endSql, getSql } from '../db';
 import type { AppEnv } from '../env';
 import { ApiError } from '../errors';
 
@@ -50,7 +50,7 @@ admin.get('/v1/admin/edits', async (c) => {
     console.error('admin/edits', error);
     throw new ApiError(503, 'upstream_unavailable', 'Không truy vấn được DB');
   } finally {
-    c.executionCtx.waitUntil(sql.end({ timeout: 1 }));
+    endSql(c.executionCtx, sql);
   }
 });
 
@@ -77,7 +77,7 @@ admin.post('/v1/admin/edits/:id/approve', async (c) => {
     console.error('admin/approve', error);
     throw new ApiError(503, 'upstream_unavailable', 'Không duyệt được edit');
   } finally {
-    c.executionCtx.waitUntil(sql.end({ timeout: 1 }));
+    endSql(c.executionCtx, sql);
   }
 });
 
@@ -95,6 +95,6 @@ admin.post('/v1/admin/edits/:id/reject', async (c) => {
     console.error('admin/reject', error);
     throw new ApiError(503, 'upstream_unavailable', 'Không từ chối được edit');
   } finally {
-    c.executionCtx.waitUntil(sql.end({ timeout: 1 }));
+    endSql(c.executionCtx, sql);
   }
 });

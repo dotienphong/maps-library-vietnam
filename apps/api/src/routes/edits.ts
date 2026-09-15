@@ -1,7 +1,7 @@
 import { Hono } from 'hono';
 import { requireAuth } from '../auth';
 import { invalidateCachedJson, placeCacheUrl } from '../cache';
-import { getSql } from '../db';
+import { endSql, getSql } from '../db';
 import { endUserHash, ipHash, requirePepper } from '../edits/hash';
 import { EDITS_PER_KEY_PER_DAY, EDITS_PER_USER_PER_DAY, decideStatus } from '../edits/rules';
 import { ulid } from '../edits/ulid';
@@ -119,6 +119,6 @@ edits.post('/v1/edits', requireAuth('edits:write'), async (c) => {
     console.error('edits', error);
     throw new ApiError(503, 'upstream_unavailable', 'Không ghi được edit');
   } finally {
-    c.executionCtx.waitUntil(sql.end({ timeout: 1 }));
+    endSql(c.executionCtx, sql);
   }
 });

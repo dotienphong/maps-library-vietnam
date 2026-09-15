@@ -1,7 +1,7 @@
 import { type Context, Hono } from 'hono';
 import { quotaObject } from '../billing/object';
 import type { EntitlementCommand, JournalEntry, SnapshotPage } from '../billing/types';
-import { getSql } from '../db';
+import { endSql, getSql } from '../db';
 import type { AppEnv, Env } from '../env';
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -91,7 +91,7 @@ async function tenantExists(
     ) AS exists`;
     return rows[0]?.exists === true;
   } finally {
-    executionCtx.waitUntil(sql.end({ timeout: 1 }));
+    endSql(executionCtx, sql);
   }
 }
 
@@ -210,7 +210,7 @@ export function billingAdmin(dependencies: BillingAdminDependencies = {}) {
       console.error('billing mode', error);
       return c.json({ error: { code: 'upstream_unavailable' } }, 503);
     } finally {
-      c.executionCtx.waitUntil(sql.end({ timeout: 1 }));
+      endSql(c.executionCtx, sql);
     }
   });
 
@@ -264,7 +264,7 @@ export function billingAdmin(dependencies: BillingAdminDependencies = {}) {
       console.error('billing key revocation', error);
       return c.json({ error: { code: 'upstream_unavailable' } }, 503);
     } finally {
-      c.executionCtx.waitUntil(sql.end({ timeout: 1 }));
+      endSql(c.executionCtx, sql);
     }
   });
 

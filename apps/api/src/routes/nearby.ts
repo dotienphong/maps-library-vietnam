@@ -1,6 +1,6 @@
 import { Hono } from 'hono';
 import { requireAuth } from '../auth';
-import { getSql } from '../db';
+import { endSql, getSql } from '../db';
 import type { AppEnv } from '../env';
 import { ApiError } from '../errors';
 import { clampInt, parseSources } from '../params';
@@ -63,7 +63,7 @@ nearby.get(
       console.error('nearby', error);
       throw new ApiError(503, 'upstream_unavailable', 'Không truy vấn được DB');
     } finally {
-      c.executionCtx.waitUntil(sql.end({ timeout: 1 }));
+      endSql(c.executionCtx, sql);
     }
   },
 );

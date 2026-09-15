@@ -42,11 +42,15 @@ export default defineConfig({
   test: {
     include: ['test/**/*.test.ts'],
     /**
-     * Vitest 4 tính unhandled rejection là lỗi làm đỏ cả lần chạy, vitest 2 thì bỏ qua. Binding
-     * Hyperdrive ở trên CHỦ Ý trỏ vào cổng đóng, nên vòng đọc socket nền của driver `postgres`
-     * (cf/polyfills.js) bị huỷ khi isolate dọn và ném đúng một thông điệp: `Stream was cancelled.`
-     * Nó không thuộc test nào và không có cách đóng sạch — chặn riêng nó, mọi lỗi khác vẫn đỏ.
-     * KHÔNG dùng `dangerouslyIgnoreUnhandledErrors` vì cờ đó bịt hết, kể cả lỗi thật.
+     * Vitest 4 tính unhandled rejection là đỏ (vitest 2 im lặng) — tín hiệu đáng giữ, nên ở đây
+     * chỉ lọc ĐÚNG MỘT thông điệp, không dùng `dangerouslyIgnoreUnhandledErrors`.
+     *
+     * `Stream was cancelled.` phát bên trong postgres.js và KHÔNG chặn được từ mã của ta: `read()`
+     * trong cf/polyfills.js bắt lỗi socket rồi `tcp.emit('error', err)`, lúc teardown không còn
+     * listener nào cho `'error'` nên chỗ emit throw ngược vào frame async của `read()`, mà hàm đó
+     * không được ai await. Đã thử sửa ở chỗ gọi bằng `endSql()` + `.catch()` trên `end()`: không
+     * giảm được lỗi nào (vẫn 72). Binding Hyperdrive ở trên lại CHỦ Ý trỏ vào cổng đóng để nhánh
+     * lỗi /healthz/db xác định, nên tình huống này luôn xảy ra trong bộ test.
      */
     onUnhandledError: (error) => {
       const fromPostgresPolyfill =

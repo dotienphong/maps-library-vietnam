@@ -3,7 +3,7 @@ import { Hono } from 'hono';
 import { cors } from 'hono/cors';
 import { requireBillingAccess } from './access';
 import { analyticsMiddleware } from './analytics';
-import { getSql } from './db';
+import { endSql, getSql } from './db';
 import type { AppEnv } from './env';
 import { ApiError, errorResponse } from './errors';
 import { admin } from './routes/admin';
@@ -79,7 +79,7 @@ app.get('/healthz/db', async (c) => {
     console.error('healthz/db', err);
     throw new ApiError(503, 'upstream_unavailable', 'Không nối được DB');
   } finally {
-    c.executionCtx.waitUntil(sql.end({ timeout: 1 }));
+    endSql(c.executionCtx, sql);
   }
 });
 app.get('/v1/attribution', (c) =>

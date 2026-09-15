@@ -1,6 +1,6 @@
 import type { Context, Next } from 'hono';
 import { quotaObject } from './billing/object';
-import { getSql } from './db';
+import { endSql, getSql } from './db';
 import { sha256Hex } from './edits/hash';
 import type { AppEnv } from './env';
 import { ApiError } from './errors';
@@ -179,7 +179,7 @@ async function loadAuth(
     );
     return await validateCommercialAuth(c, info, admissionGate, deferRevocation);
   } finally {
-    c.executionCtx.waitUntil(sql.end({ timeout: 1 }));
+    endSql(c.executionCtx, sql);
   }
 }
 
