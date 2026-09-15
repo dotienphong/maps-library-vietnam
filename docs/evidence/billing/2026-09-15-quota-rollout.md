@@ -150,14 +150,17 @@ số dư đúng chính là kiểu hỏng mà spec 14.6 cấm.
 Hai lệnh điều khiển cổng admission:
 
 ```sh
-pnpm deploy:api:open-commercial   # deploy kèm --var COMMERCIAL_ADMISSION:1 → MỞ
-pnpm deploy:api                   # deploy thường → wrangler.toml đưa về "0" → ĐÓNG
+pnpm deploy:api   # deploy thường → wrangler.toml production ghi "1" → MỞ
+
+# ĐÓNG khẩn cấp (chỉ sống trong đúng bản deploy mang nó):
+pnpm --filter @mapslibvn/api exec wrangler deploy --env production --var COMMERCIAL_ADMISSION:0
 ```
 
-`--var` chỉ sống trong đúng bản deploy mang nó. `wrangler.toml` vẫn ghi `"0"`, nên mặc định của
-kho mã là đóng và mọi lần `pnpm deploy:api` thường đều đóng lại. Đó là tính chất mong muốn, nhưng
-nó sẽ cắn người đang đo tải nếu deploy giữa chừng mà quên. Sau mỗi lần dùng `--var`, kiểm
-`/healthz/routing` để chắc cờ chỉ ghi đè đúng một biến chứ không thay cả khối vars.
+`--var` chỉ sống trong đúng bản deploy mang nó. Từ 15/09/2026 `wrangler.toml` ghi `"1"` ở
+`[env.production]`, nên mặc định của kho mã là **mở** và mọi lần `pnpm deploy:api` thường đều mở
+lại. Đó là điều phải nhớ khi đang đóng khẩn cấp: một lần deploy giữa chừng sẽ xoá cờ `--var` và
+mở cổng trở lại. Sau mỗi lần dùng `--var`, kiểm `/healthz/routing` để chắc cờ chỉ ghi đè đúng một
+biến chứ không thay cả khối vars.
 
 **Rollback**: dừng tenant tại cổng admission (bước 2), **giữ nguyên** DO và ledger rồi sửa.
 Không `deleteAll`, không reset object, không fallback về bộ đếm KV — đổi mode trong DB không phải
