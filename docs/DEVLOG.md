@@ -3195,5 +3195,29 @@ chi phí là đường mạng chứ không phải chờ ghi bền vững → obj
 đầu-cuối 333 ms trong khi tổng hai vòng gọi chỉ 125 ms — dư ~208 ms chưa giải thích được (ở object
 cũ thì hai con số khớp nhau). Nên chi phí thật nằm trong khoảng 125–333 ms chứ chưa phải một con số chốt.
 
-**CHỜ PHONG:** chốt ngưỡng dựa trên số thật; giải thích nốt ~208 ms dư; đối chiếu Cloudflare
-Usage/Billing; diễn tập phục hồi. Chưa tenant thật nào được chuyển sang commercial.
+**Đóng plan cuối ngày 15/09 — Task 0–7 xong, quota thương mại ĐÃ MỞ trên production.**
+
+- **PHONG chốt ngưỡng: chi phí quota p50 ≤ 150 ms.** Bỏ ngưỡng ≤100 ms p95 của Task 0 vì nó rút từ
+  staging nơi một vòng gọi tốn ~12 ms. Đối chiếu: object đặt đúng chỗ 94–125 ms ĐẠT, object đặt sai
+  ~560 ms TRƯỢT — nên cổng này theo TỪNG tenant, và quy trình cấp phát có thêm bước bắt buộc đo
+  `Server-Timing` trước khi mở traffic. Phát hiện muộn là không sửa được.
+- **Chi phí tiền $0.00** theo Cloudflare Billable Usage. Ghi kèm cảnh báo không dùng làm dự toán:
+  traffic hôm nay nặng về đọc nên 2,6 writes/request thấp hơn thực tế.
+- **Diễn tập phục hồi ĐẠT**: xuất sổ tenant `…dc`, kiểm file `.enc` độc lập, nạp sang object khác
+  `…dd`, khớp từng trường, tắt bảo trì khép chu trình.
+- **Đối chiếu 15 tiêu chí spec mục 12: 10 chứng minh trên production, 5 dựa test, 0 bỏ trống.**
+  Tiêu chí 7 (request bắc qua giao ngày) lúc kiểm lại hoá ra không có test nào dù cơ chế đúng —
+  đã bổ sung trước khi ký nghiệm thu.
+- **Bước 7 đã mở**: `COMMERCIAL_ADMISSION = "1"` trong `[env.production]`, deploy version
+  `1ce9a76f`. Nghiệm thu sau deploy: tenant thương mại 200 kèm receipt và `private, no-store`;
+  tenant legacy vẫn `public, max-age=3600` không receipt; `/healthz/routing` xanh.
+
+**Chưa bán cho ai:** hai tenant commercial đều là tenant thử. Mở cổng nghĩa là hệ thống sẵn sàng,
+không phải đã có khách trả tiền.
+
+**Còn nợ, đã ghi trong evidence:** ~208 ms chênh giữa đo đầu-cuối và tổng `Server-Timing` trên
+object đặt đúng chỗ chưa giải thích được; hai tiêu chí (hết tổng 2.000 lượt, hết hạn 30 ngày) chưa
+có bằng chứng production vì tốn thời gian thật.
+
+**Bước kế tiếp theo chỉ định của PHONG: thiết kế Trang Admin** (plan quota, mục "Chuyển tiếp bắt
+buộc"). Quy trình vẫn thiết kế → review → plan → code.

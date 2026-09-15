@@ -3,14 +3,14 @@
 Tài liệu vận hành cho plan `2026-09-15-quota-thue-bao.md` Task 6–7. Gồm quy trình bật/tắt
 commercial, sao lưu sổ quota và diễn tập phục hồi.
 
-**Trạng thái 15/09/2026: pilot đang chạy trên production.** Tenant thử
-`00000000-0000-4000-8000-0000000000bb` đã ở `quota_mode=commercial`, gói Starter, và cổng
-`COMMERCIAL_ADMISSION` đang được MỞ bằng `--var` cho đợt đo. `wrangler.toml` vẫn ghi `"0"`, nên mọi
-lần `pnpm deploy:api` thường sẽ đóng lại — mặc định của kho mã vẫn là đóng.
+**Trạng thái 15/09/2026: quota thương mại ĐÃ MỞ trên production.** `COMMERCIAL_ADMISSION = "1"`
+nằm trong `[env.production]` của `wrangler.toml`, nên mặc định của kho mã giờ là MỞ. Dev vẫn `"0"`.
+Đóng khẩn cấp không cần sửa file:
+`wrangler deploy --env production --var COMMERCIAL_ADMISSION:0`.
 
-**Chưa mở bán.** Nghiệm thu chức năng đạt 25/25, nhưng chi phí độ trễ đang vượt ngưỡng đề xuất
-khoảng 5–6 lần (mục 7). Không tenant thật nào được chuyển sang commercial cho tới khi PHONG chốt
-ngưỡng dựa trên số thật.
+**Nhưng chưa bán cho ai.** Hai tenant đang ở `quota_mode=commercial` đều là tenant thử (`…bb`,
+`…dc`); không khách thật nào được chuyển. Mở cổng chỉ nghĩa là hệ thống sẵn sàng phục vụ khi có
+tenant thương mại, không phải đã có khách trả tiền.
 
 ## 1. Sổ quota được sao lưu như thế nào
 

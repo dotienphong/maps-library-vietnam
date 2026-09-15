@@ -7,7 +7,9 @@
 Reserve trước handler, commit cho 2xx/release lỗi; Postgres tiếp tục sở hữu tenant/key.
 **Tech Stack:** TypeScript, Hono, Cloudflare Workers/SQLite Durable Objects, Vitest Workers pool, PostgreSQL.
 **Spec:** `docs/superpowers/specs/2026-09-15-quota-thue-bao-design.md` — PHONG đã duyệt 15/09/2026.
-**Trạng thái:** Task 0–6 PASS local ngày 15/09/2026, Task 7 xong phần máy làm được. Task 0–5:
+**Trạng thái: PLAN HOÀN TẤT 15/09/2026.** Task 0–7 xong; quota thương mại đã mở trên production
+(`COMMERCIAL_ADMISSION = "1"`), chưa khách thật nào được chuyển sang commercial. Bước kế tiếp theo
+chỉ định của PHONG là thiết kế Trang Admin. Task 0–5:
 catalog/policy, SQLite Durable Object,
 entitlement commands, reserve/prepare/ACK/release/recovery lease, quản trị thuê bao qua Access +
 migration `quota_mode`, và middleware thương mại nối bảy API + hợp đồng receipt/ACK của bốn SDK.
@@ -335,7 +337,7 @@ pnpm lint
 pnpm test
 git diff --check
 ```
-- [ ] **GẦN XONG 15/09.** `pnpm smoke:commercial` ĐẠT 25/25 trên production; thêm credits, replay,
+- [x] **XONG 15/09.** `pnpm smoke:commercial` ĐẠT 25/25 trên production; thêm credits, replay,
   business identity và trial→paid chạy thật; đối chiếu 15 tiêu chí gốc cho **10/15 chứng minh trên
   production, 4 dựa test, 1 chưa kiểm** (evidence mục 7c). Ba tiêu chí còn thiếu bằng chứng
   production đều tốn thời gian thật (2.000 request, 30 ngày, giao ngày) chứ không thiếu cơ chế.
@@ -352,7 +354,11 @@ git diff --check
   ĐẠT, tenant đặt sai chỗ ~560 ms TRƯỢT — nên cổng này là theo TỪNG tenant, và quy trình cấp phát
   có thêm bước đo `Server-Timing` trước khi mở traffic (runbook mục 5 bước 6). Trước bật production: đạt ngưỡng latency/cost do PHONG duyệt từ báo cáo đo, CI đúng commit,
   inventory tenant/mode, backup+rollback verified; chưa có evidence thì giữ commercial không mở.
-- [ ] Checkpoint `docs(billing): record commercial quota acceptance` chỉ khi đủ bằng chứng;
+- [x] Checkpoint `docs(billing): record commercial quota acceptance` — commit de50e01, và Bước 7
+  đã mở: `COMMERCIAL_ADMISSION = "1"` trong `[env.production]`, deploy version
+  `1ce9a76f-7bb3-4bc9-a414-146aee8d5268`, nghiệm thu sau deploy đạt (tenant thương mại 200 kèm
+  receipt, tenant legacy không đổi hành vi, `/healthz/routing` xanh).
+  Checkpoint `docs(billing): record commercial quota acceptance` chỉ khi đủ bằng chứng;
   cập nhật kết quả thật và việc còn lại vào DEVLOG, không tick hộ bước chưa chạy.
   **15/09: CHƯA đủ bằng chứng** (thiếu số đo A/B và drill staging) nên commit tài liệu dùng
   thông điệp mô tả đúng việc đã làm, không dùng chữ "acceptance". DEVLOG mục 17 đã ghi kết quả
