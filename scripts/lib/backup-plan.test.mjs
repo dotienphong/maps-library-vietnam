@@ -3,6 +3,7 @@ import {
   backupBucket,
   backupName,
   dumpCommand,
+  encryptCommand,
   encryptedName,
   localTempName,
   plainName,
@@ -37,6 +38,17 @@ describe('retentionPlan', () => {
       { keepDaily: 2, keepWeekly: 1 },
     );
     expect(plan.deleteDaily).toEqual(['a']);
+  });
+});
+
+describe('encryptCommand (dùng lại cho bản sao lưu sổ quota)', () => {
+  it('dùng ĐÚNG bộ tham số của dump hằng ngày, không tự chọn tham số yếu hơn', () => {
+    const cmd = encryptCommand('/tmp/quota.json', '/tmp/quota.json.enc');
+    expect(cmd).toContain(
+      'openssl enc -aes-256-cbc -pbkdf2 -iter 600000 -salt -pass env:BACKUP_PASSPHRASE',
+    );
+    expect(cmd).toContain('-in "/tmp/quota.json"');
+    expect(cmd).toContain('-out "/tmp/quota.json.enc"');
   });
 });
 

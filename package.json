@@ -35,6 +35,7 @@
     "export:odbl": "node scripts/export-odbl.mjs",
     "report:weekly": "node scripts/weekly-report.mjs",
     "load:api": "node scripts/load-api.mjs",
+    "audit:quota": "node scripts/quota-audit.mjs",
     "perf:size": "node scripts/perf-size.mjs",
     "debounce:report": "node scripts/debounce-report.mjs",
     "perf:rn": "node scripts/perf-rn.mjs",

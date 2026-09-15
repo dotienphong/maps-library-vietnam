@@ -113,7 +113,7 @@ type DenialReason = Extract<ReserveResult, { allowed: false }>['reason'];
 const QUOTA_DENIAL: Record<
   DenialReason,
   {
-    status: 403 | 429;
+    status: 403 | 429 | 503;
     code: string;
     message: string;
     actions: string[];
@@ -174,6 +174,15 @@ const QUOTA_DENIAL: Record<
     message: 'Quá nhiều request đồng thời',
     actions: ['wait'],
     retryAfter: 5,
+  },
+  // Sổ đang bị đóng để phục hồi. Dùng đúng mã `quota_unavailable` của spec mục 9 thay vì
+  // `quota_exceeded`: khách KHÔNG hết lượt, và gợi ý mua thêm ở đây là bán hàng gian.
+  maintenance: {
+    status: 503,
+    code: 'quota_unavailable',
+    message: 'Sổ quota đang bảo trì',
+    actions: ['wait'],
+    retryAfter: 60,
   },
 };
 

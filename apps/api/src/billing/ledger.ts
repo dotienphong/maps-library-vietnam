@@ -91,5 +91,65 @@ export function initializeLedger(storage: DurableObjectStorage): void {
       actor TEXT NOT NULL,
       reason TEXT NOT NULL
     );
+    CREATE TABLE IF NOT EXISTS ledger_meta (
+      id INTEGER PRIMARY KEY CHECK (id = 1),
+      last_sequence INTEGER NOT NULL DEFAULT 0,
+      schema_version INTEGER NOT NULL DEFAULT 1,
+      maintenance INTEGER NOT NULL DEFAULT 0
+    );
+    CREATE TABLE IF NOT EXISTS journal (
+      seq INTEGER PRIMARY KEY,
+      kind TEXT NOT NULL,
+      ref TEXT NOT NULL,
+      payload TEXT NOT NULL,
+      created_at INTEGER NOT NULL
+    );
+    CREATE TABLE IF NOT EXISTS export_checkpoint (
+      id INTEGER PRIMARY KEY CHECK (id = 1),
+      sequence INTEGER NOT NULL,
+      checksum TEXT NOT NULL,
+      exported_at INTEGER NOT NULL
+    );
+    CREATE TABLE IF NOT EXISTS snapshot_manifest (
+      snapshot_id TEXT PRIMARY KEY,
+      tenant_id TEXT NOT NULL,
+      schema_version INTEGER NOT NULL,
+      sequence INTEGER NOT NULL,
+      pages INTEGER NOT NULL,
+      records INTEGER NOT NULL,
+      checksum TEXT,
+      actor TEXT NOT NULL,
+      taken_at INTEGER NOT NULL
+    );
+    CREATE TABLE IF NOT EXISTS snapshot_page (
+      snapshot_id TEXT NOT NULL,
+      page_index INTEGER NOT NULL,
+      records TEXT NOT NULL,
+      checksum TEXT,
+      PRIMARY KEY(snapshot_id, page_index)
+    );
   `);
 }
+
+/**
+ * Bảng của sổ cái được ĐƯA VÀO BẢN SAO LƯU, theo thứ tự nạp lại.
+ *
+ * `reservation` phải nằm sau `counter`/`credit_grant` vì nạp lại một receipt còn treo cần nguồn
+ * lượt đã tồn tại. `journal` và `snapshot_*` KHÔNG có ở đây: journal là đuôi ghi riêng sau
+ * snapshot, còn snapshot_* là vùng dựng tạm của chính lần xuất đang chạy.
+ */
+export const SNAPSHOT_TABLES = [
+  'entitlement',
+  'period',
+  'counter',
+  'credit_grant',
+  'reservation',
+  'missed_ack',
+  'entitlement_event',
+  'business_identity',
+  'operational_command',
+  'revoked_key',
+  'export_checkpoint',
+] as const;
+
+export type SnapshotTable = (typeof SNAPSHOT_TABLES)[number];

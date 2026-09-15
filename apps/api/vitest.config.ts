@@ -16,6 +16,9 @@ export default defineWorkersConfig({
             ACCESS_TEAM_DOMAIN: 'test.cloudflareaccess.com',
             ACCESS_AUD: 'test-aud',
             BILLING_ADMIN_EMAILS: 'billing@test.local',
+            // Quyền sao lưu/phục hồi tách riêng: `billing@test.local` KHÔNG có mặt ở đây, để test
+            // chứng minh quản trị thuê bao không tự động ghi đè được sổ.
+            BILLING_BACKUP_EMAILS: 'backup@test.local',
             IP_HASH_PEPPER: 'test-pepper',
           },
           // Tầng test này KHÔNG được cần Postgres (dbtest là workflow riêng). Trỏ binding

@@ -7,7 +7,13 @@ import { billingAdmin } from '../src/routes/billing-admin';
 const tenantId = '00000000-0000-4000-8000-0000000000c1';
 
 function appFor(
-  options: { email?: string; exists?: boolean; conflict?: boolean; failWith?: string } = {},
+  options: {
+    email?: string;
+    exists?: boolean;
+    conflict?: boolean;
+    failWith?: string;
+    backupFailsWith?: string;
+  } = {},
 ) {
   const app = new Hono<AppEnv>();
   app.use('*', async (c, next) => {
@@ -24,6 +30,16 @@ function appFor(
             // Đúng hình dạng lỗi đi qua RPC của Durable Object: Error thường, mất class gốc.
             throw new Error(failWith);
           },
+        }
+      : {}),
+    ...(options.backupFailsWith
+      ? {
+          quotaBackup: () =>
+            new Proxy({} as never, {
+              get: () => async () => {
+                throw new Error(options.backupFailsWith);
+              },
+            }),
         }
       : {}),
   };
@@ -119,5 +135,91 @@ describe('billing admin routes', () => {
       }),
     });
     expect(stale.status).toBe(409);
+  });
+
+  it('keeps ledger backup behind its own allowlist, separate from subscription admin', async () => {
+    const billing = appFor({ email: 'billing@test.local' });
+    const denied = await request(billing, `/v1/admin/billing/${tenantId}/backup/snapshot`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ operationId: crypto.randomUUID() }),
+    });
+    // Quản trị thuê bao KHÔNG kéo theo quyền ghi đè sổ tiêu thụ.
+    expect(denied.status).toBe(403);
+    expect(await denied.json()).toMatchObject({ error: { code: 'billing_backup_forbidden' } });
+  });
+
+  it('exports a checksummed snapshot page and refuses a checkpoint on the wrong bytes', async () => {
+    const app = appFor({ email: 'backup@test.local' });
+    const operationId = crypto.randomUUID();
+    const started = await request(app, `/v1/admin/billing/${tenantId}/backup/snapshot`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ operationId }),
+    });
+    expect(started.status).toBe(200);
+    const manifest = (await started.json()) as {
+      snapshotId: string;
+      pages: number;
+      checksum: string;
+    };
+    expect(manifest.pages).toBeGreaterThan(0);
+    expect(started.headers.get('cache-control')).toBe('private, no-store');
+
+    const pageResponse = await request(
+      app,
+      `/v1/admin/billing/${tenantId}/backup/snapshot/${manifest.snapshotId}/0`,
+    );
+    expect(pageResponse.status).toBe(200);
+    const page = (await pageResponse.json()) as { records: string; checksum: string };
+    const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(page.records));
+    expect([...new Uint8Array(digest)].map((b) => b.toString(16).padStart(2, '0')).join('')).toBe(
+      page.checksum,
+    );
+
+    // Checkpoint chỉ nhích khi checksum khớp; nhánh từ chối kiểm ở billing-backup.test.ts (mức
+    // Durable Object) và ở ca ánh xạ mã lỗi bên dưới — cho lỗi bay qua RPC thật trong test route
+    // sẽ làm vitest-pool-workers hỏng isolated storage.
+    const ok = await request(app, `/v1/admin/billing/${tenantId}/backup/checkpoint`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({
+        operationId: crypto.randomUUID(),
+        snapshotId: manifest.snapshotId,
+        checksum: manifest.checksum,
+      }),
+    });
+    expect(ok.status).toBe(200);
+  });
+
+  it('maps ledger backup failures to the right status after RPC strips the error class', async () => {
+    const cases: [string, number][] = [
+      ['not_in_maintenance', 409],
+      ['traffic_active', 409],
+      ['snapshot_stale', 409],
+      ['journal_gap', 409],
+      ['snapshot_not_found', 404],
+      ['snapshot_too_large', 413],
+      ['something_unmapped', 503],
+    ];
+    for (const [code, status] of cases) {
+      const app = appFor({ email: 'backup@test.local', backupFailsWith: code });
+      const response = await request(app, `/v1/admin/billing/${tenantId}/backup/restore`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          operationId: crypto.randomUUID(),
+          page: {
+            snapshotId: crypto.randomUUID(),
+            index: 0,
+            pages: 1,
+            sequence: 0,
+            records: '[]',
+            checksum: 'f'.repeat(64),
+          },
+        }),
+      });
+      expect([code, response.status]).toEqual([code, status]);
+    }
   });
 });

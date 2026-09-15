@@ -2,16 +2,22 @@ import { DurableObject } from 'cloudflare:workers';
 import type { Env } from '../env';
 import { PLAN_CATALOG } from './catalog';
 import { BillingCommandError, businessHash, commandHash, validateCommand } from './commands';
-import { initializeLedger } from './ledger';
+import { SNAPSHOT_TABLES, type SnapshotTable, initializeLedger } from './ledger';
 import { trialEndsAt, vnBillingDay } from './policy';
 import type {
+  CheckpointReceipt,
   CommandReceipt,
   EntitlementCommand,
   EntitlementStatus,
   GroupUsage,
+  JournalEntry,
+  JournalPage,
   QuotaGroup,
   ReserveResult,
+  RestoreReceipt,
   SettlementReceipt,
+  SnapshotManifest,
+  SnapshotPage,
   Tier,
   UsageSnapshot,
 } from './types';
@@ -40,6 +46,25 @@ const CLOSED_RETENTION_MS = 35 * 86_400_000;
  * Chỉnh nhanh bằng var `MAX_INFLIGHT_PLACES`/`MAX_INFLIGHT_DIRECTIONS`, không cần sửa code.
  */
 const MAX_INFLIGHT_DEFAULT: Record<QuotaGroup, number> = { places: 50, directions: 32 };
+/** Đổi số này khi hình dạng bản ghi sao lưu đổi; bản cũ hơn bị từ chối nạp lại. */
+const LEDGER_SCHEMA_VERSION = 1;
+const SNAPSHOT_MAX_RECORDS = 100;
+const SNAPSHOT_MAX_BYTES = 256 * 1024;
+/**
+ * Trần cho TOÀN BỘ snapshot. Snapshot được dựng trong MỘT transaction để nhất quán, nên nó nằm
+ * trọn trong RAM một lúc: thà từ chối và bắt dọn retention còn hơn giết object lúc đang phục hồi.
+ */
+const SNAPSHOT_MAX_TOTAL_BYTES = 8 * 1024 * 1024;
+/**
+ * Reservation đã đóng trong cửa sổ này vẫn đi vào snapshot: ACK/replay đến muộn phải gặp lại
+ * dòng cũ để bị từ chối, thay vì thấy "không có receipt" rồi bị tính thành lượt mới.
+ */
+const SNAPSHOT_RESERVATION_WINDOW_MS = 4 * LEASE_MS;
+/**
+ * Khoảng lặng bắt buộc trước khi ghi đè sổ. Không phải lời hứa của người vận hành mà là BẰNG
+ * CHỨNG: object tự nhìn reservation gần nhất của chính nó để biết traffic đã thật sự dừng chưa.
+ */
+const RESTORE_QUIET_MS = 60_000;
 
 type EntitlementRow = {
   tenant_id: string;
@@ -68,6 +93,13 @@ type ReservationRow = {
 };
 
 export class QuotaObject extends DurableObject<Env> {
+  /**
+   * Khác null khi đang phát lại journal: dòng journal sinh ra phải giữ NGUYÊN số thứ tự cũ thay
+   * vì xin số mới, nếu không bản phục hồi sẽ đánh số lệch bản gốc. Chỉ có hiệu lực trong bảo
+   * trì, nơi `reserve` đã bị chặn và mọi chỗ giữ đã được nhả.
+   */
+  private replaySequence: number | null = null;
+
   constructor(ctx: DurableObjectState, env: Env) {
     super(ctx, env);
     initializeLedger(ctx.storage);
@@ -265,6 +297,7 @@ export class QuotaObject extends DurableObject<Env> {
           receiptJson,
         );
       }
+      this.appendJournal('command', command.operationId, { command }, now);
     });
     if (command.kind === 'suspend') await this.scheduleNextAlarm();
     return receipt;
@@ -272,7 +305,7 @@ export class QuotaObject extends DurableObject<Env> {
 
   async readUsage(): Promise<UsageSnapshot> {
     const entitlement = this.entitlement();
-    if (!entitlement) return emptyUsage();
+    if (!entitlement) return { ...emptyUsage(), maintenance: this.maintenance() };
     const now = Date.now();
     const period = this.currentPeriod(now);
     const status = entitlement.status === 'suspended' ? 'suspended' : period ? 'active' : 'expired';
@@ -286,6 +319,7 @@ export class QuotaObject extends DurableObject<Env> {
       startsAt: period ? new Date(period.starts_at).toISOString() : null,
       endsAt: period ? new Date(period.ends_at).toISOString() : null,
       trialUsedOnce: entitlement.trial_used_once === 1,
+      maintenance: this.maintenance(),
       places: this.groupUsage(period, 'places'),
       directions: this.groupUsage(period, 'directions'),
     };
@@ -302,6 +336,12 @@ export class QuotaObject extends DurableObject<Env> {
     const now = Date.now();
     let result!: ReserveResult;
     this.ctx.storage.transactionSync(() => {
+      // Bảo trì đứng TRƯỚC cả reservation đang có: lúc sổ đang được ghi đè thì không lượt nào
+      // được cấp thêm, kể cả lượt retry cùng requestId của một request đang dở.
+      if (this.maintenance()) {
+        result = denied(group, 'maintenance');
+        return;
+      }
       this.cleanupExpired(now, 32);
       const existing = this.reservation(requestId);
       if (existing) {
@@ -488,6 +528,21 @@ export class QuotaObject extends DurableObject<Env> {
         now,
         requestId,
       );
+      // Đây là dòng journal DUY NHẤT nằm trên đường nóng, và nó đi kèm đúng lúc lượt được tính
+      // tiền. reserve/prepare/release không ghi journal: chúng chỉ động tới `reserved`, mà
+      // `reserved` không được phục hồi — sau khôi phục mọi chỗ đang giữ đều nhả về cho khách.
+      this.appendJournal(
+        'commit',
+        requestId,
+        {
+          group: row.group_name,
+          sourceKind: row.source_kind,
+          sourceId: row.source_id,
+          dayKey: row.day_key,
+          deadline: row.deadline,
+        },
+        now,
+      );
       receipt = {
         requestId,
         state: 'committed',
@@ -567,6 +622,19 @@ export class QuotaObject extends DurableObject<Env> {
         charged: false,
         expiresAt: new Date(row.deadline).toISOString(),
       };
+      this.appendJournal(
+        'compensate',
+        requestId,
+        {
+          operationId,
+          reason,
+          group: row.group_name,
+          sourceKind: row.source_kind,
+          sourceId: row.source_id,
+          dayKey: row.day_key,
+        },
+        now,
+      );
       this.saveOperational(operationId, payload, receipt, now);
     });
     return receipt;
@@ -591,6 +659,7 @@ export class QuotaObject extends DurableObject<Env> {
       };
       this.ctx.storage.sql.exec('DELETE FROM missed_ack');
       receipt = { unlocked: count.count };
+      this.appendJournal('unlockAcks', operationId, { actor, reason }, now);
       this.saveOperational(operationId, payload, receipt, now);
     });
     return receipt;
@@ -630,6 +699,7 @@ export class QuotaObject extends DurableObject<Env> {
       } else {
         this.ctx.storage.sql.exec('DELETE FROM revoked_key WHERE key_hash=?', keyHash);
       }
+      this.appendJournal('keyRevocation', operationId, { keyHash, revoked, actor, reason }, now);
       this.saveOperational(operationId, payload, receipt, now);
     });
     if (revoked) await this.scheduleNextAlarm();
@@ -643,6 +713,351 @@ export class QuotaObject extends DurableObject<Env> {
         .exec('SELECT 1 AS revoked FROM revoked_key WHERE key_hash=?', keyHash)
         .toArray().length > 0
     );
+  }
+
+  /**
+   * Đóng/mở sổ để phục hồi. Đây là cổng DUY NHẤT cho phép ghi đè ledger: không có nó thì
+   * `restore*` luôn từ chối, nên không ai lỡ tay nạp backup lên một object đang bán hàng.
+   */
+  async setMaintenance(
+    operationId: string,
+    actor: string,
+    reason: string,
+    enabled: boolean,
+  ): Promise<{ maintenance: boolean }> {
+    if (
+      !validId(operationId) ||
+      !validReason(actor) ||
+      !validReason(reason) ||
+      typeof enabled !== 'boolean'
+    ) {
+      throw new BillingCommandError('invalid_maintenance');
+    }
+    const payload = JSON.stringify({ kind: 'setMaintenance', enabled, actor, reason });
+    const prior = this.operationalJson<{ maintenance: boolean }>(operationId, payload);
+    if (prior) return prior;
+    const now = Date.now();
+    const receipt = { maintenance: enabled };
+    this.ctx.storage.transactionSync(() => {
+      this.ctx.storage.sql.exec(
+        `INSERT INTO ledger_meta(id,last_sequence,schema_version,maintenance) VALUES(1,0,?,?)
+         ON CONFLICT(id) DO UPDATE SET maintenance=excluded.maintenance`,
+        LEDGER_SCHEMA_VERSION,
+        enabled ? 1 : 0,
+      );
+      // Vào bảo trì thì nhả hết chỗ đang giữ. Receipt còn treo mà sổ bị ghi đè sẽ thành khoản
+      // không đối soát được; nhả ra là sai số nghiêng về phía khách, đúng quyết định mục 6.
+      if (enabled) this.releaseAllPending(now, 'maintenance');
+      this.saveOperational(operationId, payload, receipt, now);
+    });
+    await this.scheduleNextAlarm();
+    return receipt;
+  }
+
+  /**
+   * Đóng băng một snapshot nhất quán rồi cắt thành trang. Toàn bộ việc đọc nằm trong MỘT
+   * transaction: xuất từng bảng bằng nhiều lần đọc rời sẽ cho ra bản sao chắp vá, nơi `counter`
+   * đã cộng một lượt mà `reservation` thì chưa — nạp lại bản đó là tính tiền sai.
+   */
+  async beginSnapshot(operationId: string, actor: string): Promise<SnapshotManifest> {
+    if (!validId(operationId) || !validReason(actor))
+      throw new BillingCommandError('invalid_snapshot');
+    const existing = this.manifestRow(operationId);
+    if (existing?.checksum) {
+      return {
+        snapshotId: operationId,
+        tenantId: existing.tenant_id,
+        schemaVersion: existing.schema_version,
+        sequence: existing.sequence,
+        pages: existing.pages,
+        records: existing.records,
+        checksum: existing.checksum,
+        takenAt: new Date(existing.taken_at).toISOString(),
+      };
+    }
+
+    const now = Date.now();
+    let pages: string[] = [];
+    let records = 0;
+    let sequence = 0;
+    let tenantId = '';
+    this.ctx.storage.transactionSync(() => {
+      this.ctx.storage.sql.exec('DELETE FROM snapshot_page WHERE snapshot_id=?', operationId);
+      this.ctx.storage.sql.exec('DELETE FROM snapshot_manifest WHERE snapshot_id=?', operationId);
+      const collected = this.collectRecords(now);
+      records = collected.length;
+      pages = paginate(collected);
+      sequence = this.lastSequence();
+      tenantId = this.entitlement()?.tenant_id ?? '';
+      pages.forEach((text, index) => {
+        this.ctx.storage.sql.exec(
+          'INSERT INTO snapshot_page(snapshot_id,page_index,records) VALUES(?,?,?)',
+          operationId,
+          index,
+          text,
+        );
+      });
+      this.ctx.storage.sql.exec(
+        `INSERT INTO snapshot_manifest(snapshot_id,tenant_id,schema_version,sequence,pages,records,actor,taken_at)
+         VALUES(?,?,?,?,?,?,?,?)`,
+        operationId,
+        tenantId,
+        LEDGER_SCHEMA_VERSION,
+        sequence,
+        pages.length,
+        records,
+        actor,
+        now,
+      );
+    });
+
+    // Băm NGOÀI transaction vì WebCrypto là async còn `transactionSync` thì không chờ được.
+    // Trang đã đóng băng trong bảng nên băm sau vẫn đúng chuỗi byte sẽ giao cho người gọi.
+    const checksums: string[] = [];
+    for (const [index, text] of pages.entries()) {
+      const checksum = await sha256(text);
+      checksums.push(checksum);
+      this.ctx.storage.sql.exec(
+        'UPDATE snapshot_page SET checksum=? WHERE snapshot_id=? AND page_index=?',
+        checksum,
+        operationId,
+        index,
+      );
+    }
+    const checksum = await sha256(
+      JSON.stringify({
+        schemaVersion: LEDGER_SCHEMA_VERSION,
+        tenantId,
+        sequence,
+        records,
+        pages: checksums,
+      }),
+    );
+    this.ctx.storage.sql.exec(
+      'UPDATE snapshot_manifest SET checksum=? WHERE snapshot_id=?',
+      checksum,
+      operationId,
+    );
+    return {
+      snapshotId: operationId,
+      tenantId,
+      schemaVersion: LEDGER_SCHEMA_VERSION,
+      sequence,
+      pages: pages.length,
+      records,
+      checksum,
+      takenAt: new Date(now).toISOString(),
+    };
+  }
+
+  async readSnapshotPage(snapshotId: string, index: number): Promise<SnapshotPage> {
+    if (!validId(snapshotId) || !Number.isSafeInteger(index) || index < 0) {
+      throw new BillingCommandError('invalid_snapshot');
+    }
+    const manifest = this.manifestRow(snapshotId);
+    if (!manifest) throw new BillingCommandError('snapshot_not_found');
+    const row = this.ctx.storage.sql
+      .exec(
+        'SELECT records,checksum FROM snapshot_page WHERE snapshot_id=? AND page_index=?',
+        snapshotId,
+        index,
+      )
+      .toArray()[0] as { records: string; checksum: string | null } | undefined;
+    if (!row || row.checksum === null) throw new BillingCommandError('snapshot_not_found');
+    return {
+      snapshotId,
+      index,
+      pages: manifest.pages,
+      sequence: manifest.sequence,
+      records: row.records,
+      checksum: row.checksum,
+    };
+  }
+
+  /** Đuôi ghi sau snapshot. `pending` cho biết còn bao nhiêu khoản CHƯA có bản sao lưu nào. */
+  async readJournal(afterSequence: number, limit: number): Promise<JournalPage> {
+    if (!Number.isSafeInteger(afterSequence) || afterSequence < 0) {
+      throw new BillingCommandError('invalid_journal');
+    }
+    const size =
+      Number.isSafeInteger(limit) && limit > 0
+        ? Math.min(limit, SNAPSHOT_MAX_RECORDS)
+        : SNAPSHOT_MAX_RECORDS;
+    const rows = this.ctx.storage.sql
+      .exec(
+        'SELECT seq,kind,ref,payload,created_at FROM journal WHERE seq>? ORDER BY seq LIMIT ?',
+        afterSequence,
+        size,
+      )
+      .toArray() as {
+      seq: number;
+      kind: JournalEntry['kind'];
+      ref: string;
+      payload: string;
+      created_at: number;
+    }[];
+    const entries: JournalEntry[] = rows.map((row) => ({
+      seq: row.seq,
+      kind: row.kind,
+      ref: row.ref,
+      payload: row.payload,
+      createdAt: new Date(row.created_at).toISOString(),
+    }));
+    const nextSequence = entries.at(-1)?.seq ?? afterSequence;
+    const pending = this.ctx.storage.sql
+      .exec('SELECT count(*) AS count FROM journal WHERE seq>?', nextSequence)
+      .one() as { count: number };
+    return { entries, nextSequence, pending: pending.count };
+  }
+
+  /**
+   * Chốt rằng mọi khoản tới `sequence` đã nằm trong một bản sao lưu bền vững, rồi mới cắt đuôi
+   * journal. Người gọi phải đưa lại checksum của chính chuỗi byte đã ghi: chốt trước khi R2 nhận
+   * xong là cách chắc chắn nhất để mất đúng phần vừa xoá.
+   */
+  async advanceCheckpoint(
+    operationId: string,
+    snapshotId: string,
+    checksum: string,
+  ): Promise<CheckpointReceipt> {
+    if (!validId(operationId) || !validId(snapshotId) || !validHash(checksum)) {
+      throw new BillingCommandError('invalid_checkpoint');
+    }
+    const payload = JSON.stringify({ kind: 'advanceCheckpoint', snapshotId, checksum });
+    const prior = this.operationalJson<CheckpointReceipt>(operationId, payload);
+    if (prior) return prior;
+    const manifest = this.manifestRow(snapshotId);
+    if (!manifest || manifest.checksum === null)
+      throw new BillingCommandError('snapshot_not_found');
+    if (manifest.checksum !== checksum) throw new BillingCommandError('checksum_mismatch');
+    const now = Date.now();
+    let receipt!: CheckpointReceipt;
+    this.ctx.storage.transactionSync(() => {
+      const current = this.ctx.storage.sql
+        .exec('SELECT sequence FROM export_checkpoint WHERE id=1')
+        .toArray()[0] as { sequence: number } | undefined;
+      if ((current?.sequence ?? 0) > manifest.sequence) {
+        throw new BillingCommandError('checkpoint_stale');
+      }
+      const pruned = this.ctx.storage.sql
+        .exec('SELECT count(*) AS count FROM journal WHERE seq<=?', manifest.sequence)
+        .one() as { count: number };
+      this.ctx.storage.sql.exec(
+        `INSERT INTO export_checkpoint(id,sequence,checksum,exported_at) VALUES(1,?,?,?)
+         ON CONFLICT(id) DO UPDATE SET sequence=excluded.sequence,checksum=excluded.checksum,exported_at=excluded.exported_at`,
+        manifest.sequence,
+        checksum,
+        now,
+      );
+      this.ctx.storage.sql.exec('DELETE FROM journal WHERE seq<=?', manifest.sequence);
+      this.ctx.storage.sql.exec('DELETE FROM snapshot_page WHERE snapshot_id=?', snapshotId);
+      this.ctx.storage.sql.exec('DELETE FROM snapshot_manifest WHERE snapshot_id=?', snapshotId);
+      receipt = {
+        sequence: manifest.sequence,
+        checksum,
+        exportedAt: new Date(now).toISOString(),
+        prunedEntries: pruned.count,
+      };
+      this.saveOperational(operationId, payload, receipt, now);
+    });
+    return receipt;
+  }
+
+  async restoreSnapshotPage(
+    operationId: string,
+    snapshotId: string,
+    page: SnapshotPage,
+  ): Promise<RestoreReceipt> {
+    if (!validId(operationId) || !validId(snapshotId) || !page || page.snapshotId !== snapshotId) {
+      throw new BillingCommandError('invalid_restore');
+    }
+    const payload = JSON.stringify({
+      kind: 'restoreSnapshotPage',
+      snapshotId,
+      index: page.index,
+      checksum: page.checksum,
+    });
+    const prior = this.operationalJson<RestoreReceipt>(operationId, payload);
+    if (prior) return prior;
+    this.requireMaintenance();
+    this.requireFreshSnapshot(page.sequence);
+    this.requireQuiet();
+    if (!validHash(page.checksum) || (await sha256(page.records)) !== page.checksum) {
+      throw new BillingCommandError('checksum_mismatch');
+    }
+    let parsed: { table: string; data: Record<string, string | number | null> }[];
+    try {
+      parsed = JSON.parse(page.records);
+    } catch {
+      throw new BillingCommandError('invalid_restore');
+    }
+    if (!Array.isArray(parsed)) throw new BillingCommandError('invalid_restore');
+    const now = Date.now();
+    let receipt!: RestoreReceipt;
+    this.ctx.storage.transactionSync(() => {
+      this.requireMaintenance();
+      this.requireFreshSnapshot(page.sequence);
+      for (const record of parsed) {
+        if (!SNAPSHOT_TABLES.includes(record.table as SnapshotTable)) {
+          throw new BillingCommandError('invalid_restore');
+        }
+        const columns = Object.keys(record.data ?? {});
+        if (columns.length === 0 || columns.some((column) => !/^[a-z_]{1,40}$/.test(column))) {
+          throw new BillingCommandError('invalid_restore');
+        }
+        this.ctx.storage.sql.exec(
+          `INSERT OR REPLACE INTO ${record.table}(${columns.join(',')})
+           VALUES(${columns.map(() => '?').join(',')})`,
+          ...columns.map((column) => record.data[column] ?? null),
+        );
+      }
+      this.bumpSequence(page.sequence);
+      receipt = { applied: parsed.length, skipped: 0, sequence: this.lastSequence() };
+      this.saveOperational(operationId, payload, receipt, now);
+    });
+    return receipt;
+  }
+
+  /**
+   * Phát lại đuôi journal lên trên snapshot. Kiểm liên tục số thứ tự TRƯỚC khi áp dòng nào:
+   * thiếu một số nghĩa là thiếu một khoản đã tính tiền, và coi khoản thiếu đó bằng 0 chính là
+   * kiểu hỏng mà mục 14.6 cấm. Thà dừng trong bảo trì để đối soát tay.
+   */
+  async restoreJournal(operationId: string, entries: JournalEntry[]): Promise<RestoreReceipt> {
+    if (!validId(operationId) || !Array.isArray(entries) || entries.length > SNAPSHOT_MAX_RECORDS) {
+      throw new BillingCommandError('invalid_restore');
+    }
+    const payload = JSON.stringify({
+      kind: 'restoreJournal',
+      from: entries[0]?.seq ?? null,
+      to: entries.at(-1)?.seq ?? null,
+    });
+    const prior = this.operationalJson<RestoreReceipt>(operationId, payload);
+    if (prior) return prior;
+    this.requireMaintenance();
+    const current = this.lastSequence();
+    const first = entries[0];
+    if (first) {
+      if (!Number.isSafeInteger(first.seq) || first.seq < 1 || first.seq > current + 1) {
+        throw new BillingCommandError('journal_gap');
+      }
+      for (let index = 1; index < entries.length; index += 1) {
+        if (entries[index]?.seq !== (entries[index - 1]?.seq ?? 0) + 1) {
+          throw new BillingCommandError('journal_gap');
+        }
+      }
+    }
+    let applied = 0;
+    let skipped = 0;
+    for (const entry of entries) {
+      if (await this.replayEntry(entry)) applied += 1;
+      else skipped += 1;
+    }
+    const receipt: RestoreReceipt = { applied, skipped, sequence: this.lastSequence() };
+    this.ctx.storage.transactionSync(() =>
+      this.saveOperational(operationId, payload, receipt, Date.now()),
+    );
+    return receipt;
   }
 
   async alarm(): Promise<void> {
@@ -671,6 +1086,267 @@ export class QuotaObject extends DurableObject<Env> {
       group === 'places' ? this.env.MAX_INFLIGHT_PLACES : this.env.MAX_INFLIGHT_DIRECTIONS;
     const parsed = Number(raw);
     return Number.isSafeInteger(parsed) && parsed > 0 ? parsed : MAX_INFLIGHT_DEFAULT[group];
+  }
+
+  /**
+   * Một dòng sổ ghi thêm. Số thứ tự lấy trong CÙNG transaction với thay đổi nó mô tả, nên
+   * transaction bị rollback thì số cũng không bị tiêu — đuôi journal luôn liền mạch, và một lỗ
+   * thủng luôn có nghĩa là mất dữ liệu thật chứ không phải chuyện bình thường.
+   */
+  private appendJournal(kind: JournalEntry['kind'], ref: string, payload: unknown, now: number) {
+    const text = JSON.stringify(payload);
+    if (this.replaySequence !== null) {
+      const seq = this.replaySequence;
+      this.ctx.storage.sql.exec(
+        'INSERT OR IGNORE INTO journal(seq,kind,ref,payload,created_at) VALUES(?,?,?,?,?)',
+        seq,
+        kind,
+        ref,
+        text,
+        now,
+      );
+      this.bumpSequence(seq);
+      return seq;
+    }
+    const row = this.ctx.storage.sql
+      .exec(
+        `INSERT INTO ledger_meta(id,last_sequence,schema_version) VALUES(1,1,?)
+         ON CONFLICT(id) DO UPDATE SET last_sequence=ledger_meta.last_sequence+1
+         RETURNING last_sequence`,
+        LEDGER_SCHEMA_VERSION,
+      )
+      .one() as { last_sequence: number };
+    this.ctx.storage.sql.exec(
+      'INSERT INTO journal(seq,kind,ref,payload,created_at) VALUES(?,?,?,?,?)',
+      row.last_sequence,
+      kind,
+      ref,
+      text,
+      now,
+    );
+    return row.last_sequence;
+  }
+
+  /** Trả true nếu dòng journal thật sự được áp, false nếu sổ đã có sẵn khoản đó. */
+  private async replayEntry(entry: JournalEntry): Promise<boolean> {
+    if (!validId(entry?.ref) || typeof entry.payload !== 'string') {
+      throw new BillingCommandError('invalid_restore');
+    }
+    let payload: Record<string, unknown>;
+    try {
+      payload = JSON.parse(entry.payload) as Record<string, unknown>;
+    } catch {
+      throw new BillingCommandError('invalid_restore');
+    }
+    const now = Date.parse(entry.createdAt);
+    const at = Number.isFinite(now) ? now : Date.now();
+    this.replaySequence = entry.seq;
+    try {
+      if (entry.kind === 'command') {
+        const seen = this.eventSeen(entry.ref);
+        await this.applyCommand(payload.command as EntitlementCommand);
+        return !seen;
+      }
+      if (entry.kind === 'keyRevocation') {
+        const seen = this.operationSeen(entry.ref);
+        await this.setKeyRevoked(
+          String(payload.keyHash),
+          payload.revoked === true,
+          entry.ref,
+          String(payload.actor),
+          String(payload.reason),
+        );
+        return !seen;
+      }
+      if (entry.kind === 'unlockAcks') {
+        const seen = this.operationSeen(entry.ref);
+        await this.unlockMissingAcks(entry.ref, String(payload.actor), String(payload.reason));
+        return !seen;
+      }
+      if (entry.kind !== 'commit' && entry.kind !== 'compensate') {
+        throw new BillingCommandError('invalid_restore');
+      }
+      let changed = false;
+      this.ctx.storage.transactionSync(() => {
+        changed = this.replaySettlement(entry, payload, at);
+      });
+      return changed;
+    } finally {
+      this.replaySequence = null;
+    }
+  }
+
+  private replaySettlement(
+    entry: JournalEntry,
+    payload: Record<string, unknown>,
+    at: number,
+  ): boolean {
+    const target: ReservationRow = {
+      request_id: entry.ref,
+      group_name: payload.group as QuotaGroup,
+      state: entry.kind === 'commit' ? 'committed' : 'compensated',
+      source_kind: payload.sourceKind as 'period' | 'credit',
+      source_id: String(payload.sourceId),
+      day_key: String(payload.dayKey ?? ''),
+      token_hash: null,
+      deadline: Number(payload.deadline ?? at),
+    };
+    if (!['places', 'directions'].includes(target.group_name)) {
+      throw new BillingCommandError('invalid_restore');
+    }
+    if (!['period', 'credit'].includes(target.source_kind)) {
+      throw new BillingCommandError('invalid_restore');
+    }
+    const row = this.reservation(entry.ref);
+    if (row?.state === target.state) return false;
+    if (entry.kind === 'compensate' && row?.state !== 'committed') {
+      throw new BillingCommandError('invalid_restore');
+    }
+    // Receipt còn treo trong snapshot đang giữ chỗ: trả chỗ trước rồi mới chuyển thành đã tính.
+    if (row?.state === 'reserved' || row?.state === 'awaiting_ack') this.moveReserved(row, -1);
+    this.ctx.storage.sql.exec(
+      `INSERT INTO reservation(request_id,group_name,key_hash,state,source_kind,source_id,day_key,deadline,created_at,updated_at)
+       VALUES(?,?,NULL,?,?,?,?,?,?,?)
+       ON CONFLICT(request_id) DO UPDATE SET state=excluded.state,updated_at=excluded.updated_at`,
+      target.request_id,
+      target.group_name,
+      target.state,
+      target.source_kind,
+      target.source_id,
+      target.day_key,
+      target.deadline,
+      at,
+      at,
+    );
+    this.applyUsed(row ?? target, entry.kind === 'commit' ? 1 : -1);
+    this.appendJournal(entry.kind, entry.ref, payload, at);
+    return true;
+  }
+
+  /**
+   * Như `moveUsed` nhưng tạo dòng counter nếu chưa có. Lượt được tính SAU khi snapshot đóng băng
+   * có thể rơi vào một ngày/kỳ chưa từng xuất hiện trong bản sao lưu; `UPDATE` trơn sẽ lặng lẽ
+   * không ghi gì và làm mất đúng khoản đó.
+   */
+  private applyUsed(row: ReservationRow, delta: number): void {
+    if (row.source_kind === 'period') {
+      this.ctx.storage.sql.exec(
+        `INSERT INTO counter(source_id,group_name,day_key,used) VALUES(?,?,?,?)
+         ON CONFLICT(source_id,group_name,day_key) DO UPDATE SET used=counter.used+excluded.used`,
+        row.source_id,
+        row.group_name,
+        row.day_key,
+        delta,
+      );
+    } else {
+      this.ctx.storage.sql.exec(
+        'UPDATE credit_grant SET used=used+? WHERE grant_id=?',
+        delta,
+        row.source_id,
+      );
+    }
+  }
+
+  private collectRecords(now: number): { table: SnapshotTable; data: unknown }[] {
+    const out: { table: SnapshotTable; data: unknown }[] = [];
+    for (const table of SNAPSHOT_TABLES) {
+      const rows =
+        table === 'reservation'
+          ? // `key_hash` cố tình KHÔNG có trong danh sách cột: bản sao lưu không cần nó để dựng
+            // lại số dư, nên không mang băm khoá của khách ra khỏi object.
+            this.ctx.storage.sql
+              .exec(
+                `SELECT request_id,group_name,state,source_kind,source_id,day_key,token_hash,deadline,created_at,updated_at,close_reason
+                 FROM reservation WHERE state IN ('reserved','awaiting_ack') OR updated_at>?
+                 ORDER BY request_id`,
+                now - SNAPSHOT_RESERVATION_WINDOW_MS,
+              )
+              .toArray()
+          : this.ctx.storage.sql.exec(`SELECT * FROM ${table}`).toArray();
+      for (const row of rows) out.push({ table, data: row });
+    }
+    return out;
+  }
+
+  private manifestRow(snapshotId: string) {
+    return this.ctx.storage.sql
+      .exec(
+        'SELECT tenant_id,schema_version,sequence,pages,records,checksum,taken_at FROM snapshot_manifest WHERE snapshot_id=?',
+        snapshotId,
+      )
+      .toArray()[0] as
+      | {
+          tenant_id: string;
+          schema_version: number;
+          sequence: number;
+          pages: number;
+          records: number;
+          checksum: string | null;
+          taken_at: number;
+        }
+      | undefined;
+  }
+
+  private maintenance(): boolean {
+    const row = this.ctx.storage.sql
+      .exec('SELECT maintenance FROM ledger_meta WHERE id=1')
+      .toArray()[0] as { maintenance: number } | undefined;
+    return row?.maintenance === 1;
+  }
+
+  private lastSequence(): number {
+    const row = this.ctx.storage.sql
+      .exec('SELECT last_sequence FROM ledger_meta WHERE id=1')
+      .toArray()[0] as { last_sequence: number } | undefined;
+    return row?.last_sequence ?? 0;
+  }
+
+  private bumpSequence(sequence: number): void {
+    this.ctx.storage.sql.exec(
+      `INSERT INTO ledger_meta(id,last_sequence,schema_version) VALUES(1,?,?)
+       ON CONFLICT(id) DO UPDATE SET last_sequence=max(ledger_meta.last_sequence,excluded.last_sequence)`,
+      sequence,
+      LEDGER_SCHEMA_VERSION,
+    );
+  }
+
+  private eventSeen(operationId: string): boolean {
+    return (
+      this.ctx.storage.sql
+        .exec('SELECT 1 AS seen FROM entitlement_event WHERE operation_id=?', operationId)
+        .toArray().length > 0
+    );
+  }
+
+  private operationSeen(operationId: string): boolean {
+    return (
+      this.ctx.storage.sql
+        .exec('SELECT 1 AS seen FROM operational_command WHERE operation_id=?', operationId)
+        .toArray().length > 0
+    );
+  }
+
+  private requireMaintenance(): void {
+    if (!this.maintenance()) throw new BillingCommandError('not_in_maintenance');
+  }
+
+  private requireFreshSnapshot(sequence: number): void {
+    if (!Number.isSafeInteger(sequence) || sequence < 0) {
+      throw new BillingCommandError('invalid_restore');
+    }
+    // Sổ đã đi xa hơn bản sao lưu: nạp vào là xoá sạch mọi lượt tính giữa hai mốc.
+    if (sequence < this.lastSequence()) throw new BillingCommandError('snapshot_stale');
+  }
+
+  /**
+   * Bằng chứng traffic đã dừng, không phải lời hứa: object tự nhìn reservation gần nhất của
+   * chính nó. Cổng admission đóng ở tầng ngoài vẫn có thể còn request dở đang bay tới.
+   */
+  private requireQuiet(): void {
+    const row = this.ctx.storage.sql
+      .exec('SELECT coalesce(max(created_at),0) AS last FROM reservation')
+      .one() as { last: number };
+    if (row.last > Date.now() - RESTORE_QUIET_MS) throw new BillingCommandError('traffic_active');
   }
 
   private insertReservation(
@@ -899,6 +1575,39 @@ export class QuotaObject extends DurableObject<Env> {
   }
 }
 
+/**
+ * Cắt bản ghi thành trang JSON theo trần 100 bản ghi / 256 KiB, trả CHUỖI đã nối sẵn. Chuỗi này
+ * mới là thứ được băm và giao đi: parse rồi stringify lại có thể ra byte khác mà checksum không
+ * còn khớp, nên không bao giờ dựng lại nó từ object đã parse.
+ */
+function paginate(records: { table: SnapshotTable; data: unknown }[]): string[] {
+  const pages: string[] = [];
+  let current: string[] = [];
+  let bytes = 2;
+  let total = 0;
+  const flush = () => {
+    pages.push(`[${current.join(',')}]`);
+    current = [];
+    bytes = 2;
+  };
+  for (const record of records) {
+    const text = JSON.stringify(record);
+    total += text.length + 1;
+    if (total > SNAPSHOT_MAX_TOTAL_BYTES) throw new BillingCommandError('snapshot_too_large');
+    if (
+      current.length >= SNAPSHOT_MAX_RECORDS ||
+      (current.length > 0 && bytes + text.length + 1 > SNAPSHOT_MAX_BYTES)
+    ) {
+      flush();
+    }
+    current.push(text);
+    bytes += text.length + 1;
+  }
+  // Luôn có ít nhất một trang, kể cả sổ rỗng: người gọi không phải xử lý riêng trường hợp 0 trang.
+  flush();
+  return pages;
+}
+
 function emptyUsage(): UsageSnapshot {
   const group = { limit: 0, used: 0, reserved: 0, credits: 0, available: 0 };
   return {
@@ -910,6 +1619,7 @@ function emptyUsage(): UsageSnapshot {
     startsAt: null,
     endsAt: null,
     trialUsedOnce: false,
+    maintenance: false,
     places: { ...group },
     directions: { ...group },
   };

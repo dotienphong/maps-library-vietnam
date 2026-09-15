@@ -42,6 +42,16 @@ export function dumpCommand(outFile) {
  */
 export const localTempName = (name, pid) => `${name}.${pid}.tmp`;
 
+/**
+ * Lệnh sh mã hoá một file bất kỳ bằng ĐÚNG tham số của dump hằng ngày (AES-256-CBC, PBKDF2
+ * 600k vòng). Tách riêng khỏi `dumpCommand` để bản sao lưu sổ quota không phải chép lại bộ tham
+ * số — đổi tham số một chỗ là cả hai đường sao lưu cùng đổi.
+ * @param {string} inFile @param {string} outFile
+ */
+export function encryptCommand(inFile, outFile) {
+  return `openssl enc -aes-256-cbc -pbkdf2 -iter 600000 -salt -pass env:BACKUP_PASSPHRASE -in "${inFile}" -out "${outFile}"`;
+}
+
 /** Lệnh sh giải mã file .enc về .dump.zst. @param {string} encFile @param {string} outFile */
 export function decryptCommand(encFile, outFile) {
   return `openssl enc -d -aes-256-cbc -pbkdf2 -iter 600000 -pass env:BACKUP_PASSPHRASE -in "${encFile}" -out "${outFile}"`;

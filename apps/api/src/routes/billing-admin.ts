@@ -1,5 +1,5 @@
-import { Hono } from 'hono';
-import type { EntitlementCommand } from '../billing/types';
+import { type Context, Hono } from 'hono';
+import type { EntitlementCommand, JournalEntry, SnapshotPage } from '../billing/types';
 import { getSql } from '../db';
 import type { AppEnv, Env } from '../env';
 
@@ -23,10 +23,59 @@ const ADMIN_COMMAND_STATUS = new Map<string, 400 | 409 | 413>([
   ['no_entitlement', 409],
 ]);
 const MAX_BODY_BYTES = 16 * 1024;
+/** Một trang snapshot trần 256 KiB (spec 14.6) cộng phần bọc JSON của lệnh phục hồi. */
+const MAX_RESTORE_BYTES = 512 * 1024;
+
+/**
+ * Mã lỗi của nhóm sao lưu/phục hồi → HTTP status. Mọi mã "chặn vì trạng thái sai" đều là 409:
+ * đây là thao tác vận hành, người gọi cần biết chính xác cổng nào đã chặn để xử lý, chứ không
+ * phải một 400 chung chung rồi tự đoán.
+ */
+const BACKUP_STATUS = new Map<string, 400 | 404 | 409 | 413>([
+  ['invalid_snapshot', 400],
+  ['invalid_journal', 400],
+  ['invalid_checkpoint', 400],
+  ['invalid_restore', 400],
+  ['invalid_maintenance', 400],
+  ['snapshot_not_found', 404],
+  ['checksum_mismatch', 409],
+  ['snapshot_stale', 409],
+  ['checkpoint_stale', 409],
+  ['not_in_maintenance', 409],
+  ['traffic_active', 409],
+  ['journal_gap', 409],
+  ['operation_conflict', 409],
+  ['snapshot_too_large', 413],
+]);
+
+/**
+ * Phần mặt của Durable Object mà nhóm route sao lưu dùng tới. Khai báo hẹp để test tiêm được
+ * bản giả: lỗi ném qua ranh giới RPC thật làm vitest-pool-workers hỏng isolated storage, nên
+ * nhánh lỗi phải kiểm được mà không cần đi qua RPC.
+ */
+interface QuotaBackupPort {
+  beginSnapshot(operationId: string, actor: string): Promise<unknown>;
+  readSnapshotPage(snapshotId: string, index: number): Promise<unknown>;
+  readJournal(afterSequence: number, limit: number): Promise<unknown>;
+  advanceCheckpoint(operationId: string, snapshotId: string, checksum: string): Promise<unknown>;
+  setMaintenance(
+    operationId: string,
+    actor: string,
+    reason: string,
+    enabled: boolean,
+  ): Promise<unknown>;
+  restoreSnapshotPage(
+    operationId: string,
+    snapshotId: string,
+    page: SnapshotPage,
+  ): Promise<unknown>;
+  restoreJournal(operationId: string, entries: JournalEntry[]): Promise<unknown>;
+}
 
 interface BillingAdminDependencies {
   tenantExists?: (tenantId: string, env: Env) => Promise<boolean>;
   applyCommand?: (tenantId: string, command: EntitlementCommand, env: Env) => Promise<unknown>;
+  quotaBackup?: (tenantId: string, env: Env) => QuotaBackupPort;
 }
 
 async function tenantExists(
@@ -190,12 +239,140 @@ export function billingAdmin(dependencies: BillingAdminDependencies = {}) {
     }
   });
 
+  const quota = (c: Context<AppEnv>): QuotaBackupPort => {
+    const tenantId = c.req.param('tenantId') as string;
+    return (
+      dependencies.quotaBackup?.(tenantId, c.env) ??
+      c.env.QUOTA.get(c.env.QUOTA.idFromName(tenantId))
+    );
+  };
+
+  // Sao lưu/phục hồi nằm dưới tiền tố riêng để CHỈ MỘT middleware canh được cả nhóm; thêm route
+  // mới vào đây không thể quên gắn quyền.
+  routes.use('/v1/admin/billing/:tenantId/backup/*', async (c, next) => {
+    const email = (c.get('reviewer') ?? '').trim().toLowerCase();
+    const allowed = (c.env.BILLING_BACKUP_EMAILS ?? '')
+      .split(',')
+      .map((value) => value.trim().toLowerCase())
+      .filter(Boolean);
+    if (!email || !allowed.includes(email)) {
+      return c.json({ error: { code: 'billing_backup_forbidden' } }, 403);
+    }
+    await next();
+  });
+
+  routes.post('/v1/admin/billing/:tenantId/backup/snapshot', async (c) => {
+    const body = await readSmallJson(c.req.raw);
+    if (!body || typeof body.operationId !== 'string') {
+      return c.json({ error: { code: 'invalid_snapshot' } }, 400);
+    }
+    return backup(c, quota(c), (object, actor) =>
+      object.beginSnapshot(body.operationId as string, actor),
+    );
+  });
+
+  routes.get('/v1/admin/billing/:tenantId/backup/snapshot/:snapshotId/:index', async (c) => {
+    const index = Number(c.req.param('index'));
+    return backup(c, quota(c), (object) =>
+      object.readSnapshotPage(c.req.param('snapshotId'), index),
+    );
+  });
+
+  routes.get('/v1/admin/billing/:tenantId/backup/journal', async (c) => {
+    const after = Number(c.req.query('after') ?? '0');
+    const limit = Number(c.req.query('limit') ?? '100');
+    return backup(c, quota(c), (object) => object.readJournal(after, limit));
+  });
+
+  routes.post('/v1/admin/billing/:tenantId/backup/checkpoint', async (c) => {
+    const body = await readSmallJson(c.req.raw);
+    if (
+      !body ||
+      typeof body.operationId !== 'string' ||
+      typeof body.snapshotId !== 'string' ||
+      typeof body.checksum !== 'string'
+    ) {
+      return c.json({ error: { code: 'invalid_checkpoint' } }, 400);
+    }
+    return backup(c, quota(c), (object) =>
+      object.advanceCheckpoint(
+        body.operationId as string,
+        body.snapshotId as string,
+        body.checksum as string,
+      ),
+    );
+  });
+
+  routes.post('/v1/admin/billing/:tenantId/backup/maintenance', async (c) => {
+    const body = await readSmallJson(c.req.raw);
+    if (
+      !body ||
+      typeof body.operationId !== 'string' ||
+      typeof body.reason !== 'string' ||
+      typeof body.enabled !== 'boolean'
+    ) {
+      return c.json({ error: { code: 'invalid_maintenance' } }, 400);
+    }
+    return backup(c, quota(c), (object, actor) =>
+      object.setMaintenance(
+        body.operationId as string,
+        actor,
+        body.reason as string,
+        body.enabled as boolean,
+      ),
+    );
+  });
+
+  routes.post('/v1/admin/billing/:tenantId/backup/restore', async (c) => {
+    const body = await readSmallJson(c.req.raw, MAX_RESTORE_BYTES);
+    if (!body || typeof body.operationId !== 'string') {
+      return c.json({ error: { code: 'invalid_restore' } }, 400);
+    }
+    if (body.page) {
+      const page = body.page as SnapshotPage;
+      return backup(c, quota(c), (object) =>
+        object.restoreSnapshotPage(body.operationId as string, page.snapshotId, page),
+      );
+    }
+    if (Array.isArray(body.entries)) {
+      const entries = body.entries as JournalEntry[];
+      return backup(c, quota(c), (object) =>
+        object.restoreJournal(body.operationId as string, entries),
+      );
+    }
+    return c.json({ error: { code: 'invalid_restore' } }, 400);
+  });
+
   return routes;
 }
 
-async function readSmallJson(request: Request): Promise<Record<string, unknown> | null> {
+/**
+ * Gọi một RPC sao lưu rồi dịch lỗi. Lỗi ném trong Durable Object về đây dưới dạng Error thường
+ * (mất class gốc qua RPC), nên khớp theo MÃ chứ không theo `instanceof`.
+ */
+async function backup(
+  c: Context<AppEnv>,
+  port: QuotaBackupPort,
+  call: (object: QuotaBackupPort, actor: string) => Promise<unknown>,
+): Promise<Response> {
+  try {
+    const result = await call(port, c.get('reviewer') ?? '');
+    return c.json(result as Record<string, unknown>, 200, { 'cache-control': 'private, no-store' });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    const status = BACKUP_STATUS.get(message);
+    if (status) return c.json({ error: { code: message } }, status);
+    console.error('billing backup', error);
+    return c.json({ error: { code: 'upstream_unavailable' } }, 503);
+  }
+}
+
+async function readSmallJson(
+  request: Request,
+  limit = MAX_BODY_BYTES,
+): Promise<Record<string, unknown> | null> {
   const text = await request.text();
-  if (new TextEncoder().encode(text).byteLength > MAX_BODY_BYTES) return null;
+  if (new TextEncoder().encode(text).byteLength > limit) return null;
   try {
     return JSON.parse(text) as Record<string, unknown>;
   } catch {

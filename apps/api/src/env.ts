@@ -24,6 +24,12 @@ export interface Env {
   ACCESS_AUD?: string; // AUD tag của Access application
   /** Danh sách email được quản trị billing, phân cách bằng dấu phẩy. Rỗng = deny. */
   BILLING_ADMIN_EMAILS?: string;
+  /**
+   * Quyền RIÊNG cho sao lưu/phục hồi sổ quota. Tách khỏi `BILLING_ADMIN_EMAILS` vì hai việc khác
+   * hẳn nhau: cấp gói là nghiệp vụ hằng ngày, còn ghi đè sổ là thao tác xoá được lịch sử tiêu
+   * thụ của cả một thuê bao. Rỗng = deny.
+   */
+  BILLING_BACKUP_EMAILS?: string;
   /** Origin chính xác của UI billing nếu route mutation được gọi từ browser. */
   BILLING_ADMIN_ORIGIN?: string;
   /** Override URL JWKS cho test/E2E (Access giả lập). */

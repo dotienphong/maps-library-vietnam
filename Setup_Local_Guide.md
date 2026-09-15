@@ -179,6 +179,28 @@ phát hành và chủ động bật thành `1`. API quản trị billing còn y�
 mọi người. Có thể đặt `BILLING_ADMIN_ORIGIN` để các mutation chỉ nhận đúng Origin của trang admin.
 Không đưa các giá trị production hoặc Access token vào Git.
 
+### 4.2 Sao lưu và đối soát sổ quota
+
+Sổ tiêu thụ nằm trong Durable Object của từng tenant, **không** nằm trong Postgres, nên backup DB
+hằng ngày (mục 5) không chạm tới nó. Sao lưu riêng bằng:
+
+```bash
+# Xuất snapshot + đuôi journal, kiểm checksum, mã hoá rồi mới chốt checkpoint
+pnpm audit:quota export --tenant <uuid> --base http://127.0.0.1:8787
+
+# Kiểm một file đã lưu, không cần mạng
+pnpm audit:quota verify --file out/quota-audit/quota-20260916-0300.json.enc
+```
+
+`export` cần `BILLING_ACCESS_CLIENT_ID`/`BILLING_ACCESS_CLIENT_SECRET` (service token Cloudflare
+Access) và `BACKUP_PASSPHRASE` — cùng passphrase với backup DB, thiếu là script dừng chứ không
+upload file không mã hoá. Email vận hành phải nằm trong `BILLING_BACKUP_EMAILS`, một danh sách
+**tách riêng** khỏi `BILLING_ADMIN_EMAILS`: cấp gói và ghi đè sổ tiêu thụ là hai quyền khác nhau.
+
+Phục hồi ghi đè sổ nên có ba cổng chặn — chưa bật bảo trì, bản sao lưu cũ hơn sổ, hoặc object còn
+thấy traffic trong 60 giây qua. Quy trình đầy đủ, kể cả rollback, nằm ở
+`docs/evidence/billing/2026-09-15-quota-rollout.md`. Đừng nạp bản sao lưu lên object đang phục vụ.
+
 ## 5. Chế độ B — khôi phục full production data
 
 ### 5.1 Chuẩn bị secrets
