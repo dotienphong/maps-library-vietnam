@@ -1,5 +1,10 @@
 {
+  // `ignoreDeprecations` là để chịu `baseUrl`: TypeScript 6 báo lỗi TS5101 cho option này, nhưng
+  // KHÔNG phải ta khai — tsup 8.5.1 (bản mới nhất) tự tiêm `baseUrl: "."` khi sinh .d.ts
+  // (dist/rollup.js). Không có bản tsup nào sửa, nên phải tắt lỗi ở đây. Khi tsup bỏ dòng đó thì
+  // xoá cờ này. Lưu ý: `baseUrl` hết tác dụng hẳn ở TS 7 — mà TS 7 hiện bị @astrojs/check chặn.
   "compilerOptions": {
+    "ignoreDeprecations": "6.0",
     "target": "ES2022",
     "module": "ESNext",
     "moduleResolution": "Bundler",
