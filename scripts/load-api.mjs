@@ -236,12 +236,22 @@ export async function runComparison(base, arms, users, options = {}) {
   }
   const sleepImpl =
     options.sleepImpl ?? ((ms) => new Promise((resolve) => setTimeout(resolve, ms)));
-  /** @param {number} index */
-  const armOptions = (index) => ({ ...options, seed: index + 1 });
+  /**
+   * @param {number} index nhánh
+   * @param {number} round wave thứ mấy trong `repeat`
+   *
+   * Cold phải đổi dải URL theo TỪNG wave: lặp lại đúng bộ URL đó thì từ wave thứ hai trở đi là
+   * đo cache chứ không còn đo đường DB — lượt đo 15/09 cho `cacheHits` 25/30 ở chế độ cold vì
+   * lỗi này. Warm thì ngược lại, phải giữ nguyên dải để mọi wave cùng trúng một entry.
+   */
+  const armOptions = (index, round) => ({
+    ...options,
+    seed: options.cache === 'warm' ? index + 1 : (index + 1) * 97 + round,
+  });
 
   if (options.cache === 'warm') {
     for (const [index, arm] of arms.entries()) {
-      await runLevel(base, arm.key, 1, armOptions(index));
+      await runLevel(base, arm.key, 1, armOptions(index, 0));
     }
     await sleepImpl(WARMUP_SETTLE_MS);
   }
@@ -253,7 +263,7 @@ export async function runComparison(base, arms, users, options = {}) {
     const waves = [];
     for (let round = 0; round < repeat; round += 1) {
       if (round > 0) await sleepImpl(REPEAT_GAP_MS);
-      waves.push(await runLevel(base, arm.key, users, armOptions(index)));
+      waves.push(await runLevel(base, arm.key, users, armOptions(index, round)));
     }
     measured.push({ label: arm.label, ...pool(waves) });
   }

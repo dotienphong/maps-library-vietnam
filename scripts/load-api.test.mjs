@@ -431,3 +431,41 @@ describe('gộp mẫu qua nhiều wave', () => {
     ).rejects.toThrow('vượt ngân sách burst');
   });
 });
+
+describe('repeat không được biến cold thành warm', () => {
+  const arms = [{ label: 'a', key: 'kA' }];
+
+  /** @param {'cold'|'warm'} cache */
+  async function urlsFor(cache) {
+    /** @type {string[]} */
+    const urls = [];
+    await runComparison('https://api.test', arms, 2, {
+      cache,
+      repeat: 3,
+      cooldownMs: 0,
+      sleepImpl: async () => {},
+      fetchImpl: /** @type {typeof fetch} */ (
+        /** @type {unknown} */ (
+          async (/** @type {any} */ url) => {
+            urls.push(String(url));
+            return new Response('{}', { status: 200 });
+          }
+        )
+      ),
+    });
+    return urls;
+  }
+
+  it('cold: mỗi wave một dải URL mới, nếu không wave sau chỉ đo cache', async () => {
+    const urls = await urlsFor('cold');
+    expect(urls).toHaveLength(6);
+    expect(new Set(urls).size).toBe(6);
+  });
+
+  it('warm: mọi wave dùng lại đúng một URL, đó mới là ý nghĩa của warm', async () => {
+    const urls = await urlsFor('warm');
+    // 1 lượt mồi + 3 wave × 2 request, tất cả cùng một URL.
+    expect(urls).toHaveLength(7);
+    expect(new Set(urls).size).toBe(1);
+  });
+});
