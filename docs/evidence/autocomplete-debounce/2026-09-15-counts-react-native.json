@@ -1,0 +1,453 @@
+{
+  "package": "@mapslibvn/react-native",
+  "rows": [
+    {
+      "trace": "poi-ben-thanh",
+      "group": "poi",
+      "debounceMs": 200,
+      "total": 15,
+      "final": 1,
+      "partial": 14
+    },
+    {
+      "trace": "poi-ben-thanh",
+      "group": "poi",
+      "debounceMs": 300,
+      "total": 11,
+      "final": 1,
+      "partial": 10
+    },
+    {
+      "trace": "poi-ben-thanh",
+      "group": "poi",
+      "debounceMs": 500,
+      "total": 7,
+      "final": 1,
+      "partial": 6
+    },
+    {
+      "trace": "poi-ben-thanh",
+      "group": "poi",
+      "debounceMs": 800,
+      "total": 3,
+      "final": 1,
+      "partial": 2
+    },
+    {
+      "trace": "poi-highlands",
+      "group": "poi",
+      "debounceMs": 200,
+      "total": 14,
+      "final": 1,
+      "partial": 13
+    },
+    {
+      "trace": "poi-highlands",
+      "group": "poi",
+      "debounceMs": 300,
+      "total": 9,
+      "final": 1,
+      "partial": 8
+    },
+    {
+      "trace": "poi-highlands",
+      "group": "poi",
+      "debounceMs": 500,
+      "total": 3,
+      "final": 1,
+      "partial": 2
+    },
+    {
+      "trace": "poi-highlands",
+      "group": "poi",
+      "debounceMs": 800,
+      "total": 1,
+      "final": 1,
+      "partial": 0
+    },
+    {
+      "trace": "poi-cho-ray",
+      "group": "poi",
+      "debounceMs": 200,
+      "total": 19,
+      "final": 1,
+      "partial": 18
+    },
+    {
+      "trace": "poi-cho-ray",
+      "group": "poi",
+      "debounceMs": 300,
+      "total": 8,
+      "final": 1,
+      "partial": 7
+    },
+    {
+      "trace": "poi-cho-ray",
+      "group": "poi",
+      "debounceMs": 500,
+      "total": 3,
+      "final": 1,
+      "partial": 2
+    },
+    {
+      "trace": "poi-cho-ray",
+      "group": "poi",
+      "debounceMs": 800,
+      "total": 2,
+      "final": 1,
+      "partial": 1
+    },
+    {
+      "trace": "addr-nguyen-hue",
+      "group": "address",
+      "debounceMs": 200,
+      "total": 21,
+      "final": 1,
+      "partial": 20
+    },
+    {
+      "trace": "addr-nguyen-hue",
+      "group": "address",
+      "debounceMs": 300,
+      "total": 14,
+      "final": 1,
+      "partial": 13
+    },
+    {
+      "trace": "addr-nguyen-hue",
+      "group": "address",
+      "debounceMs": 500,
+      "total": 4,
+      "final": 1,
+      "partial": 3
+    },
+    {
+      "trace": "addr-nguyen-hue",
+      "group": "address",
+      "debounceMs": 800,
+      "total": 1,
+      "final": 1,
+      "partial": 0
+    },
+    {
+      "trace": "addr-le-loi",
+      "group": "address",
+      "debounceMs": 200,
+      "total": 14,
+      "final": 1,
+      "partial": 13
+    },
+    {
+      "trace": "addr-le-loi",
+      "group": "address",
+      "debounceMs": 300,
+      "total": 10,
+      "final": 1,
+      "partial": 9
+    },
+    {
+      "trace": "addr-le-loi",
+      "group": "address",
+      "debounceMs": 500,
+      "total": 4,
+      "final": 1,
+      "partial": 3
+    },
+    {
+      "trace": "addr-le-loi",
+      "group": "address",
+      "debounceMs": 800,
+      "total": 1,
+      "final": 1,
+      "partial": 0
+    },
+    {
+      "trace": "cat-ca-phe",
+      "group": "category",
+      "debounceMs": 200,
+      "total": 7,
+      "final": 1,
+      "partial": 6
+    },
+    {
+      "trace": "cat-ca-phe",
+      "group": "category",
+      "debounceMs": 300,
+      "total": 4,
+      "final": 1,
+      "partial": 3
+    },
+    {
+      "trace": "cat-ca-phe",
+      "group": "category",
+      "debounceMs": 500,
+      "total": 2,
+      "final": 1,
+      "partial": 1
+    },
+    {
+      "trace": "cat-ca-phe",
+      "group": "category",
+      "debounceMs": 800,
+      "total": 1,
+      "final": 1,
+      "partial": 0
+    },
+    {
+      "trace": "cat-cay-xang",
+      "group": "category",
+      "debounceMs": 200,
+      "total": 21,
+      "final": 1,
+      "partial": 20
+    },
+    {
+      "trace": "cat-cay-xang",
+      "group": "category",
+      "debounceMs": 300,
+      "total": 9,
+      "final": 1,
+      "partial": 8
+    },
+    {
+      "trace": "cat-cay-xang",
+      "group": "category",
+      "debounceMs": 500,
+      "total": 3,
+      "final": 1,
+      "partial": 2
+    },
+    {
+      "trace": "cat-cay-xang",
+      "group": "category",
+      "debounceMs": 800,
+      "total": 1,
+      "final": 1,
+      "partial": 0
+    },
+    {
+      "trace": "route-from-bach-khoa",
+      "group": "route",
+      "debounceMs": 200,
+      "total": 21,
+      "final": 1,
+      "partial": 20
+    },
+    {
+      "trace": "route-from-bach-khoa",
+      "group": "route",
+      "debounceMs": 300,
+      "total": 14,
+      "final": 1,
+      "partial": 13
+    },
+    {
+      "trace": "route-from-bach-khoa",
+      "group": "route",
+      "debounceMs": 500,
+      "total": 4,
+      "final": 1,
+      "partial": 3
+    },
+    {
+      "trace": "route-from-bach-khoa",
+      "group": "route",
+      "debounceMs": 800,
+      "total": 1,
+      "final": 1,
+      "partial": 0
+    },
+    {
+      "trace": "route-to-tan-son-nhat",
+      "group": "route",
+      "debounceMs": 200,
+      "total": 20,
+      "final": 1,
+      "partial": 19
+    },
+    {
+      "trace": "route-to-tan-son-nhat",
+      "group": "route",
+      "debounceMs": 300,
+      "total": 12,
+      "final": 1,
+      "partial": 11
+    },
+    {
+      "trace": "route-to-tan-son-nhat",
+      "group": "route",
+      "debounceMs": 500,
+      "total": 5,
+      "final": 1,
+      "partial": 4
+    },
+    {
+      "trace": "route-to-tan-son-nhat",
+      "group": "route",
+      "debounceMs": 800,
+      "total": 2,
+      "final": 1,
+      "partial": 1
+    },
+    {
+      "trace": "fix-ben-thanh",
+      "group": "fix",
+      "debounceMs": 200,
+      "total": 18,
+      "final": 2,
+      "partial": 16
+    },
+    {
+      "trace": "fix-ben-thanh",
+      "group": "fix",
+      "debounceMs": 300,
+      "total": 10,
+      "final": 2,
+      "partial": 8
+    },
+    {
+      "trace": "fix-ben-thanh",
+      "group": "fix",
+      "debounceMs": 500,
+      "total": 5,
+      "final": 2,
+      "partial": 3
+    },
+    {
+      "trace": "fix-ben-thanh",
+      "group": "fix",
+      "debounceMs": 800,
+      "total": 3,
+      "final": 2,
+      "partial": 1
+    },
+    {
+      "trace": "fix-highlands",
+      "group": "fix",
+      "debounceMs": 200,
+      "total": 11,
+      "final": 1,
+      "partial": 10
+    },
+    {
+      "trace": "fix-highlands",
+      "group": "fix",
+      "debounceMs": 300,
+      "total": 9,
+      "final": 1,
+      "partial": 8
+    },
+    {
+      "trace": "fix-highlands",
+      "group": "fix",
+      "debounceMs": 500,
+      "total": 5,
+      "final": 1,
+      "partial": 4
+    },
+    {
+      "trace": "fix-highlands",
+      "group": "fix",
+      "debounceMs": 800,
+      "total": 2,
+      "final": 1,
+      "partial": 1
+    },
+    {
+      "trace": "fix-nguyen-hue",
+      "group": "fix",
+      "debounceMs": 200,
+      "total": 15,
+      "final": 1,
+      "partial": 14
+    },
+    {
+      "trace": "fix-nguyen-hue",
+      "group": "fix",
+      "debounceMs": 300,
+      "total": 13,
+      "final": 1,
+      "partial": 12
+    },
+    {
+      "trace": "fix-nguyen-hue",
+      "group": "fix",
+      "debounceMs": 500,
+      "total": 5,
+      "final": 1,
+      "partial": 4
+    },
+    {
+      "trace": "fix-nguyen-hue",
+      "group": "fix",
+      "debounceMs": 800,
+      "total": 1,
+      "final": 1,
+      "partial": 0
+    },
+    {
+      "trace": "fix-ca-phe",
+      "group": "fix",
+      "debounceMs": 200,
+      "total": 18,
+      "final": 1,
+      "partial": 17
+    },
+    {
+      "trace": "fix-ca-phe",
+      "group": "fix",
+      "debounceMs": 300,
+      "total": 11,
+      "final": 1,
+      "partial": 10
+    },
+    {
+      "trace": "fix-ca-phe",
+      "group": "fix",
+      "debounceMs": 500,
+      "total": 5,
+      "final": 1,
+      "partial": 4
+    },
+    {
+      "trace": "fix-ca-phe",
+      "group": "fix",
+      "debounceMs": 800,
+      "total": 1,
+      "final": 1,
+      "partial": 0
+    },
+    {
+      "trace": "fix-tan-son-nhat",
+      "group": "fix",
+      "debounceMs": 200,
+      "total": 24,
+      "final": 1,
+      "partial": 23
+    },
+    {
+      "trace": "fix-tan-son-nhat",
+      "group": "fix",
+      "debounceMs": 300,
+      "total": 15,
+      "final": 1,
+      "partial": 14
+    },
+    {
+      "trace": "fix-tan-son-nhat",
+      "group": "fix",
+      "debounceMs": 500,
+      "total": 7,
+      "final": 1,
+      "partial": 6
+    },
+    {
+      "trace": "fix-tan-son-nhat",
+      "group": "fix",
+      "debounceMs": 800,
+      "total": 2,
+      "final": 1,
+      "partial": 1
+    }
+  ]
+}
