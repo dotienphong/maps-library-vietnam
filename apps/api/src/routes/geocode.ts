@@ -36,7 +36,7 @@ function geocodeParams(c: import('hono').Context<AppEnv>) {
 
 geocodeRoute.get(
   '/v1/geocode',
-  requireAuth(),
+  requireAuth('places:read', { deferRevocation: true }),
   quotaMiddleware('places', geocodeParams),
   async (c) => {
     const { query, near, limit } = geocodeParams(c);

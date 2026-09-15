@@ -86,6 +86,7 @@ type PeriodRow = {
 type ReservationRow = {
   request_id: string;
   group_name: QuotaGroup;
+  key_hash?: string | null;
   state: SettlementReceipt['state'];
   source_kind: 'period' | 'credit';
   source_id: string;
@@ -338,6 +339,14 @@ export class QuotaObject extends DurableObject<Env> {
     const now = Date.now();
     let result!: ReserveResult;
     this.ctx.storage.transactionSync(() => {
+      // Khoá bị thu hồi đứng ĐẦU TIÊN: đây là câu hỏi về danh tính người gọi, cơ bản hơn mọi câu
+      // hỏi về hạn mức. Trước 15/09/2026 phép kiểm này là một vòng gọi RPC riêng trong `auth.ts`;
+      // đo trên production cho thấy nó tốn ~126 ms — đúng bằng một vòng mạng tới object — nên gộp
+      // vào đây, nơi transaction đã mở sẵn và không tốn thêm vòng nào.
+      if (keyHash !== undefined && this.keyRevoked(keyHash)) {
+        result = denied(group, 'key_revoked');
+        return;
+      }
       // Bảo trì đứng TRƯỚC cả reservation đang có: lúc sổ đang được ghi đè thì không lượt nào
       // được cấp thêm, kể cả lượt retry cùng requestId của một request đang dở.
       if (this.maintenance()) {
@@ -516,6 +525,11 @@ export class QuotaObject extends DurableObject<Env> {
     this.ctx.storage.transactionSync(() => {
       this.cleanupExpired(now, 32);
       const row = this.requiredReservation(requestId);
+      // Khoá bị thu hồi giữa lúc receipt còn treo: spec mục 6 chọn cho receipt hết hạn và KHÔNG
+      // tính tiền. Kiểm ở đây vì `auth.ts` không còn gọi `isKeyRevoked` cho route dữ liệu nữa.
+      if (row.key_hash && this.keyRevoked(row.key_hash)) {
+        throw new BillingCommandError('key_revoked');
+      }
       if (row.state === 'committed') {
         if (row.token_hash !== tokenHash) throw new BillingCommandError('invalid_receipt_token');
         receipt = settlement(row);
@@ -708,8 +722,17 @@ export class QuotaObject extends DurableObject<Env> {
     return receipt;
   }
 
+  /**
+   * Giữ lại cho công cụ vận hành và test. Đường nóng KHÔNG dùng: mỗi lời gọi là một vòng mạng
+   * tới object, đo được ~126 ms trên production — `reserve` và `ack` tự kiểm bằng `keyRevoked`.
+   */
   async isKeyRevoked(keyHash: string): Promise<boolean> {
     if (!/^[a-f0-9]{64}$/.test(keyHash)) return true;
+    return this.keyRevoked(keyHash);
+  }
+
+  /** Bản đồng bộ, gọi được bên trong transaction. */
+  private keyRevoked(keyHash: string): boolean {
     return (
       this.ctx.storage.sql
         .exec('SELECT 1 AS revoked FROM revoked_key WHERE key_hash=?', keyHash)
@@ -1078,7 +1101,7 @@ export class QuotaObject extends DurableObject<Env> {
   private reservation(requestId: string): ReservationRow | undefined {
     return this.ctx.storage.sql
       .exec(
-        `SELECT request_id,group_name,state,source_kind,source_id,day_key,token_hash,deadline
+        `SELECT request_id,group_name,key_hash,state,source_kind,source_id,day_key,token_hash,deadline
        FROM reservation WHERE request_id=?`,
         requestId,
       )

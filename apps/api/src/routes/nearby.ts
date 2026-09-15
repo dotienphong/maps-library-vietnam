@@ -38,13 +38,17 @@ function nearbyParams(c: import('hono').Context<AppEnv>) {
   }
 }
 
-nearby.get('/v1/nearby', requireAuth(), quotaMiddleware('places', nearbyParams), async (c) => {
-  const { lat, lng, radius, limit, sources } = nearbyParams(c);
-  const category = c.req.query('category');
-  const sql = getSql(c.env);
-  try {
-    const point = sql`ST_SetSRID(ST_MakePoint(${lng}, ${lat}), 4326)`;
-    const rows = await sql<PlaceRow[]>`
+nearby.get(
+  '/v1/nearby',
+  requireAuth('places:read', { deferRevocation: true }),
+  quotaMiddleware('places', nearbyParams),
+  async (c) => {
+    const { lat, lng, radius, limit, sources } = nearbyParams(c);
+    const category = c.req.query('category');
+    const sql = getSql(c.env);
+    try {
+      const point = sql`ST_SetSRID(ST_MakePoint(${lng}, ${lat}), 4326)`;
+      const rows = await sql<PlaceRow[]>`
       SELECT ${placeColumns(sql)}, ST_DistanceSphere(p.geom, ${point}) AS d
       FROM poi p LEFT JOIN category c ON c.code = p.category
       WHERE p.status = 'active'
@@ -53,12 +57,13 @@ nearby.get('/v1/nearby', requireAuth(), quotaMiddleware('places', nearbyParams),
         ${category ? sql`AND p.category = ${category}` : sql``}
       ORDER BY d ASC
       LIMIT ${limit}`;
-    return c.json({ items: rows.map(toPlace) });
-  } catch (error) {
-    if (error instanceof ApiError) throw error;
-    console.error('nearby', error);
-    throw new ApiError(503, 'upstream_unavailable', 'Không truy vấn được DB');
-  } finally {
-    c.executionCtx.waitUntil(sql.end({ timeout: 1 }));
-  }
-});
+      return c.json({ items: rows.map(toPlace) });
+    } catch (error) {
+      if (error instanceof ApiError) throw error;
+      console.error('nearby', error);
+      throw new ApiError(503, 'upstream_unavailable', 'Không truy vấn được DB');
+    } finally {
+      c.executionCtx.waitUntil(sql.end({ timeout: 1 }));
+    }
+  },
+);

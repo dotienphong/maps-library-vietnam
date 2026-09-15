@@ -41,6 +41,11 @@ quotaReceipts.post(
       if (message === 'reservation_not_found') {
         throw new ApiError(404, 'receipt_not_found', 'Không có receipt này');
       }
+      // Khoá bị thu hồi giữa lúc receipt còn treo: từ chối ACK, receipt tự hết hạn, không charge
+      // (spec mục 6). `auth.ts` không còn kiểm chỗ này cho route dữ liệu nên `ack` tự kiểm.
+      if (message === 'key_revoked') {
+        throw new ApiError(401, 'invalid_key', 'Khoá API không hợp lệ hoặc đã thu hồi');
+      }
       if (message === 'invalid_receipt_token') {
         throw new ApiError(403, 'invalid_receipt_token', 'Receipt token không hợp lệ');
       }

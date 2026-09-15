@@ -33,21 +33,25 @@ function reverseParams(c: import('hono').Context<AppEnv>) {
   }
 }
 
-reverse.get('/v1/reverse', requireAuth(), quotaMiddleware('places', reverseParams), async (c) => {
-  const { lat, lng, sources } = reverseParams(c);
-  const sql = getSql(c.env);
-  try {
-    const point = sql`ST_SetSRID(ST_MakePoint(${lng}, ${lat}), 4326)`;
-    const [street] = await sql<{ name: string; name_norm: string }[]>`
+reverse.get(
+  '/v1/reverse',
+  requireAuth('places:read', { deferRevocation: true }),
+  quotaMiddleware('places', reverseParams),
+  async (c) => {
+    const { lat, lng, sources } = reverseParams(c);
+    const sql = getSql(c.env);
+    try {
+      const point = sql`ST_SetSRID(ST_MakePoint(${lng}, ${lat}), 4326)`;
+      const [street] = await sql<{ name: string; name_norm: string }[]>`
       SELECT name, name_norm
       FROM street
       WHERE ST_DWithin(geom::geography, ${point}::geography, 150)
       ORDER BY ST_Distance(geom::geography, ${point}::geography) ASC
       LIMIT 1`;
 
-    let approximateHouseNumber: string | undefined;
-    if (street) {
-      const anchors = await sql<{ hn: number }[]>`
+      let approximateHouseNumber: string | undefined;
+      if (street) {
+        const anchors = await sql<{ hn: number }[]>`
         SELECT CASE
           WHEN housenumber ~ ${INTEGER_HOUSE_NUMBER_PATTERN} THEN housenumber::int
         END AS hn
@@ -57,25 +61,25 @@ reverse.get('/v1/reverse', requireAuth(), quotaMiddleware('places', reverseParam
           AND ST_DWithin(geom::geography, ${point}::geography, 300)
         ORDER BY ST_DistanceSphere(geom, ${point}) ASC
         LIMIT 2`;
-      const [first, second] = anchors;
-      if (first && second) {
-        const lower = Math.min(first.hn, second.hn);
-        const upper = Math.max(first.hn, second.hn);
-        approximateHouseNumber = lower === upper ? `≈ ${lower}` : `≈ ${lower}–${upper}`;
-      } else if (first) {
-        approximateHouseNumber = `≈ ${first.hn}`;
+        const [first, second] = anchors;
+        if (first && second) {
+          const lower = Math.min(first.hn, second.hn);
+          const upper = Math.max(first.hn, second.hn);
+          approximateHouseNumber = lower === upper ? `≈ ${lower}` : `≈ ${lower}–${upper}`;
+        } else if (first) {
+          approximateHouseNumber = `≈ ${first.hn}`;
+        }
       }
-    }
 
-    const admins = await sql<{ name: string; level: number }[]>`
+      const admins = await sql<{ name: string; level: number }[]>`
       SELECT name, level
       FROM admin_area
       WHERE ST_Contains(geom, ${point}) AND level IN (4, 8)
       ORDER BY level DESC`;
-    const ward = admins.find((admin) => admin.level === 8)?.name;
-    const province = admins.find((admin) => admin.level === 4)?.name;
+      const ward = admins.find((admin) => admin.level === 8)?.name;
+      const province = admins.find((admin) => admin.level === 4)?.name;
 
-    const [poiRow] = await sql<PlaceRow[]>`
+      const [poiRow] = await sql<PlaceRow[]>`
       SELECT ${placeColumns(sql)}
       FROM poi p LEFT JOIN category c ON c.code = p.category
       WHERE p.status = 'active'
@@ -83,32 +87,35 @@ reverse.get('/v1/reverse', requireAuth(), quotaMiddleware('places', reverseParam
         AND ST_DWithin(p.geom::geography, ${point}::geography, 100)
       ORDER BY ST_DistanceSphere(p.geom, ${point}) ASC
       LIMIT 1`;
-    const nearestPoi = poiRow ? toPlace(poiRow) : null;
+      const nearestPoi = poiRow ? toPlace(poiRow) : null;
 
-    const displayName = [
-      approximateHouseNumber && street ? `${approximateHouseNumber} ${street.name}` : street?.name,
-      !street && nearestPoi ? `gần ${nearestPoi.name}` : undefined,
-      ward,
-      province,
-    ]
-      .filter(Boolean)
-      .join(', ');
+      const displayName = [
+        approximateHouseNumber && street
+          ? `${approximateHouseNumber} ${street.name}`
+          : street?.name,
+        !street && nearestPoi ? `gần ${nearestPoi.name}` : undefined,
+        ward,
+        province,
+      ]
+        .filter(Boolean)
+        .join(', ');
 
-    return c.json({
-      address: {
-        ...(approximateHouseNumber ? { approx_housenumber: approximateHouseNumber } : {}),
-        ...(street ? { street: street.name } : {}),
-        ...(ward ? { ward } : {}),
-        ...(province ? { province } : {}),
-        display_name: displayName,
-      },
-      nearest_poi: nearestPoi,
-    });
-  } catch (error) {
-    if (error instanceof ApiError) throw error;
-    console.error('reverse', error);
-    throw new ApiError(503, 'upstream_unavailable', 'Không truy vấn được DB');
-  } finally {
-    c.executionCtx.waitUntil(sql.end({ timeout: 1 }));
-  }
-});
+      return c.json({
+        address: {
+          ...(approximateHouseNumber ? { approx_housenumber: approximateHouseNumber } : {}),
+          ...(street ? { street: street.name } : {}),
+          ...(ward ? { ward } : {}),
+          ...(province ? { province } : {}),
+          display_name: displayName,
+        },
+        nearest_poi: nearestPoi,
+      });
+    } catch (error) {
+      if (error instanceof ApiError) throw error;
+      console.error('reverse', error);
+      throw new ApiError(503, 'upstream_unavailable', 'Không truy vấn được DB');
+    } finally {
+      c.executionCtx.waitUntil(sql.end({ timeout: 1 }));
+    }
+  },
+);

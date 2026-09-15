@@ -124,6 +124,7 @@ async function loadAuth(
   c: Context<AppEnv>,
   key: string,
   admissionGate: boolean,
+  deferRevocation: boolean,
 ): Promise<AuthInfo | null> {
   const keyHash = await sha256Hex(key);
   const kvKey = `apikey:${keyHash}`;
@@ -141,7 +142,7 @@ async function loadAuth(
         quotaDirectionsPerDay: info.quotaDirectionsPerDay ?? null,
         quotaMode: info.quotaMode ?? 'legacy',
       } satisfies AuthInfo;
-      return validateCommercialAuth(c, normalized, admissionGate);
+      return validateCommercialAuth(c, normalized, admissionGate, deferRevocation);
     }
   }
 
@@ -175,7 +176,7 @@ async function loadAuth(
     c.executionCtx.waitUntil(
       c.env.META.put(kvKey, JSON.stringify(info), { expirationTtl: KV_TTL_S }),
     );
-    return validateCommercialAuth(c, info, admissionGate);
+    return validateCommercialAuth(c, info, admissionGate, deferRevocation);
   } finally {
     c.executionCtx.waitUntil(sql.end({ timeout: 1 }));
   }
@@ -185,6 +186,7 @@ async function validateCommercialAuth(
   c: Context<AppEnv>,
   info: AuthInfo,
   admissionGate: boolean,
+  deferRevocation: boolean,
 ): Promise<AuthInfo | null> {
   if ((info.quotaMode ?? 'legacy') !== 'commercial') return info;
   // Ném ApiError chứ không phải Error trần: requireAuth gói mọi lỗi lạ thành
@@ -199,9 +201,12 @@ async function validateCommercialAuth(
   if (admissionGate && c.env.COMMERCIAL_ADMISSION !== '1') {
     throw new ApiError(503, 'quota_unavailable', 'Quota thương mại đang tạm đóng');
   }
+  // Route nào sẽ gọi `reserve` thì `reserve` tự kiểm khoá thu hồi trong chính transaction của nó.
+  // Kiểm ở đây nữa là thêm một vòng mạng tới object cho MỖI request — đo trên production
+  // 15/09/2026: ~126 ms, đúng bằng một phần ba tổng chi phí quota. Mặc định vẫn kiểm ở đây, để
+  // route mới quên khai báo thì chậm chứ không hở.
+  if (deferRevocation) return info;
   const object = c.env.QUOTA.get(c.env.QUOTA.idFromName(info.tenantId));
-  // Vòng gọi Durable Object THỨ NHẤT của đường nóng thương mại. Mô hình chi phí ở Task 0 chỉ tính
-  // reserve + prepare, nên vòng này là phần chưa ai tính tới — đo để biết nó đáng bao nhiêu.
   if (await timed(c, 'revoke', () => object.isKeyRevoked(info.keyHash))) return null;
   return info;
 }
@@ -214,7 +219,10 @@ async function validateCommercialAuth(
  * `ack_required` tới 24 giờ sau khi mở lại — tức kill switch tự gây sự cố. ACK không tiêu quota,
  * không chạm origin; kiểm khoá thu hồi và cấu hình sai vẫn áp dụng bình thường.
  */
-export function requireAuth(scope = 'places:read', options: { admissionGate?: boolean } = {}) {
+export function requireAuth(
+  scope = 'places:read',
+  options: { admissionGate?: boolean; deferRevocation?: boolean } = {},
+) {
   return async (c: Context<AppEnv>, next: Next) => {
     // Chỉ nhận header: khoá trên URL lọt vào log CDN, Referer và cache trung gian.
     const key = c.req.header('X-Api-Key');
@@ -229,7 +237,12 @@ export function requireAuth(scope = 'places:read', options: { admissionGate?: bo
 
     let info: AuthInfo | null;
     try {
-      info = await loadAuth(c, key, options.admissionGate ?? true);
+      info = await loadAuth(
+        c,
+        key,
+        options.admissionGate ?? true,
+        options.deferRevocation ?? false,
+      );
     } catch (err) {
       if (err instanceof ApiError) throw err;
       console.error('auth', err);

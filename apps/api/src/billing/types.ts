@@ -47,7 +47,8 @@ export type ReserveResult =
         | 'trial_total'
         | 'ack_required'
         | 'concurrency_limit'
-        | 'maintenance';
+        | 'maintenance'
+        | 'key_revoked';
       group: QuotaGroup;
       resetAt: string | null;
     };

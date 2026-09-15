@@ -59,7 +59,7 @@ export const autocompleteCacheUrl = (input: {
 
 autocomplete.get(
   '/v1/autocomplete',
-  requireAuth(),
+  requireAuth('places:read', { deferRevocation: true }),
   quotaMiddleware('places', autocompleteParams),
   async (c) => {
     const { query, queryNorm, near, limit, types, sources } = autocompleteParams(c);

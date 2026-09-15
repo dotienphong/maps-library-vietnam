@@ -105,6 +105,11 @@ export function quotaMiddleware(group: QuotaGroup, preflight?: (c: Context<AppEn
 }
 
 type DenialReason = Extract<ReserveResult, { allowed: false }>['reason'];
+/**
+ * `key_revoked` không nằm trong bảng dưới: nó không phải chuyện hạn mức mà là chuyện danh tính,
+ * nên trả đúng 401 `invalid_key` như `requireAuth` vẫn trả, không kèm `details` quota.
+ */
+type QuotaDenialReason = Exclude<DenialReason, 'key_revoked'>;
 
 /**
  * Lý do từ chối → hợp đồng lỗi công khai. Không gộp tất cả thành "hết quota, mua thêm":
@@ -112,7 +117,7 @@ type DenialReason = Extract<ReserveResult, { allowed: false }>['reason'];
  * 14.4 cấm gợi ý mua thêm cho nghẽn tạm thời.
  */
 const QUOTA_DENIAL: Record<
-  DenialReason,
+  QuotaDenialReason,
   {
     status: 403 | 429 | 503;
     code: string;
@@ -208,6 +213,9 @@ async function commercialQuota(
     ),
   );
   if (!reservation.allowed) {
+    if (reservation.reason === 'key_revoked') {
+      throw new ApiError(401, 'invalid_key', 'Khoá API không hợp lệ hoặc đã thu hồi');
+    }
     const denial = QUOTA_DENIAL[reservation.reason];
     // resetAt chỉ có khi thật sự có mốc cấp lại (spec mục 9): hạn mức ngày của trial thì có,
     // còn kỳ trả phí chưa thanh toán thì KHÔNG hứa reset.

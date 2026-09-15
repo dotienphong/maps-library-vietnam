@@ -32,7 +32,7 @@ async function graphBuiltAt(c: Context<AppEnv>): Promise<string | null> {
 
 directions.get(
   '/v1/directions',
-  requireAuth(),
+  requireAuth('places:read', { deferRevocation: true }),
   quotaMiddleware('directions', (c) => {
     parseDirectionsParams(c.req.query());
   }),

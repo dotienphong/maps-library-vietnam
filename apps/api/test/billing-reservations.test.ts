@@ -307,6 +307,27 @@ describe('QuotaObject reservations', () => {
     expect((await second.object.reserve('p2', 'places')).allowed).toBe(true);
   });
 
+  it('từ chối ngay trong reserve khi khoá đã thu hồi, trước cả câu hỏi hạn mức', async () => {
+    const tenant = crypto.randomUUID();
+    const object = env.QUOTA.get(env.QUOTA.idFromName(tenant));
+    const keyHash = 'c'.repeat(64);
+    await object.setKeyRevoked(keyHash, true, crypto.randomUUID(), 'billing@test.local', 'lộ khoá');
+
+    // Tenant này chưa có quyền sử dụng nào. Nếu phép kiểm thu hồi đặt sau phép kiểm quyền thì
+    // kết quả sẽ là `no_entitlement` (403) — sai bản chất: đây là câu hỏi danh tính, không phải
+    // câu hỏi hạn mức, và người gọi phải nhận 401 như mọi bề mặt khác.
+    expect(await object.reserve(crypto.randomUUID(), 'places', keyHash)).toMatchObject({
+      allowed: false,
+      reason: 'key_revoked',
+    });
+
+    // Khoá khác của cùng tenant không bị vạ lây.
+    expect(await object.reserve(crypto.randomUUID(), 'places', 'd'.repeat(64))).toMatchObject({
+      allowed: false,
+      reason: 'no_entitlement',
+    });
+  });
+
   it('releases pending receipts on key revocation without recording a missing ACK', async () => {
     const { object } = await provision();
     const keyHash = 'b'.repeat(64);
@@ -324,8 +345,11 @@ describe('QuotaObject reservations', () => {
       state: 'released',
       charged: false,
     });
+    // `key_revoked` chứ không phải `receipt_closed` chung chung: từ 15/09/2026 `ack` tự kiểm khoá
+    // thu hồi, vì `auth.ts` không còn gọi `isKeyRevoked` cho route dữ liệu (một vòng mạng ~126 ms).
+    // Người gọi nhận 401 `invalid_key` ở đây, giống hệt mọi bề mặt khác, thay vì 409 mơ hồ.
     expect(await objectError(object, (instance) => instance.ack('revoked-pending', token))).toBe(
-      'receipt_closed',
+      'key_revoked',
     );
     await runInDurableObject(object, (_instance, state) => {
       expect(state.storage.sql.exec('SELECT count(*) AS count FROM missed_ack').one()).toEqual({
