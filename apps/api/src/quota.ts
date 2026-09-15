@@ -3,6 +3,7 @@ import type { AuthInfo } from './auth';
 import type { ReserveResult, SettlementReceipt } from './billing/types';
 import type { AppEnv, Env } from './env';
 import { ApiError } from './errors';
+import { serverTiming, timed } from './timing';
 
 /** Mặc định plan free (spec 6.4): 20.000 places/ngày. */
 export const FREE_PLACES_PER_DAY = 20_000;
@@ -201,8 +202,10 @@ async function commercialQuota(
   // chạy tới trong production. Hàm này chỉ lo phần ĐO ĐẾM.
   const requestId = crypto.randomUUID();
   const object = c.env.QUOTA.get(c.env.QUOTA.idFromName(auth.tenantId));
-  const reservation = await quotaRpc(
-    () => object.reserve(requestId, group, auth.keyHash) as unknown as Promise<ReserveResult>,
+  const reservation = await timed(c, 'reserve', () =>
+    quotaRpc(
+      () => object.reserve(requestId, group, auth.keyHash) as unknown as Promise<ReserveResult>,
+    ),
   );
   if (!reservation.allowed) {
     const denial = QUOTA_DENIAL[reservation.reason];
@@ -251,7 +254,7 @@ async function commercialQuota(
   const tokenHash = await sha256Token(token);
   let receipt: SettlementReceipt;
   try {
-    receipt = await quotaRpc(() => object.prepare(requestId, tokenHash));
+    receipt = await timed(c, 'prepare', () => quotaRpc(() => object.prepare(requestId, tokenHash)));
   } catch (error) {
     await releaseQuietly(object, requestId, 'prepare_failed');
     throw error;
@@ -262,6 +265,10 @@ async function commercialQuota(
   // Hạn do DO cấp, không tự suy từ hằng số phía Worker: DO mới là nơi giữ đồng hồ lease.
   response.headers.set('x-mapslibvn-receipt-expires-at', receipt.expiresAt);
   response.headers.set('x-mapslibvn-receipt-version', RECEIPT_VERSION);
+  // Thời gian từng vòng gọi sổ quota. Không có nó thì "thương mại chậm hơn legacy 677 ms" là một
+  // con số không hành động được: không biết nên sửa số vòng gọi hay sửa vị trí object.
+  const timing = serverTiming(c);
+  if (timing) response.headers.set('server-timing', timing);
 }
 
 /**

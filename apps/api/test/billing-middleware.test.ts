@@ -255,4 +255,22 @@ describe('commercial quota middleware', () => {
     expect(body.error.code).toBe('subscription_expired');
     expect(body.error.details.actions).not.toContain('buy_more');
   });
+
+  it('phát Server-Timing cho từng vòng gọi sổ quota', async () => {
+    const { app } = await fixture(200);
+    const response = await app.request('https://api.test/fixture', {}, env);
+    expect(response.status).toBe(200);
+    const timing = response.headers.get('server-timing') ?? '';
+    // Không có dòng này thì "thương mại chậm hơn legacy 677 ms" là con số không hành động được:
+    // không biết nên bỏ bớt vòng gọi hay xử lý vị trí object.
+    expect(timing).toMatch(/reserve;dur=\d+/);
+    expect(timing).toMatch(/prepare;dur=\d+/);
+  });
+
+  it('không phát Server-Timing khi request lỗi không chạm tới prepare', async () => {
+    const { app } = await fixture(404);
+    const response = await app.request('https://api.test/fixture', {}, env);
+    expect(response.status).toBe(404);
+    expect(response.headers.get('server-timing')).toBeNull();
+  });
 });

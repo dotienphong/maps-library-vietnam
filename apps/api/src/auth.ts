@@ -3,6 +3,7 @@ import { getSql } from './db';
 import { sha256Hex } from './edits/hash';
 import type { AppEnv } from './env';
 import { ApiError } from './errors';
+import { timed } from './timing';
 
 /**
  * Audit 09/09/2026: DB, KV, analytics và `poi_edit.api_key` chỉ giữ `sha256(khoá)`. Khoá plaintext
@@ -199,7 +200,9 @@ async function validateCommercialAuth(
     throw new ApiError(503, 'quota_unavailable', 'Quota thương mại đang tạm đóng');
   }
   const object = c.env.QUOTA.get(c.env.QUOTA.idFromName(info.tenantId));
-  if (await object.isKeyRevoked(info.keyHash)) return null;
+  // Vòng gọi Durable Object THỨ NHẤT của đường nóng thương mại. Mô hình chi phí ở Task 0 chỉ tính
+  // reserve + prepare, nên vòng này là phần chưa ai tính tới — đo để biết nó đáng bao nhiêu.
+  if (await timed(c, 'revoke', () => object.isKeyRevoked(info.keyHash))) return null;
   return info;
 }
 

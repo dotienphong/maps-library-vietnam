@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { runComparison, runLevel, runMixed, runRamp } from './load-api.mjs';
+import { parseServerTiming, runComparison, runLevel, runMixed, runRamp } from './load-api.mjs';
 
 const ok =
   (delayMs = 0) =>
@@ -467,5 +467,44 @@ describe('repeat không được biến cold thành warm', () => {
     // 1 lượt mồi + 3 wave × 2 request, tất cả cùng một URL.
     expect(urls).toHaveLength(7);
     expect(new Set(urls).size).toBe(1);
+  });
+});
+
+describe('đọc Server-Timing của sổ quota', () => {
+  it('tách được từng vòng gọi, bỏ qua phần rác', () => {
+    expect(parseServerTiming('revoke;dur=12, reserve;dur=210.5, prepare;dur=198')).toEqual({
+      revoke: 12,
+      reserve: 210.5,
+      prepare: 198,
+    });
+    expect(parseServerTiming('cf-cache;desc="HIT", reserve;dur=7')).toEqual({ reserve: 7 });
+    expect(parseServerTiming(null)).toEqual({});
+  });
+
+  it('gộp thời gian từng vòng gọi qua nhiều wave để biết chi phí nằm ở đâu', async () => {
+    const result = await runComparison(
+      'https://api.test',
+      [{ label: 'commercial', key: 'kB' }],
+      2,
+      {
+        repeat: 3,
+        cooldownMs: 0,
+        sleepImpl: async () => {},
+        fetchImpl: /** @type {typeof fetch} */ (
+          /** @type {unknown} */ (
+            async () =>
+              new Response('{}', {
+                status: 200,
+                headers: { 'server-timing': 'revoke;dur=200, reserve;dur=220, prepare;dur=210' },
+              })
+          )
+        ),
+      },
+    );
+    const timings = result.arms[0]?.timings ?? {};
+    expect(Object.keys(timings).sort()).toEqual(['prepare', 'reserve', 'revoke']);
+    // 3 wave × 2 request
+    expect(timings.reserve?.samples).toBe(6);
+    expect(timings.reserve?.p50).toBe(220);
   });
 });

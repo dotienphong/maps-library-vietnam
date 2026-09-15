@@ -36,6 +36,7 @@ app.use(
       'X-MapsLibVN-Receipt-Expires-At',
       'X-MapsLibVN-Receipt-Version',
       'Retry-After',
+      'Server-Timing',
     ],
   }),
 );

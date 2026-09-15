@@ -54,6 +54,21 @@ function acknowledge(fetchImpl, base, key, receiptId, token, timeoutMs) {
   });
 }
 
+/**
+ * Tách `Server-Timing: reserve;dur=210, prepare;dur=198` thành `{reserve: 210, prepare: 198}`.
+ * Đây là thứ cho biết 677 ms chi phí quota nằm ở vòng gọi nào — không có nó thì chỉ đoán.
+ * @param {string | null} header
+ */
+export function parseServerTiming(header) {
+  /** @type {Record<string, number>} */
+  const out = {};
+  for (const part of (header ?? '').split(',')) {
+    const match = /^\s*([A-Za-z0-9_-]+)\s*;\s*dur=([0-9.]+)/.exec(part);
+    if (match?.[1] && match[2] !== undefined) out[match[1]] = Number(match[2]);
+  }
+  return out;
+}
+
 /** @param {number[]} sorted @param {number} p */
 const percentile = (sorted, p) =>
   sorted[Math.max(0, Math.ceil((p / 100) * sorted.length) - 1)] ?? 0;
@@ -86,6 +101,7 @@ export async function runLevel(base, key, users, options = {}) {
           ms: performance.now() - t0,
           status: response.status,
           cache: response.headers.get('x-mlv-cache') ?? 'none',
+          timing: parseServerTiming(response.headers.get('server-timing')),
         };
         // Tenant thương mại: KHÔNG ACK là bộ đo tự phá phép đo của chính nó. Mỗi 2xx bỏ quên
         // thành một `missed_ack`, và ba cái trong 24 giờ khoá tenant bằng `ack_required` —
@@ -98,7 +114,7 @@ export async function runLevel(base, key, users, options = {}) {
         }
         return sample;
       } catch {
-        return { ms: performance.now() - t0, status: 0, cache: 'none' };
+        return { ms: performance.now() - t0, status: 0, cache: 'none', timing: {} };
       }
     }),
   );
@@ -127,6 +143,17 @@ export async function runLevel(base, key, users, options = {}) {
     acked,
     /** Mẫu thô đã sắp xếp, để nhiều wave gộp lại thành một phân phối đủ dày. */
     times,
+    /** Thời gian từng vòng gọi Durable Object, gom theo tên. */
+    timings: samples.reduce(
+      (acc, sample) => {
+        for (const [name, ms] of Object.entries(sample.timing ?? {})) {
+          acc[name] ??= [];
+          acc[name]?.push(ms);
+        }
+        return acc;
+      },
+      /** @type {Record<string, number[]>} */ ({}),
+    ),
     rps: Math.round((samples.length / elapsedMs) * 1000 * 10) / 10,
     p50: Math.round(percentile(times, 50)),
     p95: Math.round(percentile(times, 95)),
@@ -180,6 +207,14 @@ const REPEAT_GAP_MS = 2_000;
  */
 function pool(waves) {
   const times = waves.flatMap((wave) => wave.times).sort((a, b) => a - b);
+  /** @type {Record<string, number[]>} */
+  const timings = {};
+  for (const wave of waves) {
+    for (const [name, list] of Object.entries(wave.timings ?? {})) {
+      timings[name] ??= [];
+      timings[name]?.push(.../** @type {number[]} */ (list));
+    }
+  }
   const sum = (/** @type {string} */ field) =>
     waves.reduce((total, wave) => total + wave[field], 0);
   return {
@@ -198,6 +233,19 @@ function pool(waves) {
     p50: Math.round(percentile(times, 50)),
     p95: Math.round(percentile(times, 95)),
     p99: Math.round(percentile(times, 99)),
+    timings: Object.fromEntries(
+      Object.entries(timings).map(([name, list]) => {
+        const sorted = [...list].sort((a, b) => a - b);
+        return [
+          name,
+          {
+            samples: sorted.length,
+            p50: Math.round(percentile(sorted, 50)),
+            p95: Math.round(percentile(sorted, 95)),
+          },
+        ];
+      }),
+    ),
   };
 }
 
@@ -370,8 +418,15 @@ async function main() {
     const repeat = Number(arg('repeat') ?? 1);
     if (mode === 'ab') {
       const ab = await runComparison(base, arms, users, { group, cache, cooldownMs, repeat });
-      console.table(ab.arms);
+      // Bỏ `timings` khỏi bảng chính: nó được in riêng ở dưới, nhét vào đây thì bảng không đọc nổi.
+      console.table(ab.arms.map(({ timings, ...row }) => row));
       console.table(ab.overhead);
+      for (const arm of ab.arms) {
+        const rows = Object.entries(arm.timings ?? {});
+        if (rows.length === 0) continue;
+        console.log(`Thời gian từng vòng gọi Durable Object — nhánh ${arm.label}:`);
+        console.table(Object.fromEntries(rows));
+      }
       if (ab.usable) {
         console.log(
           'Chênh lệch trên là chi phí quota thương mại cộng thêm. Burst limit còn hoạt động hay không phải nghiệm thu riêng bằng `pnpm smoke:rate-limit`.',

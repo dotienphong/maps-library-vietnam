@@ -65,5 +65,7 @@ export type AppEnv = {
     /** Tham số đã parse ở preflight quota, dùng lại trong handler — spec 14.4 cấm parse hai lần.
      * Mỗi route tự biết kiểu thật của mình; middleware chỉ mang hộ qua context. */
     params?: unknown;
+    /** Thời gian từng vòng gọi Durable Object, gom lại để phát ra `Server-Timing` (xem timing.ts). */
+    quotaTimings?: { name: string; ms: number }[];
   };
 };
