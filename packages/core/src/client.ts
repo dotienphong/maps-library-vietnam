@@ -101,6 +101,7 @@ export function createClient(options: ClientOptions) {
   async function get<T>(
     path: string,
     params: Record<string, string | number | undefined> = {},
+    init?: { signal?: AbortSignal },
   ): Promise<T> {
     const url = new URL(baseUrl + path);
     for (const [key, value] of Object.entries(params)) {
@@ -109,6 +110,7 @@ export function createClient(options: ClientOptions) {
 
     const response = await doFetch(url, {
       headers: baseHeaders(),
+      ...(init?.signal ? { signal: init.signal } : {}),
     });
     return parseOrThrow<T>(response);
   }
@@ -129,15 +131,18 @@ export function createClient(options: ClientOptions) {
       `${baseUrl}/v1/styles/${theme}.json?key=${encodeURIComponent(options.apiKey)}&sources=${encodeURIComponent(sources)}`,
     autocomplete: (
       q: string,
-      opts: { near?: [number, number]; limit?: number; types?: AutocompleteType[] } = {},
+      opts: {
+        near?: [number, number];
+        limit?: number;
+        types?: AutocompleteType[];
+        signal?: AbortSignal;
+      } = {},
     ) =>
-      get<{ items: AutocompleteItem[] }>('/v1/autocomplete', {
-        q,
-        near: opts.near?.join(','),
-        limit: opts.limit,
-        types: opts.types?.join(','),
-        sources,
-      }),
+      get<{ items: AutocompleteItem[] }>(
+        '/v1/autocomplete',
+        { q, near: opts.near?.join(','), limit: opts.limit, types: opts.types?.join(','), sources },
+        opts.signal ? { signal: opts.signal } : undefined,
+      ),
     search: (
       q: string,
       opts: {
