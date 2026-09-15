@@ -266,6 +266,7 @@ Tham số thứ hai là `deps`. Bản ESM cần `{ maplibre: maplibregl }`; nế
 | `api-base` | có | — | như trên |
 | `placeholder` | không | `Tìm địa điểm…` | đổi được lúc chạy |
 | `near` | không | — | `"lat,lng"`; bị **bỏ qua** nếu đã gán thuộc tính JS `.map` |
+| `debounce` | không | `200` | mili giây; giá trị không hợp lệ (không phải số, hoặc âm) rơi về mặc định kèm cảnh báo console |
 
 | Thuộc tính JS | Kiểu | Ghi chú |
 |---|---|---|
@@ -275,7 +276,7 @@ Tham số thứ hai là `deps`. Bản ESM cần `{ maplibre: maplibregl }`; nế
 |---|---|---|
 | `select` | `AutocompleteItem` | `bubbles: true`, `composed: true` nên bắt được ở ngoài shadow DOM. `detail` là **nguyên** item, kể cả `bbox` của `type: 'area'` |
 
-Hành vi: gõ từ **2 ký tự** trở lên mới gọi API, debounce **200 ms**, phản hồi của truy vấn đã bị thay thế bị bỏ qua. Ô nhập là combobox ARIA (`role="combobox"`, `aria-expanded`, `aria-controls`, `aria-activedescendant`) với danh sách `role="listbox"` và các mục `role="option"`; `↑`/`↓` di chuyển vòng, `Enter` chọn mục đang sáng, `Escape` đóng danh sách, rời khỏi ô cũng đóng sau 150 ms. Có một vùng `role="status"` `aria-live="polite"` đọc trạng thái ("Đang tìm…", số kết quả, lỗi). Toàn bộ nằm trong shadow DOM nên CSS của trang không tác động vào bên trong.
+Hành vi: gõ từ **2 ký tự** trở lên mới gọi API, debounce **200 ms mặc định** (chỉnh bằng thuộc tính `debounce`), phản hồi của truy vấn đã bị thay thế bị bỏ qua. Ô nhập là combobox ARIA (`role="combobox"`, `aria-expanded`, `aria-controls`, `aria-activedescendant`) với danh sách `role="listbox"` và các mục `role="option"`; `↑`/`↓` di chuyển vòng, `Enter` chọn mục đang sáng, `Escape` đóng danh sách, rời khỏi ô cũng đóng sau 150 ms. Có một vùng `role="status"` `aria-live="polite"` đọc trạng thái ("Đang tìm…", số kết quả, lỗi). Toàn bộ nằm trong shadow DOM nên CSS của trang không tác động vào bên trong.
 
 Mỗi mục có một ký hiệu phân biệt loại ở đầu dòng (`area` khác `poi`) và thuộc tính `data-type` bằng
 `item.type`, dùng được để tự đặt CSS. Với mục `type: 'area'` hãy khớp khung nhìn bằng `bbox`:

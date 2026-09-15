@@ -248,3 +248,74 @@ describe('MapsLibVNAutocomplete — vùng hành chính', () => {
     expect(secondary?.querySelector('b')).toBeNull();
   });
 });
+
+describe('MapsLibVNAutocomplete — attribute debounce', () => {
+  beforeEach(() => vi.useFakeTimers());
+  afterEach(() => {
+    vi.useRealTimers();
+    autocomplete.mockReset();
+    document.body.replaceChildren();
+  });
+
+  /** Dựng element, gõ `query`, trả về input để test tự tua đồng hồ. */
+  function mount(attrs: Record<string, string> = {}) {
+    autocomplete.mockResolvedValue({ items: [] });
+    const element = new MapsLibVNAutocomplete();
+    element.setAttribute('api-key', 'mlv_test');
+    element.setAttribute('api-base', 'https://api.test');
+    for (const [name, value] of Object.entries(attrs)) element.setAttribute(name, value);
+    document.body.append(element);
+    const input = element.shadowRoot?.querySelector('input');
+    if (!input) throw new Error('không dựng được input');
+    input.value = 'ben thanh';
+    input.dispatchEvent(new Event('input', { bubbles: true }));
+    return input;
+  }
+
+  it('mặc định vẫn là 200 ms khi không đặt thuộc tính', async () => {
+    mount();
+    await vi.advanceTimersByTimeAsync(199);
+    expect(autocomplete).not.toHaveBeenCalled();
+    await vi.advanceTimersByTimeAsync(1);
+    expect(autocomplete).toHaveBeenCalledTimes(1);
+  });
+
+  it('debounce="500" thì chờ đủ 500 ms mới gọi', async () => {
+    mount({ debounce: '500' });
+    await vi.advanceTimersByTimeAsync(499);
+    expect(autocomplete).not.toHaveBeenCalled();
+    await vi.advanceTimersByTimeAsync(1);
+    expect(autocomplete).toHaveBeenCalledTimes(1);
+  });
+
+  it('giá trị rác rơi về 200 ms và cảnh báo, không làm chết ô tìm kiếm', async () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    mount({ debounce: 'nhanh lên' });
+    await vi.advanceTimersByTimeAsync(200);
+    expect(autocomplete).toHaveBeenCalledTimes(1);
+    expect(warn).toHaveBeenCalledOnce();
+    warn.mockRestore();
+  });
+
+  it('số âm cũng rơi về mặc định', async () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    mount({ debounce: '-1' });
+    await vi.advanceTimersByTimeAsync(199);
+    expect(autocomplete).not.toHaveBeenCalled();
+    await vi.advanceTimersByTimeAsync(1);
+    expect(autocomplete).toHaveBeenCalledTimes(1);
+    warn.mockRestore();
+  });
+
+  it('đổi thuộc tính lúc đang chạy thì lần gõ sau dùng giá trị mới', async () => {
+    const input = mount({ debounce: '500' });
+    await vi.advanceTimersByTimeAsync(500);
+    expect(autocomplete).toHaveBeenCalledTimes(1);
+    const element = input.getRootNode() as ShadowRoot;
+    (element.host as HTMLElement).setAttribute('debounce', '200');
+    input.value = 'ben thanh q1';
+    input.dispatchEvent(new Event('input', { bubbles: true }));
+    await vi.advanceTimersByTimeAsync(200);
+    expect(autocomplete).toHaveBeenCalledTimes(2);
+  });
+});

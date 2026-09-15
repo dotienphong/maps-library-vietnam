@@ -31,6 +31,9 @@ li[data-type="area"] .icon { color: #2458a6; }
 
 let instanceId = 0;
 
+/** Debounce mặc định của ô tìm kiếm, tính bằng mili giây. */
+export const DEFAULT_DEBOUNCE_MS = 200;
+
 /**
  * Ký hiệu phân biệt loại gợi ý. Dùng glyph hình học thay vì emoji để không phụ thuộc font emoji
  * của hệ điều hành. Vùng hành chính (`area`) phải khác POI vì hai loại này hay đứng cạnh nhau.
@@ -54,7 +57,7 @@ const ElementBase: typeof HTMLElement =
 
 /** Autocomplete Places không phụ thuộc framework, tự debounce và phát event `select`. */
 export class MapsLibVNAutocomplete extends ElementBase {
-  static observedAttributes = ['api-key', 'api-base', 'placeholder', 'near', 'sources'];
+  static observedAttributes = ['api-key', 'api-base', 'placeholder', 'near', 'sources', 'debounce'];
 
   #map: NearSource | null = null;
 
@@ -128,7 +131,7 @@ export class MapsLibVNAutocomplete extends ElementBase {
       return;
     }
     this.#announce('Đang tìm…');
-    this.#timer = setTimeout(() => void this.#query(value), 200);
+    this.#timer = setTimeout(() => void this.#query(value), this.#debounceMs());
   };
 
   #onBlur = () => {
@@ -180,6 +183,23 @@ export class MapsLibVNAutocomplete extends ElementBase {
       ...(poiSources ? { poiSources } : {}),
     });
     return this.#client;
+  }
+
+  /**
+   * Thuộc tính vắng hoặc sai → dùng mặc định, giống cách `sources` xử lý: một thuộc tính gõ sai
+   * không được làm ô tìm kiếm chết hẳn.
+   */
+  #debounceMs(): number {
+    const raw = this.getAttribute('debounce');
+    if (raw === null) return DEFAULT_DEBOUNCE_MS;
+    const value = Number(raw);
+    if (!Number.isFinite(value) || value < 0) {
+      console.warn(
+        `<mapslibvn-autocomplete debounce="${raw}"> không hợp lệ — dùng ${DEFAULT_DEBOUNCE_MS} ms`,
+      );
+      return DEFAULT_DEBOUNCE_MS;
+    }
+    return value;
   }
 
   #near(): [number, number] | undefined {
