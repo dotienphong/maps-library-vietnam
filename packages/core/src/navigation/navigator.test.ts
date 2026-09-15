@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest';
+import { beforeAll, describe, expect, it, vi } from 'vitest';
 import fixture from '../../tests/fixtures/directions-q1.json';
 import { syntheticTwoLegRoute } from '../../tests/helpers/synthetic-route';
 import type { DirectionsResponse } from '../types';
@@ -42,7 +42,12 @@ describe('createNavigator — đi đúng tuyến Quận 1 (xe máy)', () => {
   const nav = createNavigator({ response, reroute: 'manual' });
   const r = record(nav);
   const fixes = simulateFixes(route);
-  for (const f of fixes) nav.update(f);
+  // Phải nằm trong beforeAll, KHÔNG ở thân describe: từ vitest 5, call của `vi.fn()` ghi trong pha
+  // collection bị xoá trước khi test chạy, nên `r.arrive` đếm 0 dù navigator đã chạy đúng (mảng
+  // `statuses`/`steps` thì vẫn giữ, nên triệu chứng rất dễ đọc nhầm).
+  beforeAll(() => {
+    for (const f of fixes) nav.update(f);
+  });
 
   it('idle → navigating → arrived; step đổi 5 lần; arrive một lần; progress mỗi fix tới khi đến', () => {
     expect(r.statuses).toEqual(['navigating', 'arrived']);
