@@ -405,7 +405,7 @@ Script cố tình để sổ đích trong bảo trì sau khi nạp; người v�
 | 4 | 50 reserve tranh lượt cuối, chỉ 1 allowed | **T** | `billing-reservations.test.ts` |
 | 5 | 2xx kể cả cache chỉ tính sau ACK; 4xx/5xx không tính | **P** | Smoke: `chưa ACK thì chưa trừ`, `lỗi 4xx không trừ` |
 | 6 | Worker crash sau reserve: lease giải phóng, idempotent | **T** | `billing-reservations.test.ts` |
-| 7 | Qua giao ngày/kỳ khi request còn chạy | **—** | |
+| 7 | Qua giao ngày/kỳ khi request còn chạy | **T** | `billing-reservations.test.ts` — ACK sau nửa đêm commit vào sổ ngày ĐẶT CHỖ, sổ ngày mới không mọc dòng |
 | 8 | Mua 1 khối = 1.000, replay không tăng, payload khác bị từ chối | **P** | `credits=1000`; replay trả receipt cũ; `business_identity_conflict` 409 |
 | 9 | Hết nhóm này không chặn nhóm kia; mua thêm mở đúng nhóm; hết quyền vẫn chặn | **P** một phần | Credits chỉ vào Places, directions vẫn 0; đình chỉ → 403. Chưa cạn nhóm trả phí |
 | 10 | Tháng 28–31 ngày, revision out-of-order, trial→paid, cấp kỳ lặp | **P** một phần | trial→paid chạy thật, kỳ mới không mang `used` cũ. Còn lại là test |
@@ -415,8 +415,12 @@ Script cố tình để sổ đích trong bảo trì sau khi nạp; người v�
 | 14 | A/B hiệu năng và chi phí DO | **P** một phần | Độ trễ xong (mục 7). Chi phí tiền chưa — chưa mở Usage/Billing |
 | 15 | Nghiệm thu rollout/rollback và recovery trên tenant thử | **P** | Mục 7b; rollback bằng cổng admission đã dùng thật nhiều lần |
 
-**10/15 chứng minh trên production, 4 dựa vào test, 1 chưa kiểm.** Ba tiêu chí còn thiếu bằng chứng
-production đều tốn thời gian thật (2.000 request, 30 ngày, giao ngày) chứ không thiếu cơ chế.
+**10/15 chứng minh trên production, 5 dựa vào test, 0 bỏ trống.** Hai tiêu chí còn thiếu bằng chứng
+production (hết tổng 2.000 lượt, hết hạn 30 ngày) tốn thời gian thật chứ không thiếu cơ chế.
+
+Tiêu chí 7 lúc đầu bỏ trống hoàn toàn — cơ chế đúng theo thiết kế (`reserve` ghi `day_key` và
+`source_id` vào dòng reservation, `ack` cộng theo dòng đó chứ không theo đồng hồ) nhưng chưa ai
+khoá lại. Đã bổ sung test trước khi ký nghiệm thu.
 
 ## 7d. Inventory tenant/mode — 15/09/2026
 

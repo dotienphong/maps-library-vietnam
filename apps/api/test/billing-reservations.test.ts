@@ -233,6 +233,50 @@ describe('QuotaObject reservations', () => {
     });
   });
 
+  it('ACK bắc qua giao ngày commit vào sổ CŨ, không trừ sổ của ngày mới', async () => {
+    const tenant = crypto.randomUUID();
+    const object = objectFor(tenant);
+    await object.applyCommand({
+      ...common(tenant, 0),
+      kind: 'activateTrial',
+      startsAt: new Date(Date.now() - 1_000).toISOString(),
+    });
+    const usage = await object.readUsage();
+    const today = vnBillingDay(new Date());
+    const yesterday = vnBillingDay(new Date(Date.now() - 86_400_000));
+
+    await object.reserve('qua-giao-ngay', 'places');
+    // Giả lập request đặt chỗ TRƯỚC nửa đêm rồi mới ACK sau: dời đúng dòng reservation và dòng
+    // counter của nó sang ngày hôm qua. Không thể đẩy đồng hồ của Durable Object từ phía test
+    // (spec 14.8), nên đây là cách duy nhất tái hiện tình huống.
+    await runInDurableObject(object, (_instance: QuotaObject, state) => {
+      state.storage.sql.exec(
+        'UPDATE reservation SET day_key=? WHERE request_id=?',
+        yesterday,
+        'qua-giao-ngay',
+      );
+      state.storage.sql.exec('UPDATE counter SET day_key=? WHERE day_key=?', yesterday, today);
+    });
+
+    const token = 'token-qua-giao-ngay';
+    await object.prepare('qua-giao-ngay', await tokenHash(token));
+    expect(await object.ack('qua-giao-ngay', token)).toMatchObject({ charged: true });
+
+    const rows = await runInDurableObject(object, (_instance: QuotaObject, state) =>
+      state.storage.sql
+        .exec(
+          'SELECT day_key, used FROM counter WHERE source_id=? AND group_name=? ORDER BY day_key',
+          usage.periodId,
+          'places',
+        )
+        .toArray(),
+    );
+    // Lượt phải rơi vào sổ của NGÀY ĐẶT CHỖ. Nếu `ack` tính theo đồng hồ lúc ACK thay vì theo
+    // `day_key` đã ghi trong reservation, dòng của hôm nay sẽ mọc ra với used=1 và khách bị trừ
+    // nhầm vào hạn mức ngày mới — trong khi chỗ giữ của ngày cũ không bao giờ được nhả.
+    expect(rows).toEqual([{ day_key: yesterday, used: 1 }]);
+  });
+
   it('compensates a committed receipt once and audits the operation', async () => {
     const { object } = await provision();
     await commit(object, 'charged', 'places');
