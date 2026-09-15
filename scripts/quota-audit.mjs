@@ -340,15 +340,34 @@ function loadBundle(file) {
   }
 }
 
-function accessHeaders() {
-  const id = process.env.BILLING_ACCESS_CLIENT_ID;
-  const secret = process.env.BILLING_ACCESS_CLIENT_SECRET;
-  if (!id || !secret) {
+/**
+ * Header xác thực cho route quản trị.
+ *
+ * Phải là JWT NGƯỜI DÙNG, không phải service token: `verifyAccessJwt` bắt buộc có claim `email`
+ * để ghi `actor` vào audit, mà JWT của service token chỉ mang `common_name`. Dùng service token
+ * sẽ qua được biên Access rồi chết ở Worker với `invalid_access_jwt`.
+ */
+export function accessHeaders(env = process.env) {
+  const jwt = env.BILLING_ACCESS_JWT;
+  if (!jwt) {
     throw new Error(
-      'Thiếu BILLING_ACCESS_CLIENT_ID/BILLING_ACCESS_CLIENT_SECRET — route sao lưu nằm sau Cloudflare Access',
+      [
+        'Thiếu BILLING_ACCESS_JWT. Lấy bằng cloudflared:',
+        '  cloudflared access login <base>/v1/admin',
+        '  export BILLING_ACCESS_JWT=$(cloudflared access token -app=<base>/v1/admin)',
+        'Service token (CF-Access-Client-Id/Secret) KHÔNG thay thế được: JWT của nó mang',
+        'common_name chứ không mang email, nên Worker từ chối với invalid_access_jwt.',
+      ].join('\n'),
     );
   }
-  return { 'CF-Access-Client-Id': id, 'CF-Access-Client-Secret': secret };
+  /** @type {Record<string, string>} */
+  const headers = { 'Cf-Access-Jwt-Assertion': jwt };
+  // Một số cấu hình Access chặn ngay ở biên nếu thiếu service token; gửi kèm khi có sẵn.
+  if (env.BILLING_ACCESS_CLIENT_ID && env.BILLING_ACCESS_CLIENT_SECRET) {
+    headers['CF-Access-Client-Id'] = env.BILLING_ACCESS_CLIENT_ID;
+    headers['CF-Access-Client-Secret'] = env.BILLING_ACCESS_CLIENT_SECRET;
+  }
+  return headers;
 }
 
 async function main() {

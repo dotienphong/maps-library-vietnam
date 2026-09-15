@@ -42,9 +42,23 @@ nên trả chỗ về cho khách là sai số nghiêng đúng phía theo quyết
 
 | Biến | Nơi đặt | Ghi chú |
 |---|---|---|
-| `BILLING_ADMIN_EMAILS` | var của Worker | Cấp gói, trial, credits, đổi mode |
-| `BILLING_BACKUP_EMAILS` | var của Worker | **Tách riêng** — sao lưu/ghi đè sổ. Rỗng = deny |
-| `BILLING_ACCESS_CLIENT_ID` / `_SECRET` | `.env` máy vận hành | Service token Cloudflare Access cho CLI |
+| `BILLING_ADMIN_EMAILS` | `wrangler secret put … --env production` | Cấp gói, trial, credits, đổi mode |
+| `BILLING_BACKUP_EMAILS` | `wrangler secret put … --env production` | **Tách riêng** — sao lưu/ghi đè sổ. Rỗng = deny |
+| `BILLING_ACCESS_JWT` | môi trường shell của máy vận hành | JWT **người dùng** từ `cloudflared access token` |
+
+Hai danh sách email đặt bằng `wrangler secret put` chứ không viết vào `wrangler.toml`: khối
+`[env.production] vars` nằm trong git, mà đây là danh sách kiểm soát truy cập. Cả hai hiện **chưa
+được đặt** trên production, nghĩa là API quản trị billing đang deny mọi người — phải đặt trước khi
+provision tenant đầu tiên.
+
+Xác thực CLI phải dùng JWT **người dùng**, không dùng service token: `verifyAccessJwt` bắt buộc có
+claim `email` để ghi `actor` vào audit, mà JWT của service token chỉ mang `common_name`. Service
+token qua được biên Access rồi chết ở Worker với `invalid_access_jwt`.
+
+```sh
+cloudflared access login https://api.ai-solutions.io.vn/v1/admin
+export BILLING_ACCESS_JWT=$(cloudflared access token -app=https://api.ai-solutions.io.vn/v1/admin)
+```
 | `BACKUP_PASSPHRASE` | `infra/server/.env` | Cùng passphrase với backup DB; mất là không giải mã được |
 | `BACKUP_BUCKET` | `infra/server/.env` | Phải là bucket riêng không gắn custom domain |
 

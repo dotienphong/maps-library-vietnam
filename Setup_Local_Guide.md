@@ -192,10 +192,13 @@ pnpm audit:quota export --tenant <uuid> --base http://127.0.0.1:8787
 pnpm audit:quota verify --file out/quota-audit/quota-20260916-0300.json.enc
 ```
 
-`export` cần `BILLING_ACCESS_CLIENT_ID`/`BILLING_ACCESS_CLIENT_SECRET` (service token Cloudflare
-Access) và `BACKUP_PASSPHRASE` — cùng passphrase với backup DB, thiếu là script dừng chứ không
-upload file không mã hoá. Email vận hành phải nằm trong `BILLING_BACKUP_EMAILS`, một danh sách
-**tách riêng** khỏi `BILLING_ADMIN_EMAILS`: cấp gói và ghi đè sổ tiêu thụ là hai quyền khác nhau.
+`export` cần `BILLING_ACCESS_JWT` và `BACKUP_PASSPHRASE`. JWT lấy bằng
+`cloudflared access token -app=<base>/v1/admin` và phải là JWT **người dùng** — service token
+không dùng được vì JWT của nó không có claim `email` mà Worker bắt buộc. `BACKUP_PASSPHRASE` dùng
+chung với backup DB; thiếu là script dừng chứ không upload file không mã hoá.
+
+Email vận hành phải nằm trong `BILLING_BACKUP_EMAILS`, một danh sách **tách riêng** khỏi
+`BILLING_ADMIN_EMAILS`: cấp gói và ghi đè sổ tiêu thụ là hai quyền khác nhau.
 
 Phục hồi ghi đè sổ nên có ba cổng chặn — chưa bật bảo trì, bản sao lưu cũ hơn sổ, hoặc object còn
 thấy traffic trong 60 giây qua. Quy trình đầy đủ, kể cả rollback, nằm ở

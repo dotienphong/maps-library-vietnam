@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   BUNDLE_KIND,
+  accessHeaders,
   backupObjectName,
   buildReport,
   collectBundle,
@@ -258,5 +259,27 @@ describe('parseArgs và tên object', () => {
     expect(backupObjectName('t1', new Date('2026-09-15T20:00:00Z'))).toBe(
       'quota-audit/t1/quota-20260916-0300.json.enc',
     );
+  });
+});
+
+describe('accessHeaders', () => {
+  it('gửi JWT người dùng, vì Worker bắt buộc có claim email', () => {
+    expect(accessHeaders({ BILLING_ACCESS_JWT: 'jwt-nguoi-dung' })).toEqual({
+      'Cf-Access-Jwt-Assertion': 'jwt-nguoi-dung',
+    });
+  });
+
+  it('gửi kèm service token khi có, nhưng không coi nó là đủ', () => {
+    expect(
+      accessHeaders({
+        BILLING_ACCESS_JWT: 'jwt',
+        BILLING_ACCESS_CLIENT_ID: 'id',
+        BILLING_ACCESS_CLIENT_SECRET: 'secret',
+      }),
+    ).toMatchObject({ 'Cf-Access-Jwt-Assertion': 'jwt', 'CF-Access-Client-Id': 'id' });
+    // Chỉ có service token là chết ở Worker (invalid_access_jwt), nên phải dừng ngay tại CLI.
+    expect(() =>
+      accessHeaders({ BILLING_ACCESS_CLIENT_ID: 'id', BILLING_ACCESS_CLIENT_SECRET: 'secret' }),
+    ).toThrow('BILLING_ACCESS_JWT');
   });
 });
