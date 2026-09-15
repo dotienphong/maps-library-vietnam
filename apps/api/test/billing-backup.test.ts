@@ -124,12 +124,23 @@ describe('QuotaObject backup and reconciliation', () => {
         instance.advanceCheckpoint(crypto.randomUUID(), manifest.snapshotId, `0${'f'.repeat(63)}`),
       ),
     ).toBe('checksum_mismatch');
+    const before = await object.readJournal(0, 100);
+    expect(before.entries.length).toBe(manifest.sequence);
     const receipt = await object.advanceCheckpoint(
       crypto.randomUUID(),
       manifest.snapshotId,
       manifest.checksum,
     );
     expect(receipt.sequence).toBe(manifest.sequence);
+    // Chốt xong thì đuôi đã có bản sao lưu được cắt đi, nhưng chỉ tới đúng mốc đã chốt.
+    expect(receipt.prunedEntries).toBe(manifest.sequence);
+    expect((await object.readJournal(0, 100)).entries).toHaveLength(0);
+
+    // Số thứ tự KHÔNG được quay về 1 sau khi cắt: dòng mới phải tiếp tục từ mốc cũ, nếu không
+    // đuôi lần sau sẽ trùng số với đuôi lần trước và bản phục hồi ghép sai.
+    await charge(object, 1);
+    const next = await object.readJournal(manifest.sequence, 100);
+    expect(next.entries[0]?.seq).toBe(manifest.sequence + 1);
   });
 
   it('restores snapshot plus journal tail to the later count, never back to the snapshot', async () => {

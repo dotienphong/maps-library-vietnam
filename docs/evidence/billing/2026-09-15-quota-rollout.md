@@ -33,6 +33,9 @@ nên trả chỗ về cho khách là sai số nghiêng đúng phía theo quyết
   ai sửa: người có quyền ghi storage của object thì sửa được cả dãy số lẫn checksum.
 - Journal chỉ bị cắt sau khi checkpoint nhích. Nếu backup ngừng chạy nhiều ngày, journal phình
   theo lưu lượng. `pending` trong `/backup/journal` là con số phải theo dõi.
+- Việc cắt journal chạy theo lô có trần (1.000 dòng mỗi lần chốt, 100 dòng mỗi lần alarm) nên một
+  ngày lưu lượng lớn không dồn thành một câu `DELETE` khổng lồ. Hệ quả: ngay sau khi chốt, dung
+  lượng có thể chưa giảm hết — nó giảm dần qua các lần alarm kế tiếp.
 - Trong lúc phát lại journal, **không** được gửi lệnh quản trị khác lên cùng tenant.
 
 ## 2. Quyền và biến môi trường

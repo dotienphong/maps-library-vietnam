@@ -65,6 +65,8 @@ const SNAPSHOT_RESERVATION_WINDOW_MS = 4 * LEASE_MS;
  * CHỨNG: object tự nhìn reservation gần nhất của chính nó để biết traffic đã thật sự dừng chưa.
  */
 const RESTORE_QUIET_MS = 60_000;
+/** Trần dòng journal cắt trong một lần chốt checkpoint; phần dư để alarm dọn nốt. */
+const JOURNAL_PRUNE_BATCH = 1_000;
 
 type EntitlementRow = {
   tenant_id: string;
@@ -939,9 +941,6 @@ export class QuotaObject extends DurableObject<Env> {
       if ((current?.sequence ?? 0) > manifest.sequence) {
         throw new BillingCommandError('checkpoint_stale');
       }
-      const pruned = this.ctx.storage.sql
-        .exec('SELECT count(*) AS count FROM journal WHERE seq<=?', manifest.sequence)
-        .one() as { count: number };
       this.ctx.storage.sql.exec(
         `INSERT INTO export_checkpoint(id,sequence,checksum,exported_at) VALUES(1,?,?,?)
          ON CONFLICT(id) DO UPDATE SET sequence=excluded.sequence,checksum=excluded.checksum,exported_at=excluded.exported_at`,
@@ -949,14 +948,17 @@ export class QuotaObject extends DurableObject<Env> {
         checksum,
         now,
       );
-      this.ctx.storage.sql.exec('DELETE FROM journal WHERE seq<=?', manifest.sequence);
+      // Cắt journal theo LÔ CÓ TRẦN. Một ngày lưu lượng gói Business là hàng chục nghìn dòng;
+      // `DELETE` không giới hạn ở đây là một câu lệnh khổng lồ trong transaction, đúng kiểu
+      // "quét cả lịch sử" mà spec 14.7 cấm. Phần dư do alarm dọn nốt.
+      const pruned = this.pruneJournal(manifest.sequence, JOURNAL_PRUNE_BATCH);
       this.ctx.storage.sql.exec('DELETE FROM snapshot_page WHERE snapshot_id=?', snapshotId);
       this.ctx.storage.sql.exec('DELETE FROM snapshot_manifest WHERE snapshot_id=?', snapshotId);
       receipt = {
         sequence: manifest.sequence,
         checksum,
         exportedAt: new Date(now).toISOString(),
-        prunedEntries: pruned.count,
+        prunedEntries: pruned,
       };
       this.saveOperational(operationId, payload, receipt, now);
     });
@@ -1061,7 +1063,15 @@ export class QuotaObject extends DurableObject<Env> {
   }
 
   async alarm(): Promise<void> {
-    this.ctx.storage.transactionSync(() => this.cleanupExpired(Date.now(), 100));
+    this.ctx.storage.transactionSync(() => {
+      this.cleanupExpired(Date.now(), 100);
+      // Dọn nốt phần journal đã có bản sao lưu. Không đặt ở `reserve`: đường nóng không nên gánh
+      // thêm một DELETE cho việc mà alarm làm được.
+      const checkpoint = this.ctx.storage.sql
+        .exec('SELECT sequence FROM export_checkpoint WHERE id=1')
+        .toArray()[0] as { sequence: number } | undefined;
+      if (checkpoint) this.pruneJournal(checkpoint.sequence, 100);
+    });
     await this.scheduleNextAlarm();
   }
 
@@ -1285,6 +1295,20 @@ export class QuotaObject extends DurableObject<Env> {
           taken_at: number;
         }
       | undefined;
+  }
+
+  /**
+   * Xoá tối đa `limit` dòng journal đã nằm trong một bản sao lưu bền vững. Trả số dòng đã xoá.
+   * Chỉ cắt tới `sequence` của checkpoint — cắt xa hơn là vứt đi khoản chưa ai sao lưu.
+   */
+  private pruneJournal(sequence: number, limit: number): number {
+    const rows = this.ctx.storage.sql
+      .exec('SELECT seq FROM journal WHERE seq<=? ORDER BY seq LIMIT ?', sequence, limit)
+      .toArray() as { seq: number }[];
+    const last = rows.at(-1)?.seq;
+    if (last === undefined) return 0;
+    this.ctx.storage.sql.exec('DELETE FROM journal WHERE seq<=?', last);
+    return rows.length;
   }
 
   private maintenance(): boolean {
