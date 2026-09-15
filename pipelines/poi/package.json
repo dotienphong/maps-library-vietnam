@@ -8,7 +8,7 @@
     "typecheck": "tsc -p tsconfig.json"
   },
   "dependencies": {
-    "@duckdb/node-api": "1.5.5-r.4",
+    "@duckdb/node-api": "1.5.5-r.5",
     "@mapslibvn/core": "workspace:*",
     "postgres": "^3.4.9"
   },

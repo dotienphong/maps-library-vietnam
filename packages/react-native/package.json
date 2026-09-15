@@ -63,14 +63,14 @@
   "devDependencies": {
     "@maplibre/maplibre-react-native": "^11.3.10",
     "@mapslibvn/core": "workspace:*",
-    "@size-limit/file": "^11.2.0",
+    "@size-limit/file": "^14.0.0",
     "@testing-library/react": "^16.3.3",
     "@types/geojson": "^7946.0.16",
     "@types/react": "^19.3.0",
     "react": "^19.3.0",
     "react-dom": "^19.3.0",
     "react-native": "^0.81.6",
-    "size-limit": "^11.2.0",
+    "size-limit": "^14.0.0",
     "tsup": "^8.5.1",
     "typescript": "^5.9.3"
   }

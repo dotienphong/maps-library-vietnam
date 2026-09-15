@@ -4,7 +4,7 @@ import { readFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { VectorTile } from '@mapbox/vector-tile';
-import Pbf from 'pbf';
+import { PbfReader } from 'pbf';
 import { openPmtiles } from './lib/node-source.mjs';
 import {
   geometryIntersectsBbox,
@@ -30,7 +30,7 @@ async function features(z, x, y) {
   const tile = await pmtiles.getZxy(z, x, y);
   if (!tile?.data) return [];
   decoded++;
-  const vt = new VectorTile(new Pbf(new Uint8Array(tile.data)));
+  const vt = new VectorTile(new PbfReader(new Uint8Array(tile.data)));
   /** @type {{ layer: string, props: Record<string, unknown>, geometry: { type: string, coordinates: unknown } }[]} */
   const out = [];
   for (const [layer, l] of Object.entries(vt.layers)) {

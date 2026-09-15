@@ -23,7 +23,7 @@
     "typecheck": "tsc --noEmit"
   },
   "devDependencies": {
-    "@maplibre/maplibre-gl-style-spec": "^23.3.0",
+    "@maplibre/maplibre-gl-style-spec": "^26.4.4",
     "@mapslibvn/core": "workspace:*",
     "typescript": "^5.9.3"
   },
