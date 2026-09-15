@@ -556,3 +556,28 @@ describe('lượt đo mà không request nào thành công', () => {
     expect(result.warnings.join(' ')).toContain('4/5 request thành công');
   });
 });
+
+describe('mã lỗi trong lượt đo hỏng', () => {
+  it('nói rõ 429 là hết hạn mức hay là burst, vì hai thứ đó xử lý khác nhau', async () => {
+    const result = await runComparison(
+      'https://api.test',
+      [
+        { label: 'legacy', key: 'kA' },
+        { label: 'commercial', key: 'kB' },
+      ],
+      2,
+      {
+        cooldownMs: 0,
+        fetchImpl: /** @type {typeof fetch} */ (
+          /** @type {unknown} */ (
+            async () =>
+              new Response(JSON.stringify({ error: { code: 'quota_exceeded' } }), { status: 429 })
+          )
+        ),
+      },
+    );
+    expect(result.usable).toBe(false);
+    expect(result.arms[0]?.codes).toEqual(['quota_exceeded']);
+    expect(result.warnings.join(' ')).toContain('quota_exceeded');
+  });
+});

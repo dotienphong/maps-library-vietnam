@@ -96,10 +96,23 @@ export async function runLevel(base, key, users, options = {}) {
           `${base.replace(/\/+$/, '')}${targetPath(users, index, group, cache, seed)}`,
           { headers: { 'X-Api-Key': key }, signal: AbortSignal.timeout(timeoutMs) },
         );
-        await response.arrayBuffer();
+        const body = await response.arrayBuffer();
+        // Đọc mã lỗi TỪ CHÍNH chuỗi byte vừa tải, không `clone()`: body đã bị đọc xong ở dòng trên
+        // nên clone sẽ hỏng. Cột `rateLimited` gộp mọi 429 lại, mà 429 có thể là burst ở biên, hết
+        // hạn mức, hay receipt chưa ACK — ba nguyên nhân khác hẳn nhau với ba cách xử lý khác hẳn
+        // nhau. Thiếu mã này, một bảng "30 rate limited" dẫn người đọc đi sai hướng.
+        let code = '';
+        if (response.status >= 400) {
+          try {
+            code = JSON.parse(new TextDecoder().decode(body))?.error?.code ?? '';
+          } catch {
+            code = `http_${response.status}`;
+          }
+        }
         const sample = {
           ms: performance.now() - t0,
           status: response.status,
+          code,
           cache: response.headers.get('x-mlv-cache') ?? 'none',
           timing: parseServerTiming(response.headers.get('server-timing')),
         };
@@ -114,7 +127,13 @@ export async function runLevel(base, key, users, options = {}) {
         }
         return sample;
       } catch {
-        return { ms: performance.now() - t0, status: 0, cache: 'none', timing: {} };
+        return {
+          ms: performance.now() - t0,
+          status: 0,
+          code: 'timeout',
+          cache: 'none',
+          timing: {},
+        };
       }
     }),
   );
@@ -140,6 +159,7 @@ export async function runLevel(base, key, users, options = {}) {
     serverErrors,
     clientErrors,
     cacheHits: samples.filter(({ cache }) => cache === 'hit').length,
+    codes: [...new Set(samples.flatMap(({ code }) => (code ? [code] : [])))].sort(),
     acked,
     /** Mẫu thô đã sắp xếp, để nhiều wave gộp lại thành một phân phối đủ dày. */
     times,
@@ -228,6 +248,7 @@ function pool(waves) {
     serverErrors: sum('serverErrors'),
     clientErrors: sum('clientErrors'),
     cacheHits: sum('cacheHits'),
+    codes: [...new Set(waves.flatMap((wave) => wave.codes ?? []))].sort(),
     acked: sum('acked'),
     rps: Math.round((sum('rps') / Math.max(1, waves.length)) * 10) / 10,
     p50: Math.round(percentile(times, 50)),
@@ -326,7 +347,7 @@ export async function runComparison(base, arms, users, options = {}) {
   for (const arm of measured) {
     if (arm.ok === arm.requests) continue;
     warnings.push(
-      `Nhánh ${arm.label}: chỉ ${arm.ok}/${arm.requests} request thành công (429: ${arm.rateLimited}, lỗi: ${arm.errors}). Số đo là thời gian nhận về lỗi, không phải độ trễ của API.`,
+      `Nhánh ${arm.label}: chỉ ${arm.ok}/${arm.requests} request thành công (429: ${arm.rateLimited}, lỗi: ${arm.errors}; mã: ${arm.codes.join(', ') || 'không rõ'}). Số đo là thời gian nhận về lỗi, không phải độ trễ của API.`,
     );
   }
   if ((baseline?.p95 ?? 0) > saturatedP95Ms) {
