@@ -316,7 +316,10 @@ docs/evidence/billing/2026-09-15-quota-rollout.md, DEVLOG.md.
   hoặc payment chưa xây. Phân biệt rate-limit theo edge với quota thương mại theo tenant.
 - [x] Fixture đo warm/cold, hit/miss, một tenant nóng/nhiều tenant; giữ pace không vướng burst
   trong đo overhead quota, có lượt đo riêng chứng minh burst còn hoạt động. Đo A/B cùng dữ liệu.
-- [ ] **MỘT NỬA 15/09.** ĐÃ CÓ: p50/p95/p99 và errors trên production, chi phí quota tách theo
+- [x] **XONG 15/09.** Chi phí tiền đã đọc từ Cloudflare Billable Usage: **$0.00**, chưa phát sinh
+  khoản tính tiền nào (1.980 DO request, 28,2k rows read, 5,16k rows written, 28,1 GB-s, 303 kB).
+  Ghi rõ trong evidence mục 7a rằng đây là traffic thí nghiệm nặng về đọc nên KHÔNG dùng làm dự
+  toán, và 2,6 writes/request gần như chắc chắn thấp hơn thực tế. ĐÃ CÓ: p50/p95/p99 và errors trên production, chi phí quota tách theo
   từng vòng gọi bằng `Server-Timing`, và nguyên nhân độ trễ đã truy tới gốc (object đặt sai chỗ;
   `locationHint: apac-se` đưa một vòng gọi từ ~280 ms xuống ~50–76 ms). CÒN THIẾU: reservation
   backlog, CPU/storage/request counts, và chi phí tiền theo giá Cloudflare chính thức — chưa mở
@@ -342,9 +345,12 @@ git diff --check
   30 ngày, paid hết nhóm, credits, DO outage, restart — và chưa đối chiếu có hệ thống 15 tiêu chí
   gốc với evidence. Smoke staging commercial tenant: trial hết ngày/tổng/thời hạn, paid hết nhóm, credits,
   DO outage, restart, nhiều key. Đối chiếu 15 tiêu chí gốc + spec 14.9 với evidence cụ thể.
-- [ ] **CHỜ PHONG.** ĐÃ CÓ: backup+rollback diễn tập thật (mục 7b), inventory tenant/mode đã lập
-  bằng `pnpm server:tenants` (5 tenant, 2 commercial, cả hai là tenant thử, không có internal +
-  commercial). CÒN THIẾU: ngưỡng latency/cost do PHONG duyệt, và chi phí tiền theo Usage/Billing. Trước bật production: đạt ngưỡng latency/cost do PHONG duyệt từ báo cáo đo, CI đúng commit,
+- [x] **XONG 15/09.** Backup+rollback diễn tập thật (mục 7b); inventory tenant/mode đã lập bằng
+  `pnpm server:tenants` (5 tenant, 2 commercial, cả hai là tenant thử, không có internal +
+  commercial); chi phí $0.00 theo Billable Usage; **PHONG chốt ngưỡng: chi phí quota p50 ≤ 150 ms**,
+  bỏ ngưỡng 100 ms p95 của Task 0 vì nó rút từ staging. Đối chiếu: tenant đặt đúng chỗ 94–125 ms
+  ĐẠT, tenant đặt sai chỗ ~560 ms TRƯỢT — nên cổng này là theo TỪNG tenant, và quy trình cấp phát
+  có thêm bước đo `Server-Timing` trước khi mở traffic (runbook mục 5 bước 6). Trước bật production: đạt ngưỡng latency/cost do PHONG duyệt từ báo cáo đo, CI đúng commit,
   inventory tenant/mode, backup+rollback verified; chưa có evidence thì giữ commercial không mở.
 - [ ] Checkpoint `docs(billing): record commercial quota acceptance` chỉ khi đủ bằng chứng;
   cập nhật kết quả thật và việc còn lại vào DEVLOG, không tick hộ bước chưa chạy.

@@ -132,7 +132,20 @@ số dư đúng chính là kiểu hỏng mà spec 14.6 cấm.
 4. **Mở cổng admission** (`COMMERCIAL_ADMISSION=1`).
 5. **Thử nhiều khoá** của cùng tenant: hai khoá phải cộng chung một sổ; đổi/thu hồi khoá không
    reset quota.
-6. Mở traffic thật.
+6. **Đo vị trí object TRƯỚC khi mở traffic** — bước bắt buộc, thêm 15/09/2026:
+
+   ```sh
+   curl -s -D - -o /dev/null -H "X-Api-Key: <khoá tenant mới>" \
+     "https://api.ai-solutions.io.vn/v1/autocomplete?q=hue&limit=1&near=10.79,106.70" \
+     | grep -i '^server-timing'
+   ```
+
+   Cộng `reserve` và `prepare`: phải **≤ 150 ms** (ngưỡng PHONG chốt ở mục 7a). Nếu ra ~500 ms thì
+   object đã bị đặt xa và **không đổi chỗ được** — Cloudflare chỉ đọc `locationHint` ở lần `get()`
+   đầu tiên. Khi đó phải dựng lại object dưới một tên khác rồi chuyển sổ bằng export/restore của
+   Task 6, TRƯỚC khi có khách dùng. Nhớ ACK receipt mà lệnh trên tạo ra, hoặc bỏ qua và chấp nhận
+   một `missed_ack`.
+7. Mở traffic thật.
 
 Hai lệnh điều khiển cổng admission:
 
@@ -311,6 +324,52 @@ giới hạn**. `pending` trong `/backup/journal` là con số phải theo dõi,
 
 Free tier của Workers là hạn mức **toàn tài khoản**, không phải mỗi tenant: cạn allocation có thể
 làm outage hàng loạt tenant cùng lúc. Phải xác nhận tài khoản đang ở Workers Paid trước khi mở bán.
+
+## 7a. Ngưỡng đã chốt và chi phí thật
+
+**PHONG chốt 15/09/2026: chi phí quota p50 ≤ 150 ms là cổng phát hành.**
+
+Ngưỡng ≤100 ms p95 mà Task 0 đề xuất **bị bỏ**: nó rút từ staging nơi một vòng gọi tốn ~12 ms, còn
+production một vòng đã 50–76 ms và mỗi request tính lượt cần hai vòng. p95 chuyển sang **theo dõi,
+không làm cổng** — dữ liệu p95 hiện quá mỏng, có lượt vọt 450 ms từ một mẫu lẻ.
+
+Đối chiếu ngưỡng với số đo:
+
+| Tenant | Chi phí quota p50 | Ngưỡng 150 ms |
+|---|---:|---|
+| `…dc` — object đặt đúng chỗ (`apac-se`) | 94–125 ms | **ĐẠT** |
+| `…bb` — object đặt sai chỗ | ~560 ms | **TRƯỢT** |
+
+**Hệ quả quan trọng: cổng này là theo TỪNG TENANT, không phải một lần cho cả hệ thống.** Cùng một
+đoạn mã cho hai kết quả cách nhau 4–6 lần chỉ vì vị trí object. Vì vậy quy trình cấp phát ở mục 5
+có thêm một bước bắt buộc: đo `Server-Timing` của tenant mới TRƯỚC khi mở traffic.
+
+### Chi phí tiền — không phải rủi ro ở quy mô này
+
+Cloudflare Billable Usage kỳ 24/08–24/09: **$0.00, chưa phát sinh khoản tính tiền nào.**
+
+| Chỉ số | Kỳ hiện tại | Mỗi DO request |
+|---|---:|---:|
+| DO requests | 1.980 | — |
+| SQL rows read | 28.200 | 14,2 |
+| SQL rows written | 5.160 | 2,6 |
+| Duration | 28,1 GB-s | 14,2 ms·GB |
+| SQL storage | 303,1 kB | 60,6 kB mỗi object |
+
+Quy đổi thô cho Business 440.000 lượt/tháng (3 DO request mỗi lượt): ~1,32 triệu DO request,
+~18,8 triệu rows read, ~3,44 triệu rows written, ~18.700 GB-s, và ~0,1 GB lưu trữ cho 1.000 tenant.
+
+**Ba cảnh báo về con số này, đừng dùng nó làm dự toán:**
+
+1. Gần như toàn bộ 1.980 request là **traffic thí nghiệm hôm nay**, và mix đó nặng về đọc — lệnh
+   quản trị, export, restore, inventory. Không giống hình dạng traffic thật.
+2. Vì vậy **2,6 writes mỗi request gần như chắc chắn là thấp hơn thực tế**: Task 0 đo riêng chuỗi
+   reserve→prepare→ACK được 14 writes mỗi lượt thành công, và Task 6 còn thêm một dòng journal nữa.
+3. 18 lỗi trong 24 giờ qua là các lượt 503/timeout của chính đợt đo, đã được giải thích ở mục 7.
+
+Đọc lại dashboard sau vài ngày có traffic thật thì widget Billable Usage tự hiện số tiền, không
+phải tự nhân giá. Link:
+`dash.cloudflare.com/90de8c1aef96991cdf2a49008f9a0122/workers/durable-objects`.
 
 ## 7b. Diễn tập phục hồi — ĐẠT 15/09/2026
 
