@@ -23,9 +23,9 @@
     "typecheck": "tsc --noEmit"
   },
   "devDependencies": {
-    "@maplibre/maplibre-gl-style-spec": "^23.0.0",
+    "@maplibre/maplibre-gl-style-spec": "^23.3.0",
     "@mapslibvn/core": "workspace:*",
-    "typescript": "^5.6.0"
+    "typescript": "^5.9.3"
   },
   "types": "./src/transform.d.mts"
 }

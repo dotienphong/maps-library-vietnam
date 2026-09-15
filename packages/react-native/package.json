@@ -61,17 +61,17 @@
     }
   },
   "devDependencies": {
+    "@maplibre/maplibre-react-native": "^11.3.10",
     "@mapslibvn/core": "workspace:*",
-    "@maplibre/maplibre-react-native": "^11.3.8",
-    "@size-limit/file": "^11.1.0",
-    "@testing-library/react": "^16.3.0",
+    "@size-limit/file": "^11.2.0",
+    "@testing-library/react": "^16.3.3",
     "@types/geojson": "^7946.0.16",
-    "@types/react": "^19.1.0",
-    "react": "^19.1.0",
-    "react-dom": "^19.1.0",
-    "react-native": "^0.81.0",
-    "size-limit": "^11.1.0",
-    "tsup": "^8.3.0",
-    "typescript": "^5.6.0"
+    "@types/react": "^19.3.0",
+    "react": "^19.3.0",
+    "react-dom": "^19.3.0",
+    "react-native": "^0.81.6",
+    "size-limit": "^11.2.0",
+    "tsup": "^8.5.1",
+    "typescript": "^5.9.3"
   }
 }

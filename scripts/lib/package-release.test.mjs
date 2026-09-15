@@ -20,7 +20,7 @@ describe('npm release contract', () => {
 
     expect(web.peerDependencies['maplibre-gl']).toBe('^6.4.1');
     expect(react.peerDependencies['maplibre-gl']).toBe('^6.4.1');
-    expect(web.devDependencies['maplibre-gl']).toBe('^6.8.0');
-    expect(react.devDependencies['maplibre-gl']).toBe('^6.8.0');
+    expect(web.devDependencies['maplibre-gl']).toBe('^6.9.1');
+    expect(react.devDependencies['maplibre-gl']).toBe('^6.9.1');
   });
 });

@@ -14,15 +14,15 @@
   "dependencies": {
     "@mapslibvn/core": "workspace:*",
     "@mapslibvn/style": "workspace:*",
-    "hono": "^4.6.0",
-    "pmtiles": "^4.3.0",
-    "postgres": "^3.4.5"
+    "hono": "^4.13.8",
+    "pmtiles": "^4.5.0",
+    "postgres": "^3.4.9"
   },
   "devDependencies": {
-    "@cloudflare/vitest-pool-workers": "^0.6.0",
-    "@cloudflare/workers-types": "^4.20250801.0",
-    "typescript": "^5.6.0",
-    "vitest": "^2.1.0",
-    "wrangler": "^4.0.0"
+    "@cloudflare/vitest-pool-workers": "^0.6.16",
+    "@cloudflare/workers-types": "^4.20260702.1",
+    "typescript": "^5.9.3",
+    "vitest": "^2.1.9",
+    "wrangler": "^4.132.0"
   }
 }
