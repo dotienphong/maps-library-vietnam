@@ -22,6 +22,7 @@ function fakeSdk() {
     fitBounds: vi.fn(),
     remove: vi.fn(),
   };
+  Object.assign(gl, { resize: vi.fn() });
   const createMap = vi.fn(() => map);
   const deps = {
     createMap: createMap as unknown as MapDeps['createMap'],
@@ -120,5 +121,30 @@ describe('createMapOnto', () => {
       | undefined;
     errorHandler?.({ error: new Error('Bad response code: 404') });
     expect(onError).toHaveBeenCalledWith('Bad response code: 404');
+  });
+
+  it('theo dõi kích thước container và gọi resize khi nó đổi', () => {
+    const quanSat = vi.fn();
+    const ngat = vi.fn();
+    class FakeResizeObserver {
+      constructor(readonly cb: () => void) {
+        cuoiCung = this;
+      }
+      observe = quanSat;
+      disconnect = ngat;
+    }
+    let cuoiCung: FakeResizeObserver | undefined;
+    vi.stubGlobal('ResizeObserver', FakeResizeObserver);
+
+    const { deps, gl } = fakeSdk();
+    const container = document.createElement('div');
+    createMapOnto(deps, container, SO_SANH);
+
+    expect(quanSat).toHaveBeenCalledWith(container);
+    // Hộp thoại chi tiết mở ra rồi container mới có kích thước; maplibre đọc kích thước lúc tạo
+    // nên phải được báo lại, nếu không nó vẽ cho một khung rỗng và nền trắng trơn.
+    cuoiCung?.cb();
+    expect((gl as unknown as { resize: ReturnType<typeof vi.fn> }).resize).toHaveBeenCalled();
+    vi.unstubAllGlobals();
   });
 });

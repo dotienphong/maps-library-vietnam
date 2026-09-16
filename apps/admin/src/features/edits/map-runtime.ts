@@ -57,6 +57,18 @@ export function createMapOnto(
     { maplibre: deps.maplibre },
   );
 
+  /**
+   * Bản đồ được dựng bên trong hộp thoại chi tiết, nên lúc khởi tạo container có thể chưa có
+   * kích thước thật. maplibre đọc kích thước đúng một lần khi tạo; nếu lúc đó khung còn rỗng thì
+   * nó không yêu cầu ô nào và nền trắng trơn — dù style tải xong và chốt vị trí vẫn hiện, vì chốt
+   * là phần tử DOM. Báo lại mỗi lần container đổi kích thước là cách chắc chắn, không phụ thuộc
+   * thời điểm hộp thoại chạy xong hiệu ứng mở.
+   */
+  if (typeof ResizeObserver === 'function') {
+    const theoDoi = new ResizeObserver(() => map.gl.resize());
+    theoDoi.observe(container);
+  }
+
   // Bản đồ hỏng phải nói ra. Trước đây nó im lặng, nên một nguồn dữ liệu 404 trông y hệt một
   // tính năng chưa làm — người dùng không có cách nào phân biệt.
   map.gl.on('error', (payload: { error?: { message?: string } }) => {
