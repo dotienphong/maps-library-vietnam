@@ -33,15 +33,30 @@ khoá lại hành vi, và itest kiểm thêm rằng lệnh bị chặn **không*
 Lộ ra ngay khi thêm audit cho `commands` (hai test cũ chuyển sang 503). Đã bọc try/catch — nhật ký là
 bằng chứng, không phải điều kiện.
 
-## 3. CHƯA làm — chờ PHONG chạy trên production
+## 3. Đã deploy production — 16/09/2026
 
-- [ ] `cd apps/api && pnpm exec wrangler deploy --env production`
-- [ ] `curl -s https://api.ai-solutions.io.vn/healthz/db` → `schema_migration` vẫn **0019** (pha này không có migration)
-- [ ] Mở `https://api.ai-solutions.io.vn/admin/billing` trên điện thoại, chụp màn hình:
-  1. một tenant `legacy` → bảng "Hôm nay" có số thật của ít nhất một khoá;
-  2. một tenant thương mại → kỳ hiện tại, hai thanh hạn mức, bảng các kỳ đã cấp;
-  3. bấm một lệnh rồi Huỷ trong 5 giây → mở lại thấy bản sổ giữ nguyên;
-  4. gửi thật một lệnh nhỏ → biên lai có `operationId`, bản sổ tăng đúng 1.
+PHONG chạy `cd apps/api && pnpm exec wrangler deploy --env production`. Đối chiếu ngay sau đó:
+
+| Kiểm | Lệnh | Kết quả |
+|---|---|---|
+| Bản đã lên | `wrangler deployments list --env production` | deployment mới nhất **2026-09-16T11:46:51.907Z** |
+| Database | `curl -s https://api.ai-solutions.io.vn/healthz/db` | `{"ok":true,"user":"api","version":"PostgreSQL 16.4","schema_migration":"0019_admin_audit_detail_object.sql"}` — vẫn 0019, đúng: pha này không có migration |
+| Quyền billing | `wrangler secret list --env production` | có `BILLING_ADMIN_EMAILS`; **không** đặt `BILLING_ADMIN_ORIGIN` (sau Task 1 cổng CSRF chung đã phủ nên biến này không còn là lớp duy nhất) |
+| Access phủ route MỚI | `curl https://api.ai-solutions.io.vn/v1/admin/plan-catalog` | **302** về trang đăng nhập |
+| | `curl …/v1/admin/billing/<uuid>/legacy-usage` | **302** về trang đăng nhập |
+
+Hai dòng cuối đáng ghi lại: Access chặn ở **biên**, trước khi request tới Worker, nên đường dẫn mới
+thêm trong pha này không lọt ra ngoài Access application. Hệ quả cho người kiểm sau: 302 ở đây
+KHÔNG phân biệt được "route đã deploy" với "route không tồn tại" — muốn biết bản nào đang chạy thì
+đọc `wrangler deployments list`, đừng suy từ mã HTTP.
+
+## 3b. CHƯA làm — nghiệm thu bằng mắt trên điện thoại
+
+- [ ] Mở `https://api.ai-solutions.io.vn/admin/billing`, chọn một tenant `legacy` → bảng "Hôm nay"
+      có số thật của ít nhất một khoá.
+- [ ] Một tenant thương mại → kỳ hiện tại, hai thanh hạn mức, bảng các kỳ đã cấp.
+- [ ] Bấm một lệnh rồi Huỷ trong 5 giây → mở lại thấy bản sổ giữ nguyên.
+- [ ] Gửi thật một lệnh nhỏ → biên lai có `operationId`, bản sổ tăng đúng 1.
 - [ ] Đối chiếu nhật ký:
 
 ```sql
