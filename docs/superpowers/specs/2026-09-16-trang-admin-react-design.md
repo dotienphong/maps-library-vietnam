@@ -112,6 +112,10 @@ Ranh giới quan trọng: `features/*/api.ts` không import React và không bi�
 Tailwind v4 khai báo kiểu CSS-first bằng `@theme`, nên mọi màu là biến CSS; bản tối là gán lại
 biến dưới `.dark`, không nhân đôi class.
 
+Tên trang là **"Admin Page"**: `<title>Admin Page — MapsLibVN</title>` và dòng thương hiệu trên
+đầu sidebar. Tiêu đề của từng màn hình vẫn giữ tên riêng — màn duyệt đóng góp vẫn là
+"Duyệt đóng góp POI" để ba test e2e hiện có không vỡ vô cớ.
+
 - Màu chính `#1b3a6b` và thang dẫn xuất; thang xám lạnh cho nền và viền.
 - Màu trạng thái để riêng, không lẫn với màu thương hiệu: xanh lá = đã duyệt/khoẻ,
   đỏ = từ chối/lỗi, hổ phách = sắp vượt hạn mức, xanh dương = thông tin.
@@ -308,14 +312,58 @@ trạng thái routing. Dưới là năm việc gần nhất từ `admin_audit`. 
 
 ### 11.2. Duyệt đóng góp — `/admin/edits`
 
+**Danh sách:**
+
 - Lọc: trạng thái (4 giá trị), loại (5 giá trị), tenant, khoảng thời gian; tìm theo tên POI.
 - Phân trang theo con trỏ, mặc định 25 bản ghi.
 - Thẻ/dòng hiển thị: loại, tên POI kèm địa chỉ suy từ toạ độ, thời gian tương đối, người gửi.
-- Chi tiết: `changes` trình bày dạng **so sánh cũ → mới theo từng trường**, không phải JSON thô
-  như hiện nay; ảnh đóng góp; bản đồ nhỏ chỉ vị trí đề xuất.
+- **Không nhúng bản đồ vào thẻ.** Thẻ chỉ mang nhãn cảnh báo `Đổi vị trí · 340 m` khi `changes`
+  có `lat`, và `3 POI gần đó` khi là `create` — đủ để biết bản ghi nào đáng mở ra xem. Nhúng bản
+  đồ vào mọi thẻ làm cuộn danh sách ì trên điện thoại, trong khi phần lớn đóng góp không động tới
+  toạ độ.
 - Hành động: Duyệt, Từ chối — qua `delayed-action` 5 giây. Ở chế độ bảng có chọn nhiều dòng và
   duyệt hàng loạt, cũng qua cơ chế đếm ngược, một lệnh cho cả lô.
 - Giữ nguyên chuỗi tiêu đề **"Duyệt đóng góp POI"** để ba test e2e hiện có không vỡ vô cớ.
+
+**Chi tiết** — toàn màn hình trên điện thoại, ngăn bên phải từ 1024px. Gồm bảng so sánh
+**cũ → mới theo từng trường** (không phải JSON thô như hiện nay), ảnh đính kèm, ghi chú, người
+gửi, và một bản đồ **chỉ khi bản đồ trả lời được câu hỏi người duyệt đang có**:
+
+| Loại | Bản đồ hiện gì | Câu hỏi nó trả lời |
+|---|---|---|
+| `update` **có** `lat`/`lng` | Một bản đồ, chốt xám = vị trí cũ, chốt xanh `#1b3a6b` = vị trí mới, đường đứt nối hai điểm kèm nhãn khoảng cách; tự canh cho cả hai lọt khung | Lệch bao xa, về hướng nào, có rơi sang bên kia đường hay xuống sông không |
+| `update` **không** đổi toạ độ | **Không có bản đồ** | Chỉ cần so sánh trường; bản đồ ở đây chỉ làm chậm và gây nhiễu |
+| `create` | Một chốt vị trí đề xuất cộng **POI sẵn có trong bán kính 200 m** vẽ mờ kèm tên | Chỗ này đã có POI nào chưa — bắt trùng lặp |
+| `close` / `reopen` / `report` | Một chốt tại vị trí hiện tại; **ảnh đính kèm đặt nổi hơn bản đồ** | Chỗ này còn hoạt động không — ảnh nói nhiều hơn toạ độ |
+
+Đã cân nhắc và loại: hai bản đồ trước/sau đồng bộ (trên điện thoại mỗi khung còn khoảng 78px,
+gần như vô dụng) và thanh trượt che/mở (sinh ra để so sánh ảnh, không so sánh được hai cái chốt —
+kéo qua kéo lại vẫn không biết lệch bao nhiêu mét).
+
+**Kỹ thuật bản đồ:**
+
+- Dùng thẳng `maplibre-gl`, **không** dùng `@mapslibvn/react`: `CreateMapOptions.apiKey` là bắt
+  buộc, mà nhét một khoá vào bundle tĩnh chỉ để vẽ hai cái chốt là thói quen xấu. Admin lại cùng
+  origin nên chỉ cần `style: '/v1/styles/light.json'` — `/v1/styles/*` và `/v1/tiles/*` không đòi
+  khoá (đã kiểm 16/09).
+- Theo dark/light của trang: đổi sang `/v1/styles/dark.json` khi bật bản tối.
+- **Nạp trễ**: `maplibre-gl` nặng, chỉ `import()` khi mở chi tiết của bản ghi thực sự cần bản đồ.
+  Danh sách không bao giờ kéo theo nó.
+- **Khoảng cách tính ở server bằng PostGIS**, không tính ở client: chênh lệch công thức sẽ làm số
+  trên nhãn thẻ khác số trong chi tiết.
+- `/v1/nearby` **không dùng được** cho việc tìm POI lân cận: nó đòi API key và tính quota, tức
+  admin sẽ tiêu lượt của một tenant nào đó. POI lân cận trả kèm trong endpoint chi tiết dưới đây.
+
+**`GET /v1/admin/edits/:id`** — một request trả đủ mọi thứ màn chi tiết cần, đi qua Access, không
+tốn quota, không cần khoá:
+
+```
+{ edit, poi_hien_tai, distance_m, nearby[] }
+```
+
+`poi_hien_tai` là trạng thái trước khi sửa (nguồn của cột "cũ"); `distance_m` chỉ có khi `changes`
+chứa `lat`; `nearby` chỉ có khi `kind = 'create'`, lấy bằng `ST_DWithin` trong bán kính 200 m,
+tối đa 10 POI.
 
 ### 11.3. Tenant & khoá API — `/admin/tenants`
 
@@ -357,6 +405,7 @@ Tất cả đều sau `requireAccess()`; nhóm billing giữ nguyên `requireBil
 |---|---|---|
 | GET | `/v1/admin/me` | `{ email, permissions }`; giai đoạn này trả quyền đầy đủ |
 | GET | `/v1/admin/edits` | **sửa**: thêm phân trang con trỏ, lọc `kind`/`tenant`/thời gian, tìm theo tên |
+| GET | `/v1/admin/edits/:id` | **mới**: edit + POI hiện tại + `distance_m` + `nearby[]` (xem 11.2) |
 | GET | `/v1/admin/edits/count` | huy hiệu số việc tồn |
 | POST | `/v1/admin/edits/bulk` | duyệt/từ chối một lô |
 | GET | `/v1/admin/tenants` | phân trang, tìm theo tên |
@@ -400,6 +449,9 @@ bản mới → mới deploy Worker. Deploy trước migration đã từng làm 
   trả quyền thiếu, để cơ chế này có bài test sẵn từ trước khi thật sự có phân quyền.
 - `fetcher.ts`: phản hồi 401 **trả về HTML** (giả lập trang đăng nhập Access) thì kích hoạt tải
   lại trang, không hiện lỗi thô; và không tải lại khi đang có `delayed-action` chờ gửi.
+- Chi tiết đóng góp chọn đúng dạng bản đồ theo `kind` và theo việc `changes` có `lat` hay không —
+  bốn nhánh ở bảng mục 11.2, gồm cả nhánh **không dựng bản đồ nào**; kiểm bằng cách khẳng định
+  `import()` của `maplibre-gl` không được gọi ở nhánh đó.
 
 **Tầng e2e** — Playwright trên harness `api-db-test.mjs --serve` đã có, mở rộng từ 3 test:
 
@@ -425,12 +477,14 @@ Thêm claim mới vào JWT thì phải sửa kèm `scripts/lib/access-fake.mjs` 
 | Biome lint CSS va at-rule Tailwind v4 | Xử lý dứt điểm ở pha 0, không để dồn |
 | Thiếu `GRANT` không lộ ra khi test | Bài kiểm bằng role `api` ở mục 14 |
 | Khoá API chỉ hiện một lần | Cảnh báo rõ trên giao diện, nút sao chép, không cách nào xem lại |
-| Bundle phình vì gộp 7 màn hình | Lazy-load theo route; đo kích thước ở pha cuối |
+| Bundle phình vì gộp 6 màn hình | Lazy-load theo route; `maplibre-gl` nạp trễ riêng; đo kích thước ở pha cuối |
+| Bản đồ không hợp bản tối | Đổi style theo theme; kiểm bằng mắt cả hai chế độ ở pha 1 |
 | Thay hoàn toàn trang cũ | Giữ chuỗi tiêu đề cũ; chạy 3 e2e hiện có mỗi pha |
 
 ## 16. Files và quy ước
 
-- Thêm vào `apps/admin`: Tailwind v4, shadcn/ui, `@tanstack/react-query`, `react-router`.
+- Thêm vào `apps/admin`: Tailwind v4, shadcn/ui, `@tanstack/react-query`, `react-router`,
+  `maplibre-gl` (nạp trễ, chỉ cho màn chi tiết đóng góp).
 - `apps/api/src/audit.ts` — middleware ghi `admin_audit`.
 - `apps/api/src/routes/admin.ts` — mở rộng; thêm `routes/admin-tenants.ts`,
   `routes/admin-metrics.ts`, `routes/admin-audit.ts`.
@@ -447,7 +501,7 @@ pha kết thúc là một thứ dùng được, và pha 1 đã đủ thay thế 
 | Pha | Nội dung | Kết quả dùng được |
 |---|---|---|
 | 0 | Tailwind + shadcn, AppShell, drawer, sáng/tối, router, fetcher, `DataView`, năm trạng thái; migration `0017`; `GET /me` + `can()`; **middleware ghi audit bật ngay** | Khung chạy được, chưa thay trang cũ |
-| 1 | Duyệt đóng góp đầy đủ + API phân trang/lọc/bulk | **Thay hẳn trang admin hiện tại** |
+| 1 | Duyệt đóng góp đầy đủ: danh sách + màn chi tiết có bản đồ so sánh; API phân trang/lọc/bulk và `GET /edits/:id` | **Thay hẳn trang admin hiện tại** |
 | 2 | Tenant & khoá API + ba endpoint mới | Bỏ được `pnpm key:issue` cho việc thường ngày |
 | 3 | Gói cước & hạn mức | Bỏ được curl cho billing |
 | 4 | Nhật ký kiểm toán (chỉ phần đọc, phần ghi đã chạy từ pha 0) | |
@@ -470,8 +524,11 @@ Ghi nhật ký kiểm toán phải bật ở pha 0 chứ không phải pha 4: đ
    và thấy bị chuyển sang màn đăng nhập, rồi gọi `/v1/admin/edits` không kèm cookie và nhận 401.
 7. Đăng xuất qua `/cdn-cgi/access/logout` đưa về màn đăng nhập; mở lại trang phải đăng nhập lại.
 8. Token hết hạn giữa phiên đưa về màn đăng nhập, không hiện lỗi thô và không mất việc đang chờ gửi.
-9. Bản tối và bản sáng đều đạt tương phản AA ở các màn hình chính.
+9. Bản tối và bản sáng đều đạt tương phản AA ở các màn hình chính; bản đồ đổi style theo theme.
 10. Mỗi route mới có ít nhất một bài kiểm chạy bằng role `api` thật.
+11. Mở một đóng góp `update` có đổi toạ độ trên điện thoại: thấy hai chốt, đường nối và số mét;
+    số mét trên nhãn thẻ khớp số trong chi tiết. Mở một `update` không đổi toạ độ: không có bản đồ
+    và `maplibre-gl` không được tải về.
 
 ## 19. Ngoài phạm vi
 
