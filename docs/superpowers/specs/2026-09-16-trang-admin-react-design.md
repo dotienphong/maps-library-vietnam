@@ -196,7 +196,50 @@ Mọi màn hình bắt buộc xử lý đủ năm trạng thái, lấy từ `com
 Mọi lệnh ghi tới nhóm billing phải kèm `operationId` (ULID sinh ở client, giữ nguyên khi thử lại)
 để bấm hai lần không thành hai lệnh.
 
-## 9. Phân quyền
+## 9. Đăng nhập, kiểm soát truy cập và phân quyền
+
+### 9.1. Không có màn hình đăng nhập trong ứng dụng
+
+Đăng nhập do Cloudflare Access lo, đứng **trước** Worker: request chưa đăng nhập không bao giờ
+chạm tới mã ứng dụng. Luồng thật:
+
+1. Mở `https://api.ai-solutions.io.vn/admin/`.
+2. Chưa có cookie hợp lệ → Access chuyển sang team domain `snowy-credit-f444.cloudflareaccess.com`
+   (khai trong `[env.production]` của `apps/api/wrangler.toml`).
+3. Đăng nhập bằng phương thức đã bật trong Zero Trust.
+4. Access đặt cookie `CF_Authorization` và chèn header `Cf-Access-Jwt-Assertion` vào mọi request
+   tới Worker.
+5. `apps/api/src/access.ts` kiểm chữ ký theo JWKS, `aud` khớp `ACCESS_AUD`, `iss` khớp team domain,
+   `exp` còn hạn; lấy `email` làm `reviewer`.
+
+**Ai vào được là policy trong Cloudflare Zero Trust, không phải cấu hình trong repo.** Thêm hoặc
+bớt người không cần deploy. Đây là lý do việc chưa phân quyền ở 9.3 vẫn an toàn: lớp "ai vào được"
+đầy đủ, chỉ chưa phân biệt "vào rồi làm được gì".
+
+Địa chỉ trang:
+
+| Môi trường | Địa chỉ |
+|---|---|
+| Production | `https://api.ai-solutions.io.vn/admin/` |
+| Wrangler dev | `http://localhost:8787/admin/` |
+| Harness e2e | `http://127.0.0.1:8799/admin/`, JWT giả ký bằng `scripts/lib/access-fake.mjs` |
+
+### 9.2. Bốn ràng buộc bắt buộc
+
+1. **Access application phải phủ cả `/admin*` lẫn `/v1/admin*`.** Nếu chỉ phủ `/admin`, API dựa
+   hoàn toàn vào việc Worker tự kiểm JWT — thiếu header thì vẫn 401 nên còn đóng, nhưng đó là may
+   chứ không phải thiết kế. Đưa vào danh sách kiểm khi deploy.
+2. **Xử lý JWT hết hạn giữa phiên.** Token hết hạn khi đang duyệt dở thì `fetch` nhận 401 kèm
+   **trang HTML đăng nhập của Access, không phải JSON** — `apps/admin/src/api.ts` hiện đã có ghi
+   chú về đúng tình huống này. `lib/fetcher.ts` phải nhận ra 401 và tải lại trang để Access đưa về
+   màn đăng nhập, thay vì hiện "Lỗi: HTTP 401" rồi đứng im. Trước khi tải lại phải cảnh báo nếu
+   đang có `delayed-action` chờ gửi.
+3. **Đăng xuất** dùng `/cdn-cgi/access/logout`, đặt trong menu email ở topbar.
+4. **Chạy dev tại máy** không có Access nên `ACCESS_TEAM_DOMAIN` trống và mọi route admin trả 401.
+   Phải dùng harness `node scripts/api-db-test.mjs --serve` có JWKS giả, không phải `wrangler dev`
+   trần. Ghi rõ trong README của `apps/admin`.
+
+### 9.3. Phân quyền
 
 **Giai đoạn này không có phân quyền.** PHONG chốt 16/09/2026: hệ thống do một người quản lý, nên
 dựng bảng vai trò và màn hình quản lý người dùng là xây nhà cho người chưa tồn tại. Cloudflare
@@ -355,6 +398,8 @@ bản mới → mới deploy Worker. Deploy trước migration đã từng làm 
   nhất của mảng này — nếu sai, người duyệt mất khả năng rút lại và dữ liệu POI đã bị ghi.
 - `permissions.ts`: `can()` trả `false` thì mục menu không render — kiểm bằng cách giả lập `/me`
   trả quyền thiếu, để cơ chế này có bài test sẵn từ trước khi thật sự có phân quyền.
+- `fetcher.ts`: phản hồi 401 **trả về HTML** (giả lập trang đăng nhập Access) thì kích hoạt tải
+  lại trang, không hiện lỗi thô; và không tải lại khi đang có `delayed-action` chờ gửi.
 
 **Tầng e2e** — Playwright trên harness `api-db-test.mjs --serve` đã có, mở rộng từ 3 test:
 
@@ -421,8 +466,12 @@ Ghi nhật ký kiểm toán phải bật ở pha 0 chứ không phải pha 4: đ
    lớp bảo vệ sẵn có không được yếu đi vì đợt làm này.
 4. Mọi thao tác ghi để lại đúng một dòng trong `admin_audit` với đúng `actor`.
 5. `/healthz/db` báo `schema_migration` đã sang `0017` **trước** khi deploy Worker.
-6. Bản tối và bản sáng đều đạt tương phản AA ở các màn hình chính.
-7. Mỗi route mới có ít nhất một bài kiểm chạy bằng role `api` thật.
+6. Access application phủ cả `/admin*` lẫn `/v1/admin*` — kiểm bằng cách mở trang ở cửa sổ ẩn danh
+   và thấy bị chuyển sang màn đăng nhập, rồi gọi `/v1/admin/edits` không kèm cookie và nhận 401.
+7. Đăng xuất qua `/cdn-cgi/access/logout` đưa về màn đăng nhập; mở lại trang phải đăng nhập lại.
+8. Token hết hạn giữa phiên đưa về màn đăng nhập, không hiện lỗi thô và không mất việc đang chờ gửi.
+9. Bản tối và bản sáng đều đạt tương phản AA ở các màn hình chính.
+10. Mỗi route mới có ít nhất một bài kiểm chạy bằng role `api` thật.
 
 ## 19. Ngoài phạm vi
 
