@@ -81,12 +81,11 @@ function Thanh({ nhan, group }: { nhan: string; group: GroupUsage }) {
           </span>
         )}
       </div>
+      {/* Thanh là ĐỒ HOẠ thuần: dòng chữ ngay trên đã nói đủ "đã tiêu / tổng" và mức cảnh báo,
+          nên lặp lại bằng một role ARIA chỉ khiến trình đọc màn hình đọc hai lần cùng một điều. */}
       <div
-        role="meter"
-        aria-label={`${nhan}: ${pct}%`}
-        aria-valuenow={pct}
-        aria-valuemin={0}
-        aria-valuemax={100}
+        aria-hidden="true"
+        data-testid={`thanh-${nhan.toLowerCase()}`}
         className="h-2 w-full overflow-hidden rounded-full bg-black/10 dark:bg-white/10"
       >
         <div className={`h-full ${MAU[muc]}`} style={{ width: `${pct}%` }} />

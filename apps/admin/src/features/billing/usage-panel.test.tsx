@@ -99,6 +99,6 @@ describe('UsagePanel', () => {
       />,
     );
     expect(screen.getByText('Chưa có quyền thương mại')).toBeVisible();
-    expect(screen.queryByRole('meter')).toBeNull();
+    expect(screen.queryByTestId('thanh-places')).toBeNull();
   });
 });
