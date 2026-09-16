@@ -39,39 +39,52 @@ interface SidebarNavProps {
 }
 
 export function SidebarNav({ me, pendingCount }: SidebarNavProps) {
+  const groups = GROUPS.map((group) => ({
+    ...group,
+    visible: group.items.filter((item) => can(me, item.permission)),
+  })).filter((group) => group.visible.length > 0);
+
   return (
-    <nav aria-label="Điều hướng chính" className="space-y-4">
-      {GROUPS.map((group) => {
-        const visible = group.items.filter((item) => can(me, item.permission));
-        if (visible.length === 0) return null;
-        return (
-          <div key={group.title}>
-            <p className="px-2 pb-1 text-[10px] font-semibold uppercase tracking-wider text-[var(--text-muted)]">
-              {group.title}
-            </p>
-            {visible.map((item) => (
-              <NavLink
-                key={item.to}
-                to={item.to}
-                end={item.to === '/'}
-                className={({ isActive }) =>
-                  cn(
-                    'flex min-h-11 items-center justify-between rounded-[var(--radius-btn)] px-3 text-sm',
-                    isActive
-                      ? 'bg-brand-100 font-semibold text-brand-700 dark:bg-brand-900 dark:text-brand-100'
-                      : 'text-[var(--text-muted)] hover:bg-black/5 dark:hover:bg-white/5',
-                  )
-                }
-              >
-                <span>{item.label}</span>
-                {item.to === '/edits' && pendingCount !== undefined && pendingCount > 0 && (
-                  <Badge tone="brand">{pendingCount}</Badge>
-                )}
-              </NavLink>
+    <nav aria-label="Điều hướng chính">
+      {groups.map((group, index) => (
+        <section
+          key={group.title}
+          className={cn(
+            // Đường kẻ + khoảng thở phía trên là thứ tách các nhóm ra khỏi nhau; nhóm đầu không
+            // cần vì đã có tiêu đề "Admin Page" ngay trên.
+            index > 0 && 'mt-5 border-t border-[var(--border)] pt-4',
+          )}
+        >
+          <h2 className="px-2 pb-2 text-[11px] font-bold uppercase tracking-[0.12em] text-[var(--text)]">
+            {group.title}
+          </h2>
+          {/* Mục con thụt vào sau một đường dọc mảnh: nhìn một cái là biết chúng thuộc về tiêu đề
+              phía trên, không phải mục ngang hàng. */}
+          <ul className="ml-2 space-y-0.5 border-l border-[var(--border)] pl-2">
+            {group.visible.map((item) => (
+              <li key={item.to}>
+                <NavLink
+                  to={item.to}
+                  end={item.to === '/'}
+                  className={({ isActive }) =>
+                    cn(
+                      'flex min-h-11 items-center justify-between gap-2 rounded-[var(--radius-btn)] px-3 text-[15px]',
+                      isActive
+                        ? 'bg-brand-100 font-semibold text-brand-700 dark:bg-brand-900 dark:text-brand-100'
+                        : 'font-normal text-[var(--text-muted)] hover:bg-black/5 hover:text-[var(--text)] dark:hover:bg-white/5',
+                    )
+                  }
+                >
+                  <span>{item.label}</span>
+                  {item.to === '/edits' && pendingCount !== undefined && pendingCount > 0 && (
+                    <Badge tone="brand">{pendingCount}</Badge>
+                  )}
+                </NavLink>
+              </li>
             ))}
-          </div>
-        );
-      })}
+          </ul>
+        </section>
+      ))}
     </nav>
   );
 }

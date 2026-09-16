@@ -1,5 +1,6 @@
 import * as Dialog from '@radix-ui/react-dialog';
-import type { ReactNode } from 'react';
+import { type ReactNode, useEffect, useRef, useState } from 'react';
+import { useLocation } from 'react-router';
 
 interface DrawerProps {
   title: string;
@@ -12,8 +13,22 @@ interface DrawerProps {
  * tính lại bố cục mỗi khung hình và giật trên máy yếu.
  */
 export function Drawer({ title, children }: DrawerProps) {
+  const [open, setOpen] = useState(false);
+  const { pathname } = useLocation();
+  const shownAt = useRef(pathname);
+
+  // Chọn một mục điều hướng phải tự đóng ngăn kéo. Không gắn onClick vào từng liên kết: SidebarNav
+  // còn dùng cho sidebar cố định ở màn hình rộng, nơi không có ngăn kéo nào để đóng. Bám vào
+  // đường dẫn là chỗ duy nhất biết chắc "người dùng đã đi đâu đó".
+  useEffect(() => {
+    if (pathname !== shownAt.current) {
+      shownAt.current = pathname;
+      setOpen(false);
+    }
+  }, [pathname]);
+
   return (
-    <Dialog.Root>
+    <Dialog.Root open={open} onOpenChange={setOpen}>
       <Dialog.Trigger
         aria-label="Mở menu điều hướng"
         className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-[var(--radius-btn)] text-white lg:hidden"

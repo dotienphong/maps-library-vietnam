@@ -159,3 +159,59 @@ test('chi tiết đóng góp đổi toạ độ hiện khoảng cách lệch', a
     .click();
   await expect(page.getByText(/Lệch \d+ m/)).toBeVisible();
 });
+
+test('bản đồ thật: maplibre dựng được và giao thức pmtiles phân giải', async ({
+  page,
+  request,
+}) => {
+  const name = `Quán E2E Bản Đồ ${Date.now()}`;
+  const created = await (
+    await request.post('/v1/edits', {
+      headers: { 'X-Api-Key': FREE_KEY, 'content-type': 'application/json' },
+      data: {
+        kind: 'create',
+        changes: { name, lat: 10.762, lng: 106.682, category: 'cafe' },
+        end_user_token: 'e2e-map-seed',
+      },
+    })
+  ).json();
+  await request.post(`/v1/admin/edits/${created.edit_id}/approve`, {
+    headers: { 'Cf-Access-Jwt-Assertion': ACCESS_JWT },
+  });
+  await request.post('/v1/edits', {
+    headers: { 'X-Api-Key': FREE_KEY, 'content-type': 'application/json' },
+    data: {
+      kind: 'update',
+      poi_id: created.poi_id,
+      changes: { lat: 10.765, lng: 106.685 },
+      end_user_token: 'e2e-map-move',
+    },
+  });
+
+  // Nguồn dữ liệu chỉ được yêu cầu khi `pmtiles://` đã có protocol handler. Thiếu bước đăng ký
+  // đó thì maplibre bỏ qua nguồn và KHÔNG request gì — chính là lỗi bản đồ trống ngày 16/09.
+  const pmtilesRequests: string[] = [];
+  page.on('request', (r) => {
+    if (r.url().includes('.pmtiles')) pmtilesRequests.push(r.url());
+  });
+
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto('/admin/edits');
+  await page
+    .getByRole('button', { name: new RegExp(name) })
+    .first()
+    .click();
+
+  await expect(page.locator('canvas.maplibregl-canvas').first()).toBeVisible({ timeout: 25_000 });
+  await expect.poll(() => pmtilesRequests.length, { timeout: 25_000 }).toBeGreaterThan(0);
+
+  // Style tải xong thật — harness phục vụ tiles từ R2 local nên khẳng định này chạy được ở máy.
+  await expect(page.locator('[data-map-loaded]')).toHaveCount(1, { timeout: 25_000 });
+
+  // Hai chốt chỉ xuất hiện khi sự kiện `load` đã bắn, tức style, sprite VÀ nguồn pmtiles đều
+  // phân giải được. Harness phục vụ tiles từ R2 local nên khẳng định này chạy được ở máy.
+  await expect(page.locator('.maplibregl-marker')).toHaveCount(2, { timeout: 25_000 });
+
+  // Bản đồ tải được thì không có thông báo lỗi nào.
+  await expect(page.getByText('Không tải được bản đồ')).toHaveCount(0);
+});

@@ -97,6 +97,12 @@ await new Promise((resolve, reject) => {
 });
 console.log(`Access giả lập: JWKS http://127.0.0.1:${CERTS_PORT}, aud ${FAKE_AUD}`);
 
+// Tiles phục vụ tại chỗ: nạp fixture Quận 1 vào R2 local rồi trỏ TILES_BASE về chính harness.
+// Thiếu bước này, style trả về URL pmtiles trên tiles.ai-solutions.io.vn trỏ tới một release
+// chỉ có ở local (q1-fixture) nên luôn 404, và bản đồ trong trang admin trống trơn — mất luôn
+// khả năng thử tính năng bản đồ ở máy.
+run('pnpm', ['--filter', '@mapslibvn/api', 'exec', 'node', 'scripts/seed-local.mjs']);
+
 const wrangler = crossSpawn(
   'pnpm',
   [
@@ -117,6 +123,8 @@ const wrangler = crossSpawn(
     `IP_HASH_PEPPER:${IP_HASH_PEPPER}`,
     '--var',
     'AUTOCOMPLETE_TELEX:1',
+    '--var',
+    `TILES_BASE:http://127.0.0.1:${PORT}/r2`,
   ],
   {
     stdio: 'inherit',
