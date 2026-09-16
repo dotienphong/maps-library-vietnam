@@ -2,7 +2,7 @@
 // DB cô lập → migrate → seed → Wrangler/Hyperdrive local → integration tests.
 import 'dotenv/config';
 import { spawn } from 'node:child_process';
-import { existsSync, rmSync } from 'node:fs';
+import { rmSync } from 'node:fs';
 import { readFile } from 'node:fs/promises';
 import crossSpawn from 'cross-spawn';
 import postgres from 'postgres';
@@ -61,9 +61,10 @@ async function seedDatabase() {
 const detached = process.platform !== 'win32';
 
 // wrangler.toml khai báo [assets] trỏ apps/admin/dist — thiếu thì wrangler dev không lên.
-if (!existsSync('apps/admin/dist/admin/index.html')) {
-  run('pnpm', ['--filter', '@mapslibvn/admin', 'build']);
-}
+// Build LUÔN, không chỉ khi thiếu thư mục: bản dist cũ vẫn chạy được nên E2E xanh/đỏ theo một
+// trang không còn tồn tại trong mã. 16/09/2026 mất một lượt chạy vì màn Tenant mới thêm không
+// có trong dist của pha trước — cùng lớp lỗi với APK đóng gói bundle Metro cũ.
+run('pnpm', ['--filter', '@mapslibvn/admin', 'build']);
 
 // Cache local của wrangler nằm trong .wrangler/state và **sống qua nhiều phiên**: một lần
 // `pnpm dev:e2e` chạy trên DB dev đủ để itest sau đó nhận lại câu trả lời của DB khác và đỏ ở chỗ

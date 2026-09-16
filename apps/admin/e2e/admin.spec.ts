@@ -267,3 +267,77 @@ test('trang khai icon riêng nên không xin /favicon.ico ở gốc tên miền'
   await page.goto('/admin/edits');
   await expect(page.locator('link[rel="icon"]')).toHaveAttribute('href', '/admin/favicon.svg');
 });
+
+const TENANT_FREE = '00000000-0000-4000-8000-0000000000cc';
+const POI_ID = '01M3TEST0000000000000CAF01';
+
+test('cấp khoá từ trang Admin rồi gọi API thật bằng chính khoá đó', async ({ page, request }) => {
+  await page.goto('/admin/tenants');
+  await expect(page).toHaveTitle(/Admin Page/);
+
+  // Mở tenant free đã seed sẵn trong setup.sql.
+  // Lọc theo uuid chứ không theo tên: "M4 itest free" còn khớp cả "M4 itest free 2", và tenant
+  // đó đứng trước trong danh sách nên `.first()` mở nhầm hàng.
+  await page.getByLabel('Tìm theo tên tenant').fill('M4 itest free');
+  await page.getByRole('button').filter({ hasText: TENANT_FREE }).first().click();
+  await expect(page.getByRole('button', { name: 'Cấp khoá mới' })).toBeVisible();
+
+  await page.getByRole('button', { name: 'Cấp khoá mới' }).click();
+  await page.getByLabel('Nhãn').fill(`e2e ${Date.now()}`);
+  await page.getByRole('button', { name: 'Cấp khoá' }).click();
+
+  // Khoá rõ hiện đúng một lần, ngay trên màn hình.
+  // Khớp đúng chuỗi 24 ký tự: danh sách khoá phía sau cũng dùng font mono nhưng chỉ có tiền tố.
+  const khoa = await page
+    .getByText(/^mlv_live_[0-9A-Za-z]{24}$/)
+    .first()
+    .innerText();
+  expect(khoa).toMatch(/^mlv_live_[0-9A-Za-z]{24}$/);
+
+  // Bằng chứng mạnh nhất của cả pha: khoá vừa cấp gọi được API công khai ngay lập tức.
+  const place = await request.get(`/v1/places/${POI_ID}`, { headers: { 'X-Api-Key': khoa } });
+  expect(place.status()).toBe(200);
+
+  // Đóng hộp thoại rồi tải lại: chỉ còn tiền tố, khoá rõ không quay lại được.
+  await page.getByRole('button', { name: 'Tôi đã lưu' }).click();
+  await page.reload();
+  await page.getByLabel('Tìm theo tên tenant').fill('M4 itest free');
+  await page.getByRole('button').filter({ hasText: TENANT_FREE }).first().click();
+  await expect(page.getByText(khoa)).toHaveCount(0);
+  await expect(page.getByText(khoa.slice(0, 17)).first()).toBeVisible();
+});
+
+test('thu hồi khoá trên trang Admin làm khoá chết thật sau 5 giây', async ({ page, request }) => {
+  // Cấp khoá qua API để test này không phụ thuộc test trước.
+  const ACCESS = { 'Cf-Access-Jwt-Assertion': ACCESS_JWT, 'Sec-Fetch-Site': 'same-origin' };
+  const cap = await (
+    await request.post(`/v1/admin/tenants/${TENANT_FREE}/keys`, {
+      headers: { ...ACCESS, 'content-type': 'application/json' },
+      data: { label: `e2e thu hồi ${Date.now()}`, kind: 'server' },
+    })
+  ).json();
+  expect(
+    (await request.get(`/v1/places/${POI_ID}`, { headers: { 'X-Api-Key': cap.key } })).status(),
+  ).toBe(200);
+
+  await page.goto('/admin/tenants');
+  await page.getByLabel('Tìm theo tên tenant').fill('M4 itest free');
+  await page.getByRole('button').filter({ hasText: TENANT_FREE }).first().click();
+
+  const dong = page.locator('li').filter({ hasText: cap.key_prefix });
+  await expect(dong).toBeVisible();
+  await dong.getByRole('button', { name: 'Thu hồi' }).click();
+
+  // Hoãn 5 giây: trong lúc đếm, khoá vẫn phải sống.
+  expect(
+    (await request.get(`/v1/places/${POI_ID}`, { headers: { 'X-Api-Key': cap.key } })).status(),
+  ).toBe(200);
+
+  await expect
+    .poll(
+      async () =>
+        (await request.get(`/v1/places/${POI_ID}`, { headers: { 'X-Api-Key': cap.key } })).status(),
+      { timeout: 20_000 },
+    )
+    .toBe(401);
+});
