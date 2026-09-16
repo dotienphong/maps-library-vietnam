@@ -156,6 +156,13 @@ body[data-nav="1"] #status {
   color: var(--pg-accent-fg);
   font-weight: 600;
 }
+/* Khối cơ bản của .nav-routes đặt ở đây, ngay trước rule [aria-busy] dùng tới nó — giống cách
+   .nav-modes đã làm ở trên. Để nó xuống dưới thì Biome 2 báo noDescendingSpecificity. */
+.nav-routes {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
 .nav-card[aria-busy="true"] .nav-modes,
 .nav-card[aria-busy="true"] .nav-routes {
   opacity: 0.5;
@@ -167,11 +174,6 @@ body[data-nav="1"] #status {
 }
 .nav-msg[data-state="error"] {
   color: #a5301f;
-}
-.nav-routes {
-  margin: 0;
-  padding: 0;
-  list-style: none;
 }
 .nav-routes li + li {
   margin-top: 4px;
