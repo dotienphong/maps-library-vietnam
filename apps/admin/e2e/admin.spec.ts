@@ -255,3 +255,15 @@ test('worker của maplibre phải có mặt trong bản build', async ({ reques
   expect(worker.status()).toBe(200);
   expect(worker.headers()['content-type'] ?? '').toContain('javascript');
 });
+
+test('trang khai icon riêng nên không xin /favicon.ico ở gốc tên miền', async ({
+  page,
+  request,
+}) => {
+  const icon = await request.get('/admin/favicon.svg');
+  expect(icon.status()).toBe(200);
+  expect(icon.headers()['content-type'] ?? '').toContain('svg');
+
+  await page.goto('/admin/edits');
+  await expect(page.locator('link[rel="icon"]')).toHaveAttribute('href', '/admin/favicon.svg');
+});
