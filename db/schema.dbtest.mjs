@@ -150,6 +150,29 @@ describe('lược đồ spec 5.2', () => {
     ]);
   });
 
+  it('0018: api được INSERT đúng chín cột của api_key để cấp khoá từ trang Admin', async () => {
+    // Danh sách khớp chính xác cả hai chiều. Thiếu một cột nghĩa là POST /v1/admin/tenants/:id/keys
+    // trả upstream_unavailable trên máy chủ thật (đúng lớp lỗi đã sinh ra migration 0016). Thừa một
+    // cột nghĩa là Worker tự đặt được `active`/`revoked_at`/`created_at` — ba thứ chỉ DEFAULT và
+    // route thu hồi mới được đụng. `pnpm test:api-db` KHÔNG thay thế được bài này: nó nối DB bằng
+    // role chủ sở hữu chứ không phải role `api` mà Worker dùng thật.
+    const inserts = await sql`SELECT column_name FROM information_schema.column_privileges
+      WHERE grantee = 'api' AND table_schema = 'public' AND table_name = 'api_key'
+        AND privilege_type = 'INSERT'
+      ORDER BY column_name`;
+    expect(inserts.map((row) => row.column_name)).toEqual([
+      'allowed_bundle_ids',
+      'allowed_origins',
+      'key_hash',
+      'key_prefix',
+      'kind',
+      'label',
+      'quota_directions_per_day',
+      'scopes',
+      'tenant_id',
+    ]);
+  });
+
   it('0007: pg_trgm.word_similarity_threshold = 0.5 ở cấp database, phiên mới đọc được', async () => {
     const [setting] = await sql`SELECT setconfig FROM pg_db_role_setting
       WHERE setdatabase = (SELECT oid FROM pg_database WHERE datname = current_database())
