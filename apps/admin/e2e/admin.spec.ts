@@ -106,11 +106,11 @@ test('huỷ trong 5 giây: đóng góp vẫn ở hàng chờ, POI chưa active',
   // Bản ghi vẫn nằm trong hàng chờ vì request duyệt chưa bao giờ được gửi.
   // Không kiểm qua /v1/places: POI ở trạng thái pending vẫn trả 200 cho chính tenant đã gửi
   // đóng góp, nên endpoint đó không phân biệt được "đã duyệt" với "chưa duyệt".
-  const pending = await (
+  const pending = (await (
     await request.get('/v1/admin/edits?status=pending&limit=100', {
       headers: { 'Cf-Access-Jwt-Assertion': ACCESS_JWT },
     })
-  ).json();
+  ).json()) as { items: { id: number }[] };
   expect(pending.items.some((item) => item.id === created.edit_id)).toBe(true);
 });
 

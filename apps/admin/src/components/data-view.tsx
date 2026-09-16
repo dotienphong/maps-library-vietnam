@@ -7,7 +7,7 @@ export interface Column<T> {
   className?: string;
 }
 
-interface DataViewProps<T> {
+interface RecordViewProps<T> {
   items: T[];
   columns: Column<T>[];
   renderCard: (item: T) => ReactNode;
@@ -34,7 +34,11 @@ export function useIsWide(): boolean {
   return wide;
 }
 
-export function DataView<T>({ items, columns, renderCard, rowKey }: DataViewProps<T>) {
+/**
+ * Tên là RecordView chứ không phải DataView: `DataView` là một global sẵn có của JavaScript
+ * (view trên ArrayBuffer) và trình lint chặn việc che khuất nó.
+ */
+export function RecordView<T>({ items, columns, renderCard, rowKey }: RecordViewProps<T>) {
   const wide = useIsWide();
 
   if (!wide) {

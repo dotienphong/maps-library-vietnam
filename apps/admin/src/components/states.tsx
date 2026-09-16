@@ -6,7 +6,7 @@ export function LoadingSkeleton({ rows = 4 }: { rows?: number }) {
     <div role="status" aria-label="Đang tải" className="space-y-3">
       {Array.from({ length: rows }, (_, index) => (
         <div
-          // Khối xương không có danh tính nào ngoài vị trí; chỉ số là khoá đúng ở đây.
+          // biome-ignore lint/suspicious/noArrayIndexKey: khối xương không mang dữ liệu và danh sách không bao giờ bị sắp xếp lại hay chèn giữa, nên vị trí chính là danh tính duy nhất
           key={index}
           data-skeleton-row
           className="h-24 animate-pulse rounded-[var(--radius-card)] border border-[var(--border)] bg-black/5 dark:bg-white/5"

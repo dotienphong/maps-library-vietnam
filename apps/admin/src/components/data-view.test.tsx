@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { render, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { DataView } from './data-view';
+import { RecordView } from './data-view';
 
 interface Row {
   id: number;
@@ -26,7 +26,7 @@ const stubWidth = (wide: boolean) => {
 
 const view = () =>
   render(
-    <DataView
+    <RecordView
       items={items}
       rowKey={(row) => String(row.id)}
       columns={[{ key: 'ten', header: 'Tên', render: (row) => row.ten }]}
@@ -36,7 +36,7 @@ const view = () =>
 
 afterEach(() => vi.unstubAllGlobals());
 
-describe('DataView', () => {
+describe('RecordView', () => {
   it('dưới 1024px dựng thẻ, không dựng bảng', () => {
     stubWidth(false);
     const { container } = view();

@@ -132,10 +132,13 @@ export function EditMap({ detail, loadMap = defaultLoadMap }: EditMapProps) {
   const ref = useRef<HTMLDivElement>(null);
   const editId = detail.edit.id;
 
+  // mapPlan() trả về object mới mỗi lần render, nên khai đủ phụ thuộc sẽ dựng lại bản đồ ở mọi
+  // lần render — nuốt mất vị trí phóng to và góc nhìn người dùng vừa chỉnh. Bản đồ chỉ cần dựng
+  // lại khi chuyển sang một đóng góp khác.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: xem giải thích ngay trên
   useEffect(() => {
     if (plan.mode === 'khong-ve' || !ref.current) return;
     void loadMap(ref.current, plan);
-    // Chỉ dựng lại khi sang một đóng góp khác; `plan` là object mới mỗi lần render.
   }, [editId]);
 
   if (plan.mode === 'khong-ve') return null;

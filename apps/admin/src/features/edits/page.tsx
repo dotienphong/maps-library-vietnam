@@ -1,6 +1,6 @@
 import { useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
-import { DataView } from '@/components/data-view';
+import { RecordView } from '@/components/data-view';
 import { useDelayedAction } from '@/components/delayed-action';
 import { EmptyState, ErrorState, LoadingSkeleton } from '@/components/states';
 import { Badge } from '@/components/ui/badge';
@@ -106,7 +106,7 @@ export function EditsPage() {
       )}
 
       {list.data && list.data.items.length > 0 && (
-        <DataView
+        <RecordView
           items={list.data.items}
           rowKey={(edit) => String(edit.id)}
           renderCard={(edit) => <EditCard edit={edit} onOpen={setOpenId} onReview={onReview} />}
