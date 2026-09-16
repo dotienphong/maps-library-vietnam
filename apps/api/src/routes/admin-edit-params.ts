@@ -1,4 +1,5 @@
 import { ApiError } from '../errors';
+import { parseLimit, parseSearch } from './admin-list-params';
 
 const STATUSES = ['pending', 'approved', 'rejected', 'auto_approved'] as const;
 const KINDS = ['create', 'update', 'close', 'reopen', 'report'] as const;
@@ -36,22 +37,12 @@ export function parseEditListParams(params: URLSearchParams): EditListParams {
     cursor = parsed;
   }
 
-  // `limit=0` và giá trị không phải số đều rơi về mặc định; số hợp lệ bị kẹp trong 1..100.
-  const rawLimit = Number(params.get('limit'));
-  const limit =
-    Number.isFinite(rawLimit) && rawLimit !== 0
-      ? Math.min(100, Math.max(1, Math.trunc(rawLimit)))
-      : 25;
-
-  const rawQ = params.get('q')?.trim() ?? '';
-  const q = rawQ === '' ? null : rawQ.slice(0, 80);
-
   return {
     status: status as EditListParams['status'],
     kind: (rawKind as EditListParams['kind']) ?? null,
     tenantId: rawTenant,
-    q,
-    limit,
+    q: parseSearch(params),
+    limit: parseLimit(params),
     cursor,
   };
 }
