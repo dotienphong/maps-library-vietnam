@@ -19,7 +19,7 @@ export const MODE_VI: Record<Tenant['quota_mode'], string> = {
 
 export function TenantCard({ tenant, onOpen }: { tenant: Tenant; onOpen: (id: string) => void }) {
   return (
-    <Card>
+    <Card interactive>
       <div className="flex items-start gap-2">
         <div className="min-w-0 flex-1">
           <CardTitle>{tenant.name}</CardTitle>
@@ -34,7 +34,13 @@ export function TenantCard({ tenant, onOpen }: { tenant: Tenant; onOpen: (id: st
         <Badge tone={tenant.active_keys > 0 ? 'success' : 'warning'}>
           {tenant.active_keys} khoá
         </Badge>
-        <Button variant="secondary" className="ml-auto" onClick={() => onOpen(tenant.id)}>
+        {/* `after:inset-0` kéo vùng bấm ra cả thẻ: bấm chỗ nào trong thẻ cũng mở danh sách khoá.
+            Nút vẫn giữ nguyên để người dùng biết bấm vào thì ra cái gì. */}
+        <Button
+          variant="secondary"
+          className="ml-auto after:absolute after:inset-0 after:content-['']"
+          onClick={() => onOpen(tenant.id)}
+        >
           Xem khoá
         </Button>
       </div>

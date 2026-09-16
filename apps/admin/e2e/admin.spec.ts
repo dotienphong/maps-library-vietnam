@@ -341,3 +341,45 @@ test('thu hồi khoá trên trang Admin làm khoá chết thật sau 5 giây', a
     )
     .toBe(401);
 });
+
+test('thẻ bấm được: rê chuột thì nổi lên, bấm vào chỗ trống trong thẻ vẫn mở chi tiết', async ({
+  page,
+  request,
+}) => {
+  const name = `Quán E2E Thẻ Nổi ${Date.now()}`;
+  await request.post('/v1/edits', {
+    headers: { 'X-Api-Key': FREE_KEY, 'content-type': 'application/json' },
+    data: {
+      kind: 'create',
+      changes: { name, lat: 10.768, lng: 106.704, category: 'cafe' },
+      end_user_token: 'e2e-the-noi',
+    },
+  });
+
+  // Khung hẹp để RecordView vẽ thẻ; từ 1024px nó vẽ bảng.
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto('/admin/edits');
+
+  const the = page.locator('[data-card="interactive"]').filter({ hasText: name });
+  await expect(the).toBeVisible();
+
+  // Đọc `translate`, KHÔNG phải `transform`: Tailwind v4 xuất các lớp translate-* ra thuộc tính
+  // CSS `translate` riêng, nên `getComputedStyle(el).transform` vẫn là "none" dù thẻ đã dịch.
+  const kieu = () =>
+    the.evaluate((el) => {
+      const style = getComputedStyle(el);
+      return { shadow: style.boxShadow, translate: style.translate };
+    });
+
+  const truoc = await kieu();
+
+  await the.hover();
+  // Bóng và phép dịch đều phải đổi: chỉ đổi màu viền thì thẻ vẫn phẳng.
+  await expect.poll(async () => (await kieu()).translate).not.toBe(truoc.translate);
+  expect((await kieu()).shadow).not.toBe(truoc.shadow);
+
+  // Bấm vào góc trên trái — chỗ chỉ có huy hiệu, không có nút nào. Lớp phủ của nút tiêu đề nhận
+  // cú bấm này, nên cả thẻ hành xử như một nút.
+  await the.click({ position: { x: 24, y: 14 } });
+  await expect(page.getByRole('dialog')).toBeVisible();
+});

@@ -36,7 +36,7 @@ export function EditCard({ edit, onOpen, onReview }: EditCardProps) {
   const pending = edit.status === 'pending';
 
   return (
-    <Card>
+    <Card interactive>
       <div className="flex items-center gap-2">
         <Badge tone={edit.kind === 'create' ? 'brand' : 'neutral'}>{KIND_VI[edit.kind]}</Badge>
         {edit.distance_m !== null && <Badge tone="warning">Đổi vị trí · {edit.distance_m} m</Badge>}
@@ -45,13 +45,21 @@ export function EditCard({ edit, onOpen, onReview }: EditCardProps) {
         </span>
       </div>
 
-      <button type="button" onClick={() => onOpen(edit.id)} className="mt-2 block w-full text-left">
+      {/* `after:inset-0` kéo vùng bấm của nút này ra CẢ thẻ: bấm vào khoảng trống, vào huy hiệu
+          hay vào dòng thời gian đều mở chi tiết. Vẫn là một nút thật nên bàn phím và trình đọc
+          màn hình tới được, khác hẳn gắn onClick lên thẻ. */}
+      <button
+        type="button"
+        onClick={() => onOpen(edit.id)}
+        className="mt-2 block w-full text-left after:absolute after:inset-0 after:content-['']"
+      >
         <CardTitle>{editTitle(edit)}</CardTitle>
         {address && <p className="mt-0.5 text-sm text-[var(--text-muted)]">{address}</p>}
       </button>
 
       {pending && (
-        <div className="mt-3 flex gap-2">
+        // `relative z-10`: nằm TRÊN lớp phủ, nếu không thì bấm Duyệt lại mở chi tiết.
+        <div className="relative z-10 mt-3 flex gap-2">
           <Button block onClick={() => onReview(edit.id, 'approve')}>
             Duyệt
           </Button>
