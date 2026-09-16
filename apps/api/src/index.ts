@@ -46,10 +46,20 @@ app.onError((err, c) => errorResponse(c, err));
  * SPA fallback cho trang Admin: /admin/edits và các đường dẫn con khác không có file tĩnh tương
  * ứng, router chạy phía trình duyệt. Giới hạn trong tiền tố /admin nên một /v1/* gõ sai vẫn nhận
  * lỗi JSON đúng nghĩa thay vì một trang HTML.
+ *
+ * CHỈ áp cho đường dẫn điều hướng, KHÔNG áp cho file có phần mở rộng. Bản đầu nuốt cả yêu cầu
+ * `.js`: trình duyệt giữ index.html cũ, xin một chunk mang hash cũ, Worker trả HTML, trình duyệt
+ * từ chối vì sai MIME và maplibre không bao giờ nạp được — bản đồ trắng mà không có lỗi nào để
+ * hiện. Sự cố 16/09/2026. Trả 404 thật thì lỗi lộ ra ngay và trang tự tải lại được.
  */
+const LA_TEP_TINH = /\.[a-z0-9]+$/i;
+
 app.get('/admin/*', async (c) => {
-  if (!c.env.ASSETS) throw new ApiError(404, 'not_found', 'Không có route này');
   const url = new URL(c.req.url);
+  const doanCuoi = url.pathname.split('/').pop() ?? '';
+  if (!c.env.ASSETS || LA_TEP_TINH.test(doanCuoi)) {
+    throw new ApiError(404, 'not_found', 'Không có tệp này');
+  }
   url.pathname = '/admin/index.html';
   return c.env.ASSETS.fetch(new Request(url, { headers: c.req.raw.headers }));
 });

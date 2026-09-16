@@ -232,3 +232,17 @@ test('mọi thứ bấm được đều hiện con trỏ hình bàn tay', async 
   // Ô nhập vẫn phải là con trỏ chữ, không phải bàn tay.
   await expect.poll(() => cursorOf(page.getByLabel('Tìm theo tên POI'))).not.toBe('pointer');
 });
+
+test('file tĩnh không tồn tại phải trả 404, KHÔNG trả index.html', async ({ request }) => {
+  // Fallback SPA từng nuốt cả yêu cầu file .js: trình duyệt giữ index.html cũ, xin một chunk có
+  // hash cũ, Worker trả HTML, module bị từ chối vì sai MIME và maplibre không bao giờ nạp được —
+  // bản đồ trắng mà không có lỗi nào để hiện. Sự cố 16/09/2026.
+  const missing = await request.get('/admin/assets/khong-ton-tai-abc123.js');
+  expect(missing.status()).toBe(404);
+  expect(missing.headers()['content-type'] ?? '').not.toContain('text/html');
+
+  // Đường dẫn điều hướng thì vẫn phải trả index.html để router phía trình duyệt làm việc.
+  const route = await request.get('/admin/edits');
+  expect(route.status()).toBe(200);
+  expect(route.headers()['content-type'] ?? '').toContain('text/html');
+});
