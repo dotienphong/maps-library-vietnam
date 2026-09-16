@@ -87,3 +87,17 @@ describe('/v1/admin — duyệt qua HTTP với Access giả lập', () => {
     expect((await adminFetch('/v1/admin/edits?status=hacked')).status).toBe(400);
   });
 });
+
+describe('GET /v1/admin/me', () => {
+  it('trả email từ JWT và danh sách quyền đầy đủ', async () => {
+    const response = await adminFetch('/v1/admin/me');
+    expect(response.status).toBe(200);
+    const body = await response.json();
+    expect(body.email).toBe('phong@access-fake.local');
+    expect(body.permissions).toContain('edits.write');
+  });
+
+  it('không JWT → 401', async () => {
+    expect((await fetch(`${base}/v1/admin/me`)).status).toBe(401);
+  });
+});

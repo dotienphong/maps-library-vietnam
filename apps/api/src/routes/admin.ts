@@ -31,6 +31,28 @@ admin.use('/v1/admin/*', async (c, next) => {
 });
 admin.use('/v1/admin/*', requireAccess());
 
+/**
+ * Danh sách quyền để giao diện biết vẽ những mục nào. Giai đoạn này hệ thống chưa phân quyền
+ * (một người quản lý), nên ai qua được Access đều nhận đủ quyền. Hợp đồng đã có sẵn chỗ để thêm
+ * vai trò sau mà không phải đổi giao diện — xem mục 9 của spec trang Admin.
+ */
+const ALL_PERMISSIONS = [
+  'edits.read',
+  'edits.write',
+  'tenants.read',
+  'tenants.write',
+  'billing.read',
+  'billing.write',
+  'health.read',
+  'audit.read',
+] as const;
+
+admin.get('/v1/admin/me', (c) =>
+  c.json({ email: c.get('reviewer') ?? '', permissions: [...ALL_PERMISSIONS] }, 200, {
+    'cache-control': 'private, no-store',
+  }),
+);
+
 admin.get('/v1/admin/edits', async (c) => {
   const status = c.req.query('status') ?? 'pending';
   if (!STATUSES.includes(status))
