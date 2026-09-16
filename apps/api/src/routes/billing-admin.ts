@@ -4,6 +4,7 @@ import { quotaObject } from '../billing/object';
 import type { EntitlementCommand, JournalEntry, SnapshotPage } from '../billing/types';
 import { endSql, getSql } from '../db';
 import type { AppEnv, Env } from '../env';
+import { billingRead } from './billing-read';
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
@@ -146,6 +147,10 @@ export function billingAdmin(dependencies: BillingAdminDependencies = {}) {
     const usage = await object.readUsage();
     return c.json(usage, 200, { 'cache-control': 'private, no-store' });
   });
+
+  // Mount SAU hai middleware ở trên để nhóm đọc cũng qua cổng kiểm tenant tồn tại; mount trước
+  // chúng thì `/periods` của một uuid không có thật sẽ trả 200 với sổ rỗng thay vì 404.
+  routes.route('/', billingRead);
 
   routes.post('/v1/admin/billing/:tenantId/commands', async (c) => {
     const tenantId = c.req.param('tenantId');

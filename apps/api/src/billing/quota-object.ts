@@ -12,6 +12,8 @@ import type {
   GroupUsage,
   JournalEntry,
   JournalPage,
+  PeriodGroupUsage,
+  PeriodHistory,
   QuotaGroup,
   ReserveResult,
   RestoreReceipt,
@@ -336,6 +338,99 @@ export class QuotaObject extends DurableObject<Env> {
       maintenance: this.maintenance(),
       places: this.groupUsage(period, 'places'),
       directions: this.groupUsage(period, 'directions'),
+    };
+  }
+
+  /**
+   * Lịch sử kỳ và credit cho màn Gói cước & hạn mức. CHỈ ĐỌC: không mở transaction, không ghi
+   * journal, không đụng alarm — gọi bao nhiêu lần cũng không đổi revision.
+   *
+   * Không gộp vào `readUsage()`: đường nóng của mỗi request thương mại gọi hàm đó, và quét cả
+   * bảng `period`/`credit_grant` ở đấy là trả giá bằng độ trễ của khách để phục vụ một màn quản trị.
+   */
+  async readPeriods(limit = 24): Promise<PeriodHistory> {
+    const gioiHan = Math.min(Math.max(Math.trunc(Number(limit)) || 24, 1), 60);
+    const sql = this.ctx.storage.sql;
+
+    const periods = sql
+      .exec(
+        `SELECT period_id, tier, starts_at, ends_at, places_limit, directions_limit,
+                payment_reference, line_item_id
+           FROM period ORDER BY starts_at DESC LIMIT ?`,
+        gioiHan,
+      )
+      .toArray() as unknown as {
+      period_id: string;
+      tier: Tier;
+      starts_at: number;
+      ends_at: number;
+      places_limit: number;
+      directions_limit: number;
+      payment_reference: string | null;
+      line_item_id: string | null;
+    }[];
+
+    // Gộp một lần cho cả bảng rồi ghép trong bộ nhớ: `counter` có thêm chiều ngày cho kỳ dùng thử
+    // (day_key), nên phải SUM chứ không đọc thẳng một dòng — đọc thẳng sẽ chỉ ra số của một ngày.
+    const dem = sql
+      .exec(
+        `SELECT source_id, group_name, coalesce(sum(used),0) AS used,
+                coalesce(sum(reserved),0) AS reserved
+           FROM counter GROUP BY source_id, group_name`,
+      )
+      .toArray() as unknown as {
+      source_id: string;
+      group_name: string;
+      used: number;
+      reserved: number;
+    }[];
+
+    const tra = (periodId: string, group: QuotaGroup, limitValue: number): PeriodGroupUsage => {
+      const row = dem.find((item) => item.source_id === periodId && item.group_name === group);
+      return { limit: limitValue, used: row?.used ?? 0, reserved: row?.reserved ?? 0 };
+    };
+
+    const credits = sql
+      .exec(
+        `SELECT grant_id, period_id, group_name, units, used, reserved, expires_at,
+                payment_reference, line_item_id
+           FROM credit_grant ORDER BY expires_at DESC LIMIT ?`,
+        gioiHan * 4,
+      )
+      .toArray() as unknown as {
+      grant_id: string;
+      period_id: string;
+      group_name: QuotaGroup;
+      units: number;
+      used: number;
+      reserved: number;
+      expires_at: number;
+      payment_reference: string;
+      line_item_id: string;
+    }[];
+
+    return {
+      periods: periods.map((row) => ({
+        periodId: row.period_id,
+        tier: row.tier,
+        startsAt: new Date(row.starts_at).toISOString(),
+        endsAt: new Date(row.ends_at).toISOString(),
+        paymentReference: row.payment_reference,
+        lineItemId: row.line_item_id,
+        places: tra(row.period_id, 'places', row.places_limit),
+        directions: tra(row.period_id, 'directions', row.directions_limit),
+      })),
+      credits: credits.map((row) => ({
+        grantId: row.grant_id,
+        periodId: row.period_id,
+        group: row.group_name,
+        units: row.units,
+        used: row.used,
+        reserved: row.reserved,
+        expiresAt: new Date(row.expires_at).toISOString(),
+        paymentReference: row.payment_reference,
+        lineItemId: row.line_item_id,
+      })),
     };
   }
 

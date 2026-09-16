@@ -98,6 +98,43 @@ export interface CommandReceipt {
   appliedAt: string;
 }
 
+/** Số của một nhóm quota trong MỘT kỳ. Khác `GroupUsage`: không có credit, vì credit đứng riêng. */
+export interface PeriodGroupUsage {
+  limit: number;
+  used: number;
+  reserved: number;
+}
+
+export interface PeriodSummary {
+  periodId: string;
+  tier: Tier;
+  startsAt: string;
+  endsAt: string;
+  /** null với kỳ dùng thử — nó không đi kèm giao dịch nào. */
+  paymentReference: string | null;
+  lineItemId: string | null;
+  places: PeriodGroupUsage;
+  directions: PeriodGroupUsage;
+}
+
+export interface CreditSummary {
+  grantId: string;
+  periodId: string;
+  group: QuotaGroup;
+  units: number;
+  used: number;
+  reserved: number;
+  expiresAt: string;
+  paymentReference: string;
+  lineItemId: string;
+}
+
+/** Lịch sử chỉ-đọc của một sổ quota: các kỳ đã cấp và các gói credit đã cộng. */
+export interface PeriodHistory {
+  periods: PeriodSummary[];
+  credits: CreditSummary[];
+}
+
 /**
  * Bản sao lưu = manifest + các trang snapshot + đuôi journal sau `sequence`.
  * `sequence` là số thứ tự journal tại thời điểm đóng băng snapshot; mọi thay đổi có số lớn hơn
