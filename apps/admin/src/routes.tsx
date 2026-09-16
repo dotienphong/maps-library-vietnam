@@ -11,6 +11,10 @@ const TenantsPage = lazy(() =>
   import('@/features/tenants/page').then((module) => ({ default: module.TenantsPage })),
 );
 
+const BillingPage = lazy(() =>
+  import('@/features/billing/page').then((module) => ({ default: module.BillingPage })),
+);
+
 const wait = (node: ReactNode) => (
   <Suspense fallback={<LoadingSkeleton rows={4} />}>{node}</Suspense>
 );
@@ -25,6 +29,7 @@ export const router = createBrowserRouter(
         { index: true, element: wait(<EditsPage />) },
         { path: 'edits', element: wait(<EditsPage />) },
         { path: 'tenants', element: wait(<TenantsPage />) },
+        { path: 'billing', element: wait(<BillingPage />) },
       ],
     },
   ],
