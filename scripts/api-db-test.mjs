@@ -72,6 +72,14 @@ run('pnpm', ['--filter', '@mapslibvn/admin', 'build']);
 // "Highlands Coffee Test" của setup.sql). Xoá để bộ test tự chứa.
 rmSync('apps/api/.wrangler/state/v3/cache', { recursive: true, force: true });
 
+// Sổ quota của Durable Object cũng sống qua nhiều phiên, trong khi Postgres thì được dựng lại sạch
+// mỗi lượt. Lệch nhau như vậy làm bộ test billing chỉ đúng lần chạy đầu: lần sau activateTrial nhận
+// `trial_already_used`, còn mọi lệnh khác nhận `revision_conflict` vì expectedRevision tính từ một
+// sổ đã có lịch sử.
+// Hệ quả đã cân nhắc: ai đang dùng `pnpm dev` với sổ quota local sẽ mất dữ liệu quota local sau mỗi
+// lần chạy bộ itest. Đó là dữ liệu thử, còn một bộ test đỏ ngẫu nhiên thì tốn hàng giờ.
+rmSync('apps/api/.wrangler/state/v3/do', { recursive: true, force: true });
+
 await recreateDatabase();
 console.log(`API itest DB: ${target.hostname}/${DBTEST_DATABASE}`);
 await seedDatabase();
