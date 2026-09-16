@@ -383,3 +383,57 @@ test('thẻ bấm được: rê chuột thì nổi lên, bấm vào chỗ trốn
   await the.click({ position: { x: 24, y: 14 } });
   await expect(page.getByRole('dialog')).toBeVisible();
 });
+
+// Hai tenant seed của harness (apps/api/test-db/setup.sql). Vào thẳng bằng `?tenant=` thay vì bấm
+// trong danh sách: deep-link là đường người vận hành thật sự dùng khi mở lại tab đã lưu, và tên
+// hai tenant free chỉ khác nhau một ký tự nên chọn theo nhãn rất dễ trúng nhầm.
+const TENANT_FREE_2 = '00000000-0000-4000-8000-0000000000dd';
+
+test('màn Gói cước: cấp kỳ trả phí cho một tenant rồi thấy biên lai thật', async ({ page }) => {
+  // Tenant seed ở chế độ legacy nên màn hình đi nhánh bộ đếm KV; lệnh billing vẫn gửi được và sổ
+  // quota nhận ngay. Sổ Durable Object đã được harness xoá trước mỗi lượt chạy, nên kỳ này không
+  // bao giờ chồng lên kỳ của lượt trước.
+  await page.goto(`/admin/billing?tenant=${TENANT_FREE}`);
+  await expect(page.getByText(/chưa vào sổ thương mại/)).toBeVisible();
+
+  await page.getByRole('button', { name: 'Cấp kỳ trả phí' }).click();
+  await page.getByLabel('Mã thanh toán').fill(`CK-E2E-${Date.now()}`);
+  await page.getByLabel('Lý do').fill('e2e cấp kỳ');
+  await page.getByRole('button', { name: 'Gửi lệnh' }).click();
+
+  // Hoãn gửi 5 giây: hộp thoại đóng ngay, request chỉ đi sau đó.
+  await expect(page.getByRole('status')).toContainText('gửi sau');
+  await page.waitForTimeout(6000);
+
+  await expect(page.getByText('Đã gửi: Cấp kỳ cho tenant')).toBeVisible();
+  await expect(page.getByText('Bản sổ')).toBeVisible();
+});
+
+test('huỷ trong 5 giây ở màn Gói cước: sổ quota không đổi', async ({ page, request }) => {
+  await page.goto(`/admin/billing?tenant=${TENANT_FREE_2}`);
+  await page.getByRole('button', { name: 'Bật dùng thử' }).click();
+  await page.getByLabel('Lý do').fill('e2e huỷ');
+  await page.getByRole('button', { name: 'Gửi lệnh' }).click();
+  await page.getByRole('button', { name: 'Huỷ' }).click();
+  await page.waitForTimeout(6000);
+
+  // Kiểm bằng chính API: sổ vẫn trắng vì request chưa bao giờ rời trình duyệt.
+  const usage = await (
+    await request.get(`/v1/admin/billing/${TENANT_FREE_2}/usage`, {
+      headers: { 'Cf-Access-Jwt-Assertion': ACCESS_JWT },
+    })
+  ).json();
+  expect(usage.status).toBe('none');
+  expect(usage.revision).toBe(0);
+});
+
+test('email ngoài BILLING_ADMIN_EMAILS gọi thẳng API billing → 403', async ({ browser }) => {
+  // Tiêu chí nghiệm thu số 3 của spec: lớp bảo vệ sẵn có không được yếu đi sau đợt làm này.
+  const context = await browser.newContext({ baseURL: 'http://127.0.0.1:8799' });
+  const response = await context.request.get(`/v1/admin/billing/${TENANT_FREE}/usage`, {
+    headers: { 'Cf-Access-Jwt-Assertion': signAccessJwt({ email: 'nguoila@e2e.local' }) },
+  });
+  expect(response.status()).toBe(403);
+  expect((await response.json()).error.code).toBe('billing_admin_forbidden');
+  await context.close();
+});
