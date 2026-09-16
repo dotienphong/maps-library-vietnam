@@ -38,7 +38,11 @@ Vite proxy mọi lời gọi `/v1/*` sang harness ở cổng 8799 và **tự ch�
 phải đăng nhập gì. Sửa file là trang tự cập nhật.
 
 `node scripts/api-db-test.mjs --serve` **drop rồi tạo lại một database test riêng**, không đụng
-database dev thường ngày của bạn. Dừng bằng `Ctrl+C`.
+database dev thường ngày của bạn. Nó cũng nạp fixture tiles Quận 1 vào R2 local và trỏ
+`TILES_BASE` về chính nó, nên **bản đồ trong màn chi tiết đóng góp hiển thị được ngay ở máy**,
+không cần mạng và không phụ thuộc dữ liệu production. Dừng bằng `Ctrl+C`.
+
+Fixture chỉ phủ Quận 1, TP.HCM — đóng góp ở nơi khác vẫn dựng bản đồ nhưng nền sẽ trống.
 
 ## Địa chỉ
 
@@ -69,5 +73,10 @@ với `scripts/**/*.test.mjs` trên Node nên không đặt jsdom toàn cục.
 - **Worker tự phục vụ `index.html` cho `/admin/*`** thay vì bật chế độ SPA của Cloudflare Assets:
   chế độ đó trả `index.html` cho mọi path không khớp asset, biến một `/v1/*` gõ sai thành trang
   HTML thay vì lỗi JSON.
+- **Phải đăng ký giao thức `pmtiles://`** trước khi tạo bản đồ (`map-runtime.ts`). Style trỏ
+  nguồn dữ liệu bằng giao thức đó, mà maplibre không hiểu sẵn; thiếu bước này thì bản đồ dựng lên
+  nhưng trống trơn và **không báo lỗi gì**. Đây là sự cố 16/09/2026.
+- **Bản đồ hỏng thì nói ra.** `EditMap` hiện "Không tải được bản đồ" kèm lý do, vì một khung trống
+  câm lặng trông y hệt một tính năng chưa làm.
 - **Ngăn kéo tự đóng khi đường dẫn đổi**, không gắn `onClick` vào từng liên kết: `SidebarNav` còn
   dùng cho sidebar cố định ở màn hình rộng, nơi không có ngăn kéo nào để đóng.

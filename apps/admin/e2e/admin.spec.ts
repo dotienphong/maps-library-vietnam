@@ -205,6 +205,13 @@ test('bản đồ thật: maplibre dựng được và giao thức pmtiles phân
   await expect(page.locator('canvas.maplibregl-canvas').first()).toBeVisible({ timeout: 25_000 });
   await expect.poll(() => pmtilesRequests.length, { timeout: 25_000 }).toBeGreaterThan(0);
 
-  // Không khẳng định có chốt vị trí: harness trỏ manifest vào `q1-fixture.pmtiles` không tồn tại
-  // trên R2 (404), nên sự kiện `load` không bao giờ bắn ở local. Production trỏ release thật.
+  // Style tải xong thật — harness phục vụ tiles từ R2 local nên khẳng định này chạy được ở máy.
+  await expect(page.locator('[data-map-loaded]')).toHaveCount(1, { timeout: 25_000 });
+
+  // Hai chốt chỉ xuất hiện khi sự kiện `load` đã bắn, tức style, sprite VÀ nguồn pmtiles đều
+  // phân giải được. Harness phục vụ tiles từ R2 local nên khẳng định này chạy được ở máy.
+  await expect(page.locator('.maplibregl-marker')).toHaveCount(2, { timeout: 25_000 });
+
+  // Bản đồ tải được thì không có thông báo lỗi nào.
+  await expect(page.getByText('Không tải được bản đồ')).toHaveCount(0);
 });

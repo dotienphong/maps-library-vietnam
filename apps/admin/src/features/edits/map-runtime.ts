@@ -20,7 +20,9 @@ export interface MaplibreLike {
 }
 
 interface MapLike {
-  on(event: 'load', handler: () => void): void;
+  on(event: 'styledata', handler: () => void): void;
+  on(event: 'error', handler: (payload: { error?: { message?: string } }) => void): void;
+  isStyleLoaded(): boolean;
   addSource(id: string, source: unknown): void;
   addLayer(layer: unknown): void;
   fitBounds(bounds: [[number, number], [number, number]], options: unknown): void;
@@ -61,6 +63,7 @@ export function createMapOnto(
   maplibre: MaplibreLike,
   container: HTMLElement,
   plan: MapPlan,
+  onError?: (message: string) => void,
 ): MapLike | null {
   if (plan.mode === 'khong-ve') return null;
 
@@ -79,26 +82,52 @@ export function createMapOnto(
     zoom: 15,
   });
 
-  map.on('load', () => {
-    if (plan.mode === 'mot-chot') {
-      for (const poi of plan.nearby) {
-        new maplibre.Marker({ color: COLOR_CU, scale: 0.7 })
-          .setLngLat([poi.lng, poi.lat])
-          .setPopup(new maplibre.Popup().setText(`${poi.name ?? poi.id} · ${poi.distance_m} m`))
-          .addTo(map);
-      }
-      new maplibre.Marker({ color: COLOR_MOI })
-        .setLngLat([plan.point.lng, plan.point.lat])
-        .addTo(map);
-      return;
-    }
+  // Bản đồ hỏng phải nói ra. Trước đây nó im lặng, nên một nguồn dữ liệu 404 trông y hệt một
+  // tính năng chưa làm — người dùng không có cách nào phân biệt.
+  map.on('error', (payload) => {
+    const message = payload?.error?.message?.trim();
+    onError?.(message && message.length > 0 ? message : 'Không rõ nguyên nhân');
+  });
 
+  // Chốt vị trí vẽ NGAY, không chờ `load`: Marker là phần tử DOM chồng lên bản đồ, không cần
+  // style tải xong. Buộc nó chờ `load` nghĩa là nền bản đồ chậm hay thiếu tile thì người duyệt
+  // mất luôn thông tin quan trọng nhất — hai vị trí nằm ở đâu.
+  if (plan.mode === 'mot-chot') {
+    for (const poi of plan.nearby) {
+      new maplibre.Marker({ color: COLOR_CU, scale: 0.7 })
+        .setLngLat([poi.lng, poi.lat])
+        .setPopup(new maplibre.Popup().setText(`${poi.name ?? poi.id} · ${poi.distance_m} m`))
+        .addTo(map);
+    }
+    new maplibre.Marker({ color: COLOR_MOI })
+      .setLngLat([plan.point.lng, plan.point.lat])
+      .addTo(map);
+  } else {
     new maplibre.Marker({ color: COLOR_CU })
       .setLngLat([plan.before.lng, plan.before.lat])
       .addTo(map);
     new maplibre.Marker({ color: COLOR_MOI })
       .setLngLat([plan.after.lng, plan.after.lat])
       .addTo(map);
+    map.fitBounds(
+      [
+        [Math.min(plan.before.lng, plan.after.lng), Math.min(plan.before.lat, plan.after.lat)],
+        [Math.max(plan.before.lng, plan.after.lng), Math.max(plan.before.lat, plan.after.lat)],
+      ],
+      { padding: 56, maxZoom: 17 },
+    );
+  }
+
+  // Đường nối phải chờ style tải xong vì addSource/addLayer đòi thế. Dùng `styledata` chứ KHÔNG
+  // dùng `load`: `load` chỉ bắn khi lần render đầu hoàn tất đầy đủ, mà với bộ tiles thiếu ô ở mức
+  // phóng đang xem thì nó không bao giờ bắn — đo được ngày 16/09: styledata/sourcedata/render đều
+  // bắn, riêng load và idle thì không. Chờ `load` là chờ điều kiện chặt hơn mức cần thiết.
+  let duongNoiDaVe = false;
+  map.on('styledata', () => {
+    // Điểm neo cho kiểm thử: chỉ có mặt khi style đã tải xong thật, không phải chỉ khởi tạo.
+    container.dataset.mapLoaded = '1';
+    if (plan.mode !== 'so-sanh' || duongNoiDaVe || !map.isStyleLoaded()) return;
+    duongNoiDaVe = true;
 
     map.addSource('duong-noi', {
       type: 'geojson',
@@ -120,13 +149,6 @@ export function createMapOnto(
       source: 'duong-noi',
       paint: { 'line-color': COLOR_CU, 'line-width': 2, 'line-dasharray': [2, 2] },
     });
-    map.fitBounds(
-      [
-        [Math.min(plan.before.lng, plan.after.lng), Math.min(plan.before.lat, plan.after.lat)],
-        [Math.max(plan.before.lng, plan.after.lng), Math.max(plan.before.lat, plan.after.lat)],
-      ],
-      { padding: 56, maxZoom: 17 },
-    );
   });
 
   return map;

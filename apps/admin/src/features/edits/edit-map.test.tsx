@@ -101,4 +101,37 @@ describe('EditMap', () => {
     );
     expect(screen.getByText(/Lệch 340 m/)).toBeVisible();
   });
+
+  it('bản đồ hỏng thì hiện thông báo kèm lý do, không để khung trống câm lặng', async () => {
+    render(
+      <EditMap
+        detail={detail({
+          edit: { changes: { lat: 10.7748, lng: 106.7031 } },
+          poi_hien_tai: POI,
+          distance_m: 340,
+        })}
+        loadMap={async (_container, _plan, onError) => {
+          onError('Bad response code: 404');
+        }}
+      />,
+    );
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('Không tải được bản đồ');
+    expect(screen.getByRole('alert')).toHaveTextContent('Bad response code: 404');
+  });
+
+  it('loadMap ném lỗi cũng hiện thông báo chứ không nuốt', async () => {
+    render(
+      <EditMap
+        detail={detail({
+          edit: { changes: { lat: 10.7748, lng: 106.7031 } },
+          poi_hien_tai: POI,
+          distance_m: 340,
+        })}
+        loadMap={() => Promise.reject(new Error('Không tải được maplibre'))}
+      />,
+    );
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('Không tải được maplibre');
+  });
 });

@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { EditDetail, NearbyPoi } from './api';
 import { createMapOnto, type MaplibreLike } from './map-runtime';
 
@@ -48,19 +48,23 @@ export function mapPlan(detail: EditDetail): MapPlan {
   return { mode: 'khong-ve' };
 }
 
-type LoadMap = (container: HTMLElement, plan: MapPlan) => Promise<void>;
+type LoadMap = (
+  container: HTMLElement,
+  plan: MapPlan,
+  onError: (message: string) => void,
+) => Promise<void>;
 
 /**
  * Nạp trễ maplibre-gl: nó nặng (~1 MB), mà phần lớn đóng góp không cần bản đồ. Danh sách không
  * bao giờ kéo theo nó, và nhánh `khong-ve` cũng không.
  */
-const defaultLoadMap: LoadMap = async (container, plan) => {
+const defaultLoadMap: LoadMap = async (container, plan, onError) => {
   if (plan.mode === 'khong-ve') return;
   const [maplibre] = await Promise.all([
     import('maplibre-gl'),
     import('maplibre-gl/dist/maplibre-gl.css'),
   ]);
-  createMapOnto(maplibre as unknown as MaplibreLike, container, plan);
+  createMapOnto(maplibre as unknown as MaplibreLike, container, plan, onError);
 };
 
 interface EditMapProps {
@@ -72,6 +76,7 @@ export function EditMap({ detail, loadMap = defaultLoadMap }: EditMapProps) {
   const plan = mapPlan(detail);
   const ref = useRef<HTMLDivElement>(null);
   const editId = detail.edit.id;
+  const [error, setError] = useState<string | null>(null);
 
   // mapPlan() trả về object mới mỗi lần render, nên khai đủ phụ thuộc sẽ dựng lại bản đồ ở mọi
   // lần render — nuốt mất vị trí phóng to và góc nhìn người dùng vừa chỉnh. Bản đồ chỉ cần dựng
@@ -79,17 +84,34 @@ export function EditMap({ detail, loadMap = defaultLoadMap }: EditMapProps) {
   // biome-ignore lint/correctness/useExhaustiveDependencies: xem giải thích ngay trên
   useEffect(() => {
     if (plan.mode === 'khong-ve' || !ref.current) return;
-    void loadMap(ref.current, plan);
+    setError(null);
+    void loadMap(ref.current, plan, setError).catch((cause: unknown) =>
+      setError(cause instanceof Error ? cause.message : String(cause)),
+    );
   }, [editId]);
 
   if (plan.mode === 'khong-ve') return null;
 
   return (
     <figure className="m-0">
-      <div
-        ref={ref}
-        className="h-48 w-full overflow-hidden rounded-[var(--radius-card)] border border-[var(--border)] sm:h-64"
-      />
+      <div className="relative">
+        <div
+          ref={ref}
+          className="h-48 w-full overflow-hidden rounded-[var(--radius-card)] border border-[var(--border)] sm:h-64"
+        />
+        {error && (
+          <div
+            role="alert"
+            className="absolute inset-0 flex flex-col items-center justify-center gap-1 rounded-[var(--radius-card)] bg-[var(--surface)]/95 px-4 text-center"
+          >
+            <p className="text-sm font-semibold">Không tải được bản đồ</p>
+            <p className="text-xs text-[var(--text-muted)]">{error}</p>
+            <p className="text-xs text-[var(--text-muted)]">
+              Toạ độ vẫn hiện đầy đủ ở bảng so sánh bên dưới.
+            </p>
+          </div>
+        )}
+      </div>
       <figcaption className="mt-2 flex flex-wrap items-center gap-3 text-xs text-[var(--text-muted)]">
         {plan.mode === 'so-sanh' ? (
           <>

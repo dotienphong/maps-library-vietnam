@@ -5,10 +5,13 @@ import { createMapOnto, type MaplibreLike, resetProtocolForTests } from './map-r
 
 /** Ghi lại thứ tự lời gọi để khẳng định được "đăng ký giao thức TRƯỚC khi tạo Map". */
 function fakeMaplibre(order: string[]) {
+  const handlers: Record<string, (payload?: unknown) => void> = {};
   const map = {
-    on: vi.fn((event: string, handler: () => void) => {
-      if (event === 'load') handler();
+    on: vi.fn((event: string, handler: (payload?: unknown) => void) => {
+      handlers[event] = handler;
+      if (event === 'styledata') handler();
     }),
+    isStyleLoaded: vi.fn(() => true),
     addSource: vi.fn(() => order.push('addSource')),
     addLayer: vi.fn(() => order.push('addLayer')),
     fitBounds: vi.fn(() => order.push('fitBounds')),
@@ -36,7 +39,7 @@ function fakeMaplibre(order: string[]) {
     }),
   } as unknown as MaplibreLike;
 
-  return { maplibre, map, marker };
+  return { maplibre, map, marker, handlers };
 }
 
 const SO_SANH: MapPlan = {
@@ -125,5 +128,25 @@ describe('createMapOnto', () => {
     createMapOnto(maplibre, document.createElement('div'), { mode: 'khong-ve' });
     expect(maplibre.Map).not.toHaveBeenCalled();
     expect(maplibre.addProtocol).not.toHaveBeenCalled();
+  });
+
+  it('bản đồ báo lỗi thì gọi onError kèm nội dung lỗi, không im lặng', () => {
+    const order: string[] = [];
+    const { maplibre, handlers } = fakeMaplibre(order);
+    const onError = vi.fn();
+    createMapOnto(maplibre, document.createElement('div'), SO_SANH, onError);
+
+    handlers.error?.({ error: new Error('Bad response code: 404') });
+    expect(onError).toHaveBeenCalledWith('Bad response code: 404');
+  });
+
+  it('lỗi không có thông điệp vẫn báo ra một câu đọc được', () => {
+    const order: string[] = [];
+    const { maplibre, handlers } = fakeMaplibre(order);
+    const onError = vi.fn();
+    createMapOnto(maplibre, document.createElement('div'), SO_SANH, onError);
+
+    handlers.error?.({});
+    expect(onError).toHaveBeenCalledWith(expect.stringMatching(/./));
   });
 });
