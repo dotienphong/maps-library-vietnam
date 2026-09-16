@@ -7,6 +7,10 @@ const EditsPage = lazy(() =>
   import('@/features/edits/page').then((module) => ({ default: module.EditsPage })),
 );
 
+const TenantsPage = lazy(() =>
+  import('@/features/tenants/page').then((module) => ({ default: module.TenantsPage })),
+);
+
 const wait = (node: ReactNode) => (
   <Suspense fallback={<LoadingSkeleton rows={4} />}>{node}</Suspense>
 );
@@ -20,6 +24,7 @@ export const router = createBrowserRouter(
       children: [
         { index: true, element: wait(<EditsPage />) },
         { path: 'edits', element: wait(<EditsPage />) },
+        { path: 'tenants', element: wait(<TenantsPage />) },
       ],
     },
   ],
