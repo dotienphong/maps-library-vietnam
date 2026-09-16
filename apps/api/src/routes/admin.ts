@@ -6,6 +6,7 @@ import { endSql, getSql } from '../db';
 import type { AppEnv } from '../env';
 import { ApiError } from '../errors';
 import { parseEditListParams } from './admin-edit-params';
+import { adminTenants } from './admin-tenants';
 
 export const admin = new Hono<AppEnv>();
 
@@ -30,6 +31,10 @@ admin.use('/v1/admin/*', async (c, next) => {
   await next();
 });
 admin.use('/v1/admin/*', requireAccess());
+
+// Mount SAU hai middleware trên: nhóm tenant hưởng đúng cổng chống CSRF và Access đã khai một
+// lần ở đây, thay vì mỗi file route tự nhớ gắn lại.
+admin.route('/', adminTenants);
 
 /**
  * Danh sách quyền để giao diện biết vẽ những mục nào. Giai đoạn này hệ thống chưa phân quyền
