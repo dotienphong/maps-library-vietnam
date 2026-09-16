@@ -1,4 +1,4 @@
-import { Hono } from 'hono';
+import { type Context, Hono, type Next } from 'hono';
 import { requireAccess } from '../access';
 import { audit } from '../audit';
 import { invalidateCachedJson, placeCacheUrl } from '../cache';
@@ -14,22 +14,29 @@ export const admin = new Hono<AppEnv>();
  * Chống CSRF cho POST (audit 09/09/2026): Access chèn JWT từ cookie, nên một trang lạ có thể ép
  * trình duyệt của người duyệt gửi POST approve/reject nếu cookie đi cross-site. Chặn khi trình duyệt
  * khai `Sec-Fetch-Site: cross-site` hoặc `Origin` không khớp origin của API. Đứng TRƯỚC requireAccess.
+ *
+ * Xuất khẩu vì nhóm billing mount ở index.ts NGOÀI app này (nó phải nằm trước để giữ
+ * requireBillingAccess), nên chỗ đó phải gắn lại cổng bằng chính hàm này — không chép lại logic.
  */
-admin.use('/v1/admin/*', async (c, next) => {
-  if (c.req.method === 'POST') {
-    const site = c.req.header('Sec-Fetch-Site');
-    const origin = c.req.header('Origin');
-    const self = new URL(c.req.url).origin;
-    if (site === 'cross-site' || (origin && origin !== self)) {
-      throw new ApiError(
-        403,
-        'cross_site_request',
-        'POST admin phải xuất phát từ chính trang admin',
-      );
+export function requireSameSitePost() {
+  return async (c: Context<AppEnv>, next: Next) => {
+    if (c.req.method === 'POST') {
+      const site = c.req.header('Sec-Fetch-Site');
+      const origin = c.req.header('Origin');
+      const self = new URL(c.req.url).origin;
+      if (site === 'cross-site' || (origin && origin !== self)) {
+        throw new ApiError(
+          403,
+          'cross_site_request',
+          'POST admin phải xuất phát từ chính trang admin',
+        );
+      }
     }
-  }
-  await next();
-});
+    await next();
+  };
+}
+
+admin.use('/v1/admin/*', requireSameSitePost());
 admin.use('/v1/admin/*', requireAccess());
 
 // Mount SAU hai middleware trên: nhóm tenant hưởng đúng cổng chống CSRF và Access đã khai một

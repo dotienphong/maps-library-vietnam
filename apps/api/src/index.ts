@@ -6,7 +6,7 @@ import { analyticsMiddleware } from './analytics';
 import { endSql, getSql } from './db';
 import type { AppEnv } from './env';
 import { ApiError, errorResponse } from './errors';
-import { admin } from './routes/admin';
+import { admin, requireSameSitePost } from './routes/admin';
 import { autocomplete } from './routes/autocomplete';
 import { billingAdmin } from './routes/billing-admin';
 import { directions } from './routes/directions';
@@ -67,6 +67,10 @@ app.get('/admin/*', async (c) => {
 app.notFound((c) => errorResponse(c, new ApiError(404, 'not_found', 'Không có route này')));
 
 app.get('/healthz', (c) => c.json({ ok: true, environment: c.env.ENVIRONMENT }));
+// Cổng chống CSRF phải đứng trước requireBillingAccess: một POST cross-site không được đi xa tới
+// mức chạm vào danh sách email, và người gửi phải nhận đúng 403 cross_site_request. Nhóm này mount
+// ở đây chứ không trong app `admin`, nên phải gắn lại cổng bằng tay — xem test/billing-csrf.test.ts.
+app.use('/v1/admin/billing/*', requireSameSitePost());
 app.use('/v1/admin/billing/*', requireBillingAccess());
 app.route('/', billingAdmin());
 app.get('/healthz/db', async (c) => {
