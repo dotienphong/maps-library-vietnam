@@ -132,6 +132,11 @@ const wrangler = crossSpawn(
     `IP_HASH_PEPPER:${IP_HASH_PEPPER}`,
     '--var',
     'AUTOCOMPLETE_TELEX:1',
+    // Bộ đếm quota legacy trong KV chỉ ghi khi bật cờ này. Không bật thì itest của /legacy-usage
+    // chỉ kiểm được một bảng rỗng — tức không kiểm gì. Ngưỡng chặn là 2× hạn mức ngày (20.000
+    // places), xa hơn mọi bộ test, nên bật cờ không làm test khác đỏ.
+    '--var',
+    'QUOTA_ENABLED:1',
     // Nhóm route billing (thu hồi khoá, đổi gói) đứng sau requireBillingAccess(): danh sách rỗng
     // là từ chối tất cả. Trang Admin pha 2 gọi chính những route đó, nên itest và E2E phải có hai
     // email mà access-fake ký: phong@access-fake.local (itest) và phong@e2e.local (Playwright).
