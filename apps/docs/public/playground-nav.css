@@ -213,6 +213,12 @@ body[data-nav="1"] #status {
   padding-left: 18px;
   font-size: 13px;
 }
+/* biome-ignore lint/style/noDescendingSpecificity: dương tính giả. Quy tắc so với
+   `.nav-routes li + li` (0,1,2) ở trên vì hai selector cùng kết thúc bằng `li`, nhưng trong
+   playground.html thì `.nav-routes` và `.nav-steps` là hai `<ol>` ANH EM — cùng là con trực tiếp
+   của `<section>`, không lồng nhau. Không `li` nào khớp được cả hai, nên thứ tự khai báo không
+   ảnh hưởng gì. Đảo thứ tự để im cảnh báo sẽ đẩy khối `.nav-steps` lên trên `.nav-routes`, làm
+   file mất thứ tự theo logic màn hình (tuyến → chi tiết bước → nút hành động). */
 .nav-steps li {
   margin: 3px 0;
 }
