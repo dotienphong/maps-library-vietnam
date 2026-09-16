@@ -1,9 +1,18 @@
 import { Hono } from 'hono';
+import { apiKeyPrefix, generateApiKey } from '../api-key';
+import { audit } from '../audit';
 import { normalizeTextArray } from '../auth';
 import { endSql, getSql } from '../db';
+import { sha256Hex } from '../edits/hash';
 import type { AppEnv } from '../env';
 import { ApiError } from '../errors';
-import { encodeTenantCursor, parseTenantListParams, tenantId } from './admin-tenant-params';
+import { textArray } from '../geocode';
+import {
+  encodeTenantCursor,
+  parseNewKeyBody,
+  parseTenantListParams,
+  tenantId,
+} from './admin-tenant-params';
 
 /**
  * Nhóm route tenant/khoá API. KHÔNG khai middleware ở đây: router này được mount vào app `admin`,
@@ -122,6 +131,55 @@ adminTenants.get('/v1/admin/tenants/:id', async (c) => {
     if (error instanceof ApiError) throw error;
     console.error('admin/tenants/:id', error);
     throw new ApiError(503, 'upstream_unavailable', 'Không đọc được chi tiết tenant');
+  } finally {
+    endSql(c.executionCtx, sql);
+  }
+});
+
+adminTenants.post('/v1/admin/tenants/:id/keys', async (c) => {
+  const id = tenantId(c.req.param('id'));
+  const input = parseNewKeyBody(await c.req.json().catch(() => null));
+
+  // Sinh và băm TRƯỚC khi mở kết nối: khoá rõ không bao giờ rời hàm này ngoài phản hồi cuối cùng.
+  const key = generateApiKey();
+  const keyHash = await sha256Hex(key);
+  const keyPrefix = apiKeyPrefix(key);
+
+  const sql = getSql(c.env);
+  try {
+    const [tenant] = await sql<{ name: string }[]>`
+      SELECT name FROM tenant WHERE id = ${id}::uuid`;
+    if (!tenant) throw new ApiError(404, 'not_found', 'Không có tenant này');
+
+    // Ba cột mảng đi qua `textArray`: bind mảng JS rồi cast ::text[] thì bản postgres/cf trong
+    // Workers nối thành "a,b" và Postgres ném `malformed array literal` — chỉ vỡ trên production
+    // và ở test:api-db, unit test không DB luôn xanh.
+    await sql`
+      INSERT INTO api_key
+        (key_hash, key_prefix, tenant_id, label, kind,
+         allowed_origins, allowed_bundle_ids, scopes, quota_directions_per_day)
+      VALUES (${keyHash}, ${keyPrefix}, ${id}::uuid, ${input.label}, ${input.kind},
+              ${textArray(sql, input.allowedOrigins)}, ${textArray(sql, input.allowedBundleIds)},
+              ${textArray(sql, input.scopes)}, ${input.quotaDirectionsPerDay})`;
+
+    // Cache âm của auth sống 60 giây. Ai đó vừa thử đúng chuỗi này (hoặc một lần thử trước đó
+    // trong cùng phút) là khoá mới chết oan tới một phút; xoá luôn cho chắc.
+    await c.env.META.delete(`apikey:${keyHash}`);
+
+    // `detail` KHÔNG bao giờ chứa khoá rõ — spec mục 10. key_hash là định danh đủ để lần lại.
+    audit(c, 'tenant.key_issue', keyHash, {
+      tenant_id: id,
+      key_prefix: keyPrefix,
+      kind: input.kind,
+      scopes: input.scopes,
+      label: input.label,
+    });
+
+    return c.json({ key, key_prefix: keyPrefix, key_hash: keyHash, tenant_id: id }, 201, NO_STORE);
+  } catch (error) {
+    if (error instanceof ApiError) throw error;
+    console.error('admin/tenants/:id/keys', error);
+    throw new ApiError(503, 'upstream_unavailable', 'Không cấp được khoá');
   } finally {
     endSql(c.executionCtx, sql);
   }
