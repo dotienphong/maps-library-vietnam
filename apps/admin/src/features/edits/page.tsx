@@ -1,13 +1,14 @@
+import { useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 import { DataView } from '@/components/data-view';
 import { useDelayedAction } from '@/components/delayed-action';
 import { EmptyState, ErrorState, LoadingSkeleton } from '@/components/states';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import type { EditKind, EditStatus } from './api';
+import type { EditKind, EditListPage, EditStatus } from './api';
 import { EditDetailPanel } from './detail';
 import { EditCard, editTitle, KIND_VI, relativeTime } from './edit-card';
-import { useEditList, useReviewEdit } from './hooks';
+import { editKeys, useEditList, useReviewEdit } from './hooks';
 
 const STATUS_TABS: { value: EditStatus; label: string }[] = [
   { value: 'pending', label: 'Chờ duyệt' },
@@ -28,12 +29,26 @@ export function EditsPage() {
   const list = useEditList(filter);
   const review = useReviewEdit();
   const { schedule } = useDelayedAction();
+  const client = useQueryClient();
 
+  /**
+   * Bỏ bản ghi khỏi danh sách NGAY, nhưng chưa gửi gì: `schedule` giữ lệnh 5 giây. Bấm Huỷ thì
+   * trả danh sách về đúng ảnh chụp trước đó — không request nào rời trình duyệt.
+   */
   const onReview = (id: number, action: 'approve' | 'reject') => {
+    const key = editKeys.list(filter);
+    const snapshot = client.getQueryData<EditListPage>(key);
+    client.setQueryData<EditListPage>(key, (current) =>
+      current ? { ...current, items: current.items.filter((item) => item.id !== id) } : current,
+    );
+
     schedule({
       label: action === 'approve' ? `Đã duyệt #${id}` : `Đã từ chối #${id}`,
       run: async () => {
         await review.mutateAsync({ id, action });
+      },
+      onCancel: () => {
+        if (snapshot) client.setQueryData(key, snapshot);
       },
     });
     setOpenId((current) => (current === id ? null : current));

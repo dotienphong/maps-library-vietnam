@@ -28,6 +28,10 @@ IP_HASH_PEPPER = "dev-pepper-khong-bi-mat"
 # Cùng origin với /v1/admin/* nên chỉ cần một Cloudflare Access application.
 [assets]
 directory = "../admin/dist"
+# Binding để Worker tự phục vụ index.html cho các đường dẫn con của SPA (/admin/edits…).
+# KHÔNG dùng not_found_handling = "single-page-application": nó trả index.html cho mọi path
+# không khớp asset, kể cả /v1/* gõ sai, biến lỗi API thành một trang HTML.
+binding = "ASSETS"
 
 [[analytics_engine_datasets]]
 binding = "ANALYTICS"
@@ -69,4 +73,4 @@ ratelimits = [
   { name = "DIRECTIONS_RATE_LIMITER", namespace_id = "20260911", simple = { limit = 20, period = 60 } },
   { name = "DIRECTIONS_KEY_RATE_LIMITER", namespace_id = "20260912", simple = { limit = 100, period = 60 } },
 ]
-assets = { directory = "../admin/dist" }
+assets = { directory = "../admin/dist", binding = "ASSETS" }

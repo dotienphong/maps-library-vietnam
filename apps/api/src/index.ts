@@ -42,6 +42,18 @@ app.use(
 );
 app.use('/v1/*', analyticsMiddleware());
 app.onError((err, c) => errorResponse(c, err));
+/**
+ * SPA fallback cho trang Admin: /admin/edits và các đường dẫn con khác không có file tĩnh tương
+ * ứng, router chạy phía trình duyệt. Giới hạn trong tiền tố /admin nên một /v1/* gõ sai vẫn nhận
+ * lỗi JSON đúng nghĩa thay vì một trang HTML.
+ */
+app.get('/admin/*', async (c) => {
+  if (!c.env.ASSETS) throw new ApiError(404, 'not_found', 'Không có route này');
+  const url = new URL(c.req.url);
+  url.pathname = '/admin/index.html';
+  return c.env.ASSETS.fetch(new Request(url, { headers: c.req.raw.headers }));
+});
+
 app.notFound((c) => errorResponse(c, new ApiError(404, 'not_found', 'Không có route này')));
 
 app.get('/healthz', (c) => c.json({ ok: true, environment: c.env.ENVIRONMENT }));
