@@ -38,9 +38,11 @@ Tạo một thư mục trống, đặt file `index.html` với nội dung sau. K
 
   <script src="https://mapslibvn-docs.pages.dev/sdk/mapslibvn.umd.js"></script>
   <script>
-    // Khoá demo chỉ chạy trên localhost / 127.0.0.1 (mọi port) và trên trang tài liệu.
-    // Có khoá riêng thì mở trang với ?key=mlv_live_… để ghi đè, không phải sửa file.
-    const DEMO_KEY = 'mlv_live_demo00000000000000000000';
+    // Dán khoá của bạn vào đây. Muốn thử nhanh thì lấy khoá demo trong ô "Khoá API" của
+    // playground (https://mapslibvn-docs.pages.dev/playground.html) — nó chỉ chạy trên
+    // localhost / 127.0.0.1 (mọi port) và trên trang tài liệu.
+    // Mở trang với ?key=mlv_live_… cũng ghi đè được mà không phải sửa file.
+    const DEMO_KEY = 'mlv_live_…';
     const API_BASE = 'https://api.ai-solutions.io.vn';
 
     const params = new URLSearchParams(location.search);

@@ -126,11 +126,11 @@ Hạn mức từng gói, quy tắc reset, lượt mua thêm và ví dụ JSON c�
 
 ## 6. Khoá demo
 
-Để thử nhanh, không cần xin gì:
+Để thử nhanh, không cần xin gì: mở [playground](/playground.html) — ô **Khoá API** để trống là
+trang tự dùng khoá demo. Cần chuỗi khoá để dán vào mã của bạn thì lấy ngay trong ô đó.
 
-```
-mlv_live_demo00000000000000000000
-```
+Khoá demo không in ở đây vì nó được xoay định kỳ; một trang tài liệu chép cứng chuỗi khoá sẽ chỉ
+đúng cho tới lần xoay kế tiếp.
 
 Đây là khoá `kind=web` của tenant nội bộ, **chỉ đọc** (`places:read`; từ 09/09/2026 không còn
 `edits:write` — thử đóng góp thì xin khoá riêng ở mục 7), `allowed_origins`:

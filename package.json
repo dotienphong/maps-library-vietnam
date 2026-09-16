@@ -52,6 +52,7 @@
     "server:migrate": "node scripts/server-migrate.mjs",
     "server:seed-tenant": "node scripts/server-seed-tenant.mjs",
     "server:tenants": "node scripts/server-tenant-inventory.mjs",
+    "server:tenant-reset": "node scripts/server-tenant-reset.mjs",
     "db:restore": "node scripts/db-restore.mjs",
     "db:fixture": "node scripts/db-fixture.mjs",
     "poi:profile": "node scripts/poi-profile-publish.mjs"

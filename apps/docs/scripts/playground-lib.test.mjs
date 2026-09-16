@@ -19,6 +19,9 @@ import {
 } from '../public/playground-lib.js';
 
 const API = 'http://localhost:8787';
+/** Khoá mẫu để kiểm ĐỊNH DẠNG chuỗi trong mã sinh ra. Khoá demo thật được chèn lúc build nên ở
+ *  đây `DEFAULT_KEY` rỗng — xem describe('DEFAULT_KEY') bên dưới. */
+const KHOA_MAU = 'mlv_live_demo00000000000000000000';
 
 describe('parseState', () => {
   it('trả mặc định khi không có tham số', () => {
@@ -229,12 +232,12 @@ describe('buildSnippet', () => {
   const base = parseState('', API);
 
   it('bản script dùng global MapsLibVN và UMD của docs', () => {
-    const code = buildSnippet(base, 'script');
+    const code = buildSnippet({ ...base, key: KHOA_MAU }, 'script');
     expect(code).toContain('MapsLibVN.createMap');
     expect(code).toContain('/sdk/mapslibvn.umd.js');
     expect(code).toContain('/sdk/mapslibvn.css');
     expect(code).toContain("container: 'map'");
-    expect(code).toContain(`apiKey: '${DEFAULT_KEY}'`);
+    expect(code).toContain(`apiKey: '${KHOA_MAU}'`);
     expect(code).toContain(`apiBase: '${API}'`);
     expect(code).toContain('center: [106.7, 10.776]');
     expect(code).toContain('zoom: 14');
@@ -284,7 +287,7 @@ describe('buildSnippet', () => {
 
 describe('maskKey', () => {
   it('giữ 13 ký tự đầu và 4 ký tự cuối', () => {
-    expect(maskKey(DEFAULT_KEY)).toBe('mlv_live_demo…0000');
+    expect(maskKey(KHOA_MAU)).toBe('mlv_live_demo…0000');
   });
 
   it('giữ nguyên khoá quá ngắn', () => {
@@ -419,5 +422,15 @@ describe('shortDistance / routeSummary / etaLabel', () => {
     const now = new Date(2026, 8, 12, 10, 38, 0).getTime();
     expect(etaLabel(250, 950, now)).toBe('4 phút · 950 m · 10:42');
     expect(etaLabel(0, 0, now)).toBe('0 phút · 0 m · 10:38');
+  });
+});
+
+describe('DEFAULT_KEY', () => {
+  it('rỗng khi chưa qua bước chèn khoá lúc build', () => {
+    // public/ được phục vụ nguyên trạng nên không đọc được import.meta.env; khoá thật do
+    // scripts/inject-demo-key.mjs thay vào dist sau `astro build`. Trong mã nguồn (và trong test)
+    // nó vẫn là chuỗi mốc, và hàm phải quy nó về rỗng thay vì trả ra "__MAPSLIBVN_DEMO_KEY__"
+    // rồi gửi chuỗi đó lên API như một khoá.
+    expect(DEFAULT_KEY).toBe('');
   });
 });

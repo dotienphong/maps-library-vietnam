@@ -3,8 +3,18 @@
  * Test: `apps/docs/scripts/playground-lib.test.mjs`.
  */
 
-/** Khoá demo công khai, chỉ chạy trên origin docs và localhost. */
-export const DEFAULT_KEY = 'mlv_live_demo00000000000000000000';
+/**
+ * Khoá demo công khai, chỉ chạy trên origin docs và localhost.
+ *
+ * Thư mục `public/` được phục vụ NGUYÊN TRẠNG, không qua Vite, nên không đọc được
+ * `import.meta.env` ở đây. Thay vào đó `scripts/inject-demo-key.mjs` thay chuỗi mốc dưới đây
+ * bằng `PUBLIC_MAPSLIBVN_DEMO_KEY` ngay sau `astro build` — khoá không nằm trong git, và lần xoay
+ * khoá sau chỉ cần đổi .env rồi build lại.
+ */
+const RAW_KEY = '__MAPSLIBVN_DEMO_KEY__';
+
+/** Rỗng khi chưa chèn (đang chạy `astro dev`, hoặc build thiếu biến): ô Khoá API để trống. */
+export const DEFAULT_KEY = RAW_KEY.startsWith('__MAPSLIBVN') ? '' : RAW_KEY;
 
 /** Tâm mặc định của playground: khu trung tâm Thành phố Hồ Chí Minh. */
 export const DEFAULT_CENTER = /** @type {[number, number]} */ ([106.7, 10.776]);

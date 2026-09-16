@@ -4,7 +4,15 @@ import 'maplibre-gl/dist/maplibre-gl.css';
 import { useEffect, useMemo, useState } from 'react';
 import { PRODUCTION_API_BASE, resolveApiBase } from '../lib/api-base';
 
-const API_KEY = 'mlv_live_demo00000000000000000000';
+/**
+ * Khoá demo công khai của trang tài liệu. Nhúng lúc build từ `apps/docs/.env` (Astro chỉ đưa biến
+ * tiền tố PUBLIC_ vào bundle trình duyệt), KHÔNG ghi thẳng vào mã: xoay khoá thì chỉ đổi .env rồi
+ * build lại, và khoá không nằm vĩnh viễn trong lịch sử git.
+ *
+ * Khoá này là loại `web`, chỉ `places:read`, và máy chủ đối chiếu `Origin` với danh sách của khoá
+ * — nằm công khai trong HTML là đúng thiết kế, không phải sơ suất.
+ */
+const API_KEY = import.meta.env.PUBLIC_MAPSLIBVN_DEMO_KEY ?? '';
 const DEFAULT_CENTER: [number, number] = [106.7, 10.776];
 
 function SelectedPlace({ item }: { item: AutocompleteItem }) {
@@ -31,6 +39,19 @@ export default function ReactDemo() {
   else if (selected) status = `Đã chọn ${selected.name}`;
   else if (query.trim().length >= 2)
     status = items.length > 0 ? `Có ${items.length} kết quả.` : 'Không tìm thấy kết quả.';
+
+  if (!API_KEY) {
+    // Thiếu khoá thì mọi request trả 401 và người xem chỉ thấy "Không thể tải kết quả" — nói
+    // thẳng nguyên nhân còn hơn để người dựng trang đi dò.
+    return (
+      <main className="react-demo">
+        <p className="react-demo__status">
+          Bản demo cần khoá API. Đặt <code>PUBLIC_MAPSLIBVN_DEMO_KEY</code> trong{' '}
+          <code>apps/docs/.env</code> rồi build lại trang.
+        </p>
+      </main>
+    );
+  }
 
   return (
     <main className="react-demo">
