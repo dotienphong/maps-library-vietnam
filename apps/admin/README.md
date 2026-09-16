@@ -73,9 +73,11 @@ với `scripts/**/*.test.mjs` trên Node nên không đặt jsdom toàn cục.
 - **Worker tự phục vụ `index.html` cho `/admin/*`** thay vì bật chế độ SPA của Cloudflare Assets:
   chế độ đó trả `index.html` cho mọi path không khớp asset, biến một `/v1/*` gõ sai thành trang
   HTML thay vì lỗi JSON.
-- **Phải đăng ký giao thức `pmtiles://`** trước khi tạo bản đồ (`map-runtime.ts`). Style trỏ
-  nguồn dữ liệu bằng giao thức đó, mà maplibre không hiểu sẵn; thiếu bước này thì bản đồ dựng lên
-  nhưng trống trơn và **không báo lỗi gì**. Đây là sự cố 16/09/2026.
+- **Bản đồ dựng qua `@mapslibvn/web`, không tự gọi maplibre** (`map-runtime.ts`). SDK lo giao
+  thức `pmtiles://`, hợp đồng style và attribution bắt buộc — trang admin không có lý do làm lại.
+  Kèm lợi ích: trang quản trị dùng đúng thứ khách hàng dùng, nên lỗi SDK lộ ra ở đây trước.
+  Vì vậy `pnpm --filter @mapslibvn/web build` phải chạy **trước** khi build admin; hai workflow
+  `apitest.yml` và `deploy-api.yml` đã có bước đó.
 - **Bản đồ hỏng thì nói ra.** `EditMap` hiện "Không tải được bản đồ" kèm lý do, vì một khung trống
   câm lặng trông y hệt một tính năng chưa làm.
 - **Ngăn kéo tự đóng khi đường dẫn đổi**, không gắn `onClick` vào từng liên kết: `SidebarNav` còn

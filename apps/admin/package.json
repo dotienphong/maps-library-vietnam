@@ -11,6 +11,7 @@
     "test:e2e": "playwright test"
   },
   "dependencies": {
+    "@mapslibvn/web": "workspace:^",
     "@radix-ui/react-dialog": "^1.1.23",
     "@tanstack/react-query": "^5.102.8",
     "class-variance-authority": "^0.7.1",

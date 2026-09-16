@@ -46,7 +46,9 @@ jobs:
           node-version: 22
           cache: pnpm
       - run: pnpm install --frozen-lockfile
+      # @mapslibvn/web phải build trước: trang admin dùng SDK để dựng bản đồ so sánh vị trí.
       - run: pnpm --filter @mapslibvn/core build && pnpm --filter @mapslibvn/style build
+      - run: pnpm --filter @mapslibvn/web build
       # Trang admin phải build trước: wrangler.toml khai báo [assets] trỏ apps/admin/dist.
       - run: pnpm --filter @mapslibvn/admin build
       - run: pnpm test:api-db
