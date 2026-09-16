@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import type { EditDetail, NearbyPoi } from './api';
-import { createMapOnto, type MaplibreLike } from './map-runtime';
+import { createMapOnto } from './map-runtime';
 
 export interface Point {
   lat: number;
@@ -60,11 +60,14 @@ type LoadMap = (
  */
 const defaultLoadMap: LoadMap = async (container, plan, onError) => {
   if (plan.mode === 'khong-ve') return;
-  const [maplibre] = await Promise.all([
+  // Nạp trễ: SDK kéo theo maplibre-gl (~1 MB), mà phần lớn đóng góp không cần bản đồ. Danh sách
+  // không bao giờ kéo theo nó, và nhánh `khong-ve` cũng không.
+  const [web, maplibre] = await Promise.all([
+    import('@mapslibvn/web'),
     import('maplibre-gl'),
     import('maplibre-gl/dist/maplibre-gl.css'),
   ]);
-  createMapOnto(maplibre as unknown as MaplibreLike, container, plan, onError);
+  createMapOnto({ createMap: web.createMap, maplibre }, container, plan, onError);
 };
 
 interface EditMapProps {

@@ -16,7 +16,7 @@
     "lint:fix": "biome check --write .",
     "notices:sync": "node scripts/notices-sync.mjs",
     "typecheck": "pnpm --filter @mapslibvn/core build && tsc -p tsconfig.scripts.json && turbo run typecheck --continue",
-    "test": "pnpm --filter @mapslibvn/core build && vitest run && pnpm --filter @mapslibvn/admin build && pnpm --filter @mapslibvn/api test",
+    "test": "pnpm --filter @mapslibvn/core build && vitest run && pnpm --filter @mapslibvn/style build && pnpm --filter @mapslibvn/web build && pnpm --filter @mapslibvn/admin build && pnpm --filter @mapslibvn/api test",
     "test:watch": "vitest",
     "db:up": "docker compose --env-file .env -f infra/dev/compose.yml up -d postgres",
     "db:down": "docker compose --env-file .env -f infra/dev/compose.yml down",
