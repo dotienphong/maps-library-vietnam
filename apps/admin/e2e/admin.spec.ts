@@ -215,3 +215,20 @@ test('bản đồ thật: maplibre dựng được và giao thức pmtiles phân
   // Bản đồ tải được thì không có thông báo lỗi nào.
   await expect(page.getByText('Không tải được bản đồ')).toHaveCount(0);
 });
+
+test('mọi thứ bấm được đều hiện con trỏ hình bàn tay', async ({ page }) => {
+  await page.goto('/admin/edits');
+
+  const cursorOf = (locator: import('@playwright/test').Locator) =>
+    locator.evaluate((el) => getComputedStyle(el).cursor);
+
+  // Nút lọc trạng thái, ô chọn loại, và mục điều hướng trong sidebar.
+  await expect.poll(() => cursorOf(page.getByRole('button', { name: 'Đã duyệt' }))).toBe('pointer');
+  await expect.poll(() => cursorOf(page.getByLabel('Lọc theo loại'))).toBe('pointer');
+  await expect
+    .poll(() => cursorOf(page.getByRole('link', { name: /Duyệt đóng góp/ }).first()))
+    .toBe('pointer');
+
+  // Ô nhập vẫn phải là con trỏ chữ, không phải bàn tay.
+  await expect.poll(() => cursorOf(page.getByLabel('Tìm theo tên POI'))).not.toBe('pointer');
+});

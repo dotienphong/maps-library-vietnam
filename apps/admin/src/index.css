@@ -43,3 +43,23 @@ body {
     env(safe-area-inset-left);
   margin: 0;
 }
+
+/* Tailwind v4 đặt `cursor: default` cho <button>, nên phải khai lại. Làm ở tầng nền thay vì thêm
+   class ở từng nơi: mọi màn hình viết sau tự có, không phải nhớ. Phần tử đang bị vô hiệu hoá thì
+   giữ con trỏ mặc định — chuột hình bàn tay trên một nút bấm không được là lời hứa sai. */
+@layer base {
+  button:not(:disabled),
+  summary,
+  label[for],
+  [role="button"]:not([aria-disabled="true"]),
+  select:not(:disabled),
+  a[href] {
+    cursor: pointer;
+  }
+
+  button:disabled,
+  select:disabled,
+  [aria-disabled="true"] {
+    cursor: not-allowed;
+  }
+}

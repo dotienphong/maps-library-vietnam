@@ -13,6 +13,7 @@ export interface MaplibreLike {
     style: string;
     center: [number, number];
     zoom: number;
+    maxZoom: number;
     attributionControl: { compact: boolean };
   }) => MapLike;
   Marker: new (options: { color: string; scale?: number }) => MarkerLike;
@@ -40,6 +41,13 @@ interface PopupLike {
 
 const COLOR_CU = '#98a2b3';
 const COLOR_MOI = '#1b3a6b';
+
+/**
+ * Bộ tiles dừng ở mức phóng 14 (đo trên archive production ngày 16/09: z14 có ô, z15 trở lên
+ * không). Phóng quá mức đó thì không còn ô nào để vẽ và nền bản đồ trắng trơn — đúng hiện tượng
+ * người dùng gặp. Khoảng cách chính xác vẫn đọc được ở nhãn "Lệch X m" nên không mất thông tin.
+ */
+const MAX_ZOOM = 14;
 
 let protocolRegistered = false;
 
@@ -79,7 +87,8 @@ export function createMapOnto(
     style: dark ? '/v1/styles/dark.json' : '/v1/styles/light.json',
     attributionControl: { compact: true },
     center,
-    zoom: 15,
+    zoom: MAX_ZOOM,
+    maxZoom: MAX_ZOOM,
   });
 
   // Bản đồ hỏng phải nói ra. Trước đây nó im lặng, nên một nguồn dữ liệu 404 trông y hệt một
@@ -114,7 +123,7 @@ export function createMapOnto(
         [Math.min(plan.before.lng, plan.after.lng), Math.min(plan.before.lat, plan.after.lat)],
         [Math.max(plan.before.lng, plan.after.lng), Math.max(plan.before.lat, plan.after.lat)],
       ],
-      { padding: 56, maxZoom: 17 },
+      { padding: 56, maxZoom: MAX_ZOOM },
     );
   }
 

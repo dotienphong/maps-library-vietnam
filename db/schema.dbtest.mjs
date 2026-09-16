@@ -34,6 +34,7 @@ const ALL_TABLES = [
   'admin_alias',
   'admin_area',
   'admin_area_old',
+  'admin_audit',
   'alley',
   'api_key',
   'category',
@@ -54,7 +55,7 @@ beforeAll(() => {
 afterAll(() => sql.end());
 
 describe('lược đồ spec 5.2', () => {
-  it('đủ 16 bảng', async () => {
+  it('đủ 17 bảng', async () => {
     expect(await tables()).toEqual(expect.arrayContaining(ALL_TABLES));
   });
 
@@ -253,6 +254,6 @@ describe('lược đồ spec 5.2', () => {
       '0001_extensions.sql',
     ]);
     migrate();
-    expect((await tables()).length).toBe(16);
+    expect((await tables()).length).toBe(17);
   });
 });
