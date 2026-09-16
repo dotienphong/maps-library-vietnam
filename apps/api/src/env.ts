@@ -24,6 +24,11 @@ export interface Env {
   MAX_INFLIGHT_DIRECTIONS?: string;
   /** Workers Analytics Engine — optional, code phải hoạt động khi vắng binding. */
   ANALYTICS?: AnalyticsEngineDataset;
+  /**
+   * SPA tĩnh của trang Admin. Worker dùng binding này để trả index.html cho các đường dẫn con
+   * (/admin/edits…) — không có file thật nào ở đó, mà router chạy phía trình duyệt.
+   */
+  ASSETS?: Fetcher;
   /** Cloudflare Access cho /admin + /v1/admin (M4). Không phải secret. */
   ACCESS_TEAM_DOMAIN?: string; // vd: myteam.cloudflareaccess.com
   ACCESS_AUD?: string; // AUD tag của Access application
