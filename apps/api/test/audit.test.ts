@@ -18,6 +18,20 @@ describe('writeAudit', () => {
     expect(calls[0]?.params.slice(0, 3)).toEqual(['phong@test.local', 'edit.approve', '42']);
   });
 
+  it('detail đi qua sql.json, KHÔNG phải chuỗi đã stringify', async () => {
+    // `${JSON.stringify(x)}::jsonb` khiến porsager stringify LẦN NỮA: cột jsonb nhận về một
+    // *chuỗi* JSON, nên `detail->>'label'` rỗng và `rows[0].detail.label` là undefined.
+    // edits.ts đã vấp đúng bẫy này với `changes` và ghi chú lại; audit.ts thì chưa.
+    const { sql, calls } = fakeSql();
+    await writeAudit(sql, {
+      actor: 'a@b.c',
+      action: 'tenant.key_issue',
+      detail: { label: 'trang nhúng thử' },
+    });
+    expect(calls[0]?.params[3]).toEqual({ label: 'trang nhúng thử' });
+    expect(calls[0]?.text).not.toContain('::jsonb');
+  });
+
   it('không có target/detail vẫn ghi được', async () => {
     const { sql, calls } = fakeSql();
     await writeAudit(sql, { actor: 'a@b.c', action: 'edits.list' });

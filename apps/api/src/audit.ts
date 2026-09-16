@@ -2,11 +2,20 @@ import type { Context } from 'hono';
 import { endSql, getSql } from './db';
 import type { AppEnv } from './env';
 
+/**
+ * Chỉ những gì sống sót qua `JSON.stringify`. Khai hẹp thay vì `unknown` để chỗ gọi không lỡ
+ * nhét vào một Map/BigInt/hàm rồi phát hiện mất dữ liệu lúc đọc nhật ký — nơi không sửa lại được.
+ */
+type JsonValue = string | number | boolean | null | readonly JsonValue[] | JsonObject;
+interface JsonObject {
+  readonly [key: string]: JsonValue | undefined;
+}
+
 export interface AuditEntry {
   actor: string;
   action: string;
   target?: string;
-  detail?: Record<string, unknown>;
+  detail?: JsonObject;
 }
 
 type Sql = ReturnType<typeof getSql>;
@@ -17,9 +26,12 @@ type Sql = ReturnType<typeof getSql>;
  */
 export async function writeAudit(sql: Sql, entry: AuditEntry): Promise<void> {
   try {
+    // Phải dùng sql.json(): truyền chuỗi đã JSON.stringify kèm cast ::jsonb khiến porsager
+    // stringify lần nữa, và cột jsonb nhận về một *chuỗi* JSON — `detail->>'label'` rỗng, còn
+    // người đọc nhật ký thấy một khối escape. Cùng bẫy mà edits.ts đã vấp với `changes`.
     await sql`INSERT INTO admin_audit (actor, action, target, detail)
       VALUES (${entry.actor}, ${entry.action}, ${entry.target ?? null},
-              ${entry.detail ? JSON.stringify(entry.detail) : null}::jsonb)`;
+              ${entry.detail ? sql.json(entry.detail) : null})`;
   } catch (error) {
     console.error('admin_audit', error);
   }
@@ -33,7 +45,7 @@ export function audit(
   c: Context<AppEnv>,
   action: string,
   target?: string,
-  detail?: Record<string, unknown>,
+  detail?: AuditEntry['detail'],
 ): void {
   const actor = c.get('reviewer') ?? '';
   if (!actor) return;

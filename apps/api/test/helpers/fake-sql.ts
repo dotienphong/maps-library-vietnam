@@ -40,5 +40,8 @@ export function fakeSql(
     return Object.assign(Promise.resolve(result), query);
   };
   tag.unsafe = (text: string): RecordedQuery => ({ text, params: [] });
+  // `sql.json(v)` của postgres.js đánh dấu tham số là jsonb và tự serialize. Bản giả giữ nguyên
+  // giá trị để test khẳng định được cái gì thật sự được gửi đi.
+  tag.json = (value: unknown): unknown => value;
   return { sql: tag as unknown as ReturnType<typeof getSql>, calls };
 }
