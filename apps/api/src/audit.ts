@@ -49,15 +49,22 @@ export function audit(
 ): void {
   const actor = c.get('reviewer') ?? '';
   if (!actor) return;
-  const sql = getSql(c.env);
-  c.executionCtx.waitUntil(
-    writeAudit(sql, {
-      actor,
-      action,
-      ...(target === undefined ? {} : { target }),
-      ...(detail === undefined ? {} : { detail }),
-    }).finally(() => {
-      endSql(c.executionCtx, sql);
-    }),
-  );
+  try {
+    const sql = getSql(c.env);
+    c.executionCtx.waitUntil(
+      writeAudit(sql, {
+        actor,
+        action,
+        ...(target === undefined ? {} : { target }),
+        ...(detail === undefined ? {} : { detail }),
+      }).finally(() => {
+        endSql(c.executionCtx, sql);
+      }),
+    );
+  } catch (error) {
+    // `c.executionCtx` NÉM khi ngữ cảnh không có nó — cùng lớp lỗi với việc mở client hỏng. Để nó
+    // bay ra ngoài là biến một thao tác ĐÃ THÀNH CÔNG (khoá đã thu hồi, gói đã cấp) thành 503 cho
+    // người gọi, đúng thứ hàm này tự nhận là không được làm. Mất một dòng nhật ký rẻ hơn nhiều.
+    console.error('admin_audit', error);
+  }
 }

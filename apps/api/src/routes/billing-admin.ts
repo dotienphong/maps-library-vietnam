@@ -74,10 +74,17 @@ interface QuotaBackupPort {
   restoreJournal(operationId: string, entries: JournalEntry[]): Promise<unknown>;
 }
 
+type AuditDetail = Record<string, string | number | boolean | null>;
+
 interface BillingAdminDependencies {
   tenantExists?: (tenantId: string, env: Env) => Promise<boolean>;
   applyCommand?: (tenantId: string, command: EntitlementCommand, env: Env) => Promise<unknown>;
   quotaBackup?: (tenantId: string, env: Env) => QuotaBackupPort;
+  /**
+   * Cổng ghi nhật ký, tiêm được để test kiểm nội dung dòng audit mà không cần Postgres.
+   * Mặc định là `audit()` thật (chạy trong waitUntil, tự mở và đóng client riêng).
+   */
+  writeAuditEntry?: (entry: { action: string; target?: string; detail?: AuditDetail }) => void;
 }
 
 async function tenantExists(
@@ -98,6 +105,14 @@ async function tenantExists(
 
 export function billingAdmin(dependencies: BillingAdminDependencies = {}) {
   const routes = new Hono<AppEnv>();
+
+  const ghiAudit = (c: Context<AppEnv>, action: string, target: string, detail: AuditDetail) => {
+    if (dependencies.writeAuditEntry) {
+      dependencies.writeAuditEntry({ action, target, detail });
+      return;
+    }
+    audit(c, action, target, detail);
+  };
 
   routes.use('/v1/admin/billing/:tenantId/*', async (c, next) => {
     const tenantId = c.req.param('tenantId');
@@ -153,6 +168,16 @@ export function billingAdmin(dependencies: BillingAdminDependencies = {}) {
       const receipt = dependencies.applyCommand
         ? await dependencies.applyCommand(tenantId, command, c.env)
         : await quotaObject(c.env, tenantId).applyCommand(command);
+      // Vết kiểm toán ghi SAU khi sổ đã nhận lệnh: nhật ký là bằng chứng việc đã xảy ra, không
+      // phải dự định. Chỉ những trường đủ để tra lại, không chép mã thanh toán của khách vào đây.
+      const thanhPhan = receipt as { revision?: number; status?: string; tier?: string | null };
+      ghiAudit(c, 'billing.command', tenantId, {
+        kind: String(input.kind ?? ''),
+        operation_id: String(input.operationId ?? ''),
+        revision: thanhPhan.revision ?? null,
+        status: thanhPhan.status ?? null,
+        tier: thanhPhan.tier ?? null,
+      });
       return c.json(receipt, 200, { 'cache-control': 'private, no-store' });
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
@@ -183,6 +208,13 @@ export function billingAdmin(dependencies: BillingAdminDependencies = {}) {
         c.get('reviewer') ?? '',
         body.reason,
       );
+      // Khác lệnh billing: ở đây GIỮ `reason` trong nhật ký. Lý do mở khoá sớm do người quản trị
+      // tự gõ chính là nội dung cần kiểm toán, không phải dữ liệu tài chính của khách.
+      ghiAudit(c, 'billing.unlock_acks', tenantId, {
+        operation_id: body.operationId,
+        reason: body.reason,
+        unlocked: receipt.unlocked,
+      });
       return c.json(receipt, 200, { 'cache-control': 'private, no-store' });
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);

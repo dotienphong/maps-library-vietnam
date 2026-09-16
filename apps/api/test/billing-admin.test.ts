@@ -248,3 +248,102 @@ describe('billing admin routes', () => {
     expect(malformed.status).toBe(400);
   });
 });
+
+describe('nhật ký kiểm toán cho lệnh billing', () => {
+  /** Tầng này không có Postgres, nên `billingAdmin` nhận một cổng ghi audit tiêm được. */
+  function appGhiAudit(
+    ghi: { action: string; target?: string; detail?: Record<string, unknown> }[],
+    options: { failWith?: string } = {},
+  ) {
+    const app = new Hono<AppEnv>();
+    app.use('*', async (c, next) => {
+      c.set('reviewer', 'phong@test.local');
+      await next();
+    });
+    app.route(
+      '/',
+      billingAdmin({
+        tenantExists: async () => true,
+        applyCommand: async () => {
+          if (options.failWith) throw new Error(options.failWith);
+          return {
+            operationId: 'op-1',
+            revision: 4,
+            status: 'active',
+            tier: 'starter',
+            appliedAt: new Date().toISOString(),
+          };
+        },
+        writeAuditEntry: (entry) => ghi.push(entry),
+      }),
+    );
+    return app;
+  }
+
+  const lenhCapKy = {
+    kind: 'grantPeriod',
+    operationId: 'op-1',
+    reason: 'khách chuyển khoản CK-8821',
+    expectedRevision: 3,
+    periodId: 'p-1',
+    tier: 'starter',
+    startsAt: '2026-10-01T00:00:00.000Z',
+    endsAt: '2026-11-01T00:00:00.000Z',
+    paymentReference: 'CK-8821',
+    lineItemId: 'period-1',
+  };
+
+  it('lệnh thành công ghi đúng một dòng audit, có actor và KHÔNG có mã thanh toán', async () => {
+    const ghi: { action: string; target?: string; detail?: Record<string, unknown> }[] = [];
+    const response = await request(appGhiAudit(ghi), `/v1/admin/billing/${tenantId}/commands`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify(lenhCapKy),
+    });
+
+    expect(response.status).toBe(200);
+    expect(ghi).toHaveLength(1);
+    expect(ghi[0]?.action).toBe('billing.command');
+    expect(ghi[0]?.target).toBe(tenantId);
+    expect(ghi[0]?.detail).toMatchObject({
+      kind: 'grantPeriod',
+      operation_id: 'op-1',
+      revision: 4,
+      tier: 'starter',
+    });
+    // Mã thanh toán là dữ liệu tài chính của khách; nhật ký kiểm toán chỉ cần biết ai làm gì.
+    expect(JSON.stringify(ghi[0]?.detail)).not.toContain('CK-8821');
+  });
+
+  it('lệnh thất bại KHÔNG ghi audit — nhật ký là vết của việc đã xảy ra', async () => {
+    const ghi: { action: string; target?: string; detail?: Record<string, unknown> }[] = [];
+    const app = appGhiAudit(ghi, { failWith: 'revision_conflict' });
+    const response = await request(app, `/v1/admin/billing/${tenantId}/commands`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify(lenhCapKy),
+    });
+    expect(response.status).toBe(409);
+    expect(ghi).toHaveLength(0);
+  });
+
+  it('lệnh mở khoá ack ghi audit KÈM lý do — lý do chính là thứ cần kiểm toán ở đây', async () => {
+    const ghi: { action: string; target?: string; detail?: Record<string, unknown> }[] = [];
+    const response = await request(
+      appGhiAudit(ghi),
+      `/v1/admin/billing/${tenantId}/missing-acks/unlock`,
+      {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ operationId: 'op-unlock', reason: 'công cụ khách quên ACK' }),
+      },
+    );
+    expect(response.status).toBe(200);
+    expect(ghi).toHaveLength(1);
+    expect(ghi[0]?.action).toBe('billing.unlock_acks');
+    expect(ghi[0]?.detail).toMatchObject({
+      operation_id: 'op-unlock',
+      reason: 'công cụ khách quên ACK',
+    });
+  });
+});

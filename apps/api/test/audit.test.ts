@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { writeAudit } from '../src/audit';
+import { audit, writeAudit } from '../src/audit';
 import { fakeSql } from './helpers/fake-sql';
 
 type Sql = Parameters<typeof writeAudit>[0];
@@ -44,5 +44,22 @@ describe('writeAudit', () => {
       throw new Error('DB chết');
     }) as unknown as Sql;
     await expect(writeAudit(sql, { actor: 'a@b.c', action: 'x' })).resolves.toBeUndefined();
+  });
+});
+
+describe('audit() không bao giờ làm hỏng thao tác chính', () => {
+  it('ngữ cảnh không có ExecutionContext → bỏ qua dòng nhật ký, KHÔNG ném', () => {
+    // Hono ném "This context has no ExecutionContext" khi request đi vào không kèm ctx. Nếu audit()
+    // để lỗi đó bay ra, handler đang ở nhánh thành công sẽ rơi xuống catch và trả 503 — tức một
+    // lệnh billing đã ghi vào sổ lại báo cho người vận hành là thất bại.
+    const c = {
+      get: () => 'phong@test.local',
+      env: {},
+      get executionCtx(): never {
+        throw new Error('This context has no ExecutionContext');
+      },
+    } as unknown as Parameters<typeof audit>[0];
+
+    expect(() => audit(c, 'billing.command', 'tenant-1', { kind: 'suspend' })).not.toThrow();
   });
 });
