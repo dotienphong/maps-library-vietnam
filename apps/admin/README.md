@@ -3,27 +3,50 @@
 Trang quản trị MapsLibVN. SPA tĩnh, build ra `dist/admin`, do Worker API phục vụ tại `/admin/`
 và bảo vệ bằng Cloudflare Access.
 
-## Chạy tại máy
+## Chạy ở máy để test
 
 **Không dùng `wrangler dev` trần**: máy dev không có Cloudflare Access nên `ACCESS_TEAM_DOMAIN`
-trống, mọi route `/v1/admin/*` trả 401 và trang trắng trơn. Dùng harness có JWKS giả:
+trống, mọi route `/v1/admin/*` trả 401 và trang trắng trơn. Luôn chạy qua harness có Access giả.
+
+### Cách 1 — xem đúng như production (một cửa sổ terminal)
 
 ```bash
-pnpm db:up
-node scripts/api-db-test.mjs --serve   # DB cô lập + seed + wrangler dev :8799 + Access giả
+pnpm db:up                                  # Postgres trong Docker
+pnpm --filter @mapslibvn/admin build        # Worker phục vụ dist/, nên phải build trước
+node scripts/api-db-test.mjs --serve        # DB test riêng + seed + wrangler dev :8799 + Access giả
 ```
 
-Rồi mở http://127.0.0.1:8799/admin/
+Mở **http://127.0.0.1:8799/admin/**
 
-Muốn sửa giao diện có nạp nóng thì chạy thêm `pnpm --filter @mapslibvn/admin dev` ở cửa sổ khác,
-nhưng các lời gọi API vẫn phải trỏ về cổng 8799.
+Đây là bản giống production nhất: cùng Worker, cùng cách phục vụ file tĩnh. Đổi mã giao diện thì
+phải `build` lại rồi tải lại trang.
+
+### Cách 2 — sửa giao diện có nạp nóng (hai cửa sổ terminal)
+
+```bash
+# Cửa sổ 1 — API
+pnpm db:up
+node scripts/api-db-test.mjs --serve
+
+# Cửa sổ 2 — giao diện
+pnpm --filter @mapslibvn/admin dev
+```
+
+Mở **http://localhost:5173/admin/**
+
+Vite proxy mọi lời gọi `/v1/*` sang harness ở cổng 8799 và **tự chèn JWT Access giả**, nên không
+phải đăng nhập gì. Sửa file là trang tự cập nhật.
+
+`node scripts/api-db-test.mjs --serve` **drop rồi tạo lại một database test riêng**, không đụng
+database dev thường ngày của bạn. Dừng bằng `Ctrl+C`.
 
 ## Địa chỉ
 
 | Môi trường | Địa chỉ |
 | --- | --- |
 | Production | https://api.ai-solutions.io.vn/admin/ |
-| Harness | http://127.0.0.1:8799/admin/ |
+| Harness (giống production) | http://127.0.0.1:8799/admin/ |
+| Vite dev (nạp nóng) | http://localhost:5173/admin/ |
 
 ## Kiểm thử
 
@@ -46,3 +69,5 @@ với `scripts/**/*.test.mjs` trên Node nên không đặt jsdom toàn cục.
 - **Worker tự phục vụ `index.html` cho `/admin/*`** thay vì bật chế độ SPA của Cloudflare Assets:
   chế độ đó trả `index.html` cho mọi path không khớp asset, biến một `/v1/*` gõ sai thành trang
   HTML thay vì lỗi JSON.
+- **Ngăn kéo tự đóng khi đường dẫn đổi**, không gắn `onClick` vào từng liên kết: `SidebarNav` còn
+  dùng cho sidebar cố định ở màn hình rộng, nơi không có ngăn kéo nào để đóng.
