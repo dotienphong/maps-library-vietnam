@@ -28,17 +28,21 @@ describe('parseTenantListParams', () => {
   });
 
   it('con trỏ hai phần: thời điểm tạo và uuid', () => {
-    const cursor = encodeTenantCursor('2026-09-16T03:04:05.000Z', UUID);
-    expect(cursor).toBe(`2026-09-16T03:04:05.000Z|${UUID}`);
+    const cursor = encodeTenantCursor('2026-09-16T03:04:05.000000Z', UUID);
+    expect(cursor).toBe(`2026-09-16T03:04:05.000000Z|${UUID}`);
     expect(parse(`cursor=${encodeURIComponent(cursor)}`).cursor).toEqual({
-      createdAt: '2026-09-16T03:04:05.000Z',
+      createdAt: '2026-09-16T03:04:05.000000Z',
       id: UUID,
     });
   });
 
-  it('con trỏ dùng được với Date do postgres.js trả về', () => {
-    expect(encodeTenantCursor(new Date('2026-09-16T03:04:05.000Z'), UUID)).toBe(
-      `2026-09-16T03:04:05.000Z|${UUID}`,
+  it('giữ nguyên MICRO giây, không làm tròn về mili giây', () => {
+    // Đi vòng qua `Date` sẽ cắt `.673564` thành `.673`, và điều kiện `(created_at, id) < …` loại
+    // luôn chính hàng lẽ ra phải mở đầu trang sau: trang 2 rỗng dù còn dữ liệu. Ba tenant seed
+    // trong cùng một transaction có created_at giống nhau tới micro giây, nên lỗi này lộ ngay.
+    const cursor = encodeTenantCursor('2026-09-16T08:12:47.673564Z', UUID);
+    expect(parse(`cursor=${encodeURIComponent(cursor)}`).cursor?.createdAt).toBe(
+      '2026-09-16T08:12:47.673564Z',
     );
   });
 
@@ -46,6 +50,8 @@ describe('parseTenantListParams', () => {
     ['thiếu phần uuid', '2026-09-16T03:04:05.000Z'],
     ['uuid sai', '2026-09-16T03:04:05.000Z|khong-phai-uuid'],
     ['thời điểm sai', 'hom-qua|11111111-1111-4111-8111-111111111111'],
+    ['thiếu chữ Z', `2026-09-16T03:04:05.000|${UUID}`],
+    ['quá 6 chữ số phần lẻ', `2026-09-16T03:04:05.1234567Z|${UUID}`],
     ['thừa phần', `2026-09-16T03:04:05.000Z|${UUID}|x`],
   ])('con trỏ hỏng (%s) → ném 400', (_name, value) => {
     expect(() => parse(`cursor=${encodeURIComponent(value)}`)).toThrow(/cursor/);

@@ -30,6 +30,11 @@ interface TenantRow {
   active_keys: number;
 }
 
+/** Hàng danh sách kèm khoá sắp xếp dạng chuỗi — chỉ dùng để dựng con trỏ, không trả ra ngoài. */
+interface TenantListRow extends TenantRow {
+  cursor_at: string;
+}
+
 interface KeyRow {
   key_hash: string;
   key_prefix: string;
@@ -55,25 +60,31 @@ adminTenants.get('/v1/admin/tenants', async (c) => {
   try {
     // Lấy dư một bản ghi để biết còn trang sau hay không, giống danh sách đóng góp — không đếm
     // tổng, vì con số đó không giúp gì cho người đang tìm một tenant.
-    const rows = await sql<TenantRow[]>`
+    const rows = await sql<TenantListRow[]>`
       SELECT t.id, t.name, t.plan, t.quota_mode, t.created_at,
+             -- to_char giữ đủ micro giây; đọc created_at qua postgres.js chỉ còn mili giây,
+             -- và con trỏ thiếu ba chữ số cuối sẽ loại luôn hàng mở đầu trang sau.
+             to_char(t.created_at AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"') AS cursor_at,
              count(k.key_hash) FILTER (WHERE k.active AND k.revoked_at IS NULL)::int AS active_keys
       FROM tenant t
       LEFT JOIN api_key k ON k.tenant_id = t.id
       WHERE (${params.q}::text IS NULL OR t.name ILIKE '%' || ${params.q} || '%')
-        AND (${createdAt}::timestamptz IS NULL
-             OR (t.created_at, t.id) < (${createdAt}::timestamptz, ${cursorId}::uuid))
+        -- ::text::timestamptz chứ không phải ::timestamptz thẳng: bind cho kiểu thời gian đi qua
+        -- Date của JavaScript và mất ba chữ số micro giây, nên con trỏ .809602 và .809601 đều
+        -- thành .809000 và điều kiện loại sạch trang sau. Qua text thì chính Postgres parse chuỗi.
+        AND (${createdAt}::text IS NULL
+             OR (t.created_at, t.id) < (${createdAt}::text::timestamptz, ${cursorId}::uuid))
       GROUP BY t.id
       ORDER BY t.created_at DESC, t.id DESC
       LIMIT ${params.limit + 1}`;
 
     const hasMore = rows.length > params.limit;
-    const items = hasMore ? rows.slice(0, params.limit) : rows;
-    const last = items.at(-1);
+    const page = hasMore ? rows.slice(0, params.limit) : rows;
+    const last = page.at(-1);
     return c.json(
       {
-        items,
-        nextCursor: hasMore && last ? encodeTenantCursor(last.created_at, last.id) : null,
+        items: page.map(({ cursor_at: _cursorAt, ...tenant }) => tenant),
+        nextCursor: hasMore && last ? encodeTenantCursor(last.cursor_at, last.id) : null,
       },
       200,
       NO_STORE,

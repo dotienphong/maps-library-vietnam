@@ -11,12 +11,22 @@ export interface TenantListParams {
 }
 
 /**
+ * Thời điểm trong con trỏ giữ tới MICRO giây — đó là độ chính xác thật của `timestamptz`.
+ * Đi vòng qua `Date` sẽ cắt còn mili giây, và con trỏ `…673000` nhỏ hơn mọi hàng `…673564`, nên
+ * trang sau rỗng dù còn dữ liệu: ba tenant seed cùng một transaction có created_at giống hệt tới
+ * micro giây, và trên production mọi tenant tạo trong cùng một lệnh cũng vậy.
+ */
+const CURSOR_TIME = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d{1,6})?Z$/;
+
+/**
  * Con trỏ hai phần `<created_at ISO>|<uuid>`. Không dùng một cột như danh sách đóng góp được:
  * id tenant là uuid nên không tăng theo thời gian, còn created_at một mình thì hai tenant tạo
- * cùng mili giây sẽ nuốt nhau ở ranh giới trang.
+ * cùng thời điểm sẽ nuốt nhau ở ranh giới trang.
+ *
+ * `createdAt` phải là chuỗi do Postgres in ra (cột `cursor_at` của route), KHÔNG phải Date.
  */
-export function encodeTenantCursor(createdAt: string | Date, id: string): string {
-  return `${new Date(createdAt).toISOString()}|${id}`;
+export function encodeTenantCursor(createdAt: string, id: string): string {
+  return `${createdAt}|${id}`;
 }
 
 export function parseTenantListParams(params: URLSearchParams): TenantListParams {
@@ -25,10 +35,16 @@ export function parseTenantListParams(params: URLSearchParams): TenantListParams
   if (raw !== null) {
     const parts = raw.split('|');
     const [createdAt, id] = parts;
-    const time = createdAt === undefined ? Number.NaN : Date.parse(createdAt);
-    if (parts.length !== 2 || id === undefined || !UUID.test(id) || Number.isNaN(time))
+    if (
+      parts.length !== 2 ||
+      createdAt === undefined ||
+      id === undefined ||
+      !CURSOR_TIME.test(createdAt) ||
+      !UUID.test(id)
+    )
       throw new ApiError(400, 'invalid_request', 'cursor phải có dạng <thời điểm ISO>|<uuid>');
-    cursor = { createdAt: new Date(time).toISOString(), id };
+    // Giữ NGUYÊN VĂN: Postgres tự parse chuỗi này về timestamptz, không mất chữ số nào.
+    cursor = { createdAt, id };
   }
 
   return { q: parseSearch(params), limit: parseLimit(params), cursor };
