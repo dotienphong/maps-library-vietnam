@@ -47,7 +47,8 @@ jobs:
           node-version: 22
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      - run: pnpm --filter @mapslibvn/core build && pnpm --filter @mapslibvn/style build && pnpm --filter @mapslibvn/admin build
+      # @mapslibvn/web phải đứng trước admin: trang admin dùng SDK để dựng bản đồ.
+      - run: pnpm --filter @mapslibvn/core build && pnpm --filter @mapslibvn/style build && pnpm --filter @mapslibvn/web build && pnpm --filter @mapslibvn/admin build
       - name: Valhalla trên fixture Quận 1
         run: |
           mkdir -p "$RUNNER_TEMP/valhalla"
