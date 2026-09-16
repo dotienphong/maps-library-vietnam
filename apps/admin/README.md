@@ -78,6 +78,10 @@ với `scripts/**/*.test.mjs` trên Node nên không đặt jsdom toàn cục.
   Kèm lợi ích: trang quản trị dùng đúng thứ khách hàng dùng, nên lỗi SDK lộ ra ở đây trước.
   Vì vậy `pnpm --filter @mapslibvn/web build` phải chạy **trước** khi build admin; hai workflow
   `apitest.yml` và `deploy-api.yml` đã có bước đó.
+- **Bản build phải xuất kèm Web Worker của maplibre** (`vite.config.ts`, plugin
+  `xuatWorkerMaplibre`). maplibre giải mã ô trong worker và dựng URL worker cạnh chunk của chính
+  nó; Vite không tự xuất tệp đó. Thiếu nó thì nền bản đồ trắng, chốt vị trí vẫn hiện và **không có
+  lỗi nào** — sự cố 16/09/2026. Worker còn import `maplibre-gl-shared.mjs` nên phải chép cả hai.
 - **Bản đồ hỏng thì nói ra.** `EditMap` hiện "Không tải được bản đồ" kèm lý do, vì một khung trống
   câm lặng trông y hệt một tính năng chưa làm.
 - **Ngăn kéo tự đóng khi đường dẫn đổi**, không gắn `onClick` vào từng liên kết: `SidebarNav` còn

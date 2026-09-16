@@ -246,3 +246,12 @@ test('file tĩnh không tồn tại phải trả 404, KHÔNG trả index.html', 
   expect(route.status()).toBe(200);
   expect(route.headers()['content-type'] ?? '').toContain('text/html');
 });
+
+test('worker của maplibre phải có mặt trong bản build', async ({ request }) => {
+  // maplibre giải mã ô trong Web Worker và dựng URL worker cạnh chunk của chính nó. Vite không
+  // tự xuất tệp này, nên thiếu nó thì ô không bao giờ được giải mã: nền bản đồ trắng, chốt vị
+  // trí vẫn hiện, và KHÔNG có lỗi nào để hiển thị. Sự cố 16/09/2026.
+  const worker = await request.get('/admin/assets/maplibre-gl-worker.mjs');
+  expect(worker.status()).toBe(200);
+  expect(worker.headers()['content-type'] ?? '').toContain('javascript');
+});

@@ -1,3 +1,4 @@
+import { copyFileSync, mkdirSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import tailwindcss from '@tailwindcss/vite';
 import react from '@vitejs/plugin-react';
@@ -5,6 +6,29 @@ import { defineConfig } from 'vite';
 
 // base /admin/ + outDir dist/admin: Worker assets directory = apps/admin/dist
 // → URL /admin/ trỏ file dist/admin/index.html.
+/**
+ * maplibre giải mã ô trong Web Worker và dựng URL worker cạnh chunk của chính nó
+ * (`new URL('./maplibre-gl-worker.mjs', import.meta.url)`). Vite không xuất tệp đó, nên thiếu nó
+ * thì ô không bao giờ được giải mã: nền bản đồ trắng, chốt vị trí vẫn hiện, và KHÔNG có lỗi nào
+ * để hiển thị — mất hẳn manh mối. Sự cố 16/09/2026.
+ *
+ * `packages/web/vite.umd.config.ts` đã phải làm đúng việc này cho bản UMD; đây là bản tương ứng
+ * cho bản ESM của trang admin. Worker còn import `maplibre-gl-shared.mjs` nên phải chép cả hai.
+ */
+function xuatWorkerMaplibre(thuMucRa: string) {
+  return {
+    name: 'mapslibvn-xuat-worker-maplibre',
+    closeBundle() {
+      const nguon = fileURLToPath(new URL('./node_modules/maplibre-gl/dist/', import.meta.url));
+      const dich = fileURLToPath(new URL(`./${thuMucRa}/assets/`, import.meta.url));
+      mkdirSync(dich, { recursive: true });
+      for (const tep of ['maplibre-gl-worker.mjs', 'maplibre-gl-shared.mjs']) {
+        copyFileSync(`${nguon}${tep}`, `${dich}${tep}`);
+      }
+    },
+  };
+}
+
 export default defineConfig(async ({ command }) => {
   // Chỉ nạp Access giả khi chạy `vite dev`. Import tĩnh sẽ sinh cặp khoá trong .cache/ ngay cả
   // lúc build trên CI, nơi không có và không cần thứ đó.
@@ -28,7 +52,7 @@ export default defineConfig(async ({ command }) => {
 
   return {
     base: '/admin/',
-    plugins: [react(), tailwindcss()],
+    plugins: [react(), tailwindcss(), xuatWorkerMaplibre('dist/admin')],
     resolve: {
       alias: { '@': fileURLToPath(new URL('./src', import.meta.url)) },
     },
