@@ -2,7 +2,7 @@
 
 Ngày: 16/09/2026. PHONG duyệt hướng thiết kế qua phiên brainstorming cùng ngày.
 Thay thế hoàn toàn trang `apps/admin` hiện tại (bảng HTML trần, một màn hình duy nhất).
-PHONG đã chọn gói cả sáu mảng vào **một** spec sau khi được cảnh báo về độ dài; rủi ro đó
+PHONG đã chọn gói cả năm mảng vào **một** spec sau khi được cảnh báo về độ dài; rủi ro đó
 được xử lý bằng cách chia pha ở mục 17, mỗi pha kết thúc là một thứ dùng được.
 
 ## 1. Mục tiêu và phạm vi
@@ -10,7 +10,7 @@ PHONG đã chọn gói cả sáu mảng vào **một** spec sau khi được c�
 Một trang quản trị duy nhất, mobile-first, dùng được thật trên điện thoại lẫn máy tính, thay cho
 tình trạng hiện nay: một màn hình duyệt POI thô sơ cộng với việc phải gọi curl cho mọi thứ còn lại.
 
-Trong phạm vi — sáu mảng cộng một trang đích:
+Trong phạm vi — năm mảng cộng một trang đích:
 
 1. Tổng quan
 2. Duyệt đóng góp POI
@@ -18,7 +18,6 @@ Trong phạm vi — sáu mảng cộng một trang đích:
 4. Gói cước & hạn mức
 5. Sức khoẻ hệ thống
 6. Nhật ký kiểm toán
-7. Người dùng quản trị (RBAC)
 
 Ngoài phạm vi, đã cân nhắc và loại bỏ có chủ ý:
 
@@ -36,9 +35,9 @@ Ngoài phạm vi, đã cân nhắc và loại bỏ có chủ ý:
 | Nền giao diện | Tailwind v4 + shadcn/ui (trên Radix) | Mã component nằm trong repo, không phải dependency đen |
 | Khung điều hướng | Sidebar chia nhóm, thu vào sau nút ☰ trên màn hình hẹp | |
 | Đơn vị nội dung (hẹp) | Thẻ xếp dọc, hành động ngay trên thẻ | |
-| Màn hình rộng | Chuyển hẳn sang **bảng** (không phải lưới thẻ) | Bốn trong sáu mảng vốn là dữ liệu bảng |
+| Màn hình rộng | Chuyển hẳn sang **bảng** (không phải lưới thẻ) | Ba trong năm mảng vốn là dữ liệu bảng |
 | Phong cách | Xanh bản đồ `#1b3a6b`, lấy từ style bản đồ sẵn có; kèm bản tối | Hệ thống chưa có bộ nhận diện riêng |
-| Phân quyền | RBAC trong database, bảng `admin_user` | Không dùng allowlist biến môi trường làm cơ chế chính |
+| Phân quyền | **Chưa phân quyền** ở giai đoạn này; giữ nguyên Access và allowlist sẵn có | PHONG chốt 16/09: hệ thống một người quản lý. Điểm móc để thêm sau ở mục 9 |
 | Tầng dữ liệu | TanStack Query + React Router v7 (khai báo, không loader) | |
 | Số liệu lưu lượng | Gọi ngược Cloudflare Analytics API bằng token riêng | Thêm một secret phải quản lý |
 
@@ -54,7 +53,7 @@ Ngoài phạm vi, đã cân nhắc và loại bỏ có chủ ý:
 - `apps/api/src/routes/billing-admin.ts`: đã đủ `usage`, `commands`, `mode`,
   `missing-acks/unlock`, `keys/:keyHash/revocation`, và nhóm `backup/*`. Chưa có giao diện nào.
 - `requireBillingAccess()` lọc theo `BILLING_ADMIN_EMAILS`; nhóm backup lọc theo
-  `BILLING_BACKUP_EMAILS`. Đây là mầm phân quyền sẽ được thay bằng RBAC.
+  `BILLING_BACKUP_EMAILS`. Giữ nguyên hai lớp này, xem mục 9.
 - Schema: `tenant(id, name, plan, quota_mode, created_at)`, `api_key(key_hash, tenant_id, label,
   kind, allowed_origins, allowed_bundle_ids, scopes, quota_*, active, created_at, revoked_at)`,
   `poi_edit(id, poi_id, tenant_id, kind, changes, photo_url, note, status, reviewer, reviewed_at,
@@ -93,7 +92,7 @@ apps/admin/src/
     pagination.tsx
     ui/                 shadcn: button, card, sheet, dialog, table, badge, toast, input, select…
   features/
-    overview/ edits/ tenants/ billing/ health/ audit/ users/
+    overview/ edits/ tenants/ billing/ health/ audit/
         api.ts    kiểu dữ liệu + hàm gọi, không chứa React
         hooks.ts  useQuery/useMutation, khoá cache, invalidate
         page.tsx  màn hình
@@ -137,11 +136,11 @@ Sidebar chia ba nhóm:
 
 - **Nội dung** — Tổng quan, Duyệt đóng góp
 - **Khách hàng** — Tenant & khoá API, Gói cước & hạn mức
-- **Vận hành** — Sức khoẻ hệ thống, Nhật ký kiểm toán, Người dùng quản trị
+- **Vận hành** — Sức khoẻ hệ thống, Nhật ký kiểm toán
 
 Mục Duyệt đóng góp mang huy hiệu số bản ghi `pending`, lấy từ một query đếm riêng, làm mới mỗi
-60 giây và sau mỗi lần duyệt. Mục mà người đăng nhập không có quyền thì **ẩn hẳn**, không hiện
-dạng mờ — hiện mờ chỉ tạo tò mò chứ không giúp gì.
+60 giây và sau mỗi lần duyệt. Mỗi mục kiểm `can(...)` trước khi render — giai đoạn này luôn đúng
+nên mọi mục đều hiện; khi có phân quyền, mục không đủ quyền sẽ **ẩn hẳn** chứ không hiện dạng mờ.
 
 Ngăn kéo phải làm đúng bốn điều, đây là chỗ dễ làm ẩu nhất:
 
@@ -181,7 +180,7 @@ Mọi màn hình bắt buộc xử lý đủ năm trạng thái, lấy từ `com
 | Đang tải | Khung xương đúng hình dạng nội dung sắp tới, **không** dùng vòng xoay toàn trang |
 | Rỗng | Giải thích vì sao rỗng và đề xuất hành động, không chỉ ghi "Không có dữ liệu" |
 | Lỗi | Hiện `error.code` thật của API cộng câu tiếng Việt, kèm nút Thử lại |
-| Thiếu quyền | Nói rõ cần vai trò nào và liên hệ ai, không im lặng hay chuyển hướng ngầm |
+| Thiếu quyền | Nói rõ vì sao bị chặn, không im lặng hay chuyển hướng ngầm. Giai đoạn này chỉ gặp ở nhóm billing khi email ngoài `BILLING_ADMIN_EMAILS` |
 | Mất mạng | Báo rõ và tự thử lại khi có mạng |
 
 **Mô hình hành động — chia hai loại.** `apply_poi_edit` ghi thẳng vào bảng POI và xoá cache, nên
@@ -199,45 +198,43 @@ Mọi lệnh ghi tới nhóm billing phải kèm `operationId` (ULID sinh ở cl
 
 ## 9. Phân quyền
 
-Migration `0017` thêm:
+**Giai đoạn này không có phân quyền.** PHONG chốt 16/09/2026: hệ thống do một người quản lý, nên
+dựng bảng vai trò và màn hình quản lý người dùng là xây nhà cho người chưa tồn tại. Cloudflare
+Access đã kiểm soát *ai vào được*; khi chỉ có một người thì *vào rồi làm được gì* chưa phải câu hỏi.
 
-```sql
-CREATE TABLE admin_user (
-  email      text PRIMARY KEY,
-  name       text,
-  roles      text[] NOT NULL DEFAULT '{}',
-  active     boolean NOT NULL DEFAULT true,
-  created_at timestamptz NOT NULL DEFAULT now(),
-  created_by text
-);
-```
+Giữ nguyên, không đụng tới, đúng như đang chạy trên production:
 
-Bốn vai trò, cộng dồn quyền:
+- `requireAccess()` cho `/v1/admin/*` — xác thực JWT Access, lấy email vào `c.get('reviewer')`.
+- `requireBillingAccess()` lọc theo `BILLING_ADMIN_EMAILS`, nhóm `backup/*` lọc theo
+  `BILLING_BACKUP_EMAILS`. **Không bỏ hai lớp này** — bỏ là hạ mức bảo vệ hiện có để đổi lấy sự
+  gọn gàng, không đáng.
+- Middleware chống CSRF cho POST.
 
-| Vai trò | Quyền |
-|---|---|
-| `reviewer` | Đọc và duyệt đóng góp POI |
-| `support` | `reviewer` + đọc tenant/khoá/mức dùng, cấp khoá, thu hồi khoá |
-| `billing` | `support` + mọi lệnh gói cước, credit, mở khoá ack, đổi `quota_mode` |
-| `owner` | Toàn quyền, cộng quản lý `admin_user` và xem nhật ký đầy đủ |
+Không tạo bảng `admin_user`, không có vai trò, không có `requireAdmin`, không có màn hình quản lý
+người dùng.
 
-Middleware `requireAdmin(permission)` trong `apps/api/src/admin-auth.ts` thay cho
-`requireBillingAccess()`: xác thực JWT Access như hiện tại để lấy email, rồi tra `admin_user`.
+**Ba điểm móc phải làm ngay, để thêm phân quyền sau không phải sửa rải rác sáu màn hình:**
 
-**Đường bootstrap bắt buộc giữ:** nếu `admin_user` rỗng, hoặc truy vấn DB thất bại, email nằm
-trong `BILLING_ADMIN_EMAILS` vẫn được coi là `owner`. Thiếu điều này thì một lần lỡ tay là tự
-khoá mình ra khỏi hệ thống và phải sửa bằng SQL trên production.
+1. `GET /v1/admin/me` trả `{ email, permissions }`. Giai đoạn này `permissions` là danh sách đầy
+   đủ cho mọi người qua được Access. Hợp đồng API không đổi khi thêm vai trò sau.
+2. `lib/permissions.ts` với `can(permission: string): boolean` — khoảng mười dòng, hiện đọc từ
+   `/me` và thực tế luôn trả `true`. **Các màn hình gọi `can('billing.write')` ngay từ đầu.** Ngày
+   thêm RBAC chỉ cần đổi thân hàm và thêm middleware phía API.
+3. `admin_audit` ghi `actor` là email lấy từ Access (mục 10). Nhật ký không phụ thuộc phân quyền,
+   và giá trị của nó — "hai tháng trước ai đã thu hồi khoá này" — vẫn có nghĩa khi chỉ có một
+   người, vì người đó là chính mình của hai tháng trước.
 
-`GET /v1/admin/me` trả `{ email, name, roles, permissions }` để giao diện biết vẽ mục nào.
-**Giao diện chỉ ẩn cho gọn mắt; API mới là nơi chặn thật** — mọi route phải tự kiểm quyền, không
-được giả định người gọi đã đi qua giao diện.
+Khi công ty mở rộng, việc phải làm thêm là: bảng `admin_user(email, roles, active)`, middleware
+`requireAdmin(permission)` tra bảng đó, đổi thân `can()`, và một màn hình quản lý người dùng. Giao
+diện sáu màn hình hiện có không phải sửa. Lúc đó nhớ giữ một đường bootstrap qua
+`BILLING_ADMIN_EMAILS` phòng khi bảng rỗng hoặc DB chết, nếu không một lần lỡ tay là tự khoá mình
+ra khỏi hệ thống và phải sửa bằng SQL trên production.
 
-Không cho một người tự gỡ vai trò `owner` của chính mình, và không cho vô hiệu hoá `owner` cuối
-cùng còn hoạt động.
+Nguyên tắc vẫn áp dụng từ bây giờ: **API là nơi chặn thật, giao diện chỉ ẩn cho gọn mắt.**
 
 ## 10. Nhật ký kiểm toán
 
-Migration `0017` thêm tiếp:
+Migration `0017` thêm:
 
 ```sql
 CREATE TABLE admin_audit (
@@ -258,13 +255,13 @@ hỏng không được làm hỏng thao tác chính.
 
 `detail` không bao giờ chứa khoá API dạng rõ, chỉ chứa `key_hash`.
 
-## 11. Bảy màn hình
+## 11. Sáu màn hình
 
 ### 11.1. Tổng quan — `/admin`
 
 Bốn ô số liệu: đóng góp chờ duyệt, tenant sắp vượt hạn mức, trạng thái DB và schema migration,
 trạng thái routing. Dưới là năm việc gần nhất từ `admin_audit`. Mỗi ô bấm vào là sang mảng tương
-ứng. Ô nào người dùng không có quyền thì không hiện.
+ứng, và mỗi ô kiểm `can(...)` như mọi chỗ khác.
 
 ### 11.2. Duyệt đóng góp — `/admin/edits`
 
@@ -306,38 +303,34 @@ trạng thái routing. Dưới là năm việc gần nhất từ `admin_audit`. 
 ### 11.6. Nhật ký kiểm toán — `/admin/audit`
 
 Dòng thời gian từ `admin_audit`, lọc theo người thực hiện, loại việc và khoảng thời gian; phân
-trang theo con trỏ. Chỉ `owner` xem được toàn bộ; vai trò khác chỉ thấy việc của chính mình.
-
-### 11.7. Người dùng quản trị — `/admin/users`
-
-Danh sách email, tên, vai trò, trạng thái; thêm người, đổi vai trò, vô hiệu hoá. Mọi thay đổi ghi
-vào `admin_audit`. Chỉ `owner` vào được.
+trang theo con trỏ. Giai đoạn này mọi người vào được đều xem toàn bộ; bộ lọc theo người thực hiện
+vẫn làm sẵn vì nó cũng dùng để soát lại việc của chính mình theo mốc thời gian.
 
 ## 12. API phải viết thêm
 
-| Phương thức | Đường dẫn | Quyền | Ghi chú |
-|---|---|---|---|
-| GET | `/v1/admin/me` | mọi người đã đăng nhập | email, vai trò, quyền |
-| GET | `/v1/admin/edits` | `reviewer` | **sửa**: thêm phân trang con trỏ, lọc `kind`/`tenant`/thời gian, tìm theo tên |
-| GET | `/v1/admin/edits/count` | `reviewer` | huy hiệu số việc tồn |
-| POST | `/v1/admin/edits/bulk` | `reviewer` | duyệt/từ chối một lô |
-| GET | `/v1/admin/tenants` | `support` | phân trang, tìm theo tên |
-| GET | `/v1/admin/tenants/:id` | `support` | kèm danh sách khoá |
-| POST | `/v1/admin/tenants/:id/keys` | `support` | trả khoá rõ **đúng một lần** |
-| GET | `/v1/admin/metrics` | `owner` | gọi Cloudflare Analytics API, cache KV |
-| GET | `/v1/admin/health` | `owner` | gộp `/healthz/db` + `/route` thật + manifest |
-| GET | `/v1/admin/audit` | theo vai trò | phân trang con trỏ |
-| GET POST DELETE | `/v1/admin/users` | `owner` | |
+Tất cả đều sau `requireAccess()`; nhóm billing giữ nguyên `requireBillingAccess()` như hiện tại.
+
+| Phương thức | Đường dẫn | Ghi chú |
+|---|---|---|
+| GET | `/v1/admin/me` | `{ email, permissions }`; giai đoạn này trả quyền đầy đủ |
+| GET | `/v1/admin/edits` | **sửa**: thêm phân trang con trỏ, lọc `kind`/`tenant`/thời gian, tìm theo tên |
+| GET | `/v1/admin/edits/count` | huy hiệu số việc tồn |
+| POST | `/v1/admin/edits/bulk` | duyệt/từ chối một lô |
+| GET | `/v1/admin/tenants` | phân trang, tìm theo tên |
+| GET | `/v1/admin/tenants/:id` | kèm danh sách khoá |
+| POST | `/v1/admin/tenants/:id/keys` | trả khoá rõ **đúng một lần** |
+| GET | `/v1/admin/metrics` | gọi Cloudflare Analytics API, cache KV |
+| GET | `/v1/admin/health` | gộp `/healthz/db` + `/route` thật + manifest |
+| GET | `/v1/admin/audit` | phân trang con trỏ |
 
 Toàn bộ dùng lại middleware chống CSRF sẵn có và `cache-control: private, no-store`.
 
 ## 13. Migration và quyền database
 
-Migration `0017_admin_rbac.sql` cộng file `.down.sql` tương ứng, gồm: `admin_user`, `admin_audit`,
-các chỉ mục, và **`GRANT` đầy đủ cho role `api`**:
+Migration `0017_admin_audit.sql` cộng file `.down.sql` tương ứng, gồm bảng `admin_audit`, hai chỉ
+mục, và **`GRANT` đầy đủ cho role `api`**:
 
 ```sql
-GRANT SELECT, INSERT, UPDATE, DELETE ON admin_user TO api;   -- có màn hình quản lý ở 11.7
 GRANT SELECT, INSERT ON admin_audit TO api;
 GRANT USAGE, SELECT ON SEQUENCE admin_audit_id_seq TO api;
 GRANT INSERT ON api_key TO api;                              -- cho việc cấp khoá từ web
@@ -360,13 +353,15 @@ bản mới → mới deploy Worker. Deploy trước migration đã từng làm 
 - Năm trạng thái render đúng.
 - **`delayed-action`: huỷ trong 5 giây thì không có lời gọi API nào.** Đây là bài test quan trọng
   nhất của mảng này — nếu sai, người duyệt mất khả năng rút lại và dữ liệu POI đã bị ghi.
-- `permissions.ts`: vai trò không đủ thì mục menu không render.
+- `permissions.ts`: `can()` trả `false` thì mục menu không render — kiểm bằng cách giả lập `/me`
+  trả quyền thiếu, để cơ chế này có bài test sẵn từ trước khi thật sự có phân quyền.
 
 **Tầng e2e** — Playwright trên harness `api-db-test.mjs --serve` đã có, mở rộng từ 3 test:
 
 - Luồng duyệt có huỷ: bấm Duyệt rồi bấm Huỷ trong 5 giây → bản ghi vẫn `pending`, POI chưa active.
 - Điều hướng bằng drawer ở khung hình hẹp.
-- Người thiếu quyền: không thấy mục menu **và** gọi thẳng API bị 403.
+- Email ngoài `BILLING_ADMIN_EMAILS` gọi thẳng `/v1/admin/billing/...` nhận 403 — lớp bảo vệ sẵn
+  có phải còn nguyên sau khi thay trang.
 - Giữ 3 test hiện có chạy được.
 
 **Tầng quyền DB** — kiểm mọi route mới bằng role `api` thật, không phải role chủ sở hữu.
@@ -391,28 +386,28 @@ Thêm claim mới vào JWT thì phải sửa kèm `scripts/lib/access-fake.mjs` 
 ## 16. Files và quy ước
 
 - Thêm vào `apps/admin`: Tailwind v4, shadcn/ui, `@tanstack/react-query`, `react-router`.
-- `apps/api/src/admin-auth.ts` — `requireAdmin(permission)`, thay `requireBillingAccess()`.
 - `apps/api/src/audit.ts` — middleware ghi `admin_audit`.
-- `apps/api/src/routes/admin.ts` — mở rộng; thêm `routes/admin-tenants.ts`, `routes/admin-metrics.ts`,
-  `routes/admin-audit.ts`, `routes/admin-users.ts`.
-- `db/migrations/0017_admin_rbac.sql` và `.down.sql`.
+- `apps/api/src/routes/admin.ts` — mở rộng; thêm `routes/admin-tenants.ts`,
+  `routes/admin-metrics.ts`, `routes/admin-audit.ts`.
+- `apps/api/src/access.ts` — giữ nguyên; **không** thay `requireBillingAccess()`.
+- `db/migrations/0017_admin_audit.sql` và `.down.sql`.
 - `vitest.config.ts` — thêm include cho `apps/admin`.
 - Toàn bộ chuỗi hiển thị bằng tiếng Việt có dấu đầy đủ.
 
 ## 17. Thứ tự triển khai theo pha
 
-PHONG chọn một spec cho cả sáu mảng. Rủi ro "bảy màn hình dở dang" được kiểm soát bằng cách mỗi
+PHONG chọn một spec cho cả năm mảng. Rủi ro "sáu màn hình dở dang" được kiểm soát bằng cách mỗi
 pha kết thúc là một thứ dùng được, và pha 1 đã đủ thay thế trang hiện tại.
 
 | Pha | Nội dung | Kết quả dùng được |
 |---|---|---|
-| 0 | Tailwind + shadcn, AppShell, drawer, sáng/tối, router, fetcher, `DataView`, năm trạng thái; migration `0017`; `requireAdmin`; `GET /me`; **middleware ghi audit bật ngay** | Khung chạy được, chưa thay trang cũ |
+| 0 | Tailwind + shadcn, AppShell, drawer, sáng/tối, router, fetcher, `DataView`, năm trạng thái; migration `0017`; `GET /me` + `can()`; **middleware ghi audit bật ngay** | Khung chạy được, chưa thay trang cũ |
 | 1 | Duyệt đóng góp đầy đủ + API phân trang/lọc/bulk | **Thay hẳn trang admin hiện tại** |
 | 2 | Tenant & khoá API + ba endpoint mới | Bỏ được `pnpm key:issue` cho việc thường ngày |
 | 3 | Gói cước & hạn mức | Bỏ được curl cho billing |
 | 4 | Nhật ký kiểm toán (chỉ phần đọc, phần ghi đã chạy từ pha 0) | |
 | 5 | Sức khoẻ hệ thống | Cần secret Cloudflare |
-| 6 | Tổng quan + Người dùng quản trị | Tổng quan làm cuối vì nó tổng hợp sáu mảng kia |
+| 6 | Tổng quan | Làm cuối vì nó tổng hợp số liệu từ năm mảng kia; làm sớm sẽ phải sửa lại năm lần |
 
 Ghi nhật ký kiểm toán phải bật ở pha 0 chứ không phải pha 4: để tới pha 4 thì mọi việc làm ở pha
 1–3 không có vết nào.
@@ -422,8 +417,8 @@ Ghi nhật ký kiểm toán phải bật ở pha 0 chứ không phải pha 4: đ
 1. `pnpm lint`, `pnpm typecheck`, `pnpm test` xanh; `pnpm test:admin-e2e` xanh gồm cả 3 test cũ.
 2. Trang dùng được thật trên điện thoại: mở bằng máy thật, duyệt được một đóng góp, huỷ được
    trong 5 giây, ngăn kéo đóng mở bằng cả chạm lẫn bàn phím.
-3. Người có vai trò `reviewer` không thấy mục billing, và gọi thẳng `/v1/admin/billing/...` nhận
-   403 — kiểm bằng cả giao diện lẫn `curl`.
+3. Email ngoài `BILLING_ADMIN_EMAILS` gọi `/v1/admin/billing/...` vẫn nhận 403 sau khi thay trang —
+   lớp bảo vệ sẵn có không được yếu đi vì đợt làm này.
 4. Mọi thao tác ghi để lại đúng một dòng trong `admin_audit` với đúng `actor`.
 5. `/healthz/db` báo `schema_migration` đã sang `0017` **trước** khi deploy Worker.
 6. Bản tối và bản sáng đều đạt tương phản AA ở các màn hình chính.
@@ -433,3 +428,6 @@ Ghi nhật ký kiểm toán phải bật ở pha 0 chứ không phải pha 4: đ
 
 Chạy pipeline dữ liệu từ web; sửa POI trực tiếp; địa giới hành chính và alias; sao lưu/phục hồi
 Durable Object billing; đăng nhập ngoài Cloudflare Access; thông báo đẩy; đa ngôn ngữ.
+
+**Phân quyền theo vai trò và màn hình quản lý người dùng** — hoãn tới khi có người thứ hai dùng
+trang này. Ba điểm móc ở mục 9 giữ cho việc thêm sau không phải sửa lại giao diện.
