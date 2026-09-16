@@ -1,6 +1,7 @@
 // Chạy: pnpm test:db (cần Postgres dev: pnpm db:up). Chỉ chạy trên DB local.
 import 'dotenv/config';
 import { execFileSync } from 'node:child_process';
+import { readFileSync } from 'node:fs';
 import postgres from 'postgres';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { databaseUrlFromEnv } from '../scripts/lib/migrations.mjs';
@@ -171,6 +172,28 @@ describe('lược đồ spec 5.2', () => {
       'scopes',
       'tenant_id',
     ]);
+  });
+
+  it('0019: nắn detail double-encode về object, không đụng dòng vốn đã đúng', async () => {
+    // Trước 16/09/2026 writeAudit truyền chuỗi đã JSON.stringify kèm ::jsonb, nên porsager
+    // stringify lần nữa và cột giữ một jsonb *string*: `detail->>'label'` rỗng, còn người đọc
+    // nhật ký thấy một khối escape. Migration này nắn dữ liệu cũ; câu lệnh phải bỏ qua các dòng
+    // ghi sau bản sửa, nếu không nó bọc chúng thêm một lớp nữa.
+    await sql`INSERT INTO admin_audit (actor, action, target, detail) VALUES
+      ('a@b.c', 'test.0019.hong', 't-hong', to_jsonb('{"label":"x"}'::text)),
+      ('a@b.c', 'test.0019.dung', 't-dung', '{"label":"y"}'::jsonb),
+      ('a@b.c', 'test.0019.rong', 't-rong', NULL)`;
+
+    await sql.unsafe(readFileSync('db/migrations/0019_admin_audit_detail_object.sql', 'utf8'));
+
+    const rows = await sql`SELECT action, detail FROM admin_audit
+      WHERE target IN ('t-hong', 't-dung', 't-rong') ORDER BY action`;
+    const theoAction = Object.fromEntries(rows.map((row) => [row.action, row.detail]));
+    expect(theoAction['test.0019.hong']).toEqual({ label: 'x' });
+    expect(theoAction['test.0019.dung']).toEqual({ label: 'y' });
+    expect(theoAction['test.0019.rong']).toBeNull();
+
+    await sql`DELETE FROM admin_audit WHERE target IN ('t-hong', 't-dung', 't-rong')`;
   });
 
   it('0007: pg_trgm.word_similarity_threshold = 0.5 ở cấp database, phiên mới đọc được', async () => {
