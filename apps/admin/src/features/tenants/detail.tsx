@@ -1,10 +1,11 @@
 import * as Dialog from '@radix-ui/react-dialog';
 import { useState } from 'react';
+import { useDelayedAction } from '@/components/delayed-action';
 import { EmptyState, ErrorState, LoadingSkeleton } from '@/components/states';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import type { ApiKey } from './api';
-import { useTenantDetail } from './hooks';
+import { useSetKeyRevoked, useSetQuotaMode, useTenantDetail } from './hooks';
 import { KeyRow } from './key-row';
 import { NewKeyDialog } from './new-key';
 import { MODE_VI, tenantDate } from './tenant-card';
@@ -21,10 +22,50 @@ interface TenantDetailPanelProps {
 export function TenantDetailPanel({ id, onClose }: TenantDetailPanelProps) {
   const detail = useTenantDetail(id);
   const [capKhoa, setCapKhoa] = useState(false);
+  const revoke = useSetKeyRevoked();
+  const doiGoi = useSetQuotaMode();
+  const { schedule } = useDelayedAction();
   if (id === null) return null;
 
-  const onRevoke = (_apiKey: ApiKey, _revoked: boolean) => {
-    // Task 13 nối thao tác thật vào đây.
+  /**
+   * `operationId` sinh MỘT lần cho mỗi lần bấm và đi cùng lệnh: route billing dùng nó để lệnh
+   * lặp không thu hồi hai lần. Sinh lại lúc gửi sẽ làm mất chính tính chất đó.
+   *
+   * Đóng ngăn ngay sau khi xếp lịch — bắt buộc, không phải cho gọn mắt: ngăn này là Radix Dialog
+   * modal, nên toast đếm ngược nằm ngoài nó bị aria-hidden và pointer-events: none. Để ngăn mở
+   * thì nút Huỷ có hiện cũng KHÔNG bấm được, tức mất luôn năm giây đổi ý.
+   */
+  const onRevoke = (apiKey: ApiKey, revoked: boolean) => {
+    const operationId = crypto.randomUUID();
+    schedule({
+      label: revoked ? `Đã thu hồi ${apiKey.key_prefix}` : `Đã khôi phục ${apiKey.key_prefix}`,
+      run: async () => {
+        await revoke.mutateAsync({
+          tenantId: id,
+          keyHash: apiKey.key_hash,
+          revoked,
+          reason: revoked ? 'Thu hồi từ trang Admin' : 'Khôi phục từ trang Admin',
+          operationId,
+        });
+      },
+    });
+    onClose();
+  };
+
+  const onDoiGoi = () => {
+    const tenant = detail.data?.tenant;
+    if (!tenant) return;
+    const mode = tenant.quota_mode === 'commercial' ? 'legacy' : 'commercial';
+    schedule({
+      label:
+        mode === 'commercial'
+          ? `Chuyển ${tenant.name} sang thương mại`
+          : `Chuyển ${tenant.name} về chưa tính tiền`,
+      run: async () => {
+        await doiGoi.mutateAsync({ tenantId: id, mode });
+      },
+    });
+    onClose();
   };
 
   return (
@@ -65,6 +106,22 @@ export function TenantDetailPanel({ id, onClose }: TenantDetailPanelProps) {
                 <p className="select-all break-all font-mono text-xs text-[var(--text-muted)]">
                   {detail.data.tenant.id}
                 </p>
+
+                <div className="rounded-[var(--radius-card)] border border-[var(--border)] p-3">
+                  <p className="text-sm">
+                    Chế độ hạn mức: <strong>{MODE_VI[detail.data.tenant.quota_mode]}</strong>
+                  </p>
+                  <p className="mt-1 text-xs text-[var(--text-muted)]">
+                    {detail.data.tenant.quota_mode === 'commercial'
+                      ? 'Mọi request của tenant này đang đi qua sổ quota và bị chặn khi hết hạn mức.'
+                      : 'Tenant này chưa bị tính tiền; chuyển sang thương mại sẽ bật chặn theo hạn mức ngay.'}
+                  </p>
+                  <Button variant="secondary" className="mt-2" onClick={onDoiGoi}>
+                    {detail.data.tenant.quota_mode === 'commercial'
+                      ? 'Chuyển về chưa tính tiền'
+                      : 'Chuyển sang thương mại'}
+                  </Button>
+                </div>
 
                 <h3 className="text-sm font-semibold">Khoá API</h3>
                 {detail.data.keys.length === 0 ? (

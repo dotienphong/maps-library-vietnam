@@ -3,6 +3,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import { DelayedActionProvider } from '@/components/delayed-action';
 import { TenantsPage } from './page';
 
 const tenant = (extra: Record<string, unknown> = {}) => ({
@@ -18,11 +19,14 @@ const tenant = (extra: Record<string, unknown> = {}) => ({
 const stubFetch = (body: unknown, status = 200) =>
   vi.stubGlobal(
     'fetch',
-    vi.fn().mockResolvedValue(
-      new Response(JSON.stringify(body), {
-        status,
-        headers: { 'content-type': 'application/json' },
-      }),
+    // Response chỉ đọc được MỘT lần: chia sẻ một instance cho mọi lần fetch làm lần sau ném
+    // "Body is unusable". Dựng mới mỗi lần gọi.
+    vi.fn().mockImplementation(
+      async () =>
+        new Response(JSON.stringify(body), {
+          status,
+          headers: { 'content-type': 'application/json' },
+        }),
     ),
   );
 
@@ -31,7 +35,11 @@ const renderPage = () =>
     <QueryClientProvider
       client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}
     >
-      <TenantsPage />
+      {/* AppShell bọc provider này quanh cả trang; ngăn chi tiết gọi useDelayedAction ngay cả khi
+          đang đóng, nên test cũng phải dựng đúng khung đó. */}
+      <DelayedActionProvider>
+        <TenantsPage />
+      </DelayedActionProvider>
     </QueryClientProvider>,
   );
 
@@ -66,11 +74,12 @@ describe('TenantsPage', () => {
   });
 
   it('gõ vào ô tìm thì gửi tham số q', async () => {
-    const fetchMock = vi.fn().mockResolvedValue(
-      new Response(JSON.stringify({ items: [], nextCursor: null }), {
-        status: 200,
-        headers: { 'content-type': 'application/json' },
-      }),
+    const fetchMock = vi.fn().mockImplementation(
+      async () =>
+        new Response(JSON.stringify({ items: [], nextCursor: null }), {
+          status: 200,
+          headers: { 'content-type': 'application/json' },
+        }),
     );
     vi.stubGlobal('fetch', fetchMock);
     renderPage();

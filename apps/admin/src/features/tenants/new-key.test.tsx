@@ -8,16 +8,17 @@ import { NewKeyDialog } from './new-key';
 const KEY = 'mlv_live_ABCDEFGHIJKLMNOPQRSTUVWX';
 
 const stubIssue = () => {
-  const fetchMock = vi.fn().mockResolvedValue(
-    new Response(
-      JSON.stringify({
-        key: KEY,
-        key_prefix: KEY.slice(0, 17),
-        key_hash: 'a'.repeat(64),
-        tenant_id: 't1',
-      }),
-      { status: 201, headers: { 'content-type': 'application/json' } },
-    ),
+  const fetchMock = vi.fn().mockImplementation(
+    async () =>
+      new Response(
+        JSON.stringify({
+          key: KEY,
+          key_prefix: KEY.slice(0, 17),
+          key_hash: 'a'.repeat(64),
+          tenant_id: 't1',
+        }),
+        { status: 201, headers: { 'content-type': 'application/json' } },
+      ),
   );
   vi.stubGlobal('fetch', fetchMock);
   return fetchMock;
