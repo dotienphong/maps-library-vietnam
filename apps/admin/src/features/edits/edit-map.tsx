@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react';
 import type { EditDetail, NearbyPoi } from './api';
+import { createMapOnto, type MaplibreLike } from './map-runtime';
 
 export interface Point {
   lat: number;
@@ -50,76 +51,16 @@ export function mapPlan(detail: EditDetail): MapPlan {
 type LoadMap = (container: HTMLElement, plan: MapPlan) => Promise<void>;
 
 /**
- * Nạp trễ maplibre-gl: nó nặng, mà phần lớn đóng góp không cần bản đồ. Danh sách không bao giờ
- * kéo theo nó, và nhánh `khong-ve` cũng không.
+ * Nạp trễ maplibre-gl: nó nặng (~1 MB), mà phần lớn đóng góp không cần bản đồ. Danh sách không
+ * bao giờ kéo theo nó, và nhánh `khong-ve` cũng không.
  */
 const defaultLoadMap: LoadMap = async (container, plan) => {
   if (plan.mode === 'khong-ve') return;
-  const maplibre = await import('maplibre-gl');
-  await import('maplibre-gl/dist/maplibre-gl.css');
-
-  const dark = document.documentElement.classList.contains('dark');
-  const center: [number, number] =
-    plan.mode === 'so-sanh' ? [plan.after.lng, plan.after.lat] : [plan.point.lng, plan.point.lat];
-
-  // Style lấy từ chính API này, đường dẫn tương đối vì admin cùng origin với Worker.
-  // /v1/styles/* không đòi khoá nên không phải nhúng khoá vào bundle tĩnh.
-  const map = new maplibre.Map({
-    container,
-    style: dark ? '/v1/styles/dark.json' : '/v1/styles/light.json',
-    attributionControl: { compact: true },
-    center,
-    zoom: 15,
-  });
-
-  map.on('load', () => {
-    if (plan.mode === 'mot-chot') {
-      for (const poi of plan.nearby) {
-        new maplibre.Marker({ color: '#98a2b3', scale: 0.7 })
-          .setLngLat([poi.lng, poi.lat])
-          .setPopup(new maplibre.Popup().setText(`${poi.name ?? poi.id} · ${poi.distance_m} m`))
-          .addTo(map);
-      }
-      new maplibre.Marker({ color: '#1b3a6b' })
-        .setLngLat([plan.point.lng, plan.point.lat])
-        .addTo(map);
-      return;
-    }
-
-    new maplibre.Marker({ color: '#98a2b3' })
-      .setLngLat([plan.before.lng, plan.before.lat])
-      .addTo(map);
-    new maplibre.Marker({ color: '#1b3a6b' })
-      .setLngLat([plan.after.lng, plan.after.lat])
-      .addTo(map);
-    map.addSource('duong-noi', {
-      type: 'geojson',
-      data: {
-        type: 'Feature',
-        properties: {},
-        geometry: {
-          type: 'LineString',
-          coordinates: [
-            [plan.before.lng, plan.before.lat],
-            [plan.after.lng, plan.after.lat],
-          ],
-        },
-      },
-    });
-    map.addLayer({
-      id: 'duong-noi',
-      type: 'line',
-      source: 'duong-noi',
-      paint: { 'line-color': '#98a2b3', 'line-width': 2, 'line-dasharray': [2, 2] },
-    });
-    map.fitBounds(
-      [
-        [Math.min(plan.before.lng, plan.after.lng), Math.min(plan.before.lat, plan.after.lat)],
-        [Math.max(plan.before.lng, plan.after.lng), Math.max(plan.before.lat, plan.after.lat)],
-      ],
-      { padding: 56, maxZoom: 17 },
-    );
-  });
+  const [maplibre] = await Promise.all([
+    import('maplibre-gl'),
+    import('maplibre-gl/dist/maplibre-gl.css'),
+  ]);
+  createMapOnto(maplibre as unknown as MaplibreLike, container, plan);
 };
 
 interface EditMapProps {
