@@ -1,4 +1,5 @@
 import { type Context, Hono } from 'hono';
+import { audit } from '../audit';
 import { quotaObject } from '../billing/object';
 import type { EntitlementCommand, JournalEntry, SnapshotPage } from '../billing/types';
 import { endSql, getSql } from '../db';
@@ -205,6 +206,7 @@ export function billingAdmin(dependencies: BillingAdminDependencies = {}) {
       >`SELECT key_hash FROM api_key WHERE tenant_id=${tenantId}::uuid`;
       await sql`UPDATE tenant SET quota_mode=${String(body.mode)} WHERE id=${tenantId}::uuid`;
       await Promise.all(keys.map(({ key_hash }) => c.env.META.delete(`apikey:${key_hash}`)));
+      audit(c, 'tenant.quota_mode', tenantId, { mode: String(body.mode) });
       return c.json({ tenantId, mode: body.mode }, 200, { 'cache-control': 'private, no-store' });
     } catch (error) {
       console.error('billing mode', error);
@@ -258,6 +260,14 @@ export function billingAdmin(dependencies: BillingAdminDependencies = {}) {
         receipt = await applyToObject();
       }
       await c.env.META.delete(`apikey:${keyHash}`);
+      // Nhật ký kiểm toán là bằng chứng "ai tắt khoá của khách lúc mấy giờ" — receipt của Durable
+      // Object nằm trong sổ quota, không phải nơi người quản trị tra cứu. Không ghi khoá rõ: chỉ
+      // key_hash, đúng như spec mục 10.
+      audit(c, revoked ? 'tenant.key_revoke' : 'tenant.key_restore', keyHash, {
+        tenant_id: tenantId,
+        reason,
+        operation_id: operationId,
+      });
       return c.json(receipt, 200, { 'cache-control': 'private, no-store' });
     } catch (error) {
       await c.env.META.delete(`apikey:${keyHash}`);

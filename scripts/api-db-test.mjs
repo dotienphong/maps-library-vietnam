@@ -123,6 +123,11 @@ const wrangler = crossSpawn(
     `IP_HASH_PEPPER:${IP_HASH_PEPPER}`,
     '--var',
     'AUTOCOMPLETE_TELEX:1',
+    // Nhóm route billing (thu hồi khoá, đổi gói) đứng sau requireBillingAccess(): danh sách rỗng
+    // là từ chối tất cả. Trang Admin pha 2 gọi chính những route đó, nên itest và E2E phải có hai
+    // email mà access-fake ký: phong@access-fake.local (itest) và phong@e2e.local (Playwright).
+    '--var',
+    'BILLING_ADMIN_EMAILS:phong@access-fake.local,phong@e2e.local',
     '--var',
     `TILES_BASE:http://127.0.0.1:${PORT}/r2`,
   ],
