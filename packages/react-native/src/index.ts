@@ -82,6 +82,7 @@ export type {
   Speaker,
 } from './navigation/session';
 export { createNavigationSession, MISSING_SOURCE_MESSAGE } from './navigation/session';
+export { useFlushReceiptsOnBackground } from './receipt-flush';
 export { useHeading } from './use-heading';
 export type { UseNavigationResult } from './use-navigation';
 export { useNavigation } from './use-navigation';

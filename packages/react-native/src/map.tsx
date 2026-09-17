@@ -39,6 +39,7 @@ import {
   type NavigationSession,
   type NavigationSessionOptions,
 } from './navigation/session';
+import { useFlushReceiptsOnBackground } from './receipt-flush';
 import { toPoiFeature } from './to-poi-feature';
 import { isTheme, styleUrlFor, useResolvedStyle } from './use-style';
 import { createUserLocationBinding, type UserLocationOptions } from './user-location/binding';
@@ -183,6 +184,10 @@ export function MapsLibVNMap({
       }),
     [apiKey, apiBase, bundleId, poiSourcesKey, receiptStore],
   );
+  // Receipt cuối cùng của mỗi phiên thường chưa kịp ACK thì người dùng đã thoát app; ba lần như
+  // vậy trong 24 giờ là máy chủ khoá tenant bằng `ack_required`.
+  useFlushReceiptsOnBackground(places);
+
   const native = useRef<MapRef | null>(null);
   const camera = useRef<CameraRef | null>(null);
   // Bearing camera cho nón hướng native (puck.tsx): nuôi từ onRegionIsChanging mỗi khung hình khi camera

@@ -147,6 +147,10 @@ export function createClient(options: ClientOptions) {
             method: 'POST',
             headers: { ...baseHeaders(), 'content-type': 'application/json' },
             body: JSON.stringify({ token: receipt.token }),
+            // Không có keepalive thì trình duyệt huỷ luôn request này khi tab đang đóng — mà đóng
+            // tab ngay sau khi xem kết quả là hành vi thường nhất. Receipt bỏ lại thành missed_ack
+            // sau 120 giây, và ba cái trong 24 giờ khoá tenant bằng `ack_required`.
+            keepalive: true,
           },
         );
       } catch {
@@ -173,6 +177,52 @@ export function createClient(options: ClientOptions) {
     chain = chain.then(flushOnce, flushOnce);
     return chain;
   }
+
+  /** Đưa receipt của một phản hồi vào hàng đợi rồi ACK ở nền. Không ném: lỗi ở đây không được
+   *  làm hỏng dữ liệu mà khách đang chờ. */
+  async function ghiNhanReceipt(headers: Headers): Promise<void> {
+    const receipt = receiptFrom(headers);
+    if (!receipt) return;
+    await ensureLoaded();
+    queue.push(receipt);
+    if (queue.length > MAX_PENDING_RECEIPTS) queue.splice(0, queue.length - MAX_PENDING_RECEIPTS);
+    try {
+      await receiptStore.save(receipt);
+    } catch {
+      // Ghi kho hỏng thì vẫn ACK được từ hàng đợi trong RAM của phiên này.
+    }
+    void flushPending();
+  }
+
+  /**
+   * Trên web, ACK cuối cùng của mỗi phiên thường chết theo trang. `pagehide` là sự kiện đáng tin
+   * cậy nhất cho việc rời trang (đóng tab, chuyển trang, vào bfcache); `visibilitychange` bắt thêm
+   * trường hợp người dùng chuyển sang app khác trên điện thoại rồi không quay lại.
+   *
+   * React Native không có hai sự kiện này — ở đó `packages/react-native` gọi `flushReceipts()` khi
+   * `AppState` chuyển sang nền.
+   */
+  function dangKyFlushKhiRoiTrang(): void {
+    const g = globalThis as {
+      addEventListener?: (ten: string, fn: () => void) => void;
+      document?: {
+        visibilityState?: string;
+        addEventListener?: (t: string, f: () => void) => void;
+      };
+    };
+    if (typeof g.addEventListener === 'function') {
+      g.addEventListener('pagehide', () => {
+        void flushPending();
+      });
+    }
+    if (typeof g.document?.addEventListener === 'function') {
+      g.document.addEventListener('visibilitychange', () => {
+        if (g.document?.visibilityState === 'hidden') void flushPending();
+      });
+    }
+  }
+
+  dangKyFlushKhiRoiTrang();
 
   async function requireNoPendingAck(): Promise<void> {
     if (loaded && queue.length === 0) return;
@@ -202,20 +252,12 @@ export function createClient(options: ClientOptions) {
         body.error?.details,
       );
     }
-    const body = (await response.json()) as T;
-    const receipt = receiptFrom(response.headers);
-    if (receipt) {
-      await ensureLoaded();
-      queue.push(receipt);
-      if (queue.length > MAX_PENDING_RECEIPTS) queue.splice(0, queue.length - MAX_PENDING_RECEIPTS);
-      try {
-        await receiptStore.save(receipt);
-      } catch {
-        // Ghi kho hỏng thì vẫn ACK được từ hàng đợi trong RAM của phiên này.
-      }
-      void flushPending();
-    }
-    return body;
+    // Ghi nhận receipt NGAY khi header về, TRƯỚC khi đọc body: `usePlaces` huỷ request cũ mỗi lần
+    // người dùng gõ thêm ký tự, và một request bị huỷ giữa lúc đọc body vẫn là request mà máy chủ
+    // đã phục vụ xong và đã phát receipt. Đăng ký sau khi parse thì receipt đó không bao giờ được
+    // ACK — máy chủ chỉ thấy một client im lặng và tính vào hạn mức ba-lần-bỏ-lỡ.
+    await ghiNhanReceipt(response.headers);
+    return (await response.json()) as T;
   }
 
   async function get<T>(
@@ -248,6 +290,11 @@ export function createClient(options: ClientOptions) {
 
   return {
     baseUrl,
+    /**
+     * ACK ngay những receipt còn chờ. Web tự gọi khi trang bị ẩn hoặc đóng; React Native gọi khi
+     * app vào nền. Trả về true nếu hàng đợi đã sạch.
+     */
+    flushReceipts: () => flushPending(),
     attribution: () => get<AttributionResponse>('/v1/attribution'),
     styleUrl: (theme: Theme) =>
       `${baseUrl}/v1/styles/${theme}.json?key=${encodeURIComponent(options.apiKey)}&sources=${encodeURIComponent(sources)}`,

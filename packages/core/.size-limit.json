@@ -2,7 +2,7 @@
   {
     "name": "barrel dist/index.js (size-limit đo CẢ file, không tree-shake)",
     "path": "dist/index.js",
-    "limit": "20 kB",
+    "limit": "16 kB",
     "gzip": true
   }
 ]

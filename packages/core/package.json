@@ -21,7 +21,8 @@
   ],
   "sideEffects": false,
   "scripts": {
-    "build": "tsup src/index.ts --format esm --dts --clean --target es2022 && size-limit",
+    "//build": "--minify từ 17/09/2026: size-limit đo FILE THÔ nên comment giải thích trong mã cũng tính vào ngân sách, và barrel đã chạm trần 20 kB. Có --sourcemap kèm theo để vẫn dò được lỗi trong node_modules.",
+    "build": "tsup src/index.ts --format esm --dts --clean --target es2022 --minify --sourcemap && size-limit",
     "typecheck": "tsc --noEmit"
   },
   "devDependencies": {
