@@ -76,7 +76,10 @@ Khi chọn, component tự điền `item.name` vào ô nhập và đóng danh s�
 ## 3. Hành vi gõ và bàn phím
 
 - **Ít nhất 2 ký tự** sau khi cắt khoảng trắng thì mới gọi API; ngắn hơn thì danh sách được xoá.
-- **Debounce 200 ms** kể từ lần gõ cuối.
+- **Debounce 300 ms** kể từ lần gõ cuối.
+- **Đệm 20 truy vấn gần nhất trong phiên.** Gõ thêm một dấu cách (chuỗi gửi đi không đổi) hoặc gõ
+  lùi về chuỗi vừa hỏi xong thì gợi ý hiện ra ngay và **không tốn lượt Places**. Đệm nằm trong bộ
+  nhớ của trang, mất khi tải lại.
 - Mỗi truy vấn mang số thứ tự riêng; kết quả về muộn của truy vấn cũ bị bỏ qua, không ghi đè kết quả
   mới.
 - Component gọi `autocomplete(q, { near })` với thiết lập mặc định của API: tối đa 10 gợi ý và

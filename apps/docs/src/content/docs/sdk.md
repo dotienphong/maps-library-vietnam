@@ -278,7 +278,7 @@ Tham số thứ hai là `deps`. Bản ESM cần `{ maplibre: maplibregl }`; nế
 |---|---|---|
 | `select` | `AutocompleteItem` | `bubbles: true`, `composed: true` nên bắt được ở ngoài shadow DOM. `detail` là **nguyên** item, kể cả `bbox` của `type: 'area'` |
 
-Hành vi: gõ từ **2 ký tự** trở lên mới gọi API, debounce **200 ms mặc định** (chỉnh bằng thuộc tính `debounce`), phản hồi của truy vấn đã bị thay thế bị bỏ qua. Ô nhập là combobox ARIA (`role="combobox"`, `aria-expanded`, `aria-controls`, `aria-activedescendant`) với danh sách `role="listbox"` và các mục `role="option"`; `↑`/`↓` di chuyển vòng, `Enter` chọn mục đang sáng, `Escape` đóng danh sách, rời khỏi ô cũng đóng sau 150 ms. Có một vùng `role="status"` `aria-live="polite"` đọc trạng thái ("Đang tìm…", số kết quả, lỗi). Toàn bộ nằm trong shadow DOM nên CSS của trang không tác động vào bên trong.
+Hành vi: gõ từ **2 ký tự** trở lên mới gọi API, debounce **300 ms mặc định** (chỉnh bằng thuộc tính `debounce`), phản hồi của truy vấn đã bị thay thế bị bỏ qua, và **20 truy vấn gần nhất được đệm trong phiên** nên gõ lùi hoặc thêm dấu cách không tốn lượt Places. Ô nhập là combobox ARIA (`role="combobox"`, `aria-expanded`, `aria-controls`, `aria-activedescendant`) với danh sách `role="listbox"` và các mục `role="option"`; `↑`/`↓` di chuyển vòng, `Enter` chọn mục đang sáng, `Escape` đóng danh sách, rời khỏi ô cũng đóng sau 150 ms. Có một vùng `role="status"` `aria-live="polite"` đọc trạng thái ("Đang tìm…", số kết quả, lỗi). Toàn bộ nằm trong shadow DOM nên CSS của trang không tác động vào bên trong.
 
 Mỗi mục có một ký hiệu phân biệt loại ở đầu dòng (`area` khác `poi`) và thuộc tính `data-type` bằng
 `item.type`, dùng được để tự đặt CSS. Với mục `type: 'area'` hãy khớp khung nhìn bằng `bbox`:
@@ -332,7 +332,7 @@ usePlaces(query, { near, limit, debounceMs, client }) // → { items, loading, e
 |---|---|---|---|
 | `near` | `[number, number]` | — | `[lat, lng]` |
 | `limit` | `number` | — | bỏ trống thì dùng mặc định của endpoint (10) |
-| `debounceMs` | `number` | `200` | |
+| `debounceMs` | `number` | `300` | |
 | `client` | `MapsLibVNClient` | client của bản đồ trong context | **bắt buộc** khi hook nằm ngoài `<MapsLibVNMap>` |
 
 Hook chỉ gọi API khi `query` có từ **2 ký tự** trở lên sau khi bỏ khoảng trắng; ngắn hơn thì `items` về mảng rỗng và không có request nào. Trong lúc tải, `items` giữ kết quả cũ (kiểu SWR) và `loading` là `true`. Không có `client` — cả prop lẫn context — thì hook im lặng trả mảng rỗng, không báo lỗi; đó là bẫy hay gặp khi đặt ô tìm kiếm **cạnh** bản đồ chứ không phải bên trong nó.

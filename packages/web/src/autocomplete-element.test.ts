@@ -33,7 +33,7 @@ const poi: AutocompleteItem = {
 
 defineAutocomplete();
 
-/** Gắn element, gõ `query` rồi chờ hết debounce 200 ms để danh sách render. */
+/** Gắn element, gõ `query` rồi chờ hết debounce 300 ms để danh sách render. */
 async function typeQuery(
   items: AutocompleteItem[],
   query = 'quan 10',
@@ -49,7 +49,7 @@ async function typeQuery(
   if (!input) throw new Error('không dựng được input');
   input.value = query;
   input.dispatchEvent(new Event('input', { bubbles: true }));
-  await vi.advanceTimersByTimeAsync(200);
+  await vi.advanceTimersByTimeAsync(300);
   const options = Array.from(element.shadowRoot?.querySelectorAll('li') ?? []);
   return { element, input, options };
 }
@@ -110,7 +110,7 @@ describe('MapsLibVNAutocomplete — vùng hành chính', () => {
     createClientMock.mockClear();
     input.value = 'high';
     input.dispatchEvent(new Event('input', { bubbles: true }));
-    await vi.advanceTimersByTimeAsync(200);
+    await vi.advanceTimersByTimeAsync(300);
 
     expect(createClientMock).not.toHaveBeenCalled();
     expect(mapAutocomplete).toHaveBeenCalledWith(
@@ -142,7 +142,7 @@ describe('MapsLibVNAutocomplete — vùng hành chính', () => {
 
     input.value = 'old query';
     input.dispatchEvent(new Event('input', { bubbles: true }));
-    await vi.advanceTimersByTimeAsync(200);
+    await vi.advanceTimersByTimeAsync(300);
     expect(oldAutocomplete).toHaveBeenCalledOnce();
 
     element.map = {
@@ -151,7 +151,7 @@ describe('MapsLibVNAutocomplete — vùng hành chính', () => {
     };
     input.value = 'new query';
     input.dispatchEvent(new Event('input', { bubbles: true }));
-    await vi.advanceTimersByTimeAsync(200);
+    await vi.advanceTimersByTimeAsync(300);
     expect(newAutocomplete).toHaveBeenCalledWith(
       'new query',
       expect.objectContaining({ near: [11, 107], signal: expect.any(AbortSignal) }),
@@ -167,7 +167,7 @@ describe('MapsLibVNAutocomplete — vùng hành chính', () => {
     createClientMock.mockClear();
     input.value = 'standalone';
     input.dispatchEvent(new Event('input', { bubbles: true }));
-    await vi.advanceTimersByTimeAsync(200);
+    await vi.advanceTimersByTimeAsync(300);
     expect(createClientMock).toHaveBeenCalledWith({
       apiKey: 'mlv_test',
       baseUrl: 'https://api.test',
@@ -278,9 +278,9 @@ describe('MapsLibVNAutocomplete — attribute debounce', () => {
     return input;
   }
 
-  it('mặc định vẫn là 200 ms khi không đặt thuộc tính', async () => {
+  it('mặc định vẫn là 300 ms khi không đặt thuộc tính', async () => {
     mount();
-    await vi.advanceTimersByTimeAsync(199);
+    await vi.advanceTimersByTimeAsync(299);
     expect(autocomplete).not.toHaveBeenCalled();
     await vi.advanceTimersByTimeAsync(1);
     expect(autocomplete).toHaveBeenCalledTimes(1);
@@ -294,10 +294,10 @@ describe('MapsLibVNAutocomplete — attribute debounce', () => {
     expect(autocomplete).toHaveBeenCalledTimes(1);
   });
 
-  it('giá trị rác rơi về 200 ms và cảnh báo, không làm chết ô tìm kiếm', async () => {
+  it('giá trị rác rơi về 300 ms và cảnh báo, không làm chết ô tìm kiếm', async () => {
     const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
     mount({ debounce: 'nhanh lên' });
-    await vi.advanceTimersByTimeAsync(200);
+    await vi.advanceTimersByTimeAsync(300);
     expect(autocomplete).toHaveBeenCalledTimes(1);
     expect(warn).toHaveBeenCalledOnce();
     warn.mockRestore();
@@ -306,7 +306,7 @@ describe('MapsLibVNAutocomplete — attribute debounce', () => {
   it('số âm cũng rơi về mặc định', async () => {
     const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
     mount({ debounce: '-1' });
-    await vi.advanceTimersByTimeAsync(199);
+    await vi.advanceTimersByTimeAsync(299);
     expect(autocomplete).not.toHaveBeenCalled();
     await vi.advanceTimersByTimeAsync(1);
     expect(autocomplete).toHaveBeenCalledTimes(1);
@@ -357,12 +357,12 @@ describe('MapsLibVNAutocomplete — huỷ request cũ ở mạng', () => {
     });
     const input = mount();
     typeInto(input, 'ben thanh');
-    await vi.advanceTimersByTimeAsync(200);
+    await vi.advanceTimersByTimeAsync(300);
     expect(signals).toHaveLength(1);
     expect(signals[0]?.aborted).toBe(false);
 
     typeInto(input, 'ben thanh q1');
-    await vi.advanceTimersByTimeAsync(200);
+    await vi.advanceTimersByTimeAsync(300);
     expect(signals).toHaveLength(2);
     expect(signals[0]?.aborted).toBe(true);
     expect(signals[1]?.aborted).toBe(false);
@@ -376,7 +376,7 @@ describe('MapsLibVNAutocomplete — huỷ request cũ ở mạng', () => {
     });
     const input = mount();
     typeInto(input, 'ben thanh');
-    await vi.advanceTimersByTimeAsync(200);
+    await vi.advanceTimersByTimeAsync(300);
     expect(signals).toHaveLength(1);
     expect(signals[0]?.aborted).toBe(false);
 

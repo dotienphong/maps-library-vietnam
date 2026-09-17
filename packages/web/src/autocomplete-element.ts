@@ -32,7 +32,10 @@ li[data-type="area"] .icon { color: #2458a6; }
 let instanceId = 0;
 
 /** Debounce mặc định của ô tìm kiếm, tính bằng mili giây. */
-export const DEFAULT_DEBOUNCE_MS = 200;
+export const DEFAULT_DEBOUNCE_MS = 300;
+
+/** Trần bộ đệm gợi ý trong phiên. Giữ cho web đắt ngang hook React cho cùng một lần gõ. */
+const CACHE_TOI_DA = 20;
 
 /**
  * Ký hiệu phân biệt loại gợi ý. Dùng glyph hình học thay vì emoji để không phụ thuộc font emoji
@@ -80,6 +83,12 @@ export class MapsLibVNAutocomplete extends ElementBase {
   #status: HTMLDivElement | null = null;
   #items: AutocompleteItem[] = [];
   #timer: ReturnType<typeof setTimeout> | undefined;
+  /**
+   * Gợi ý đã lấy được trong phiên, theo khoá `truy vấn + near`. Cắt hai kiểu gọi lặp mà debounce
+   * không đụng tới được: gõ thêm dấu cách (chuỗi thô khác nhau nhưng `trim()` y hệt), và gõ lùi
+   * rồi quay lại chuỗi vừa hỏi xong.
+   */
+  #cache = new Map<string, AutocompleteItem[]>();
   #seq = 0;
   #abortController: AbortController | undefined;
   #activeIndex = -1;
@@ -231,14 +240,30 @@ export class MapsLibVNAutocomplete extends ElementBase {
       return;
     }
     const seq = ++this.#seq;
+    const near = this.#near();
+    // Tăng `#seq` TRƯỚC khi tra đệm: response cũ còn đang bay không được đè lên kết quả vừa lấy
+    // từ đệm.
+    const khoa = `${query}\u0000${near?.join(',') ?? ''}`;
+    const daCo = this.#cache.get(khoa);
+    if (daCo) {
+      this.#render(daCo);
+      this.#announce(daCo.length > 0 ? `Có ${daCo.length} kết quả.` : 'Không tìm thấy kết quả.');
+      return;
+    }
     const controller = new AbortController();
     this.#abortController = controller;
     try {
-      const near = this.#near();
       const { items } = await client.autocomplete(query, {
         ...(near ? { near } : {}),
         signal: controller.signal,
       });
+      // Ghi đệm kể cả khi kết quả đã lỗi thời: máy chủ đã phục vụ và đã tính lượt rồi, giữ lại thì
+      // lần gõ lùi về chuỗi đó không tốn lượt thứ hai.
+      this.#cache.set(khoa, items);
+      if (this.#cache.size > CACHE_TOI_DA) {
+        const cuNhat = this.#cache.keys().next().value;
+        if (cuNhat !== undefined) this.#cache.delete(cuNhat);
+      }
       if (seq !== this.#seq) return;
       this.#render(items);
       this.#announce(items.length > 0 ? `Có ${items.length} kết quả.` : 'Không tìm thấy kết quả.');

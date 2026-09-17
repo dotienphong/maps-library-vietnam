@@ -133,7 +133,9 @@ describe('@mapslibvn/react — số lượt Places cho một phiên gõ thật',
   it('số lượt khớp bảng đã chốt trong docs/evidence', () => {
     const total = (id: string, ms: number) =>
       rows.find((r) => r.trace === id && r.debounceMs === ms)?.total;
-    expect(total('poi-ben-thanh', 200)).toBe(15);
-    expect(total('poi-ben-thanh', 500)).toBe(7);
+    // Số chốt lại 17/09/2026 (15→13, 7→6): hook nay đệm gợi ý trong phiên nên gõ thêm dấu cách và
+    // gõ lùi về chuỗi vừa hỏi xong không tốn lượt nữa. Xem `2026-09-15-do-luot-autocomplete.md`.
+    expect(total('poi-ben-thanh', 200)).toBe(13);
+    expect(total('poi-ben-thanh', 500)).toBe(6);
   });
 });

@@ -135,7 +135,7 @@ Có khoá riêng rồi thì không cần sửa file: mở `http://localhost:5500
 | Style | Tab Network: `/v1/styles/light.json` trả **200** | 401/403 → xem hai dòng dưới bảng |
 | Worker | Tab Network có `maplibre-gl-worker.mjs`, và dòng "bản đồ đã tải" hiện trong khung log | Thiếu cả hai **trong khi** style vẫn 200 → worker chết, gần như chắc là đang mở bằng `file://` |
 | Ghi nguồn | Góc dưới phải có `© OpenStreetMap contributors` | Không có → thiếu `mapslibvn.css` hoặc SDK chưa khởi tạo |
-| Autocomplete | Gõ 2 ký tự trở lên, gợi ý hiện sau ~200 ms | Im lặng → thiếu `api-key`/`api-base` trên thẻ |
+| Autocomplete | Gõ 2 ký tự trở lên, gợi ý hiện sau ~300 ms | Im lặng → thiếu `api-key`/`api-base` trên thẻ |
 | POI | Bấm vào biểu tượng POI: console in `poiClick` | Không có → phải bấm **đúng** biểu tượng |
 | Khoá | Không có dòng đỏ 401/403 trong console | Xem hai dòng dưới bảng |
 

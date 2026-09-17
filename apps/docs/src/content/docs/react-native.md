@@ -64,7 +64,7 @@ export function Screen() {
 }
 ```
 
-`usePlaces(query, { near, limit })` trả `{ items, loading, error }` với debounce 200 ms — dùng trong
+`usePlaces(query, { near, limit })` trả `{ items, loading, error }` với debounce 300 ms — dùng trong
 cây con của `<MapsLibVNMap>` (tự lấy client) hoặc truyền `client` riêng. Ô tìm kiếm đặt **cạnh** map
 (không phải con của nó) nằm ngoài context: hãy giữ `MapHandle` mà `onLoad` trả về rồi truyền
 `client={map?.places}`, nếu không hook im lặng trả mảng rỗng.

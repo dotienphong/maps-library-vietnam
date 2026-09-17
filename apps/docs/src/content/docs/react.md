@@ -159,7 +159,7 @@ gỡ marker khi unmount. Đổi bất kỳ prop nào cũng gỡ marker cũ rồi
 const { items, loading, error } = usePlaces(query, {
   near: [10.776, 106.7], // [lat, lng]
   limit: 8,
-  debounceMs: 200,
+  debounceMs: 300,
   client,
 });
 ```
@@ -168,7 +168,7 @@ const { items, loading, error } = usePlaces(query, {
 |---|---|---|
 | `near` | `[number, number]` | không có — **vĩ độ trước** |
 | `limit` | `number` | không truyền (API mặc định 10) |
-| `debounceMs` | `number` | `200` |
+| `debounceMs` | `number` | `300` |
 | `client` | `MapsLibVNClient` | lấy từ `<MapsLibVNMap>` gần nhất qua context |
 
 Trả về `{ items: AutocompleteItem[]; loading: boolean; error: Error | null }`.
