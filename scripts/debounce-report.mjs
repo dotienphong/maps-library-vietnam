@@ -4,7 +4,11 @@ import { readFileSync } from 'node:fs';
 
 const DIR = 'docs/evidence/autocomplete-debounce';
 const LEVELS = [200, 300, 500, 800];
-/** @type {[string, string][]} */
+/**
+ * `tsconfig.scripts.json` bật `checkJs`, nên không chú kiểu thì phần tử suy ra `string | undefined`
+ * và vòng lặp bên dưới đỏ ngay.
+ * @type {[string, string][]}
+ */
 const PACKAGES = [
   ['@mapslibvn/react', `${DIR}/2026-09-15-counts-react.json`],
   ['@mapslibvn/react-native', `${DIR}/2026-09-15-counts-react-native.json`],

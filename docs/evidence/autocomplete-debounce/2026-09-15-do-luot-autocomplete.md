@@ -3,25 +3,41 @@
 Ngày: 15/09/2026. Đo theo `docs/superpowers/specs/2026-09-15-do-luot-autocomplete-design.md`
 và `docs/superpowers/plans/2026-09-15-do-luot-autocomplete.md`.
 
+> **Đo lại 17/09/2026 — bảng và kết luận bên dưới đã cập nhật theo lần đo này.**
+> Ba thay đổi trong SDK 0.12.0 khiến số cũ hết hiệu lực:
+> 1. `usePlaces` và `<mapslibvn-autocomplete>` đệm gợi ý trong phiên (20 truy vấn), nên gõ thêm dấu
+>    cách và gõ lùi về chuỗi vừa hỏi xong không tốn lượt nữa.
+> 2. Debounce mặc định 200 ms → **300 ms** (PHONG chốt 17/09/2026).
+> 3. `core` 0.11.0 không huỷ request ở lớp mạng nữa, nên "một lời gọi = một lượt tính tiền" giờ
+>    đúng tuyệt đối chứ không còn là xấp xỉ — xem mục 2.
+>
+> Số cũ để đối chiếu (ngày 15/09): 200 ms **238** lượt, 300 ms **149**, 500 ms **62**, 800 ms **22**.
+> Đi từ mặc định cũ (200 ms, 238 lượt) sang mặc định mới (300 ms, 116 lượt) là **giảm 51%**.
+
 ## 1. Câu trả lời
 
-- Ở debounce **200 ms** (mặc định hiện tại), 14 kịch bản gõ tìm kiếm tiếng Việt thật tốn tổng cộng
-  **238 lượt Places** — trung bình **17 lượt cho một lần tìm** (dao động 7–24 tuỳ độ dài chuỗi).
-- Nâng lên **500 ms** còn **62 lượt** — giảm **74%** so với 200 ms. Nâng lên **800 ms** còn
-  **22 lượt** — giảm **91%**.
-- Trong số các lượt ở 200 ms, **94%** là cho một chuỗi dở dang rồi bị bỏ đi ngay khi ký tự tiếp theo
-  tới; chỉ **15/238** lượt (6%) là request khớp đúng chuỗi mà người dùng thật sự dừng lại. Ở 800 ms
-  tỷ lệ dở dang giảm còn **32%**.
+- Ở debounce **300 ms** (mặc định hiện tại, đổi ngày 17/09), 14 kịch bản gõ tìm kiếm tiếng Việt
+  thật tốn tổng cộng **116 lượt Places** — trung bình **8,3 lượt cho một lần tìm**.
+- Ở **200 ms** (mặc định cũ) là **185 lượt**, trung bình 13,2. Nâng lên **500 ms** còn **58 lượt**
+  — giảm **69%** so với 200 ms; **800 ms** còn **21 lượt** — giảm **89%**.
+- Trong số các lượt ở 200 ms, **92%** là cho một chuỗi dở dang rồi bị bỏ đi ngay khi ký tự tiếp
+  theo tới; chỉ **14/185** lượt (8%) khớp đúng chuỗi mà người dùng thật sự dừng lại. Ở 800 ms tỷ lệ
+  dở dang còn **33%**.
+- Số lượt khớp đích luôn đúng bằng **14** ở mọi mức: mỗi kịch bản hỏi chuỗi đích đúng một lần.
+  Trước khi có đệm, con số này là 15 — một kịch bản (`fix-ben-thanh`) đi qua chuỗi đích hai lần và
+  bị tính tiền hai lần.
 
 Ba con số trên đo trên `@mapslibvn/react`; theo mục 4 dưới đây, `@mapslibvn/react-native` và
 `@mapslibvn/web` cho ra đúng cùng kết quả.
 
 ## 2. Cách đo
 
-Một lượt = một lời gọi `client.autocomplete()`. Vì `get()` trong `packages/core/src/client.ts`
-chưa nhận `signal` (xem mục 3 của spec), "huỷ request cũ" hiện chỉ là bỏ qua kết quả ở phía client —
-request vẫn tới máy chủ. Vì vậy **mỗi lời gọi trong phép đo này tương ứng đúng một lượt máy chủ sẽ
-tính tiền thật**, không chỉ là số lần state đổi.
+Một lượt = một lời gọi `client.autocomplete()`. `get()` trong `packages/core/src/client.ts` có
+nhận `signal`, nhưng từ 0.11.0 nó **cố ý không** chuyển signal xuống `fetch`: lệnh huỷ không đuổi
+kịp máy chủ — nó đã phục vụ xong và đã phát receipt — nên huỷ ở lớp mạng chỉ làm mất header receipt
+và khoá tenant bằng 429 `ack_required`. "Huỷ request cũ" vì vậy chỉ là bỏ qua kết quả ở phía
+client; request vẫn tới máy chủ và vẫn được ACK. **Mỗi lời gọi trong phép đo này tương ứng đúng một
+lượt máy chủ tính tiền thật** — từ 0.11.0 đây là đẳng thức chính xác, không còn là xấp xỉ.
 
 14 trace gõ phím ghi từ điện thoại thật (iPhone 14, Gboard tiếng Việt, PHONG gõ — xem
 `2026-09-15-traces.json`), phát lại bằng đồng hồ giả của vitest qua **mã thật** của cả ba gói
@@ -36,67 +52,67 @@ tính tiền thật**, không chỉ là số lần state đổi.
 
 | Kịch bản | 200 ms | 300 ms | 500 ms | 800 ms |
 |---|---:|---:|---:|---:|
-| `poi-ben-thanh` | 15 (14 dở dang) | 11 (10 dở dang) | 7 (6 dở dang) | 3 (2 dở dang) |
-| `poi-highlands` | 14 (13 dở dang) | 9 (8 dở dang) | 3 (2 dở dang) | 1 (0 dở dang) |
-| `poi-cho-ray` | 19 (18 dở dang) | 8 (7 dở dang) | 3 (2 dở dang) | 2 (1 dở dang) |
-| `addr-nguyen-hue` | 21 (20 dở dang) | 14 (13 dở dang) | 4 (3 dở dang) | 1 (0 dở dang) |
-| `addr-le-loi` | 14 (13 dở dang) | 10 (9 dở dang) | 4 (3 dở dang) | 1 (0 dở dang) |
-| `cat-ca-phe` | 7 (6 dở dang) | 4 (3 dở dang) | 2 (1 dở dang) | 1 (0 dở dang) |
-| `cat-cay-xang` | 21 (20 dở dang) | 9 (8 dở dang) | 3 (2 dở dang) | 1 (0 dở dang) |
-| `route-from-bach-khoa` | 21 (20 dở dang) | 14 (13 dở dang) | 4 (3 dở dang) | 1 (0 dở dang) |
-| `route-to-tan-son-nhat` | 20 (19 dở dang) | 12 (11 dở dang) | 5 (4 dở dang) | 2 (1 dở dang) |
-| `fix-ben-thanh` | 18 (16 dở dang) | 10 (8 dở dang) | 5 (3 dở dang) | 3 (1 dở dang) |
-| `fix-highlands` | 11 (10 dở dang) | 9 (8 dở dang) | 5 (4 dở dang) | 2 (1 dở dang) |
-| `fix-nguyen-hue` | 15 (14 dở dang) | 13 (12 dở dang) | 5 (4 dở dang) | 1 (0 dở dang) |
-| `fix-ca-phe` | 18 (17 dở dang) | 11 (10 dở dang) | 5 (4 dở dang) | 1 (0 dở dang) |
-| `fix-tan-son-nhat` | 24 (23 dở dang) | 15 (14 dở dang) | 7 (6 dở dang) | 2 (1 dở dang) |
-| **Tổng 14 kịch bản** | **238** | **149** | **62** | **22** |
+| `poi-ben-thanh` | 13 (12 dở dang) | 9 (8 dở dang) | 6 (5 dở dang) | 3 (2 dở dang) |
+| `poi-highlands` | 13 (12 dở dang) | 8 (7 dở dang) | 3 (2 dở dang) | 1 (0 dở dang) |
+| `poi-cho-ray` | 16 (15 dở dang) | 5 (4 dở dang) | 3 (2 dở dang) | 2 (1 dở dang) |
+| `addr-nguyen-hue` | 18 (17 dở dang) | 13 (12 dở dang) | 4 (3 dở dang) | 1 (0 dở dang) |
+| `addr-le-loi` | 10 (9 dở dang) | 8 (7 dở dang) | 4 (3 dở dang) | 1 (0 dở dang) |
+| `cat-ca-phe` | 6 (5 dở dang) | 3 (2 dở dang) | 2 (1 dở dang) | 1 (0 dở dang) |
+| `cat-cay-xang` | 15 (14 dở dang) | 7 (6 dở dang) | 3 (2 dở dang) | 1 (0 dở dang) |
+| `route-from-bach-khoa` | 17 (16 dở dang) | 11 (10 dở dang) | 4 (3 dở dang) | 1 (0 dở dang) |
+| `route-to-tan-son-nhat` | 17 (16 dở dang) | 10 (9 dở dang) | 5 (4 dở dang) | 2 (1 dở dang) |
+| `fix-ben-thanh` | 13 (12 dở dang) | 7 (6 dở dang) | 3 (2 dở dang) | 2 (1 dở dang) |
+| `fix-highlands` | 9 (8 dở dang) | 7 (6 dở dang) | 5 (4 dở dang) | 2 (1 dở dang) |
+| `fix-nguyen-hue` | 11 (10 dở dang) | 9 (8 dở dang) | 5 (4 dở dang) | 1 (0 dở dang) |
+| `fix-ca-phe` | 9 (8 dở dang) | 8 (7 dở dang) | 4 (3 dở dang) | 1 (0 dở dang) |
+| `fix-tan-son-nhat` | 18 (17 dở dang) | 11 (10 dở dang) | 7 (6 dở dang) | 2 (1 dở dang) |
+| **Tổng 14 kịch bản** | **185** | **116** | **58** | **21** |
 
-Giảm so với 200 ms — 200 ms: 0%, 300 ms: 37%, 500 ms: 74%, 800 ms: 91%.
+Giảm so với 200 ms — 200 ms: 0%, 300 ms: 37%, 500 ms: 69%, 800 ms: 89%.
 
 ### @mapslibvn/react-native
 
 | Kịch bản | 200 ms | 300 ms | 500 ms | 800 ms |
 |---|---:|---:|---:|---:|
-| `poi-ben-thanh` | 15 (14 dở dang) | 11 (10 dở dang) | 7 (6 dở dang) | 3 (2 dở dang) |
-| `poi-highlands` | 14 (13 dở dang) | 9 (8 dở dang) | 3 (2 dở dang) | 1 (0 dở dang) |
-| `poi-cho-ray` | 19 (18 dở dang) | 8 (7 dở dang) | 3 (2 dở dang) | 2 (1 dở dang) |
-| `addr-nguyen-hue` | 21 (20 dở dang) | 14 (13 dở dang) | 4 (3 dở dang) | 1 (0 dở dang) |
-| `addr-le-loi` | 14 (13 dở dang) | 10 (9 dở dang) | 4 (3 dở dang) | 1 (0 dở dang) |
-| `cat-ca-phe` | 7 (6 dở dang) | 4 (3 dở dang) | 2 (1 dở dang) | 1 (0 dở dang) |
-| `cat-cay-xang` | 21 (20 dở dang) | 9 (8 dở dang) | 3 (2 dở dang) | 1 (0 dở dang) |
-| `route-from-bach-khoa` | 21 (20 dở dang) | 14 (13 dở dang) | 4 (3 dở dang) | 1 (0 dở dang) |
-| `route-to-tan-son-nhat` | 20 (19 dở dang) | 12 (11 dở dang) | 5 (4 dở dang) | 2 (1 dở dang) |
-| `fix-ben-thanh` | 18 (16 dở dang) | 10 (8 dở dang) | 5 (3 dở dang) | 3 (1 dở dang) |
-| `fix-highlands` | 11 (10 dở dang) | 9 (8 dở dang) | 5 (4 dở dang) | 2 (1 dở dang) |
-| `fix-nguyen-hue` | 15 (14 dở dang) | 13 (12 dở dang) | 5 (4 dở dang) | 1 (0 dở dang) |
-| `fix-ca-phe` | 18 (17 dở dang) | 11 (10 dở dang) | 5 (4 dở dang) | 1 (0 dở dang) |
-| `fix-tan-son-nhat` | 24 (23 dở dang) | 15 (14 dở dang) | 7 (6 dở dang) | 2 (1 dở dang) |
-| **Tổng 14 kịch bản** | **238** | **149** | **62** | **22** |
+| `poi-ben-thanh` | 13 (12 dở dang) | 9 (8 dở dang) | 6 (5 dở dang) | 3 (2 dở dang) |
+| `poi-highlands` | 13 (12 dở dang) | 8 (7 dở dang) | 3 (2 dở dang) | 1 (0 dở dang) |
+| `poi-cho-ray` | 16 (15 dở dang) | 5 (4 dở dang) | 3 (2 dở dang) | 2 (1 dở dang) |
+| `addr-nguyen-hue` | 18 (17 dở dang) | 13 (12 dở dang) | 4 (3 dở dang) | 1 (0 dở dang) |
+| `addr-le-loi` | 10 (9 dở dang) | 8 (7 dở dang) | 4 (3 dở dang) | 1 (0 dở dang) |
+| `cat-ca-phe` | 6 (5 dở dang) | 3 (2 dở dang) | 2 (1 dở dang) | 1 (0 dở dang) |
+| `cat-cay-xang` | 15 (14 dở dang) | 7 (6 dở dang) | 3 (2 dở dang) | 1 (0 dở dang) |
+| `route-from-bach-khoa` | 17 (16 dở dang) | 11 (10 dở dang) | 4 (3 dở dang) | 1 (0 dở dang) |
+| `route-to-tan-son-nhat` | 17 (16 dở dang) | 10 (9 dở dang) | 5 (4 dở dang) | 2 (1 dở dang) |
+| `fix-ben-thanh` | 13 (12 dở dang) | 7 (6 dở dang) | 3 (2 dở dang) | 2 (1 dở dang) |
+| `fix-highlands` | 9 (8 dở dang) | 7 (6 dở dang) | 5 (4 dở dang) | 2 (1 dở dang) |
+| `fix-nguyen-hue` | 11 (10 dở dang) | 9 (8 dở dang) | 5 (4 dở dang) | 1 (0 dở dang) |
+| `fix-ca-phe` | 9 (8 dở dang) | 8 (7 dở dang) | 4 (3 dở dang) | 1 (0 dở dang) |
+| `fix-tan-son-nhat` | 18 (17 dở dang) | 11 (10 dở dang) | 7 (6 dở dang) | 2 (1 dở dang) |
+| **Tổng 14 kịch bản** | **185** | **116** | **58** | **21** |
 
-Giảm so với 200 ms — 200 ms: 0%, 300 ms: 37%, 500 ms: 74%, 800 ms: 91%.
+Giảm so với 200 ms — 200 ms: 0%, 300 ms: 37%, 500 ms: 69%, 800 ms: 89%.
 
 ### @mapslibvn/web
 
 | Kịch bản | 200 ms | 300 ms | 500 ms | 800 ms |
 |---|---:|---:|---:|---:|
-| `poi-ben-thanh` | 15 (14 dở dang) | 11 (10 dở dang) | 7 (6 dở dang) | 3 (2 dở dang) |
-| `poi-highlands` | 14 (13 dở dang) | 9 (8 dở dang) | 3 (2 dở dang) | 1 (0 dở dang) |
-| `poi-cho-ray` | 19 (18 dở dang) | 8 (7 dở dang) | 3 (2 dở dang) | 2 (1 dở dang) |
-| `addr-nguyen-hue` | 21 (20 dở dang) | 14 (13 dở dang) | 4 (3 dở dang) | 1 (0 dở dang) |
-| `addr-le-loi` | 14 (13 dở dang) | 10 (9 dở dang) | 4 (3 dở dang) | 1 (0 dở dang) |
-| `cat-ca-phe` | 7 (6 dở dang) | 4 (3 dở dang) | 2 (1 dở dang) | 1 (0 dở dang) |
-| `cat-cay-xang` | 21 (20 dở dang) | 9 (8 dở dang) | 3 (2 dở dang) | 1 (0 dở dang) |
-| `route-from-bach-khoa` | 21 (20 dở dang) | 14 (13 dở dang) | 4 (3 dở dang) | 1 (0 dở dang) |
-| `route-to-tan-son-nhat` | 20 (19 dở dang) | 12 (11 dở dang) | 5 (4 dở dang) | 2 (1 dở dang) |
-| `fix-ben-thanh` | 18 (16 dở dang) | 10 (8 dở dang) | 5 (3 dở dang) | 3 (1 dở dang) |
-| `fix-highlands` | 11 (10 dở dang) | 9 (8 dở dang) | 5 (4 dở dang) | 2 (1 dở dang) |
-| `fix-nguyen-hue` | 15 (14 dở dang) | 13 (12 dở dang) | 5 (4 dở dang) | 1 (0 dở dang) |
-| `fix-ca-phe` | 18 (17 dở dang) | 11 (10 dở dang) | 5 (4 dở dang) | 1 (0 dở dang) |
-| `fix-tan-son-nhat` | 24 (23 dở dang) | 15 (14 dở dang) | 7 (6 dở dang) | 2 (1 dở dang) |
-| **Tổng 14 kịch bản** | **238** | **149** | **62** | **22** |
+| `poi-ben-thanh` | 13 (12 dở dang) | 9 (8 dở dang) | 6 (5 dở dang) | 3 (2 dở dang) |
+| `poi-highlands` | 13 (12 dở dang) | 8 (7 dở dang) | 3 (2 dở dang) | 1 (0 dở dang) |
+| `poi-cho-ray` | 16 (15 dở dang) | 5 (4 dở dang) | 3 (2 dở dang) | 2 (1 dở dang) |
+| `addr-nguyen-hue` | 18 (17 dở dang) | 13 (12 dở dang) | 4 (3 dở dang) | 1 (0 dở dang) |
+| `addr-le-loi` | 10 (9 dở dang) | 8 (7 dở dang) | 4 (3 dở dang) | 1 (0 dở dang) |
+| `cat-ca-phe` | 6 (5 dở dang) | 3 (2 dở dang) | 2 (1 dở dang) | 1 (0 dở dang) |
+| `cat-cay-xang` | 15 (14 dở dang) | 7 (6 dở dang) | 3 (2 dở dang) | 1 (0 dở dang) |
+| `route-from-bach-khoa` | 17 (16 dở dang) | 11 (10 dở dang) | 4 (3 dở dang) | 1 (0 dở dang) |
+| `route-to-tan-son-nhat` | 17 (16 dở dang) | 10 (9 dở dang) | 5 (4 dở dang) | 2 (1 dở dang) |
+| `fix-ben-thanh` | 13 (12 dở dang) | 7 (6 dở dang) | 3 (2 dở dang) | 2 (1 dở dang) |
+| `fix-highlands` | 9 (8 dở dang) | 7 (6 dở dang) | 5 (4 dở dang) | 2 (1 dở dang) |
+| `fix-nguyen-hue` | 11 (10 dở dang) | 9 (8 dở dang) | 5 (4 dở dang) | 1 (0 dở dang) |
+| `fix-ca-phe` | 9 (8 dở dang) | 8 (7 dở dang) | 4 (3 dở dang) | 1 (0 dở dang) |
+| `fix-tan-son-nhat` | 18 (17 dở dang) | 11 (10 dở dang) | 7 (6 dở dang) | 2 (1 dở dang) |
+| **Tổng 14 kịch bản** | **185** | **116** | **58** | **21** |
 
-Giảm so với 200 ms — 200 ms: 0%, 300 ms: 37%, 500 ms: 74%, 800 ms: 91%.
+Giảm so với 200 ms — 200 ms: 0%, 300 ms: 37%, 500 ms: 69%, 800 ms: 89%.
 
 ## 4. Ba bản có khớp nhau ở 200 ms không
 
