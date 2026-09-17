@@ -23,6 +23,7 @@ const usage = (extra: Partial<UsageSnapshot> = {}): UsageSnapshot => ({
   endsAt: '2026-10-01T00:00:00.000Z',
   trialUsedOnce: false,
   maintenance: false,
+  missingAcks: { count: 0, limit: 3, locked: false, opensAt: null },
   places: nhom(),
   directions: nhom(),
   ...extra,
@@ -100,5 +101,39 @@ describe('UsagePanel', () => {
     );
     expect(screen.getByText('Chưa có quyền thương mại')).toBeVisible();
     expect(screen.queryByTestId('thanh-places')).toBeNull();
+  });
+});
+
+describe('cửa sổ receipt chưa xác nhận', () => {
+  it('im lặng khi chưa có receipt nào bỏ lỡ', () => {
+    render(<UsagePanel usage={usage()} />);
+    expect(screen.queryByTestId('missing-acks')).toBeNull();
+  });
+
+  it('có bỏ lỡ nhưng chưa chạm ngưỡng: báo để còn kịp sửa trước khi bị khoá', () => {
+    render(
+      <UsagePanel
+        usage={usage({ missingAcks: { count: 2, limit: 3, locked: false, opensAt: null } })}
+      />,
+    );
+    const khoi = screen.getByTestId('missing-acks');
+    expect(khoi.textContent).toContain('2/3');
+    expect(screen.queryByRole('alert')).toBeNull();
+  });
+
+  it('đang khoá: nói rõ đang khoá và bao giờ tự mở', () => {
+    // Không có mốc tự mở thì người trực không biết nên chờ hay nên bấm nút — và sẽ luôn bấm nút,
+    // kể cả khi nguyên nhân chưa được sửa.
+    render(
+      <UsagePanel
+        usage={usage({
+          missingAcks: { count: 4, limit: 3, locked: true, opensAt: '2026-09-18T03:30:00.000Z' },
+        })}
+      />,
+    );
+    const canhBao = screen.getByRole('alert');
+    expect(canhBao.textContent).toContain('4/3');
+    expect(canhBao.textContent).toContain('429');
+    expect(canhBao.textContent).toContain('18/09/2026');
   });
 });

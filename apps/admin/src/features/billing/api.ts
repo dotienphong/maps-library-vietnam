@@ -14,6 +14,15 @@ export interface GroupUsage {
   available: number;
 }
 
+/** Cửa sổ trượt của khoá `ack_required`. Ngưỡng do máy chủ trả về, giao diện không chép hằng số. */
+export interface MissingAcks {
+  count: number;
+  limit: number;
+  locked: boolean;
+  /** ISO — lúc khoá tự mở vì dòng cũ trôi khỏi cửa sổ. `null` khi không bị khoá. */
+  opensAt: string | null;
+}
+
 export interface UsageSnapshot {
   tenantId: string;
   status: EntitlementStatus;
@@ -25,6 +34,7 @@ export interface UsageSnapshot {
   trialUsedOnce: boolean;
   /** Sổ đang bị đóng để phục hồi: mọi request của khách bị từ chối, không phải vì hết lượt. */
   maintenance: boolean;
+  missingAcks: MissingAcks;
   places: GroupUsage;
   directions: GroupUsage;
 }

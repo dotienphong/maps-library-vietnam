@@ -12,6 +12,7 @@ import type {
   GroupUsage,
   JournalEntry,
   JournalPage,
+  MissingAcks,
   PeriodGroupUsage,
   PeriodHistory,
   QuotaGroup,
@@ -320,9 +321,12 @@ export class QuotaObject extends DurableObject<Env> {
   }
 
   async readUsage(): Promise<UsageSnapshot> {
-    const entitlement = this.entitlement();
-    if (!entitlement) return { ...emptyUsage(), maintenance: this.maintenance() };
     const now = Date.now();
+    // Đọc TRƯỚC nhánh `!entitlement`: một tenant chưa có gói vẫn có thể đang mang khoá
+    // `ack_required` từ trước, và đó đúng là lúc người trực cần thấy nó nhất.
+    const missingAcks = this.missingAcks(now);
+    const entitlement = this.entitlement();
+    if (!entitlement) return { ...emptyUsage(), maintenance: this.maintenance(), missingAcks };
     const period = this.currentPeriod(now);
     const status = entitlement.status === 'suspended' ? 'suspended' : period ? 'active' : 'expired';
     const tier = period?.tier ?? (status === 'suspended' ? entitlement.tier : null);
@@ -336,8 +340,38 @@ export class QuotaObject extends DurableObject<Env> {
       endsAt: period ? new Date(period.ends_at).toISOString() : null,
       trialUsedOnce: entitlement.trial_used_once === 1,
       maintenance: this.maintenance(),
+      missingAcks,
       places: this.groupUsage(period, 'places'),
       directions: this.groupUsage(period, 'directions'),
+    };
+  }
+
+  /**
+   * Cửa sổ trượt của khoá `ack_required`. CHỈ ĐỌC, và chỉ `readUsage()` (route admin) gọi — không
+   * nằm trên đường nóng của request khách, nên một COUNT có index là giá chấp nhận được.
+   */
+  private missingAcks(now: number): MissingAcks {
+    const tuLuc = now - MISSING_ACK_WINDOW_MS;
+    const { count } = this.ctx.storage.sql
+      .exec('SELECT count(*) AS count FROM missed_ack WHERE expired_at > ?', tuLuc)
+      .one() as { count: number };
+    if (count < MAX_MISSING_ACK) {
+      return { count, limit: MAX_MISSING_ACK, locked: false, opensAt: null };
+    }
+    // Khoá mở khi cửa sổ tụt xuống DƯỚI ngưỡng, tức khi dòng thứ `count - limit + 1` tính từ cũ
+    // nhất trôi ra. Đang dư hơn ngưỡng mà lấy `min(expired_at)` là hứa sớm hơn sự thật.
+    const row = this.ctx.storage.sql
+      .exec(
+        'SELECT expired_at FROM missed_ack WHERE expired_at > ? ORDER BY expired_at LIMIT 1 OFFSET ?',
+        tuLuc,
+        count - MAX_MISSING_ACK,
+      )
+      .one() as { expired_at: number };
+    return {
+      count,
+      limit: MAX_MISSING_ACK,
+      locked: true,
+      opensAt: new Date(row.expired_at + MISSING_ACK_WINDOW_MS).toISOString(),
     };
   }
 
@@ -345,8 +379,9 @@ export class QuotaObject extends DurableObject<Env> {
    * Lịch sử kỳ và credit cho màn Gói cước & hạn mức. CHỈ ĐỌC: không mở transaction, không ghi
    * journal, không đụng alarm — gọi bao nhiêu lần cũng không đổi revision.
    *
-   * Không gộp vào `readUsage()`: đường nóng của mỗi request thương mại gọi hàm đó, và quét cả
-   * bảng `period`/`credit_grant` ở đấy là trả giá bằng độ trễ của khách để phục vụ một màn quản trị.
+   * Không gộp vào `readUsage()`: hai màn khác nhau, và quét cả bảng `period`/`credit_grant` cho
+   * mỗi lần mở màn Gói cước là việc thừa. (`readUsage()` KHÔNG nằm trên đường nóng của request
+   * khách — chỉ route `/v1/admin/billing/:tenantId/usage` gọi nó.)
    */
   async readPeriods(limit = 24): Promise<PeriodHistory> {
     const gioiHan = Math.min(Math.max(Math.trunc(Number(limit)) || 24, 1), 60);
@@ -1580,10 +1615,14 @@ export class QuotaObject extends DurableObject<Env> {
         row.request_id,
       );
       if (row.state === 'awaiting_ack') {
+        // Đóng dấu bằng `row.deadline` — lúc lease THẬT SỰ hết — chứ không phải `now` của lần dọn
+        // này. Tenant nghỉ qua đêm thì receipt mồ côi hôm kia chỉ được dọn ở request đầu tiên của
+        // hôm nay; lấy `now` là cửa sổ trượt 24 giờ khởi động lại thay vì trôi đi, và khoá
+        // `ack_required` không bao giờ tự mở.
         this.ctx.storage.sql.exec(
           'INSERT OR IGNORE INTO missed_ack(request_id,expired_at) VALUES(?,?)',
           row.request_id,
-          now,
+          row.deadline,
         );
       }
     }
@@ -1773,6 +1812,7 @@ function emptyUsage(): UsageSnapshot {
     endsAt: null,
     trialUsedOnce: false,
     maintenance: false,
+    missingAcks: { count: 0, limit: MAX_MISSING_ACK, locked: false, opensAt: null },
     places: { ...group },
     directions: { ...group },
   };

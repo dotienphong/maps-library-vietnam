@@ -223,6 +223,7 @@ function BillingTenant({ tenantId, onDoiTenant }: { tenantId: string; onDoiTenan
               endsAt: null,
               trialUsedOnce: false,
               maintenance: false,
+              missingAcks: { count: 0, limit: 3, locked: false, opensAt: null },
               places: { limit: 0, used: 0, reserved: 0, credits: 0, available: 0 },
               directions: { limit: 0, used: 0, reserved: 0, credits: 0, available: 0 },
             }

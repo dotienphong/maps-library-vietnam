@@ -1,5 +1,5 @@
 import { Badge } from '@/components/ui/badge';
-import type { GroupUsage, UsageSnapshot } from './api';
+import type { GroupUsage, MissingAcks, UsageSnapshot } from './api';
 
 export type Muc = 'khong-co' | 'ok' | 'sap-het' | 'het';
 
@@ -42,6 +42,48 @@ export const ngayVn = (iso: string): string =>
   new Date(iso).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' });
 
 export const so = (value: number): string => value.toLocaleString('vi-VN');
+
+export const gioNgayVn = (iso: string): string =>
+  new Date(iso).toLocaleString('vi-VN', {
+    hour: '2-digit',
+    minute: '2-digit',
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+  });
+
+/**
+ * Cửa sổ receipt chưa xác nhận. Trước 17/09/2026 màn này không hiện gì cả — chỉ có mỗi nút "Mở
+ * khoá receipt" — nên người trực không biết đang có mấy dòng hay bao giờ khoá tự mở, và phải đoán.
+ *
+ * Im lặng khi count = 0: một khối luôn hiện với số 0 là nhiễu, và nhiễu thì người ta thôi đọc.
+ */
+function MissingAcksPanel({ missingAcks }: { missingAcks: MissingAcks }) {
+  if (missingAcks.count === 0) return null;
+  const dem = `${so(missingAcks.count)}/${so(missingAcks.limit)}`;
+
+  if (!missingAcks.locked) {
+    return (
+      <p data-testid="missing-acks" className="text-sm text-[var(--text-muted)]">
+        Có {dem} receipt chưa xác nhận trong 24 giờ qua. Chạm ngưỡng là tenant bị khoá — nếu con số
+        này tự bò lên thì SDK phía khách đang bỏ rơi receipt, mở khoá không chữa được.
+      </p>
+    );
+  }
+
+  return (
+    <p
+      data-testid="missing-acks"
+      role="alert"
+      className="rounded-[var(--radius-btn)] bg-red-100 px-3 py-2 text-sm text-red-900 dark:bg-red-900 dark:text-red-100"
+    >
+      Đang khoá: {dem} receipt chưa xác nhận trong 24 giờ qua. Mọi request của tenant này trả 429{' '}
+      <code>ack_required</code>, kể cả khi còn thừa hạn mức.
+      {missingAcks.opensAt !== null && ` Tự mở lúc ${gioNgayVn(missingAcks.opensAt)}.`} Bấm "Mở khoá
+      receipt" để mở sớm — nhưng chỉ sau khi đã sửa nguyên nhân, không thì nó khoá lại ngay.
+    </p>
+  );
+}
 
 const MAU: Record<Muc, string> = {
   'khong-co': 'bg-black/20 dark:bg-white/20',
@@ -121,6 +163,8 @@ export function UsagePanel({ usage }: { usage: UsageSnapshot }) {
           Sổ quota đang bảo trì: mọi request của tenant này bị từ chối, không phải vì hết lượt.
         </p>
       )}
+
+      <MissingAcksPanel missingAcks={usage.missingAcks} />
 
       {coKy && usage.startsAt && usage.endsAt ? (
         <>

@@ -18,6 +18,17 @@ export interface GroupUsage {
   available: number;
 }
 
+/** Cửa sổ trượt của khoá `ack_required`, đủ để màn quản trị giải thích vì sao tenant bị chặn. */
+export interface MissingAcks {
+  /** Số receipt bỏ lỡ còn nằm trong cửa sổ 24 giờ. */
+  count: number;
+  /** Ngưỡng khoá. Để máy chủ trả về thay vì giao diện chép hằng số. */
+  limit: number;
+  locked: boolean;
+  /** ISO — lúc khoá TỰ mở vì dòng cũ đủ trôi ra. `null` khi không bị khoá. */
+  opensAt: string | null;
+}
+
 export interface UsageSnapshot {
   tenantId: string;
   status: EntitlementStatus;
@@ -29,6 +40,8 @@ export interface UsageSnapshot {
   trialUsedOnce: boolean;
   /** Sổ đang bị đóng để phục hồi: reserve bị từ chối, không phải hết lượt. */
   maintenance: boolean;
+  /** Khoá `ack_required` — độc lập với hạn mức, nên để riêng khỏi `places`/`directions`. */
+  missingAcks: MissingAcks;
   places: GroupUsage;
   directions: GroupUsage;
 }

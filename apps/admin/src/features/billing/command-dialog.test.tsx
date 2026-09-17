@@ -61,6 +61,7 @@ const usage: UsageSnapshot = {
   endsAt: '2026-10-01T00:00:00.000Z',
   trialUsedOnce: false,
   maintenance: false,
+  missingAcks: { count: 0, limit: 3, locked: false, opensAt: null },
   places: { limit: 30_000, used: 0, reserved: 0, credits: 0, available: 30_000 },
   directions: { limit: 3_000, used: 0, reserved: 0, credits: 0, available: 3_000 },
 };

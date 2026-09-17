@@ -319,6 +319,69 @@ describe('QuotaObject reservations', () => {
     });
   });
 
+  it('stamps a missed ACK at its lease deadline, not at cleanup time', async () => {
+    // `expired_at` phải là lúc lease THẬT SỰ hết hạn. Đóng dấu bằng `Date.now()` của lần dọn thì
+    // một tenant nghỉ qua đêm sẽ bị tính lại từ đầu: ba receipt mồ côi của hôm kia được chuyển
+    // thành missed_ack ngay trên request đầu tiên của hôm nay, mang dấu HÔM NAY, và cửa sổ trượt
+    // 24 giờ khởi động lại thay vì trôi đi — khoá `ack_required` thành ra vĩnh viễn.
+    const { object } = await provision();
+    const quaLau = Date.now() - 25 * 3_600_000;
+    for (let index = 0; index < 3; index += 1) {
+      const id = `cu-${index}`;
+      await object.reserve(id, 'places');
+      await object.prepare(id, await tokenHash(crypto.randomUUID()));
+      await runInDurableObject(object, (_instance: QuotaObject, state) => {
+        state.storage.sql.exec(
+          'UPDATE reservation SET deadline=? WHERE request_id=?',
+          quaLau + index,
+          id,
+        );
+      });
+    }
+
+    // Request đầu tiên sau đêm nghỉ: chính nó kéo `cleanupExpired` chạy. Ba dòng kia đã quá cửa
+    // sổ từ lâu nên phải bị dọn luôn trong cùng lượt, không được chặn ai cả.
+    expect(await object.reserve('moi', 'places')).toMatchObject({ allowed: true });
+    await runInDurableObject(object, (_instance: QuotaObject, state) => {
+      expect(state.storage.sql.exec('SELECT count(*) AS count FROM missed_ack').one()).toEqual({
+        count: 0,
+      });
+    });
+  });
+
+  it('reports the missing-ACK window so the admin screen can explain the lock', async () => {
+    // Không có con số này thì `/admin/billing` chỉ có mỗi cái nút "Mở khoá receipt": người trực
+    // không biết đang có mấy dòng, cũng không biết bao giờ nó tự mở, nên phải đoán. Sự cố
+    // 16–17/09/2026 đoán hai lần.
+    const { object } = await provision();
+    expect((await object.readUsage()).missingAcks).toEqual({
+      count: 0,
+      limit: 3,
+      locked: false,
+      opensAt: null,
+    });
+
+    const cuNhat = Date.now() - 2 * 3_600_000;
+    await runInDurableObject(object, (_instance: QuotaObject, state) => {
+      for (let index = 0; index < 4; index += 1) {
+        state.storage.sql.exec(
+          'INSERT INTO missed_ack(request_id,expired_at) VALUES(?,?)',
+          `m-${index}`,
+          cuNhat + index * 60_000,
+        );
+      }
+    });
+
+    // 4 dòng / ngưỡng 3: khoá mở khi cửa sổ tụt xuống 2, tức khi dòng thứ HAI trôi ra — không
+    // phải dòng cũ nhất. Lấy min() ở đây là hứa sớm hơn sự thật đúng một phút.
+    expect((await object.readUsage()).missingAcks).toEqual({
+      count: 4,
+      limit: 3,
+      locked: true,
+      opensAt: new Date(cuNhat + 60_000 + 86_400_000).toISOString(),
+    });
+  });
+
   it('unlocks missing ACKs with an audited idempotent operation', async () => {
     const { object } = await provision();
     await runInDurableObject(object, (_instance: QuotaObject, state) => {
