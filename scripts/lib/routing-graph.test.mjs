@@ -412,6 +412,44 @@ describe('validation boundary', () => {
 });
 
 describe('transaction recovery', () => {
+  it.runIf(HAS_LINUX_LIFECYCLE_TOOLS).each(['reload.failed', 'reload.in-progress'])(
+    'wrapper không tự nạp tile dang dở khi restart còn %s',
+    async (marker) => {
+      const state = fixture();
+      const started = resolve(state.graph, 'started');
+      const entrypoint = resolve(state.root, 'entrypoint.sh');
+      writeFileSync(
+        entrypoint,
+        `#!/bin/bash\ntouch "${started}"\ntrap 'exit 0' TERM\nwhile true; do sleep 1; done\n`,
+      );
+      chmodSync(entrypoint, 0o755);
+      writeFileSync(resolve(state.graph, marker), 'interrupted\n');
+      const wrapper = spawn(BASH_BIN, [RUN_SH], {
+        env: {
+          ...process.env,
+          CUSTOM_FILES: state.graph,
+          VALHALLA_ENTRYPOINT: entrypoint,
+          RELOAD_POLL_SECONDS: '1',
+          STOP_GRACE_SECONDS: '3',
+          READY_CONNECT_TIMEOUT_SECONDS: '1',
+          READY_MAX_TIME_SECONDS: '2',
+        },
+        stdio: ['ignore', 'pipe', 'ignore'],
+      });
+      try {
+        await firstLine(wrapper.stdout);
+        await new Promise((done) => setTimeout(done, 200));
+        expect(existsSync(started)).toBe(false);
+        expect(existsSync(resolve(state.graph, marker))).toBe(true);
+        writeFileSync(resolve(state.graph, GRAPH_FILES.flag), 'rollback\n');
+        await waitFor(() => existsSync(started));
+      } finally {
+        wrapper.kill('SIGTERM');
+        await waitForExit(wrapper);
+      }
+    },
+  );
+
   it.each(PREPARE_FAULT_POINTS)('recover prepare sau fault tại %s', (point) => {
     const state = fixture();
     const crashed = run(state, ['prepare', '--force'], {
@@ -795,7 +833,7 @@ describe('Valhalla wrapper race contract', () => {
         `#!/usr/bin/env bash\ncount=0\n[[ -f "${countFile}" ]] && count=$(cat "${countFile}")\nprintf '%s\\n' $((count + 1)) > "${countFile}"\ntrap 'exit 0' TERM INT\nwhile true; do sleep 1; done\n`,
       );
       chmodSync(fakeEntrypoint, 0o755);
-      writeFileSync(resolve(state.graph, 'reload.in-progress'), 'rebuild\n');
+      writeFileSync(resolve(state.graph, GRAPH_FILES.flag), 'rebuild\n');
       const hangingReady = spawn(
         process.execPath,
         [

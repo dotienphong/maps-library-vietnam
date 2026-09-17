@@ -50,6 +50,11 @@ GRANT SELECT ON tenant, api_key TO api, pipeline;
 GRANT UPDATE (quota_mode) ON tenant TO api;
 GRANT UPDATE (active, revoked_at) ON api_key TO api;
 
+-- 0017: restore portable bỏ ACL, migration đã chạy không được áp lại. Worker phải
+-- đọc/ghi audit và dùng sequence, nhưng không được sửa/xoá lịch sử.
+GRANT SELECT, INSERT ON admin_audit TO api;
+GRANT USAGE, SELECT ON SEQUENCE admin_audit_id_seq TO api;
+
 -- M4 (0006): hàm SECURITY DEFINER phải thuộc pipeline — nếu rơi về superuser sau restore thì
 -- Worker ghi poi với quyền superuser. PUBLIC bị thu hồi, chỉ api được EXECUTE.
 ALTER FUNCTION stage_poi_create(bigint) OWNER TO pipeline;

@@ -5,6 +5,31 @@ commit với code).
 
 ## 1. Trạng thái hiện tại
 
+- **18/09/2026 — sửa trang Admin Audit sau chuyển máy Ubuntu.** PostgreSQL production
+  ghi `permission denied for table admin_audit` khi Worker role `api` gọi danh sách audit.
+  Restore `--no-privileges` bỏ ACL nhưng `PERMISSIONS_SQL` chưa reconcile grants của 0017;
+  migration đã applied nên setup không cấp lại. Đã bổ sung SELECT/INSERT trên admin_audit,
+  USAGE/SELECT trên admin_audit_id_seq vào script reconcile và cấp cùng quyền trực tiếp
+  lên server hiện tại. Truy vấn SET LOCAL ROLE api tái hiện lỗi trước sửa, pass sau sửa;
+  kiểm privilege xác nhận read/append/sequence=true, update/delete=false. Không sửa hoặc
+  xoá dữ liệu audit. Trang Access-protected cần phiên đăng nhập của PHONG để kiểm UI trực tiếp.
+
+- **18/09/2026 — phục hồi dẫn đường trên laptop Ubuntu 4 GB RAM.** Build graph bootstrap
+  bị `Killed` ở stage `enhance`; wrapper tự restart rồi entrypoint nhận tile dở qua
+  `use_tiles_ignore_pbf=True`, đóng tar và báo `/status` healthy dù `/route` trả 171.
+  Đã thêm test tái hiện (2 ca đỏ trước sửa), chặn start khi còn failed/in-progress mà không có
+  request mới và giữ request reload đến vòng start dưới lock. Compose mặc định
+  `VALHALLA_THREADS=1`, có thể đổi trong server env. Đã cô lập graph lỗi tại volume
+  `failed-20260917-graph`, giữ PBF MD5 `4cf10e76b546602a77170068df6fccd6`, rebuild sạch
+  1 luồng/cache 128 MiB qua đủ enhance/hierarchy/shortcuts/restrictions/validate/cleanup.
+  Tar mới 1.158.809.600 bytes, built UTC `2026-09-17T17:09:34Z`; status không còn pending,
+  in-progress hay failed. API production với key demo + origin Pages trả 200 tới
+  `10.738661,106.676897` (bánh canh cua Vạn Kiếp) cho xe máy/ô tô/đi bộ; bốn tuyến chuẩn
+  nội thành, xe máy HCM–Vũng Tàu, ô tô HCM–Cần Thơ, đi bộ Hà Nội đều pass (1 lượt/tuyến,
+  chưa phải đo tải). 48 test graph pass với timeout 30s (máy đang build), shell syntax,
+  Biome và diff check pass; review độc lập không thấy lỗi nghiêm trọng. Graph bootstrap
+  chưa có previous graph tốt để rollback; bản lỗi chỉ giữ để đối chiếu.
+
 - **15/09/2026 — review sâu Task 1–5 theo yêu cầu PHONG: 15 phát hiện, đã sửa 8, chưa commit.**
   Kết luận "Task 4–5 hoàn tất, cổng xanh" ở lần trước là **sai**: bộ test xanh nhưng code có lỗi
   chặn phát hành, và một test tự thêm còn đóng đinh nhầm hành vi sai. Ba lỗi nặng nhất đều dựng

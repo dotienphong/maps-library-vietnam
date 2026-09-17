@@ -97,6 +97,15 @@ while true; do
     sleep "${POLL_SECONDS}"
     continue
   fi
+  # Sau restart, tile còn lại có thể là graph build dang dở. Không để entrypoint
+  # use_tiles_ignore_pbf đóng gói rồi phục vụ chúng và xoá bằng chứng build lỗi.
+  # Chỉ một yêu cầu mới (prepare/rollback/operator) mới cho phép start lại.
+  if [[ ! -f "${FLAG}" && ( -f "${FAILED}" || -f "${IN_PROGRESS}" ) ]]; then
+    release_start_lock
+    log "graph build lỗi/bị ngắt → chờ operator phục hồi hoặc rollback, không nạp tile dang dở"
+    sleep "${POLL_SECONDS}"
+    continue
+  fi
   if [[ ! -f "${CUSTOM_FILES}/vietnam.osm.pbf" && ! -f "${CUSTOM_FILES}/valhalla_tiles.tar" ]]; then
     release_start_lock
     log "volume graph rỗng, chờ server:setup tải PBF và prepare"
@@ -119,7 +128,8 @@ while true; do
   while child_alive; do
     if [[ -f "${FLAG}" ]]; then
       log "thấy cờ '$(tr -d '\n' < "${FLAG}" 2>/dev/null || echo reload)' → dừng nhóm tiến trình ${child} để nạp lại graph"
-      mv -f "${FLAG}" "${IN_PROGRESS}"
+      # Giữ request đến vòng start dưới lock: restart nội bộ vẫn được phép,
+      # còn restart sau lỗi không có request sẽ bị chặn.
       stop_child
       reload=true
       break

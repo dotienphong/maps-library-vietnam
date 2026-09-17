@@ -99,7 +99,7 @@ services:
       build_elevation: "False"
       build_admins: "True"
       build_time_zones: "True"
-      server_threads: "4"
+      server_threads: "${VALHALLA_THREADS:-1}"
       tileset_name: valhalla_tiles
     volumes:
       - valhalla-data:/custom_files
