@@ -271,11 +271,31 @@ export function createClient(options: ClientOptions) {
       if (value !== undefined) url.searchParams.set(key, String(value));
     }
 
-    const response = await doFetch(url, {
-      headers: baseHeaders(),
-      ...(init?.signal ? { signal: init.signal } : {}),
+    // KHÔNG chuyển `signal` xuống fetch. Lệnh huỷ không đuổi kịp máy chủ: nó đã nhận, đã phục vụ
+    // xong và đã phát receipt rồi. Huỷ ở đây không rút lại được lượt nào — chỉ vứt mất header
+    // receipt, và receipt mồ côi đó thành `missed_ack` sau 120 giây; ba cái là khoá cả tenant
+    // bằng 429 `ack_required`. `usePlaces` abort mỗi lần người dùng gõ thêm ký tự, nên đây là
+    // đường rò rỉ chạy liên tục (đo thật trên Playground 17/09/2026).
+    //
+    // Nên request vẫn chạy tới cùng để ACK; còn caller nhận lỗi huỷ NGAY khi signal nổ, đúng như
+    // trước — react/react-native/web đều chỉ cần bấy nhiêu để bỏ qua kết quả của query cũ.
+    const signal = init?.signal;
+    // Huỷ TRƯỚC khi gọi thì đừng gửi gì cả: request đó chưa tốn lượt nào của khách, và gửi đi chỉ
+    // để vứt kết quả là tự trừ tiền mình.
+    if (signal?.aborted) throw loiHuy(signal);
+    const dangBay = doFetch(url, { headers: baseHeaders() }).then(parseOrThrow<T>);
+    if (!signal) return dangBay;
+    let noRa!: () => void;
+    const khiHuy = new Promise<never>((_, tuChoi) => {
+      noRa = () => tuChoi(loiHuy(signal));
+      signal.addEventListener('abort', noRa, { once: true });
     });
-    return parseOrThrow<T>(response);
+    // Gỡ listener khi request xong: signal sống lâu hơn một request (web component dùng chung một
+    // controller) thì để lại listener là rò bộ nhớ. `then(don, don)` cũng đánh dấu `dangBay` đã
+    // có người xử lý, nên caller bỏ đi không sinh unhandled rejection.
+    const don = () => signal.removeEventListener('abort', noRa);
+    dangBay.then(don, don);
+    return Promise.race([dangBay, khiHuy]);
   }
 
   async function post<T>(path: string, body: unknown): Promise<T> {
@@ -373,12 +393,31 @@ export function createClient(options: ClientOptions) {
 }
 
 const RECEIPT_STORAGE_PREFIX = 'mapslibvn:quota:';
-/** Chặn hàng đợi phình vô hạn khi mạng hỏng dài; receipt quá lease cũng đã vô giá trị. */
+/**
+ * Chặn hàng đợi phình vô hạn khi mạng hỏng dài; receipt quá lease cũng đã vô giá trị.
+ *
+ * Trần này là lưới an toàn, KHÔNG phải đường chạy thật: `requireNoPendingAck()` dọn hàng đợi
+ * trước mỗi request, nên nó không bao giờ bò tới gần 20. Đo 17/09/2026: ACK chạy bình thường thì
+ * 10 request song song đều qua và hàng đợi luôn về rỗng; ACK hỏng mạng thì chỉ 2/21 qua cổng, số
+ * còn lại nhận 503 `quota_ack_pending` — đúng thiết kế. Nhánh cắt bớt bên dưới vì thế không có
+ * cách nào chạm tới từ một client; đừng đem nó ra giải thích một vụ receipt mồ côi.
+ */
 const MAX_PENDING_RECEIPTS = 20;
 const TERMINAL_ACK_STATUS = new Set([403, 404, 409]);
 
 function isTerminalAckStatus(status: number): boolean {
   return TERMINAL_ACK_STATUS.has(status);
+}
+
+/**
+ * Lỗi trả cho caller khi nó huỷ. Dùng `signal.reason` của nền tảng nếu có; không dựng
+ * `DOMException` trực tiếp vì Hermes (React Native) không phải lúc nào cũng có sẵn nó.
+ */
+function loiHuy(signal: AbortSignal): unknown {
+  if (signal.reason !== undefined && signal.reason !== null) return signal.reason;
+  const loi = new Error('Request đã bị huỷ');
+  loi.name = 'AbortError';
+  return loi;
 }
 
 function receiptFrom(headers: Headers): QuotaReceipt | null {

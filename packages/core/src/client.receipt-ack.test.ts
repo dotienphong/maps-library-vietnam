@@ -134,3 +134,64 @@ describe('ACK sống sót khi người dùng bỏ đi giữa chừng', () => {
     expect(acked).toEqual(['r-nen']);
   });
 });
+
+describe('Huỷ request đang bay không được bỏ rơi receipt', () => {
+  it('caller abort giữa chừng: vẫn ACK receipt của request máy chủ đã phục vụ', async () => {
+    // Nguồn rò rỉ thứ tư, đo thật trên Playground 17/09/2026: `usePlaces` gọi `controller.abort()`
+    // mỗi lần người dùng gõ thêm ký tự. Máy chủ đã `prepare` xong và đã phát receipt TRƯỚC khi
+    // lệnh huỷ tới nơi; huỷ ở client chỉ vứt mất header, không rút lại được lượt nào. Receipt đó
+    // thành missed_ack sau 120 giây, và ba cái là khoá cả tenant bằng 429 `ack_required`.
+    const acked: string[] = [];
+    // Mốc "request đã rời client": abort phải rơi vào lúc request CÒN ĐANG BAY. Chờ bằng
+    // `vi.waitFor` thì nhịp poll 50 ms đã đi sau cái fetch 20 ms — abort tới nơi khi mọi thứ
+    // đã xong, và test xanh vì lý do sai.
+    let daGoiFetch!: () => void;
+    const dangPhucVu = new Promise<void>((resolve) => {
+      daGoiFetch = resolve;
+    });
+    const fetch = vi.fn(async (input: URL | RequestInfo, init?: RequestInit) => {
+      const url = new URL(String(input));
+      if (url.pathname.endsWith('/ack')) {
+        acked.push(url.pathname.split('/').at(-2) as string);
+        return new Response('{}', { status: 200 });
+      }
+      daGoiFetch();
+      // Mô phỏng fetch thật: signal huỷ thì request chết hẳn, header không bao giờ đọc được.
+      return new Promise<Response>((resolve, reject) => {
+        const huy = () => reject(new DOMException('Aborted', 'AbortError'));
+        if (init?.signal?.aborted) return huy();
+        const timer = setTimeout(
+          () =>
+            resolve(
+              new Response(JSON.stringify({ items: [] }), {
+                status: 200,
+                headers: headerReceipt('r-huy'),
+              }),
+            ),
+          50,
+        );
+        init?.signal?.addEventListener('abort', () => {
+          clearTimeout(timer);
+          huy();
+        });
+      });
+    });
+
+    const client = createClient({
+      apiKey: 'mlv_live_aaaaaaaaaaaaaaaaaaaaaaaa',
+      baseUrl: 'https://api.test',
+      fetch: fetch as unknown as typeof globalThis.fetch,
+      receiptStore: listStore(),
+    });
+
+    const controller = new AbortController();
+    const dangBay = client.autocomplete('ben thanh', { signal: controller.signal });
+    await dangPhucVu;
+    controller.abort();
+
+    // Caller vẫn phải thấy lỗi huỷ — usePlaces dựa vào đó để bỏ qua kết quả cũ.
+    await expect(dangBay).rejects.toThrow();
+    // Nhưng receipt thì KHÔNG được bỏ rơi.
+    await vi.waitFor(() => expect(acked).toEqual(['r-huy']));
+  });
+});
