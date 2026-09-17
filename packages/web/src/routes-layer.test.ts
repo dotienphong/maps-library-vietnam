@@ -154,17 +154,94 @@ describe('createRoutesLayer', () => {
     expect(f.markers.every((m) => m.removed)).toBe(true);
   });
 
-  it('style chưa load → chờ style.load rồi mới thêm; style.load về sau (đổi style) → thêm lại source/layer', () => {
+  it('style chưa phân giải xong → hoãn tới style.load; đổi style về sau → dựng lại source/layer', () => {
+    // Điều kiện hoãn là maplibre THẬT SỰ từ chối (`Style is not done loading.`), không phải
+    // `isStyleLoaded()` — hàm đó còn đòi tile và ảnh tải xong nên nó false cả lúc thêm layer đang
+    // hoàn toàn hợp lệ, và hoãn theo nó là hoãn vĩnh viễn.
     const f = fakeGl();
-    f.gl.isStyleLoaded.mockReturnValueOnce(false);
     const routes = createRoutesLayer(f.gl as never, f.ml as never, vi.fn());
+    f.gl.addSource.mockImplementationOnce(() => {
+      throw new Error('Style is not done loading.');
+    });
+
     routes.show(response);
-    expect(f.gl.addSource).not.toHaveBeenCalled();
-    f.fire('style.load');
-    expect(f.gl.addSource).toHaveBeenCalledTimes(1);
-    // Đổi style: style mới không còn source → thêm lại
-    f.resetSources();
+    expect(f.gl.getSource(ROUTE_SOURCE_ID)).toBeUndefined();
     f.fire('style.load');
     expect(f.gl.addSource).toHaveBeenCalledTimes(2);
+
+    // Đổi style: style mới không còn source → dựng lại
+    f.resetSources();
+    f.fire('style.load');
+    expect(f.gl.addSource).toHaveBeenCalledTimes(3);
+  });
+});
+
+describe('vẽ tuyến khi bắt đầu dẫn đường', () => {
+  it('tile còn đang tải vẫn phải vẽ — `isStyleLoaded()` KHÔNG phải câu hỏi đúng', () => {
+    // `Style.loaded()` của maplibre 6.9.1 còn đòi mọi tile và ảnh tải xong; còn `addSource` chỉ đòi
+    // style đã phân giải (`_checkLoaded` chỉ xem `_loaded`). Bấm dẫn đường lúc bản đồ đang kéo/phóng
+    // là `isStyleLoaded()` false trong khi `style.load` đã bắn từ lâu và không bao giờ bắn lại —
+    // tuyến không bao giờ được vẽ. Đúng hình dạng "lúc được lúc không" PHONG báo 17/09/2026.
+    const f = fakeGl();
+    const routes = createRoutesLayer(f.gl as never, f.ml as never, vi.fn());
+    f.gl.isStyleLoaded.mockReturnValue(false);
+
+    routes.show(response);
+
+    expect(f.gl.addSource).toHaveBeenCalledWith(
+      ROUTE_SOURCE_ID,
+      expect.objectContaining({ type: 'geojson' }),
+    );
+    expect(lastData(f.setData).features.map((x) => x.properties.kind)).toEqual(['active']);
+  });
+
+  it('định vị về sau vẫn vẽ được dù lượt show đầu rơi vào lúc style chưa phân giải', () => {
+    // Đường này im lặng theo đúng nghĩa đen: `setData()` dùng `source?.setData(...)`, nên khi
+    // chưa có source thì mỗi lần định vị trôi qua không để lại dấu vết nào.
+    const f = fakeGl();
+    const routes = createRoutesLayer(f.gl as never, f.ml as never, vi.fn());
+    f.gl.addSource.mockImplementationOnce(() => {
+      throw new Error('Style is not done loading.');
+    });
+
+    expect(() => routes.show(response)).not.toThrow();
+    f.fire('style.load');
+    routes.setProgress(3, [106.7, 10.77]);
+
+    expect(f.gl.addSource).toHaveBeenCalledTimes(2);
+    const kinds = lastData(f.setData).features.map((x) => x.properties.kind);
+    expect(kinds).toContain('traveled');
+    expect(kinds).toContain('active');
+  });
+});
+
+describe('không im lặng khi không có chỗ vẽ', () => {
+  it('có tuyến mà thiếu source → cảnh báo đúng một lần, không phải mỗi lần định vị', () => {
+    const f = fakeGl();
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const routes = createRoutesLayer(f.gl as never, f.ml as never, vi.fn());
+    f.gl.addSource.mockImplementation(() => {
+      throw new Error('Style is not done loading.');
+    });
+
+    routes.show(response);
+    routes.setProgress(1, [106.7, 10.77]);
+    routes.setProgress(2, [106.71, 10.78]);
+
+    expect(warn).toHaveBeenCalledTimes(1);
+    expect(warn.mock.calls[0]?.[0]).toContain('tuyến sẽ không hiện');
+    warn.mockRestore();
+  });
+
+  it('chưa có tuyến thì im lặng — clear() lúc chưa vẽ gì là chuyện bình thường', () => {
+    const f = fakeGl();
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const routes = createRoutesLayer(f.gl as never, f.ml as never, vi.fn());
+
+    routes.clear();
+    routes.setActive(1);
+
+    expect(warn).not.toHaveBeenCalled();
+    warn.mockRestore();
   });
 });
