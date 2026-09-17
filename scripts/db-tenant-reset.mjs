@@ -54,13 +54,15 @@ if (import.meta.url === `file://${process.argv[1]}`) {
   const sql = postgres(databaseUrlFromEnv(process.env), { max: 1, onnotice: () => {} });
   try {
     // 1. Khoá ngoại tới `tenant` — đọc từ schema thật, không tin trí nhớ.
-    const fks = await sql`
+    const fks = /** @type {{ table_name: string }[]} */ (
+      await sql`
       SELECT DISTINCT src.relname AS table_name
       FROM pg_constraint c
       JOIN pg_class src ON src.oid = c.conrelid
       JOIN pg_class dst ON dst.oid = c.confrelid
       WHERE c.contype = 'f' AND dst.relname = 'tenant'
-      ORDER BY src.relname`;
+      ORDER BY src.relname`
+    );
     console.log(
       'Bảng có khoá ngoại tới tenant:',
       fks.map((r) => r.table_name).join(', ') || '(không có)',
@@ -92,11 +94,16 @@ if (import.meta.url === `file://${process.argv[1]}`) {
         edits: Number(r.edits),
       })),
     );
-    const [tong] = await sql`SELECT
+    const [tong] =
+      /** @type {{ tenant: number, api_key: number, poi_edit: number, poi: number }[]} */ (
+        await sql`SELECT
         (SELECT count(*) FROM tenant)::int   AS tenant,
         (SELECT count(*) FROM api_key)::int  AS api_key,
         (SELECT count(*) FROM poi_edit)::int AS poi_edit,
-        (SELECT count(*) FROM poi)::int      AS poi`;
+        (SELECT count(*) FROM poi)::int      AS poi`
+      );
+    if (!tong)
+      throw new Error('Không đếm được số dòng hiện có — dừng trước khi xoá bất cứ thứ gì.');
     console.log(
       `Sẽ xoá: ${tong.poi_edit} poi_edit, ${tong.api_key} api_key, ${tong.tenant} tenant.\n` +
         `KHÔNG đụng tới ${tong.poi} POI trong bảng poi (chúng không gắn tenant).`,
@@ -126,12 +133,14 @@ if (import.meta.url === `file://${process.argv[1]}`) {
     console.table(
       sau.map((r) => ({ id: r.id, name: r.name, plan: r.plan, quota_mode: r.quota_mode })),
     );
-    const [conLai] = await sql`SELECT
+    const [conLai] = /** @type {{ tenant: number, api_key: number, poi_edit: number }[]} */ (
+      await sql`SELECT
         (SELECT count(*) FROM tenant)::int   AS tenant,
         (SELECT count(*) FROM api_key)::int  AS api_key,
-        (SELECT count(*) FROM poi_edit)::int AS poi_edit`;
+        (SELECT count(*) FROM poi_edit)::int AS poi_edit`
+    );
     console.log(
-      `Còn lại: ${conLai.tenant} tenant, ${conLai.api_key} api_key, ${conLai.poi_edit} poi_edit.`,
+      `Còn lại: ${conLai?.tenant} tenant, ${conLai?.api_key} api_key, ${conLai?.poi_edit} poi_edit.`,
     );
     console.log(`\n✔ Tenant mới: ${id} (${name}, plan ${plan}, quota_mode legacy)`);
     console.log('Bước tiếp theo — làm ĐÚNG thứ tự này để không có khoảng chết:');
