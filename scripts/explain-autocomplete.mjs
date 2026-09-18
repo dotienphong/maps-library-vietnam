@@ -584,15 +584,23 @@ if (isMain) {
         /** @type {number[]} */
         const runs = [];
         let widest = { node: '-', rows: 0 };
+        let traVe = 0;
         for (let i = 0; i < repeat; i++) {
           const [row] = await sql.unsafe(`EXPLAIN (ANALYZE, BUFFERS, FORMAT JSON) ${text}`);
           runs.push(timesOf(row?.['QUERY PLAN']).exec);
-          if (i === 0) widest = widestNode(row?.['QUERY PLAN']);
+          if (i === 0) {
+            widest = widestNode(row?.['QUERY PLAN']);
+            // Số dòng CUỐI CÙNG (đã qua LIMIT). Đây là con số quyết định một cổng xếp tầng có leo
+            // bậc hay không — `rộng nhất` chỉ nói chi phí, không nói cổng mở hay đóng. Bài học từ
+            // ca `bhx`: cổng đóng vì bậc trước lấp đủ chỗ, và cái đúng không bao giờ được tìm.
+            traVe = timesOf(row?.['QUERY PLAN']).rows;
+          }
         }
         exec[label] = median(runs);
         console.log(
           `  ${label.padEnd(15)} trung vị=${Math.round(median(runs)).toString().padStart(6)} ms` +
             `  (${Math.round(Math.min(...runs))}–${Math.round(Math.max(...runs))})` +
+            `  trả ${String(traVe).padStart(3)} dòng` +
             `  rộng nhất: ${widest.rows.toLocaleString('vi-VN')} dòng @ ${widest.node}`,
         );
       };
