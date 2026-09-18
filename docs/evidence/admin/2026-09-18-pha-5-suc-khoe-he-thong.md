@@ -29,25 +29,35 @@ Spec 11.5 viết "kết quả cache trong KV 5 phút" cho cả màn. Bản làm 
 đo tươi mỗi lần mở. Lý do: máy chủ định tuyến là máy Mac ở nhà, nó ngủ là routing chết — một ảnh
 chụp cũ 5 phút đúng lúc đó là câu trả lời sai. PHONG chốt 18/09/2026.
 
-## 4. Secret trên production — **việc của PHONG, máy không làm được**
+## 4. Secret trên production — XONG 18/09/2026
 
-- [ ] Dashboard Cloudflare → Manage Account → API Tokens → Create Custom Token
-- [ ] Permissions: **Account · Analytics · Read** (không thêm quyền nào khác), Account Resources:
-      đúng tài khoản MapsLibVN
-- [ ] `cd apps/api && npx wrangler secret put CF_ANALYTICS_TOKEN --env production`
-- [ ] `npx wrangler secret list --env production` thấy `CF_ANALYTICS_TOKEN`
+- [x] Token riêng, chỉ quyền **Account · Account Analytics · Read**, không lọc IP (Worker gọi ra
+      từ mạng Cloudflare, IP không đoán trước), không TTL
+- [x] `wrangler secret put CF_ANALYTICS_TOKEN --env production` — PHONG chạy
+- [x] `wrangler secret list --env production` thấy `CF_ANALYTICS_TOKEN` (xác minh 18/09 19:2x)
 
 Cố ý KHÔNG dùng lại `CLOUDFLARE_API_TOKEN` của máy dev dù nó cũng đọc được Analytics: token đó
 deploy được Worker và đọc được R2 — nhét vào Worker là biến một lỗ hổng trong Worker thành quyền
 điều khiển cả tài khoản.
 
-## 5. Deploy
+## 5. Deploy — XONG 18/09/2026
 
 Pha này **không có migration** (máy chủ giữ `0019`), nên không cần cổng `check:migration`.
 
-- [ ] `pnpm deploy:api`
-- version:
-- mốc trong `wrangler deployments list --env production`:
+- [x] `pnpm deploy:api` từ cây mã sạch tại commit `01476f9`
+- **Version ID: `fd681b58-9cde-4f19-b863-7d83307b83d3`** (bản ngay trước đó: `cee95ba8`, sinh ra
+  bởi chính lần đặt secret)
+- `env.CF_ACCOUNT_ID` hiện trong bảng binding của lần deploy → biến đã tới được production
+
+**Kiểm ngay sau deploy phần công khai gọi được** (`/healthz/db` bị refactor ở Task 6 nên phải soát):
+
+```
+{"ok":true,"user":"api","version":"PostgreSQL 16.4","word_similarity_threshold":0.6,
+ "schema_migration":"0019_admin_audit_detail_object.sql"}   HTTP 200 · 0.78 s
+```
+
+Đúng như trước khi tách hàm, và xác nhận luôn production nối DB bằng role `api` thật — điều mà
+tầng itest KHÔNG chứng minh được (xem mục 7).
 
 ## 6. Nghiệm thu thật trên điện thoại
 
