@@ -306,9 +306,29 @@ function streetNhanh(q, tsQuery) {
  * luôn phải trả giá cả hai vòng.
  *
  * @param {string} q @param {boolean} fuzzy @param {string} queryKey
+ * @param {'full'|'no-sim'|'no-geom'} [bien_the] bỏ bớt một thành phần để quy chi phí
  */
-function areaQuery(q, fuzzy, queryKey) {
+function areaQuery(q, fuzzy, queryKey, bien_the = 'full') {
   const qs = lit(q);
+  // Cùng hai nghi can đã đúng ở poi và street: `sim` gồm 2 hàm trigram nằm trong ORDER BY nên
+  // tính cho MỌI dòng khớp (11.666 dòng với `qu`), và các phép hình học trên đa giác hành chính.
+  const simCurrent =
+    bien_the === 'no-sim'
+      ? '0::float8 sim'
+      : `greatest(word_similarity(${qs},a.name_norm),similarity(a.name_norm,${qs})) sim`;
+  const simAlias =
+    bien_the === 'no-sim'
+      ? '0::float8 sim'
+      : `greatest(word_similarity(${qs},aa.alias_norm),similarity(aa.alias_norm,${qs})) sim`;
+  const hinhHoc =
+    bien_the === 'no-geom'
+      ? `NULL::float8 lat, NULL::float8 lng, precision, sim, prefix, 0 AS pop,
+      NULL::float8 d, NULL::json bbox`
+      : `ST_Y(ST_PointOnSurface(candidate_geom)) lat,
+      ST_X(ST_PointOnSurface(candidate_geom)) lng,precision,sim,prefix,0 AS pop,
+      ST_DistanceSphere(ST_PointOnSurface(candidate_geom),${NEAR}) d,
+      json_build_array(ST_XMin(candidate_geom),ST_YMin(candidate_geom),
+        ST_XMax(candidate_geom),ST_YMax(candidate_geom)) bbox`;
   const prefix = lit(`${q.replace(/[\\%_]/g, '\\$&')}%`);
   const keyBranch = fuzzy && queryKey ? lit(queryKey) : null;
   const currentMatch = fuzzy
@@ -323,7 +343,7 @@ function areaQuery(q, fuzzy, queryKey) {
       SELECT concat('current:',a.id) dedup_key,1 source_order,a.name,
         CASE WHEN a.level=4 THEN '' ELSE coalesce(parent.name,'') END secondary,
         CASE WHEN a.level=4 THEN 'province' ELSE 'ward' END AS precision,
-        greatest(word_similarity(${qs},a.name_norm),similarity(a.name_norm,${qs})) sim,
+        ${simCurrent},
         starts_with(a.name_norm,${qs}) prefix,a.geom candidate_geom
       FROM admin_area a
       LEFT JOIN admin_area parent ON parent.id=a.parent_id
@@ -331,7 +351,7 @@ function areaQuery(q, fuzzy, queryKey) {
     ), alias_edges AS (
       SELECT coalesce('old:'||aa.old_area_id,'alias:'||aa.level||':'||aa.alias_norm) group_key,
         aa.old_area_id,aa.level,aa.alias_norm,current.id current_id,current.name current_name,
-        greatest(word_similarity(${qs},aa.alias_norm),similarity(aa.alias_norm,${qs})) sim,
+        ${simAlias},
         starts_with(aa.alias_norm,${qs}) prefix
       FROM admin_alias aa
       JOIN admin_area current ON current.id=aa.admin_area_id
@@ -372,11 +392,7 @@ function areaQuery(q, fuzzy, queryKey) {
       FROM unioned
     )
     SELECT 'area' type,NULL::text id,name,secondary,
-      ST_Y(ST_PointOnSurface(candidate_geom)) lat,
-      ST_X(ST_PointOnSurface(candidate_geom)) lng,precision,sim,prefix,0 AS pop,
-      ST_DistanceSphere(ST_PointOnSurface(candidate_geom),${NEAR}) d,
-      json_build_array(ST_XMin(candidate_geom),ST_YMin(candidate_geom),
-        ST_XMax(candidate_geom),ST_YMax(candidate_geom)) bbox
+      ${hinhHoc}
     FROM deduped
     WHERE position=1 AND candidate_geom IS NOT NULL
     ORDER BY sim DESC,prefix DESC,name,dedup_key
@@ -445,6 +461,8 @@ export function buildCases(raw) {
         street_no_sim: streetVariant(q, 'no_sim'),
         ...(tsQueryAnyToken(q) ? { street_nhanh: streetNhanh(q, tsQueryAnyToken(q) ?? '') } : {}),
         area_prefix: areaQuery(q, false, key),
+        area_prefix_no_sim: areaQuery(q, false, key, 'no-sim'),
+        area_prefix_no_geom: areaQuery(q, false, key, 'no-geom'),
         area_fuzzy: areaQuery(q, true, key),
         // ——— Ứng viên cho "bậc nhanh". Đo hình dạng TRƯỚC khi viết mã sản phẩm.
         // `nhanh_like` là ý tưởng tiền tố thuần: RẺ nhưng SAI NGỮ NGHĨA với tên tiếng Việt —

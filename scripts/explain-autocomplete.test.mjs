@@ -28,6 +28,8 @@ describe('buildCases', () => {
       'street_no_sim',
       'street_nhanh',
       'area_prefix',
+      'area_prefix_no_sim',
+      'area_prefix_no_geom',
       'area_fuzzy',
       'nhanh_like',
       'nhanh_tsv',
@@ -60,6 +62,17 @@ describe('buildCases', () => {
   it('từ chối truy vấn có phần hành chính hoặc số nhà', () => {
     expect(() => buildCases(['quan 1'])).toThrow(/không rút gọn được|phần hành chính/);
     expect(() => buildCases(['12 nguyen hue'])).toThrow(/phần hành chính|không rút gọn được/);
+  });
+
+  it('biến thể area bỏ đúng thành phần cần bỏ', () => {
+    const sql = buildCases(['cafe'])[0]?.sql ?? {};
+    expect(sql.area_prefix).toContain('word_similarity(');
+    expect(sql.area_prefix_no_sim).not.toContain('word_similarity(');
+    expect(sql.area_prefix).toContain('ST_PointOnSurface');
+    expect(sql.area_prefix_no_geom).not.toContain('ST_PointOnSurface');
+    expect(sql.area_prefix_no_geom).not.toContain('ST_XMin');
+    // Bỏ hình học KHÔNG được bỏ luôn sim, nếu không hai biến thể đo cùng một thứ.
+    expect(sql.area_prefix_no_geom).toContain('word_similarity(');
   });
 
   it('area_prefix chỉ dùng LIKE, area_fuzzy thêm <% và khoá ngữ âm', () => {
