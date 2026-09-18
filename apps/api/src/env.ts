@@ -36,6 +36,13 @@ export interface Env {
    */
   SESSION_PEPPER?: string;
   /**
+   * Secret Turnstile. Vắng ở production → form xin mã bị TỪ CHỐI; vắng ngoài production → bỏ qua
+   * bước kiểm kèm cảnh báo trong log.
+   */
+  TURNSTILE_SECRET?: string;
+  /** Site key Turnstile — công khai, nằm trong HTML của trang, nên để `[vars]` chứ không secret. */
+  TURNSTILE_SITE_KEY?: string;
+  /**
    * '1' = thêm một vòng gọi `ping()` không chạm storage vào mỗi request thương mại, để tách
    * chi phí mạng khỏi chi phí ghi bền vững. CHỈ bật trong lượt đo: nó cộng đúng một vòng mạng.
    */
