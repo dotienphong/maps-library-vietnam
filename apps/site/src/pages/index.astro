@@ -1,7 +1,8 @@
 ---
 import Base from '../layouts/Base.astro';
+import { TRANG } from '../lib/trang';
 ---
 
-<Base title="MapsLibVN" description="Đang dựng.">
-  <h1>MapsLibVN</h1>
+<Base trang={TRANG.trangChu}>
+  <h1 class="mx-auto max-w-6xl px-4 py-12 text-3xl font-bold">{TRANG.trangChu.h1}</h1>
 </Base>

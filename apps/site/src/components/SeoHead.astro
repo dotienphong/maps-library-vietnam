@@ -1,0 +1,51 @@
+---
+import { organizationJsonLd, type SeoTuyChon, seoMeta } from '../lib/seo';
+import type { TrangMeta } from '../lib/trang';
+
+interface Props {
+  trang: TrangMeta;
+  /** `| undefined` là bắt buộc: repo bật exactOptionalPropertyTypes, nên truyền thẳng một biến
+      có thể undefined vào prop tuỳ chọn sẽ bị từ chối nếu kiểu không nhận undefined. */
+  tuyChon?: SeoTuyChon | undefined;
+  /** Khối JSON-LD riêng của trang (FAQPage, Article, BreadcrumbList…). */
+  jsonLd?: readonly unknown[] | undefined;
+}
+
+const { trang, tuyChon = {}, jsonLd = [] } = Astro.props;
+const meta = seoMeta(trang, tuyChon);
+// Organization đặt ở MỌI trang: nó mô tả nhà cung cấp chứ không mô tả trang, và Google gom lại.
+const khoi = [organizationJsonLd(), ...jsonLd];
+---
+
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>{meta.title}</title>
+<meta name="description" content={meta.description} />
+<link rel="canonical" href={meta.canonical} />
+
+<meta property="og:title" content={meta.og.title} />
+<meta property="og:description" content={meta.og.description} />
+<meta property="og:url" content={meta.og.url} />
+<meta property="og:image" content={meta.og.image} />
+<meta property="og:type" content={meta.og.type} />
+<meta property="og:locale" content={meta.og.locale} />
+<meta property="og:site_name" content={meta.og.siteName} />
+{
+  'publishedTime' in meta.og && meta.og.publishedTime && (
+    <meta property="article:published_time" content={meta.og.publishedTime} />
+  )
+}
+
+<meta name="twitter:card" content={meta.twitter.card} />
+<meta name="twitter:title" content={meta.twitter.title} />
+<meta name="twitter:description" content={meta.twitter.description} />
+<meta name="twitter:image" content={meta.twitter.image} />
+
+<link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+{/* is:inline là bắt buộc: không có nó Astro coi đây là script cần xử lý, và một ngày nào đó
+    đem đi bundle thì toàn bộ đánh dấu JSON-LD biến mất khỏi HTML mà không ai thấy. */}
+{
+  khoi.map((ld) => (
+    <script type="application/ld+json" is:inline set:html={JSON.stringify(ld)} />
+  ))
+}

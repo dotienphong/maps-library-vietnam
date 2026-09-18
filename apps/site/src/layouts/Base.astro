@@ -1,22 +1,44 @@
 ---
 import '../styles/global.css';
+import Footer from '../components/Footer.astro';
+import Header from '../components/Header.astro';
+import SeoHead from '../components/SeoHead.astro';
+import type { SeoTuyChon } from '../lib/seo';
+import type { TrangMeta } from '../lib/trang';
 
 interface Props {
-  title: string;
-  description: string;
+  trang: TrangMeta;
+  tuyChon?: SeoTuyChon | undefined;
+  jsonLd?: readonly unknown[] | undefined;
 }
-const { title, description } = Astro.props;
+
+const { trang, tuyChon, jsonLd } = Astro.props;
 ---
 
 <!doctype html>
 <html lang="vi">
   <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>{title}</title>
-    <meta name="description" content={description} />
+    <SeoHead trang={trang} tuyChon={tuyChon} jsonLd={jsonLd} />
+    <script is:inline>
+      // Chạy đồng bộ trong <head>: đặt class trước lần vẽ đầu tiên, nếu không trang nháy sáng
+      // rồi mới chuyển tối. Không dùng module vì module bị hoãn tới sau khi parse xong.
+      try {
+        const luu = localStorage.getItem('mapslibvn-site-theme');
+        const toi =
+          luu === 'dark' || (luu === null && matchMedia('(prefers-color-scheme: dark)').matches);
+        if (toi) document.documentElement.classList.add('dark');
+      } catch {}
+    </script>
   </head>
   <body>
-    <main><slot /></main>
+    <a
+      href="#noi-dung"
+      class="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-50 focus:rounded-[var(--radius-btn)] focus:bg-brand-700 focus:px-4 focus:py-2 focus:text-white"
+    >
+      Bỏ qua điều hướng
+    </a>
+    <Header />
+    <main id="noi-dung"><slot /></main>
+    <Footer />
   </body>
 </html>

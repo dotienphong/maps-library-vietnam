@@ -1,0 +1,101 @@
+---
+import { CONSOLE_URL, DOCS_URL, SUPPORT_EMAIL } from '../../site.config.mjs';
+import { TRANG } from '../lib/trang';
+
+const COT = [
+  {
+    ten: 'Sản phẩm',
+    muc: [
+      { nhan: 'Tính năng', href: TRANG.tinhNang.path },
+      { nhan: 'Bảng giá', href: TRANG.bangGia.path },
+      { nhan: 'Thử trực tiếp', href: `${DOCS_URL}/playground.html` },
+      { nhan: 'Tài liệu kỹ thuật', href: `${DOCS_URL}/bat-dau/` },
+    ],
+  },
+  {
+    ten: 'So sánh',
+    muc: [
+      { nhan: 'So với Google Maps', href: TRANG.soSanhGoogle.path },
+      { nhan: 'So với VIETMAP', href: TRANG.soSanhVietmap.path },
+      { nhan: 'Bài viết', href: TRANG.baiViet.path },
+    ],
+  },
+  {
+    ten: 'Pháp lý',
+    muc: [
+      { nhan: 'Giấy phép và ghi nguồn', href: `${DOCS_URL}/giay-phep/` },
+      { nhan: 'Điều khoản tenant', href: `${DOCS_URL}/dieu-khoan/` },
+      { nhan: 'Thông báo bên thứ ba', href: `${DOCS_URL}/thong-bao-ben-thu-ba/` },
+    ],
+  },
+] as const;
+
+const nam = new Date().getFullYear();
+---
+
+<footer class="mt-20 border-t border-[var(--border)] bg-[var(--surface)]">
+  <div class="mx-auto max-w-6xl px-4 py-12">
+    <div class="grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
+      {
+        COT.map((cot) => (
+          <nav aria-label={cot.ten}>
+            <h2 class="mb-3 text-sm font-bold">{cot.ten}</h2>
+            <ul class="space-y-2">
+              {cot.muc.map((muc) => (
+                <li>
+                  <a
+                    href={muc.href}
+                    class="inline-flex min-h-11 items-center text-sm text-[var(--text-muted)] hover:text-brand-700 dark:hover:text-brand-100"
+                  >
+                    {muc.nhan}
+                  </a>
+                </li>
+              ))}
+            </ul>
+          </nav>
+        ))
+      }
+
+      <div>
+        <h2 class="mb-3 text-sm font-bold">Liên hệ</h2>
+        <p class="text-sm text-[var(--text-muted)]">
+          <a
+            href={`mailto:${SUPPORT_EMAIL}`}
+            class="inline-flex min-h-11 items-center hover:text-brand-700 dark:hover:text-brand-100"
+          >
+            {SUPPORT_EMAIL}
+          </a>
+        </p>
+        <p class="text-sm text-[var(--text-muted)]">
+          Hỗ trợ trực tuyến cho gói Professional và Business: thứ Hai đến thứ Sáu 08:00–20:00, thứ
+          Bảy và Chủ nhật 08:00–17:00, giờ Việt Nam.
+        </p>
+        <a
+          href={CONSOLE_URL}
+          class="mt-3 inline-flex min-h-11 items-center rounded-[var(--radius-btn)] border border-[var(--border)] px-4 text-sm font-semibold hover:bg-brand-50 dark:hover:bg-brand-900"
+        >
+          Cổng khách hàng
+        </a>
+      </div>
+    </div>
+
+    <div class="mt-10 border-t border-[var(--border)] pt-6 text-sm text-[var(--text-muted)]">
+      <!-- Ghi nguồn là NGHĨA VỤ giấy phép của ODbL và Apache-2.0, không phải trang trí, nên nó
+           nằm ở mọi trang chứ không riêng trang giấy phép. -->
+      <p>
+        Dữ liệu bản đồ © <a
+          class="underline"
+          href="https://www.openstreetmap.org/copyright"
+          rel="noopener"
+          target="_blank">OpenStreetMap contributors</a
+        > (ODbL) và <a
+          class="underline"
+          href="https://opensource.foursquare.com/os-places/"
+          rel="noopener"
+          target="_blank">Foursquare OS Places</a
+        > (Apache-2.0).
+      </p>
+      <p class="mt-2">© {nam} MapsLibVN. Bản đồ dựng từ dữ liệu mở, Việt Nam trước.</p>
+    </div>
+  </div>
+</footer>
