@@ -46,6 +46,14 @@
   },
   "overrides": [
     {
+      "includes": ["**/*.astro"],
+      "linter": {
+        "rules": {
+          "correctness": { "noUnusedVariables": "off", "noUnusedImports": "off" }
+        }
+      }
+    },
+    {
       "includes": ["scripts/**", "infra/**"],
       "linter": { "rules": { "suspicious": { "noUndeclaredEnvVars": "off" } } }
     }

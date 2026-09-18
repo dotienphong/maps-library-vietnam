@@ -1,0 +1,46 @@
+@import "tailwindcss";
+/* Token màu và bo góc dùng chung với trang Admin (packages/ui). Website chỉ dùng token, không
+   dùng component nào của package, nên KHÔNG cần @source. */
+@import "../../../../packages/ui/src/tokens.css";
+/* Be Vietnam Pro: font Việt, dấu đặt đúng ở mọi cỡ, giấy phép OFL. Ba nét là đủ cho cả site.
+   Dùng bản ĐỦ DẢI (400.css) chứ không phải `vietnamese-400.css`: bản đủ dải khai ba @font-face
+   kèm `unicode-range` nên trình duyệt chỉ tải đúng tệp woff2 cho chữ có trên trang, còn bản
+   vietnamese-* chỉ phủ ký tự tiếng Việt và sẽ làm mọi chữ ASCII rơi về font hệ thống. */
+@import "@fontsource/be-vietnam-pro/400.css";
+@import "@fontsource/be-vietnam-pro/600.css";
+@import "@fontsource/be-vietnam-pro/700.css";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme {
+  --font-sans: "Be Vietnam Pro", ui-sans-serif, system-ui, sans-serif;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-sans);
+  /* Website là để ĐỌC nên chữ nền tối thiểu 16px, khác trang Admin (14px). */
+  font-size: 16px;
+  line-height: 1.6;
+  margin: 0;
+}
+
+@layer base {
+  a[href],
+  button:not(:disabled),
+  summary,
+  label[for] {
+    cursor: pointer;
+  }
+}

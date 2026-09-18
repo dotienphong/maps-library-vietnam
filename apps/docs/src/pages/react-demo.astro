@@ -1,7 +1,7 @@
 ---
 // Biome 2 chỉ đọc frontmatter của file .astro, không thấy `<ReactDemo />` dùng ở template bên
-// dưới, nên nó báo import này không dùng và autofix xoá đi — làm `astro check` vỡ.
-// biome-ignore lint/correctness/noUnusedImports: xem ngay trên
+// dưới, nên nó báo import này không dùng và autofix xoá đi — làm `astro check` vỡ. Từ 18/09/2026
+// việc này do override "**/*.astro" trong biome.json lo, không cần chú thích bỏ qua từng file.
 import ReactDemo from '../components/ReactDemo';
 ---
 
