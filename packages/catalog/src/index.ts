@@ -1,3 +1,5 @@
+export { COMPARISON, type ComparisonRow, comparisonAgeDays, savingsPercent } from './comparison';
+export { addMonths } from './months';
 export {
   type AddOnDefinition,
   PAID_TIERS,
@@ -12,7 +14,6 @@ export {
   type Tier,
   USD_REFERENCE_RATE,
 } from './plans';
-export { addMonths } from './months';
 export {
   CatalogError,
   type CatalogErrorCode,
