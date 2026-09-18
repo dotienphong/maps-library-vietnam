@@ -10,6 +10,7 @@ import { admin, requireSameSitePost } from './routes/admin';
 import { adminQuotaSummary } from './routes/admin-quota-summary';
 import { autocomplete } from './routes/autocomplete';
 import { billingAdmin } from './routes/billing-admin';
+import { catalogRoute } from './routes/catalog';
 import { directions } from './routes/directions';
 import { edits } from './routes/edits';
 import { geocodeRoute } from './routes/geocode';
@@ -86,6 +87,7 @@ app.get('/v1/attribution', (c) =>
     'cache-control': 'public, max-age=86400',
   }),
 );
+app.route('/', catalogRoute);
 app.route('/', autocomplete);
 app.route('/', search);
 app.route('/', nearby);
