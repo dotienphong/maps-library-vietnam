@@ -522,3 +522,63 @@ colo về SIN.
 `perf-autocomplete` đã in `colo` trong danh sách chậm nhất từ trước, nhưng chỉ cho 5 mẫu chậm nhất
 và tôi đã đọc lướt qua nó suốt buổi. Mọi so sánh trước/sau từ nay phải kiểm colo trước khi tin, y
 như đã làm với `cache=miss`.
+
+---
+
+# Vòng 4 — bậc 3 đã xong sẵn; `area` vướng chỗ khác
+
+## Bậc 3: không có việc gì để làm
+
+`planStages` nằm trong `if (!fastRows)` nên bậc 3 **chỉ chạy khi cổng bậc nhanh không mở**. Đối
+chiếu hai bảng số:
+
+| q | bậc 3 tốn | cổng bậc nhanh | có chạy? |
+|---|---:|---|---|
+| `cafe` | 437 ms | mở | **không** |
+| `qu` | 270 ms | mở | **không** |
+| `phuc lonh` | 17 ms | đóng | có |
+| `vincon` | 32 ms | đóng | có |
+| `cho rya`, `cirlce k` | 6 ms | đóng | có |
+
+Hai ca đắt nhất không bao giờ chạy; ca chạy thật tốn 6–32 ms. Cổng của vòng 1 đã xử lý luôn bậc 3.
+Việc liệt kê nó vào "còn lại" ở bản trước là nhầm.
+
+## `area`: `sim` là thủ phạm, hình học vô can
+
+| q | `area_prefix` | bỏ `sim` | bỏ hình học | dòng khớp |
+|---|---:|---:|---:|---:|
+| `qu` | 371 ms | **200 ms** (−46 %) | 359 ms (−3 %) | 11.666 |
+| `qua` | 358 ms | **183 ms** (−49 %) | 337 ms (−6 %) | 11.119 |
+| `ben` | 15 ms | 13 ms | 4 ms | 34 |
+
+Nghi ngờ về phép hình học trên đa giác hành chính **sai** — chỉ 3–6 %.
+
+## Baseline chất lượng nhánh area (mới có lần đầu)
+
+`pnpm explain:autocomplete -- --area-rank`, dùng `perf-area-queries.txt` + `perf-prefix-queries.txt`:
+
+```
+hit@3 = 24/24 · tổng 9.629 ms cho 39 truy vấn (trung bình 247 ms)
+```
+
+**24/24 hạng 1** — 15 huyện cũ và 9 tỉnh cũ đều đứng đầu. Không còn dư địa: bất kỳ tụt hạng nào
+cũng lộ ngay. Thời gian (gồm cả vòng qua Tunnel nên cao hơn số `EXPLAIN`):
+
+| nhóm | thời gian |
+|---|---|
+| 24 ca có đích (tên đơn vị đầy đủ) | 132–309 ms, **đều hạng 1** |
+| 10 địa chỉ cũ (pha fuzzy) | 308–395 ms |
+| **5 tiền tố 2 ký tự** | **196–638 ms** (`ph` 638, `qu` 527, `th` 456) |
+
+## Chỗ vướng: ca đắt nhất lại là ca KHÔNG ai định nghĩa kết quả đúng
+
+Ba nhóm trên tách bạch rõ: nhóm chạy chậm nhất (tiền tố 2 ký tự) có **cột đích rỗng** — chưa ai
+từng định nghĩa `qu` hay `ph` phải trả về gì. Nhóm có đích thì đã chạy 132–309 ms và đạt hạng 1.
+
+Và **không tồn tại cách tăng tốc nào giữ nguyên kết quả**: `ORDER BY sim DESC LIMIT 20` đòi biết
+`sim` của mọi dòng khớp mới chọn được 20 dòng đầu. Cắt trước khi chấm điểm — đúng bài đã dùng cho
+POI và street — **bắt buộc đổi tập kết quả**. Ở POI/street thì hit@3 trên 40 truy vấn bắt được hồi
+quy; ở đây thì chính ca cần sửa lại không có phép thử nào.
+
+Ngoại lệ duy nhất giữ nguyên kết quả là dời phép hình học xuống sau `LIMIT` — nhưng chỉ 3–6 %,
+tức 11–22 ms. Không đáng một vòng phát hành.
