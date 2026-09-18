@@ -17,6 +17,15 @@ const ME = {
   ],
 };
 
+const HEALTH = {
+  checked_at: '2026-09-18T10:00:00.000Z',
+  db: { ok: true, ms: 1, user: 'api', version: 'PostgreSQL 16.4', word_similarity_threshold: 0.6, schema_migration: '0019_x' },
+  routing: { ok: true, ms: 2, distance_km: 2.13, phut: 7 },
+  data: { ok: true, ms: 3, tiles: 'vn-1', poi: 'poi-1', updated_at: null },
+};
+const METRICS = { computed_at: '2026-09-18T10:00:00.000Z', routes: [], tenants: [] };
+const QUOTA = { computed_at: '2026-09-18T10:00:00.000Z', truncated: false, above: 0, tenants: [] };
+
 function mo(duongDan: string) {
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   render(
@@ -35,11 +44,17 @@ describe('định tuyến trang Admin', () => {
   beforeEach(() => {
     vi.stubGlobal(
       'fetch',
-      vi.fn(async (input: RequestInfo | URL) =>
-        String(input).includes('/v1/admin/me')
-          ? new Response(JSON.stringify(ME))
-          : new Response(JSON.stringify({ pending: 0, items: [], total: 0 })),
-      ),
+      // So khớp theo ĐƯỜNG DẪN: '/v1/admin/metrics'.includes('/v1/admin/me') là TRUE vì "metrics"
+      // bắt đầu bằng "me". Từ pha 6, `/admin` là Tổng quan và có gọi /v1/admin/metrics, nên kiểu
+      // so khớp cũ sẽ trả hồ sơ người dùng cho lời gọi số liệu và làm trắng trang.
+      vi.fn(async (input: RequestInfo | URL) => {
+        const duongDan = new URL(String(input), 'https://admin.test').pathname;
+        if (duongDan === '/v1/admin/me') return new Response(JSON.stringify(ME));
+        if (duongDan === '/v1/admin/health') return new Response(JSON.stringify(HEALTH));
+        if (duongDan === '/v1/admin/metrics') return new Response(JSON.stringify(METRICS));
+        if (duongDan === '/v1/admin/quota-summary') return new Response(JSON.stringify(QUOTA));
+        return new Response(JSON.stringify({ pending: 0, items: [], total: 0 }));
+      }),
     );
   });
   afterEach(() => {
