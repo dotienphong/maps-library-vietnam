@@ -487,3 +487,38 @@ khác hẳn phương án bỏ nhánh.
 
 Dự phóng đường dự phòng: `phuc lonh` 1.561 → ~704 ms, `ben thanh` 3.561 → ~1.475 ms, `cho rya`
 394 → ~215 ms. Truy vấn trên 12 ký tự vốn không có nhánh `%` nên giữ nguyên một lời gọi.
+
+## Nghiệm thu vòng 3: chất lượng ĐẠT, độ trễ KHÔNG kết luận được vì đổi colo
+
+Deploy `00043b5` xanh 10:27 UTC. Đo 17:28, cùng fixture, cùng `--near`, toàn `cache=miss`.
+
+| | trước vòng 3 (SIN) | sau vòng 3 (**HKG**) |
+|---|---:|---:|
+| hit@3 | 38/40 | **38/40** ✓ |
+| p50 | 477 ms | 780 ms |
+| p95 | 1.265 ms | 1.615 ms |
+
+**Mọi phép đo trước đều `colo=SIN`, hai phép đo hôm nay đều `colo=HKG`.** Không so trực tiếp được.
+Worker chạy ở edge gần client còn DB ở Việt Nam qua Tunnel, nên HKG xa hơn SIN và mỗi request đi
+vài vòng tới DB, phạt nhân lên.
+
+**Nhóm đối chứng sạch:** bộ 10 truy vấn viết đúng chính tả KHÔNG đi qua đường dự phòng — bậc nhanh
+xử lý hết — nên vòng 3 không đụng đường đi của chúng. Vậy mà p50 đi từ **409 ms (SIN)** lên
+**735 ms (HKG)**, chậm hơn **1,8 lần trên cùng một đường mã**. Toàn bộ chênh lệch đó là colo.
+
+Áp hệ số 1,8: fixture kỳ vọng 477 × 1,8 ≈ 858 ms nếu không đổi gì; đo được 780 ms. p95 kỳ vọng
+≈ 2.277 ms; đo được 1.615 ms. Vòng 3 **có vẻ** tốt hơn giả thuyết không-đổi-gì, nhưng đó là suy
+luận từ một hệ số ước lượng, **không phải số đo**. Chưa kết luận.
+
+Bằng chứng còn lại và vẫn đứng vững là ở tầng DB, nơi colo không ảnh hưởng: tổng hai nhánh chạy
+riêng nhỏ hơn hẳn một truy vấn `OR` gộp (`phuc lonh` 832 so với 1.561 ms, `cho rya` 232 so với 394).
+
+**Quyết định: giữ thay đổi.** Chất lượng đạt đúng baseline (38/40, colo không ảnh hưởng hit@3),
+bằng chứng tầng DB vững, và thay đổi trung tính về chất lượng theo thiết kế. Đo lại độ trễ khi
+colo về SIN.
+
+## Bài học phương pháp: phải ghi colo vào mọi phép đo
+
+`perf-autocomplete` đã in `colo` trong danh sách chậm nhất từ trước, nhưng chỉ cho 5 mẫu chậm nhất
+và tôi đã đọc lướt qua nó suốt buổi. Mọi so sánh trước/sau từ nay phải kiểm colo trước khi tin, y
+như đã làm với `cache=miss`.
