@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   measureAutocomplete,
+  measureOptions,
   measurePairedCohorts,
   parseCliArgs,
   parseQueryFixture,
@@ -517,5 +518,59 @@ describe('ACK receipt', () => {
       now: () => 0,
     });
     expect(urls).toHaveLength(1);
+  });
+});
+
+/**
+ * Hai lần đo trước/sau phải so được với nhau, mà cache autocomplete sống 10 phút theo
+ * (q_norm, ô lưới `near`, …). Nên lần "sau" BẮT BUỘC đổi `near`, nếu không nó đo cache chứ không
+ * đo DB. `--near` có trong parseCliArgs từ đầu nhưng nhánh không-paired **không hề dùng tới nó**.
+ *
+ * `--count` cũng cần: với `--queries`, count bị ép thành `queries.length * 2`, nên một nửa số mẫu
+ * là cache hit và p95 thấp giả tạo (bài học đã ghi ở hồ sơ search-keys). Baseline phải toàn lạnh.
+ */
+describe('measureOptions', () => {
+  it('chuyển tiếp near cho nhánh không-paired', () => {
+    expect(measureOptions({ near: '21.03,105.85' })).toMatchObject({ near: '21.03,105.85' });
+    expect(measureOptions({})).not.toHaveProperty('near');
+  });
+
+  it('không có --count thì count = số truy vấn × 2 như cũ', () => {
+    const queries = [
+      { q: 'a', expect: '' },
+      { q: 'b', expect: '' },
+    ];
+    expect(measureOptions({ queries })).toMatchObject({ queries, count: 4 });
+  });
+
+  it('--count ghi đè để đo một lượt toàn lạnh', () => {
+    const queries = [
+      { q: 'a', expect: '' },
+      { q: 'b', expect: '' },
+    ];
+    expect(measureOptions({ queries, count: 2 })).toMatchObject({ count: 2 });
+  });
+
+  it('không có queries thì không đặt count, để mặc định của hàm đo lo', () => {
+    expect(measureOptions({})).not.toHaveProperty('count');
+  });
+
+  it('types rỗng thì không chèn khoá types', () => {
+    expect(measureOptions({ types: '' })).not.toHaveProperty('types');
+    expect(measureOptions({ types: 'poi' })).toMatchObject({ types: 'poi' });
+  });
+});
+
+describe('parseCliArgs --count', () => {
+  it('đọc --count thành số', () => {
+    expect(parseCliArgs(['https://api.test', 'k', '--count', '40']).count).toBe(40);
+  });
+
+  it('không có --count thì không có khoá count', () => {
+    expect(parseCliArgs(['https://api.test', 'k'])).not.toHaveProperty('count');
+  });
+
+  it('--count không phải số nguyên dương thì ném', () => {
+    expect(() => parseCliArgs(['https://api.test', 'k', '--count', '0'])).toThrow(/--count/);
   });
 });

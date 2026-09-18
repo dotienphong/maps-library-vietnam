@@ -341,12 +341,18 @@ export function parseCliArgs(args) {
   const types = flagValue('--types');
   const roundsArg = flagValue('--rounds');
   const near = flagValue('--near');
+  const countArg = flagValue('--count');
   const paired = hasFlag('--paired');
   const pairedSourcesArg = optionalFlagValue('--paired-sources', 'osm');
   const pairedSources =
     pairedSourcesArg === undefined ? undefined : normalizePairedSources(pairedSourcesArg);
   const [base, key] = args.filter((_, i) => !consumed.has(i));
   const rounds = roundsArg === undefined ? undefined : Number(roundsArg);
+  let count;
+  if (countArg !== undefined) {
+    count = Number(countArg);
+    if (!Number.isInteger(count) || count < 1) throw new Error('--count phải là số nguyên dương');
+  }
   return {
     base,
     key,
@@ -356,6 +362,27 @@ export function parseCliArgs(args) {
     paired,
     pairedSources,
     ...(rounds === undefined ? {} : { rounds }),
+    ...(count === undefined ? {} : { count }),
+  };
+}
+
+/**
+ * Dựng tham số cho `measureAutocomplete` từ cờ CLI. Tách riêng để **kiểm được**: nhánh không-paired
+ * trước 18/09/2026 nhận `--near` rồi vứt đi, mà `near` là thứ quyết định ô cache 10 phút — hai lần
+ * đo trước/sau dùng cùng `near` thì lần sau đo cache chứ không đo DB.
+ *
+ * `count` mặc định là `queries.length * 2` (giữ hành vi cũ), nhưng khi cần một lượt TOÀN LẠNH để so
+ * baseline thì truyền `--count` bằng đúng số truy vấn.
+ *
+ * @param {{ queries?: { q: string, expect: string | string[] }[], types?: string, near?: string,
+ *   count?: number }} input
+ */
+export function measureOptions({ queries, types, near, count } = {}) {
+  return {
+    ...(queries ? { queries, count: count ?? queries.length * 2 } : {}),
+    ...(queries === undefined && count !== undefined ? { count } : {}),
+    ...(types ? { types } : {}),
+    ...(near ? { near } : {}),
   };
 }
 
@@ -370,10 +397,11 @@ if (isMain) {
     paired,
     pairedSources,
     rounds,
+    count,
   } = parseCliArgs(process.argv.slice(2));
   if (!base || !key) {
     console.error(
-      'Cách dùng: node scripts/perf-autocomplete.mjs <base-url> <api-key> [--queries scripts/fixtures/fuzzy-queries.txt] [--types poi,street,address] [--paired | --paired-sources [osm|fsq] [--rounds N]] [--near lat,lng]',
+      'Cách dùng: node scripts/perf-autocomplete.mjs <base-url> <api-key> [--queries scripts/fixtures/fuzzy-queries.txt] [--count N] [--types poi,street,address] [--paired | --paired-sources [osm|fsq] [--rounds N]] [--near lat,lng]',
     );
     process.exitCode = 1;
   } else {
@@ -415,10 +443,16 @@ if (isMain) {
         if (result.acks) console.log(`ack=${result.acks.ok} ok, ${result.acks.failed} hỏng`);
         console.log(JSON.stringify(result));
       } else {
-        const result = await measureAutocomplete(base, key, {
-          ...(queries ? { queries, count: queries.length * 2 } : {}),
-          ...(typesArg ? { types: typesArg } : {}),
-        });
+        const result = await measureAutocomplete(
+          base,
+          key,
+          measureOptions({
+            ...(queries ? { queries } : {}),
+            ...(typesArg ? { types: typesArg } : {}),
+            ...(near ? { near } : {}),
+            ...(count === undefined ? {} : { count }),
+          }),
+        );
         console.log(`n=${result.n} p50=${result.p50}ms p95=${result.p95}ms p99=${result.p99}ms`);
         if (result.hit3) {
           console.log(

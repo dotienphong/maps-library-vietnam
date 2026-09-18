@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import { buildCases, parseArgs, timesOf } from './explain-autocomplete.mjs';
+import { buildCases, median, parseArgs, timesOf, widestNode } from './explain-autocomplete.mjs';
 
 describe('buildCases', () => {
-  it('dựng đủ sáu biến thể bậc 1 cho mỗi truy vấn', () => {
+  it('dựng đủ biến thể poi, bậc phụ và hai loại chạy song song', () => {
     const [truong_hop] = buildCases(['cafe']);
     expect(Object.keys(truong_hop?.sql ?? {})).toEqual([
       'full',
@@ -11,9 +11,62 @@ describe('buildCases', () => {
       'no_like',
       'no_percent',
       'chi_wordsim',
+      'chi_percent',
+      'chi_like',
       // 'cafe' chỉ một token nên không có bậc 2; bậc 3 luôn có vì viKey không rỗng.
       'bac3_name_key',
+      'street',
+      'area_prefix',
+      'area_fuzzy',
+      'nhanh_like',
+      'nhanh_tsv',
     ]);
+  });
+
+  /**
+   * Bậc nhanh phải cắt 200 dòng theo popularity TRƯỚC rồi mới tính sim — nếu `sim` còn nằm trong
+   * ORDER BY của bước quét thì nó vẫn tính trigram cho mọi dòng khớp và chẳng nhanh hơn gì.
+   */
+  it('bậc nhanh cắt 200 theo popularity rồi mới tính sim', () => {
+    const sql = buildCases(['cafe'])[0]?.sql ?? {};
+    for (const bien_the of ['nhanh_like', 'nhanh_tsv']) {
+      const text = sql[bien_the] ?? '';
+      expect(text).toContain('ORDER BY coalesce(popularity, 0) DESC\n      LIMIT 200');
+      const viTriCat = text.indexOf('LIMIT 200');
+      expect(text.indexOf('word_similarity')).toBeGreaterThan(viTriCat);
+    }
+  });
+
+  /** `tsQueryFor` của stages.ts bỏ truy vấn một token; bậc nhanh thì phải phục vụ được `cafe`. */
+  it('nhanh_tsv nhận cả truy vấn một token', () => {
+    expect(buildCases(['cafe'])[0]?.sql.nhanh_tsv).toContain("to_tsquery('simple', 'cafe:*')");
+    expect(buildCases(['ben thanh'])[0]?.sql.nhanh_tsv).toContain(
+      "to_tsquery('simple', 'ben:* & thanh:*')",
+    );
+  });
+
+  /** Nhánh area đổi hình dạng khi có phần hành chính, nên phải chặn như chặn nameCore. */
+  it('từ chối truy vấn có phần hành chính hoặc số nhà', () => {
+    expect(() => buildCases(['quan 1'])).toThrow(/không rút gọn được|phần hành chính/);
+    expect(() => buildCases(['12 nguyen hue'])).toThrow(/phần hành chính|không rút gọn được/);
+  });
+
+  it('area_prefix chỉ dùng LIKE, area_fuzzy thêm <% và khoá ngữ âm', () => {
+    const sql = buildCases(['cafe'])[0]?.sql ?? {};
+    expect(sql.area_prefix).toContain("a.name_norm LIKE 'cafe%'");
+    expect(sql.area_prefix).not.toContain('<%');
+    expect(sql.area_fuzzy).toContain("'cafe' <% a.name_norm");
+    expect(sql.area_fuzzy).toContain('<% a.name_key');
+  });
+
+  it('biến thể chỉ-một-nhánh giữ đúng một điều kiện', () => {
+    const sql = buildCases(['cafe'])[0]?.sql ?? {};
+    expect(sql.chi_percent).toContain("AND (name_norm % 'cafe')");
+    expect(sql.chi_percent).not.toContain("'cafe' <% name_norm");
+    expect(sql.chi_like).toContain("AND (name_norm LIKE 'cafe%')");
+    // `<%` còn trong subquery matched_alt của phần SELECT là ĐÚNG; chỉ mệnh đề WHERE được thu lại.
+    expect(sql.chi_like).not.toContain("'cafe' <% name_norm");
+    expect(sql.chi_like).not.toContain("'cafe' <% name_alt_norm");
   });
 
   /**
@@ -67,14 +120,88 @@ describe('parseArgs', () => {
     expect(parseArgs([]).plan).toBe(false);
   });
 
-  it('gom nhiều --q và nhận --plan', () => {
-    const { queries, plan } = parseArgs(['--q', 'cafe', '--plan', '--q', 'ben thanh']);
-    expect(queries).toEqual(['cafe', 'ben thanh']);
-    expect(plan).toBe(true);
+  /** Mặc định phải là ngưỡng production ĐANG chạy (0,6), không phải giá trị migration đặt (0,5). */
+  it('mặc định repeat=3, threshold=0.6, sweep tắt', () => {
+    expect(parseArgs([])).toMatchObject({ repeat: 3, threshold: 0.6, sweep: false });
   });
 
-  it('--q thiếu giá trị thì ném', () => {
+  it('gom nhiều --q và nhận --plan/--sweep/--repeat/--threshold', () => {
+    const args = parseArgs([
+      '--q',
+      'cafe',
+      '--plan',
+      '--q',
+      'ben thanh',
+      '--repeat',
+      '5',
+      '--threshold',
+      '0.5',
+      '--sweep',
+    ]);
+    expect(args.queries).toEqual(['cafe', 'ben thanh']);
+    expect(args).toMatchObject({ plan: true, repeat: 5, threshold: 0.5, sweep: true });
+  });
+
+  it('cờ thiếu giá trị hoặc giá trị vô lý thì ném', () => {
     expect(() => parseArgs(['--q'])).toThrow(/--q thiếu giá trị/);
+    expect(() => parseArgs(['--repeat'])).toThrow(/--repeat thiếu giá trị/);
+    expect(() => parseArgs(['--repeat', '0'])).toThrow(/--repeat phải ≥ 1/);
+    expect(() => parseArgs(['--threshold', '1.5'])).toThrow(/--threshold phải trong/);
+  });
+});
+
+describe('widestNode', () => {
+  /**
+   * `LIMIT 20` làm nút gốc luôn 20 dòng; con số cần biết là chỗ rộng nhất, vì `sim` nằm trong
+   * ORDER BY nên 4 hàm trigram chạy cho mọi dòng tới được nút đó.
+   */
+  it('tìm nút nhiều dòng nhất, không phải nút gốc', () => {
+    const plan = [
+      {
+        Plan: {
+          'Node Type': 'Limit',
+          'Actual Rows': 20,
+          Plans: [
+            {
+              'Node Type': 'Sort',
+              'Actual Rows': 48_000,
+              Plans: [{ 'Node Type': 'Bitmap Heap Scan', 'Actual Rows': 51_200 }],
+            },
+          ],
+        },
+      },
+    ];
+    expect(widestNode(plan)).toEqual({ node: 'Bitmap Heap Scan', rows: 51_200 });
+  });
+
+  it('nhân với Actual Loops: subquery tương quan chạy lại mỗi dòng', () => {
+    const plan = [
+      {
+        Plan: {
+          'Node Type': 'Limit',
+          'Actual Rows': 3,
+          'Actual Loops': 1,
+          Plans: [{ 'Node Type': 'Index Scan', 'Actual Rows': 2, 'Actual Loops': 900 }],
+        },
+      },
+    ];
+    expect(widestNode(plan)).toEqual({ node: 'Index Scan', rows: 1_800 });
+  });
+
+  it('kế hoạch rỗng không làm ném', () => {
+    expect(widestNode(undefined)).toEqual({ node: '-', rows: 0 });
+  });
+});
+
+describe('median', () => {
+  it('lẻ lấy giữa, chẵn lấy trung bình hai giữa, rỗng trả 0', () => {
+    expect(median([3, 1, 2])).toBe(2);
+    expect(median([4, 1, 3, 2])).toBe(2.5);
+    expect(median([])).toBe(0);
+  });
+
+  it('không bị một lần chạy lệch kéo đi như trung bình', () => {
+    expect(median([100, 105, 110, 108, 9000])).toBe(108);
   });
 });
 
