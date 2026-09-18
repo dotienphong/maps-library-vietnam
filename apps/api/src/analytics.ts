@@ -12,7 +12,15 @@ export function analyticsMiddleware() {
     } finally {
       const auth = c.get('auth');
       c.env.ANALYTICS?.writeDataPoint({
-        blobs: [auth?.tenantId ?? '', auth?.keyHash ?? '', new URL(c.req.url).pathname],
+        // blob4 = MẪU route (`/v1/places/:id`), blob3 giữ nguyên đường dẫn THÔ. Hai cột chứ không
+        // phải một: `report:weekly` đọc blob3, và lịch sử trước 18/09/2026 không có blob4 (truy vấn
+        // vẫn chạy, cột trả chuỗi rỗng). Đường dẫn không khớp route nào rơi vào `/v1/*`.
+        blobs: [
+          auth?.tenantId ?? '',
+          auth?.keyHash ?? '',
+          new URL(c.req.url).pathname,
+          c.req.routePath ?? '',
+        ],
         // stage_hit: -1 route khác, -2 autocomplete trúng cache, 0 chạy mà rỗng, 1..3 bậc trúng.
         doubles: [c.res.status, Date.now() - t0, c.get('stageHit') ?? -1],
         indexes: [auth?.keyHash ?? 'anon'],
