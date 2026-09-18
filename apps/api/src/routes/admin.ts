@@ -8,6 +8,7 @@ import { ApiError } from '../errors';
 import { adminAudit } from './admin-audit';
 import { adminCatalog } from './admin-catalog';
 import { parseEditListParams } from './admin-edit-params';
+import { adminMetrics } from './admin-metrics';
 import { adminTenants } from './admin-tenants';
 
 export const admin = new Hono<AppEnv>();
@@ -46,6 +47,7 @@ admin.use('/v1/admin/*', requireAccess());
 admin.route('/', adminTenants);
 admin.route('/', adminAudit);
 admin.route('/', adminCatalog);
+admin.route('/', adminMetrics);
 
 /**
  * Danh sách quyền để giao diện biết vẽ những mục nào. Giai đoạn này hệ thống chưa phân quyền
