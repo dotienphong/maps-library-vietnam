@@ -1,0 +1,200 @@
+---
+import { COMPARISON } from '@mapslibvn/catalog';
+import { CONSOLE_URL, DOCS_URL } from '../../../site.config.mjs';
+import ComparisonTable from '../../components/ComparisonTable.astro';
+import Faq from '../../components/Faq.astro';
+import Base from '../../layouts/Base.astro';
+import { breadcrumbJsonLd, faqJsonLd } from '../../lib/seo';
+import { TRANG } from '../../lib/trang';
+
+const ngayVn = COMPARISON.checkedAt.split('-').reverse().join('/');
+
+const HOP_HON = [
+  {
+    tieuDe: 'Chi phí ở ba mức đã đo',
+    mo: 'Với đúng khối lượng gọi API trong bảng trên, hoá đơn thấp hơn đáng kể. Con số chỉ đúng cho ba workload đó; workload của bạn khác thì phải tính lại.',
+  },
+  {
+    tieuDe: 'Dữ liệu mở, không bị khoá',
+    mo: 'Nền bản đồ và địa điểm đến từ OpenStreetMap và Foursquare OS. Bạn tự dựng lại được toàn bộ hệ thống trên hạ tầng của mình nếu một ngày muốn rời đi.',
+  },
+  {
+    tieuDe: 'Làm cho địa chỉ Việt Nam',
+    mo: 'Tìm kiếm chịu được chữ không dấu, viết tắt và tên đơn vị hành chính cũ lẫn mới sau đợt sắp xếp 2025. Geocode nói rõ mức chính xác thay vì luôn trả một toạ độ trông có vẻ chuẩn.',
+  },
+  {
+    tieuDe: 'Thanh toán trong nước',
+    mo: 'Thu bằng VND qua chuyển khoản ngân hàng, không cần thẻ quốc tế và không phải lo biến động tỷ giá giữa kỳ.',
+  },
+  {
+    tieuDe: 'Chủ quyền thể hiện đúng',
+    mo: 'Nhãn Hoàng Sa và Trường Sa luôn tiếng Việt, được bảo vệ ở cả tầng dữ liệu, tầng style và một bước kiểm tự động chặn phát hành.',
+  },
+] as const;
+
+const GOOGLE_HON = [
+  {
+    tieuDe: 'Phủ toàn cầu',
+    mo: 'MapsLibVN chỉ làm Việt Nam. Ứng dụng của bạn có người dùng ở nước ngoài thì Google phục vụ được, còn MapsLibVN thì không.',
+  },
+  {
+    tieuDe: 'Street View và ảnh vệ tinh',
+    mo: 'Hai thứ này Google có, MapsLibVN không có và chưa có kế hoạch làm.',
+  },
+  {
+    tieuDe: 'Giao thông thời gian thực',
+    mo: 'Google biết đường nào đang tắc và tính thời gian tới nơi theo tình hình thật. Tuyến của MapsLibVN tính trên hình học mạng đường, không có lớp giao thông trực tiếp.',
+  },
+  {
+    tieuDe: 'Chi tiết địa điểm thương mại',
+    mo: 'Đánh giá, ảnh, giờ mở cửa cập nhật liên tục là thế mạnh lâu năm của Google. Dữ liệu mở mỏng hơn hẳn ở mảng này.',
+  },
+  {
+    tieuDe: 'Hệ sinh thái và cam kết dịch vụ',
+    mo: 'Google có nhiều công cụ, nhiều thư viện cộng đồng, và có cam kết mức dịch vụ cho khách hàng doanh nghiệp. MapsLibVN chưa công bố cam kết mức dịch vụ.',
+  },
+] as const;
+
+const KHI_NAO = [
+  {
+    chon: 'Chọn MapsLibVN khi',
+    y: [
+      'Người dùng của bạn ở Việt Nam.',
+      'Chi phí Google đang là khoản đáng kể trong hoá đơn hạ tầng.',
+      'Bạn cần tìm kiếm và geocode hiểu cách người Việt gõ địa chỉ.',
+      'Bạn muốn giữ khả năng tự host về sau.',
+      'Bạn cần thanh toán bằng VND trong nước.',
+    ],
+  },
+  {
+    chon: 'Ở lại với Google khi',
+    y: [
+      'Bạn phục vụ người dùng nhiều quốc gia.',
+      'Sản phẩm dựa vào Street View, ảnh vệ tinh hoặc giao thông thời gian thực.',
+      'Bạn cần đánh giá và giờ mở cửa của hàng quán ở mức chi tiết cao.',
+      'Bạn cần cam kết mức dịch vụ bằng hợp đồng.',
+      'Chi phí hiện tại còn nằm trong hạn mức miễn phí của Google.',
+    ],
+  },
+] as const;
+
+const CAU_HOI = [
+  {
+    hoi: 'Chuyển từ Google sang mất bao nhiêu công?',
+    dap: 'Phần bản đồ và tìm kiếm thường chỉ là thay SDK và đổi cách đọc kết quả, vì cả hai bên đều trả JSON có toạ độ và tên. Phần tốn công nhất là chỗ nào đang lưu place_id của Google: mã đó không dùng lại được, bạn phải tra lại theo tên và toạ độ.',
+  },
+  {
+    hoi: 'Dùng song song hai nhà cung cấp được không?',
+    dap: 'Được, và nhiều đội làm vậy thật: dùng MapsLibVN cho phần lớn lưu lượng trong nước, giữ Google cho các tính năng chỉ Google có. Điều khoản của MapsLibVN không cấm điều này.',
+  },
+  {
+    hoi: 'Số trong bảng này có được kiểm chứng độc lập không?',
+    dap: `Không. Đây là bảng do chính MapsLibVN lập ngày ${ngayVn} dựa trên bảng giá công bố của các bên, kèm toàn bộ giả định và ba đường dẫn nguồn ngay dưới bảng để bạn tự tính lại theo khối lượng thật của mình.`,
+  },
+] as const;
+---
+
+<Base
+  trang={TRANG.soSanhGoogle}
+  jsonLd={[
+    faqJsonLd(CAU_HOI),
+    breadcrumbJsonLd([
+      { ten: 'Trang chủ', path: TRANG.trangChu.path },
+      { ten: 'So với Google', path: TRANG.soSanhGoogle.path },
+    ]),
+  ]}
+>
+  <section class="mx-auto max-w-3xl px-4 pt-12">
+    <h1 class="text-3xl font-bold sm:text-4xl">{TRANG.soSanhGoogle.h1}</h1>
+    <p class="mt-4 text-lg text-[var(--text-muted)]">
+      Đây là bản so sánh do chính nhà cung cấp MapsLibVN viết, nên bạn có quyền nghi ngờ. Vì vậy
+      mọi con số đều kèm ngày đối chiếu {ngayVn}, giả định cụ thể và đường dẫn nguồn để bạn tính
+      lại theo khối lượng thật của mình. Trang này cũng nói rõ những chỗ Google hơn hẳn.
+    </p>
+  </section>
+
+  <section aria-labelledby="tt-chi-phi" class="py-12">
+    <h2 id="tt-chi-phi" class="mx-auto mb-6 max-w-6xl px-4 text-2xl font-bold">Chi phí</h2>
+    <ComparisonTable />
+  </section>
+
+  <section aria-labelledby="tt-hop-hon" class="bg-[var(--surface)] py-16">
+    <div class="mx-auto max-w-3xl px-4">
+      <h2 id="tt-hop-hon" class="mb-6 text-2xl font-bold">Chỗ MapsLibVN hợp hơn</h2>
+      <ul class="space-y-5">
+        {
+          HOP_HON.map((y) => (
+            <li>
+              <h3 class="font-bold">{y.tieuDe}</h3>
+              <p class="mt-1 text-[var(--text-muted)]">{y.mo}</p>
+            </li>
+          ))
+        }
+      </ul>
+    </div>
+  </section>
+
+  <section aria-labelledby="tt-google-hon" class="mx-auto max-w-3xl px-4 py-16">
+    <h2 id="tt-google-hon" class="mb-2 text-2xl font-bold">Chỗ Google hơn</h2>
+    <p class="mb-6 text-[var(--text-muted)]">
+      Nếu sản phẩm của bạn cần một trong năm thứ dưới đây, đổi nhà cung cấp là quyết định sai dù
+      tiết kiệm được bao nhiêu.
+    </p>
+    <ul class="space-y-5">
+      {
+        GOOGLE_HON.map((y) => (
+          <li>
+            <h3 class="font-bold">{y.tieuDe}</h3>
+            <p class="mt-1 text-[var(--text-muted)]">{y.mo}</p>
+          </li>
+        ))
+      }
+    </ul>
+  </section>
+
+  <section aria-labelledby="tt-khi-nao" class="bg-[var(--surface)] py-16">
+    <div class="mx-auto max-w-4xl px-4">
+      <h2 id="tt-khi-nao" class="mb-6 text-2xl font-bold">Khi nào nên chọn cái nào</h2>
+      <div class="grid gap-4 sm:grid-cols-2">
+        {
+          KHI_NAO.map((cot) => (
+            <article class="rounded-[var(--radius-card)] border border-[var(--border)] bg-[var(--bg)] p-5">
+              <h3 class="mb-3 font-bold">{cot.chon}</h3>
+              <ul class="list-disc space-y-2 pl-5 text-[var(--text-muted)]">
+                {cot.y.map((y) => (
+                  <li>{y}</li>
+                ))}
+              </ul>
+            </article>
+          ))
+        }
+      </div>
+    </div>
+  </section>
+
+  <section aria-labelledby="tt-chuyen" class="mx-auto max-w-3xl px-4 py-16">
+    <h2 id="tt-chuyen" class="mb-4 text-2xl font-bold">Chuyển sang thì mất gì</h2>
+    <p class="mb-3 text-[var(--text-muted)]">
+      Thay thư viện bản đồ và đổi cách đọc kết quả tìm kiếm là phần dễ. Ba chỗ hay tốn thời gian:
+      dữ liệu đang lưu mã địa điểm của Google phải tra lại theo tên và toạ độ; giao diện nào đang
+      dựa vào Street View phải thiết kế lại; và bộ kiểm thử tự động cần cập nhật vì hình dạng phản
+      hồi khác nhau.
+    </p>
+    <p class="text-[var(--text-muted)]">
+      Cách ít rủi ro nhất là chạy song song: đưa một phần lưu lượng sang MapsLibVN bằng bản dùng
+      thử, so kết quả trên chính bộ địa chỉ của bạn, rồi mới quyết định.
+      <a class="underline" href={`${DOCS_URL}/bat-dau/`}>Hướng dẫn bắt đầu →</a>
+    </p>
+  </section>
+
+  <Faq items={CAU_HOI} tieuDe="Câu hỏi thường gặp khi so sánh" />
+
+  <section class="mx-auto max-w-3xl px-4 pb-20 text-center">
+    <a
+      href={CONSOLE_URL}
+      class="inline-flex min-h-11 items-center rounded-[var(--radius-btn)] bg-brand-700 px-6 font-semibold text-white hover:bg-brand-800"
+    >
+      Thử bằng bản miễn phí
+    </a>
+  </section>
+</Base>
