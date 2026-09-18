@@ -1,0 +1,98 @@
+# Chứng cứ pha 2 — cổng khách hàng `/console`
+
+Plan: `docs/superpowers/plans/2026-09-18-thuong-mai-pha-2-console.md`
+Spec: `docs/superpowers/specs/2026-09-18-thuong-mai-tu-phuc-vu-design.md` mục 5.1, 6, 7, 12, 14.
+Ngày chạy: 19/09/2026. 18 task.
+
+## 1. Cổng ở máy — số thật
+
+| Lệnh | Kết quả |
+|---|---|
+| `pnpm lint` | 764 file, sạch |
+| `pnpm typecheck` (gồm `tsc -p tsconfig.scripts.json` rồi mới tới turbo) | **18/18**, sạch |
+| `pnpm test` | 194 file / **1.864 test** xanh, 5 skip |
+| `pnpm --filter @mapslibvn/api test` | 69 file / **550 test** xanh |
+| `pnpm test:api-db` (DB thật) | 11 file / **116 test** xanh |
+| `pnpm exec vitest run --config vitest.db.config.ts db/console-grant.dbtest.mjs` | 3 test xanh |
+| `pnpm test:console-e2e` | **8/8** xanh, 50 giây |
+| `pnpm test:admin-e2e` | 17/17 xanh (không hồi quy) |
+
+Test API tăng từ 480 (cuối pha 1) lên 550.
+
+## 2. Lời hứa của pha này, đã chứng minh bằng e2e
+
+Bài `người lạ đăng ký, lấy khoá và gọi được API thật bằng chính khoá đó` chạy trọn chặng trên
+harness có Postgres thật và sổ quota thật: nhập email → đọc mã sáu số → tạo tổ chức → nhận khoá →
+gọi `/v1/autocomplete` bằng đúng khoá đó và nhận 200 → thấy hạn mức 2.000 lượt trên Tổng quan.
+
+Bảy bài bảo vệ kèm theo:
+
+- [x] Mã sai năm lần thì mã chết; lần thứ sáu gõ đúng vẫn không vào được.
+- [x] Chưa đăng nhập mà mở màn Khoá thì bị đưa về đăng nhập, giữ lại đường đang xem trong `?next=`.
+- [x] Đăng xuất rồi thì `/v1/console/me` trả 401.
+- [x] **Tài khoản A không thấy và không thu hồi được khoá của tài khoản B** — B gửi thẳng hash của
+      A lên cũng chỉ nhận 404.
+- [x] Thu hồi khoá rồi thì gọi API bằng khoá đó trả 401.
+- [x] Huỷ trong 5 giây khi thu hồi thì khoá vẫn dùng được (không request nào rời trình duyệt).
+- [x] Cấp thêm khoá và danh sách đếm đúng số khoá đang dùng.
+
+## 3. Quyền database đã kiểm bằng role thật
+
+`db/console-grant.dbtest.mjs` chạy dưới `SET ROLE api`: 18 câu mà mã thật sẽ dùng đều chạy được;
+`UPDATE tenant SET plan` và `DELETE FROM customer_account` bị từ chối đúng như thiết kế.
+
+Một phát hiện ghi lại bằng bài test thay vì để người sau tự vấp: role `api` **vẫn đổi được**
+`quota_mode`, vì migration `0015` đã cấp cho trang Admin và console dùng chung role đó. Thứ ngăn
+console làm việc ấy là ở tầng route, không phải ở database.
+
+## 4. Phụ thuộc giữa hai cờ — đọc trước khi bật
+
+`SELF_SERVE=1` **một mình là chưa đủ**. Console tạo tenant ở chế độ `commercial`, và `auth.ts`
+từ chối mọi khoá của tenant commercial bằng 503 `quota_unavailable` khi `COMMERCIAL_ADMISSION`
+chưa mở. Bật một cờ mà quên cờ kia thì khách đăng ký được, cầm khoá trong tay, và gọi API nào cũng
+503 — không có thông báo nào nối hai việc đó lại với nhau.
+
+Production đang mở `COMMERCIAL_ADMISSION = "1"` từ 15/09/2026, nên hiện tại an toàn. Nhưng nếu
+một ngày phải đóng khẩn cấp cổng thương mại, hãy biết rằng việc đó chặn luôn khách mới.
+
+Bộ e2e bắt được điều này vì harness ban đầu thiếu đúng cờ đó.
+
+## 5. Việc tay của PHONG, theo thứ tự
+
+1. **Resend.** Tạo tài khoản, thêm tên miền `ai-solutions.io.vn`, đặt bản ghi DKIM và SPF trên
+   Cloudflare DNS, chờ trạng thái Verified. Gói miễn phí 3.000 thư mỗi tháng và 100 mỗi ngày.
+2. **Google Cloud.** Tạo OAuth client kiểu Web, thêm hai địa chỉ chuyển hướng:
+   `https://api.ai-solutions.io.vn/v1/console/auth/google/callback` và
+   `http://127.0.0.1:8799/v1/console/auth/google/callback` cho harness.
+3. **Turnstile.** Tạo widget, lấy site key và secret.
+4. **Đặt bốn secret** cho production:
+   ```
+   wrangler secret put RESEND_API_KEY --env production
+   wrangler secret put GOOGLE_CLIENT_ID --env production
+   wrangler secret put GOOGLE_CLIENT_SECRET --env production
+   wrangler secret put TURNSTILE_SECRET --env production
+   wrangler secret put SESSION_PEPPER --env production
+   ```
+   `SESSION_PEPPER` là chuỗi ngẫu nhiên 32 byte, sinh bằng
+   `openssl rand -base64 32`. Đổi nó sau này sẽ làm mọi phiên đang mở bị đăng xuất.
+5. **Điền `TURNSTILE_SITE_KEY`** vào cả `[vars]` và khối `[env.production]` của
+   `apps/api/wrangler.toml`. Đây là giá trị công khai, không phải secret.
+6. **Chạy migration `0020` trên máy chủ TRƯỚC khi deploy Worker**, rồi đối chiếu `/healthz/db` thấy
+   `schema_migration` đã sang `0020`. Deploy trước migration đã từng làm chết API nhiều giờ.
+7. **Đổi `SELF_SERVE` thành `"1"`** trong `[env.production]` rồi deploy lần nữa.
+8. **Tự đăng ký một tài khoản thật** bằng email của mình để nghiệm thu đầu cuối: nhận mã, tạo tổ
+   chức, lấy khoá, gọi thử `/v1/autocomplete`.
+
+Bước 1 đến 5 làm được trước lúc nào cũng được; thiếu chúng thì cổng vẫn đóng và không ai bị ảnh
+hưởng. Bước 6 là bước duy nhất chạm dữ liệu production.
+
+## 6. Còn nợ, ghi rõ chứ không lờ đi
+
+- **Chưa gửi được một lá thư thật nào.** Toàn bộ đường email chạy qua bản ghi log trong test; bản
+  Resend chỉ được kiểm bằng `fetch` giả. Lá thư thật đầu tiên sẽ đi ở bước 8 của mục 5.
+- **Chưa đăng nhập Google thật lần nào.** Phần xác thực `id_token` kiểm bằng khoá RSA tự sinh và
+  phủ năm nhánh từ chối, nhưng luồng chuyển hướng thật với Google thì chưa chạy.
+- **Ba màn hình của pha 3 chưa có** (Mua gói, Đơn hàng, chi tiết đơn). Ba nút mua ở Tổng quan dẫn
+  tới hộp thoại nói thật kèm email hỗ trợ.
+- **Chưa có cron dọn** mã đăng nhập và phiên hết hạn. Hai bảng đó có chỉ mục theo hạn nên câu xoá
+  sẽ rẻ; việc dọn nằm trong pha 3 cùng với cron đối soát đơn hàng.

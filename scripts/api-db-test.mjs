@@ -65,6 +65,10 @@ const detached = process.platform !== 'win32';
 // trang không còn tồn tại trong mã. 16/09/2026 mất một lượt chạy vì màn Tenant mới thêm không
 // có trong dist của pha trước — cùng lớp lỗi với APK đóng gói bundle Metro cũ.
 run('pnpm', ['--filter', '@mapslibvn/admin', 'build']);
+// Console build vào apps/admin/dist/console, nên phải chạy SAU admin: build admin có emptyOutDir
+// và xoá sạch thư mục cha. Cũng build LUÔN vì cùng lý do trên — một bản dist cũ làm E2E xanh hay
+// đỏ theo một màn hình không còn tồn tại trong mã.
+run('pnpm', ['--filter', '@mapslibvn/console', 'build']);
 
 // Cache local của wrangler nằm trong .wrangler/state và **sống qua nhiều phiên**: một lần
 // `pnpm dev:e2e` chạy trên DB dev đủ để itest sau đó nhận lại câu trả lời của DB khác và đỏ ở chỗ
@@ -147,6 +151,20 @@ const wrangler = crossSpawn(
     // email mà access-fake ký: phong@access-fake.local (itest) và phong@e2e.local (Playwright).
     '--var',
     'BILLING_ADMIN_EMAILS:phong@access-fake.local,phong@e2e.local',
+    // Cổng khách hàng: mở cổng tự phục vụ và bật đường trả mã đăng nhập qua header. Cả hai chỉ
+    // sống trong harness — `OTP_DELIVERY` đòi điều kiện kép nên không có tác dụng ở production.
+    '--var',
+    'SELF_SERVE:1',
+    // BẮT BUỘC đi kèm: console tạo tenant ở chế độ `commercial`, và auth.ts từ chối mọi khoá của
+    // tenant commercial bằng 503 `quota_unavailable` khi cổng này chưa mở. Thiếu nó thì khách
+    // đăng ký xong, cầm khoá trong tay, mà gọi API nào cũng 503 — không có thông báo nào nối hai
+    // việc đó lại với nhau. Production đang mở sẵn từ 15/09/2026.
+    '--var',
+    'COMMERCIAL_ADMISSION:1',
+    '--var',
+    'OTP_DELIVERY:debug',
+    '--var',
+    `SESSION_PEPPER:${IP_HASH_PEPPER}`,
     '--var',
     `TILES_BASE:http://127.0.0.1:${PORT}/r2`,
   ],

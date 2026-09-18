@@ -3303,3 +3303,50 @@ chứ không gõ tay. Bảng so sánh luôn in kèm ngày đối chiếu 14/09/2
 Schema Zod ép `title` ≤ 60 và `description` 120–160 ngay lúc build — đã chặn một bài 161 ký tự.
 
 Cổng đã chạy và việc tay còn lại: `docs/evidence/commerce/2026-09-18-pha-1-website.md`.
+
+## 20. Thương mại tự phục vụ — pha 2: cổng khách hàng `/console` — 19/09/2026
+
+Spec `docs/superpowers/specs/2026-09-18-thuong-mai-tu-phuc-vu-design.md` mục 5.1, 6, 7, 12, 14.
+Kết quả: người lạ tự đăng ký, tự lấy khoá và gọi được `/v1/autocomplete` bằng chính khoá đó, không
+cần ai duyệt. **Cổng vẫn ĐÓNG** (`SELF_SERVE = "0"`) cho tới khi PHONG đặt đủ secret.
+
+**Phát hiện quan trọng nhất, không nằm trong spec:** console tạo tenant ở chế độ `commercial`, mà
+`auth.ts` từ chối MỌI khoá của tenant commercial bằng 503 `quota_unavailable` khi
+`COMMERCIAL_ADMISSION` chưa mở. Nghĩa là **bật `SELF_SERVE` mà quên cờ kia thì khách đăng ký được,
+cầm khoá trong tay, và gọi API nào cũng 503** — không có thông báo nào nối hai việc đó lại. Bộ e2e
+bắt được vì harness ban đầu thiếu đúng cờ này. Production đang mở sẵn từ 15/09; đóng khẩn cấp cổng
+thương mại từ nay cũng đồng nghĩa chặn luôn khách mới.
+
+**Bảy quyết định thiết kế đáng ghi:**
+
+1. **Postgres trước, sổ quota sau** khi tạo tổ chức. Ngược lại sinh ra sổ mồ côi cho tenant chưa
+   tồn tại; trang Admin đã có sáu sổ kiểu đó. `operationId` cố định theo tenant nên gọi lại sau
+   một lần lỗi giữa chừng không tạo bản dùng thử thứ hai.
+2. **Hai cổng ngoài thất bại theo hướng an toàn.** Thiếu khoá Resend ở production → ném
+   `email_not_configured` chứ không rơi về bản ghi log; thiếu secret Turnstile ở production → TỪ
+   CHỐI. Quên cấu hình không được phép biến thành "tắt chống bot".
+3. **`otp/request` luôn trả 200** kể cả khi email sai định dạng, để phản hồi không bao giờ cho
+   biết địa chỉ nào đã có tài khoản. Riêng hai lỗi hạ tầng thì nói thật.
+4. **`email_verified` là bắt buộc** khi đăng nhập Google: thiếu nó thì ai thêm email người khác
+   vào tài khoản Google của mình là chiếm được tài khoản MapsLibVN của người đó.
+5. **Tách `issueKeyForTenant` và `setKeyRevokedForTenant`** thay vì viết bản thứ hai, giữ nguyên
+   thứ tự fail-closed. Mốc test trước khi sửa 547, sau khi sửa 547 rồi tăng dần — con số đó là
+   điều kiện để coi việc chuyển là an toàn.
+6. **Console ép scope `places:read`** và trần 10 khoá. Quyền ghi đóng góp phải đi qua người thật.
+7. **`/v1/console/config` đứng ngoài cổng tự phục vụ** để SPA hiện màn "Sắp mở", thay vì mời khách
+   gõ email rồi mới báo lỗi.
+
+**Bốn bẫy đã vấp trong lúc làm:**
+
+- `pnpm typecheck` ≠ `turbo run typecheck` — lệnh gốc còn kiểm `scripts/**/*.mjs` bằng `checkJs`.
+- `browser.newContext()` tạo thủ công KHÔNG kế thừa `baseURL` của cấu hình Playwright.
+- `page.request` không mang được cookie phiên `HttpOnly` + `Secure` trong harness HTTP; phải gọi
+  `fetch` trong trang, và đó cũng là đường ứng dụng thật đi.
+- Biome báo nhầm `useKeyWithClickEvents` cho `onClick` bắt chạm nền tối của `<dialog>`; đường bàn
+  phím tương đương là Esc và trình duyệt lo sẵn.
+
+**Lệch spec có chủ ý:** spec liệt kê chín màn hình console, pha này làm sáu. Ba màn còn lại (Mua
+gói, Đơn hàng, chi tiết đơn) phụ thuộc bảng `customer_order` của migration `0021`, tức pha 3. Ba
+nút mua ở Tổng quan dẫn tới hộp thoại nói thật kèm email hỗ trợ, thay vì tới trang trống.
+
+Cổng đã chạy và việc tay còn lại: `docs/evidence/commerce/2026-09-18-pha-2-console.md`.

@@ -6,6 +6,23 @@ description: Ba loại khoá web/mobile/server, cách kiểm origin, scope, quot
 Mọi endpoint `/v1/*` đọc dữ liệu Places đều cần khoá API. Khoá có dạng `mlv_live_…`, gắn với một
 tenant và một plan. Trang này nói khoá hoạt động thế nào và làm sao có khoá.
 
+## 0. Lấy khoá trong năm phút
+
+Tự đăng ký ở [cổng khách hàng](https://api.ai-solutions.io.vn/console/): nhập email, nhận mã sáu
+số, đặt tên tổ chức, và khoá đầu tiên hiện ra ngay. Bản dùng thử gồm 2.000 lượt Places cùng 200
+lượt tính tuyến trong 30 ngày, không cần thẻ thanh toán.
+
+Ba điều cần nhớ:
+
+- **Khoá dạng rõ chỉ hiện đúng một lần.** Máy chủ chỉ lưu `sha256(khoá)`, nên mất là phải cấp
+  khoá mới — kể cả chúng tôi cũng không đọc lại được.
+- **Cấp thêm khoá không cấp thêm hạn mức.** Mọi khoá của cùng một tổ chức trừ vào cùng một hạn
+  mức; cấp nhiều khoá là để tách môi trường và thu hồi riêng khi một khoá bị lộ.
+- **Mỗi tổ chức tối đa 10 khoá đang hoạt động.** Khoá đã thu hồi không tính vào con số này.
+
+Khoá tự cấp có scope `places:read`. Cần thêm `edits:write` để người dùng cuối gửi đóng góp thì
+liên hệ, vì quyền đó ghi vào dữ liệu bản đồ dùng chung.
+
 ## 1. Cách truyền khoá
 
 Một cách duy nhất — header:
