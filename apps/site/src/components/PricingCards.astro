@@ -1,0 +1,121 @@
+---
+import { PERIOD_MONTHS } from '@mapslibvn/catalog';
+import { CONSOLE_URL } from '../../site.config.mjs';
+import { bangGia } from '../lib/gia';
+
+const goi = bangGia();
+---
+
+<div class="mx-auto max-w-6xl px-4">
+  <fieldset class="mb-8 flex flex-wrap items-center gap-2">
+    <legend class="mb-2 text-sm font-semibold text-[var(--text-muted)]">Kỳ thanh toán</legend>
+    {
+      PERIOD_MONTHS.map((months) => (
+        <label class="inline-flex min-h-11 cursor-pointer items-center rounded-[var(--radius-btn)] border border-[var(--border)] px-4 text-sm font-semibold has-[:checked]:border-brand-700 has-[:checked]:bg-brand-50 has-[:checked]:text-brand-700 dark:has-[:checked]:bg-brand-900 dark:has-[:checked]:text-brand-100">
+          <input
+            type="radio"
+            name="ky"
+            value={months}
+            checked={months === 1}
+            class="sr-only"
+            data-ky
+          />
+          {months} tháng
+        </label>
+      ))
+    }
+    <p class="w-full text-sm text-[var(--text-muted)]">
+      Giá nhân đơn theo số tháng, không có chiết khấu và không tự động trừ tiền định kỳ.
+    </p>
+  </fieldset>
+
+  <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+    {
+      goi.map((g) => (
+        <article
+          class:list={[
+            'flex flex-col rounded-[var(--radius-card)] border bg-[var(--surface)] p-5',
+            g.noiBat ? 'border-brand-700 shadow-lg' : 'border-[var(--border)]',
+          ]}
+        >
+          {g.noiBat && (
+            <p class="mb-2 inline-flex w-fit rounded-full bg-brand-700 px-2.5 py-0.5 text-xs font-semibold text-white">
+              Được chọn nhiều nhất
+            </p>
+          )}
+          <h3 class="text-lg font-bold">{g.ten}</h3>
+          <p class="mt-3">
+            <span
+              class="text-3xl font-bold"
+              data-gia
+              data-gia-1={g.theoKy[1].vndHienThi}
+              data-gia-3={g.theoKy[3].vndHienThi}
+              data-gia-6={g.theoKy[6].vndHienThi}
+              data-gia-12={g.theoKy[12].vndHienThi}
+            >
+              {g.theoKy[1].vndHienThi}
+            </span>
+            <span class="text-sm text-[var(--text-muted)]" data-ky-nhan>
+              / 1 tháng
+            </span>
+          </p>
+          <p class="mt-1 text-sm text-[var(--text-muted)]">
+            tham chiếu{' '}
+            <span
+              data-usd
+              data-usd-1={g.theoKy[1].usdHienThi}
+              data-usd-3={g.theoKy[3].usdHienThi}
+              data-usd-6={g.theoKy[6].usdHienThi}
+              data-usd-12={g.theoKy[12].usdHienThi}
+            >
+              {g.theoKy[1].usdHienThi}
+            </span>
+          </p>
+
+          <ul class="mt-4 flex-1 space-y-2 text-sm">
+            <li>
+              <strong>{g.placesHienThi}</strong> lượt Places
+            </li>
+            <li>
+              <strong>{g.directionsHienThi}</strong> lượt tính tuyến
+            </li>
+            {g.tranNgay && <li>Trần ngày: {g.tranNgay}</li>}
+            <li>{g.ghiChuHan}</li>
+            <li>{g.hoTroOnline ? 'Có hỗ trợ trực tuyến' : 'Hỗ trợ qua tài liệu'}</li>
+          </ul>
+
+          <a
+            href={CONSOLE_URL}
+            class:list={[
+              'mt-5 inline-flex min-h-11 items-center justify-center rounded-[var(--radius-btn)] px-4 text-sm font-semibold',
+              g.noiBat
+                ? 'bg-brand-700 text-white hover:bg-brand-800'
+                : 'border border-[var(--border)] hover:bg-brand-50 dark:hover:bg-brand-900',
+            ]}
+          >
+            {g.tier === 'trial' ? 'Dùng thử miễn phí' : `Chọn ${g.ten}`}
+          </a>
+        </article>
+      ))
+    }
+  </div>
+</div>
+
+<script>
+  // Giá của cả bốn kỳ đã nằm sẵn trong data-*, nên script chỉ đổi chữ. JavaScript hỏng hay bị
+  // chặn thì trang vẫn hiện đúng giá một tháng — số tiền không bao giờ phụ thuộc trình duyệt.
+  const dat = (ky: string) => {
+    for (const el of document.querySelectorAll<HTMLElement>('[data-gia]')) {
+      el.textContent = el.dataset[`gia${ky}`] ?? el.textContent;
+    }
+    for (const el of document.querySelectorAll<HTMLElement>('[data-usd]')) {
+      el.textContent = el.dataset[`usd${ky}`] ?? el.textContent;
+    }
+    for (const el of document.querySelectorAll<HTMLElement>('[data-ky-nhan]')) {
+      el.textContent = `/ ${ky} tháng`;
+    }
+  };
+  for (const radio of document.querySelectorAll<HTMLInputElement>('[data-ky]')) {
+    radio.addEventListener('change', () => dat(radio.value));
+  }
+</script>

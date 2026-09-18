@@ -1,0 +1,72 @@
+---
+import { COMPARISON, comparisonAgeDays } from '@mapslibvn/catalog';
+import { soSanh } from '../lib/gia';
+
+const rows = soSanh();
+const soNgay = comparisonAgeDays(new Date());
+// Cảnh báo lúc BUILD, không phải lúc chạy: bảng giá đối thủ cũ hơn nửa năm thì phải đối chiếu lại
+// trước khi tiếp tục quảng cáo bằng nó.
+if (soNgay > 180) {
+  console.warn(
+    `[site] COMPARISON đã ${soNgay} ngày kể từ ${COMPARISON.checkedAt} — đối chiếu lại giá đối thủ trước khi phát hành.`,
+  );
+}
+const ngayVn = COMPARISON.checkedAt.split('-').reverse().join('/');
+---
+
+<figure class="mx-auto max-w-6xl px-4">
+  <div class="overflow-x-auto rounded-[var(--radius-card)] border border-[var(--border)]">
+    <table class="w-full border-collapse text-sm">
+      <caption class="px-4 py-3 text-left font-semibold">
+        Chi phí một tháng cho cùng một khối lượng gọi API, đối chiếu ngày {ngayVn}
+      </caption>
+      <thead>
+        <tr class="bg-black/[0.03] dark:bg-white/[0.04]">
+          <th scope="col" class="px-4 py-2 text-left">Khối lượng mỗi tháng</th>
+          <th scope="col" class="px-4 py-2 text-right">MapsLibVN</th>
+          <th scope="col" class="px-4 py-2 text-right">Google</th>
+          <th scope="col" class="px-4 py-2 text-right">VIETMAP</th>
+          <th scope="col" class="px-4 py-2 text-right">Thấp hơn Google</th>
+        </tr>
+      </thead>
+      <tbody>
+        {
+          rows.map((row) => (
+            <tr class="border-t border-[var(--border)]">
+              <th scope="row" class="px-4 py-3 text-left font-normal">
+                {row.workload}
+                <span class="block text-xs text-[var(--text-muted)]">gói {row.ten}</span>
+              </th>
+              <td class="px-4 py-3 text-right font-semibold">{row.mapslibvnVndHienThi}</td>
+              <td class="px-4 py-3 text-right">{row.googleVndHienThi}</td>
+              <td class="px-4 py-3 text-right">{row.vietmapVndHienThi}</td>
+              <td class="px-4 py-3 text-right">
+                {row.reHonGoogle.toString().replace('.', ',')}%
+              </td>
+            </tr>
+          ))
+        }
+      </tbody>
+    </table>
+  </div>
+
+  <figcaption class="mt-4 space-y-2 text-sm text-[var(--text-muted)]">
+    <p><strong>Giả định.</strong></p>
+    <ul class="list-disc space-y-1 pl-5">
+      {COMPARISON.assumptions.map((y) => <li>{y}</li>)}
+    </ul>
+    <p>{COMPARISON.disclaimer}</p>
+    <p>
+      Nguồn: {
+        COMPARISON.sources.map((url, i) => (
+          <>
+            {i > 0 && ', '}
+            <a class="underline" href={url} rel="nofollow noopener" target="_blank">
+              {new URL(url).hostname}
+            </a>
+          </>
+        ))
+      }
+    </p>
+  </figcaption>
+</figure>
