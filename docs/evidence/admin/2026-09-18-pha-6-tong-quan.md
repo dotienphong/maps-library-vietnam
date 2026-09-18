@@ -38,8 +38,9 @@ sạch. Bẫy này nằm sẵn trong `routes.test.tsx` từ trước và chỉ t
 
 Không có migration; máy chủ giữ `0019`.
 
-- version:
-- mốc trong `wrangler deployments list --env production`:
+- **Version ID: `8df0400d-225c-477f-8903-98253caf77ee`**, deploy từ commit `291c785`
+- `/healthz/db` ngay sau deploy: `ok:true`, role `api`, migration `0019_admin_audit_detail_object.sql`
+- `/admin/` trả 302 về Access — đúng, Access chặn ở biên
 
 ## 6. Nghiệm thu bằng mắt
 
