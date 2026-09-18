@@ -3246,3 +3246,23 @@ có bằng chứng production vì tốn thời gian thật.
 
 **Bước kế tiếp theo chỉ định của PHONG: thiết kế Trang Admin** (plan quota, mục "Chuyển tiếp bắt
 buộc"). Quy trình vẫn thiết kế → review → plan → code.
+
+## 18. Thương mại tự phục vụ — pha 0: `@mapslibvn/catalog` và `@mapslibvn/ui` — 18/09/2026
+
+Spec `docs/superpowers/specs/2026-09-18-thuong-mai-tu-phuc-vu-design.md` (PHONG duyệt 18/09).
+Pha 0 **không đổi hành vi**: tách bảng giá và bộ giao diện dùng chung ra hai package nội bộ để
+website (pha 1) và console (pha 2) dùng cùng một nguồn với API và Admin.
+
+- `@mapslibvn/catalog`: `PLAN_CATALOG` có thêm `priceVnd` (650.000 / 2.600.000 / 10.400.000; mua
+  thêm 26.000 / 78.000), `quoteOrder()`, `addMonths()` theo lịch giờ VN, `COMPARISON` chép số đối
+  chiếu 14/09 kèm giả định và nguồn. API import từ đây; `apps/api/src/billing/catalog.ts` đã xoá.
+- `@mapslibvn/ui`: chuyển `components/ui`, `states`, `data-view` (→ `RecordView`), `delayed-action`,
+  `theme`, `cn` và `tokens.css` từ admin. Hai chỗ bám vào `lib/fetcher` của admin được tách:
+  `ErrorState` duck-typing `ApiErrorLike`, `DelayedActionProvider` nhận prop `reloadGuard`.
+  `theme` nhận `storageKey`; admin giữ khoá cũ qua adapter.
+- Mới: `GET /v1/catalog` công khai (`public, max-age=3600`), cờ `SELF_SERVE = "0"` ở dev và production.
+- Bẫy đã tính trước và có bước kiểm: Tailwind không quét node_modules → `@source
+  "../../../packages/ui/src"` trong `apps/admin/src/index.css`, kiểm bằng grep `min-h-11` trong CSS build.
+- Lệch spec: không thêm hai package vào `NON_SDK_PACKAGE_DIRS` vì contract chỉ xét package public.
+
+Cổng đã chạy: xem `docs/evidence/commerce/2026-09-18-pha-0-packages.md`.

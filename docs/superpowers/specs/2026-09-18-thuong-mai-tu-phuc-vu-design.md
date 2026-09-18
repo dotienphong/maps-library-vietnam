@@ -109,8 +109,9 @@ Ranh giới bắt buộc giữ:
 | `@mapslibvn/catalog` (`packages/catalog`) | `PLAN_CATALOG` chuyển từ `apps/api` sang, thêm `priceVnd`; `COMPARISON` (bảng so sánh Google/VIETMAP, ngày đối chiếu, giả định, nguồn); hàm `quoteOrder()` tính tiền một đơn; `addMonths()` | api, site, console, admin |
 | `@mapslibvn/ui` (`packages/ui`) | Chuyển từ `apps/admin/src`: `components/ui/*`, `states.tsx`, `data-view.tsx`, `delayed-action.tsx`, `lib/utils.ts`, `lib/theme.ts`, và `tokens.css` (biến màu, bo góc, font) | admin, console; `tokens.css` còn dùng cho site |
 
-Cả hai `private: true`, không publish, không nằm trong `SDK_PACKAGE_DIRS`; thêm vào
-`NON_SDK_PACKAGE_DIRS` của `scripts/lib/npm-sdk-release.mjs` để release contract test không dừng.
+Cả hai `private: true`, không publish. `scripts/lib/npm-sdk-release.mjs` chỉ đòi phân loại package
+**public** (`manifest.private !== true`), nên không cần thêm vào `NON_SDK_PACKAGE_DIRS` — kiểm lại
+18/09/2026 khi làm pha 0.
 Chuyển file kèm test đi theo; `apps/admin` đổi import; bộ test admin phải xanh y nguyên sau khi
 chuyển — đây là pha 0, không đổi hành vi.
 
