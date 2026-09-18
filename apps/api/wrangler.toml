@@ -18,6 +18,9 @@ COMMERCIAL_ADMISSION = "0"
 # MAX_INFLIGHT_PLACES = "50"
 # MAX_INFLIGHT_DIRECTIONS = "32"
 ROUTING_BASE = "http://127.0.0.1:8002"
+# Tài khoản Cloudflare cho Analytics Engine SQL API (pha 5). Dev không có CF_ANALYTICS_TOKEN nên
+# /v1/admin/metrics ở máy trả 503 analytics_not_configured — đúng như thiết kế.
+CF_ACCOUNT_ID = "90de8c1aef96991cdf2a49008f9a0122"
 # Chỉ cho dev/test. Production KHÔNG lấy giá trị này (khối [env.production] ghi đè toàn bộ vars)
 # mà đọc secret đặt bằng `wrangler secret put IP_HASH_PEPPER --env production`.
 IP_HASH_PEPPER = "dev-pepper-khong-bi-mat"
@@ -70,7 +73,7 @@ localConnectionString = "postgres://mapslibvn:mapslibvn@localhost:5432/mapslibvn
 enabled = true
 
 [env.production]
-vars = { TILES_BASE = "https://tiles.ai-solutions.io.vn", ENVIRONMENT = "production", QUOTA_ENABLED = "1", COMMERCIAL_ADMISSION = "1", ROUTING_BASE = "https://maps-route.ai-solutions.io.vn", ACCESS_TEAM_DOMAIN = "snowy-credit-f444.cloudflareaccess.com", ACCESS_AUD = "26088029373e358f9a24e68f66fe85ccc0c771e53cde538638a54151969cc6f5", AUTOCOMPLETE_FAST = "1" }
+vars = { TILES_BASE = "https://tiles.ai-solutions.io.vn", ENVIRONMENT = "production", QUOTA_ENABLED = "1", COMMERCIAL_ADMISSION = "1", ROUTING_BASE = "https://maps-route.ai-solutions.io.vn", ACCESS_TEAM_DOMAIN = "snowy-credit-f444.cloudflareaccess.com", ACCESS_AUD = "26088029373e358f9a24e68f66fe85ccc0c771e53cde538638a54151969cc6f5", AUTOCOMPLETE_FAST = "1", CF_ACCOUNT_ID = "90de8c1aef96991cdf2a49008f9a0122" }
 kv_namespaces = [{ binding = "META", id = "a50e778ff63a4ad7956f783eba456ed5" }]
 durable_objects = { bindings = [{ name = "QUOTA", class_name = "QuotaObject" }] }
 r2_buckets = [{ binding = "TILES", bucket_name = "mapslibvn-tiles" }]

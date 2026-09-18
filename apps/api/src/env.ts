@@ -25,6 +25,21 @@ export interface Env {
   /** Workers Analytics Engine — optional, code phải hoạt động khi vắng binding. */
   ANALYTICS?: AnalyticsEngineDataset;
   /**
+   * Tài khoản Cloudflare, dùng dựng URL Analytics Engine SQL API. Không phải bí mật (nó nằm trong
+   * URL của mọi lời gọi API), nên để ở `[vars]` chứ không phải secret.
+   */
+  CF_ACCOUNT_ID?: string;
+  /**
+   * Token CHỈ có quyền `Account Analytics: Read`, đặt bằng
+   * `wrangler secret put CF_ANALYTICS_TOKEN --env production`.
+   *
+   * Cố ý KHÔNG dùng lại `CLOUDFLARE_API_TOKEN` của máy dev dù nó cũng đọc được Analytics: token đó
+   * deploy được Worker, đọc được R2 và KV. Nhét nó vào Worker là biến một lỗ hổng trong Worker
+   * thành quyền điều khiển cả tài khoản. Vắng biến này → `/v1/admin/metrics` trả 503
+   * `analytics_not_configured`, KHÔNG phải 500.
+   */
+  CF_ANALYTICS_TOKEN?: string;
+  /**
    * SPA tĩnh của trang Admin. Worker dùng binding này để trả index.html cho các đường dẫn con
    * (/admin/edits…) — không có file thật nào ở đó, mà router chạy phía trình duyệt.
    */
