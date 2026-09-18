@@ -21,6 +21,15 @@ export interface Env {
    */
   SELF_SERVE?: string;
   /**
+   * Khoá Resend để gửi thư. Vắng ở production → route gửi thư trả 503 `email_not_configured`;
+   * vắng ngoài production → dùng bản ghi log, không chặn phát triển.
+   */
+  RESEND_API_KEY?: string;
+  /** Địa chỉ người gửi, phải thuộc tên miền đã xác thực ở Resend. */
+  EMAIL_FROM?: string;
+  /** Địa chỉ nhận thư trả lời, cũng là email hỗ trợ hiện trên website. */
+  SUPPORT_EMAIL?: string;
+  /**
    * '1' = thêm một vòng gọi `ping()` không chạm storage vào mỗi request thương mại, để tách
    * chi phí mạng khỏi chi phí ghi bền vững. CHỈ bật trong lượt đo: nó cộng đúng một vòng mạng.
    */
