@@ -1,5 +1,7 @@
 ---
+import { Picture } from 'astro:assets';
 import { CONSOLE_URL, DOCS_URL } from '../../site.config.mjs';
+import banDo from '../assets/ban-do-hero.jpg';
 import { soSanh } from '../lib/gia';
 import { TRANG } from '../lib/trang';
 
@@ -50,10 +52,22 @@ const cao = Math.round(Math.max(...phanTram));
         id="khoi-ban-do"
         class="relative aspect-video overflow-hidden rounded-[var(--radius-card)] border border-[var(--border)] bg-brand-50 dark:bg-brand-900"
       >
+        {/* Picture chứ không Image: prop `formats` (nhiều định dạng) chỉ có ở Picture; đặt nó trên
+            Image thì Astro bỏ qua lặng lẽ và chỉ sinh WebP. */}
+        <Picture
+          src={banDo}
+          alt="Bản đồ khu vực trung tâm Thành phố Hồ Chí Minh do MapsLibVN dựng, nhãn đường và địa điểm bằng tiếng Việt"
+          widths={[640, 960, 1280]}
+          sizes="(max-width: 1024px) 100vw, 560px"
+          formats={['avif', 'webp']}
+          loading="eager"
+          fetchpriority="high"
+          class="absolute inset-0 h-full w-full object-cover"
+        />
         <button
           type="button"
           id="nut-ban-do"
-          class="absolute inset-0 flex items-center justify-center"
+          class="absolute inset-0 flex items-center justify-center bg-black/25"
           data-src={`${DOCS_URL}/playground.html?embed=1`}
         >
           <span
