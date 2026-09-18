@@ -1,5 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import { buildCases, median, parseArgs, timesOf, widestNode } from './explain-autocomplete.mjs';
+import {
+  buildCases,
+  median,
+  parseArgs,
+  rankOf,
+  timesOf,
+  widestNode,
+} from './explain-autocomplete.mjs';
 
 describe('buildCases', () => {
   it('dựng đủ biến thể poi, bậc phụ và hai loại chạy song song', () => {
@@ -214,5 +221,27 @@ describe('timesOf', () => {
     expect(
       timesOf([{ 'Execution Time': 1234.5, 'Planning Time': 2.5, Plan: { 'Actual Rows': 20 } }]),
     ).toEqual({ exec: 1234.5, plan: 2.5, rows: 20 });
+  });
+});
+
+describe('rankOf', () => {
+  const rows = [{ name: 'Phở Hoà' }, { name: 'Highlands Coffee Nguyễn Huệ' }, { name: 'X' }];
+
+  it('trả hạng 1-based của đích, so sau khi bỏ dấu và lowercase', () => {
+    expect(rankOf(rows, ['highlands'])).toBe(2);
+    expect(rankOf([{ name: 'Bệnh viện Chợ Rẫy' }], ['cho ray'])).toBe(1);
+  });
+
+  it('không có mặt thì trả 0 — đó mới là bằng chứng "bỏ nhánh này là MẤT kết quả"', () => {
+    expect(rankOf(rows, ['circle k'])).toBe(0);
+    expect(rankOf([], ['highlands'])).toBe(0);
+  });
+
+  it('nhiều cách viết được chấp nhận: trúng cái nào cũng tính', () => {
+    expect(rankOf([{ name: 'Bơ Booth Đắc Lắc' }], ['dak lak', 'dac lac'])).toBe(1);
+  });
+
+  it('không có đích thì không chấm (trả 0), tránh báo trúng giả', () => {
+    expect(rankOf(rows, [])).toBe(0);
   });
 });

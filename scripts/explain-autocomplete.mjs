@@ -21,6 +21,7 @@
  * CHỈ ĐỌC: không ghi, không ALTER, không tạo chỉ số. An toàn chạy trên production — nhưng nó DÙNG
  * CPU của Postgres đang phục vụ thật, nên đừng chạy song song với pipeline dữ liệu.
  */
+import { readFileSync } from 'node:fs';
 import 'dotenv/config';
 import postgres from 'postgres';
 import {
@@ -31,6 +32,7 @@ import {
   viKey,
 } from '../packages/core/dist/index.js';
 import { openDatabaseTunnel } from './lib/tunnel.mjs';
+import { parseQueryFixture } from './perf-autocomplete.mjs';
 
 /** Truy vấn mặc định: 2 ký tự (nghi chậm nhất), cụm ngắn, và cụm dài — ba chế độ chi phí khác nhau. */
 const DEFAULT_QUERIES = ['qu', 'cafe', 'ben thanh', 'truong tieu hoc'];
@@ -474,10 +476,12 @@ export function parseArgs(argv) {
   /** Ngưỡng `<%` ép cho phiên đo. Mặc định 0,6 = giá trị production ĐANG chạy, xem chú thích dưới. */
   let threshold = 0.6;
   let sweep = false;
+  let rank = false;
   for (let i = 0; i < argv.length; i++) {
     const flag = argv[i];
     if (flag === '--plan') plan = true;
     else if (flag === '--sweep') sweep = true;
+    else if (flag === '--rank') rank = true;
     else if (flag === '--q' || flag === '--repeat' || flag === '--threshold') {
       const value = argv[i + 1];
       if (value === undefined) throw new Error(`${flag} thiếu giá trị`);
@@ -498,6 +502,7 @@ export function parseArgs(argv) {
     repeat,
     threshold,
     sweep,
+    rank,
   };
 }
 
@@ -536,6 +541,26 @@ export function widestNode(plan) {
   return best;
 }
 
+/** Bỏ dấu + lowercase để so đích, cùng luật với `perf-autocomplete`. */
+const fold = (/** @type {string} */ value) =>
+  value.normalize('NFD').replace(/\p{M}/gu, '').replace(/đ/g, 'd').replace(/Đ/g, 'D').toLowerCase();
+
+/**
+ * Hạng (1-based) của đích trong danh sách trả về, hoặc 0 nếu không có mặt.
+ *
+ * Đây là thứ `EXPLAIN` KHÔNG trả lời được. Số dòng và thời gian không nói được kết quả đúng đến
+ * từ nhánh nào — mà đó chính là câu hỏi quyết định một cổng xếp tầng có an toàn hay không. Ca
+ * `bhx` hỏng đúng vì tôi đoán thay vì đo chỗ này.
+ *
+ * @param {{ name: string }[]} rows @param {string[]} expects
+ */
+export function rankOf(rows, expects) {
+  if (expects.length === 0) return 0;
+  const muon = expects.map(fold);
+  const at = rows.findIndex((row) => muon.some((want) => fold(row.name ?? '').includes(want)));
+  return at + 1;
+}
+
 /** Trung vị — chống nhiễu tốt hơn trung bình khi một lần chạy lẻ bị máy chủ giành CPU. */
 export function median(/** @type {number[]} */ values) {
   if (values.length === 0) return 0;
@@ -548,7 +573,14 @@ export function median(/** @type {number[]} */ values) {
 
 const isMain = process.argv[1] && import.meta.url === new URL(`file://${process.argv[1]}`).href;
 if (isMain) {
-  const { queries, plan: inPlan, repeat, threshold, sweep } = parseArgs(process.argv.slice(2));
+  const {
+    queries,
+    plan: inPlan,
+    repeat,
+    threshold,
+    sweep,
+    rank,
+  } = parseArgs(process.argv.slice(2));
   const closeTunnel = await openDatabaseTunnel();
   const url = process.env.PIPELINE_DATABASE_URL ?? process.env.DATABASE_URL;
   if (!url) throw new Error('Thiếu PIPELINE_DATABASE_URL (hoặc DATABASE_URL)');
@@ -575,101 +607,156 @@ if (isMain) {
     // luận cho production là so hai thứ khác nhau: ngưỡng thấp hơn = khớp nhiều dòng hơn = chậm hơn.
     await sql.unsafe(`SET pg_trgm.word_similarity_threshold = ${threshold}`);
 
-    for (const { q, sql: variants } of buildCases(queries)) {
-      console.log(`━━━ q=${JSON.stringify(q)} (${q.length} ký tự) ━━━`);
-      /** @type {Record<string, number>} */
-      const exec = {};
-      /** Chạy `repeat` lần, lấy trung vị; in cả dải để thấy nhiễu thay vì giấu nó. */
-      const doRun = async (/** @type {string} */ label, /** @type {string} */ text) => {
-        /** @type {number[]} */
-        const runs = [];
-        let widest = { node: '-', rows: 0 };
-        let traVe = 0;
-        for (let i = 0; i < repeat; i++) {
-          const [row] = await sql.unsafe(`EXPLAIN (ANALYZE, BUFFERS, FORMAT JSON) ${text}`);
-          runs.push(timesOf(row?.['QUERY PLAN']).exec);
-          if (i === 0) {
-            widest = widestNode(row?.['QUERY PLAN']);
-            // Số dòng CUỐI CÙNG (đã qua LIMIT). Đây là con số quyết định một cổng xếp tầng có leo
-            // bậc hay không — `rộng nhất` chỉ nói chi phí, không nói cổng mở hay đóng. Bài học từ
-            // ca `bhx`: cổng đóng vì bậc trước lấp đủ chỗ, và cái đúng không bao giờ được tìm.
-            traVe = timesOf(row?.['QUERY PLAN']).rows;
-          }
-        }
-        exec[label] = median(runs);
-        console.log(
-          `  ${label.padEnd(15)} trung vị=${Math.round(median(runs)).toString().padStart(6)} ms` +
-            `  (${Math.round(Math.min(...runs))}–${Math.round(Math.max(...runs))})` +
-            `  trả ${String(traVe).padStart(3)} dòng` +
-            `  rộng nhất: ${widest.rows.toLocaleString('vi-VN')} dòng @ ${widest.node}`,
-        );
-      };
-      for (const [label, text] of Object.entries(variants)) await doRun(label, text);
-      // JIT bật mặc định; với truy vấn ~1,5 s thì thời gian biên dịch không hiển nhiên là nhỏ.
-      await sql.unsafe('SET jit = off');
-      await doRun('full_jit_off', variants.full ?? '');
-      await sql.unsafe('SET jit = on');
+    if (rank) await doRank();
+    else await doExplain();
 
-      const base = exec.full ?? 0;
-      console.log('  — quy chi phí (trung vị, so với full):');
-      for (const label of [
-        'no_matched_alt',
-        'no_distance',
-        'no_like',
-        'no_percent',
-        'chi_wordsim',
-        'chi_percent',
-        'chi_like',
-        'full_jit_off',
-      ]) {
-        if (exec[label] === undefined) continue;
-        const saved = base - exec[label];
-        const pctSaved = base > 0 ? Math.round((saved / base) * 100) : 0;
+    /** Chế độ NỘI DUNG */
+    async function doRank() {
+      // Chế độ NỘI DUNG: chạy thật rồi đối chiếu với đích trong fixture, thay vì đo thời gian.
+      // Trả lời đúng một câu: bỏ nhánh `%` đi thì ca nào MẤT kết quả đúng?
+      const fixture = parseQueryFixture(
+        readFileSync('scripts/fixtures/fuzzy-queries.txt', 'utf8'),
+      ).filter((entry) => entry.expect.length > 0);
+      console.log('q                     | full | no_% | chi_<% | đích');
+      console.log('----------------------|------|------|--------|----------------');
+      let hongNeuBoPhanTram = 0;
+      let boQua = 0;
+      for (const entry of fixture) {
+        /** @type {{ q: string, sql: Record<string, string> }[]} */
+        let cases;
+        try {
+          cases = buildCases([entry.q]);
+        } catch {
+          // Truy vấn có nameCore/alias/hành chính khác — câu dựng ở đây sẽ khác câu production.
+          boQua++;
+          continue;
+        }
+        const variants = cases[0]?.sql ?? {};
+        /** @param {string | undefined} text */
+        const hangCua = async (text) => {
+          if (!text) return '-';
+          const rows = /** @type {{ name: string }[]} */ (await sql.unsafe(text));
+          const hang = rankOf(rows, entry.expect);
+          return hang === 0 ? '-' : String(hang);
+        };
+        const [hFull, hNoPercent, hWordsim] = await Promise.all([
+          hangCua(variants.full),
+          hangCua(variants.no_percent),
+          hangCua(variants.chi_wordsim),
+        ]);
+        // Chỉ đếm ca mà `full` TÌM ĐƯỢC còn `no_%` thì KHÔNG — đó là thiệt hại thật của việc bỏ
+        // nhánh `%`. Ca `full` vốn đã trượt thì không tính vào đây.
+        const hong = hFull !== '-' && hNoPercent === '-';
+        if (hong) hongNeuBoPhanTram++;
         console.log(
-          `      bỏ ${label.padEnd(15)} tiết kiệm ${Math.round(saved)} ms (${pctSaved} %)`,
+          `${entry.q.padEnd(21)} | ${hFull.padStart(4)} | ${hNoPercent.padStart(4)} | ` +
+            `${hWordsim.padStart(6)} | ${entry.expect.join(';')}${hong ? '   ← MẤT' : ''}`,
         );
       }
+      console.log(
+        `\nBỏ nhánh % làm MẤT kết quả ở ${hongNeuBoPhanTram} ca` +
+          (boQua ? ` · bỏ qua ${boQua} ca không dựng được câu giống production` : ''),
+      );
+    }
 
-      if (sweep) {
-        /**
-         * Hai toán tử, HAI núm khác nhau — vòng đo 18/09 đã quét nhầm một lần:
-         * `<%` (word_similarity) dùng `word_similarity_threshold`, còn `%` (similarity) dùng
-         * `similarity_threshold`. Nút rộng nhất là nhánh `%`, nên núm đáng quét là núm thứ hai.
-         */
-        for (const [guc, mucs, mac_dinh] of /** @type {[string, number[], number][]} */ ([
-          ['pg_trgm.similarity_threshold', [0.3, 0.35, 0.4, 0.45], 0.3],
-          ['pg_trgm.word_similarity_threshold', [0.5, 0.6, 0.7], threshold],
-        ])) {
-          console.log(`  — quét ${guc} (câu full):`);
-          for (const muc of mucs) {
-            await sql.unsafe(`SET ${guc} = ${muc}`);
-            const [row] = await sql.unsafe(
-              `EXPLAIN (ANALYZE, BUFFERS, FORMAT JSON) ${variants.full}`,
-            );
-            const t = timesOf(row?.['QUERY PLAN']);
-            const w = widestNode(row?.['QUERY PLAN']);
-            console.log(
-              `      ngưỡng ${muc}: ${Math.round(t.exec).toString().padStart(6)} ms · rộng nhất ${w.rows.toLocaleString('vi-VN')} dòng`,
-            );
+    /** Chế độ THỜI GIAN */
+    async function doExplain() {
+      for (const { q, sql: variants } of buildCases(queries)) {
+        console.log(`━━━ q=${JSON.stringify(q)} (${q.length} ký tự) ━━━`);
+        /** @type {Record<string, number>} */
+        const exec = {};
+        /** Chạy `repeat` lần, lấy trung vị; in cả dải để thấy nhiễu thay vì giấu nó. */
+        const doRun = async (/** @type {string} */ label, /** @type {string} */ text) => {
+          /** @type {number[]} */
+          const runs = [];
+          let widest = { node: '-', rows: 0 };
+          let traVe = 0;
+          for (let i = 0; i < repeat; i++) {
+            const [row] = await sql.unsafe(`EXPLAIN (ANALYZE, BUFFERS, FORMAT JSON) ${text}`);
+            runs.push(timesOf(row?.['QUERY PLAN']).exec);
+            if (i === 0) {
+              widest = widestNode(row?.['QUERY PLAN']);
+              // Số dòng CUỐI CÙNG (đã qua LIMIT). Đây là con số quyết định một cổng xếp tầng có leo
+              // bậc hay không — `rộng nhất` chỉ nói chi phí, không nói cổng mở hay đóng. Bài học từ
+              // ca `bhx`: cổng đóng vì bậc trước lấp đủ chỗ, và cái đúng không bao giờ được tìm.
+              traVe = timesOf(row?.['QUERY PLAN']).rows;
+            }
           }
-          await sql.unsafe(`SET ${guc} = ${mac_dinh}`);
-        }
-      }
+          exec[label] = median(runs);
+          console.log(
+            `  ${label.padEnd(15)} trung vị=${Math.round(median(runs)).toString().padStart(6)} ms` +
+              `  (${Math.round(Math.min(...runs))}–${Math.round(Math.max(...runs))})` +
+              `  trả ${String(traVe).padStart(3)} dòng` +
+              `  rộng nhất: ${widest.rows.toLocaleString('vi-VN')} dòng @ ${widest.node}`,
+          );
+        };
+        for (const [label, text] of Object.entries(variants)) await doRun(label, text);
+        // JIT bật mặc định; với truy vấn ~1,5 s thì thời gian biên dịch không hiển nhiên là nhỏ.
+        await sql.unsafe('SET jit = off');
+        await doRun('full_jit_off', variants.full ?? '');
+        await sql.unsafe('SET jit = on');
 
-      if (inPlan) {
-        // In kế hoạch của `full` VÀ của biến thể chậm nhất. Thời gian tường của route là max() các
-        // truy vấn chạy song song, nên nếu `street` hay `area_fuzzy` chậm hơn `poi` thì chính nó
-        // mới là thứ cần nhìn — mà điều đó chỉ biết sau khi đo xong.
-        const slowest = Object.entries(exec).sort(([, a], [, b]) => b - a)[0]?.[0];
-        for (const label of slowest && slowest !== 'full' ? ['full', slowest] : ['full']) {
-          const text = label === 'full_jit_off' ? variants.full : variants[label];
-          if (!text) continue;
-          const rows = await sql.unsafe(`EXPLAIN (ANALYZE, BUFFERS) ${text}`);
-          console.log(`\n  — kế hoạch (${label}):`);
-          for (const row of rows) console.log(`    ${row['QUERY PLAN']}`);
+        const base = exec.full ?? 0;
+        console.log('  — quy chi phí (trung vị, so với full):');
+        for (const label of [
+          'no_matched_alt',
+          'no_distance',
+          'no_like',
+          'no_percent',
+          'chi_wordsim',
+          'chi_percent',
+          'chi_like',
+          'full_jit_off',
+        ]) {
+          if (exec[label] === undefined) continue;
+          const saved = base - exec[label];
+          const pctSaved = base > 0 ? Math.round((saved / base) * 100) : 0;
+          console.log(
+            `      bỏ ${label.padEnd(15)} tiết kiệm ${Math.round(saved)} ms (${pctSaved} %)`,
+          );
         }
+
+        if (sweep) {
+          /**
+           * Hai toán tử, HAI núm khác nhau — vòng đo 18/09 đã quét nhầm một lần:
+           * `<%` (word_similarity) dùng `word_similarity_threshold`, còn `%` (similarity) dùng
+           * `similarity_threshold`. Nút rộng nhất là nhánh `%`, nên núm đáng quét là núm thứ hai.
+           */
+          for (const [guc, mucs, mac_dinh] of /** @type {[string, number[], number][]} */ ([
+            ['pg_trgm.similarity_threshold', [0.3, 0.35, 0.4, 0.45], 0.3],
+            ['pg_trgm.word_similarity_threshold', [0.5, 0.6, 0.7], threshold],
+          ])) {
+            console.log(`  — quét ${guc} (câu full):`);
+            for (const muc of mucs) {
+              await sql.unsafe(`SET ${guc} = ${muc}`);
+              const [row] = await sql.unsafe(
+                `EXPLAIN (ANALYZE, BUFFERS, FORMAT JSON) ${variants.full}`,
+              );
+              const t = timesOf(row?.['QUERY PLAN']);
+              const w = widestNode(row?.['QUERY PLAN']);
+              console.log(
+                `      ngưỡng ${muc}: ${Math.round(t.exec).toString().padStart(6)} ms · rộng nhất ${w.rows.toLocaleString('vi-VN')} dòng`,
+              );
+            }
+            await sql.unsafe(`SET ${guc} = ${mac_dinh}`);
+          }
+        }
+
+        if (inPlan) {
+          // In kế hoạch của `full` VÀ của biến thể chậm nhất. Thời gian tường của route là max() các
+          // truy vấn chạy song song, nên nếu `street` hay `area_fuzzy` chậm hơn `poi` thì chính nó
+          // mới là thứ cần nhìn — mà điều đó chỉ biết sau khi đo xong.
+          const slowest = Object.entries(exec).sort(([, a], [, b]) => b - a)[0]?.[0];
+          for (const label of slowest && slowest !== 'full' ? ['full', slowest] : ['full']) {
+            const text = label === 'full_jit_off' ? variants.full : variants[label];
+            if (!text) continue;
+            const rows = await sql.unsafe(`EXPLAIN (ANALYZE, BUFFERS) ${text}`);
+            console.log(`\n  — kế hoạch (${label}):`);
+            for (const row of rows) console.log(`    ${row['QUERY PLAN']}`);
+          }
+        }
+        console.log();
       }
-      console.log();
     }
   } finally {
     await sql.end({ timeout: 5 });
