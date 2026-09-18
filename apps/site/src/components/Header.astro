@@ -1,5 +1,5 @@
 ---
-import { CONSOLE_URL } from '../../site.config.mjs';
+import { CONSOLE_URL, SUPPORT_PHONE, SUPPORT_PHONE_HIEN_THI } from '../../site.config.mjs';
 import { NAV, TRANG } from '../lib/trang';
 
 const { pathname } = Astro.url;
@@ -7,7 +7,7 @@ const mucNav = NAV.map((key) => ({ ...TRANG[key], dangXem: pathname === TRANG[ke
 ---
 
 <header class="sticky top-0 z-40 border-b border-[var(--border)] bg-[var(--surface)]/90 backdrop-blur">
-  <div class="mx-auto flex h-16 max-w-6xl items-center gap-3 px-4">
+  <div class="mx-auto flex h-16 max-w-6xl items-center gap-2 px-4 sm:gap-3">
     <a href="/" class="text-lg font-bold text-brand-700 dark:text-brand-100">MapsLibVN</a>
 
     <nav aria-label="Điều hướng chính" class="ml-auto hidden md:block">
@@ -32,42 +32,116 @@ const mucNav = NAV.map((key) => ({ ...TRANG[key], dangXem: pathname === TRANG[ke
       type="button"
       id="nut-theme"
       aria-label="Đổi giao diện sáng tối"
-      class="ml-auto inline-flex h-11 w-11 items-center justify-center rounded-[var(--radius-btn)] border border-[var(--border)] md:ml-0"
+      class="ml-auto inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-[var(--radius-btn)] border border-[var(--border)] md:ml-0"
     >
       <span aria-hidden="true">◐</span>
     </button>
 
     <a
       href={CONSOLE_URL}
-      class="inline-flex min-h-11 items-center rounded-[var(--radius-btn)] bg-brand-700 px-4 text-sm font-semibold text-white hover:bg-brand-800"
+      class="inline-flex min-h-11 shrink-0 items-center whitespace-nowrap rounded-[var(--radius-btn)] bg-brand-700 px-3 text-sm font-semibold text-white hover:bg-brand-800 sm:px-4"
     >
-      Bắt đầu miễn phí
+      {/* Nhãn ngắn ở màn rất hẹp để thanh trên không tràn ở 320px, vẫn giữ đường đăng ký luôn
+          nhìn thấy thay vì giấu sau nút ☰. */}
+      <span class="sm:hidden">Bắt đầu</span>
+      <span class="hidden sm:inline">Bắt đầu miễn phí</span>
     </a>
+
+    <button
+      type="button"
+      id="nut-menu"
+      aria-label="Mở menu điều hướng"
+      aria-haspopup="dialog"
+      aria-expanded="false"
+      aria-controls="ngan-keo"
+      class="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-[var(--radius-btn)] border border-[var(--border)] md:hidden"
+    >
+      <span aria-hidden="true" class="flex flex-col gap-1">
+        <span class="block h-0.5 w-4 rounded bg-current"></span>
+        <span class="block h-0.5 w-4 rounded bg-current"></span>
+        <span class="block h-0.5 w-4 rounded bg-current"></span>
+      </span>
+    </button>
   </div>
 
-  <nav aria-label="Điều hướng chính, màn hình hẹp" class="border-t border-[var(--border)] md:hidden">
-    <ul class="mx-auto flex max-w-6xl gap-1 overflow-x-auto px-4 py-1">
-      {
-        mucNav.map((muc) => (
-          <li>
-            <a
-              href={muc.path}
-              aria-current={muc.dangXem ? 'page' : undefined}
-              class="inline-flex min-h-11 items-center whitespace-nowrap px-3 text-sm font-semibold text-[var(--text-muted)] aria-[current=page]:text-brand-700 dark:aria-[current=page]:text-brand-100"
-            >
-              {muc.nhan}
-            </a>
-          </li>
-        ))
-      }
-    </ul>
-  </nav>
+  {/*
+    Thẻ <dialog> mở bằng showModal(): trình duyệt lo sẵn ba việc khó nhất của một ngăn kéo —
+    giam tiêu điểm bàn phím bên trong, đóng bằng Esc, và trả tiêu điểm về nút đã mở. Trang Admin
+    phải kéo Radix Dialog vào để có đúng ba thứ này; website không có React nên dùng bản của
+    trình duyệt, tốn thêm chưa tới một kilobyte.
+  */}
+  <dialog
+    id="ngan-keo"
+    aria-label="Điều hướng chính"
+    class="ngan-keo m-0 ml-auto h-full max-h-none w-72 max-w-[82vw] border-l border-[var(--border)] bg-[var(--surface)] p-0 text-[var(--text)] shadow-xl backdrop:bg-black/45"
+  >
+    <div class="flex h-16 items-center justify-between border-b border-[var(--border)] px-4">
+      <p class="text-base font-bold">Điều hướng</p>
+      <button
+        type="button"
+        id="nut-dong-menu"
+        aria-label="Đóng menu điều hướng"
+        class="inline-flex h-11 w-11 items-center justify-center rounded-[var(--radius-btn)] border border-[var(--border)]"
+      >
+        <span aria-hidden="true">✕</span>
+      </button>
+    </div>
+
+    <nav aria-label="Điều hướng trong menu" class="p-3">
+      <ul class="space-y-1">
+        {
+          mucNav.map((muc) => (
+            <li>
+              <a
+                href={muc.path}
+                aria-current={muc.dangXem ? 'page' : undefined}
+                class="flex min-h-11 items-center rounded-[var(--radius-btn)] px-3 font-semibold text-[var(--text-muted)] hover:bg-brand-50 hover:text-brand-700 aria-[current=page]:bg-brand-50 aria-[current=page]:text-brand-700 dark:hover:bg-brand-900 dark:hover:text-brand-100 dark:aria-[current=page]:bg-brand-900 dark:aria-[current=page]:text-brand-100"
+              >
+                {muc.nhan}
+              </a>
+            </li>
+          ))
+        }
+      </ul>
+
+      <hr class="my-3 border-[var(--border)]" />
+
+      <a
+        href={CONSOLE_URL}
+        class="flex min-h-11 items-center justify-center rounded-[var(--radius-btn)] bg-brand-700 px-4 font-semibold text-white hover:bg-brand-800"
+      >
+        Bắt đầu miễn phí
+      </a>
+      <a
+        href={`tel:${SUPPORT_PHONE}`}
+        class="mt-2 flex min-h-11 items-center justify-center rounded-[var(--radius-btn)] border border-[var(--border)] px-4 font-semibold hover:bg-brand-50 dark:hover:bg-brand-900"
+      >
+        Gọi {SUPPORT_PHONE_HIEN_THI}
+      </a>
+    </nav>
+  </dialog>
 </header>
 
+<style>
+  /* Trượt bằng transform chứ không animate width: animate width buộc trình duyệt tính lại bố cục
+     mỗi khung hình và giật trên máy yếu. */
+  .ngan-keo {
+    transform: translateX(100%);
+    transition: transform 200ms ease-out;
+  }
+
+  .ngan-keo[open] {
+    transform: translateX(0);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .ngan-keo {
+      transition: none;
+    }
+  }
+</style>
+
 <script>
-  // Sáng/tối bằng vanilla, cùng quy ước class `dark` với trang Admin nhưng khoá localStorage
-  // riêng để hai nơi không kéo nhau. Không dùng @mapslibvn/ui ở đây: kéo cả package vào bundle
-  // website chỉ để đọc ba dòng localStorage là lỗ vốn.
   const KHOA = 'mapslibvn-site-theme';
   document.getElementById('nut-theme')?.addEventListener('click', () => {
     const toi = !document.documentElement.classList.contains('dark');
@@ -78,4 +152,35 @@ const mucNav = NAV.map((key) => ({ ...TRANG[key], dangXem: pathname === TRANG[ke
       // Chế độ riêng tư chặn localStorage — vẫn đổi cho phiên này.
     }
   });
+
+  const nut = document.getElementById('nut-menu');
+  const nganKeo = document.getElementById('ngan-keo') as HTMLDialogElement | null;
+  const nutDong = document.getElementById('nut-dong-menu');
+
+  if (nut && nganKeo) {
+    const mo = () => {
+      nganKeo.showModal();
+      nut.setAttribute('aria-expanded', 'true');
+      // showModal() chặn tương tác với nền nhưng KHÔNG khoá cuộn; thiếu dòng này thì cuộn trong
+      // ngăn kéo tới cuối sẽ kéo luôn trang phía sau.
+      document.body.style.overflow = 'hidden';
+    };
+    const dong = () => nganKeo.close();
+
+    nut.addEventListener('click', mo);
+    nutDong?.addEventListener('click', dong);
+
+    // Chạm vùng nền tối để đóng. Click vào ::backdrop được tính là click vào chính thẻ dialog,
+    // nên so target với dialog là đủ phân biệt với click vào nội dung bên trong.
+    nganKeo.addEventListener('click', (su) => {
+      if (su.target === nganKeo) dong();
+    });
+
+    // `close` bắt cả nút đóng, Esc lẫn chạm nền, nên dọn dẹp đặt đúng một chỗ.
+    nganKeo.addEventListener('close', () => {
+      nut.setAttribute('aria-expanded', 'false');
+      document.body.style.overflow = '';
+      nut.focus();
+    });
+  }
 </script>

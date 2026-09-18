@@ -50,15 +50,69 @@ test('bản đồ hero chỉ nạp iframe sau khi bấm', async ({ page }) => {
   await expect(page.locator('iframe')).toHaveAttribute('title', /Bản đồ MapsLibVN/);
 });
 
-test('điều hướng dùng được ở khung hình điện thoại', async ({ page }) => {
+test('điện thoại: ngăn kéo mở, đi được tới trang, và mọi mục đều bấm tới nơi', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto('/');
-  await page
-    .getByRole('navigation', { name: /màn hình hẹp/ })
-    .getByText('Bảng giá')
-    .click();
+
+  const nut = page.getByRole('button', { name: 'Mở menu điều hướng' });
+  await expect(nut).toBeVisible();
+  await expect(nut).toHaveAttribute('aria-expanded', 'false');
+
+  await nut.click();
+  const nganKeo = page.getByRole('dialog', { name: 'Điều hướng chính' });
+  await expect(nganKeo).toBeVisible();
+  await expect(nut).toHaveAttribute('aria-expanded', 'true');
+
+  // Cả năm mục PHẢI nhìn thấy được mà không cần cuộn ngang — đây chính là lý do bỏ thanh cuộn:
+  // ở 390px thanh cũ giấu mất "Bài viết" và "Liên hệ".
+  for (const nhan of ['Tính năng', 'Bảng giá', 'So với Google', 'Bài viết', 'Liên hệ']) {
+    await expect(nganKeo.getByRole('link', { name: nhan }), `thiếu mục ${nhan}`).toBeInViewport();
+  }
+
+  await nganKeo.getByRole('link', { name: 'Bảng giá' }).click();
   await expect(page).toHaveURL(/\/bang-gia\/$/);
-  await expect(page.locator('h1')).toHaveText('Bảng giá');
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText('Bảng giá');
+});
+
+test('điện thoại: Esc đóng ngăn kéo và trả tiêu điểm về nút mở', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto('/');
+
+  const nut = page.getByRole('button', { name: 'Mở menu điều hướng' });
+  await nut.click();
+  await expect(page.getByRole('dialog', { name: 'Điều hướng chính' })).toBeVisible();
+
+  await page.keyboard.press('Escape');
+  await expect(page.getByRole('dialog', { name: 'Điều hướng chính' })).toBeHidden();
+  await expect(nut).toHaveAttribute('aria-expanded', 'false');
+  // Trả tiêu điểm về đúng nút đã mở: thiếu bước này, người dùng bàn phím rơi về đầu trang.
+  await expect(nut).toBeFocused();
+  // Cuộn trang nền phải được mở lại, nếu không cả trang cứng đờ sau khi đóng menu.
+  expect(await page.evaluate(() => document.body.style.overflow)).toBe('');
+});
+
+test('điện thoại: nút đóng và chạm nền tối đều đóng được ngăn kéo', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto('/');
+  const nut = page.getByRole('button', { name: 'Mở menu điều hướng' });
+  const nganKeo = page.getByRole('dialog', { name: 'Điều hướng chính' });
+
+  await nut.click();
+  await page.getByRole('button', { name: 'Đóng menu điều hướng' }).click();
+  await expect(nganKeo).toBeHidden();
+
+  await nut.click();
+  // Chạm mép trái màn hình = chạm vùng nền tối, vì ngăn kéo nằm sát mép phải.
+  await page.mouse.click(10, 400);
+  await expect(nganKeo).toBeHidden();
+});
+
+test('máy tính: không có nút hamburger, năm mục nằm thẳng trên thanh', async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 800 });
+  await page.goto('/');
+  await expect(page.getByRole('button', { name: 'Mở menu điều hướng' })).toBeHidden();
+  const nav = page.getByRole('navigation', { name: 'Điều hướng chính' });
+  await expect(nav.getByRole('link')).toHaveCount(5);
 });
 
 test('ba tab mã nhúng đổi được bằng chuột và bàn phím', async ({ page }) => {

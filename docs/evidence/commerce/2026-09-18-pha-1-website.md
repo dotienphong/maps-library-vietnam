@@ -13,22 +13,22 @@ Ngày chạy: 18/09/2026. 14 task, 14 commit.
 | `npx vitest run apps/site/src` | 5 file / **35 test** xanh |
 | `pnpm test` (gốc, nay gồm cả build site) | 193 file / **1.857 test** xanh, 5 skip |
 | `pnpm --filter @mapslibvn/api test` | 62 file / **480 test** xanh |
-| `pnpm test:site-e2e` | **22/22** xanh, 7,4 s (20 bài gốc + 2 bài số điện thoại) |
+| `pnpm test:site-e2e` | **25/25** xanh, 7,5 s |
 | `pnpm test:admin-e2e` | **17/17** xanh, 1,1 phút |
 
 ## 2. Hiệu năng đo trên bản build
 
 | Hạng mục | Số đo | Ngân sách plan |
 |---|---|---|
-| JavaScript trang chủ | **598 byte gzip**, 3 khối nhúng, **0 tệp `.js` ngoài** | 15.000 byte |
-| HTML trang chủ (nén) | 7.524 byte | — |
+| JavaScript trang chủ | **739 byte gzip**, 3 khối nhúng, **0 tệp `.js` ngoài** | 15.000 byte |
+| HTML trang chủ (nén) | 8.118 byte | — |
 | Ảnh hero, bản AVIF nhỏ nhất | 35 KB | — |
 | Ảnh OG | 22–42 KB mỗi tấm | 200 KB |
 | Ảnh hero gốc trong repo | 559 KB JPEG | — |
 
 Astro nhúng thẳng ba khối script nhỏ vào HTML nên trang chủ **không tải thêm một tệp JavaScript
 nào**. Một island React sẽ là khoảng 45 KB gzip; bài e2e "ngân sách JavaScript trang chủ" khoá
-lại điều này.
+lại điều này. Menu hamburger cộng thêm 141 byte, vẫn xa ngưỡng.
 
 ## 3. SEO — bảy trang, đã kiểm bằng e2e trên bản build
 
@@ -73,6 +73,31 @@ to 5 elements" — bốn thẻ h1 thừa là của thanh công cụ dev Astro.
 
 Đã tách cổng: e2e dựng bản build rồi phục vụ ở **4323**, `pnpm dev` giữ **4322**. Hai việc không
 còn tranh nhau, và không ai phải nhớ tắt dev trước khi chạy test.
+
+## 4d. Đổi menu điện thoại sang hamburger — PHONG yêu cầu 18/09
+
+Bản đầu dùng thanh điều hướng cuộn ngang với lý do "chỉ có năm mục, đừng giấu Bảng giá sau một
+lần bấm". Đo lại trên bản deploy thật thì lý do đó sai:
+
+| Bề ngang | Nội dung cần | Mục bị khuất |
+|---|---|---|
+| 320px | 498px | So với Google, Bài viết, Liên hệ |
+| 360px | 498px | Bài viết, Liên hệ |
+| 390px | 498px | Bài viết, Liên hệ |
+| 430px | 498px | Liên hệ |
+
+Không có dấu hiệu nào báo là cuộn ngang được, nên với người dùng thì hai mục cuối coi như không
+tồn tại — tệ hơn hamburger, vì hamburger ít nhất nói rõ còn thứ để mở.
+
+Bản mới dùng thẻ **`<dialog>` của trình duyệt** mở bằng `showModal()`, không thêm thư viện nào:
+trình duyệt lo sẵn giam tiêu điểm bàn phím, đóng bằng Esc và trả tiêu điểm về nút đã mở — đúng ba
+thứ mà trang Admin phải kéo Radix Dialog vào để có. Script chỉ thêm phần khoá cuộn nền và chạm
+nền tối để đóng.
+
+Đo lại sau khi đổi: thanh trên **vừa khít ở cả 320px** (mép phải nút ☰ ở 311px), không trang nào
+cuộn ngang, và JavaScript trang chủ tăng từ 598 lên **739 byte**. Bốn bài e2e mới khoá lại: cả năm
+mục nhìn thấy được không cần cuộn, Esc đóng và trả tiêu điểm, nút đóng và chạm nền đều đóng được,
+và ở màn hình rộng thì không có nút ☰.
 
 ## 5. Việc tay của PHONG, theo thứ tự
 
