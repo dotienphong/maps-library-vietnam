@@ -1,0 +1,89 @@
+---
+import { CONSOLE_URL, DOCS_URL } from '../../site.config.mjs';
+import { soSanh } from '../lib/gia';
+import { TRANG } from '../lib/trang';
+
+// Khoảng phần trăm TÍNH TỪ COMPARISON, không gõ tay: đổi bảng giá đối thủ là câu này tự đúng theo.
+const phanTram = soSanh().map((row) => row.reHonGoogle);
+const thap = Math.round(Math.min(...phanTram));
+const cao = Math.round(Math.max(...phanTram));
+---
+
+<section class="mx-auto max-w-6xl px-4 py-12 lg:py-20">
+  <div class="grid items-center gap-10 lg:grid-cols-2">
+    <div>
+      <h1 class="text-3xl font-bold leading-tight sm:text-4xl lg:text-5xl">
+        {TRANG.trangChu.h1}
+      </h1>
+      <p class="mt-5 text-lg text-[var(--text-muted)]">
+        API bản đồ, tìm kiếm địa điểm và dẫn đường dựng trên dữ liệu mở. Nhúng vào web hoặc
+        ứng dụng di động bằng một dòng, trả tiền bằng VND, dữ liệu và mã nguồn dựng lại được.
+      </p>
+      <p class="mt-3 text-[var(--text-muted)]">
+        Chi phí thấp hơn Google từ {thap}% đến {cao}% ở ba mức dùng đã đối chiếu.
+        <a class="underline" href="/bang-gia/#so-sanh">Xem bảng và giả định →</a>
+      </p>
+
+      <div class="mt-8 flex flex-wrap gap-3">
+        <a
+          href={CONSOLE_URL}
+          class="inline-flex min-h-11 items-center rounded-[var(--radius-btn)] bg-brand-700 px-6 font-semibold text-white hover:bg-brand-800"
+        >
+          Bắt đầu miễn phí
+        </a>
+        <a
+          href={TRANG.bangGia.path}
+          class="inline-flex min-h-11 items-center rounded-[var(--radius-btn)] border border-[var(--border)] px-6 font-semibold hover:bg-brand-50 dark:hover:bg-brand-900"
+        >
+          Xem bảng giá
+        </a>
+      </div>
+      <p class="mt-3 text-sm text-[var(--text-muted)]">
+        Bản dùng thử 2.000 lượt Places trong 30 ngày, không cần thẻ.
+      </p>
+    </div>
+
+    <!-- Chiều cao CỐ ĐỊNH từ đầu (aspect-video) nên không có dịch chuyển bố cục khi iframe xuất
+         hiện, và iframe không bao giờ nằm trong đường LCP vì nó chỉ nạp sau khi người dùng bấm. -->
+    <figure class="m-0">
+      <div
+        id="khoi-ban-do"
+        class="relative aspect-video overflow-hidden rounded-[var(--radius-card)] border border-[var(--border)] bg-brand-50 dark:bg-brand-900"
+      >
+        <button
+          type="button"
+          id="nut-ban-do"
+          class="absolute inset-0 flex items-center justify-center"
+          data-src={`${DOCS_URL}/playground.html?embed=1`}
+        >
+          <span
+            class="inline-flex min-h-11 items-center rounded-[var(--radius-btn)] bg-brand-700 px-5 font-semibold text-white shadow-lg"
+          >
+            Bấm để mở bản đồ tương tác
+          </span>
+        </button>
+      </div>
+      <figcaption class="mt-2 text-center text-sm text-[var(--text-muted)]">
+        Bản đồ thật do MapsLibVN phục vụ.
+        <a class="underline" href={`${DOCS_URL}/playground.html`}>Mở trang thử đầy đủ →</a>
+      </figcaption>
+    </figure>
+  </div>
+</section>
+
+<script>
+  // Chỉ nạp iframe khi người dùng thực sự muốn xem. Trước lúc bấm, trang không tải một byte nào
+  // của playground, nên số đo tải trang không bị một trang khác kéo xuống.
+  const nut = document.getElementById('nut-ban-do');
+  nut?.addEventListener('click', () => {
+    const src = nut.dataset.src;
+    const khoi = document.getElementById('khoi-ban-do');
+    if (!src || !khoi) return;
+    const khung = document.createElement('iframe');
+    khung.src = src;
+    khung.title = 'Bản đồ MapsLibVN tương tác';
+    khung.loading = 'lazy';
+    khung.className = 'absolute inset-0 h-full w-full border-0';
+    khoi.replaceChildren(khung);
+  });
+</script>
