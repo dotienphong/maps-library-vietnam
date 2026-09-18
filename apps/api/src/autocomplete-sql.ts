@@ -193,7 +193,11 @@ export const FAST_CANDIDATE_POOL = 200;
  * `name_alt_norm` nên không có tên thay thế nào để khoe. Đường dự phòng vẫn trả như cũ.
  */
 export function poiFastCandidates(sql: Sql, input: CandidateQueryInput, tsQuery: string) {
-  const { queryNorm, near, sources } = input;
+  const { queryNorm, queryCore, near, sources } = input;
+  // Chấm điểm theo CẢ dạng lõi, y như bậc 1. Nghiệm thu 18/09 trượt vì thiếu đúng vế này:
+  // `nameCore('bhx')` = 'bach hoa xanh', tìm ra đúng POI nhưng `sim` tính theo 'bhx' nên nó rơi
+  // ngoài top 3. Chỉ thêm khi thật sự khác — phần lớn truy vấn có core trùng norm.
+  const coreSim = queryCore === queryNorm ? sql`` : sql`, word_similarity(${queryCore}, name_norm)`;
   return sql<CandidateRow[]>`
     WITH ung_vien AS (
       SELECT id, name, street, admin_ward, ward, admin_province, province, geom,
@@ -212,6 +216,7 @@ export function poiFastCandidates(sql: Sql, input: CandidateQueryInput, tsQuery:
         word_similarity(${queryNorm}, name_norm),
         similarity(name_norm, ${queryNorm}),
         word_similarity(${queryNorm}, coalesce(name_alt_norm, ''))
+        ${coreSim}
       ) AS sim,
       starts_with(name_norm, ${queryNorm}) AS prefix,
       coalesce(popularity, 0) AS pop,

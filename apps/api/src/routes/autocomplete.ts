@@ -98,7 +98,7 @@ autocomplete.get(
           },
           types,
           // Cờ tắt → `undefined` → collectCandidates chạy y hệt trước khi có bậc nhanh.
-          fastGateFor({ enabled: c.env.AUTOCOMPLETE_FAST === '1', queryNorm, limit }),
+          fastGateFor({ enabled: c.env.AUTOCOMPLETE_FAST === '1', queryNorm, queryCore, limit }),
         );
         // Bậc 3b (spec 5.6): chỉ khi cờ bật VÀ mọi bậc trước rỗng. Chuỗi đã gập là một queryNorm
         // khác nên không đụng cache của chuỗi gốc.

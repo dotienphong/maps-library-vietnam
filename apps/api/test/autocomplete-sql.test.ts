@@ -433,6 +433,29 @@ describe('poiFastCandidates — bậc nhanh', () => {
     expect(cauChinh(calls)?.params).toContain(FAST_CANDIDATE_POOL);
   });
 
+  /**
+   * Bậc 1 chấm điểm theo CẢ queryCore (`word_similarity(queryCore, name_norm)`). Thiếu vế đó thì
+   * `bhx` tìm ra "Bách Hoá Xanh" nhưng chấm điểm như thể không khớp, rồi rơi ngoài top 3.
+   */
+  it('sim gồm cả queryCore khi nó khác queryNorm', async () => {
+    const { sql, calls } = fakeSql([]);
+    await poiFastCandidates(
+      sql,
+      { ...fastInput, queryNorm: 'bhx', queryCore: 'bach hoa xanh' },
+      'x:*',
+    );
+    const params = cauChinh(calls)?.params ?? [];
+    expect(params).toContain('bach hoa xanh');
+    expect(params.filter((value) => value === 'bhx').length).toBeGreaterThan(0);
+  });
+
+  it('queryCore trùng queryNorm thì không thêm vế sim thừa', async () => {
+    const { sql, calls } = fakeSql([]);
+    await poiFastCandidates(sql, fastInput, 'ben:* & thanh:*');
+    const text = cauChinh(calls)?.text ?? '';
+    expect((text.match(/word_similarity\(/g) ?? []).length).toBe(2);
+  });
+
   it('không có near thì d là NULL, không gọi ST_DistanceSphere', async () => {
     const { sql, calls } = fakeSql([]);
     await poiFastCandidates(sql, { ...fastInput, near: null }, 'ben:*');

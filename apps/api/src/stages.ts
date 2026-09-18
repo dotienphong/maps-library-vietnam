@@ -52,6 +52,27 @@ export interface FastGate {
 }
 
 /**
+ * tsquery của bậc nhanh: phải phủ **cả** `queryNorm` lẫn `queryCore`.
+ *
+ * Nghiệm thu 18/09/2026 trượt vì thiếu đúng vế thứ hai. `nameCore('bhx')` mở rộng thành
+ * `bach hoa xanh` qua từ điển thương hiệu, và bậc 1 khớp VÀ chấm điểm theo `queryCore`
+ * (`coreBranches` + `word_similarity(queryCore, name_norm)` trong `poiCandidates`). Bậc nhanh chỉ
+ * dùng `queryNorm` nên khi cổng đóng thì mọi truy vấn viết tắt mất hẳn kết quả — hit@3 38→37.
+ *
+ * Hai vế nối bằng `|` và **mỗi vế trong ngoặc**: `to_tsquery` cho `&` ưu tiên cao hơn `|`, thiếu
+ * ngoặc thì `a:* & b:* | c:*` thành `(a & b) | c` — đúng ở đây nhưng vỡ ngay khi vế trái nhiều
+ * token hơn. Ngoặc tường minh thì không phải nhớ luật ưu tiên.
+ */
+export function fastTsQuery(queryNorm: string, queryCore: string): string | null {
+  const ve_norm = tsQueryAnyToken(queryNorm);
+  if (queryCore === queryNorm) return ve_norm;
+  const ve_core = tsQueryAnyToken(queryCore);
+  if (!ve_norm) return ve_core;
+  if (!ve_core) return ve_norm;
+  return `(${ve_norm}) | (${ve_core})`;
+}
+
+/**
  * Có bật cổng bậc nhanh cho request này không, và với tsquery nào.
  *
  * Là hàm THUẦN vì test route của `apps/api` chạy trên vitest-pool-workers với DB đóng và không
@@ -61,10 +82,11 @@ export interface FastGate {
 export function fastGateFor(input: {
   enabled: boolean;
   queryNorm: string;
+  queryCore: string;
   limit: number;
 }): FastGate | undefined {
   if (!input.enabled) return undefined;
-  return { tsQuery: tsQueryAnyToken(input.queryNorm), limit: input.limit };
+  return { tsQuery: fastTsQuery(input.queryNorm, input.queryCore), limit: input.limit };
 }
 
 export type Stage = 2 | 3;

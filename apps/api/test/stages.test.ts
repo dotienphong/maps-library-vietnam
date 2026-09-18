@@ -1,5 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import { fastGateFor, planStages, telexFallback, tsQueryAnyToken, tsQueryFor } from '../src/stages';
+import {
+  fastGateFor,
+  fastTsQuery,
+  planStages,
+  telexFallback,
+  tsQueryAnyToken,
+  tsQueryFor,
+} from '../src/stages';
 
 describe('tsQueryFor', () => {
   it('mọi token là tiền tố, AND, bỏ token < 2 ký tự, giữ token toàn số', () => {
@@ -91,27 +98,66 @@ describe('tsQueryAnyToken', () => {
 
 describe('fastGateFor', () => {
   it('cờ khác "1" → undefined, tức giữ nguyên hành vi cũ', () => {
-    expect(fastGateFor({ enabled: false, queryNorm: 'ben thanh', limit: 10 })).toBeUndefined();
+    expect(
+      fastGateFor({ enabled: false, queryNorm: 'ben thanh', queryCore: 'ben thanh', limit: 10 }),
+    ).toBeUndefined();
   });
 
   it('cờ bật → cổng mang tsquery mọi-token và limit của request', () => {
-    expect(fastGateFor({ enabled: true, queryNorm: 'ben thanh', limit: 7 })).toEqual({
+    expect(
+      fastGateFor({ enabled: true, queryNorm: 'ben thanh', queryCore: 'ben thanh', limit: 7 }),
+    ).toEqual({
       tsQuery: 'ben:* & thanh:*',
       limit: 7,
     });
   });
 
   it('truy vấn một token vẫn có cổng', () => {
-    expect(fastGateFor({ enabled: true, queryNorm: 'cafe', limit: 10 })).toEqual({
-      tsQuery: 'cafe:*',
-      limit: 10,
-    });
+    expect(fastGateFor({ enabled: true, queryNorm: 'cafe', queryCore: 'cafe', limit: 10 })).toEqual(
+      {
+        tsQuery: 'cafe:*',
+        limit: 10,
+      },
+    );
   });
 
   it('không còn token nào → tsQuery null, collectCandidates sẽ bỏ qua bậc nhanh', () => {
-    expect(fastGateFor({ enabled: true, queryNorm: 'a', limit: 10 })).toEqual({
+    expect(fastGateFor({ enabled: true, queryNorm: 'a', queryCore: 'a', limit: 10 })).toEqual({
       tsQuery: null,
       limit: 10,
     });
+  });
+});
+
+/**
+ * `bhx` làm hit@3 tụt 38→37 khi bật bậc nhanh (nghiệm thu 18/09). Lý do: `nameCore('bhx')` mở
+ * rộng thành `bach hoa xanh` qua từ điển thương hiệu, bậc 1 khớp VÀ chấm điểm theo `queryCore`,
+ * còn bậc nhanh chỉ dùng `queryNorm` nên mất hẳn phần mở rộng viết tắt.
+ */
+describe('fastTsQuery — bậc nhanh phải mang cả queryCore', () => {
+  it('core trùng norm thì y như tsQueryAnyToken, không thêm ngoặc thừa', () => {
+    expect(fastTsQuery('ben thanh', 'ben thanh')).toBe('ben:* & thanh:*');
+    expect(fastTsQuery('cafe', 'cafe')).toBe('cafe:*');
+  });
+
+  it('core khác norm thì OR hai vế, mỗi vế trong ngoặc', () => {
+    expect(fastTsQuery('bhx', 'bach hoa xanh')).toBe('(bhx:*) | (bach:* & hoa:* & xanh:*)');
+  });
+
+  it('một vế không còn token nào thì dùng vế kia, không sinh tsquery hỏng', () => {
+    expect(fastTsQuery('a', 'bach hoa xanh')).toBe('bach:* & hoa:* & xanh:*');
+    expect(fastTsQuery('bhx', 'a')).toBe('bhx:*');
+  });
+
+  it('cả hai vế rỗng thì null', () => {
+    expect(fastTsQuery('a', 'b')).toBeNull();
+  });
+});
+
+describe('fastGateFor mang queryCore', () => {
+  it('truyền queryCore xuống tsquery của cổng', () => {
+    expect(
+      fastGateFor({ enabled: true, queryNorm: 'bhx', queryCore: 'bach hoa xanh', limit: 10 }),
+    ).toEqual({ tsQuery: '(bhx:*) | (bach:* & hoa:* & xanh:*)', limit: 10 });
   });
 });
