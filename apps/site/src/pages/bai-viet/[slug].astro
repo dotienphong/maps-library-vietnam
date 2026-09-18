@@ -1,0 +1,79 @@
+---
+import { getCollection, render } from 'astro:content';
+import { CONSOLE_URL } from '../../../site.config.mjs';
+import Prose from '../../components/Prose.astro';
+import Base from '../../layouts/Base.astro';
+import { ngayVn } from '../../lib/bai-viet';
+import { articleJsonLd, breadcrumbJsonLd } from '../../lib/seo';
+import type { TrangMeta } from '../../lib/trang';
+import { TRANG } from '../../lib/trang';
+
+export async function getStaticPaths() {
+  const bai = await getCollection('baiViet', ({ data }) => data.daDuyet);
+  return bai.map((item) => ({ params: { slug: item.id }, props: { item } }));
+}
+
+const { item } = Astro.props;
+const { Content } = await render(item);
+const path = `/bai-viet/${item.id}/`;
+
+// Metadata của bài là ĐỘNG nên không nằm trong bảng TRANG, nhưng vẫn đúng kiểu TrangMeta để
+// seoMeta dùng lại nguyên vẹn — một đường đi duy nhất cho mọi thẻ SEO của cả site.
+const trang: TrangMeta = {
+  path,
+  title: item.data.title,
+  description: item.data.description,
+  h1: item.data.title,
+  nhan: item.data.title,
+};
+---
+
+<Base
+  trang={trang}
+  tuyChon={{ type: 'article', publishedAt: item.data.publishedAt }}
+  jsonLd={[
+    articleJsonLd({
+      title: item.data.title,
+      description: item.data.description,
+      path,
+      publishedAt: item.data.publishedAt,
+      ...(item.data.updatedAt ? { updatedAt: item.data.updatedAt } : {}),
+    }),
+    breadcrumbJsonLd([
+      { ten: 'Trang chủ', path: TRANG.trangChu.path },
+      { ten: 'Bài viết', path: TRANG.baiViet.path },
+      { ten: item.data.title, path },
+    ]),
+  ]}
+>
+  <article class="mx-auto max-w-3xl px-4 py-12">
+    <p class="text-sm text-[var(--text-muted)]">
+      <a class="hover:underline" href={TRANG.baiViet.path}>Bài viết</a> ·
+      <time datetime={item.data.publishedAt}>{ngayVn(item.data.publishedAt)}</time>
+      {item.data.updatedAt && <span> · cập nhật {ngayVn(item.data.updatedAt)}</span>}
+    </p>
+    <h1 class="mt-2 text-3xl font-bold sm:text-4xl">{item.data.title}</h1>
+    <p class="mt-4 text-lg text-[var(--text-muted)]">{item.data.description}</p>
+
+    <hr class="my-8 border-[var(--border)]" />
+
+    <Prose>
+      <Content />
+    </Prose>
+
+    <aside
+      class="mt-12 rounded-[var(--radius-card)] border border-[var(--border)] bg-[var(--surface)] p-6 text-center"
+    >
+      <p class="font-semibold">Thử MapsLibVN trên chính dữ liệu của bạn</p>
+      <p class="mt-2 text-sm text-[var(--text-muted)]">
+        Bản dùng thử 2.000 lượt Places trong 30 ngày, không cần thẻ thanh toán.
+      </p>
+      <a
+        href={CONSOLE_URL}
+        class="mt-4 inline-flex min-h-11 items-center rounded-[var(--radius-btn)] bg-brand-700 px-6 font-semibold text-white hover:bg-brand-800"
+      >
+        Lấy khoá API
+      </a>
+    </aside>
+  </article>
+</Base>
