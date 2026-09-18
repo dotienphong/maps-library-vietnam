@@ -1,0 +1,100 @@
+---
+import { CONSOLE_URL, DOCS_URL, SUPPORT_EMAIL } from '../../site.config.mjs';
+import Base from '../layouts/Base.astro';
+import { breadcrumbJsonLd } from '../lib/seo';
+import { TRANG } from '../lib/trang';
+
+const GIO = [
+  ['Thứ Hai đến thứ Sáu', '08:00 – 20:00'],
+  ['Thứ Bảy và Chủ nhật', '08:00 – 17:00'],
+] as const;
+
+const NHANH = [
+  {
+    nhan: 'Tài liệu kỹ thuật',
+    mo: 'REST API, SDK, hướng dẫn bắt đầu 5 phút.',
+    href: `${DOCS_URL}/bat-dau/`,
+  },
+  {
+    nhan: 'Thử trực tiếp',
+    mo: 'Trang playground, không cần đăng ký.',
+    href: `${DOCS_URL}/playground.html`,
+  },
+  { nhan: 'Cổng khách hàng', mo: 'Tự lấy khoá API, xem mức dùng, mua gói.', href: CONSOLE_URL },
+] as const;
+---
+
+<Base
+  trang={TRANG.lienHe}
+  jsonLd={[
+    breadcrumbJsonLd([
+      { ten: 'Trang chủ', path: TRANG.trangChu.path },
+      { ten: 'Liên hệ', path: TRANG.lienHe.path },
+    ]),
+  ]}
+>
+  <section class="mx-auto max-w-3xl px-4 py-12">
+    <h1 class="text-3xl font-bold sm:text-4xl">{TRANG.lienHe.h1}</h1>
+    <p class="mt-4 text-lg text-[var(--text-muted)]">
+      Viết thư là cách nhanh nhất. Hiện chưa có tổng đài điện thoại và chưa có hộp thoại trò chuyện
+      trực tiếp trên website.
+    </p>
+
+    <div class="mt-8 rounded-[var(--radius-card)] border border-[var(--border)] bg-[var(--surface)] p-6">
+      <h2 class="text-base font-bold">Thư điện tử</h2>
+      <p class="mt-2">
+        <a
+          href={`mailto:${SUPPORT_EMAIL}`}
+          class="inline-flex min-h-11 items-center text-lg font-semibold text-brand-700 hover:underline dark:text-brand-100"
+        >
+          {SUPPORT_EMAIL}
+        </a>
+      </p>
+      <p class="text-sm text-[var(--text-muted)]">
+        Ghi rõ tên tổ chức và tiền tố khoá API nếu bạn đang là khách hàng, thư sẽ được xử lý nhanh
+        hơn. Đừng gửi khoá API đầy đủ qua thư.
+      </p>
+    </div>
+
+    <section aria-labelledby="tt-gio" class="mt-10">
+      <h2 id="tt-gio" class="mb-2 text-2xl font-bold">Giờ hỗ trợ trực tuyến</h2>
+      <p class="mb-4 text-[var(--text-muted)]">
+        Áp dụng cho gói Professional và Business, theo giờ Việt Nam. Gói Starter và bản dùng thử
+        được hỗ trợ qua tài liệu.
+      </p>
+      <table class="w-full max-w-md border-collapse overflow-hidden rounded-[var(--radius-card)] border border-[var(--border)] text-sm">
+        <tbody>
+          {
+            GIO.map(([ngay, gio]) => (
+              <tr class="border-b border-[var(--border)] last:border-0">
+                <th scope="row" class="px-4 py-3 text-left font-normal">
+                  {ngay}
+                </th>
+                <td class="px-4 py-3 text-right font-semibold">{gio}</td>
+              </tr>
+            ))
+          }
+        </tbody>
+      </table>
+    </section>
+
+    <section aria-labelledby="tt-nhanh" class="mt-10">
+      <h2 id="tt-nhanh" class="mb-4 text-2xl font-bold">Có thể bạn cần ngay</h2>
+      <ul class="space-y-3">
+        {
+          NHANH.map((n) => (
+            <li class="rounded-[var(--radius-card)] border border-[var(--border)] bg-[var(--surface)] p-4">
+              <a
+                href={n.href}
+                class="font-semibold text-brand-700 hover:underline dark:text-brand-100"
+              >
+                {n.nhan} →
+              </a>
+              <p class="text-sm text-[var(--text-muted)]">{n.mo}</p>
+            </li>
+          ))
+        }
+      </ul>
+    </section>
+  </section>
+</Base>

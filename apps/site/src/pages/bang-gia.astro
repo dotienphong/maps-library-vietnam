@@ -1,0 +1,120 @@
+---
+import { PLAN_CATALOG } from '@mapslibvn/catalog';
+import { DOCS_URL } from '../../site.config.mjs';
+import ComparisonTable from '../components/ComparisonTable.astro';
+import Faq from '../components/Faq.astro';
+import PricingCards from '../components/PricingCards.astro';
+import Base from '../layouts/Base.astro';
+import { dinhDangSo, dinhDangVnd } from '../lib/gia';
+import { breadcrumbJsonLd, faqJsonLd, softwareApplicationJsonLd } from '../lib/seo';
+import { TRANG } from '../lib/trang';
+
+const MUA_THEM = [
+  {
+    ten: 'Lượt Places',
+    khoi: dinhDangSo(PLAN_CATALOG.addOns.places.units),
+    gia: dinhDangVnd(PLAN_CATALOG.addOns.places.priceVnd),
+  },
+  {
+    ten: 'Lượt tính tuyến',
+    khoi: dinhDangSo(PLAN_CATALOG.addOns.directions.units),
+    gia: dinhDangVnd(PLAN_CATALOG.addOns.directions.priceVnd),
+  },
+];
+
+const CAU_HOI = [
+  {
+    hoi: 'Có hoá đơn VAT không?',
+    dap: 'Giai đoạn này hệ thống chỉ phát hành biên nhận thanh toán, chưa có hoá đơn điện tử VAT. Nếu bạn cần hoá đơn để hạch toán, hãy liên hệ trước khi mua để được hướng dẫn.',
+  },
+  {
+    hoi: 'Đang dùng dở một gói mà muốn đổi sang gói khác thì sao?',
+    dap: 'Kỳ mới bắt đầu ngay sau kỳ hiện tại kết thúc, hệ thống không tính chênh lệch giữa kỳ. Nếu bạn cần đổi có hiệu lực ngay, hãy liên hệ để được xử lý thủ công.',
+  },
+  {
+    hoi: 'Có hoàn tiền không?',
+    dap: 'Việc hoàn tiền được xử lý ngoài hệ thống theo từng trường hợp, không có nút tự hoàn. Đó là lý do nên bắt đầu bằng bản dùng thử để đo mức dùng thật trước khi trả tiền.',
+  },
+  {
+    hoi: 'Hạn mức tính chung hay tính riêng từng khoá?',
+    dap: 'Tính chung theo thuê bao. Mọi khoá API của cùng một tổ chức trừ vào cùng một hạn mức, nên cấp thêm khoá không làm tăng số lượt bạn được dùng.',
+  },
+  {
+    hoi: 'Lượt xem bản đồ và băng thông tiles tính thế nào?',
+    dap: 'Hiện nằm trong gói và chưa có trần công bố. Chúng tôi chưa hứa vô hạn: khi đo được khối lượng thật sẽ công bố hạn mức rõ ràng trước khi áp dụng.',
+  },
+  {
+    hoi: 'Lượt mua thêm sống được bao lâu?',
+    dap: 'Lượt mua thêm hết hạn cùng lúc với kỳ thuê bao đang chạy, và chỉ mua được khi gói trả phí đang hoạt động. Lượt chưa dùng không chuyển sang kỳ sau.',
+  },
+] as const;
+---
+
+<Base
+  trang={TRANG.bangGia}
+  jsonLd={[
+    softwareApplicationJsonLd(),
+    faqJsonLd(CAU_HOI),
+    breadcrumbJsonLd([
+      { ten: 'Trang chủ', path: TRANG.trangChu.path },
+      { ten: 'Bảng giá', path: TRANG.bangGia.path },
+    ]),
+  ]}
+>
+  <section class="mx-auto max-w-6xl px-4 pt-12">
+    <h1 class="text-3xl font-bold sm:text-4xl">{TRANG.bangGia.h1}</h1>
+    <p class="mt-4 max-w-2xl text-lg text-[var(--text-muted)]">
+      Giá tính theo số lượt gọi API mỗi kỳ, không theo số người dùng cuối và không theo số lần mở
+      ứng dụng. Thu bằng VND qua chuyển khoản ngân hàng; số USD chỉ là con số tham chiếu.
+    </p>
+  </section>
+
+  <div class="py-10">
+    <PricingCards />
+  </div>
+
+  <section aria-labelledby="tt-mua-them" class="mx-auto max-w-6xl px-4 py-10">
+    <h2 id="tt-mua-them" class="mb-2 text-2xl font-bold">Mua thêm lượt</h2>
+    <p class="mb-6 text-[var(--text-muted)]">
+      Dùng hết hạn mức giữa kỳ thì mua thêm theo khối, không phải nâng cả gói.
+    </p>
+    <div class="grid gap-4 sm:grid-cols-2">
+      {
+        MUA_THEM.map((m) => (
+          <article class="rounded-[var(--radius-card)] border border-[var(--border)] bg-[var(--surface)] p-5">
+            <h3 class="text-base font-bold">{m.ten}</h3>
+            <p class="mt-2 text-2xl font-bold">
+              {m.gia}
+              <span class="text-sm font-normal text-[var(--text-muted)]"> / {m.khoi} lượt</span>
+            </p>
+          </article>
+        ))
+      }
+    </div>
+    <p class="mt-4 text-sm text-[var(--text-muted)]">
+      Lượt mua thêm hết hạn cùng kỳ thuê bao đang chạy và chỉ mua được khi gói trả phí đang hoạt
+      động.
+    </p>
+  </section>
+
+  <section aria-labelledby="tt-so-sanh" id="so-sanh" class="scroll-mt-20 bg-[var(--surface)] py-16">
+    <h2 id="tt-so-sanh" class="mx-auto mb-2 max-w-6xl px-4 text-2xl font-bold">
+      So với Google và VIETMAP
+    </h2>
+    <p class="mx-auto mb-8 max-w-6xl px-4 text-[var(--text-muted)]">
+      Ba mức dùng thật, cùng một khối lượng gọi API, quy đổi về VND. Giả định và nguồn nằm ngay
+      dưới bảng để bạn tự kiểm lại.
+    </p>
+    <ComparisonTable />
+  </section>
+
+  <Faq items={CAU_HOI} tieuDe="Câu hỏi về giá" />
+
+  <section class="mx-auto max-w-3xl px-4 pb-20 text-center text-sm text-[var(--text-muted)]">
+    <p>
+      Mua gói tức là bạn đồng ý với
+      <a class="underline" href={`${DOCS_URL}/dieu-khoan/`}>điều khoản tenant</a>, trong đó có nghĩa
+      vụ giữ phần ghi nguồn dữ liệu mở.
+    </p>
+  </section>
+</Base>

@@ -1,0 +1,176 @@
+---
+import { CONSOLE_URL, DOCS_URL } from '../../site.config.mjs';
+import Base from '../layouts/Base.astro';
+import { breadcrumbJsonLd } from '../lib/seo';
+import { TRANG } from '../lib/trang';
+
+const NHOM_POI = [
+  ['Ăn uống', 14],
+  ['Mua sắm', 24],
+  ['Dịch vụ', 21],
+  ['Y tế', 11],
+  ['Giáo dục', 13],
+  ['Tài chính', 6],
+  ['Lưu trú', 8],
+  ['Giải trí, thể thao', 16],
+  ['Văn hoá, du lịch', 15],
+  ['Giao thông', 13],
+  ['Hành chính công', 13],
+  ['Tôn giáo, cộng đồng', 9],
+  ['Khác', 1],
+] as const;
+
+const MUC = [
+  {
+    id: 'ban-do',
+    tieuDe: 'Bản đồ nền Việt Nam',
+    doan: [
+      'Tiles ở định dạng PMTiles đặt trên CDN. Trình duyệt đọc thẳng bằng HTTP Range chứ không đi qua máy chủ API, nên tải bản đồ không tốn lượt gọi API và không phụ thuộc vào một cụm máy chủ tile nào.',
+      'Hai theme sáng và tối, nhãn hiển thị tiếng Việt hoặc tiếng Anh tuỳ cấu hình. Nơi nào chưa có tên tiếng Anh thì vẫn hiện tên tiếng Việt thay vì để trống.',
+      'Nhãn chủ quyền Hoàng Sa và Trường Sa luôn giữ tiếng Việt, không đổi theo ngôn ngữ hiển thị, và được bảo vệ ở ba tầng: vá dữ liệu trước khi dựng tiles, lớp nhãn riêng trong style, và một bước kiểm tự động chặn phát hành nếu thiếu.',
+    ],
+    href: `${DOCS_URL}/ban-do-web/`,
+    nhanLink: 'Hướng dẫn bản đồ web',
+  },
+  {
+    id: 'poi',
+    tieuDe: 'Lớp địa điểm 164 loại',
+    doan: [
+      'Địa điểm gộp từ OpenStreetMap và Foursquare OS Places. Mỗi địa điểm có một nguồn chính quyết định toạ độ và tên; các nguồn khác được ghi lại để bạn đối chiếu.',
+      'Biểu tượng xuất hiện tăng dần theo mức phóng để bản đồ không rối. Địa điểm chưa hiện trên nền vẫn tìm được qua API tìm kiếm.',
+    ],
+    href: `${DOCS_URL}/tinh-nang/`,
+    nhanLink: 'Danh mục đầy đủ',
+  },
+  {
+    id: 'tim-kiem',
+    tieuDe: 'Tìm kiếm hiểu cách người Việt gõ',
+    doan: [
+      'Gợi ý hiện ngay khi đang gõ. Bộ tìm kiếm chịu được chữ không dấu, viết tắt quen thuộc, cách viết địa phương và cả kiểu gõ Telex khi người dùng quên bật bộ gõ.',
+      'Tên đơn vị hành chính cũ và mới đều tra được, kể cả sau đợt sắp xếp năm 2025, nên người dùng gõ theo thói quen vẫn ra đúng chỗ.',
+    ],
+    href: `${DOCS_URL}/tim-kiem/`,
+    nhanLink: 'Tìm kiếm và autocomplete',
+  },
+  {
+    id: 'geocode',
+    tieuDe: 'Geocode nói thật về độ chính xác',
+    doan: [
+      'Mỗi kết quả trả kèm precision và confidence, nói rõ toạ độ đang ở mức mái nhà, đoạn hẻm hay chỉ tới được phường. Ứng dụng nhờ đó vẽ vòng tròn sai số thay vì cắm một cái ghim giả vờ chính xác.',
+      'Địa chỉ không tra được thì hệ thống nói không tra được, thay vì rơi về tâm quận rồi để người dùng tưởng đã đúng.',
+    ],
+    href: `${DOCS_URL}/do-chinh-xac/`,
+    nhanLink: 'Độ chính xác geocode',
+  },
+  {
+    id: 'dan-duong',
+    tieuDe: 'Dẫn đường',
+    doan: [
+      'Tính tuyến cho xe máy, ô tô và đi bộ, trả về hình tuyến cùng hướng dẫn từng chặng bằng tiếng Việt tự nhiên.',
+      'Dùng được cả trên web lẫn React Native, kèm la bàn và cảm biến chuyển động cho màn hình dẫn đường trên điện thoại.',
+    ],
+    href: `${DOCS_URL}/dan-duong/`,
+    nhanLink: 'Hướng dẫn dẫn đường',
+  },
+  {
+    id: 'sdk',
+    tieuDe: 'Bốn SDK dùng chung một hợp đồng',
+    doan: [
+      'core, web, react và react-native phát hành trên npm, cùng một API và cùng một nguồn tiles. Đổi nền tảng không phải học lại.',
+      'Có thể nhúng bằng thẻ script cho trang tĩnh, hoặc cài qua npm cho dự án có bước dựng.',
+    ],
+    href: `${DOCS_URL}/cai-dat/`,
+    nhanLink: 'Cài đặt',
+  },
+] as const;
+---
+
+<Base
+  trang={TRANG.tinhNang}
+  jsonLd={[
+    breadcrumbJsonLd([
+      { ten: 'Trang chủ', path: TRANG.trangChu.path },
+      { ten: 'Tính năng', path: TRANG.tinhNang.path },
+    ]),
+  ]}
+>
+  <section class="mx-auto max-w-3xl px-4 pt-12">
+    <h1 class="text-3xl font-bold sm:text-4xl">{TRANG.tinhNang.h1}</h1>
+    <p class="mt-4 text-lg text-[var(--text-muted)]">
+      Những gì liệt kê dưới đây đang chạy thật trên hệ thống, không phải kế hoạch. Cuối trang có
+      mục nói rõ những thứ MapsLibVN chưa làm.
+    </p>
+  </section>
+
+  {
+    MUC.map((muc) => (
+      <section aria-labelledby={`tt-${muc.id}`} class="mx-auto max-w-3xl px-4 py-10">
+        <h2 id={`tt-${muc.id}`} class="mb-4 text-2xl font-bold">
+          {muc.tieuDe}
+        </h2>
+        {muc.doan.map((d) => (
+          <p class="mb-3 text-[var(--text-muted)]">{d}</p>
+        ))}
+        {muc.id === 'poi' && (
+          <div class="my-4 overflow-x-auto rounded-[var(--radius-card)] border border-[var(--border)]">
+            <table class="w-full border-collapse text-sm">
+              <caption class="px-4 py-3 text-left font-semibold">
+                13 nhóm địa điểm và số mã loại trong mỗi nhóm
+              </caption>
+              <thead>
+                <tr class="bg-black/[0.03] dark:bg-white/[0.04]">
+                  <th scope="col" class="px-4 py-2 text-left">
+                    Nhóm
+                  </th>
+                  <th scope="col" class="px-4 py-2 text-right">
+                    Số mã loại
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {NHOM_POI.map(([ten, so]) => (
+                  <tr class="border-t border-[var(--border)]">
+                    <th scope="row" class="px-4 py-2 text-left font-normal">
+                      {ten}
+                    </th>
+                    <td class="px-4 py-2 text-right">{so}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+        <a
+          href={muc.href}
+          class="inline-flex min-h-11 items-center font-semibold text-brand-700 hover:underline dark:text-brand-100"
+        >
+          {muc.nhanLink} →
+        </a>
+      </section>
+    ))
+  }
+
+  <section aria-labelledby="tt-chua-co" class="bg-[var(--surface)] py-16">
+    <div class="mx-auto max-w-3xl px-4">
+      <h2 id="tt-chua-co" class="mb-4 text-2xl font-bold">Những thứ chưa có</h2>
+      <p class="mb-4 text-[var(--text-muted)]">
+        Nói trước để bạn khỏi mất thời gian thử: MapsLibVN hiện chưa có ma trận khoảng cách, tối ưu
+        lộ trình đội xe, dữ liệu giao thông thời gian thực, Street View và ảnh vệ tinh.
+      </p>
+      <p class="text-[var(--text-muted)]">
+        Nếu hệ thống của bạn cần một trong số đó, hãy đọc
+        <a class="underline" href={TRANG.soSanhGoogle.path}>bản so sánh với Google</a> trước khi quyết
+        định.
+      </p>
+    </div>
+  </section>
+
+  <section class="mx-auto max-w-3xl px-4 pb-20 text-center">
+    <a
+      href={CONSOLE_URL}
+      class="inline-flex min-h-11 items-center rounded-[var(--radius-btn)] bg-brand-700 px-6 font-semibold text-white hover:bg-brand-800"
+    >
+      Lấy khoá API miễn phí
+    </a>
+  </section>
+</Base>
