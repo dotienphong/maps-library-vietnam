@@ -41,8 +41,8 @@ export const LOAI_VIEC = [
   'billing.unlock_acks',
 ] as const;
 
-export function listAudit(filter: AuditFilter): Promise<AuditPage> {
-  const params = new URLSearchParams({ limit: '25' });
+export function listAudit(filter: AuditFilter, limit = 25): Promise<AuditPage> {
+  const params = new URLSearchParams({ limit: String(limit) });
   for (const [ten, gia] of Object.entries(filter)) {
     if (gia) params.set(ten, gia);
   }
