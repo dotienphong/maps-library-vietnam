@@ -227,6 +227,50 @@ export function poiFastCandidates(sql: Sql, input: CandidateQueryInput, tsQuery:
     LIMIT 20`;
 }
 
+/**
+ * Bậc nhanh cho `street`, cùng bệnh và cùng thuốc với POI: `sim` nằm trong `ORDER BY` nên 3 hàm
+ * trigram chạy cho MỌI dòng khớp. Đo production 18/09 trên `street`: thay `sim` bằng hằng số làm
+ * `qu` tụt 287→54 ms và `ben thanh` 336→33 ms, và nút rộng nhất tụt từ 4.507/9.245 dòng xuống
+ * **20 dòng @ Limit** — Postgres thôi hiện thực hoá mọi dòng khớp. Hai nghi can khác vô can: bỏ
+ * `ST_PointOnSurface` chỉ được 0–20 %, bỏ `matched_alt` gần 0 %.
+ *
+ * Tiêu chí cắt là KHOẢNG CÁCH, không phải `popularity` như POI — bảng `street` không có cột đó, và
+ * người gõ tên đường gần như luôn muốn con đường gần mình. Dùng `geom <-> điểm` (toán tử KNN của
+ * GiST) chứ không `ST_DistanceSphere`: rẻ hơn hẳn và đi được qua `street_geom_idx`.
+ *
+ * **Chỉ gọi khi có `near`** — không có điểm thì không có tiêu chí cắt, và cắt 200 dòng tuỳ ý còn
+ * tệ hơn chậm. `collectCandidates` lo điều kiện đó.
+ */
+export function streetFastCandidates(sql: Sql, input: CandidateQueryInput, tsQuery: string) {
+  const { queryNorm, near } = input;
+  const point = nearPoint(sql, near);
+  return sql<CandidateRow[]>`
+    WITH ung_vien AS (
+      SELECT id, name, province_norm, geom, name_norm, name_alt_norm
+      FROM street
+      WHERE name_tsv @@ to_tsquery('simple', ${tsQuery})
+      ORDER BY geom <-> ${point}
+      LIMIT ${FAST_CANDIDATE_POOL}
+    )
+    SELECT 'street' AS type, NULL AS id, name,
+      coalesce(province_norm, '') AS secondary,
+      ST_Y(ST_PointOnSurface(geom)) AS lat,
+      ST_X(ST_PointOnSurface(geom)) AS lng,
+      NULL AS precision,
+      greatest(
+        word_similarity(${queryNorm}, name_norm),
+        similarity(name_norm, ${queryNorm}),
+        word_similarity(${queryNorm}, coalesce(name_alt_norm, ''))
+      ) AS sim,
+      starts_with(name_norm, ${queryNorm}) AS prefix,
+      0 AS pop,
+      ${distance(sql, near, 'geom')} AS d,
+      NULL AS matched_alt
+    FROM ung_vien
+    ORDER BY sim DESC
+    LIMIT 20`;
+}
+
 export function streetCandidates(sql: Sql, input: CandidateQueryInput) {
   const { queryNorm, queryAlias, prefixPattern, near } = input;
   const simNorm = useSimilarityBranch(queryNorm) ? sql`OR name_norm % ${queryNorm}` : sql``;
@@ -360,26 +404,43 @@ export async function collectCandidates(
   const jobs: { stage: 1 | 2 | 3; rows: Promise<CandidateRow[]> }[] = [];
   const add = (stage: 1 | 2 | 3, rows: Promise<CandidateRow[]>) => jobs.push({ stage, rows });
 
-  // Các loại KHÔNG phải poi bắn TRƯỚC: chúng chạy y như nhau dù đi đường nào, nên không việc gì
-  // phải chờ bậc nhanh trả lời rồi mới bắt đầu. Bậc nhanh CHỈ thay nhánh poi — trả sớm chỉ với
-  // dòng poi sẽ làm `types=area` trả rỗng.
-  if (types.has('street')) add(1, streetCandidates(sql, input));
+  // `area`/`address` chạy y như nhau dù đi đường nào, nên bắn TRƯỚC, không chờ bậc nhanh.
   if (types.has('area')) add(1, areaCandidates(sql, input));
   const { housenumber, streetNorm } = input.parsed;
   if (types.has('address') && housenumber && streetNorm) {
     add(1, addressCandidates(sql, input, housenumber, streetNorm));
   }
 
-  // Bậc nhanh phải CHỜ xong mới biết có cần các nhánh trigram không. Không bắn song song rồi bỏ
-  // kết quả: chi phí nằm ở CPU của origin tính trigram, không ở thời gian chờ của Worker.
-  let fastRows: CandidateRow[] | null = null;
-  if (fast?.tsQuery && types.has('poi')) {
-    const rows = await poiFastCandidates(sql, input, fast.tsQuery);
-    if (rows.length >= fast.limit) fastRows = rows;
+  // Hai bậc nhanh bắn SONG SONG rồi mới chờ: nối tiếp chúng là cộng 161 + 83 ms thay vì max().
+  // Phải chờ xong mới biết có cần nhánh trigram không — không bắn trigram song song rồi bỏ kết
+  // quả, vì chi phí nằm ở CPU của origin, không ở thời gian chờ của Worker.
+  //
+  // Cả khối nằm trong `if`: cờ tắt thì KHÔNG có `await` nào ở đây, nên đường đi giống hệt bản
+  // trước bậc nhanh — kể cả về thứ tự phát truy vấn, thứ mà test "mọi bậc phát đi trước khi chờ"
+  // khoá lại. Một `await Promise.all([null, null])` cũng đủ hoãn mọi lời gọi sang microtask sau.
+  let poiFast: CandidateRow[] | null = null;
+  let streetFast: CandidateRow[] | null = null;
+  if (fast?.tsQuery) {
+    const tsQuery = fast.tsQuery;
+    [poiFast, streetFast] = await Promise.all([
+      types.has('poi') ? poiFastCandidates(sql, input, tsQuery) : null,
+      // Bậc nhanh street cắt theo khoảng cách, nên không có `near` thì không có tiêu chí cắt.
+      types.has('street') && input.near ? streetFastCandidates(sql, input, tsQuery) : null,
+    ]);
   }
 
+  // Cổng của poi là `>= limit`: bậc nhanh phải lấp đủ chỗ thì mới bỏ được nhánh trigram.
+  const fastRows = poiFast && poiFast.length >= (fast?.limit ?? 0) ? poiFast : null;
   if (fastRows) add(1, Promise.resolve(fastRows));
   else if (types.has('poi')) add(1, poiCandidates(sql, input));
+
+  // Cổng của street là `> 0`, KHÁC poi: đường hiếm khi có đủ 10 kết quả tốt, mà khớp theo từ của
+  // tsvector lại chính xác hơn trigram. Rỗng thì phải lui — đo 18/09: `cafe` cho tsvector 0 dòng
+  // (tên đường không chứa từ nào bắt đầu bằng "cafe") trong khi trigram cho 8.914 dòng.
+  if (types.has('street')) {
+    if (streetFast && streetFast.length > 0) add(1, Promise.resolve(streetFast));
+    else add(1, streetCandidates(sql, input));
+  }
 
   // Bậc 2/3 chỉ để thêm recall khi bậc 1 yếu. Đường nhanh đã đủ `limit` kết quả khớp theo từ thì
   // chúng chỉ còn là chi phí — đo production 18/09: bậc 3 tốn 247–432 ms với truy vấn ngắn.

@@ -8,6 +8,7 @@ import {
   poiKeyCandidates,
   poiTokenCandidates,
   streetCandidates,
+  streetFastCandidates,
 } from '../src/autocomplete-sql';
 import { fakeSql } from './helpers/fake-sql';
 
@@ -553,5 +554,98 @@ describe('collectCandidates — cổng bậc nhanh', () => {
       (call) => call.text.includes('name_tsv @@') && !call.text.startsWith('WITH'),
     );
     expect(bac2).toHaveLength(0);
+  });
+});
+
+describe('streetFastCandidates — bậc nhanh cho street', () => {
+  const cauChinh = (calls: { text: string; params: unknown[] }[]) =>
+    calls.find((call) => call.text.startsWith('WITH'));
+
+  /**
+   * `street` KHÔNG có `popularity`, nên tiêu chí cắt là KHOẢNG CÁCH — người gõ tên đường gần như
+   * luôn muốn con đường gần mình. Dùng toán tử KNN `<->` chứ không `ST_DistanceSphere`: rẻ hơn hẳn
+   * và đi được qua chỉ số GiST `street_geom_idx`.
+   */
+  it('cắt 200 dòng gần nhất bằng `<->` TRƯỚC rồi mới tính sim', async () => {
+    const { sql, calls } = fakeSql([]);
+    await streetFastCandidates(sql, fastInput, 'ben:* & thanh:*');
+    const text = cauChinh(calls)?.text ?? '';
+    const viTriCat = text.indexOf('ORDER BY geom <->');
+    expect(viTriCat).toBeGreaterThan(-1);
+    expect(text.indexOf('word_similarity')).toBeGreaterThan(viTriCat);
+    expect(cauChinh(calls)?.params).toContain(FAST_CANDIDATE_POOL);
+  });
+
+  it('lọc bằng name_tsv, WHERE không có toán tử trigram lẫn LIKE', async () => {
+    const { sql, calls } = fakeSql([]);
+    await streetFastCandidates(sql, fastInput, 'ben:* & thanh:*');
+    const text = cauChinh(calls)?.text ?? '';
+    expect(text).toContain("name_tsv @@ to_tsquery('simple', $");
+    const where = text.slice(text.indexOf('WHERE'), text.indexOf('ORDER BY'));
+    expect(where).not.toContain('<%');
+    expect(where).not.toContain('LIKE');
+  });
+});
+
+describe('collectCandidates — cổng bậc nhanh cho street', () => {
+  const streetRow = {
+    type: 'street',
+    id: null,
+    name: 'Đường X',
+    secondary: '',
+    lat: 10,
+    lng: 106,
+    precision: null,
+    sim: 0.9,
+    prefix: true,
+    pop: 0,
+    d: null,
+  };
+  const laStreetTrigram = (call: { text: string }) =>
+    call.text.includes("'street' AS type") && !call.text.startsWith('WITH');
+
+  it('street nhanh có kết quả thì KHÔNG chạy street trigram', async () => {
+    const { sql, calls } = fakeSql((query) =>
+      query.text.startsWith('WITH') && query.text.includes("'street' AS type") ? [streetRow] : [],
+    );
+    await collectCandidates(
+      sql,
+      { ...input, near: { lat: 10.776, lng: 106.7 } },
+      new Set(['street']),
+      {
+        tsQuery: 'coffee:* & highlands:*',
+        limit: 10,
+      },
+    );
+    expect(calls.filter(laStreetTrigram)).toHaveLength(0);
+  });
+
+  /**
+   * Đo production 18/09: `cafe` cho street_nhanh 0 dòng (tên đường không chứa từ "cafe") trong khi
+   * nhánh trigram cho 8.914 dòng. Rỗng thì PHẢI lui về trigram, nếu không mất hẳn kết quả street
+   * cho mọi truy vấn không trùng từ nào trong tên đường.
+   */
+  it('street nhanh rỗng thì lui về street trigram', async () => {
+    const { sql, calls } = fakeSql([]);
+    await collectCandidates(
+      sql,
+      { ...input, near: { lat: 10.776, lng: 106.7 } },
+      new Set(['street']),
+      {
+        tsQuery: 'coffee:* & highlands:*',
+        limit: 10,
+      },
+    );
+    expect(calls.filter(laStreetTrigram)).toHaveLength(1);
+  });
+
+  it('không có near thì không dùng bậc nhanh street (không có tiêu chí cắt)', async () => {
+    const { sql, calls } = fakeSql([]);
+    await collectCandidates(sql, { ...input, near: null }, new Set(['street']), {
+      tsQuery: 'coffee:* & highlands:*',
+      limit: 10,
+    });
+    expect(calls.filter((call) => call.text.startsWith('WITH'))).toHaveLength(0);
+    expect(calls.filter(laStreetTrigram)).toHaveLength(1);
   });
 });
