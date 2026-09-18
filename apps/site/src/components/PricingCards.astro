@@ -47,11 +47,10 @@ const goi = bangGia();
           <p class="mt-3">
             <span
               class="text-3xl font-bold"
-              data-gia
-              data-gia-1={g.theoKy[1].vndHienThi}
-              data-gia-3={g.theoKy[3].vndHienThi}
-              data-gia-6={g.theoKy[6].vndHienThi}
-              data-gia-12={g.theoKy[12].vndHienThi}
+              data-gia1={g.theoKy[1].vndHienThi}
+              data-gia3={g.theoKy[3].vndHienThi}
+              data-gia6={g.theoKy[6].vndHienThi}
+              data-gia12={g.theoKy[12].vndHienThi}
             >
               {g.theoKy[1].vndHienThi}
             </span>
@@ -62,11 +61,10 @@ const goi = bangGia();
           <p class="mt-1 text-sm text-[var(--text-muted)]">
             tham chiếu{' '}
             <span
-              data-usd
-              data-usd-1={g.theoKy[1].usdHienThi}
-              data-usd-3={g.theoKy[3].usdHienThi}
-              data-usd-6={g.theoKy[6].usdHienThi}
-              data-usd-12={g.theoKy[12].usdHienThi}
+              data-usd1={g.theoKy[1].usdHienThi}
+              data-usd3={g.theoKy[3].usdHienThi}
+              data-usd6={g.theoKy[6].usdHienThi}
+              data-usd12={g.theoKy[12].usdHienThi}
             >
               {g.theoKy[1].usdHienThi}
             </span>
@@ -104,12 +102,18 @@ const goi = bangGia();
 <script>
   // Giá của cả bốn kỳ đã nằm sẵn trong data-*, nên script chỉ đổi chữ. JavaScript hỏng hay bị
   // chặn thì trang vẫn hiện đúng giá một tháng — số tiền không bao giờ phụ thuộc trình duyệt.
+  //
+  // Tên thuộc tính KHÔNG có gạch trước chữ số (`data-gia3`, không phải `data-gia-3`): thuật toán
+  // đổi tên của dataset chỉ bỏ dấu gạch khi sau nó là CHỮ THƯỜNG, nên `data-gia-3` đọc ra
+  // `dataset['gia-3']` chứ không phải `dataset.gia3`. Bản đầu viết sai và giá không bao giờ đổi.
   const dat = (ky: string) => {
-    for (const el of document.querySelectorAll<HTMLElement>('[data-gia]')) {
-      el.textContent = el.dataset[`gia${ky}`] ?? el.textContent;
+    for (const el of document.querySelectorAll<HTMLElement>('[data-gia1]')) {
+      const gia = el.dataset[`gia${ky}`];
+      if (gia) el.textContent = gia;
     }
-    for (const el of document.querySelectorAll<HTMLElement>('[data-usd]')) {
-      el.textContent = el.dataset[`usd${ky}`] ?? el.textContent;
+    for (const el of document.querySelectorAll<HTMLElement>('[data-usd1]')) {
+      const usd = el.dataset[`usd${ky}`];
+      if (usd) el.textContent = usd;
     }
     for (const el of document.querySelectorAll<HTMLElement>('[data-ky-nhan]')) {
       el.textContent = `/ ${ky} tháng`;
