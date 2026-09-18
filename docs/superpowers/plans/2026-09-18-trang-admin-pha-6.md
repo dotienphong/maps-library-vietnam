@@ -59,7 +59,7 @@ Hai quyết định của PHONG ngày 18/09/2026:
 
 | File | Sửa gì |
 |---|---|
-| `apps/api/src/routes/billing-read.ts` | Dùng hàm chung `legacyUsageForTenant()` thay đoạn đọc KV tại chỗ |
+| `apps/api/src/routes/billing-read.ts` | Dùng hàm chung `legacyUsageForKeys()` thay đoạn đọc KV tại chỗ |
 | `apps/api/src/index.ts` | Mount route mới sau `requireBillingAccess()` |
 | `apps/admin/src/features/audit/api.ts` | `listAudit(filter, limit = 25)` |
 | `apps/admin/src/features/health/hooks.ts` | `useHealth({ staleTime })`, mặc định 0 |
