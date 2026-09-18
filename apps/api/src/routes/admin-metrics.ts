@@ -19,6 +19,9 @@ const CACHE_SEC = 300;
 const cacheUrl = (window: MetricsWindow): string =>
   `https://cache.mapslibvn/admin-metrics?window=${window}`;
 
+/** Đúng kiểu `endSql`/`cachedJson` nhận — xem db-health.ts. */
+type WaitUntil = { waitUntil(promise: Promise<unknown>): void };
+
 interface DongRouteTho {
   route: string;
   requests: string | number;
@@ -35,7 +38,7 @@ interface DongTenantTho extends Omit<DongRouteTho, 'route'> {
  * bảng: `WHERE id = ANY(...)` phải bind mảng, mà bind mảng + ::uuid[] đã từng vỡ trên production
  * trong khi unit test vẫn xanh. Hỏng lời gọi này KHÔNG được làm hỏng cả trang — mất nhãn thôi.
  */
-async function nhanTenant(env: Env, ctx: ExecutionContext): Promise<Record<string, string>> {
+async function nhanTenant(env: Env, ctx: WaitUntil): Promise<Record<string, string>> {
   const sql = getSql(env);
   try {
     const rows = await sql<{ id: string; name: string }[]>`
@@ -49,7 +52,7 @@ async function nhanTenant(env: Env, ctx: ExecutionContext): Promise<Record<strin
   }
 }
 
-async function tinhSoLieu(env: Env, ctx: ExecutionContext, khoang: Khoang) {
+async function tinhSoLieu(env: Env, ctx: WaitUntil, khoang: Khoang) {
   const [routes, tenants, nhan] = await Promise.all([
     queryAnalytics<DongRouteTho>(env, routeSql(khoang)),
     queryAnalytics<DongTenantTho>(env, tenantSql(khoang)),

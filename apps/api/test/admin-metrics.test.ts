@@ -126,14 +126,15 @@ describe('GET /v1/admin/metrics', () => {
 
   it('chưa đặt CF_ANALYTICS_TOKEN → 503 analytics_not_configured, KHÔNG phải 500', async () => {
     // Người trực phải đọc được "thiếu token" chứ không phải một lỗi chung khiến đi kiểm nhầm DB.
+    // `exactOptionalPropertyTypes` cấm gán undefined cho thuộc tính optional — phải delete.
     const cu = env.CF_ANALYTICS_TOKEN;
-    env.CF_ANALYTICS_TOKEN = undefined;
+    delete env.CF_ANALYTICS_TOKEN;
     try {
       const response = await goi('?window=1h');
       expect(response.status).toBe(503);
       expect(await code(response)).toBe('analytics_not_configured');
     } finally {
-      env.CF_ANALYTICS_TOKEN = cu;
+      if (cu !== undefined) env.CF_ANALYTICS_TOKEN = cu;
     }
   });
 

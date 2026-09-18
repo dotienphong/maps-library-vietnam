@@ -3,7 +3,7 @@ import { Hono } from 'hono';
 import { cors } from 'hono/cors';
 import { requireBillingAccess } from './access';
 import { analyticsMiddleware } from './analytics';
-import { endSql, getSql } from './db';
+import { dbHealth } from './db-health';
 import type { AppEnv } from './env';
 import { ApiError, errorResponse } from './errors';
 import { admin, requireSameSitePost } from './routes/admin';
@@ -73,41 +73,7 @@ app.get('/healthz', (c) => c.json({ ok: true, environment: c.env.ENVIRONMENT }))
 app.use('/v1/admin/billing/*', requireSameSitePost());
 app.use('/v1/admin/billing/*', requireBillingAccess());
 app.route('/', billingAdmin());
-app.get('/healthz/db', async (c) => {
-  const sql = getSql(c.env);
-  try {
-    // current_setting(…, true) trả NULL thay vì ném khi GUC chưa có: API deploy được trước khi
-    // migration 0007 áp lên máy chủ mà /healthz/db không rơi xuống 503.
-    const [row] = await sql<
-      { ok: number; user: string; version: string; wst: string | null }[]
-    >`SELECT 1 AS ok, current_user AS "user", version() AS version,
-        current_setting('pg_trgm.word_similarity_threshold', true) AS wst`;
-    // Phiên bản schema để phát hiện lệch giữa Worker đã deploy và DB. 06/09/2026: Worker mang code
-    // đọc admin_area_old/admin_alias.old_area_id được deploy trước migration 0008, làm
-    // /v1/autocomplete mặc định 503 suốt nhiều giờ mà /healthz/db vẫn 200. Postgres phân giải quan
-    // hệ ngay lúc parse nên không lồng được vào câu trên: phải truy vấn riêng và nuốt lỗi.
-    let schemaMigration: string | null = null;
-    try {
-      const [migration] = await sql<{ name: string | null }[]>`
-        SELECT max(name) AS name FROM schema_migrations`;
-      schemaMigration = migration?.name ?? null;
-    } catch {
-      schemaMigration = null;
-    }
-    return c.json({
-      ok: row?.ok === 1,
-      user: row?.user,
-      version: row?.version.split(' ').slice(0, 2).join(' '),
-      word_similarity_threshold: row?.wst == null ? null : Number(row.wst),
-      schema_migration: schemaMigration,
-    });
-  } catch (err) {
-    console.error('healthz/db', err);
-    throw new ApiError(503, 'upstream_unavailable', 'Không nối được DB');
-  } finally {
-    endSql(c.executionCtx, sql);
-  }
-});
+app.get('/healthz/db', async (c) => c.json(await dbHealth(c.env, c.executionCtx)));
 app.get('/v1/attribution', (c) =>
   c.json({ text: attributionText(), html: attributionHtml(), links: ATTRIBUTION_LINKS }, 200, {
     'cache-control': 'public, max-age=86400',
