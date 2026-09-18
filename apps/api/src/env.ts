@@ -30,6 +30,12 @@ export interface Env {
   /** Địa chỉ nhận thư trả lời, cũng là email hỗ trợ hiện trên website. */
   SUPPORT_EMAIL?: string;
   /**
+   * Pepper băm token phiên và mã đăng nhập của khách. Đặt bằng
+   * `wrangler secret put SESSION_PEPPER --env production`. Vắng ở production → nhóm route console
+   * trả 503 chứ không băm yếu, cùng cách IP_HASH_PEPPER đã làm cho /v1/edits.
+   */
+  SESSION_PEPPER?: string;
+  /**
    * '1' = thêm một vòng gọi `ping()` không chạm storage vào mỗi request thương mại, để tách
    * chi phí mạng khỏi chi phí ghi bền vững. CHỈ bật trong lượt đo: nó cộng đúng một vòng mạng.
    */
@@ -112,5 +118,14 @@ export type AppEnv = {
     params?: unknown;
     /** Thời gian từng vòng gọi Durable Object, gom lại để phát ra `Server-Timing` (xem timing.ts). */
     quotaTimings?: { name: string; ms: number }[];
+    /** Khách đã đăng nhập ở cổng tự phục vụ, do requireCustomer() gán. */
+    customer?: {
+      accountId: string;
+      email: string;
+      name: string | null;
+      tenantId: string | null;
+      tenantName: string | null;
+      tokenHash: string;
+    };
   };
 };
