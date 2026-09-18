@@ -59,7 +59,23 @@ Pha này **không có migration** (máy chủ giữ `0019`), nên không cần c
 Đúng như trước khi tách hàm, và xác nhận luôn production nối DB bằng role `api` thật — điều mà
 tầng itest KHÔNG chứng minh được (xem mục 7).
 
-## 6. Nghiệm thu thật trên điện thoại
+## 6. Xác minh trên production bằng `wrangler tail` — 18/09/2026
+
+Một lượt PHONG mở trang thật, đọc từ log production. **Không có dòng lỗi nào**, không có
+`analytics sql 403` — tức token có đúng quyền `Account Analytics: Read`.
+
+| Lượt gọi | status | wallTime | Đọc ra điều gì |
+|---|---|---|---|
+| `/v1/admin/health` lần 1 | 200 | 1686 ms | ba phép đo sống chạy thật |
+| `/v1/admin/health` lần 2 | 200 | 604 ms | vẫn đo lại — KHÔNG cache, đúng thiết kế |
+| `/v1/admin/metrics?window=24h` | 200 | 1829 ms | truy vấn Analytics Engine thật |
+| `/v1/admin/metrics?window=1h` | 200 | 312 ms | mỗi cửa sổ một ô cache riêng |
+| `/v1/admin/metrics?window=24h` lần 2 | 200 | **15 ms** | **trúng cache 5 phút** |
+
+Đây là bằng chứng mạnh hơn "nhìn thấy số trên màn hình": 15 ms là không thể nếu nó đi hỏi
+Analytics lại, và 604 ms là không thể nếu trạng thái sống bị cache.
+
+## 7. Nghiệm thu bằng mắt — PHONG
 
 - [ ] `/admin/health` mở được, ba thẻ trạng thái hiện đủ
 - [ ] Bảng theo endpoint có số; p95 và tỉ lệ 5xx/429 hợp lý
@@ -71,14 +87,15 @@ tầng itest KHÔNG chứng minh được (xem mục 7).
 
 Lưu ý khi kiểm: Access chặn ở BIÊN nên gọi trần `/v1/admin/health` bằng curl luôn ra 302 — mã HTTP
 **không** phân biệt được route đã deploy với route không tồn tại. Muốn biết bản nào đang chạy thì
-đọc `wrangler deployments list --env production`.
+đọc `wrangler deployments list --env production`, hoặc `wrangler tail` như mục 6.
 
-## 7. Một khoảng trống đã biết, không vá trong pha này
+## 8. Một khoảng trống đã biết, không vá trong pha này
 
 Tiêu chí nghiệm thu số 10 của spec nói "mỗi route mới có ít nhất một bài kiểm chạy bằng role `api`
 thật". Hạ tầng `pnpm test:api-db` hiện nối Postgres bằng role **chủ sở hữu**
 (`CLOUDFLARE_HYPERDRIVE_LOCAL_CONNECTION_STRING_DB` lấy thẳng từ `.env`), không phải role `api` —
-điều này đúng với mọi itest sẵn có chứ không riêng pha 5. Ranh giới quyền của `api` đang được canh
+điều này đúng với mọi itest sẵn có chứ không riêng pha 5. (Production thì có: `/healthz/db`
+sau deploy trả `user: "api"` — xem mục 5.) Ranh giới quyền của `api` đang được canh
 ở `PERMISSIONS_SQL` (`scripts/lib/db-permissions.mjs`); dòng mà pha 5 dựa vào là
 `GRANT SELECT ON tenant, api_key TO api`. Bài itest của pha 5 cố ý KHÔNG khẳng định `db.user`, vì
 làm thế là đặt cho nó một cái tên nói dối về thứ nó chứng minh.
