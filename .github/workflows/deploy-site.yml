@@ -1,0 +1,25 @@
+name: Deploy Site
+on:
+  push:
+    branches: [main]
+    paths: ['apps/site/**', 'packages/catalog/**', 'packages/ui/**', 'pnpm-lock.yaml']
+  workflow_dispatch:
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with: { version: 9.15.0 }
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: pnpm }
+      - run: pnpm install --frozen-lockfile
+      # Website đọc giá và token màu từ hai package nội bộ; chúng không có bước build riêng
+      # (app import thẳng source), nên chỉ cần build site.
+      - run: pnpm --filter @mapslibvn/site build
+      # Cần project Pages `mapslibvn-site` đã tồn tại trong tài khoản Cloudflare. Chưa có thì
+      # bước này đỏ với "project not found" — tạo project rồi chạy lại workflow.
+      - run: pnpm --filter @mapslibvn/site exec wrangler pages deploy dist --project-name mapslibvn-site
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}

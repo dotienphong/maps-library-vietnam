@@ -3266,3 +3266,40 @@ website (pha 1) và console (pha 2) dùng cùng một nguồn với API và Admi
 - Lệch spec: không thêm hai package vào `NON_SDK_PACKAGE_DIRS` vì contract chỉ xét package public.
 
 Cổng đã chạy: xem `docs/evidence/commerce/2026-09-18-pha-0-packages.md`.
+
+## 19. Thương mại tự phục vụ — pha 1: website `apps/site` — 18/09/2026
+
+Spec `docs/superpowers/specs/2026-09-18-thuong-mai-tu-phuc-vu-design.md` mục 11.
+Bảy trang tĩnh, tối ưu SEO, deploy Cloudflare Pages `mapslibvn-site`.
+
+**Lệch spec có chủ ý — bỏ hẳn React khỏi website.** Spec cho phép "island React ở chỗ tương tác".
+Cả bốn chỗ tương tác (tab mã nhúng, công tắc kỳ giá, sáng/tối, nạp bản đồ) làm bằng script vanilla
+dưới 30 dòng. Đo trên bản build: **598 byte JavaScript gzip cho cả trang chủ, không một tệp `.js`
+ngoài nào** vì Astro nhúng thẳng ba khối nhỏ vào HTML; cả trang chủ nén 7,5 KB. Một island React
+sẽ là khoảng 45 KB gzip. Bỏ React phục vụ đúng mục tiêu tốc độ mà chính spec đặt ra. Có bài e2e
+khoá ngân sách để không ai vô tình thêm lại mà không thấy cái giá.
+
+**Số liệu không có bản chép tay thứ hai.** Giá, hạn mức và bảng so sánh đối thủ đọc từ
+`@mapslibvn/catalog` lúc build; câu "thấp hơn Google từ 37% đến 68%" ở hero tính từ `COMPARISON`
+chứ không gõ tay. Bảng so sánh luôn in kèm ngày đối chiếu 14/09/2026, bốn giả định và ba nguồn;
+`ComparisonTable` cảnh báo lúc build nếu bảng quá 180 ngày.
+
+**Năm bẫy đã vấp và đã sửa, đáng nhớ cho pha sau:**
+
+1. **Tệp font `vietnamese-*` chỉ chứa ký tự tiếng Việt.** Dùng riêng nó thì mọi chữ ASCII rơi về
+   font hệ thống. Bản đủ dải (`400.css`) khai ba `@font-face` kèm `unicode-range` nên trình duyệt
+   chỉ tải đúng phần cần. Vấp hai lần: một ở `global.css`, một ở script sinh ảnh OG.
+2. **`data-gia-3` KHÔNG đọc ra `dataset.gia3`** — dataset chỉ bỏ dấu gạch khi sau nó là chữ
+   thường. Công tắc kỳ âm thầm giữ nguyên giá tháng, build vẫn xanh. Bộ e2e bắt được.
+3. **`formats` là prop của `Picture`, không phải `Image`.** Đặt nhầm thì Astro lặng lẽ chỉ sinh
+   WebP. Và thiếu `sharp` thì `astro build` ĐỎ ở bước tối ưu ảnh.
+4. **Astro 7 dò môi trường agent** (gói `am-i-vibing`, biến `CLAUDECODE`) rồi tự đẩy
+   `astro preview` xuống chạy nền; Playwright báo "webServer exited early", một thông báo không
+   dẫn tới nguyên nhân. Xoá biến đó cho riêng tiến trình máy chủ trong `playwright.config.ts`.
+5. **Biome chỉ đọc frontmatter của `.astro`, không thấy template**, nên báo nhầm biến không dùng.
+   Thêm override tắt hai luật đó cho `**/*.astro`; `astro check` vẫn phủ vì nó hiểu template.
+
+**Ba bài viết đang `daDuyet: false`** nên chưa lên web và chưa vào sitemap, chờ PHONG đọc.
+Schema Zod ép `title` ≤ 60 và `description` 120–160 ngay lúc build — đã chặn một bài 161 ký tự.
+
+Cổng đã chạy và việc tay còn lại: `docs/evidence/commerce/2026-09-18-pha-1-website.md`.

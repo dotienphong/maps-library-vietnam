@@ -36,6 +36,27 @@ pnpm dev
 `pnpm dev` chạy các app trong monorepo ở chế độ phát triển. Nhấn `Ctrl+C` để
 dừng; khi không dùng database nữa, chạy `pnpm db:down`.
 
+## Website quảng bá
+
+Website tĩnh dựng bằng Astro, nằm ở `apps/site`, phát hành lên Cloudflare Pages
+`mapslibvn-site`. Chạy tại máy:
+
+```bash
+pnpm --filter @mapslibvn/site dev      # http://localhost:4322
+pnpm --filter @mapslibvn/site build    # dựng tĩnh ra apps/site/dist
+pnpm test:site-e2e                     # 20 bài Playwright chạy trên bản build
+```
+
+Giá và bảng so sánh đối thủ đọc từ `@mapslibvn/catalog` lúc build, nên **không gõ tay con số nào
+vào file `.astro`**; sửa giá là sửa package đó.
+
+Ảnh hero và bốn ảnh OG sinh bằng `node scripts/site-images.mjs` rồi commit vào repo, vì máy dựng
+của Pages không chạy Playwright.
+
+**Đổi tên miền:** sửa `SITE_URL` trong `apps/site/site.config.mjs` (nguồn duy nhất của mọi URL
+tuyệt đối: canonical, OG, sitemap, robots.txt), thêm `_redirects` chuyển 301 toàn bộ đường dẫn từ
+tên miền cũ, rồi gửi lại sitemap ở Google Search Console.
+
 ## Phát hành toàn bộ SDK lên npm
 
 Kiểm tra trước mà không publish:
