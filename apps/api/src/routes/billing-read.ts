@@ -1,8 +1,8 @@
 import { Hono } from 'hono';
+import { legacyUsageForKeys } from '../billing/legacy-usage';
 import { quotaObject } from '../billing/object';
 import { endSql, getSql } from '../db';
 import type { AppEnv, Env } from '../env';
-import { FREE_DIRECTIONS_PER_DAY, FREE_PLACES_PER_DAY, vnDay } from '../quota';
 
 const NO_STORE = { 'cache-control': 'private, no-store' } as const;
 
@@ -88,32 +88,7 @@ export function billingReadWith(dependencies: BillingReadDependencies = {}) {
         ? await dependencies.tenantKeys(tenantId, c.env)
         : await tenantKeysTuDb(tenantId, c.env, c.executionCtx);
 
-      const day = vnDay();
-      const items = await Promise.all(
-        keys.map(async (key) => {
-          const [places, directions] = await Promise.all([
-            c.env.META.get(`quota:${key.key_hash}:${day}:places`),
-            c.env.META.get(`quota:${key.key_hash}:${day}:directions`),
-          ]);
-          return {
-            keyPrefix: key.key_prefix,
-            label: key.label,
-            places: {
-              used: Number(places ?? 0),
-              limit: key.quota_places_per_day ?? FREE_PLACES_PER_DAY,
-            },
-            directions: {
-              used: Number(directions ?? 0),
-              limit: key.quota_directions_per_day ?? FREE_DIRECTIONS_PER_DAY,
-            },
-          };
-        }),
-      );
-
-      const cong = (group: 'places' | 'directions') => ({
-        used: items.reduce((tong, item) => tong + item[group].used, 0),
-        limit: items.reduce((tong, item) => tong + item[group].limit, 0),
-      });
+      const { day, keys: items, total } = await legacyUsageForKeys(c.env, keys);
 
       return c.json(
         {
@@ -125,7 +100,7 @@ export function billingReadWith(dependencies: BillingReadDependencies = {}) {
           counted: (tenant?.plan ?? 'free') !== 'internal',
           blockAtMultiple: 2,
           keys: items,
-          total: { places: cong('places'), directions: cong('directions') },
+          total,
         },
         200,
         NO_STORE,
