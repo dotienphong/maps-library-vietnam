@@ -15,6 +15,12 @@ export interface Env {
   /** Cổng độc lập để commercial fail closed trong lúc rollout/rollback. */
   COMMERCIAL_ADMISSION?: string;
   /**
+   * '1' = mở cổng khách hàng tự phục vụ (`/console`, `/v1/console/*`). Mặc định đóng; bật cuối
+   * pha 2 sau khi nghiệm thu (spec thương mại tự phục vụ mục 16, 19). Giá trị đặt trong
+   * wrangler.toml, KHÔNG truyền --var: --var bị lần deploy sau xoá sạch.
+   */
+  SELF_SERVE?: string;
+  /**
    * '1' = thêm một vòng gọi `ping()` không chạm storage vào mỗi request thương mại, để tách
    * chi phí mạng khỏi chi phí ghi bền vững. CHỈ bật trong lượt đo: nó cộng đúng một vòng mạng.
    */

@@ -12,6 +12,9 @@ QUOTA_ENABLED = "0"
 # chi phí quota p50 94–125 ms dưới ngưỡng 150 ms PHONG chốt, diễn tập phục hồi đạt.
 # Đóng khẩn cấp không cần sửa file: `wrangler deploy --env production --var COMMERCIAL_ADMISSION:0`.
 COMMERCIAL_ADMISSION = "0"
+# Cổng khách hàng tự phục vụ (spec 2026-09-18-thuong-mai-tu-phuc-vu). Đóng ở cả dev lẫn production
+# cho tới khi pha 2 nghiệm thu; bật bằng cách sửa dòng này (và dòng trong [env.production]).
+SELF_SERVE = "0"
 # Trần request đồng thời mỗi tenant. Bỏ trống = mốc đo lại 15/09/2026 (50 Places / 32 tuyến,
 # docs/evidence/capacity/2026-09-15-inflight-ramp.md). Hạ ngay bằng `wrangler deploy --var` nếu origin
 # nghẽn; đây là trần THEO TỪNG tenant còn origin dùng chung, phải đo lại khi có tenant thứ hai.
@@ -73,7 +76,7 @@ localConnectionString = "postgres://mapslibvn:mapslibvn@localhost:5432/mapslibvn
 enabled = true
 
 [env.production]
-vars = { TILES_BASE = "https://tiles.ai-solutions.io.vn", ENVIRONMENT = "production", QUOTA_ENABLED = "1", COMMERCIAL_ADMISSION = "1", ROUTING_BASE = "https://maps-route.ai-solutions.io.vn", ACCESS_TEAM_DOMAIN = "snowy-credit-f444.cloudflareaccess.com", ACCESS_AUD = "26088029373e358f9a24e68f66fe85ccc0c771e53cde538638a54151969cc6f5", AUTOCOMPLETE_FAST = "1", CF_ACCOUNT_ID = "90de8c1aef96991cdf2a49008f9a0122" }
+vars = { TILES_BASE = "https://tiles.ai-solutions.io.vn", ENVIRONMENT = "production", QUOTA_ENABLED = "1", COMMERCIAL_ADMISSION = "1", SELF_SERVE = "0", ROUTING_BASE = "https://maps-route.ai-solutions.io.vn", ACCESS_TEAM_DOMAIN = "snowy-credit-f444.cloudflareaccess.com", ACCESS_AUD = "26088029373e358f9a24e68f66fe85ccc0c771e53cde538638a54151969cc6f5", AUTOCOMPLETE_FAST = "1", CF_ACCOUNT_ID = "90de8c1aef96991cdf2a49008f9a0122" }
 kv_namespaces = [{ binding = "META", id = "a50e778ff63a4ad7956f783eba456ed5" }]
 durable_objects = { bindings = [{ name = "QUOTA", class_name = "QuotaObject" }] }
 r2_buckets = [{ binding = "TILES", bucket_name = "mapslibvn-tiles" }]
