@@ -132,6 +132,11 @@ const wrangler = crossSpawn(
     `IP_HASH_PEPPER:${IP_HASH_PEPPER}`,
     '--var',
     'AUTOCOMPLETE_TELEX:1',
+    // Bậc nhanh (plan 2026-09-18): bật trong itest để câu `name_tsv` + CTE + `LIMIT $n` chạm
+    // Postgres thật ít nhất một lần trước khi cờ được bật trên production. `to_tsquery` NÉM với
+    // chuỗi sai dạng, mà fakeSql thì không bao giờ phát hiện được điều đó.
+    '--var',
+    'AUTOCOMPLETE_FAST:1',
     // Bộ đếm quota legacy trong KV chỉ ghi khi bật cờ này. Không bật thì itest của /legacy-usage
     // chỉ kiểm được một bảng rỗng — tức không kiểm gì. Ngưỡng chặn là 2× hạn mức ngày (20.000
     // places), xa hơn mọi bộ test, nên bật cờ không làm test khác đỏ.

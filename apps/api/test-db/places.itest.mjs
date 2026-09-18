@@ -129,6 +129,25 @@ describe('thang geocode và các route còn lại', () => {
     expect(scores).toEqual([...scores].sort((a, b) => b - a));
   });
 
+  /**
+   * Bậc nhanh (cờ AUTOCOMPLETE_FAST bật trong api-db-test.mjs). `to_tsquery` ném syntax error với
+   * chuỗi sai dạng, và CTE + `LIMIT $n` tham số hoá đi qua postgres.js là đúng chỗ từng vỡ trước
+   * đây (mảng ::text[] 09/2026). Route nuốt lỗi DB thành 503, nên ca này đỏ = câu không chạy được.
+   */
+  it('bậc nhanh: một token cũng chạy được trên Postgres thật', async () => {
+    const { status, body } = await get('/v1/autocomplete?q=truong&near=10.77,106.70');
+    expect(status).toBe(200);
+    expect(Array.isArray(body.items)).toBe(true);
+  });
+
+  it('bậc nhanh: nhiều token, và street/area KHÔNG biến mất khỏi kết quả', async () => {
+    const { status, body } = await get(
+      `/v1/autocomplete?q=${enc('Trường Tiểu học Hoàng Diệu')}&near=10.77,106.70`,
+    );
+    expect(status).toBe(200);
+    expect(body.items[0].name).toBe('Trường Tiểu học Hoàng Diệu');
+  });
+
   it('autocomplete area gom Quận 10 cũ, giữ bbox qua cache và lọc theo types', async () => {
     const path = `/v1/autocomplete?q=${enc('Quận 10')}&types=area&limit=7`;
     const first = await get(path);
