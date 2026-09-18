@@ -15,6 +15,11 @@ COMMERCIAL_ADMISSION = "0"
 # Cổng khách hàng tự phục vụ (spec 2026-09-18-thuong-mai-tu-phuc-vu). Đóng ở cả dev lẫn production
 # cho tới khi pha 2 nghiệm thu; bật bằng cách sửa dòng này (và dòng trong [env.production]).
 SELF_SERVE = "0"
+EMAIL_FROM = "no-reply@ai-solutions.io.vn"
+SUPPORT_EMAIL = "dotienphong1993@gmail.com"
+# Site key Turnstile là giá trị CÔNG KHAI nằm trong HTML, nên để vars chứ không phải secret.
+# PHONG điền sau khi tạo widget; để trống thì bước chống bot bị bỏ qua ở dev và TỪ CHỐI ở production.
+TURNSTILE_SITE_KEY = ""
 # Trần request đồng thời mỗi tenant. Bỏ trống = mốc đo lại 15/09/2026 (50 Places / 32 tuyến,
 # docs/evidence/capacity/2026-09-15-inflight-ramp.md). Hạ ngay bằng `wrangler deploy --var` nếu origin
 # nghẽn; đây là trần THEO TỪNG tenant còn origin dùng chung, phải đo lại khi có tenant thứ hai.
@@ -76,7 +81,7 @@ localConnectionString = "postgres://mapslibvn:mapslibvn@localhost:5432/mapslibvn
 enabled = true
 
 [env.production]
-vars = { TILES_BASE = "https://tiles.ai-solutions.io.vn", ENVIRONMENT = "production", QUOTA_ENABLED = "1", COMMERCIAL_ADMISSION = "1", SELF_SERVE = "0", ROUTING_BASE = "https://maps-route.ai-solutions.io.vn", ACCESS_TEAM_DOMAIN = "snowy-credit-f444.cloudflareaccess.com", ACCESS_AUD = "26088029373e358f9a24e68f66fe85ccc0c771e53cde538638a54151969cc6f5", AUTOCOMPLETE_FAST = "1", CF_ACCOUNT_ID = "90de8c1aef96991cdf2a49008f9a0122" }
+vars = { TILES_BASE = "https://tiles.ai-solutions.io.vn", ENVIRONMENT = "production", QUOTA_ENABLED = "1", COMMERCIAL_ADMISSION = "1", SELF_SERVE = "0", EMAIL_FROM = "no-reply@ai-solutions.io.vn", SUPPORT_EMAIL = "dotienphong1993@gmail.com", TURNSTILE_SITE_KEY = "", ROUTING_BASE = "https://maps-route.ai-solutions.io.vn", ACCESS_TEAM_DOMAIN = "snowy-credit-f444.cloudflareaccess.com", ACCESS_AUD = "26088029373e358f9a24e68f66fe85ccc0c771e53cde538638a54151969cc6f5", AUTOCOMPLETE_FAST = "1", CF_ACCOUNT_ID = "90de8c1aef96991cdf2a49008f9a0122" }
 kv_namespaces = [{ binding = "META", id = "a50e778ff63a4ad7956f783eba456ed5" }]
 durable_objects = { bindings = [{ name = "QUOTA", class_name = "QuotaObject" }] }
 r2_buckets = [{ binding = "TILES", bucket_name = "mapslibvn-tiles" }]
@@ -86,5 +91,9 @@ ratelimits = [
   { name = "PLACES_RATE_LIMITER", namespace_id = "20260910", simple = { limit = 60, period = 60 } },
   { name = "DIRECTIONS_RATE_LIMITER", namespace_id = "20260911", simple = { limit = 20, period = 60 } },
   { name = "DIRECTIONS_KEY_RATE_LIMITER", namespace_id = "20260912", simple = { limit = 100, period = 60 } },
+  # Mã đăng nhập của cổng khách hàng. Binding Rate Limiting chỉ nhận chu kỳ 10 hoặc 60 giây, nên
+  # hành vi thật là "mỗi email một mã mỗi phút" — giao diện phải nói đúng câu đó thay vì hứa khác.
+  { name = "OTP_EMAIL_RATE_LIMITER", namespace_id = "20260920", simple = { limit = 1, period = 60 } },
+  { name = "OTP_IP_RATE_LIMITER", namespace_id = "20260921", simple = { limit = 3, period = 60 } },
 ]
 assets = { directory = "../admin/dist", binding = "ASSETS" }

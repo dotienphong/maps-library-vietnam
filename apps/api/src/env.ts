@@ -48,6 +48,15 @@ export interface Env {
    */
   GOOGLE_CLIENT_ID?: string;
   GOOGLE_CLIENT_SECRET?: string;
+  /** Mỗi email một mã mỗi phút. Binding Rate Limiting chỉ có chu kỳ 10 hoặc 60 giây. */
+  OTP_EMAIL_RATE_LIMITER?: RateLimit;
+  /** Mỗi IP ba lượt xin mã mỗi phút. */
+  OTP_IP_RATE_LIMITER?: RateLimit;
+  /**
+   * 'debug' = trả mã đăng nhập ở header `X-Debug-Otp` để e2e chạy được mà không cần hộp thư.
+   * KHÔNG có tác dụng ở production dù đặt nhầm — điều kiện kiểm là kép.
+   */
+  OTP_DELIVERY?: string;
   /**
    * '1' = thêm một vòng gọi `ping()` không chạm storage vào mỗi request thương mại, để tách
    * chi phí mạng khỏi chi phí ghi bền vững. CHỈ bật trong lượt đo: nó cộng đúng một vòng mạng.

@@ -11,6 +11,7 @@ import { adminQuotaSummary } from './routes/admin-quota-summary';
 import { autocomplete } from './routes/autocomplete';
 import { billingAdmin } from './routes/billing-admin';
 import { catalogRoute } from './routes/catalog';
+import { consoleAuth } from './routes/console-auth';
 import { directions } from './routes/directions';
 import { edits } from './routes/edits';
 import { geocodeRoute } from './routes/geocode';
@@ -88,6 +89,12 @@ app.get('/v1/attribution', (c) =>
   }),
 );
 app.route('/', catalogRoute);
+
+// Nhóm cổng khách hàng. Khai cổng chống CSRF đúng MỘT chỗ cho cả tiền tố, để thêm route mới vào
+// `console-auth.ts` hay `console.ts` sau này không thể quên gắn. Cookie phiên là SameSite=Lax nên
+// cổng này cộng với nó là đủ, không cần token CSRF riêng.
+app.use('/v1/console/*', requireSameSitePost());
+app.route('/', consoleAuth);
 app.route('/', autocomplete);
 app.route('/', search);
 app.route('/', nearby);
