@@ -7,6 +7,7 @@ import { dbHealth } from './db-health';
 import type { AppEnv } from './env';
 import { ApiError, errorResponse } from './errors';
 import { admin, requireSameSitePost } from './routes/admin';
+import { adminQuotaSummary } from './routes/admin-quota-summary';
 import { autocomplete } from './routes/autocomplete';
 import { billingAdmin } from './routes/billing-admin';
 import { directions } from './routes/directions';
@@ -73,6 +74,12 @@ app.get('/healthz', (c) => c.json({ ok: true, environment: c.env.ENVIRONMENT }))
 app.use('/v1/admin/billing/*', requireSameSitePost());
 app.use('/v1/admin/billing/*', requireBillingAccess());
 app.route('/', billingAdmin());
+// Mức tiêu thụ của khách là cùng loại dữ liệu mà nhóm billing đang bảo vệ, nên route này chịu
+// đúng cổng đó. Đặt NGOÀI tiền tố `/v1/admin/billing/` vì trong đó có middleware coi đoạn đầu là
+// `:tenantId` và sẽ trả 404 cho một đường dẫn tĩnh — đúng lý do `plan-catalog` cũng đứng ngoài.
+app.use('/v1/admin/quota-summary', requireSameSitePost());
+app.use('/v1/admin/quota-summary', requireBillingAccess());
+app.route('/', adminQuotaSummary);
 app.get('/healthz/db', async (c) => c.json(await dbHealth(c.env, c.executionCtx)));
 app.get('/v1/attribution', (c) =>
   c.json({ text: attributionText(), html: attributionHtml(), links: ATTRIBUTION_LINKS }, 200, {
