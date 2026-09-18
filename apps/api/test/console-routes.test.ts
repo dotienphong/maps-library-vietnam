@@ -73,3 +73,17 @@ describe('cổng đăng nhập', () => {
     );
   });
 });
+
+describe('nhóm khoá API của khách', () => {
+  for (const [duong, method] of [
+    ['/v1/console/keys', 'GET'],
+    ['/v1/console/keys', 'POST'],
+    [`/v1/console/keys/${'a'.repeat(64)}/revoke`, 'POST'],
+  ] as const) {
+    it(`${method} ${duong} chưa đăng nhập → 401`, async () => {
+      const res = await goi(moiTruong(), duong, { method });
+      expect(res.status).toBe(401);
+      expect(((await res.json()) as { error: { code: string } }).error.code).toBe('not_signed_in');
+    });
+  }
+});

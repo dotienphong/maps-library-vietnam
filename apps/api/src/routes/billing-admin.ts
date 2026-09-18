@@ -4,6 +4,7 @@ import { quotaObject } from '../billing/object';
 import type { EntitlementCommand, JournalEntry, SnapshotPage } from '../billing/types';
 import { endSql, getSql } from '../db';
 import type { AppEnv, Env } from '../env';
+import { setKeyRevokedForTenant } from '../tenant-keys';
 import { billingRead } from './billing-read';
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -271,32 +272,18 @@ export function billingAdmin(dependencies: BillingAdminDependencies = {}) {
     const reason = body.reason;
     const sql = getSql(c.env);
     try {
-      const existing = await sql<{ key_hash: string }[]>`SELECT key_hash FROM api_key
-        WHERE tenant_id=${tenantId}::uuid AND key_hash=${keyHash}`;
-      if (existing.length === 0) return c.json({ error: { code: 'key_not_found' } }, 404);
-      const object = quotaObject(c.env, tenantId);
-      const applyToObject = () =>
-        object.setKeyRevoked(keyHash, revoked, operationId, c.get('reviewer') ?? '', reason);
-      const updateDatabase = async () => {
-        const rows = await sql<{ key_hash: string }[]>`UPDATE api_key
-          SET active=${!revoked}, revoked_at=${revoked ? new Date() : null}
-          WHERE tenant_id=${tenantId}::uuid AND key_hash=${keyHash}
-          RETURNING key_hash`;
-        if (rows.length === 0) return false;
-        return true;
-      };
+      // Thứ tự fail-closed (thu hồi chạm sổ quota trước, khôi phục chạm Postgres trước) và việc
+      // xoá cache auth nằm trong `tenant-keys.ts`, dùng chung với cổng khách hàng.
+      const receipt = await setKeyRevokedForTenant(sql, c.env, {
+        tenantId,
+        keyHash,
+        revoked,
+        operationId,
+        actor: c.get('reviewer') ?? '',
+        reason,
+      });
+      if (receipt === null) return c.json({ error: { code: 'key_not_found' } }, 404);
 
-      // Fail closed across partial failures: revocation reaches the hot-path DO first;
-      // restoration reaches durable PostgreSQL first and remains denied until DO succeeds.
-      let receipt: Awaited<ReturnType<typeof applyToObject>>;
-      if (revoked) {
-        receipt = await applyToObject();
-        if (!(await updateDatabase())) throw new Error('key_disappeared_during_revocation');
-      } else {
-        if (!(await updateDatabase())) throw new Error('key_disappeared_during_restoration');
-        receipt = await applyToObject();
-      }
-      await c.env.META.delete(`apikey:${keyHash}`);
       // Nhật ký kiểm toán là bằng chứng "ai tắt khoá của khách lúc mấy giờ" — receipt của Durable
       // Object nằm trong sổ quota, không phải nơi người quản trị tra cứu. Không ghi khoá rõ: chỉ
       // key_hash, đúng như spec mục 10.
@@ -307,7 +294,6 @@ export function billingAdmin(dependencies: BillingAdminDependencies = {}) {
       });
       return c.json(receipt, 200, { 'cache-control': 'private, no-store' });
     } catch (error) {
-      await c.env.META.delete(`apikey:${keyHash}`);
       console.error('billing key revocation', error);
       return c.json({ error: { code: 'upstream_unavailable' } }, 503);
     } finally {

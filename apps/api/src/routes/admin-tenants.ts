@@ -1,12 +1,10 @@
 import { Hono } from 'hono';
-import { apiKeyPrefix, generateApiKey } from '../api-key';
 import { audit } from '../audit';
 import { normalizeTextArray } from '../auth';
 import { endSql, getSql } from '../db';
-import { sha256Hex } from '../edits/hash';
 import type { AppEnv } from '../env';
 import { ApiError } from '../errors';
-import { textArray } from '../geocode';
+import { issueKeyForTenant } from '../tenant-keys';
 import {
   encodeTenantCursor,
   parseNewKeyBody,
@@ -151,31 +149,23 @@ adminTenants.post('/v1/admin/tenants/:id/keys', async (c) => {
   const id = tenantId(c.req.param('id'));
   const input = parseNewKeyBody(await c.req.json().catch(() => null));
 
-  // Sinh và băm TRƯỚC khi mở kết nối: khoá rõ không bao giờ rời hàm này ngoài phản hồi cuối cùng.
-  const key = generateApiKey();
-  const keyHash = await sha256Hex(key);
-  const keyPrefix = apiKeyPrefix(key);
-
   const sql = getSql(c.env);
   try {
     const [tenant] = await sql<{ name: string }[]>`
       SELECT name FROM tenant WHERE id = ${id}::uuid`;
     if (!tenant) throw new ApiError(404, 'not_found', 'Không có tenant này');
 
-    // Ba cột mảng đi qua `textArray`: bind mảng JS rồi cast ::text[] thì bản postgres/cf trong
-    // Workers nối thành "a,b" và Postgres ném `malformed array literal` — chỉ vỡ trên production
-    // và ở test:api-db, unit test không DB luôn xanh.
-    await sql`
-      INSERT INTO api_key
-        (key_hash, key_prefix, tenant_id, label, kind,
-         allowed_origins, allowed_bundle_ids, scopes, quota_directions_per_day)
-      VALUES (${keyHash}, ${keyPrefix}, ${id}::uuid, ${input.label}, ${input.kind},
-              ${textArray(sql, input.allowedOrigins)}, ${textArray(sql, input.allowedBundleIds)},
-              ${textArray(sql, input.scopes)}, ${input.quotaDirectionsPerDay})`;
-
-    // Cache âm của auth sống 60 giây. Ai đó vừa thử đúng chuỗi này (hoặc một lần thử trước đó
-    // trong cùng phút) là khoá mới chết oan tới một phút; xoá luôn cho chắc.
-    await c.env.META.delete(`apikey:${keyHash}`);
+    // Việc cấp khoá nằm ở `tenant-keys.ts` để trang Admin và cổng khách hàng dùng chung một bản:
+    // sinh khoá, băm, ghi bảng và xoá cache âm của auth đều là chỗ dễ lệch nhau nếu có hai bản.
+    const { key, keyHash, keyPrefix } = await issueKeyForTenant(sql, c.env, {
+      tenantId: id,
+      label: input.label,
+      kind: input.kind,
+      allowedOrigins: input.allowedOrigins,
+      allowedBundleIds: input.allowedBundleIds,
+      scopes: input.scopes,
+      quotaDirectionsPerDay: input.quotaDirectionsPerDay,
+    });
 
     // `detail` KHÔNG bao giờ chứa khoá rõ — spec mục 10. key_hash là định danh đủ để lần lại.
     audit(c, 'tenant.key_issue', keyHash, {

@@ -224,3 +224,29 @@ export async function daDungThu(sql: Sql, accountId: string): Promise<boolean> {
     SELECT trial_tenant_id FROM customer_account WHERE id = ${accountId}::uuid`;
   return rows[0]?.trial_tenant_id != null;
 }
+
+export interface KhoaCuaKhach {
+  key_hash: string;
+  key_prefix: string;
+  label: string | null;
+  kind: string;
+  allowed_origins: string[] | string;
+  active: boolean;
+  created_at: Date;
+  revoked_at: Date | null;
+}
+
+/** Khoá của MỘT tenant. Điều kiện tenant_id là thứ ngăn khách này thấy khoá của khách khác. */
+export async function khoaCuaTenant(sql: Sql, tenantId: string): Promise<KhoaCuaKhach[]> {
+  return await sql<KhoaCuaKhach[]>`
+    SELECT key_hash, key_prefix, label, kind, allowed_origins, active, created_at, revoked_at
+    FROM api_key WHERE tenant_id = ${tenantId}::uuid
+    ORDER BY created_at DESC, key_hash`;
+}
+
+export async function demKhoaDangHoatDong(sql: Sql, tenantId: string): Promise<number> {
+  const rows = await sql<{ n: number }[]>`
+    SELECT count(*)::int AS n FROM api_key
+    WHERE tenant_id = ${tenantId}::uuid AND active AND revoked_at IS NULL`;
+  return rows[0]?.n ?? 0;
+}

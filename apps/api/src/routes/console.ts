@@ -1,15 +1,26 @@
 import { Hono } from 'hono';
 import { audit } from '../audit';
+import { normalizeTextArray } from '../auth';
 import { quotaObject } from '../billing/object';
-import { capNhatTenant, daDungThu, taoTenantChoKhach, voiSql } from '../console/db';
+import {
+  capNhatTenant,
+  daDungThu,
+  demKhoaDangHoatDong,
+  khoaCuaTenant,
+  taoTenantChoKhach,
+  voiSql,
+} from '../console/db';
 import { selfServeOpen } from '../console/flags';
 import { requireCustomer } from '../console/require-customer';
 import type { AppEnv, Env } from '../env';
 import { ApiError } from '../errors';
+import { issueKeyForTenant, type LoaiKhoa, setKeyRevokedForTenant } from '../tenant-keys';
 
 const NO_STORE = { 'cache-control': 'private, no-store' } as const;
 const MAX_BODY = 4 * 1024;
 const TEN_TOI_DA = 120;
+/** Trần khoá đang hoạt động mỗi tổ chức. Đủ để tách môi trường, không đủ để biến thành kho khoá. */
+const KHOA_TOI_DA = 10;
 
 export interface ConsoleDeps {
   /** Sổ quota tiêm được: test của apps/api không có Durable Object thật để gọi. */
@@ -67,6 +78,8 @@ export function consoleRoutesWith(deps: ConsoleDeps = {}) {
   routes.use('/v1/console/tenant', requireCustomer());
   routes.use('/v1/console/usage', requireCustomer());
   routes.use('/v1/console/periods', requireCustomer());
+  routes.use('/v1/console/keys', requireCustomer());
+  routes.use('/v1/console/keys/*', requireCustomer());
 
   routes.get('/v1/console/me', (c) => {
     const khach = c.get('customer');
@@ -172,6 +185,119 @@ export function consoleRoutesWith(deps: ConsoleDeps = {}) {
     const limit = Math.min(Math.max(Number(c.req.query('limit') ?? '12') || 12, 1), 24);
     const history = await so(c.env, khach.tenantId).readPeriods(limit);
     return c.json(history, 200, NO_STORE);
+  });
+
+  routes.get('/v1/console/keys', async (c) => {
+    const khach = c.get('customer');
+    if (!khach?.tenantId) throw new ApiError(409, 'chua_co_tenant', 'Tài khoản chưa có tổ chức');
+    const khoa = await voiSql(c.env, c.executionCtx, (sql) =>
+      khoaCuaTenant(sql, khach.tenantId as string),
+    );
+    return c.json(
+      {
+        // Hyperdrive chạy `fetch_types: false` nên text[] có thể về dưới dạng chuỗi `{a,b}`.
+        // Chỉ lộ ra trên DB thật; test không DB không bao giờ thấy.
+        keys: khoa.map((k) => ({
+          keyHash: k.key_hash,
+          keyPrefix: k.key_prefix,
+          label: k.label,
+          kind: k.kind,
+          allowedOrigins: normalizeTextArray(k.allowed_origins),
+          active: k.active && k.revoked_at === null,
+          createdAt: k.created_at,
+          revokedAt: k.revoked_at,
+        })),
+        toiDa: KHOA_TOI_DA,
+      },
+      200,
+      NO_STORE,
+    );
+  });
+
+  routes.post('/v1/console/keys', async (c) => {
+    if (!selfServeOpen(c.env)) {
+      throw new ApiError(503, 'self_serve_closed', 'Cổng tự phục vụ chưa mở');
+    }
+    const khach = c.get('customer');
+    if (!khach?.tenantId) throw new ApiError(409, 'chua_co_tenant', 'Tài khoản chưa có tổ chức');
+
+    const body = await docJsonNho(c.req.raw);
+    const label = chuoiHoacNull(body?.label, 80) ?? 'Khoá mới';
+    const kind: LoaiKhoa = body?.kind === 'mobile' || body?.kind === 'server' ? body.kind : 'web';
+    const origins = Array.isArray(body?.allowedOrigins)
+      ? body.allowedOrigins.filter((o): o is string => typeof o === 'string').slice(0, 20)
+      : [];
+    const bundles = Array.isArray(body?.allowedBundleIds)
+      ? body.allowedBundleIds.filter((b): b is string => typeof b === 'string').slice(0, 20)
+      : [];
+
+    const ketQua = await voiSql(c.env, c.executionCtx, async (sql) => {
+      const dangCo = await demKhoaDangHoatDong(sql, khach.tenantId as string);
+      if (dangCo >= KHOA_TOI_DA) {
+        throw new ApiError(
+          409,
+          'too_many_keys',
+          `Mỗi tổ chức tối đa ${KHOA_TOI_DA} khoá đang hoạt động`,
+        );
+      }
+      return await issueKeyForTenant(sql, c.env, {
+        tenantId: khach.tenantId as string,
+        label,
+        kind,
+        allowedOrigins: origins,
+        allowedBundleIds: bundles,
+        // Scope ÉP cứng: khách tự cấp khoá chỉ được đọc Places. Quyền ghi đóng góp (`edits:write`)
+        // phải đi qua người thật, vì nó ghi vào dữ liệu bản đồ dùng chung.
+        scopes: ['places:read'],
+        quotaDirectionsPerDay: null,
+      });
+    });
+
+    audit(c, 'customer.key_issue', ketQua.keyHash, {
+      tenant_id: khach.tenantId,
+      key_prefix: ketQua.keyPrefix,
+      kind,
+      email: khach.email,
+    });
+
+    // Khoá dạng rõ trả đúng MỘT lần. DB chỉ giữ sha256; mất là phải cấp khoá mới.
+    return c.json(
+      { key: ketQua.key, keyPrefix: ketQua.keyPrefix, keyHash: ketQua.keyHash },
+      201,
+      NO_STORE,
+    );
+  });
+
+  routes.post('/v1/console/keys/:hash/revoke', async (c) => {
+    const khach = c.get('customer');
+    if (!khach?.tenantId) throw new ApiError(409, 'chua_co_tenant', 'Tài khoản chưa có tổ chức');
+    const keyHash = c.req.param('hash');
+    const body = await docJsonNho(c.req.raw);
+    const operationId = chuoiHoacNull(body?.operationId, 64);
+    if (!/^[a-f0-9]{64}$/.test(keyHash) || !operationId) {
+      throw new ApiError(400, 'invalid_key_command', 'Yêu cầu thu hồi không hợp lệ');
+    }
+
+    const receipt = await voiSql(c.env, c.executionCtx, (sql) =>
+      setKeyRevokedForTenant(sql, c.env, {
+        // Điều kiện tenant nằm TRONG câu SQL của hàm dùng chung, nên một khách gửi lên hash khoá
+        // của tenant khác chỉ nhận 404 chứ không chạm được vào nó.
+        tenantId: khach.tenantId as string,
+        keyHash,
+        revoked: true,
+        operationId,
+        actor: `customer:${khach.email}`,
+        reason: 'Khách tự thu hồi qua cổng khách hàng',
+      }),
+    );
+    if (receipt === null) throw new ApiError(404, 'key_not_found', 'Không có khoá này');
+
+    audit(c, 'customer.key_revoke', keyHash, {
+      tenant_id: khach.tenantId,
+      email: khach.email,
+      operation_id: operationId,
+    });
+    return c.json(receipt, 200, NO_STORE);
   });
 
   return routes;
