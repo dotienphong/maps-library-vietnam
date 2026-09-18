@@ -25,6 +25,24 @@ const THU_MUC_FONT = resolve(GOC, 'apps/site/node_modules/@fontsource/be-vietnam
 const FONT_NET = [400, 700];
 const FONT_DAI = ['latin', 'vietnamese'];
 
+/**
+ * `pnpm typecheck` chạy `tsc -p tsconfig.scripts.json` với `checkJs`, nên mọi tham số trong
+ * scripts/*.mjs phải có kiểu qua JSDoc. Khai hẹp đúng phần Playwright mà script này dùng, thay vì
+ * kéo cả kiểu của @playwright/test vào — gói đó không nằm ở node_modules gốc.
+ *
+ * @typedef {{ path: string, type?: 'png' | 'jpeg', quality?: number }} TuyChonChup
+ * @typedef {{
+ *   setContent(html: string, opts?: object): Promise<unknown>,
+ *   goto(url: string, opts?: object): Promise<unknown>,
+ *   evaluate(fn: Function): Promise<unknown>,
+ *   waitForTimeout(ms: number): Promise<unknown>,
+ *   screenshot(opts: TuyChonChup): Promise<unknown>,
+ * }} Trang
+ * @typedef {{ newPage(opts?: object): Promise<Trang>, close(): Promise<unknown> }} TrinhDuyet
+ * @typedef {{ launch(opts?: object): Promise<TrinhDuyet> }} Chromium
+ * @typedef {{ net: number, b64: string }} NetFont
+ */
+
 /** Bốn ảnh OG. `ten` phải KHỚP trường `og` trong apps/site/src/lib/trang.ts. */
 const ANH_OG = [
   { ten: 'mac-dinh', tieuDe: 'MapsLibVN', phu: 'API bản đồ và địa điểm Việt Nam' },
@@ -45,9 +63,15 @@ const ANH_OG = [
   },
 ];
 
+/**
+ * @param {{ tieuDe: string, phu: string }} noiDung
+ * @param {NetFont[]} fontBase64
+ * @returns {string}
+ */
 function trangOg({ tieuDe, phu }, fontBase64) {
   const faces = fontBase64
     .map(
+      /** @param {NetFont} net64 */
       ({ net, b64 }) =>
         `@font-face{font-family:'Be Vietnam Pro';src:url(data:font/woff2;base64,${b64}) format('woff2');font-weight:${net};font-style:normal;}`,
     )
@@ -77,6 +101,7 @@ function trangOg({ tieuDe, phu }, fontBase64) {
 </body></html>`;
 }
 
+/** @param {Chromium} chromium */
 async function sinhAnhOg(chromium) {
   await mkdir(THU_MUC_OG, { recursive: true });
   const fontBase64 = await Promise.all(
@@ -106,6 +131,7 @@ async function sinhAnhOg(chromium) {
   }
 }
 
+/** @param {Chromium} chromium */
 async function chupHero(chromium) {
   const { DOCS_URL } = await import('../apps/site/site.config.mjs');
   const url = `${DOCS_URL}/playground.html?embed=1`;
@@ -129,6 +155,10 @@ async function chupHero(chromium) {
   }
 }
 
+/**
+ * @param {string[]} argv
+ * @returns {Promise<number>}
+ */
 export async function main(argv) {
   const chiOg = argv.includes('--og');
   const chiHero = argv.includes('--hero');
