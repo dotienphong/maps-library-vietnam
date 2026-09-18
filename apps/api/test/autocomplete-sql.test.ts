@@ -649,3 +649,79 @@ describe('collectCandidates — cổng bậc nhanh cho street', () => {
     expect(calls.filter(laStreetTrigram)).toHaveLength(1);
   });
 });
+
+/**
+ * Đo production 18/09 (`--rank` + explain): tổng chi phí hai nhánh chạy RIÊNG luôn nhỏ hơn một
+ * truy vấn `OR` gộp — `phuc lonh` 128+704=832 ms so với 1.561 ms, `cho rya` 17+215=232 so với 394.
+ * `OR` buộc một Bitmap Heap Scan quét hợp các bitmap rồi recheck TOÀN BỘ biểu thức trên từng dòng;
+ * tách ra thì mỗi truy vấn chỉ recheck điều kiện của nó và có LIMIT riêng.
+ *
+ * Tách chứ KHÔNG bỏ: `--rank` chứng minh bỏ nhánh `%` làm mất hẳn `cirlce k` và `winmrt`.
+ */
+describe('poiCandidates — tách nhánh % thành truy vấn riêng', () => {
+  const cauChinh = (calls: { text: string }[]) =>
+    calls.filter((call) => call.text.startsWith('SELECT'))[0];
+
+  it("'no-percent' bỏ mọi toán tử % nhưng giữ <%, alt và LIKE", async () => {
+    const { sql, calls } = fakeSql([]);
+    await poiCandidates(sql, shortInput, 'no-percent');
+    const text = cauChinh(calls)?.text ?? '';
+    const where = text.slice(text.indexOf('WHERE'));
+    expect(where).not.toContain('name_norm % ');
+    expect(where).toMatch(/\$\d+ <% name_norm/);
+    expect(where).toContain('<% name_alt_norm');
+    expect(where).toContain('name_norm LIKE');
+  });
+
+  it("'only-percent' CHỈ giữ toán tử %", async () => {
+    const { sql, calls } = fakeSql([]);
+    await poiCandidates(sql, shortInput, 'only-percent');
+    const text = cauChinh(calls)?.text ?? '';
+    const where = text.slice(text.indexOf('WHERE'));
+    expect(where).toContain('name_norm % ');
+    expect(where).not.toMatch(/\$\d+ <% name_norm/);
+    expect(where).not.toContain('<% name_alt_norm');
+    expect(where).not.toContain('name_norm LIKE');
+  });
+
+  it('hai nhánh cộng lại phủ đúng bằng bản đầy đủ', async () => {
+    const dieuKien = async (che_do?: 'no-percent' | 'only-percent') => {
+      const { sql, calls } = fakeSql([]);
+      await poiCandidates(sql, shortInput, che_do);
+      const text = cauChinh(calls)?.text ?? '';
+      const where = text.slice(text.indexOf('AND ('));
+      return (where.match(/<%|% \$|LIKE/g) ?? []).sort().join(',');
+    };
+    const day_du = await dieuKien();
+    const khong = await dieuKien('no-percent');
+    const chi = await dieuKien('only-percent');
+    expect([...khong.split(','), ...chi.split(',')].filter(Boolean).sort().join(',')).toBe(day_du);
+  });
+
+  it('mọi chế độ vẫn chấm điểm y hệt nhau — dòng trùng phải có cùng sim để dedup đúng', async () => {
+    const simCua = async (che_do?: 'no-percent' | 'only-percent') => {
+      const { sql, calls } = fakeSql([]);
+      await poiCandidates(sql, shortInput, che_do);
+      const text = cauChinh(calls)?.text ?? '';
+      return text.slice(text.indexOf('greatest('), text.indexOf(') AS sim'));
+    };
+    expect(await simCua('no-percent')).toBe(await simCua());
+    expect(await simCua('only-percent')).toBe(await simCua());
+  });
+});
+
+describe('collectCandidates — đường dự phòng chạy hai nhánh song song', () => {
+  it('truy vấn ngắn: phát HAI truy vấn poi, một không-%, một chỉ-%', async () => {
+    const { sql, calls } = fakeSql([]);
+    await collectCandidates(sql, shortInput, new Set(['poi']));
+    const poi = calls.filter((call) => call.text.startsWith("SELECT 'poi'"));
+    expect(poi).toHaveLength(2);
+    expect(poi.filter((call) => call.text.includes('name_norm % '))).toHaveLength(1);
+  });
+
+  it('truy vấn DÀI (>12 ký tự) vẫn chỉ một truy vấn — nhánh % vốn không tồn tại ở đó', async () => {
+    const { sql, calls } = fakeSql([]);
+    await collectCandidates(sql, input, new Set(['poi']));
+    expect(calls.filter((call) => call.text.startsWith("SELECT 'poi'"))).toHaveLength(1);
+  });
+});

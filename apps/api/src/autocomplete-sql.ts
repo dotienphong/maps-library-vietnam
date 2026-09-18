@@ -110,11 +110,32 @@ const distance = (sql: Sql, near: LatLng | null, geometry: string) => {
  * Cả hai nhánh đều chạy trên chỉ số GIN `poi_name_norm_trgm_idx` (BitmapOr), không nhánh nào quét
  * bảng. ORDER BY thêm pop để 20 ứng viên đầu không ngẫu nhiên khi sim hoà (truy vấn 2–3 ký tự).
  */
-export function poiCandidates(sql: Sql, input: CandidateQueryInput) {
+/**
+ * Nhóm nhánh khớp nào được bật trong một lần gọi `poiCandidates`.
+ *
+ * `undefined` = tất cả, giữ nguyên hành vi cũ. Hai giá trị kia để **tách** truy vấn làm đôi, và
+ * đó là cả điểm của vòng 3: đo trên production 18/09 cho thấy tổng chi phí hai nhánh chạy riêng
+ * luôn NHỎ HƠN một truy vấn `OR` gộp — `phuc lonh` 128 + 704 = 832 ms so với 1.561 ms, `cho rya`
+ * 17 + 215 = 232 so với 394, `vincon` 69 + 165 = 234 so với 390.
+ *
+ * Lý do nằm trong kế hoạch truy vấn: `OR` buộc MỘT Bitmap Heap Scan quét hợp của các bitmap rồi
+ * recheck toàn bộ biểu thức OR trên từng dòng (`phuc lonh`: 36.285 dòng vào, 20 dòng ra). Tách ra
+ * thì mỗi truy vấn chỉ recheck điều kiện của chính nó và có `LIMIT 20` riêng.
+ *
+ * TÁCH chứ không BỎ. Chế độ `--rank` của `explain-autocomplete` chạy thật trên production và
+ * chứng minh bỏ hẳn nhánh `%` làm mất kết quả đúng ở `cirlce k` và `winmrt`, đồng thời đẩy
+ * `nguyne hue` từ hạng 1 xuống hạng 7. Hai nhánh cộng lại phủ đúng tập dòng như bản gộp.
+ */
+export type PoiMatchBranches = 'no-percent' | 'only-percent';
+
+export function poiCandidates(sql: Sql, input: CandidateQueryInput, branches?: PoiMatchBranches) {
   const { queryNorm, queryCore, queryAlias, prefixPattern, near, sources } = input;
   const fuzzy = useSimilarityBranch(queryNorm);
+  const coPhanTram = branches !== 'no-percent';
+  const coNhanhKhac = branches !== 'only-percent';
   // Biến thể địa danh (spec 6.1): chỉ thêm nhánh khi từ điển thật sự đổi được chuỗi.
-  const aliasBranch = queryAlias === queryNorm ? sql`` : sql`OR ${queryAlias} <% name_norm`;
+  const aliasBranch =
+    queryAlias === queryNorm || !coNhanhKhac ? sql`` : sql`OR ${queryAlias} <% name_norm`;
   // Và phải CHẤM ĐIỂM theo dạng chuẩn nữa, không chỉ tìm theo nó. Đo trên production 08/09: POI
   // "Quy Nhơn" cho word_similarity 0,636 với 'qui nhon' nhưng 1,000 với 'quy nhon'. Vì ORDER BY
   // dùng chính `sim` này, thiếu vế alias thì dòng đúng vừa bị xếp thấp vừa bị `LIMIT 20` cắt
@@ -124,14 +145,19 @@ export function poiCandidates(sql: Sql, input: CandidateQueryInput) {
   const aliasPrefix =
     queryAlias === queryNorm ? sql`` : sql`OR starts_with(name_norm, ${queryAlias})`;
   const matchedAlt = matchedAltExpr(sql, queryNorm);
-  const simNorm = fuzzy ? sql`OR name_norm % ${queryNorm}` : sql``;
+  const simNorm = fuzzy && coPhanTram ? sql`OR name_norm % ${queryNorm}` : sql``;
   // Phần lớn truy vấn có nameCore trùng normalizeVi; khi đó nhánh core chỉ là việc thừa.
+  // Nhánh core mang CẢ `<%` lẫn `%`, nên lúc tách phải chia đôi nó theo đúng nhóm.
   const coreBranches =
     queryCore === queryNorm
       ? sql``
-      : fuzzy
-        ? sql`OR ${queryCore} <% name_norm OR name_norm % ${queryCore}`
-        : sql`OR ${queryCore} <% name_norm`;
+      : !coNhanhKhac
+        ? fuzzy
+          ? sql`OR name_norm % ${queryCore}`
+          : sql``
+        : fuzzy && coPhanTram
+          ? sql`OR ${queryCore} <% name_norm OR name_norm % ${queryCore}`
+          : sql`OR ${queryCore} <% name_norm`;
   return sql<CandidateRow[]>`
     SELECT 'poi' AS type, id, name,
       ${poiSecondary(sql)},
@@ -151,12 +177,12 @@ export function poiCandidates(sql: Sql, input: CandidateQueryInput) {
     WHERE status = 'active'
       AND ${poiSourceFilter(sql, sources)}
       AND (
-        ${queryNorm} <% name_norm
+        ${coNhanhKhac ? sql`${queryNorm} <% name_norm` : sql`false`}
         ${simNorm}
         ${coreBranches}
         ${aliasBranch}
-        OR ${queryNorm} <% name_alt_norm
-        OR name_norm LIKE ${prefixPattern}
+        ${coNhanhKhac ? sql`OR ${queryNorm} <% name_alt_norm` : sql``}
+        ${coNhanhKhac ? sql`OR name_norm LIKE ${prefixPattern}` : sql``}
       )
     ORDER BY sim DESC, pop DESC
     LIMIT 20`;
@@ -453,7 +479,20 @@ export async function collectCandidates(
   // Cổng của poi là `>= limit`: bậc nhanh phải lấp đủ chỗ thì mới bỏ được nhánh trigram.
   const fastRows = poiFast && poiFast.length >= (fast?.limit ?? 0) ? poiFast : null;
   if (fastRows) add(1, Promise.resolve(fastRows));
-  else if (types.has('poi')) add(1, poiCandidates(sql, input));
+  else if (types.has('poi')) {
+    // Đường dự phòng: tách nhánh `%` ra truy vấn riêng chạy song song. Tổng chi phí hai nhánh
+    // riêng nhỏ hơn hẳn một truy vấn `OR` gộp (đo 18/09: `phuc lonh` 832 so với 1.561 ms), vì
+    // `OR` buộc một Bitmap Heap Scan recheck toàn bộ biểu thức trên từng dòng của hợp bitmap.
+    //
+    // Truy vấn dài hơn `SIMILARITY_MAX_QUERY_LENGTH` vốn không có nhánh `%`, nên tách sẽ tạo ra
+    // một truy vấn `WHERE false` vô ích — giữ nguyên một lời gọi cho nhóm đó.
+    if (useSimilarityBranch(input.queryNorm)) {
+      add(1, poiCandidates(sql, input, 'no-percent'));
+      add(1, poiCandidates(sql, input, 'only-percent'));
+    } else {
+      add(1, poiCandidates(sql, input));
+    }
+  }
 
   // Cổng của street là `> 0`, KHÁC poi: đường hiếm khi có đủ 10 kết quả tốt, mà khớp theo từ của
   // tsvector lại chính xác hơn trigram. Rỗng thì phải lui — đo 18/09: `cafe` cho tsvector 0 dòng

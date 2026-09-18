@@ -434,3 +434,56 @@ số đo — vòng ba nhắm vào `area` sẽ là chỗ lấy nốt.
 - Chưa đo `nguyen hue` nên chưa biết ca chậm nhất rơi vào nhánh nào.
 - Bậc 3 (`name_key`) 247–437 ms với truy vấn ngắn, hiện bị cổng tắt khi bậc nhanh đủ kết quả —
   chưa kiểm xem việc tắt đó có làm mất lớp truy vấn nào ngoài `bhx` (ca đó nay do `queryCore` lo).
+
+---
+
+# Vòng 3 — tách nhánh `%` thay vì bỏ nó
+
+## Đường dự phòng mới là nút thắt, không phải `area`
+
+Danh sách chậm nhất của lần xác nhận 12:23 có 4/5 ca thuộc nhóm **"lỗi gõ 1–2 ký tự"** của
+fixture (`phuc lonh`, `vincon`, `pharmacy city`, `higlands cofee`); ca thứ năm là `highlands` ở
+request #1, tức cold start. Kết luận "`area` là nút thắt" ở vòng trước **sai**, nó dựa trên đúng
+một lần đo (`nguyen hue` 1.253 ms).
+
+Lý do: bậc nhanh dùng `to_tsquery` với token tiền tố nên **không phụ thuộc thứ tự từ và khớp từ ở
+bất kỳ vị trí nào** — nó phục vụ được cả nhóm "đảo thứ tự từ" lẫn nhóm "phần tên dài". Tức 30/40
+dòng fixture đi đường nhanh; chỉ 10 ca lỗi gõ rơi xuống đường trigram.
+
+## Thiết kế xếp tầng đã bị số đo bác bỏ
+
+Ý định ban đầu: chạy `<%` trước, chỉ thêm `%` khi thiếu kết quả. `--rank` chạy thật trên
+production và bác bỏ:
+
+```
+Bỏ nhánh % làm MẤT kết quả ở 2 ca · bỏ qua 5 ca không dựng được câu giống production
+cirlce k   full=1  no_%=-   ← MẤT
+winmrt     full=2  no_%=-   ← MẤT
+nguyne hue full=1  no_%=7   (tụt 6 hạng)
+```
+
+Đúng hai ca JSDoc đã cảnh báo. Và cổng theo số dòng còn đóng nhầm: `chi_wordsim` trả **đủ 20 dòng**
+cho `phuc lonh`, `vincon`, `cho rya`, nên `%` sẽ không bao giờ chạy. Với hit@3 đang 38/40 thì không
+còn dư địa cho một ca mất nào.
+
+## Thứ số đo chỉ ra thay thế: tách, không bỏ
+
+| q | `full` (OR gộp) | `no_%` | `chi_%` | tổng hai phần |
+|---|---:|---:|---:|---:|
+| `phuc lonh` | 1.561 ms | 128 | 704 | **832** |
+| `cho rya` | 394 ms | 17 | 215 | **232** |
+| `vincon` | 390 ms | 69 | 165 | **234** |
+| `cirlce k` | 76 ms | 5 | 46 | **51** |
+| `ben thanh` | 3.561 ms | 1.456 | 1.475 | **2.931** |
+
+**Tổng hai phần luôn nhỏ hơn tổng thể** — 832 so với 1.561 là 47 % ít CPU hơn. `OR` buộc MỘT
+Bitmap Heap Scan quét hợp của các bitmap rồi recheck toàn bộ biểu thức OR trên từng dòng
+(`phuc lonh`: 36.285 dòng vào, 20 ra). Tách ra thì mỗi truy vấn chỉ recheck điều kiện của nó và có
+`LIMIT 20` riêng. Chạy song song nên thời gian tường còn là max() chứ không phải tổng.
+
+Hai nhánh cộng lại phủ **đúng** tập dòng của bản gộp, và `sim` giữ nguyên biểu thức ở cả hai chế độ
+nên dòng trùng có cùng điểm và dedup hoạt động đúng. Đây là thay đổi **trung tính về chất lượng**,
+khác hẳn phương án bỏ nhánh.
+
+Dự phóng đường dự phòng: `phuc lonh` 1.561 → ~704 ms, `ben thanh` 3.561 → ~1.475 ms, `cho rya`
+394 → ~215 ms. Truy vấn trên 12 ký tự vốn không có nhánh `%` nên giữ nguyên một lời gọi.
