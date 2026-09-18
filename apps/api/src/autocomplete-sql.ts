@@ -4,7 +4,7 @@ import type { getSql } from './db';
 import type { LatLng } from './params';
 import { poiSourceFilter } from './poi-sources';
 import type { ItemType } from './ranking';
-import { planStages } from './stages';
+import { type FastGate, planStages } from './stages';
 
 type Sql = ReturnType<typeof getSql>;
 
@@ -349,24 +349,46 @@ export async function collectCandidates(
   sql: Sql,
   input: CandidateQueryInput,
   types: Set<ItemType>,
+  fast?: FastGate,
 ): Promise<CandidateRow[]> {
   /** Mọi truy vấn của mọi bậc, kèm bậc của nó. Phát đi hết TRƯỚC khi chờ bất cứ cái nào. */
   const jobs: { stage: 1 | 2 | 3; rows: Promise<CandidateRow[]> }[] = [];
   const add = (stage: 1 | 2 | 3, rows: Promise<CandidateRow[]>) => jobs.push({ stage, rows });
 
-  if (types.has('poi')) add(1, poiCandidates(sql, input));
+  // Các loại KHÔNG phải poi bắn TRƯỚC: chúng chạy y như nhau dù đi đường nào, nên không việc gì
+  // phải chờ bậc nhanh trả lời rồi mới bắt đầu. Bậc nhanh CHỈ thay nhánh poi — trả sớm chỉ với
+  // dòng poi sẽ làm `types=area` trả rỗng.
   if (types.has('street')) add(1, streetCandidates(sql, input));
   if (types.has('area')) add(1, areaCandidates(sql, input));
   const { housenumber, streetNorm } = input.parsed;
   if (types.has('address') && housenumber && streetNorm) {
     add(1, addressCandidates(sql, input, housenumber, streetNorm));
   }
-  for (const stage of planStages({ tsQuery: input.tsQuery, queryKey: input.queryKey })) {
-    if (types.has('poi')) {
-      add(stage, stage === 2 ? poiTokenCandidates(sql, input) : poiKeyCandidates(sql, input));
-    }
-    if (types.has('street')) {
-      add(stage, stage === 2 ? streetTokenCandidates(sql, input) : streetKeyCandidates(sql, input));
+
+  // Bậc nhanh phải CHỜ xong mới biết có cần các nhánh trigram không. Không bắn song song rồi bỏ
+  // kết quả: chi phí nằm ở CPU của origin tính trigram, không ở thời gian chờ của Worker.
+  let fastRows: CandidateRow[] | null = null;
+  if (fast?.tsQuery && types.has('poi')) {
+    const rows = await poiFastCandidates(sql, input, fast.tsQuery);
+    if (rows.length >= fast.limit) fastRows = rows;
+  }
+
+  if (fastRows) add(1, Promise.resolve(fastRows));
+  else if (types.has('poi')) add(1, poiCandidates(sql, input));
+
+  // Bậc 2/3 chỉ để thêm recall khi bậc 1 yếu. Đường nhanh đã đủ `limit` kết quả khớp theo từ thì
+  // chúng chỉ còn là chi phí — đo production 18/09: bậc 3 tốn 247–432 ms với truy vấn ngắn.
+  if (!fastRows) {
+    for (const stage of planStages({ tsQuery: input.tsQuery, queryKey: input.queryKey })) {
+      if (types.has('poi')) {
+        add(stage, stage === 2 ? poiTokenCandidates(sql, input) : poiKeyCandidates(sql, input));
+      }
+      if (types.has('street')) {
+        add(
+          stage,
+          stage === 2 ? streetTokenCandidates(sql, input) : streetKeyCandidates(sql, input),
+        );
+      }
     }
   }
 

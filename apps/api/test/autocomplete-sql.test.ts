@@ -440,3 +440,95 @@ describe('poiFastCandidates — bậc nhanh', () => {
     expect(cauChinh(calls)?.text).not.toContain('ST_DistanceSphere');
   });
 });
+
+describe('collectCandidates — cổng bậc nhanh', () => {
+  const fastRow = (i: number) => ({
+    type: 'poi',
+    id: `p${i}`,
+    name: `POI ${i}`,
+    secondary: '',
+    lat: 10,
+    lng: 106,
+    precision: null,
+    sim: 0.9,
+    prefix: true,
+    pop: 1,
+    d: null,
+  });
+  /** fakeSql trả cùng một mảng cho MỌI truy vấn, nên phải phân biệt theo nội dung câu. */
+  const chiBacNhanh = (soDong: number) => (query: { text: string }) =>
+    query.text.startsWith('WITH') ? Array.from({ length: soDong }, (_, i) => fastRow(i)) : [];
+  const laTrigram = (call: { text: string }) => call.text.includes('<% name_norm');
+
+  it('bậc nhanh đủ limit thì KHÔNG chạy nhánh trigram nào', async () => {
+    const { sql, calls } = fakeSql(chiBacNhanh(10));
+    const rows = await collectCandidates(sql, input, new Set(['poi']), {
+      tsQuery: 'coffee:* & highlands:*',
+      limit: 10,
+    });
+    expect(rows).toHaveLength(10);
+    expect(calls.filter(laTrigram)).toHaveLength(0);
+  });
+
+  it('bậc nhanh thiếu limit thì chạy tiếp đường cũ', async () => {
+    const { sql, calls } = fakeSql(chiBacNhanh(1));
+    await collectCandidates(sql, input, new Set(['poi']), {
+      tsQuery: 'coffee:* & highlands:*',
+      limit: 10,
+    });
+    expect(calls.filter(laTrigram).length).toBeGreaterThan(0);
+  });
+
+  it('không truyền cổng thì hành vi y như trước', async () => {
+    const { sql, calls } = fakeSql([]);
+    await collectCandidates(sql, input, new Set(['poi']));
+    expect(calls.filter((call) => call.text.startsWith('WITH'))).toHaveLength(0);
+    expect(calls.filter(laTrigram).length).toBeGreaterThan(0);
+  });
+
+  it('tsQuery null thì bỏ qua bậc nhanh', async () => {
+    const { sql, calls } = fakeSql([]);
+    await collectCandidates(sql, input, new Set(['poi']), { tsQuery: null, limit: 10 });
+    expect(calls.filter((call) => call.text.startsWith('WITH'))).toHaveLength(0);
+  });
+
+  it('dòng bậc nhanh mang stage 1 nên không bị STAGE_PENALTY', async () => {
+    const { sql } = fakeSql(chiBacNhanh(10));
+    const rows = await collectCandidates(sql, input, new Set(['poi']), {
+      tsQuery: 'coffee:* & highlands:*',
+      limit: 10,
+    });
+    expect(rows.every((row) => row.stage === 1)).toBe(true);
+  });
+
+  /**
+   * Bậc nhanh CHỈ thay nhánh POI. Trả sớm chỉ với dòng POI là làm biến mất street/area khỏi kết
+   * quả — `types=area` sẽ trả rỗng. Lỗi này bắt được lúc soát plan trước khi thực hiện.
+   */
+  it('đi đường nhanh vẫn chạy street và area', async () => {
+    const { sql, calls } = fakeSql(chiBacNhanh(10));
+    await collectCandidates(sql, input, new Set(['poi', 'street', 'area']), {
+      tsQuery: 'coffee:* & highlands:*',
+      limit: 10,
+    });
+    expect(calls.filter((call) => call.text.includes("'street' AS type"))).toHaveLength(1);
+    expect(calls.filter((call) => call.text.includes('admin_alias')).length).toBeGreaterThan(0);
+  });
+
+  it('đi đường nhanh thì KHÔNG chạy bậc 2 và bậc 3', async () => {
+    const { sql, calls } = fakeSql(chiBacNhanh(10));
+    await collectCandidates(
+      sql,
+      { ...input, tsQuery: 'coffee:* & highlands:*', queryKey: 'coffeehighland' },
+      new Set(['poi', 'street']),
+      { tsQuery: 'coffee:* & highlands:*', limit: 10 },
+    );
+    // Bậc 3 là nhánh duy nhất đụng `name_key`; bậc 2 là nhánh duy nhất đụng `name_tsv @@` mà
+    // KHÔNG nằm trong CTE bậc nhanh.
+    expect(calls.filter((call) => call.text.includes('name_key'))).toHaveLength(0);
+    const bac2 = calls.filter(
+      (call) => call.text.includes('name_tsv @@') && !call.text.startsWith('WITH'),
+    );
+    expect(bac2).toHaveLength(0);
+  });
+});
