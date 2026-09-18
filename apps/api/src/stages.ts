@@ -12,12 +12,59 @@ import { foldTelex, looksLikeTelex } from '@mapslibvn/core';
  * Trả null khi chưa đủ 2 token — một token thì bậc 1 đã lo xong, chạy bậc 2 chỉ tốn thời gian.
  */
 export function tsQueryFor(queryNorm: string): string | null {
-  const tokens = queryNorm
+  const tokens = tokensOf(queryNorm);
+  if (tokens.length < 2) return null;
+  return tokens.map((t) => `${t}:*`).join(' & ');
+}
+
+/** Bộ tách token dùng chung cho `tsQueryFor` và `tsQueryAnyToken`. Luật tách xem JSDoc ở trên. */
+function tokensOf(queryNorm: string): string[] {
+  return queryNorm
     .split(/[^a-z0-9]+/)
     .filter(Boolean)
     .filter((t) => t.length >= 2 || /^\d+$/.test(t));
-  if (tokens.length < 2) return null;
+}
+
+/**
+ * Như `tsQueryFor` nhưng nhận CẢ truy vấn một token — dành riêng cho bậc nhanh.
+ *
+ * `tsQueryFor` bỏ truy vấn một token với lý do "một token thì bậc 1 đã lo xong". Đúng với bậc 2
+ * (chạy song song, chỉ thêm recall), SAI với bậc nhanh — nó chạy *thay* bậc 1, mà bậc 1 chính là
+ * thứ tốn 1,3–3,7 s. Đo production 18/09/2026: `cafe:*` cho 119 ms so với 1.905 ms của bậc 1.
+ */
+export function tsQueryAnyToken(queryNorm: string): string | null {
+  const tokens = tokensOf(queryNorm);
+  if (tokens.length === 0) return null;
   return tokens.map((t) => `${t}:*`).join(' & ');
+}
+
+/**
+ * Cổng bậc nhanh (18/09/2026). `undefined` = hành vi trước bậc nhanh.
+ *
+ * Kiểu đặt ở ĐÂY chứ không ở `autocomplete-sql.ts`: file đó đã import `planStages` từ file này,
+ * nên đặt ngược lại là tạo vòng lặp import.
+ */
+export interface FastGate {
+  /** `tsQueryAnyToken(queryNorm)`; null = truy vấn không còn token nào dùng được. */
+  tsQuery: string | null;
+  /** `limit` của request. Bậc nhanh đủ ngần này dòng thì các nhánh trigram KHÔNG chạy. */
+  limit: number;
+}
+
+/**
+ * Có bật cổng bậc nhanh cho request này không, và với tsquery nào.
+ *
+ * Là hàm THUẦN vì test route của `apps/api` chạy trên vitest-pool-workers với DB đóng và không
+ * quan sát được SQL — quyết định phải kiểm được ở đây, route chỉ gọi. Cùng lý do với
+ * `telexFallback` ngay dưới.
+ */
+export function fastGateFor(input: {
+  enabled: boolean;
+  queryNorm: string;
+  limit: number;
+}): FastGate | undefined {
+  if (!input.enabled) return undefined;
+  return { tsQuery: tsQueryAnyToken(input.queryNorm), limit: input.limit };
 }
 
 export type Stage = 2 | 3;

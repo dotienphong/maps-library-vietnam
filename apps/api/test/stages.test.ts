@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { planStages, telexFallback, tsQueryFor } from '../src/stages';
+import { fastGateFor, planStages, telexFallback, tsQueryAnyToken, tsQueryFor } from '../src/stages';
 
 describe('tsQueryFor', () => {
   it('mọi token là tiền tố, AND, bỏ token < 2 ký tự, giữ token toàn số', () => {
@@ -65,5 +65,53 @@ describe('telexFallback (bậc 3b, spec 5.6)', () => {
   it('bật cờ, rỗng, nhưng không phải telex hoặc gập xong không đổi → null', () => {
     expect(telexFallback({ enabled: true, have: 0, queryNorm: 'highlands' })).toBeNull();
     expect(telexFallback({ enabled: true, have: 0, queryNorm: 'circle k' })).toBeNull();
+  });
+});
+
+describe('tsQueryAnyToken', () => {
+  it('nhận truy vấn MỘT token, khác tsQueryFor', () => {
+    expect(tsQueryAnyToken('cafe')).toBe('cafe:*');
+    expect(tsQueryFor('cafe')).toBeNull();
+  });
+
+  it('nhiều token nối bằng AND, mọi token là tiền tố', () => {
+    expect(tsQueryAnyToken('ben thanh')).toBe('ben:* & thanh:*');
+  });
+
+  it('bỏ token 1 ký tự nhưng GIỮ token toàn số', () => {
+    expect(tsQueryAnyToken('a cafe')).toBe('cafe:*');
+    expect(tsQueryAnyToken('88/9 nguyen')).toBe('88:* & 9:* & nguyen:*');
+  });
+
+  it('không còn token nào thì trả null', () => {
+    expect(tsQueryAnyToken('a')).toBeNull();
+    expect(tsQueryAnyToken('')).toBeNull();
+  });
+});
+
+describe('fastGateFor', () => {
+  it('cờ khác "1" → undefined, tức giữ nguyên hành vi cũ', () => {
+    expect(fastGateFor({ enabled: false, queryNorm: 'ben thanh', limit: 10 })).toBeUndefined();
+  });
+
+  it('cờ bật → cổng mang tsquery mọi-token và limit của request', () => {
+    expect(fastGateFor({ enabled: true, queryNorm: 'ben thanh', limit: 7 })).toEqual({
+      tsQuery: 'ben:* & thanh:*',
+      limit: 7,
+    });
+  });
+
+  it('truy vấn một token vẫn có cổng', () => {
+    expect(fastGateFor({ enabled: true, queryNorm: 'cafe', limit: 10 })).toEqual({
+      tsQuery: 'cafe:*',
+      limit: 10,
+    });
+  });
+
+  it('không còn token nào → tsQuery null, collectCandidates sẽ bỏ qua bậc nhanh', () => {
+    expect(fastGateFor({ enabled: true, queryNorm: 'a', limit: 10 })).toEqual({
+      tsQuery: null,
+      limit: 10,
+    });
   });
 });
