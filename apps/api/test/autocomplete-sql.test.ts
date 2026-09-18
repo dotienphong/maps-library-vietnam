@@ -2,7 +2,9 @@ import { describe, expect, it } from 'vitest';
 import {
   type CandidateQueryInput,
   collectCandidates,
+  FAST_CANDIDATE_POOL,
   poiCandidates,
+  poiFastCandidates,
   poiKeyCandidates,
   poiTokenCandidates,
   streetCandidates,
@@ -371,5 +373,70 @@ describe('autocomplete-sql — secondary dùng hành chính hiện hành suy t�
       expect(query?.text).toContain(SECONDARY);
       expect(query?.text).not.toContain("concat_ws(', ', street, ward, province)");
     }
+  });
+});
+
+const fastInput: CandidateQueryInput = {
+  queryNorm: 'ben thanh',
+  queryCore: 'ben thanh',
+  prefixPattern: 'ben thanh%',
+  near: { lat: 10.776, lng: 106.7 },
+  parsed: { alleyChain: [], confidence: 0 },
+  sources: ['osm', 'fsq'],
+  queryAlias: 'ben thanh',
+  tsQuery: 'ben:* & thanh:*',
+  queryKey: 'benthan',
+};
+
+describe('poiFastCandidates — bậc nhanh', () => {
+  /** `poiSourceFilter` dựng một fragment con trước, nên `calls[0]` KHÔNG phải câu chính. */
+  const cauChinh = (calls: { text: string; params: unknown[] }[]) =>
+    calls.find((call) => call.text.startsWith('WITH'));
+
+  /**
+   * Mấu chốt của cả bậc nhanh: CẮT trước, tính `sim` sau. Nếu `sim` lọt vào ORDER BY của bước quét
+   * thì Postgres tính 4 hàm trigram cho mọi dòng khớp (18.269–29.107 dòng đo trên production) và
+   * bậc nhanh không còn nhanh. Test này khoá đúng thứ tự đó.
+   */
+  it('cắt theo popularity TRƯỚC rồi mới tính sim', async () => {
+    const { sql, calls } = fakeSql([]);
+    await poiFastCandidates(sql, fastInput, 'ben:* & thanh:*');
+    const text = cauChinh(calls)?.text ?? '';
+    const viTriCat = text.indexOf('ORDER BY coalesce(popularity, 0) DESC LIMIT $');
+    expect(viTriCat).toBeGreaterThan(-1);
+    expect(text.indexOf('word_similarity')).toBeGreaterThan(viTriCat);
+  });
+
+  it('lọc bằng name_tsv, WHERE không có toán tử trigram lẫn LIKE', async () => {
+    const { sql, calls } = fakeSql([]);
+    await poiFastCandidates(sql, fastInput, 'ben:* & thanh:*');
+    const text = cauChinh(calls)?.text ?? '';
+    expect(text).toContain("name_tsv @@ to_tsquery('simple', $");
+    const where = text.slice(text.indexOf('WHERE'), text.indexOf('ORDER BY'));
+    expect(where).not.toContain('<%');
+    expect(where).not.toContain('LIKE');
+  });
+
+  it('giữ nguyên bộ lọc trạng thái và nguồn như bậc 1', async () => {
+    const { sql, calls } = fakeSql([]);
+    await poiFastCandidates(sql, fastInput, 'ben:* & thanh:*');
+    const text = cauChinh(calls)?.text ?? '';
+    expect(text).toContain("status = 'active'");
+    expect(text).toContain('p.primary_source = ANY(');
+    expect(text).toContain("p.created_by = 'user'");
+  });
+
+  it('gửi tsQuery và kích thước bể ứng viên làm tham số', async () => {
+    const { sql, calls } = fakeSql([]);
+    await poiFastCandidates(sql, fastInput, 'ben:* & thanh:*');
+    expect(cauChinh(calls)?.params).toContain('ben:* & thanh:*');
+    expect(cauChinh(calls)?.params).toContain(FAST_CANDIDATE_POOL);
+  });
+
+  it('không có near thì d là NULL, không gọi ST_DistanceSphere', async () => {
+    const { sql, calls } = fakeSql([]);
+    await poiFastCandidates(sql, { ...fastInput, near: null }, 'ben:*');
+    expect(cauChinh(calls)?.text).toContain('NULL::float8 AS d');
+    expect(cauChinh(calls)?.text).not.toContain('ST_DistanceSphere');
   });
 });

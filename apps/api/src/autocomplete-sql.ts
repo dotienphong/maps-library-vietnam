@@ -162,6 +162,66 @@ export function poiCandidates(sql: Sql, input: CandidateQueryInput) {
     LIMIT 20`;
 }
 
+/**
+ * Số ứng viên lấy ra trước khi tính `sim`.
+ *
+ * 200 chứ không phải `limit`: `sim` mới quyết định thứ hạng cuối, nên cắt đúng 20 theo
+ * `popularity` sẽ vứt mất POI khớp tốt mà ít phổ biến. 200 đủ rộng để xếp hạng còn nghĩa, đủ hẹp
+ * để 4 hàm trigram chạy trên nó là miễn phí.
+ *
+ * Con số này chọn theo lý lẽ, CHƯA theo số đo. Nghi ngờ đầu tiên khi hit@3 tụt: `popularity` là
+ * `real` NULL-able nên nhiều dòng hoà 0 và thứ tự trong nhóm hoà là tuỳ ý.
+ */
+export const FAST_CANDIDATE_POOL = 200;
+
+/**
+ * Bậc nhanh (18/09/2026): khớp **tiền tố theo TỪ** bằng `name_tsv`, cắt bể ứng viên theo
+ * `popularity`, rồi mới tính `sim` trên bể đó.
+ *
+ * Vì sao `name_tsv` chứ không phải `name_norm LIKE 'q%'`: tên POI tiếng Việt hầu hết mở đầu bằng
+ * từ loại (Chợ, Trường, Bệnh viện, Quán), nên khớp tiền tố của CẢ CHUỖI là hỏng recall —
+ * `ben thanh` sẽ không tìm ra "Chợ Bến Thành". `to_tsquery('simple','ben:* & thanh:*')` khớp mọi
+ * tên có một từ bắt đầu bằng `ben` VÀ một từ bắt đầu bằng `thanh`, không kể vị trí: đúng cái `<%`
+ * đang lo, mà không phải tính trigram lúc quét.
+ *
+ * Vì sao nhanh (đo production 18/09, poi active 376.468): `qu` vẫn quét đúng 29.107 dòng như câu
+ * cũ nhưng tốn 183 ms thay vì 1.361 ms. Chi phí nằm ở việc tính 4 hàm trigram cho MỌI dòng qua
+ * được WHERE — vì `sim` nằm trong `ORDER BY` — chứ không ở việc quét chỉ số (149 ms) hay đọc đĩa
+ * (0 lần đọc). Cắt 200 dòng trước là bỏ hẳn khoản đó.
+ *
+ * KHÔNG trả `matched_alt`: nó cần `unnest` hai mảng song song, mà bậc nhanh không khớp theo
+ * `name_alt_norm` nên không có tên thay thế nào để khoe. Đường dự phòng vẫn trả như cũ.
+ */
+export function poiFastCandidates(sql: Sql, input: CandidateQueryInput, tsQuery: string) {
+  const { queryNorm, near, sources } = input;
+  return sql<CandidateRow[]>`
+    WITH ung_vien AS (
+      SELECT id, name, street, admin_ward, ward, admin_province, province, geom,
+             name_norm, name_alt_norm, popularity
+      FROM poi p
+      WHERE status = 'active'
+        AND ${poiSourceFilter(sql, sources)}
+        AND name_tsv @@ to_tsquery('simple', ${tsQuery})
+      ORDER BY coalesce(popularity, 0) DESC
+      LIMIT ${FAST_CANDIDATE_POOL}
+    )
+    SELECT 'poi' AS type, id, name,
+      ${poiSecondary(sql)},
+      ST_Y(geom) AS lat, ST_X(geom) AS lng, NULL AS precision,
+      greatest(
+        word_similarity(${queryNorm}, name_norm),
+        similarity(name_norm, ${queryNorm}),
+        word_similarity(${queryNorm}, coalesce(name_alt_norm, ''))
+      ) AS sim,
+      starts_with(name_norm, ${queryNorm}) AS prefix,
+      coalesce(popularity, 0) AS pop,
+      ${distance(sql, near, 'geom')} AS d,
+      NULL AS matched_alt
+    FROM ung_vien
+    ORDER BY sim DESC, pop DESC
+    LIMIT 20`;
+}
+
 export function streetCandidates(sql: Sql, input: CandidateQueryInput) {
   const { queryNorm, queryAlias, prefixPattern, near } = input;
   const simNorm = useSimilarityBranch(queryNorm) ? sql`OR name_norm % ${queryNorm}` : sql``;
