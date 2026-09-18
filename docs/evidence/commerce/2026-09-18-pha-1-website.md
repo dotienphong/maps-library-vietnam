@@ -9,7 +9,7 @@ Ngày chạy: 18/09/2026. 14 task, 14 commit.
 | Lệnh | Kết quả |
 |---|---|
 | `pnpm lint` | 713 file, sạch |
-| `npx turbo run typecheck --force` | **17/17 task, 0 cached**, 17,6 s |
+| `pnpm typecheck` (gồm `tsc -p tsconfig.scripts.json` rồi mới tới turbo) | **17/17 task**, sạch |
 | `npx vitest run apps/site/src` | 5 file / **35 test** xanh |
 | `pnpm test` (gốc, nay gồm cả build site) | 193 file / **1.857 test** xanh, 5 skip |
 | `pnpm --filter @mapslibvn/api test` | 62 file / **480 test** xanh |
@@ -51,6 +51,16 @@ lại điều này.
 - [x] Mọi link nội bộ trên bảy trang trả 200; `/khong-co-that/` trả 404 và trang 404 dùng được.
 - [x] Điều hướng bấm được ở khung 390 px; ba tab mã nhúng đổi được bằng bàn phím.
 - [x] Công tắc sáng tối nhớ lựa chọn qua lần tải lại.
+
+## 4b. Một lần CI đỏ sau khi push, đã sửa
+
+Lần push đầu (`cd2ff8d`) làm **CI đỏ** dù mọi cổng ở máy xanh. Nguyên nhân: plan ghi chạy
+`npx turbo run typecheck --force`, nhưng `pnpm typecheck` thật sự chạy **`tsc -p
+tsconfig.scripts.json` TRƯỚC** turbo, và bước đó bật `checkJs` cho `scripts/**/*.mjs`. Tám tham số
+trong `scripts/site-images.mjs` chưa có JSDoc nên tsc báo `TS7031`/`TS7006`.
+
+Bài học: **chạy đúng lệnh mà CI chạy**, đừng chạy một phần của nó. Đã thêm JSDoc và đổi bảng cổng
+ở mục 1 cho khớp. Năm workflow còn lại đều xanh ngay lần đầu, gồm cả `Deploy Site`.
 
 ## 5. Việc tay của PHONG, theo thứ tự
 
