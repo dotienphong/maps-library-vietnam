@@ -13,7 +13,7 @@ Ngày chạy: 18/09/2026. 14 task, 14 commit.
 | `npx vitest run apps/site/src` | 5 file / **35 test** xanh |
 | `pnpm test` (gốc, nay gồm cả build site) | 193 file / **1.857 test** xanh, 5 skip |
 | `pnpm --filter @mapslibvn/api test` | 62 file / **480 test** xanh |
-| `pnpm test:site-e2e` | **20/20** xanh, 7,4 s |
+| `pnpm test:site-e2e` | **20/20** xanh, 7,4 s (chạy lại sau khi bật ba bài: vẫn 20/20) |
 | `pnpm test:admin-e2e` | **17/17** xanh, 1,1 phút |
 
 ## 2. Hiệu năng đo trên bản build
@@ -38,8 +38,7 @@ lại điều này.
 - [x] `og:image` có mặt và **ảnh trỏ tới thật sự tồn tại** (bài e2e riêng).
 - [x] Mọi khối JSON-LD parse được, có `@context` và `@type`: Organization ở mọi trang, cộng
       SoftwareApplication, FAQPage, BreadcrumbList, Article tuỳ trang.
-- [x] `robots.txt` trỏ sitemap tuyệt đối; sitemap có đúng **7 trang**, không có `/404`, không có
-      bài viết chưa duyệt.
+- [x] `robots.txt` trỏ sitemap tuyệt đối; sitemap có **10 URL** (7 trang + 3 bài viết), không có `/404`.
 - [x] Ảnh AVIF + WebP ba cỡ qua `<Picture>`, `fetchpriority="high"` cho ảnh hero.
 
 ## 4. Những lời hứa có bài test khoá lại
@@ -57,9 +56,9 @@ lại điều này.
 
 1. **Tạo project Cloudflare Pages tên `mapslibvn-site`.** Chưa có thì workflow `Deploy Site` đỏ
    với "project not found"; tạo xong chạy lại workflow là được.
-2. **Đọc và duyệt ba bài viết** trong `apps/site/src/content/bai-viet/`. Duyệt bài nào thì đổi
-   `daDuyet: false` thành `true` trong frontmatter bài đó; chưa duyệt thì bài không lên web và
-   không vào sitemap.
+2. **Đọc lại ba bài viết** trong `apps/site/src/content/bai-viet/`. PHONG chọn 18/09 cho đăng
+   luôn cả ba rồi đọc trên web, nên `daDuyet: true` cho cả ba và sitemap có 10 URL. Sửa nội dung
+   sau vẫn được; tắt một bài thì đổi `daDuyet` về `false`.
 3. **Xác thực Google Search Console và Bing Webmaster** cho `mapslibvn-site.pages.dev`, gửi
    `sitemap-index.xml`, rồi ghi ngày kiểm lại chỉ mục vào đây.
 4. **Chạy Lighthouse mobile** trên bản deploy thật cho trang chủ và trang bảng giá, dán bốn điểm
@@ -74,8 +73,8 @@ Ngưỡng spec: Performance ≥ 90, SEO 100, Accessibility ≥ 95, LCP ≤ 2,5 s
 
 ## 6. Còn nợ, ghi rõ chứ không lờ đi
 
-- Trang `/bai-viet/` hiện **rỗng** trên bản deploy vì cả ba bài chờ duyệt. Đúng thiết kế, nhưng là
-  một trang trống với người vào xem cho tới khi PHONG duyệt.
+- **Ba bài viết lên web trước khi PHONG đọc**, theo lựa chọn của PHONG ngày 18/09. Rủi ro: Google
+  có thể lập chỉ mục bản chưa duyệt; sửa sau thì phải chờ lập chỉ mục lại.
 - Chưa đo Lighthouse trên bản deploy, nên bốn ngưỡng hiệu năng của spec **chưa được chứng minh**;
   số ở mục 2 chỉ nói về khối lượng tải, không nói về điểm số.
 - Tên miền vẫn là `pages.dev`. PHONG đã biết và chấp nhận SEO tính lại khi đổi; cách đổi ghi ở

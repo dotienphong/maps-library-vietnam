@@ -3,7 +3,7 @@ title: Tự dựng bản đồ Việt Nam từ dữ liệu mở
 description: Một hệ bản đồ gồm bốn mảnh rời nhau, và chỉ một trong số đó cần máy chủ. Bài này nói rõ cần gì, tốn gì, và khi nào tự dựng là quyết định sai.
 publishedAt: '2026-09-18'
 tags: ['dữ liệu mở', 'tự host', 'hạ tầng']
-daDuyet: false
+daDuyet: true
 ---
 
 "Tự dựng bản đồ" nghe như một dự án nhiều tháng. Thực ra phần khó không nằm ở chỗ dựng, mà ở chỗ

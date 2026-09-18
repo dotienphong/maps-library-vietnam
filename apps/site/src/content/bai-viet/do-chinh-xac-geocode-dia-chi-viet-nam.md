@@ -3,7 +3,7 @@ title: Độ chính xác geocode cho địa chỉ Việt Nam
 description: Trả về một toạ độ trần là nói dối người dùng. Bài này giải thích vì sao địa chỉ Việt Nam khó, và cách đo chất lượng geocode của bất kỳ nhà cung cấp nào.
 publishedAt: '2026-09-18'
 tags: ['geocode', 'chất lượng dữ liệu', 'địa chỉ']
-daDuyet: false
+daDuyet: true
 ---
 
 Chuyển một dòng địa chỉ thành cặp toạ độ nghe như bài toán đã giải xong. Với địa chỉ Việt Nam thì

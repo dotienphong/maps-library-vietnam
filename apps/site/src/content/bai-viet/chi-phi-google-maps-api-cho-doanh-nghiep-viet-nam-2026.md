@@ -3,7 +3,7 @@ title: Chi phí Google Maps API cho doanh nghiệp Việt Nam
 description: Google tính tiền theo từng loại yêu cầu chứ không theo lần mở bản đồ. Bài này bóc tách ba khoản hay làm hoá đơn phình và bốn cách giảm chi phí ngay.
 publishedAt: '2026-09-18'
 tags: ['chi phí', 'Google Maps', 'so sánh']
-daDuyet: false
+daDuyet: true
 ---
 
 Hoá đơn Google Maps Platform hay gây bất ngờ không phải vì đơn giá cao, mà vì cách tính khác với
