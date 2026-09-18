@@ -1,6 +1,4 @@
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { Card, CardMuted, CardTitle } from '@/components/ui/card';
+import { Badge, Button, Card, CardMuted, CardTitle } from '@mapslibvn/ui';
 import type { Tenant } from './api';
 
 /** Ngày tuyệt đối, không phải "3 ngày trước": tenant sống nhiều năm, ngày tạo là mốc tra cứu. */

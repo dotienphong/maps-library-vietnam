@@ -55,6 +55,9 @@ export default defineConfig(async ({ command }) => {
     plugins: [react(), tailwindcss(), xuatWorkerMaplibre('dist/admin')],
     resolve: {
       alias: { '@': fileURLToPath(new URL('./src', import.meta.url)) },
+      // @mapslibvn/ui là source trong workspace; bảo đảm nó và admin dùng CÙNG một bản React,
+      // nếu không hook trong component dùng chung sẽ ném "Invalid hook call".
+      dedupe: ['react', 'react-dom'],
     },
     ...(devProxy ? { server: { proxy: devProxy } } : {}),
     build: { outDir: 'dist/admin', emptyOutDir: true },

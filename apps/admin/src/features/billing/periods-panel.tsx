@@ -1,7 +1,4 @@
-import { RecordView } from '@/components/data-view';
-import { EmptyState } from '@/components/states';
-import { Badge } from '@/components/ui/badge';
-import { Card, CardMuted, CardTitle } from '@/components/ui/card';
+import { Badge, Card, CardMuted, CardTitle, EmptyState, RecordView } from '@mapslibvn/ui';
 import type { PeriodHistory, PeriodSummary } from './api';
 import { ngayVn, so } from './usage-panel';
 

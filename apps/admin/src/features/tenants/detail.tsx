@@ -1,9 +1,13 @@
+import {
+  Badge,
+  Button,
+  EmptyState,
+  ErrorState,
+  LoadingSkeleton,
+  useDelayedAction,
+} from '@mapslibvn/ui';
 import * as Dialog from '@radix-ui/react-dialog';
 import { useState } from 'react';
-import { useDelayedAction } from '@/components/delayed-action';
-import { EmptyState, ErrorState, LoadingSkeleton } from '@/components/states';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
 import type { ApiKey } from './api';
 import { useSetKeyRevoked, useSetQuotaMode, useTenantDetail } from './hooks';
 import { KeyRow } from './key-row';

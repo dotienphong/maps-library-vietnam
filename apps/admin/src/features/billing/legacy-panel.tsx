@@ -1,4 +1,4 @@
-import { EmptyState } from '@/components/states';
+import { EmptyState } from '@mapslibvn/ui';
 import type { LegacyUsage } from './api';
 import { ngayVn, so } from './usage-panel';
 

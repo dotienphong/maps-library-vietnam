@@ -1,39 +1,15 @@
 @import "tailwindcss";
+/* Token màu và bo góc dùng chung (packages/ui). Đường dẫn tương đối chứ không phải
+   "@mapslibvn/ui/tokens.css" để không phụ thuộc cách resolver @import của Tailwind đọc `exports`. */
+@import "../../../packages/ui/src/tokens.css";
+/* Tailwind v4 chỉ quét mã trong thư mục app và bỏ qua node_modules, mà component của @mapslibvn/ui
+   tới đây qua symlink trong node_modules → lớp dùng trong đó KHÔNG được sinh CSS nếu thiếu dòng
+   này. Hậu quả là nút mất kiểu mà không có lỗi nào; bước kiểm CSS build ở plan pha 0 bắt việc đó. */
+@source "../../../packages/ui/src";
 
 /* Tailwind v4 mặc định dark theo prefers-color-scheme. Trang này cho phép người dùng chọn tay,
    nên buộc biến thể `dark` bám vào class trên <html>. */
 @custom-variant dark (&:where(.dark, .dark *));
-
-@theme {
-  /* Xanh bản đồ — cùng màu style bản đồ đang dùng, xem packages/style */
-  --color-brand-50: #eef3fb;
-  --color-brand-100: #e8effa;
-  --color-brand-500: #2f5da3;
-  --color-brand-600: #24497f;
-  --color-brand-700: #1b3a6b;
-  --color-brand-800: #152c52;
-  --color-brand-900: #0f1f3a;
-
-  --radius-card: 12px;
-  --radius-btn: 9px;
-  --radius-sheet: 16px;
-}
-
-:root {
-  --bg: #f7f8fa;
-  --surface: #ffffff;
-  --border: #e3e6ec;
-  --text: #101828;
-  --text-muted: #667085;
-}
-
-.dark {
-  --bg: #0d1117;
-  --surface: #161b22;
-  --border: #2a313c;
-  --text: #e6edf3;
-  --text-muted: #9198a1;
-}
 
 body {
   background: var(--bg);

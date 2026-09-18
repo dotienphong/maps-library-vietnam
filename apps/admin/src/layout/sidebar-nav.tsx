@@ -1,7 +1,6 @@
+import { Badge, cn } from '@mapslibvn/ui';
 import { NavLink } from 'react-router';
-import { Badge } from '@/components/ui/badge';
 import { can, type Me, type Permission } from '@/lib/permissions';
-import { cn } from '@/lib/utils';
 
 interface NavItem {
   to: string;

@@ -1,9 +1,13 @@
+import {
+  Badge,
+  Button,
+  EmptyState,
+  ErrorState,
+  LoadingSkeleton,
+  useDelayedAction,
+} from '@mapslibvn/ui';
 import { useState } from 'react';
 import { useSearchParams } from 'react-router';
-import { useDelayedAction } from '@/components/delayed-action';
-import { EmptyState, ErrorState, LoadingSkeleton } from '@/components/states';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
 import { useSetQuotaMode, useTenantDetail, useTenantList } from '@/features/tenants/hooks';
 import { MODE_VI } from '@/features/tenants/tenant-card';
 import type { Command } from './api';

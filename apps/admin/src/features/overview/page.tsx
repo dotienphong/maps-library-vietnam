@@ -1,6 +1,5 @@
+import { Badge, Card, CardTitle } from '@mapslibvn/ui';
 import { Link } from 'react-router';
-import { Badge } from '@/components/ui/badge';
-import { Card, CardTitle } from '@/components/ui/card';
 import { gioNgay } from '@/features/audit/page';
 import { usePendingCount } from '@/features/edits/hooks';
 import { useHealth, useMetrics } from '@/features/health/hooks';

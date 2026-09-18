@@ -1,4 +1,4 @@
-import { Button } from '@/components/ui/button';
+import { Button } from '@mapslibvn/ui';
 import type { CommandReceipt } from './api';
 
 export type KetQuaLenh =

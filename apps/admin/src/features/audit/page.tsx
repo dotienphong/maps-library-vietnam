@@ -1,8 +1,5 @@
+import { Badge, Button, EmptyState, ErrorState, LoadingSkeleton, RecordView } from '@mapslibvn/ui';
 import { useState } from 'react';
-import { RecordView } from '@/components/data-view';
-import { EmptyState, ErrorState, LoadingSkeleton } from '@/components/states';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
 import { type AuditEntry, type AuditFilter, LOAI_VIEC } from './api';
 import { useAuditList } from './hooks';
 import { denNgay, tuNgay } from './khoang-ngay';

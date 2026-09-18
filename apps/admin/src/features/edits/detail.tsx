@@ -1,7 +1,5 @@
+import { Badge, Button, ErrorState, LoadingSkeleton } from '@mapslibvn/ui';
 import * as Dialog from '@radix-ui/react-dialog';
-import { ErrorState, LoadingSkeleton } from '@/components/states';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
 import { editTitle, KIND_VI, relativeTime } from './edit-card';
 import { EditMap } from './edit-map';
 import { FieldDiff } from './field-diff';

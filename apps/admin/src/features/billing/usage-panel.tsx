@@ -1,4 +1,4 @@
-import { Badge } from '@/components/ui/badge';
+import { Badge } from '@mapslibvn/ui';
 import type { GroupUsage, MissingAcks, UsageSnapshot } from './api';
 
 export type Muc = 'khong-co' | 'ok' | 'sap-het' | 'het';

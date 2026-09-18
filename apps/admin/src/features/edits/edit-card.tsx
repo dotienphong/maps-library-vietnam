@@ -1,6 +1,4 @@
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { Card, CardTitle } from '@/components/ui/card';
+import { Badge, Button, Card, CardTitle } from '@mapslibvn/ui';
 import type { AdminEdit, EditKind } from './api';
 
 export const KIND_VI: Record<EditKind, string> = {

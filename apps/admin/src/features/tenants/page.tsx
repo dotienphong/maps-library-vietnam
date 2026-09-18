@@ -1,8 +1,5 @@
+import { Badge, Button, EmptyState, ErrorState, LoadingSkeleton, RecordView } from '@mapslibvn/ui';
 import { useState } from 'react';
-import { RecordView } from '@/components/data-view';
-import { EmptyState, ErrorState, LoadingSkeleton } from '@/components/states';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
 import { TenantDetailPanel } from './detail';
 import { useTenantList } from './hooks';
 import { MODE_VI, TenantCard, tenantDate } from './tenant-card';

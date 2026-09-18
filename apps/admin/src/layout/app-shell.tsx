@@ -1,6 +1,7 @@
+import { DelayedActionProvider } from '@mapslibvn/ui';
 import { Outlet, useLocation } from 'react-router';
-import { DelayedActionProvider } from '@/components/delayed-action';
 import { usePendingCount } from '@/features/edits/hooks';
+import { setReloadGuard } from '@/lib/fetcher';
 import { useMe } from '@/lib/permissions';
 import { Drawer } from './drawer';
 import { SidebarNav } from './sidebar-nav';
@@ -23,7 +24,8 @@ export function AppShell() {
   const title = TITLES[pathname] ?? 'Admin Page';
 
   return (
-    <DelayedActionProvider>
+    // setReloadGuard là hàm module (ổn định), đúng yêu cầu của prop.
+    <DelayedActionProvider reloadGuard={setReloadGuard}>
       <Topbar
         title={title}
         email={me?.email}

@@ -1,5 +1,4 @@
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
+import { Badge, Button } from '@mapslibvn/ui';
 import type { ApiKey } from './api';
 import { tenantDate } from './tenant-card';
 

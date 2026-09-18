@@ -1,10 +1,14 @@
+import {
+  Badge,
+  Button,
+  EmptyState,
+  ErrorState,
+  LoadingSkeleton,
+  RecordView,
+  useDelayedAction,
+} from '@mapslibvn/ui';
 import { useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
-import { RecordView } from '@/components/data-view';
-import { useDelayedAction } from '@/components/delayed-action';
-import { EmptyState, ErrorState, LoadingSkeleton } from '@/components/states';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
 import type { EditKind, EditListPage, EditStatus } from './api';
 import { EditDetailPanel } from './detail';
 import { EditCard, editTitle, KIND_VI, relativeTime } from './edit-card';

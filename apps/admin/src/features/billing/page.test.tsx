@@ -1,10 +1,11 @@
 // @vitest-environment jsdom
+
+import { DelayedActionProvider } from '@mapslibvn/ui';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { act, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { DelayedActionProvider } from '@/components/delayed-action';
 import { BillingPage } from './page';
 
 const TENANT = '00000000-0000-4000-8000-0000000000cc';

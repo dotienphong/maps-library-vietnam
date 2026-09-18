@@ -1,6 +1,6 @@
+import { Button } from '@mapslibvn/ui';
 import * as Dialog from '@radix-ui/react-dialog';
 import { type FormEvent, useState } from 'react';
-import { Button } from '@/components/ui/button';
 import type { Command, PaidTier, PlanCatalog, QuotaGroup, UsageSnapshot } from './api';
 import {
   dungLenh,

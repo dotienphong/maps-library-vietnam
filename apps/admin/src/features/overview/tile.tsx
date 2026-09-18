@@ -1,7 +1,6 @@
+import { Card, CardMuted, CardTitle, LoadingSkeleton } from '@mapslibvn/ui';
 import type { ReactNode } from 'react';
 import { Link } from 'react-router';
-import { LoadingSkeleton } from '@/components/states';
-import { Card, CardMuted, CardTitle } from '@/components/ui/card';
 
 export interface OProps {
   ten: string;

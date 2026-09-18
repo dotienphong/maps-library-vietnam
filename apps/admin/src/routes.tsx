@@ -1,6 +1,6 @@
+import { LoadingSkeleton } from '@mapslibvn/ui';
 import { lazy, type ReactNode, Suspense } from 'react';
 import { createBrowserRouter } from 'react-router';
-import { LoadingSkeleton } from '@/components/states';
 import { AppShell } from '@/layout/app-shell';
 import { NotFound } from '@/layout/not-found';
 
