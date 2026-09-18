@@ -35,17 +35,29 @@ ui 6 file / 26 test (button 3, card 4, states 6, record-view 3, delayed-action 5
       (chứng minh `delayed-action` sau khi thêm prop `reloadGuard` vẫn đúng) và bài
       "email ngoài BILLING_ADMIN_EMAILS gọi thẳng API billing → 403".
 
-## 3. Sau deploy (PHONG push; `Deploy API` tự chạy)
+## 3. Sau deploy — đã kiểm 18/09/2026
 
-Không có migration; máy chủ giữ `0019`. `check:migration` chỉ so bản mới nhất trong repo với
-`/healthz/db`, nên không chặn.
+Push `e99bc5c`; bốn workflow xanh: **Deploy API 4m16s**, CI 2m42s, Routing tests 53s,
+Deploy Docs 53s. Không có migration; máy chủ giữ `0019`.
 
-- [ ] `curl -sI https://api.ai-solutions.io.vn/v1/catalog | grep -i cache-control` → `public, max-age=3600`
-- [ ] `curl -s https://api.ai-solutions.io.vn/v1/catalog | head -c 300` thấy `"priceVnd":650000`
-- [ ] Mở `https://api.ai-solutions.io.vn/admin/` trên điện thoại: nút, thẻ, huy hiệu còn đúng kiểu
-      ở cả bản sáng và tối; toast đếm ngược 5 giây khi thu hồi một khoá thử rồi Huỷ.
-- [ ] `/healthz` và `/v1/autocomplete?q=cafe` (khoá thử) vẫn 200 — bundle mới không hỏng gì cũ.
+Máy kiểm được:
 
-**Rủi ro duy nhất lộ ra ở production mà test ở máy không phủ hết:** Tailwind sinh CSS cho
-component của `packages/ui`. Mục 2 đã kiểm trên CSS build thật, nhưng phép kiểm bằng mắt ở ô thứ
-ba vẫn là bằng chứng cuối cùng.
+- [x] `curl -sI …/v1/catalog` → `HTTP/2 200`, `cache-control: public, max-age=3600`
+- [x] `curl -s …/v1/catalog` → `"currency":"VND"`, `"usdReferenceRate":26000`,
+      `"periodMonths":[1,3,6,12]`, `"priceVnd":650000` ở bậc starter
+- [x] `curl -s …/healthz` → `{"ok":true,"environment":"production"}`
+- [x] `/v1/admin/plan-catalog` không cookie → **302** về màn đăng nhập Cloudflare Access
+      (đúng thiết kế: Access đứng trước Worker, không phải 401 của Worker)
+
+**Máy KHÔNG kiểm được, PHONG phải làm bằng mắt:** `/admin/*` nằm sau Access nên
+`curl …/admin/assets/index-YLljmFIe.css` trả 302 143 byte, không phải tệp CSS. Phép kiểm
+Tailwind sinh đủ lớp cho component trong `packages/ui` vì vậy chỉ khép lại được trong trình duyệt
+đã đăng nhập:
+
+- [ ] Mở `https://api.ai-solutions.io.vn/admin/` trên điện thoại: nút, thẻ, huy hiệu đúng kiểu ở
+      cả bản sáng và tối (nút xanh `#1b3a6b` cao 44 px, thẻ bo 12 px, khung xương lúc tải nhấp nháy).
+- [ ] Thu hồi một khoá thử rồi bấm Huỷ trong 5 giây: toast đếm ngược hiện đúng, khoá không bị thu hồi.
+- [ ] `/v1/autocomplete?q=cafe` bằng khoá thử vẫn 200.
+
+Ở máy, cùng tệp CSS đó đã được kiểm đầy đủ (mục 2), nên rủi ro còn lại chỉ là bản deploy khác bản
+build ở máy — điều `Deploy API` không có cách nào gây ra vì nó build lại từ cùng commit.
