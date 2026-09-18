@@ -271,3 +271,74 @@ nó ở **27 ms / 429 dòng** cho `ben thanh`. Hai việc phải kiểm trước
    bước quét là vẫn tính 4 hàm trigram cho mọi dòng khớp, tức không nhanh hơn gì.
 
 Hai biến thể `nhanh_tsv` và `nhanh_like` trong `explain-autocomplete.mjs` đo đúng hai điều đó.
+
+---
+
+# Nghiệm thu bậc nhanh trên production — TRƯỢT, đã tắt cờ (18/09/2026)
+
+Deploy `f26b46b` lúc 02:54 UTC, cờ `AUTOCOMPLETE_FAST` mặc định tắt. Cả ba lần đo dùng **cùng**
+`--near 10.776,106.700` và cùng fixture 40 truy vấn, `--count 40` (toàn lạnh), cách nhau > 10 phút
+để cache hết hạn.
+
+Đổi `--near` giữa hai lần đo là SAI dù plan có viết vậy: `near` đi vào `proxScore` của `rankScore`,
+nên đổi nó là đổi luôn thứ hạng, và hit@3 trước/sau không còn so được. Chờ hết cache là cách đúng.
+
+| | baseline (trước deploy) | sau deploy, cờ TẮT | cờ BẬT |
+|---|---:|---:|---:|
+| hit@3 | 38/40 | 38/40 | **37/40** |
+| p50 | 996 ms | 841 ms | 764 ms |
+| p95 | 3.249 ms | 3.227 ms | **1.575 ms** |
+| p99 | 4.663 ms | 4.143 ms | 2.486 ms |
+
+Cột giữa chứng minh deploy không đổi hành vi — điều kiện cần trước khi bật cờ.
+
+## Kết quả: trượt cả ba tiêu chí
+
+- hit@3 ≥ 38/40 → **37/40** ✗
+- p50 ≤ 600 ms → **764 ms** ✗
+- p95 ≤ 1.200 ms → **1.575 ms** ✗
+
+Đã tắt cờ bằng `wrangler deploy --env production --var AUTOCOMPLETE_FAST:0`. Mã vẫn nằm trên
+`main`, tắt, không gây hại.
+
+## Nhưng đuôi bị chặt một nửa
+
+p95 3.227 → 1.575 ms (−51 %), p99 4.143 → 2.486 ms (−40 %). Hình dạng truy vấn là ĐÚNG. Trong khi
+đó p50 gần như không nhúc nhích (841 → 764 ms) — xác nhận dự đoán trong plan: sau khi nhánh POI
+nhanh lại thì phần chậm còn lại nằm ở `street` (185–325 ms) và `area` (0–340 ms), hai nhánh plan
+này cố ý không đụng tới.
+
+## Nguyên nhân hit@3 tụt: bậc nhanh bỏ mất `queryCore`
+
+Ca mới trượt là dòng 41 của fixture: `bhx|bach hoa xanh`.
+
+```
+normalizeVi('bhx')        = 'bhx'
+nameCore('bhx')           = 'bach hoa xanh'   ← từ điển thương hiệu (applyBrandAlias)
+viKey('bhx')              = 'bhx'
+```
+
+`poiCandidates` (bậc 1) khớp **và chấm điểm** theo cả `queryCore`: `coreBranches` thêm
+`'bach hoa xanh' <% name_norm OR name_norm % 'bach hoa xanh'` vào WHERE, và `sim` có
+`word_similarity(queryCore, name_norm)`. `poiFastCandidates` thì chỉ dùng `queryNorm` — nên khi
+cổng đóng, toàn bộ phần mở rộng viết tắt biến mất.
+
+**Chẩn đoán đầu tiên của tôi sai.** Tôi đã đổ cho bậc 3 (khoá ngữ âm) bị cổng tắt, và trích cảnh
+báo "điều kiện kích hoạt theo số kết quả luôn sai cỡ" trong `bac-2-3-khong-kich-hoat.md` để giải
+thích. Nhưng `viKey('bhx') = 'bhx'` nên bậc 3 chẳng giải được gì cả — nó không liên quan. Đây là
+lỗi bỏ sót `queryCore` khi viết câu bậc nhanh, không phải lỗi thiết kế cổng.
+
+Đáng chú ý: `buildCases` của `explain-autocomplete.mjs` sẽ **từ chối** truy vấn `bhx` đúng vì lý do
+này (`norm !== core`). Cổng an toàn đó đã hoạt động — chỉ là tôi chưa cho nó xem `bhx` trước khi
+viết mã.
+
+## Vòng sau phải làm hai việc, không phải một
+
+1. **Bậc nhanh phải mang `queryCore`**: tsquery dựng từ cả `queryNorm` lẫn `queryCore`
+   (`(bhx:*) | (bach:* & hoa:* & xanh:*)`), và `sim` thêm `word_similarity(queryCore, name_norm)`
+   cho ngang bậc 1. Chỉ sửa cái này thì hit@3 về 38/40 nhưng p50 vẫn ~764 ms.
+2. **Siết `street` và `area`** bằng đúng khuôn đã chứng minh được (cắt theo popularity trước khi
+   tính `sim`). Không có bước này thì p50 không thể xuống 600 ms.
+
+Thứ tự đo lại: sửa (1) → nghiệm thu hit@3 → mới làm (2). Gộp cả hai rồi đo một lần thì không biết
+phần nào hỏng nếu hit@3 lại tụt.
