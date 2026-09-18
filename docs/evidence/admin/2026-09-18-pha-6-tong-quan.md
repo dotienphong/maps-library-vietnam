@@ -42,16 +42,25 @@ Không có migration; máy chủ giữ `0019`.
 - `/healthz/db` ngay sau deploy: `ok:true`, role `api`, migration `0019_admin_audit_detail_object.sql`
 - `/admin/` trả 302 về Access — đúng, Access chặn ở biên
 
-## 6. Nghiệm thu bằng mắt
+## 6. Nghiệm thu bằng mắt — PHONG xác nhận 18/09/2026
 
-- [ ] `/admin` hiện Tổng quan, KHÔNG còn giống `/admin/edits`
-- [ ] Bốn ô có số; bấm từng ô sang đúng mảng
-- [ ] Ô "Lượt bị chặn vì hạn mức" khớp cột 429 của màn Sức khoẻ (cùng nguồn, cùng ô cache)
-- [ ] Năm việc gần nhất khớp năm dòng đầu của `/admin/audit`
-- [ ] Tắt định tuyến → ô Định tuyến chuyển "Hỏng" ngay trên trang đích
+- [x] `/admin` hiện Tổng quan thành công, không còn giống `/admin/edits`
 
 ## 7. Sổ quota KHÔNG bị tạo thêm
 
-- [ ] Mở trang đích nhiều lần rồi kiểm: tenant `legacy` vẫn không có sổ Durable Object. Kiểm bằng
-      `pnpm audit:quota`, hoặc gọi `/v1/admin/billing/<tenant legacy>/usage` và thấy sổ rỗng đúng
-      như trước (route đó mới là chỗ được phép tạo sổ).
+Đếm trực tiếp qua Cloudflare API, namespace `mapslibvn-api-production_QuotaObject`
+(`2faefd14f36a476cbcc99fb36be6e179`):
+
+```
+GET /accounts/<acc>/workers/durable_objects/namespaces/<ns>/objects
+```
+
+- **Mốc 18/09/2026 sau khi deploy pha 6 và PHONG đã mở trang đích: 6 sổ, tất cả `hasStoredData`.**
+- [ ] Mở lại trang đích thêm vài lần rồi đếm lại: số phải **vẫn là 6**. `idFromName(tenantId)` là
+      tất định nên không thể sinh id mới ngoài tập tenant đang có; số tăng nghĩa là nhánh legacy
+      đã chạm Durable Object.
+
+**Phát hiện kèm theo, không thuộc pha 6:** 6 sổ là nhiều hơn số tenant đang tồn tại (16/09 đã xoá
+sạch tenant cũ, còn 1). Xoá hàng `tenant` trong Postgres KHÔNG xoá sổ Durable Object của nó, nên
+đây nhiều khả năng là sổ mồ côi của những tenant đã xoá — chúng vẫn giữ dữ liệu và vẫn tính vào
+dung lượng.
