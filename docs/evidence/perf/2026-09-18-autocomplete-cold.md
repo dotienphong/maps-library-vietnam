@@ -342,3 +342,52 @@ viết mã.
 
 Thứ tự đo lại: sửa (1) → nghiệm thu hit@3 → mới làm (2). Gộp cả hai rồi đo một lần thì không biết
 phần nào hỏng nếu hit@3 lại tụt.
+
+---
+
+# Vòng hai — sau khi vá `queryCore` và thêm bậc nhanh cho street
+
+Production chạy `94f4755` (cả hai vá), cờ `AUTOCOMPLETE_FAST=1`. Cùng fixture, cùng
+`--near 10.776,106.700`, `--count 40` toàn lạnh, mọi mẫu `cache=miss`.
+
+| | cờ TẮT (10:45) | cờ BẬT, cả hai vá |
+|---|---:|---:|
+| hit@3 | 38/40 | **38/40** ✓ |
+| p50 | 695 ms | **578 ms** (−17 %) |
+| p95 | 2.339 ms | **1.449 ms** (−38 %) |
+| p99 | 4.187 ms | 4.142 ms (−1 %) |
+
+Trên bộ truy vấn **viết đúng chính tả** (10 truy vấn mặc định của `perf-autocomplete`, near Hà Nội,
+toàn lạnh, có làm nóng kết nối trước):
+
+```
+n=10 p50=500ms p95=1253ms
+nguyen hue 1253 · highlands 1029 · cafe 802 · pho co 586 · bun bo 509
+```
+
+## Kết quả so với tiêu chí
+
+- hit@3 ≥ 38/40 → **38/40** ✓
+- p50 ≤ 600 ms → **578 ms** ✓
+- p95 ≤ 1.200 ms → **1.449 ms** ✗
+
+**Trượt một trong ba.** Khác hẳn lần trước: lần trước hit@3 tụt, tức có THIỆT HẠI, nên phải lui.
+Lần này không có gì xấu đi — mọi percentile đều tốt hơn, chất lượng bằng đúng baseline. Trượt ở
+đây là "chưa tới đích tôi tự đặt", không phải "làm hỏng cái gì".
+
+Thêm nữa, ngưỡng p95 ≤ 1.200 ms tôi đặt dựa trên một mô hình còn thiếu: tôi chưa đo chi phí leo
+bậc của `area`, và chưa tính việc fixture có gần một nửa là truy vấn gõ sai — gõ sai thì cổng mở
+và request trả giá **cả** bậc nhanh **lẫn** đường trigram cũ. Đó là lỗi đặt tiêu chí, không phải
+lý do để bỏ qua số đo.
+
+## Nút thắt đã dịch sang `area`
+
+`p99` gần như không đổi (4.187 → 4.142 ms) và `nguyen hue` mất 1.253 ms dù viết đúng chính tả.
+POI và street đều đã nhanh với truy vấn nhiều token (25 ms và 6 ms cho `ben thanh`), nên phần còn
+lại nằm ở `area`:
+
+- `area_prefix` tốn 362 ms với truy vấn 2 ký tự (`qu`, 11.666 dòng).
+- `area_fuzzy` tốn 700–960 ms và chạy **mỗi khi** `area_prefix` rỗng.
+
+Chưa đo `nguyen hue` nên chưa khẳng định được nó rơi vào nhánh nào — đó là việc đầu tiên của vòng
+ba, không phải thứ để suy đoán.
