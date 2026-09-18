@@ -48,6 +48,11 @@ export interface Env {
   IP_HASH_PEPPER?: string;
   /** '1' = bật bậc 3b gập telex/VNI (spec 5.6). Mặc định TẮT; bật sau khi có số liệu stage_hit. */
   AUTOCOMPLETE_TELEX?: string;
+  /**
+   * '1' = bật bậc nhanh cho nhánh POI (name_tsv + cắt popularity, plan 2026-09-18). Mặc định TẮT.
+   * Bật/tắt KHÔNG cần sửa mã: `wrangler deploy --env production --var AUTOCOMPLETE_FAST:1`.
+   */
+  AUTOCOMPLETE_FAST?: string;
   /** Gốc Valhalla (spec dẫn đường A): dev `http://127.0.0.1:8002`, production hostname Tunnel. Vắng → 503. */
   ROUTING_BASE?: string;
   /** Service token Cloudflare Access cho hostname routing; production đặt bằng `wrangler secret put`. */

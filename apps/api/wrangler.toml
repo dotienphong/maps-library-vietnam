@@ -21,6 +21,9 @@ ROUTING_BASE = "http://127.0.0.1:8002"
 # Chỉ cho dev/test. Production KHÔNG lấy giá trị này (khối [env.production] ghi đè toàn bộ vars)
 # mà đọc secret đặt bằng `wrangler secret put IP_HASH_PEPPER --env production`.
 IP_HASH_PEPPER = "dev-pepper-khong-bi-mat"
+# AUTOCOMPLETE_FAST = "1"   # bậc nhanh name_tsv + cắt popularity (plan 2026-09-18). Bật trên
+#   production bằng `wrangler deploy --env production --var AUTOCOMPLETE_FAST:1`, CHỈ sau khi đo
+#   được hit@3 ≥ 38/40. Tắt lại cũng bằng --var, không cần sửa mã.
 # AUTOCOMPLETE_TELEX = "1"  # bậc 3b gập telex/VNI, spec 5.6 — bật sau khi số liệu stage_hit cho
 # thấy tỷ lệ truy vấn rỗng khớp mẫu telex đủ đáng kể. Mặc định tắt.
 

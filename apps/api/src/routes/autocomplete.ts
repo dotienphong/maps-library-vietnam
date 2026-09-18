@@ -16,7 +16,7 @@ import { ApiError } from '../errors';
 import { clampInt, parseLatLngPair, parseSources, parseTypes } from '../params';
 import { quotaMiddleware } from '../quota';
 import { gridKey, isAdminOnlyQuery, rankScore, withAreaSlot } from '../ranking';
-import { telexFallback, tsQueryFor } from '../stages';
+import { fastGateFor, telexFallback, tsQueryFor } from '../stages';
 
 export const autocomplete = new Hono<AppEnv>();
 
@@ -97,6 +97,8 @@ autocomplete.get(
             queryKey,
           },
           types,
+          // Cờ tắt → `undefined` → collectCandidates chạy y hệt trước khi có bậc nhanh.
+          fastGateFor({ enabled: c.env.AUTOCOMPLETE_FAST === '1', queryNorm, limit }),
         );
         // Bậc 3b (spec 5.6): chỉ khi cờ bật VÀ mọi bậc trước rỗng. Chuỗi đã gập là một queryNorm
         // khác nên không đụng cache của chuỗi gốc.
