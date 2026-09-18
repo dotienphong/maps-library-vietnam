@@ -28,6 +28,9 @@ jobs:
       - run: pnpm --filter @mapslibvn/web build
       # Trang admin phải build trước: wrangler.toml khai báo [assets] directory = ../admin/dist
       - run: pnpm --filter @mapslibvn/admin build
+      # Console build vào apps/admin/dist/console nên phải chạy SAU admin: build admin có
+      # emptyOutDir và sẽ xoá sạch thư mục cha, kéo theo cả bản console nếu làm ngược thứ tự.
+      - run: pnpm --filter @mapslibvn/console build
       - run: pnpm --filter @mapslibvn/api test
       # Cổng cuối trước khi Worker lên production. `apitest` chứng minh code khớp schema trong CI,
       # KHÔNG nói gì về schema của DB máy chủ. 06–07/09/2026: Worker đọc admin_area_old/admin_alias

@@ -1,0 +1,40 @@
+@import "tailwindcss";
+/* Token màu và bo góc dùng chung với trang Admin và website (packages/ui). */
+@import "../../../packages/ui/src/tokens.css";
+/* Tailwind v4 chỉ quét mã trong thư mục app và bỏ qua node_modules, mà component của
+   @mapslibvn/ui tới đây qua symlink trong node_modules → lớp dùng trong đó KHÔNG được sinh CSS
+   nếu thiếu dòng này. Hậu quả là nút mất kiểu mà không có lỗi nào; pha 0 đã vấp đúng chỗ này. */
+@source "../../../packages/ui/src";
+
+/* Tailwind v4 mặc định dark theo prefers-color-scheme. Trang này cho phép người dùng chọn tay,
+   nên buộc biến thể `dark` bám vào class trên <html>. */
+@custom-variant dark (&:where(.dark, .dark *));
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  /* iPhone có tai thỏ: chừa chỗ an toàn ở mọi cạnh */
+  padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom)
+    env(safe-area-inset-left);
+  margin: 0;
+}
+
+/* Tailwind v4 đặt `cursor: default` cho <button>, nên phải khai lại. Làm ở tầng nền thay vì thêm
+   class ở từng nơi: mọi màn hình viết sau tự có, không phải nhớ. Phần tử đang bị vô hiệu hoá thì
+   giữ con trỏ mặc định — chuột hình bàn tay trên một nút bấm không được là lời hứa sai. */
+@layer base {
+  button:not(:disabled),
+  summary,
+  label[for],
+  [role="button"]:not([aria-disabled="true"]),
+  select:not(:disabled),
+  a[href] {
+    cursor: pointer;
+  }
+
+  button:disabled,
+  select:disabled,
+  [aria-disabled="true"] {
+    cursor: not-allowed;
+  }
+}

@@ -58,15 +58,21 @@ app.onError((err, c) => errorResponse(c, err));
  */
 const LA_TEP_TINH = /\.[a-z0-9]+$/i;
 
-app.get('/admin/*', async (c) => {
-  const url = new URL(c.req.url);
-  const doanCuoi = url.pathname.split('/').pop() ?? '';
-  if (!c.env.ASSETS || LA_TEP_TINH.test(doanCuoi)) {
-    throw new ApiError(404, 'not_found', 'Không có tệp này');
-  }
-  url.pathname = '/admin/index.html';
-  return c.env.ASSETS.fetch(new Request(url, { headers: c.req.raw.headers }));
-});
+/**
+ * Hai SPA dùng chung một luật fallback và cùng một thư mục assets: cổng khách hàng build vào
+ * `apps/admin/dist/console`, vì binding `[assets]` chỉ nhận đúng một thư mục.
+ */
+for (const goc of ['admin', 'console'] as const) {
+  app.get(`/${goc}/*`, async (c) => {
+    const url = new URL(c.req.url);
+    const doanCuoi = url.pathname.split('/').pop() ?? '';
+    if (!c.env.ASSETS || LA_TEP_TINH.test(doanCuoi)) {
+      throw new ApiError(404, 'not_found', 'Không có tệp này');
+    }
+    url.pathname = `/${goc}/index.html`;
+    return c.env.ASSETS.fetch(new Request(url, { headers: c.req.raw.headers }));
+  });
+}
 
 app.notFound((c) => errorResponse(c, new ApiError(404, 'not_found', 'Không có route này')));
 

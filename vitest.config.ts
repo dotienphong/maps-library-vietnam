@@ -24,6 +24,7 @@ export default defineConfig({
       'apps/docs/scripts/**/*.test.mjs',
       'apps/docs/src/**/*.test.ts',
       'apps/site/src/**/*.test.ts',
+      'apps/console/src/**/*.test.{ts,tsx}',
       // Test giao diện trang Admin. Môi trường jsdom khai bằng docblock `@vitest-environment`
       // ở đầu từng file, không đặt toàn cục — bộ test này còn chạy scripts/**/*.test.mjs trên Node.
       'apps/admin/src/**/*.test.{ts,tsx}',
