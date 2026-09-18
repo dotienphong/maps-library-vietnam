@@ -1,6 +1,6 @@
-export type QuotaGroup = 'places' | 'directions';
-export type Tier = 'trial' | 'starter' | 'professional' | 'business';
-export type PaidTier = Exclude<Tier, 'trial'>;
+import type { PaidTier, QuotaGroup, Tier } from '@mapslibvn/catalog';
+
+export type { PaidTier, QuotaGroup, Tier };
 export type EntitlementStatus = 'none' | 'active' | 'suspended' | 'expired';
 export type ReservationState =
   | 'reserved'

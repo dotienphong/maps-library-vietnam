@@ -1,5 +1,5 @@
+import { PLAN_CATALOG } from '@mapslibvn/catalog';
 import { describe, expect, it } from 'vitest';
-import { PLAN_CATALOG } from '../src/billing/catalog';
 import {
   available,
   isBillableStatus,
@@ -38,8 +38,16 @@ describe('billing catalog', () => {
   });
 
   it('uses approved integer add-on packs', () => {
-    expect(PLAN_CATALOG.addOns.places).toEqual({ units: 1_000, priceCents: 100 });
-    expect(PLAN_CATALOG.addOns.directions).toEqual({ units: 1_000, priceCents: 300 });
+    expect(PLAN_CATALOG.addOns.places).toEqual({
+      units: 1_000,
+      priceCents: 100,
+      priceVnd: 26_000,
+    });
+    expect(PLAN_CATALOG.addOns.directions).toEqual({
+      units: 1_000,
+      priceCents: 300,
+      priceVnd: 78_000,
+    });
   });
 });
 

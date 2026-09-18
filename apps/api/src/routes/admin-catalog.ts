@@ -1,5 +1,5 @@
+import { PLAN_CATALOG, QUOTA_GROUPS, TIERS } from '@mapslibvn/catalog';
 import { Hono } from 'hono';
-import { PLAN_CATALOG } from '../billing/catalog';
 import type { AppEnv } from '../env';
 import { FREE_DIRECTIONS_PER_DAY, FREE_PLACES_PER_DAY } from '../quota';
 
@@ -13,14 +13,11 @@ import { FREE_DIRECTIONS_PER_DAY, FREE_PLACES_PER_DAY } from '../quota';
  */
 export const adminCatalog = new Hono<AppEnv>();
 
-const TIERS = ['trial', 'starter', 'professional', 'business'] as const;
-const GROUPS = ['places', 'directions'] as const;
-
 adminCatalog.get('/v1/admin/plan-catalog', (c) =>
   c.json(
     {
       tiers: TIERS.map((tier) => ({ tier, ...PLAN_CATALOG[tier] })),
-      addOns: GROUPS.map((group) => ({ group, ...PLAN_CATALOG.addOns[group] })),
+      addOns: QUOTA_GROUPS.map((group) => ({ group, ...PLAN_CATALOG.addOns[group] })),
       legacyDefaults: {
         places: FREE_PLACES_PER_DAY,
         directions: FREE_DIRECTIONS_PER_DAY,

@@ -12,6 +12,7 @@
     "build": "echo 'wrangler bundles at deploy'"
   },
   "dependencies": {
+    "@mapslibvn/catalog": "workspace:*",
     "@mapslibvn/core": "workspace:*",
     "@mapslibvn/style": "workspace:*",
     "hono": "^4.13.8",

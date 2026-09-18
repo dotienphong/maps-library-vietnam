@@ -8,13 +8,14 @@ interface Catalog {
   tiers: {
     tier: string;
     priceCents: number;
+    priceVnd: number;
     places: number;
     directions: number;
     dailyPlaces: number | null;
     dailyDirections: number | null;
     onlineSupport: boolean;
   }[];
-  addOns: { group: string; units: number; priceCents: number }[];
+  addOns: { group: string; units: number; priceCents: number; priceVnd: number }[];
   legacyDefaults: { places: number; directions: number; blockAtMultiple: number };
 }
 
@@ -36,10 +37,16 @@ describe('GET /v1/admin/plan-catalog', () => {
     ]);
     // Số phải khớp PLAN_CATALOG chứ không phải một bản chép tay trong route.
     expect(body.tiers[0]).toMatchObject({ tier: 'trial', places: 2_000, dailyPlaces: 200 });
-    expect(body.tiers[1]).toMatchObject({ tier: 'starter', places: 30_000, dailyPlaces: null });
+    expect(body.tiers[1]).toMatchObject({
+      tier: 'starter',
+      places: 30_000,
+      dailyPlaces: null,
+      priceCents: 2_500,
+      priceVnd: 650_000,
+    });
     expect(body.addOns).toEqual([
-      { group: 'places', units: 1_000, priceCents: 100 },
-      { group: 'directions', units: 1_000, priceCents: 300 },
+      { group: 'places', units: 1_000, priceCents: 100, priceVnd: 26_000 },
+      { group: 'directions', units: 1_000, priceCents: 300, priceVnd: 78_000 },
     ]);
     // Hạn mức mặc định của tenant chưa vào sổ thương mại, và bội số mà bộ đếm KV mới chặn thật.
     expect(body.legacyDefaults).toEqual({

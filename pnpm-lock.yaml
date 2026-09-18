@@ -133,6 +133,9 @@ importers:
 
   apps/api:
     dependencies:
+      '@mapslibvn/catalog':
+        specifier: workspace:*
+        version: link:../../packages/catalog
       '@mapslibvn/core':
         specifier: workspace:*
         version: link:../../packages/core
