@@ -1,5 +1,11 @@
 ---
-import { CONSOLE_URL, DOCS_URL, SUPPORT_EMAIL } from '../../site.config.mjs';
+import {
+  CONSOLE_URL,
+  DOCS_URL,
+  SUPPORT_EMAIL,
+  SUPPORT_PHONE,
+  SUPPORT_PHONE_HIEN_THI,
+} from '../../site.config.mjs';
 import Base from '../layouts/Base.astro';
 import { breadcrumbJsonLd } from '../lib/seo';
 import { TRANG } from '../lib/trang';
@@ -36,11 +42,28 @@ const NHANH = [
   <section class="mx-auto max-w-3xl px-4 py-12">
     <h1 class="text-3xl font-bold sm:text-4xl">{TRANG.lienHe.h1}</h1>
     <p class="mt-4 text-lg text-[var(--text-muted)]">
-      Viết thư là cách nhanh nhất. Hiện chưa có tổng đài điện thoại và chưa có hộp thoại trò chuyện
-      trực tiếp trên website.
+      Gọi điện hoặc viết thư đều được. Hiện chưa có hộp thoại trò chuyện trực tiếp trên website.
     </p>
 
-    <div class="mt-8 rounded-[var(--radius-card)] border border-[var(--border)] bg-[var(--surface)] p-6">
+    <div class="mt-8 grid gap-4 sm:grid-cols-2">
+      <div class="rounded-[var(--radius-card)] border border-[var(--border)] bg-[var(--surface)] p-6">
+        <h2 class="text-base font-bold">Điện thoại</h2>
+        <p class="mt-2">
+          {/* href dạng E.164 không khoảng trắng; chạm trên điện thoại là gọi ngay. */}
+          <a
+            href={`tel:${SUPPORT_PHONE}`}
+            class="inline-flex min-h-11 items-center text-lg font-semibold text-brand-700 hover:underline dark:text-brand-100"
+          >
+            {SUPPORT_PHONE_HIEN_THI}
+          </a>
+        </p>
+        <p class="text-sm text-[var(--text-muted)]">
+          Gọi trong giờ hỗ trợ bên dưới. Ngoài giờ, hãy để lại thư và bạn sẽ được trả lời vào buổi
+          làm việc kế tiếp.
+        </p>
+      </div>
+
+      <div class="rounded-[var(--radius-card)] border border-[var(--border)] bg-[var(--surface)] p-6">
       <h2 class="text-base font-bold">Thư điện tử</h2>
       <p class="mt-2">
         <a
@@ -54,6 +77,7 @@ const NHANH = [
         Ghi rõ tên tổ chức và tiền tố khoá API nếu bạn đang là khách hàng, thư sẽ được xử lý nhanh
         hơn. Đừng gửi khoá API đầy đủ qua thư.
       </p>
+      </div>
     </div>
 
     <section aria-labelledby="tt-gio" class="mt-10">

@@ -1,5 +1,5 @@
 import { PAID_TIERS, PLAN_CATALOG } from '@mapslibvn/catalog';
-import { BRAND, SITE_URL, SUPPORT_EMAIL } from '../../site.config.mjs';
+import { BRAND, SITE_URL, SUPPORT_EMAIL, SUPPORT_PHONE } from '../../site.config.mjs';
 import type { TrangMeta } from './trang';
 
 const OG_MAC_DINH = '/og/mac-dinh.png';
@@ -53,6 +53,7 @@ export function organizationJsonLd() {
     contactPoint: {
       '@type': 'ContactPoint',
       email: SUPPORT_EMAIL,
+      telephone: SUPPORT_PHONE,
       contactType: 'customer support',
       availableLanguage: ['vi', 'en'],
     },

@@ -48,12 +48,14 @@ describe('seoMeta', () => {
 });
 
 describe('JSON-LD', () => {
-  it('Organization có tên, URL và email liên hệ', () => {
+  it('Organization có tên, URL, email và số điện thoại liên hệ', () => {
     const ld = organizationJsonLd();
     expect(ld['@type']).toBe('Organization');
     expect(ld.name).toBe('MapsLibVN');
     expect(ld.url).toBe('https://mapslibvn-site.pages.dev/');
-    expect(JSON.stringify(ld)).toContain('dotienphong1993@gmail.com');
+    expect(ld.contactPoint.email).toBe('dotienphong1993@gmail.com');
+    // Dạng E.164, không khoảng trắng: đây là số máy đọc, khác dạng hiển thị cho người.
+    expect(ld.contactPoint.telephone).toBe('+84983450456');
   });
 
   it('SoftwareApplication mang đúng bốn gói với giá VND lấy từ catalog', () => {

@@ -1,5 +1,11 @@
 ---
-import { CONSOLE_URL, DOCS_URL, SUPPORT_EMAIL } from '../../site.config.mjs';
+import {
+  CONSOLE_URL,
+  DOCS_URL,
+  SUPPORT_EMAIL,
+  SUPPORT_PHONE,
+  SUPPORT_PHONE_HIEN_THI,
+} from '../../site.config.mjs';
 import { TRANG } from '../lib/trang';
 
 const COT = [
@@ -64,6 +70,16 @@ const nam = new Date().getFullYear();
             class="inline-flex min-h-11 items-center hover:text-brand-700 dark:hover:text-brand-100"
           >
             {SUPPORT_EMAIL}
+          </a>
+        </p>
+        <p class="text-sm text-[var(--text-muted)]">
+          {/* href dùng dạng E.164 không khoảng trắng để máy gọi đúng số; phần hiển thị tách nhóm
+              cho người đọc. Trên điện thoại, chạm vào là gọi ngay. */}
+          <a
+            href={`tel:${SUPPORT_PHONE}`}
+            class="inline-flex min-h-11 items-center hover:text-brand-700 dark:hover:text-brand-100"
+          >
+            {SUPPORT_PHONE_HIEN_THI}
           </a>
         </p>
         <p class="text-sm text-[var(--text-muted)]">

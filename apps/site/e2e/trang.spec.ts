@@ -97,3 +97,28 @@ test('ghi nguồn dữ liệu mở có mặt ở mọi trang — đây là nghĩ
     ).toBeVisible();
   }
 });
+
+test('số điện thoại bấm gọi được, có ở mọi trang và trong đánh dấu Organization', async ({
+  page,
+}) => {
+  for (const path of TRANG) {
+    await page.goto(path);
+    const goi = page.getByRole('contentinfo').getByRole('link', { name: '+84 983 450 456' });
+    await expect(goi, `thiếu số điện thoại ở ${path}`).toBeVisible();
+    // href phải là E.164 KHÔNG khoảng trắng, nếu không máy gọi sai số.
+    await expect(goi).toHaveAttribute('href', 'tel:+84983450456');
+  }
+
+  await page.goto('/');
+  const khoi = await page.locator('script[type="application/ld+json"]').allTextContents();
+  const org = khoi.map((ld) => JSON.parse(ld)).find((ld) => ld['@type'] === 'Organization');
+  expect(org?.contactPoint?.telephone).toBe('+84983450456');
+});
+
+test('trang liên hệ có khối gọi điện riêng', async ({ page }) => {
+  await page.goto('/lien-he/');
+  await expect(page.getByRole('heading', { name: 'Điện thoại' })).toBeVisible();
+  await expect(
+    page.getByRole('main').getByRole('link', { name: '+84 983 450 456' }),
+  ).toHaveAttribute('href', 'tel:+84983450456');
+});

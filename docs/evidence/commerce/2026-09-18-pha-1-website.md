@@ -13,7 +13,7 @@ Ngày chạy: 18/09/2026. 14 task, 14 commit.
 | `npx vitest run apps/site/src` | 5 file / **35 test** xanh |
 | `pnpm test` (gốc, nay gồm cả build site) | 193 file / **1.857 test** xanh, 5 skip |
 | `pnpm --filter @mapslibvn/api test` | 62 file / **480 test** xanh |
-| `pnpm test:site-e2e` | **20/20** xanh, 7,4 s (chạy lại sau khi bật ba bài: vẫn 20/20) |
+| `pnpm test:site-e2e` | **22/22** xanh, 7,4 s (20 bài gốc + 2 bài số điện thoại) |
 | `pnpm test:admin-e2e` | **17/17** xanh, 1,1 phút |
 
 ## 2. Hiệu năng đo trên bản build
@@ -48,6 +48,9 @@ lại điều này.
 - [x] **Hero không nạp iframe trước khi bấm** — trước khi bấm có 0 iframe.
 - [x] **Ghi nguồn ODbL và Apache-2.0 có ở mọi trang** — đây là nghĩa vụ giấy phép, không phải
       trang trí.
+- [x] **Số điện thoại +84 983 450 456 bấm gọi được** ở chân trang của mọi trang và ở khối riêng
+      trên trang Liên hệ; `href` là dạng E.164 không khoảng trắng, và số cũng nằm trong
+      `contactPoint.telephone` của đánh dấu Organization.
 - [x] Mọi link nội bộ trên bảy trang trả 200; `/khong-co-that/` trả 404 và trang 404 dùng được.
 - [x] Điều hướng bấm được ở khung 390 px; ba tab mã nhúng đổi được bằng bàn phím.
 - [x] Công tắc sáng tối nhớ lựa chọn qua lần tải lại.
@@ -61,6 +64,15 @@ trong `scripts/site-images.mjs` chưa có JSDoc nên tsc báo `TS7031`/`TS7006`.
 
 Bài học: **chạy đúng lệnh mà CI chạy**, đừng chạy một phần của nó. Đã thêm JSDoc và đổi bảng cổng
 ở mục 1 cho khớp. Năm workflow còn lại đều xanh ngay lần đầu, gồm cả `Deploy Site`.
+
+## 4c. Bẫy thứ hai: e2e kiểm nhầm dev server
+
+Khi PHONG mở `pnpm dev` ở cổng 4322 để xem website, bộ e2e **tái dùng đúng cổng đó** và kiểm
+nhầm dev server thay vì bản build: bốn bài đỏ với thông báo khó hiểu như "locator('h1') resolved
+to 5 elements" — bốn thẻ h1 thừa là của thanh công cụ dev Astro.
+
+Đã tách cổng: e2e dựng bản build rồi phục vụ ở **4323**, `pnpm dev` giữ **4322**. Hai việc không
+còn tranh nhau, và không ai phải nhớ tắt dev trước khi chạy test.
 
 ## 5. Việc tay của PHONG, theo thứ tự
 
