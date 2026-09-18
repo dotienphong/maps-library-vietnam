@@ -149,3 +149,78 @@ export async function xoaPhienKhac(
 export async function xoaPhienCuaTaiKhoan(sql: Sql, accountId: string): Promise<void> {
   await sql`DELETE FROM customer_session WHERE account_id = ${accountId}::uuid`;
 }
+
+export interface TenantCuaKhach {
+  id: string;
+  name: string;
+  plan: string;
+  quota_mode: string;
+  billing_name: string | null;
+  billing_tax_code: string | null;
+  billing_address: string | null;
+  billing_email: string | null;
+}
+
+/**
+ * Tạo tenant, gắn chủ sở hữu và ghi nhận tenant dùng thử trong MỘT transaction.
+ *
+ * Postgres trước, sổ quota sau — và thứ tự đó là cố ý. Ngược lại thì một sổ quota ra đời cho một
+ * tenant chưa tồn tại, không có đường nào tìm lại, và trang Admin đã có sáu sổ mồ côi kiểu đó từ
+ * một lỗi khác. Bước gọi sổ thất bại thì tenant vẫn còn, trạng thái `none`, và lần mở console kế
+ * tiếp gọi lại đúng `operationId` nên không sinh bản thứ hai.
+ */
+export async function taoTenantChoKhach(
+  sql: Sql,
+  input: { accountId: string; ten: string },
+): Promise<TenantCuaKhach> {
+  return await sql.begin(async (tx) => {
+    const rows = await tx<TenantCuaKhach[]>`
+      INSERT INTO tenant (name, plan, quota_mode) VALUES (${input.ten}, 'free', 'commercial')
+      RETURNING id, name, plan, quota_mode, billing_name, billing_tax_code, billing_address, billing_email`;
+    const tenant = rows[0] as TenantCuaKhach;
+    await tx`INSERT INTO tenant_member (tenant_id, account_id, role)
+      VALUES (${tenant.id}::uuid, ${input.accountId}::uuid, 'owner')`;
+    await tx`UPDATE customer_account SET trial_tenant_id = ${tenant.id}::uuid
+      WHERE id = ${input.accountId}::uuid`;
+    return tenant;
+  });
+}
+
+export async function docTenant(sql: Sql, tenantId: string): Promise<TenantCuaKhach | null> {
+  const rows = await sql<TenantCuaKhach[]>`
+    SELECT id, name, plan, quota_mode, billing_name, billing_tax_code, billing_address, billing_email
+    FROM tenant WHERE id = ${tenantId}::uuid`;
+  return rows[0] ?? null;
+}
+
+/**
+ * Cập nhật thông tin do khách tự sửa. Danh sách cột viết cứng ở đây chứ không dựng động từ body:
+ * `plan` và `quota_mode` quyết định khách được dùng bao nhiêu, và chúng không bao giờ được phép
+ * đi qua đường này dù client có gửi lên.
+ */
+export async function capNhatTenant(
+  sql: Sql,
+  tenantId: string,
+  input: {
+    ten: string;
+    billingName: string | null;
+    billingTaxCode: string | null;
+    billingAddress: string | null;
+    billingEmail: string | null;
+  },
+): Promise<TenantCuaKhach | null> {
+  const rows = await sql<TenantCuaKhach[]>`
+    UPDATE tenant SET name = ${input.ten}, billing_name = ${input.billingName},
+      billing_tax_code = ${input.billingTaxCode}, billing_address = ${input.billingAddress},
+      billing_email = ${input.billingEmail}
+    WHERE id = ${tenantId}::uuid
+    RETURNING id, name, plan, quota_mode, billing_name, billing_tax_code, billing_address, billing_email`;
+  return rows[0] ?? null;
+}
+
+/** Tài khoản đã dùng bản dùng thử ở đâu đó chưa — mỗi tài khoản chỉ được một lần. */
+export async function daDungThu(sql: Sql, accountId: string): Promise<boolean> {
+  const rows = await sql<{ trial_tenant_id: string | null }[]>`
+    SELECT trial_tenant_id FROM customer_account WHERE id = ${accountId}::uuid`;
+  return rows[0]?.trial_tenant_id != null;
+}

@@ -11,6 +11,7 @@ import { adminQuotaSummary } from './routes/admin-quota-summary';
 import { autocomplete } from './routes/autocomplete';
 import { billingAdmin } from './routes/billing-admin';
 import { catalogRoute } from './routes/catalog';
+import { consoleRoutes } from './routes/console';
 import { consoleAuth } from './routes/console-auth';
 import { directions } from './routes/directions';
 import { edits } from './routes/edits';
@@ -95,6 +96,7 @@ app.route('/', catalogRoute);
 // cổng này cộng với nó là đủ, không cần token CSRF riêng.
 app.use('/v1/console/*', requireSameSitePost());
 app.route('/', consoleAuth);
+app.route('/', consoleRoutes);
 app.route('/', autocomplete);
 app.route('/', search);
 app.route('/', nearby);
