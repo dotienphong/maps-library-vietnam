@@ -207,6 +207,94 @@ function streetStage1(/** @type {string} */ q) {
 }
 
 /**
+ * Biến thể của bậc 1 street, mỗi biến thể bỏ một thứ, để quy chi phí.
+ *
+ * `street` KHÔNG có cột `popularity`, nên khuôn "cắt 200 theo popularity" của POI không áp thẳng
+ * được — phải biết chi phí nằm ở đâu trước khi chọn tiêu chí cắt. Ba nghi can, theo thứ tự nghi
+ * ngờ: (1) `sim` gồm 3 hàm trigram tính cho MỌI dòng khớp vì nó nằm trong ORDER BY — đúng bệnh đã
+ * chẩn ra ở POI; (2) `ST_PointOnSurface(geom)` gọi HAI lần mỗi dòng (lat và lng) trên
+ * MultiLineString; (3) subquery `matched_alt`.
+ *
+ * @param {string} q
+ * @param {'full'|'no_geom'|'no_matched_alt'|'no_sim'} bien_the
+ */
+function streetVariant(q, bien_the) {
+  const qs = lit(q);
+  const prefix = lit(`${q.replace(/[\\%_]/g, '\\$&')}%`);
+  const simNorm = q.length <= SIMILARITY_MAX_QUERY_LENGTH ? `\n      OR name_norm % ${qs}` : '';
+  const toaDo =
+    bien_the === 'no_geom'
+      ? 'NULL::float8 AS lat, NULL::float8 AS lng, NULL::float8 AS d'
+      : `ST_Y(ST_PointOnSurface(geom)) AS lat, ST_X(ST_PointOnSurface(geom)) AS lng,
+         ST_DistanceSphere(geom, ${NEAR}) AS d`;
+  const sim =
+    bien_the === 'no_sim'
+      ? '0::float8 AS sim'
+      : `greatest(
+        word_similarity(${qs}, name_norm),
+        similarity(name_norm, ${qs}),
+        word_similarity(${qs}, coalesce(name_alt_norm, ''))
+      ) AS sim`;
+  const matchedAlt =
+    bien_the === 'no_matched_alt'
+      ? 'NULL'
+      : `(SELECT a.orig FROM unnest(name_alt, string_to_array(name_alt_norm, ' | ')) AS a(orig, norm)
+        WHERE ${qs} <% a.norm ORDER BY word_similarity(${qs}, a.norm) DESC LIMIT 1)`;
+  return `
+    SELECT 'street' AS type, NULL AS id, name,
+      coalesce(province_norm, '') AS secondary,
+      ${toaDo},
+      NULL AS precision,
+      ${sim},
+      starts_with(name_norm, ${qs}) AS prefix,
+      0 AS pop,
+      ${matchedAlt} AS matched_alt
+    FROM street
+    WHERE ${qs} <% name_norm${simNorm}
+      OR ${qs} <% name_alt_norm
+      OR name_norm LIKE ${prefix}
+    ORDER BY sim DESC
+    LIMIT 20`;
+}
+
+/**
+ * Ứng viên "bậc nhanh" cho street: lọc bằng `name_tsv`, cắt 200 dòng GẦN NHẤT rồi mới tính `sim`.
+ *
+ * Không có `popularity` thì tiêu chí cắt hợp lý duy nhất là khoảng cách — người gõ tên đường gần
+ * như luôn muốn con đường gần mình. Dùng `geom <-> điểm` (toán tử KNN của GiST) chứ không dùng
+ * `ST_DistanceSphere`: `<->` rẻ hơn hẳn và có thể đi qua chỉ số `street_geom_idx`.
+ *
+ * @param {string} q @param {string} tsQuery
+ */
+function streetNhanh(q, tsQuery) {
+  const qs = lit(q);
+  return `
+    WITH ung_vien AS (
+      SELECT id, name, province_norm, geom, name_norm, name_alt_norm
+      FROM street
+      WHERE name_tsv @@ to_tsquery('simple', ${lit(tsQuery)})
+      ORDER BY geom <-> ${NEAR}
+      LIMIT 200
+    )
+    SELECT 'street' AS type, NULL AS id, name,
+      coalesce(province_norm, '') AS secondary,
+      ST_Y(ST_PointOnSurface(geom)) AS lat, ST_X(ST_PointOnSurface(geom)) AS lng,
+      NULL AS precision,
+      greatest(
+        word_similarity(${qs}, name_norm),
+        similarity(name_norm, ${qs}),
+        word_similarity(${qs}, coalesce(name_alt_norm, ''))
+      ) AS sim,
+      starts_with(name_norm, ${qs}) AS prefix,
+      0 AS pop,
+      ST_DistanceSphere(geom, ${NEAR}) AS d,
+      NULL AS matched_alt
+    FROM ung_vien
+    ORDER BY sim DESC
+    LIMIT 20`;
+}
+
+/**
  * `areaQuery()` của area-candidates.ts. Chỉ đúng khi `parseAddress` không tách được ward/district/
  * province — lúc đó `aliasLevel` là null và `currentKey === queryCore === q`; `buildCases()` chặn
  * mọi truy vấn khác.
@@ -350,6 +438,10 @@ export function buildCases(raw) {
         // Hai loại còn lại của bậc 1, cũng chạy song song. Thời gian tường của route là max() của
         // tất cả, nên một loại chậm hơn poi thì chính nó mới là thứ quyết định.
         street: streetStage1(q),
+        street_no_geom: streetVariant(q, 'no_geom'),
+        street_no_matched_alt: streetVariant(q, 'no_matched_alt'),
+        street_no_sim: streetVariant(q, 'no_sim'),
+        ...(tsQueryAnyToken(q) ? { street_nhanh: streetNhanh(q, tsQueryAnyToken(q) ?? '') } : {}),
         area_prefix: areaQuery(q, false, key),
         area_fuzzy: areaQuery(q, true, key),
         // ——— Ứng viên cho "bậc nhanh". Đo hình dạng TRƯỚC khi viết mã sản phẩm.
