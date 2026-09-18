@@ -305,17 +305,24 @@ function streetNhanh(q, tsQuery) {
  * chạy pha fuzzy. Đo riêng từng pha vì truy vấn POI thường (`cafe`) không khớp vùng nào, nên nó
  * luôn phải trả giá cả hai vòng.
  *
- * @param {string} q @param {boolean} fuzzy @param {string} queryKey
+ * @param {{ q: string, currentKey: string, aliasLevel: number|null, queryKey: string }} ca
+ * @param {boolean} fuzzy
  * @param {'full'|'no-sim'|'no-geom'} [bien_the] bỏ bớt một thành phần để quy chi phí
  */
-function areaQuery(q, fuzzy, queryKey, bien_the = 'full') {
+function areaQuery(ca, fuzzy, bien_the = 'full') {
+  const { q, currentKey, aliasLevel, queryKey } = ca;
   const qs = lit(q);
+  const cks = lit(currentKey);
+  const currentPrefix = lit(`${currentKey.replace(/[\\%_]/g, '\\$&')}%`);
+  // Khoá cấp: ward→8, district→6, province→4. `areaQuery` thật lọc CẢ hai nhánh theo nó.
+  const locCap = aliasLevel === null ? '' : `AND a.level=${aliasLevel}`;
+  const locCapAlias = aliasLevel === null ? '' : `AND aa.level=${aliasLevel}`;
   // Cùng hai nghi can đã đúng ở poi và street: `sim` gồm 2 hàm trigram nằm trong ORDER BY nên
   // tính cho MỌI dòng khớp (11.666 dòng với `qu`), và các phép hình học trên đa giác hành chính.
   const simCurrent =
     bien_the === 'no-sim'
       ? '0::float8 sim'
-      : `greatest(word_similarity(${qs},a.name_norm),similarity(a.name_norm,${qs})) sim`;
+      : `greatest(word_similarity(${cks},a.name_norm),similarity(a.name_norm,${cks})) sim`;
   const simAlias =
     bien_the === 'no-sim'
       ? '0::float8 sim'
@@ -332,9 +339,9 @@ function areaQuery(q, fuzzy, queryKey, bien_the = 'full') {
   const prefix = lit(`${q.replace(/[\\%_]/g, '\\$&')}%`);
   const keyBranch = fuzzy && queryKey ? lit(queryKey) : null;
   const currentMatch = fuzzy
-    ? `(${qs} <% a.name_norm OR a.name_norm LIKE ${prefix}
+    ? `(${cks} <% a.name_norm OR a.name_norm LIKE ${currentPrefix}
         ${keyBranch ? `OR ${keyBranch} <% a.name_key` : ''})`
-    : `a.name_norm LIKE ${prefix}`;
+    : `a.name_norm LIKE ${currentPrefix}`;
   const aliasMatch = fuzzy
     ? `(${qs} <% aa.alias_norm OR aa.alias_norm LIKE ${prefix}
         ${keyBranch ? `OR ${keyBranch} <% aa.alias_key` : ''})`
@@ -344,10 +351,11 @@ function areaQuery(q, fuzzy, queryKey, bien_the = 'full') {
         CASE WHEN a.level=4 THEN '' ELSE coalesce(parent.name,'') END secondary,
         CASE WHEN a.level=4 THEN 'province' ELSE 'ward' END AS precision,
         ${simCurrent},
-        starts_with(a.name_norm,${qs}) prefix,a.geom candidate_geom
+        starts_with(a.name_norm,${cks}) prefix,a.geom candidate_geom
       FROM admin_area a
       LEFT JOIN admin_area parent ON parent.id=a.parent_id
       WHERE ${currentMatch}
+        ${locCap}
     ), alias_edges AS (
       SELECT coalesce('old:'||aa.old_area_id,'alias:'||aa.level||':'||aa.alias_norm) group_key,
         aa.old_area_id,aa.level,aa.alias_norm,current.id current_id,current.name current_name,
@@ -356,6 +364,7 @@ function areaQuery(q, fuzzy, queryKey, bien_the = 'full') {
       FROM admin_alias aa
       JOIN admin_area current ON current.id=aa.admin_area_id
       WHERE aa.source IN ('overlay','seed')
+        ${locCapAlias}
         AND ${aliasMatch}
     ), alias_grouped AS (
       SELECT group_key,old_area_id,level,min(alias_norm) alias_norm,
@@ -460,10 +469,18 @@ export function buildCases(raw) {
         street_no_matched_alt: streetVariant(q, 'no_matched_alt'),
         street_no_sim: streetVariant(q, 'no_sim'),
         ...(tsQueryAnyToken(q) ? { street_nhanh: streetNhanh(q, tsQueryAnyToken(q) ?? '') } : {}),
-        area_prefix: areaQuery(q, false, key),
-        area_prefix_no_sim: areaQuery(q, false, key, 'no-sim'),
-        area_prefix_no_geom: areaQuery(q, false, key, 'no-geom'),
-        area_fuzzy: areaQuery(q, true, key),
+        area_prefix: areaQuery({ q, currentKey: q, aliasLevel: null, queryKey: key }, false),
+        area_prefix_no_sim: areaQuery(
+          { q, currentKey: q, aliasLevel: null, queryKey: key },
+          false,
+          'no-sim',
+        ),
+        area_prefix_no_geom: areaQuery(
+          { q, currentKey: q, aliasLevel: null, queryKey: key },
+          false,
+          'no-geom',
+        ),
+        area_fuzzy: areaQuery({ q, currentKey: q, aliasLevel: null, queryKey: key }, true),
         // ——— Ứng viên cho "bậc nhanh". Đo hình dạng TRƯỚC khi viết mã sản phẩm.
         // `nhanh_like` là ý tưởng tiền tố thuần: RẺ nhưng SAI NGỮ NGHĨA với tên tiếng Việt —
         // `ben thanh` không khớp "Chợ Bến Thành" vì tên đó bắt đầu bằng "cho". Đo để có số đối
@@ -495,11 +512,13 @@ export function parseArgs(argv) {
   let threshold = 0.6;
   let sweep = false;
   let rank = false;
+  let areaRank = false;
   for (let i = 0; i < argv.length; i++) {
     const flag = argv[i];
     if (flag === '--plan') plan = true;
     else if (flag === '--sweep') sweep = true;
     else if (flag === '--rank') rank = true;
+    else if (flag === '--area-rank') areaRank = true;
     else if (flag === '--q' || flag === '--repeat' || flag === '--threshold') {
       const value = argv[i + 1];
       if (value === undefined) throw new Error(`${flag} thiếu giá trị`);
@@ -521,6 +540,7 @@ export function parseArgs(argv) {
     threshold,
     sweep,
     rank,
+    areaRank,
   };
 }
 
@@ -559,6 +579,44 @@ export function widestNode(plan) {
   return best;
 }
 
+/**
+ * Dựng tham số nhánh `area` cho một truy vấn thô, theo ĐÚNG `areaQuery` của area-candidates.ts.
+ *
+ * Khác `buildCases` (chỉ nhận truy vấn không có phần hành chính): ở đây phải xử lý được cả
+ * `Quận 10`, `Bình Dương`, `Phường Bàn Cờ` — vì đó mới là thứ nhánh area sinh ra để phục vụ.
+ *
+ * `provinceFromAlias`: khi tỉnh SUY RA từ alias (`Bình Dương` → `Thành phố Hồ Chí Minh`) thì tên
+ * người dùng gõ có thể là đơn vị cũ ở bất kỳ cấp, nên bỏ khoá cấp — nếu không `Thủ Dầu Một` không
+ * bao giờ khớp, vì alias đó chỉ tồn tại ở level 6.
+ *
+ * @param {string} raw
+ */
+export function areaCaseFor(raw) {
+  const q = normalizeVi(raw);
+  const parsed = parseAddress(raw);
+  const queryCore = nameCore(raw);
+  const original = parsed.adminOriginal?.province;
+  const provinceFromAlias =
+    original !== undefined &&
+    normalizeVi(original) !== normalizeVi(parsed.province ?? '') &&
+    !parsed.ward &&
+    !parsed.district;
+  const aliasLevel = parsed.ward
+    ? 8
+    : parsed.district
+      ? 6
+      : parsed.province && !provinceFromAlias
+        ? 4
+        : null;
+  const adminUnit = parsed.ward ?? parsed.district;
+  return {
+    q,
+    currentKey: adminUnit ? normalizeVi(adminUnit) : queryCore,
+    aliasLevel,
+    queryKey: viKey(applyToponymAlias(q)),
+  };
+}
+
 /** Bỏ dấu + lowercase để so đích, cùng luật với `perf-autocomplete`. */
 const fold = (/** @type {string} */ value) =>
   value.normalize('NFD').replace(/\p{M}/gu, '').replace(/đ/g, 'd').replace(/Đ/g, 'D').toLowerCase();
@@ -570,12 +628,20 @@ const fold = (/** @type {string} */ value) =>
  * từ nhánh nào — mà đó chính là câu hỏi quyết định một cổng xếp tầng có an toàn hay không. Ca
  * `bhx` hỏng đúng vì tôi đoán thay vì đo chỗ này.
  *
- * @param {{ name: string }[]} rows @param {string[]} expects
+ * @param {{ name: string, secondary?: string }[]} rows @param {string[]} expects
+ * @param {boolean} [kemSecondary] so cả dòng phụ — nhánh area cần, nhánh poi không
  */
-export function rankOf(rows, expects) {
+export function rankOf(rows, expects, kemSecondary = false) {
   if (expects.length === 0) return 0;
   const muon = expects.map(fold);
-  const at = rows.findIndex((row) => muon.some((want) => fold(row.name ?? '').includes(want)));
+  const at = rows.findIndex((row) => {
+    // Nhánh area: `Bình Dương` trả về tên "Phường Bình Dương" còn đích `ho chi minh` nằm ở dòng
+    // phụ. Chỉ so `name` là báo trượt giả cho cả 9 ca tỉnh cũ.
+    const chuoi = kemSecondary
+      ? `${fold(row.name ?? '')} | ${fold(row.secondary ?? '')}`
+      : fold(row.name ?? '');
+    return muon.some((want) => chuoi.includes(want));
+  });
   return at + 1;
 }
 
@@ -598,6 +664,7 @@ if (isMain) {
     threshold,
     sweep,
     rank,
+    areaRank,
   } = parseArgs(process.argv.slice(2));
   const closeTunnel = await openDatabaseTunnel();
   const url = process.env.PIPELINE_DATABASE_URL ?? process.env.DATABASE_URL;
@@ -625,8 +692,58 @@ if (isMain) {
     // luận cho production là so hai thứ khác nhau: ngưỡng thấp hơn = khớp nhiều dòng hơn = chậm hơn.
     await sql.unsafe(`SET pg_trgm.word_similarity_threshold = ${threshold}`);
 
-    if (rank) await doRank();
+    if (areaRank) await doAreaRank();
+    else if (rank) await doRank();
     else await doExplain();
+
+    /**
+     * Chất lượng + chi phí của nhánh `area`, mô phỏng đúng hai pha của `areaCandidates`: chạy pha
+     * tiền tố trước, CHỈ khi rỗng mới chạy pha fuzzy.
+     *
+     * Vì sao cần: `fuzzy-queries.txt` toàn nhắm tên POI, không có dòng nào đích là đơn vị hành
+     * chính. Suốt ba vòng trước, thứ duy nhất chặn một thay đổi hỏng là hit@3 trên fixture đó.
+     * Sửa `area` mà không có phép thử tương đương là làm mù — đúng vùng đã có sự cố Cô Tô.
+     */
+    async function doAreaRank() {
+      const fixture = [
+        ...parseQueryFixture(readFileSync('scripts/fixtures/perf-area-queries.txt', 'utf8')),
+        ...parseQueryFixture(readFileSync('scripts/fixtures/perf-prefix-queries.txt', 'utf8')),
+      ];
+      console.log('q                                   | pha  |   ms | hạng | đích');
+      console.log('------------------------------------|------|-----:|------|--------------');
+      let cham = 0;
+      let dat = 0;
+      let tongMs = 0;
+      for (const entry of fixture) {
+        const ca = areaCaseFor(entry.q);
+        const t0 = Date.now();
+        let rows = /** @type {{ name: string, secondary?: string }[]} */ (
+          await sql.unsafe(areaQuery(ca, false))
+        );
+        let pha = 'tiền tố';
+        if (rows.length === 0) {
+          rows = /** @type {{ name: string, secondary?: string }[]} */ (
+            await sql.unsafe(areaQuery(ca, true))
+          );
+          pha = 'fuzzy';
+        }
+        const ms = Date.now() - t0;
+        tongMs += ms;
+        const hang = rankOf(rows, entry.expect, true);
+        if (entry.expect.length > 0) {
+          cham++;
+          if (hang > 0 && hang <= 3) dat++;
+        }
+        console.log(
+          `${entry.q.slice(0, 35).padEnd(35)} | ${pha.padEnd(4)} | ${String(ms).padStart(4)} | ` +
+            `${(hang === 0 ? '-' : String(hang)).padStart(4)} | ${entry.expect.join(';')}`,
+        );
+      }
+      console.log(
+        `\nhit@3 = ${dat}/${cham} · tổng ${tongMs} ms cho ${fixture.length} truy vấn ` +
+          `(trung bình ${Math.round(tongMs / fixture.length)} ms)`,
+      );
+    }
 
     /** Chế độ NỘI DUNG */
     async function doRank() {

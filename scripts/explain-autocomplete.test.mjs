@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  areaCaseFor,
   buildCases,
   median,
   parseArgs,
@@ -256,5 +257,40 @@ describe('rankOf', () => {
 
   it('không có đích thì không chấm (trả 0), tránh báo trúng giả', () => {
     expect(rankOf(rows, [])).toBe(0);
+  });
+});
+
+describe('areaCaseFor', () => {
+  it('quận → khoá cấp 6, currentKey lấy theo tên đơn vị chứ không theo cả chuỗi', () => {
+    expect(areaCaseFor('Quận 10')).toMatchObject({ q: 'quan 10', currentKey: '10', aliasLevel: 6 });
+  });
+
+  it('phường → khoá cấp 8', () => {
+    expect(areaCaseFor('Phường Bàn Cờ')).toMatchObject({ currentKey: 'ban co', aliasLevel: 8 });
+  });
+
+  /**
+   * Tỉnh SUY RA từ alias thì BỎ khoá cấp: `Bình Dương` được canonicalize thành TP Hồ Chí Minh,
+   * mà alias `thu dau mot` chỉ tồn tại ở level 6 — giữ khoá cấp 4 là không bao giờ khớp.
+   */
+  it('tỉnh cũ suy từ alias → aliasLevel null, currentKey là nameCore', () => {
+    expect(areaCaseFor('Bình Dương')).toMatchObject({ currentKey: 'binh duong', aliasLevel: null });
+    expect(areaCaseFor('Thủ Dầu Một')).toMatchObject({ aliasLevel: null });
+  });
+
+  it('truy vấn thường → không khoá cấp', () => {
+    expect(areaCaseFor('qu')).toMatchObject({ q: 'qu', currentKey: 'qu', aliasLevel: null });
+  });
+});
+
+describe('rankOf kèm dòng phụ', () => {
+  const rows = [{ name: 'Phường Bình Dương', secondary: 'Thành phố Hồ Chí Minh' }];
+
+  it('nhánh area so cả secondary — 9 ca tỉnh cũ có đích nằm ở dòng phụ', () => {
+    expect(rankOf(rows, ['ho chi minh'], true)).toBe(1);
+  });
+
+  it('mặc định KHÔNG so secondary, giữ nguyên hành vi cho nhánh poi', () => {
+    expect(rankOf(rows, ['ho chi minh'])).toBe(0);
   });
 });
