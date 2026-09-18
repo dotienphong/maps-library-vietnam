@@ -12,3 +12,4 @@ export {
   type Tier,
   USD_REFERENCE_RATE,
 } from './plans';
+export { addMonths } from './months';
