@@ -56,9 +56,9 @@ GET /accounts/<acc>/workers/durable_objects/namespaces/<ns>/objects
 ```
 
 - **Mốc 18/09/2026 sau khi deploy pha 6 và PHONG đã mở trang đích: 6 sổ, tất cả `hasStoredData`.**
-- [ ] Mở lại trang đích thêm vài lần rồi đếm lại: số phải **vẫn là 6**. `idFromName(tenantId)` là
-      tất định nên không thể sinh id mới ngoài tập tenant đang có; số tăng nghĩa là nhánh legacy
-      đã chạm Durable Object.
+- [x] **PHONG mở lại trang đích 2–3 lần, đếm lại: vẫn đúng 6 sổ, và là ĐÚNG 6 id cũ — không id
+      nào mới.** `idFromName(tenantId)` là tất định nên một sổ mới sẽ hiện ra ngay dưới dạng id
+      lạ. Nhánh legacy không chạm Durable Object. **Mục 7 khép bằng số đo, không phải suy luận.**
 
 **Phát hiện kèm theo, không thuộc pha 6:** 6 sổ là nhiều hơn số tenant đang tồn tại (16/09 đã xoá
 sạch tenant cũ, còn 1). Xoá hàng `tenant` trong Postgres KHÔNG xoá sổ Durable Object của nó, nên

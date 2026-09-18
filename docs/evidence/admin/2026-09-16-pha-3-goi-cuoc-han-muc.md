@@ -50,14 +50,16 @@ thêm trong pha này không lọt ra ngoài Access application. Hệ quả cho n
 KHÔNG phân biệt được "route đã deploy" với "route không tồn tại" — muốn biết bản nào đang chạy thì
 đọc `wrangler deployments list`, đừng suy từ mã HTTP.
 
-## 3b. CHƯA làm — nghiệm thu bằng mắt trên điện thoại
+## 3b. Nghiệm thu bằng mắt trên điện thoại — **PHONG xác nhận OK 18/09/2026**
 
-- [ ] Mở `https://api.ai-solutions.io.vn/admin/billing`, chọn một tenant `legacy` → bảng "Hôm nay"
+Toàn bộ danh sách dưới đây PHONG đã kiểm trên máy thật và báo đạt. **PHA 3 ĐÓNG.**
+
+- [x] Mở `https://api.ai-solutions.io.vn/admin/billing`, chọn một tenant `legacy` → bảng "Hôm nay"
       có số thật của ít nhất một khoá.
-- [ ] Một tenant thương mại → kỳ hiện tại, hai thanh hạn mức, bảng các kỳ đã cấp.
-- [ ] Bấm một lệnh rồi Huỷ trong 5 giây → mở lại thấy bản sổ giữ nguyên.
-- [ ] Gửi thật một lệnh nhỏ → biên lai có `operationId`, bản sổ tăng đúng 1.
-- [ ] Đối chiếu nhật ký:
+- [x] Một tenant thương mại → kỳ hiện tại, hai thanh hạn mức, bảng các kỳ đã cấp.
+- [x] Bấm một lệnh rồi Huỷ trong 5 giây → mở lại thấy bản sổ giữ nguyên.
+- [x] Gửi thật một lệnh nhỏ → biên lai có `operationId`, bản sổ tăng đúng 1.
+- [x] Đối chiếu nhật ký:
 
 ```sql
 SELECT actor, action, target, detail, created_at
