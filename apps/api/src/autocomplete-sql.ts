@@ -402,7 +402,19 @@ export async function collectCandidates(
 ): Promise<CandidateRow[]> {
   /** Mọi truy vấn của mọi bậc, kèm bậc của nó. Phát đi hết TRƯỚC khi chờ bất cứ cái nào. */
   const jobs: { stage: 1 | 2 | 3; rows: Promise<CandidateRow[]> }[] = [];
-  const add = (stage: 1 | 2 | 3, rows: Promise<CandidateRow[]>) => jobs.push({ stage, rows });
+  const add = (stage: 1 | 2 | 3, rows: Promise<CandidateRow[]>) => {
+    // Gắn handler NGAY lúc phát, không đợi `Promise.all` cuối hàm.
+    //
+    // Từ khi có bậc nhanh, giữa lúc phát và lúc chờ có một `await`. Job nào hỏng trong khoảng đó
+    // sẽ bị runtime gắn nhãn "unhandled rejection" ngay cuối lượt vi tác vụ ấy — handler attach
+    // sau đó không gỡ nhãn được nữa. Đo thật: bật cờ ở dev vars làm bộ test API từ 0 lỗi nhảy lên
+    // 4 unhandled rejection, tất cả từ `areaQuery`, dù 446 test vẫn xanh.
+    //
+    // `.catch()` ở đây CHỈ để nhận nhãn, không nuốt lỗi: `rows` vẫn reject nguyên vẹn cho nhánh
+    // await thật ở dưới, nên route vẫn bắt được và trả 503.
+    rows.catch(() => {});
+    jobs.push({ stage, rows });
+  };
 
   // `area`/`address` chạy y như nhau dù đi đường nào, nên bắn TRƯỚC, không chờ bậc nhanh.
   if (types.has('area')) add(1, areaCandidates(sql, input));
@@ -422,11 +434,20 @@ export async function collectCandidates(
   let streetFast: CandidateRow[] | null = null;
   if (fast?.tsQuery) {
     const tsQuery = fast.tsQuery;
-    [poiFast, streetFast] = await Promise.all([
+    // `allSettled` chứ KHÔNG phải `all`: `all` chỉ xử lý lời từ chối đầu tiên, cái còn lại thành
+    // unhandled rejection. Khi DB sập thì CẢ HAI truy vấn cùng reject — đo được ngay khi bật cờ ở
+    // dev vars: bộ test API từ 0 lỗi nhảy lên 4 lỗi, dù 446 test vẫn xanh. Route vẫn trả 503 đúng,
+    // nhưng mỗi request lúc DB sập lại ném thêm một rejection không ai bắt.
+    const [ketQuaPoi, ketQuaStreet] = await Promise.allSettled([
       types.has('poi') ? poiFastCandidates(sql, input, tsQuery) : null,
       // Bậc nhanh street cắt theo khoảng cách, nên không có `near` thì không có tiêu chí cắt.
       types.has('street') && input.near ? streetFastCandidates(sql, input, tsQuery) : null,
     ]);
+    // Ném lại lỗi thật để route bắt và trả 503 — `allSettled` chỉ đổi cách CHỜ, không nuốt lỗi.
+    if (ketQuaPoi.status === 'rejected') throw ketQuaPoi.reason;
+    if (ketQuaStreet.status === 'rejected') throw ketQuaStreet.reason;
+    poiFast = ketQuaPoi.value;
+    streetFast = ketQuaStreet.value;
   }
 
   // Cổng của poi là `>= limit`: bậc nhanh phải lấp đủ chỗ thì mới bỏ được nhánh trigram.
