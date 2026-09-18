@@ -16,6 +16,10 @@ describe('buildCases', () => {
       // 'cafe' chỉ một token nên không có bậc 2; bậc 3 luôn có vì viKey không rỗng.
       'bac3_name_key',
       'street',
+      'street_no_geom',
+      'street_no_matched_alt',
+      'street_no_sim',
+      'street_nhanh',
       'area_prefix',
       'area_fuzzy',
       'nhanh_like',
