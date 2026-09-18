@@ -20,6 +20,10 @@ const AuditPage = lazy(() =>
   import('@/features/audit/page').then((module) => ({ default: module.AuditPage })),
 );
 
+const HealthPage = lazy(() =>
+  import('@/features/health/page').then((module) => ({ default: module.HealthPage })),
+);
+
 const wait = (node: ReactNode) => (
   <Suspense fallback={<LoadingSkeleton rows={4} />}>{node}</Suspense>
 );
@@ -40,6 +44,7 @@ export const router = createBrowserRouter(
         { path: 'tenants', element: wait(<TenantsPage />) },
         { path: 'billing', element: wait(<BillingPage />) },
         { path: 'audit', element: wait(<AuditPage />) },
+        { path: 'health', element: wait(<HealthPage />) },
         { path: '*', element: <NotFound /> },
       ],
     },
