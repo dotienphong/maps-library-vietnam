@@ -43,6 +43,12 @@ export interface Env {
   /** Site key Turnstile — công khai, nằm trong HTML của trang, nên để `[vars]` chứ không secret. */
   TURNSTILE_SITE_KEY?: string;
   /**
+   * OAuth client kiểu Web ở Google Cloud. Vắng một trong hai → nút "Đăng nhập bằng Google" không
+   * hiện và route trả 503 `google_not_configured`; đường mã một lần vẫn dùng được bình thường.
+   */
+  GOOGLE_CLIENT_ID?: string;
+  GOOGLE_CLIENT_SECRET?: string;
+  /**
    * '1' = thêm một vòng gọi `ping()` không chạm storage vào mỗi request thương mại, để tách
    * chi phí mạng khỏi chi phí ghi bền vững. CHỈ bật trong lượt đo: nó cộng đúng một vòng mạng.
    */
