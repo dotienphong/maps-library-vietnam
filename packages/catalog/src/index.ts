@@ -13,3 +13,11 @@ export {
   USD_REFERENCE_RATE,
 } from './plans';
 export { addMonths } from './months';
+export {
+  CatalogError,
+  type CatalogErrorCode,
+  MAX_PACKS,
+  type OrderInput,
+  type Quote,
+  quoteOrder,
+} from './quote';
