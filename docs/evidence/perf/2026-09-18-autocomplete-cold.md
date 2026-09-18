@@ -391,3 +391,46 @@ lại nằm ở `area`:
 
 Chưa đo `nguyen hue` nên chưa khẳng định được nó rơi vào nhánh nào — đó là việc đầu tiên của vòng
 ba, không phải thứ để suy đoán.
+
+---
+
+# Xác nhận sau khi bật cờ vĩnh viễn (12:23, cờ trong `wrangler.toml`)
+
+Production chạy `1bc9609`, `AUTOCOMPLETE_FAST = "1"` nằm trong file nên deploy không xoá được nữa.
+Mọi mẫu `cache=miss`, 40/40 và 10/10 ACK sạch.
+
+| fixture 40 truy vấn, near HCM | đầu buổi | cờ tắt | nghiệm thu | **xác nhận** |
+|---|---:|---:|---:|---:|
+| hit@3 | 38/40 | 38/40 | 38/40 | **38/40** |
+| p50 | 996 ms | 695 ms | 578 ms | **477 ms** |
+| p95 | 3.249 ms | 2.339 ms | 1.449 ms | **1.265 ms** |
+| p99 | 4.663 ms | 4.187 ms | 4.142 ms | **1.985 ms** |
+
+Bộ 10 truy vấn **viết đúng chính tả** (near Hà Nội, có làm nóng kết nối):
+
+| | nghiệm thu | **xác nhận** |
+|---|---:|---:|
+| p50 | 500 ms | **409 ms** |
+| chậm nhất | `nguyen hue` 1.253 ms | `cafe` 677 ms |
+
+`nguyen hue` — ca chậm nhất lần trước — nay không còn trong top 5. Chưa rõ vì bản vá nào hay vì
+tải máy chủ lúc đó; **không kết luận**, vì hai lần đo cách nhau 50 phút và số của `qu` từng dao
+động 1.300–2.582 ms giữa hai vòng cùng ngày.
+
+## Tổng kết từ lúc PHONG báo "gợi ý hiện ra hơi chậm"
+
+- p50 cache-miss: **996 → 477 ms** (−52 %)
+- p95 cache-miss: **3.249 → 1.265 ms** (−61 %)
+- p99 cache-miss: **4.663 → 1.985 ms** (−57 %)
+- Người gõ đúng chính tả: p50 **409 ms**, chậm nhất 677 ms
+- hit@3 giữ nguyên **38/40** suốt, không mất một ca nào
+
+Tiêu chí p95 ≤ 1.200 ms vẫn trượt 65 ms (5 %). Giữ nguyên ghi nhận đó thay vì hạ ngưỡng cho vừa
+số đo — vòng ba nhắm vào `area` sẽ là chỗ lấy nốt.
+
+## Việc còn lại, chưa làm
+
+- `area_prefix` 362 ms với truy vấn 2 ký tự; `area_fuzzy` 700–960 ms mỗi khi pha tiền tố rỗng.
+- Chưa đo `nguyen hue` nên chưa biết ca chậm nhất rơi vào nhánh nào.
+- Bậc 3 (`name_key`) 247–437 ms với truy vấn ngắn, hiện bị cổng tắt khi bậc nhanh đủ kết quả —
+  chưa kiểm xem việc tắt đó có làm mất lớp truy vấn nào ngoài `bhx` (ca đó nay do `queryCore` lo).
