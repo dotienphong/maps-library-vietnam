@@ -19,7 +19,14 @@ const ME = {
 
 const HEALTH = {
   checked_at: '2026-09-18T10:00:00.000Z',
-  db: { ok: true, ms: 1, user: 'api', version: 'PostgreSQL 16.4', word_similarity_threshold: 0.6, schema_migration: '0019_x' },
+  db: {
+    ok: true,
+    ms: 1,
+    user: 'api',
+    version: 'PostgreSQL 16.4',
+    word_similarity_threshold: 0.6,
+    schema_migration: '0019_x',
+  },
   routing: { ok: true, ms: 2, distance_km: 2.13, phut: 7 },
   data: { ok: true, ms: 3, tiles: 'vn-1', poi: 'poi-1', updated_at: null },
 };
@@ -85,14 +92,16 @@ describe('định tuyến trang Admin', () => {
     expect(document.body.textContent).not.toContain('Không có màn hình này');
   });
 
-  it('/admin và /admin/edits hiện cùng một màn hình — Tổng quan (pha 6) chưa làm', async () => {
+  it('/admin là Tổng quan, KHÁC với /admin/edits — pha 6 đã làm', async () => {
+    // Bài cũ khẳng định hai đường dẫn hiện y hệt nhau vì route index trỏ tạm EditsPage. Nó là lời
+    // nhắc đã cài sẵn từ pha 4, và pha 6 chính là lúc nó phải đổi.
     mo('/admin');
-    await waitFor(() => expect(screen.getByRole('heading', { level: 1 })).toBeVisible());
+    expect(await screen.findByRole('link', { name: /Đóng góp chờ duyệt/ })).toBeVisible();
     const goc = screen.getByRole('main').textContent;
     cleanup();
 
     mo('/admin/edits');
     await waitFor(() => expect(screen.getByRole('heading', { level: 1 })).toBeVisible());
-    expect(screen.getByRole('main').textContent).toBe(goc);
+    expect(screen.getByRole('main').textContent).not.toBe(goc);
   });
 });

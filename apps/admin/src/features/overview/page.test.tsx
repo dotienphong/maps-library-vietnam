@@ -26,7 +26,14 @@ const METRICS = {
   computed_at: '2026-09-18T09:58:00.000Z',
   routes: [],
   tenants: [
-    { tenant_id: 't1', ten: 'Phong_Admin', requests: 1267, errors_5xx: 0, quota_429: 43, p95_ms: 900 },
+    {
+      tenant_id: 't1',
+      ten: 'Phong_Admin',
+      requests: 1267,
+      errors_5xx: 0,
+      quota_429: 43,
+      p95_ms: 900,
+    },
   ],
 };
 const QUOTA = {

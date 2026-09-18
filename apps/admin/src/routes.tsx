@@ -20,6 +20,10 @@ const AuditPage = lazy(() =>
   import('@/features/audit/page').then((module) => ({ default: module.AuditPage })),
 );
 
+const OverviewPage = lazy(() =>
+  import('@/features/overview/page').then((module) => ({ default: module.OverviewPage })),
+);
+
 const HealthPage = lazy(() =>
   import('@/features/health/page').then((module) => ({ default: module.HealthPage })),
 );
@@ -39,7 +43,7 @@ export const router = createBrowserRouter(
       // khung cũng không chắc dựng được.
       errorElement: <NotFound />,
       children: [
-        { index: true, element: wait(<EditsPage />) },
+        { index: true, element: wait(<OverviewPage />) },
         { path: 'edits', element: wait(<EditsPage />) },
         { path: 'tenants', element: wait(<TenantsPage />) },
         { path: 'billing', element: wait(<BillingPage />) },
