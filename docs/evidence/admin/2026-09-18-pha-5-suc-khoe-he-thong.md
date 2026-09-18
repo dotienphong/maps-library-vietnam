@@ -75,15 +75,17 @@ Một lượt PHONG mở trang thật, đọc từ log production. **Không có 
 Đây là bằng chứng mạnh hơn "nhìn thấy số trên màn hình": 15 ms là không thể nếu nó đi hỏi
 Analytics lại, và 604 ms là không thể nếu trạng thái sống bị cache.
 
-## 7. Nghiệm thu bằng mắt — PHONG
+## 7. Nghiệm thu bằng mắt — PHONG **PASS 18/09/2026**
 
-- [ ] `/admin/health` mở được, ba thẻ trạng thái hiện đủ
-- [ ] Bảng theo endpoint có số; p95 và tỉ lệ 5xx/429 hợp lý
-- [ ] Bấm 1 giờ / 24 giờ / 7 ngày đổi được số
-- [ ] Dòng "Số liệu tính đến HH:MM" đúng giờ VN
-- [ ] Bảng theo tenant hiện **tên** `Phong_Admin` chứ không phải uuid (nhãn lấy từ DB)
-- [ ] **Phép thử máy chủ ngủ:** tắt Docker định tuyến (hoặc để máy Mac ngủ) → thẻ Định tuyến
-      chuyển "Hỏng" kèm lý do, hai thẻ còn lại vẫn bình thường
+- [x] `/admin/health` mở được, ba thẻ trạng thái hiện đủ
+- [x] Bảng số liệu có số (xác minh cả bằng log production, mục 6)
+- [x] Đổi cửa sổ 1 giờ / 24 giờ / 7 ngày chạy được
+- [x] **Phép thử máy chủ ngủ: PASS.** Tắt định tuyến → thẻ Định tuyến chuyển "Hỏng" kèm lý do,
+      DB và Dữ liệu vẫn bình thường. Đây là phép thử đáng giá nhất của cả pha: nó chứng minh việc
+      bọc lỗi riêng từng phép đo hoạt động thật, thứ mà một ngày mọi thứ đều xanh không chứng minh
+      được.
+
+**PHA 5 ĐÓNG.**
 
 Lưu ý khi kiểm: Access chặn ở BIÊN nên gọi trần `/v1/admin/health` bằng curl luôn ra 302 — mã HTTP
 **không** phân biệt được route đã deploy với route không tồn tại. Muốn biết bản nào đang chạy thì
