@@ -405,3 +405,117 @@ describe('measurePairedCohorts luân phiên thứ tự cohort', () => {
     ]);
   });
 });
+
+/**
+ * Tenant thương mại phát receipt cho mỗi lượt Places và khoá cả tenant (429 `ack_required`,
+ * cửa sổ trượt 24 giờ) sau 3 receipt hết hạn mà không ai xác nhận. Đo production bằng `fetch`
+ * trần vì thế **làm sập tìm kiếm của chính mình từ request thứ tư** — sự cố 18/09/2026.
+ * `scripts/load-api.mjs` đã ACK từ đầu; script này thì chưa, nên cùng một cái bẫy còn nguyên.
+ */
+describe('ACK receipt', () => {
+  /** Response kèm cặp header receipt mà tenant thương mại trả về. */
+  const withReceipt = (/** @type {string} */ id, /** @type {string} */ token) =>
+    new Response('{}', {
+      headers: {
+        'x-mapslibvn-receipt-id': id,
+        'x-mapslibvn-receipt-token': token,
+      },
+    });
+
+  it('measureAutocomplete xác nhận từng receipt và không tính ACK vào số đo', async () => {
+    /** @type {{ method: string, url: string, body: unknown }[]} */
+    const calls = [];
+    let n = 0;
+    // Đúng 2 tick mỗi lượt đo: nếu ACK cũng gọi now() thì clock cạn và test ném.
+    const ticks = [0, 10, 20, 35];
+    const result = await measureAutocomplete('https://api.test', 'mlv_live_test', {
+      count: 2,
+      fetchImpl: async (url, init) => {
+        calls.push({
+          method: init?.method ?? 'GET',
+          url: String(url),
+          body: init?.body === undefined ? null : JSON.parse(String(init.body)),
+        });
+        if (String(url).includes('/ack')) return new Response('{}');
+        n++;
+        return withReceipt(`req-${n}`, `tok-${n}`);
+      },
+      now: () => {
+        const tick = ticks.shift();
+        if (tick === undefined) throw new Error('test clock hết tick');
+        return tick;
+      },
+    });
+
+    expect(result.n).toBe(2);
+    expect(result.p50).toBe(10);
+    expect(calls.filter(({ method }) => method === 'POST')).toEqual([
+      {
+        method: 'POST',
+        url: 'https://api.test/v1/quota/receipts/req-1/ack',
+        body: { token: 'tok-1' },
+      },
+      {
+        method: 'POST',
+        url: 'https://api.test/v1/quota/receipts/req-2/ack',
+        body: { token: 'tok-2' },
+      },
+    ]);
+    expect(result.acks).toEqual({ ok: 2, failed: 0 });
+  });
+
+  it('measureAutocomplete: ACK hỏng thì đếm lại, không làm hỏng phép đo', async () => {
+    const result = await measureAutocomplete('https://api.test', 'mlv_live_test', {
+      count: 1,
+      fetchImpl: async (url) =>
+        String(url).includes('/ack')
+          ? new Response('{}', { status: 503 })
+          : withReceipt('req-1', 'tok-1'),
+      now: () => 0,
+    });
+    expect(result.n).toBe(1);
+    expect(result.acks).toEqual({ ok: 0, failed: 1 });
+  });
+
+  it('measurePairedCohorts cũng xác nhận receipt của mọi cohort', async () => {
+    /** @type {string[]} */
+    const acked = [];
+    let n = 0;
+    let t = 0;
+    await measurePairedCohorts('https://api.test', 'k', {
+      cohorts: [
+        { label: 'default', types: '' },
+        { label: 'legacy', types: 'poi' },
+      ],
+      queries: [{ q: 'aa', expect: '' }],
+      fetchImpl: async (url) => {
+        if (String(url).includes('/ack')) {
+          acked.push(String(url));
+          return new Response('{}');
+        }
+        n++;
+        return withReceipt(`req-${n}`, `tok-${n}`);
+      },
+      now: () => t++,
+    });
+
+    expect(acked).toEqual([
+      'https://api.test/v1/quota/receipts/req-1/ack',
+      'https://api.test/v1/quota/receipts/req-2/ack',
+    ]);
+  });
+
+  it('không gọi ACK khi response không có header receipt (tenant legacy)', async () => {
+    /** @type {string[]} */
+    const urls = [];
+    await measureAutocomplete('https://api.test', 'mlv_live_test', {
+      count: 1,
+      fetchImpl: async (url) => {
+        urls.push(String(url));
+        return new Response('{}');
+      },
+      now: () => 0,
+    });
+    expect(urls).toHaveLength(1);
+  });
+});

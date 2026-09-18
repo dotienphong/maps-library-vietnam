@@ -38,6 +38,7 @@
     "audit:quota": "node scripts/quota-audit.mjs",
     "perf:size": "node scripts/perf-size.mjs",
     "debounce:report": "node scripts/debounce-report.mjs",
+    "explain:autocomplete": "node scripts/explain-autocomplete.mjs",
     "smoke:rate-limit": "node scripts/smoke-rate-limit.mjs",
     "smoke:directions": "node scripts/smoke-directions.mjs",
     "smoke:commercial": "node scripts/smoke-commercial.mjs",

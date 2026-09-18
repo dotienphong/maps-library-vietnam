@@ -72,6 +72,39 @@ export function parseQueryFixture(text) {
 }
 
 /**
+ * Xác nhận receipt của tenant thương mại — BẮT BUỘC, không phải lịch sự.
+ *
+ * Mỗi lượt Places của tenant thương mại phát một receipt; ba receipt hết hạn mà không ai ACK là
+ * `QuotaObject` khoá **cả tenant** bằng 429 `ack_required` với cửa sổ trượt 24 giờ, kể cả khi còn
+ * thừa hạn mức. Ngày 18/09/2026 chạy đo bằng `fetch` trần đã khoá đúng như vậy từ request thứ tư,
+ * và chỉ mở lại được bằng tay qua trang Admin. `scripts/load-api.mjs` ACK từ đầu; script này thì
+ * không, nên cùng một cái bẫy nằm im ở đây suốt.
+ *
+ * Lỗi ACK KHÔNG ném: nó chỉ làm lượt đó không được tính tiền, còn phép đo vẫn hợp lệ. Nhưng phải
+ * ĐẾM và in ra — nuốt im lặng thì cái bẫy tự lắp lại mà không ai thấy.
+ *
+ * @param {typeof fetch} fetchImpl @param {string} base @param {string} key
+ * @param {Response} response @param {{ ok: number, failed: number }} tally
+ */
+async function acknowledge(fetchImpl, base, key, response, tally) {
+  const receiptId = response.headers.get('x-mapslibvn-receipt-id');
+  const token = response.headers.get('x-mapslibvn-receipt-token');
+  if (!receiptId || !token) return;
+  try {
+    const res = await fetchImpl(`${base}/v1/quota/receipts/${encodeURIComponent(receiptId)}/ack`, {
+      method: 'POST',
+      headers: { 'X-Api-Key': key, 'content-type': 'application/json' },
+      body: JSON.stringify({ token }),
+    });
+    await res.arrayBuffer();
+    if (res.ok) tally.ok++;
+    else tally.failed++;
+  } catch {
+    tally.failed++;
+  }
+}
+
+/**
  * Đo autocomplete từ máy hiện tại; fetch/clock có thể thay bằng test double.
  * @param {string} base
  * @param {string} key
@@ -96,6 +129,7 @@ export async function measureAutocomplete(
   if (queries.length === 0) throw new Error('Không có query để đo');
   const normalizedBase = base.replace(/\/+$/, '');
   const samples = [];
+  const acks = { ok: 0, failed: 0 };
   let hit = 0;
   let judged = 0;
   /** @type {string[]} */
@@ -111,6 +145,9 @@ export async function measureAutocomplete(
     );
     const body = await res.text();
     const elapsed = now() - t0;
+    // Sau khi chốt đồng hồ (ACK không được tính vào số đo) và TRƯỚC khi ném: một request 5xx vẫn
+    // có thể đã kịp giữ chỗ và phát receipt, bỏ nó lại là góp một dòng vào cửa sổ khoá.
+    await acknowledge(fetchImpl, normalizedBase, key, res, acks);
     if (!res.ok) throw new Error(`lần ${i + 1}: HTTP ${res.status}`);
     const expects = Array.isArray(entry.expect) ? entry.expect : entry.expect ? [entry.expect] : [];
     if (expects.length > 0 && i < queries.length) {
@@ -144,6 +181,7 @@ export async function measureAutocomplete(
     ...stats,
     slowest,
     ...(judged ? { hit3: { hit, total: judged, misses } } : {}),
+    ...(acks.ok + acks.failed > 0 ? { acks } : {}),
   };
 }
 
@@ -212,6 +250,7 @@ export async function measurePairedCohorts(
   if (queries.length === 0) throw new Error('Không có query để đo');
   if (!Number.isInteger(rounds) || rounds < 1) throw new Error('rounds phải là số nguyên dương');
   const normalizedBase = base.replace(/\/+$/, '');
+  const acks = { ok: 0, failed: 0 };
   /** @type {Map<string, { query: string, ms: number, cache: string, colo: string }[]>} */
   const byLabel = new Map(cohorts.map(({ label }) => [label, []]));
 
@@ -231,6 +270,7 @@ export async function measurePairedCohorts(
         );
         await res.text();
         const ms = now() - t0;
+        await acknowledge(fetchImpl, normalizedBase, key, res, acks);
         if (!res.ok) {
           throw new Error(`${cohort.label} vòng ${round + 1} "${entry.q}": HTTP ${res.status}`);
         }
@@ -247,6 +287,7 @@ export async function measurePairedCohorts(
   }
 
   return {
+    ...(acks.ok + acks.failed > 0 ? { acks } : {}),
     cohorts: cohorts.map(({ label, types, sources }) => {
       const samples = byLabel.get(label);
       if (!samples) throw new Error(`Thiếu sample cho cohort ${label}`);
@@ -371,6 +412,7 @@ if (isMain) {
             );
           }
         }
+        if (result.acks) console.log(`ack=${result.acks.ok} ok, ${result.acks.failed} hỏng`);
         console.log(JSON.stringify(result));
       } else {
         const result = await measureAutocomplete(base, key, {
@@ -391,6 +433,9 @@ if (isMain) {
             )
             .join(', ')}`,
         );
+        // In cả khi 0 hỏng: người chạy cần thấy ACK CÓ xảy ra, không phải im lặng rồi vài chục
+        // request sau mới phát hiện tenant bị khoá.
+        if (result.acks) console.log(`ack=${result.acks.ok} ok, ${result.acks.failed} hỏng`);
         console.log(
           'Lưu ý: từ vòng lặp thứ 2 các query trùng sẽ hit cache 10 phút — giống hành vi client thật.',
         );
