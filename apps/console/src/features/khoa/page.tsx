@@ -1,3 +1,4 @@
+import { DOCS } from '@mapslibvn/catalog';
 import { Badge, Button, LoadingSkeleton, useDelayedAction } from '@mapslibvn/ui';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
@@ -51,6 +52,13 @@ export function Khoa() {
         <p className="mt-2 text-[var(--text-muted)]">
           Cấp thêm khoá <strong>không</strong> cấp thêm hạn mức: mọi khoá của tổ chức dùng chung một
           hạn mức. Cấp nhiều khoá là để tách môi trường và thu hồi riêng khi một khoá bị lộ.
+        </p>
+        {/* Link đặt ở đây chứ không chỉ ở màn hiện khoá: khối kia chỉ sống đúng một lần, còn
+            người quay lại trang này để cấp khoá thứ hai vẫn cần biết đọc tiếp ở đâu. */}
+        <p className="mt-2 text-sm">
+          <a className="underline" href={DOCS.khoaApi} target="_blank" rel="noreferrer">
+            Cách dùng khoá, giới hạn và cách thu hồi
+          </a>
         </p>
       </div>
 

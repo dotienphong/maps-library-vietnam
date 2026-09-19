@@ -1,4 +1,5 @@
 export { COMPARISON, type ComparisonRow, comparisonAgeDays, savingsPercent } from './comparison';
+export { DOCS, DOCS_URL } from './lien-ket';
 export { addMonths } from './months';
 export {
   type AddOnDefinition,

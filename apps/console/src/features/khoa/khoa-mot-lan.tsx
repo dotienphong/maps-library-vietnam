@@ -1,3 +1,4 @@
+import { DOCS } from '@mapslibvn/catalog';
 import { Button } from '@mapslibvn/ui';
 import { useState } from 'react';
 
@@ -19,6 +20,9 @@ export function KhoaMotLan({ khoa, apiBase }: { khoa: string; apiBase: string })
       datTrangThai('hong');
     }
   };
+
+  const lenhThu = `curl -H "X-Api-Key: ${khoa}" \\
+  "${apiBase}/v1/search?q=c%C3%A0%20ph%C3%AA"`;
 
   const doanMa = `const map = MapsLibVN.createMap({
   container: 'map',
@@ -62,12 +66,53 @@ export function KhoaMotLan({ khoa, apiBase }: { khoa: string; apiBase: string })
         )}
       </div>
 
-      <details className="mt-5">
-        <summary className="min-h-11 cursor-pointer font-semibold">Dán vào trang của bạn</summary>
-        <pre className="mt-2 overflow-x-auto rounded-[var(--radius-btn)] bg-black/5 p-3 text-xs dark:bg-white/10">
-          <code>{doanMa}</code>
-        </pre>
-      </details>
+      {/* Ba bước, đủ để khoá chạy được ngay trên máy khách trước khi họ rời trang. Dài hơn thế
+          thì thuộc về tài liệu, và link ở cuối dẫn sang đó. */}
+      <div className="mt-6 border-t border-[var(--border)] pt-5">
+        <h3 className="text-sm font-bold">Dùng khoá này thế nào</h3>
+
+        <ol className="mt-3 space-y-4 text-sm">
+          <li>
+            <p className="font-semibold">1. Thử ngay bằng một lệnh</p>
+            <p className="mt-1 text-[var(--text-muted)]">
+              Dán vào terminal. Khoá đi trong header <code>X-Api-Key</code>, không bao giờ đặt trên
+              URL vì URL lọt vào log và bộ nhớ đệm.
+            </p>
+            <pre className="mt-2 overflow-x-auto rounded-[var(--radius-btn)] bg-black/5 p-3 text-xs dark:bg-white/10">
+              <code>{lenhThu}</code>
+            </pre>
+          </li>
+
+          <li>
+            <p className="font-semibold">2. Cài thư viện</p>
+            <pre className="mt-2 overflow-x-auto rounded-[var(--radius-btn)] bg-black/5 p-3 text-xs dark:bg-white/10">
+              <code>npm i @mapslibvn/web</code>
+            </pre>
+          </li>
+
+          <li>
+            <p className="font-semibold">3. Dựng bản đồ đầu tiên</p>
+            <pre className="mt-2 overflow-x-auto rounded-[var(--radius-btn)] bg-black/5 p-3 text-xs dark:bg-white/10">
+              <code>{doanMa}</code>
+            </pre>
+          </li>
+        </ol>
+
+        <p className="mt-4 text-sm">
+          <a
+            className="font-semibold underline"
+            href={DOCS.batDau}
+            target="_blank"
+            rel="noreferrer"
+          >
+            Hướng dẫn bắt đầu trong 5 phút
+          </a>
+          <span className="text-[var(--text-muted)]"> · </span>
+          <a className="underline" href={DOCS.khoaApi} target="_blank" rel="noreferrer">
+            Tất cả về khoá API
+          </a>
+        </p>
+      </div>
     </section>
   );
 }
