@@ -43,20 +43,26 @@ export default defineConfig({
     include: ['test/**/*.test.ts'],
     /**
      * Vitest 4 tính unhandled rejection là đỏ (vitest 2 im lặng) — tín hiệu đáng giữ, nên ở đây
-     * chỉ lọc ĐÚNG MỘT thông điệp, không dùng `dangerouslyIgnoreUnhandledErrors`.
+     * chỉ lọc ĐÚNG HAI thông điệp và chỉ khi stack đến từ polyfill của postgres.js, không dùng
+     * `dangerouslyIgnoreUnhandledErrors`.
      *
-     * `Stream was cancelled.` phát bên trong postgres.js và KHÔNG chặn được từ mã của ta: `read()`
-     * trong cf/polyfills.js bắt lỗi socket rồi `tcp.emit('error', err)`, lúc teardown không còn
-     * listener nào cho `'error'` nên chỗ emit throw ngược vào frame async của `read()`, mà hàm đó
-     * không được ai await. Đã thử sửa ở chỗ gọi bằng `endSql()` + `.catch()` trên `end()`: không
-     * giảm được lỗi nào (vẫn 72). Binding Hyperdrive ở trên lại CHỦ Ý trỏ vào cổng đóng để nhánh
-     * lỗi /healthz/db xác định, nên tình huống này luôn xảy ra trong bộ test.
+     * Cả hai phát bên trong postgres.js và KHÔNG chặn được từ mã của ta: `read()` trong
+     * cf/polyfills.js bắt lỗi socket rồi `tcp.emit('error', err)`, lúc teardown không còn listener
+     * nào cho `'error'` nên chỗ emit throw ngược vào frame async của `read()`, mà hàm đó không
+     * được ai await. Đã thử sửa ở chỗ gọi bằng `endSql()` + `.catch()` trên `end()`: không giảm
+     * được lỗi nào. Binding Hyperdrive ở trên lại CHỦ Ý trỏ vào cổng đóng để nhánh lỗi
+     * /healthz/db xác định, nên tình huống này luôn xảy ra trong bộ test.
+     *
+     * - `Stream was cancelled.` — có từ M3, khi client bị đóng giữa chừng.
+     * - `Network connection lost.` — thêm 19/09/2026 cùng `test/scheduled.test.ts`: cron chạy với
+     *   DB không nối được là ĐÚNG cảnh bài đó dựng ra để kiểm (spec 9.4). Chỉ đỏ trên CI, không
+     *   tái hiện ở máy — khác biệt về cách cổng đóng trả lời.
      */
     onUnhandledError: (error) => {
-      const fromPostgresPolyfill =
-        error.message === 'Stream was cancelled.' &&
+      const tuPostgresPolyfill =
+        ['Stream was cancelled.', 'Network connection lost.'].includes(error.message) &&
         (error.stack ?? '').includes('postgres/cf/polyfills.js');
-      return fromPostgresPolyfill ? false : undefined;
+      return tuPostgresPolyfill ? false : undefined;
     },
   },
 });

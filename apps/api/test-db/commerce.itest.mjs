@@ -6,7 +6,26 @@ import { dungWebhook, FAKE_CHECKSUM, PAYOS_FAKE_PORT } from '../../../scripts/li
 const base = process.env.PLACES_API_BASE ?? 'http://127.0.0.1:8799';
 const payosFake = `http://127.0.0.1:${PAYOS_FAKE_PORT}`;
 const sql = postgres(process.env.DATABASE_URL ?? '', { max: 1, onnotice: () => {} });
-afterAll(() => sql.end({ timeout: 5 }));
+
+/**
+ * Tenant do bài này tạo ra. Phải dọn: `/v1/admin/quota-summary` chỉ lấy 25 tenant MỚI NHẤT, nên
+ * tám tenant bỏ lại sẽ đẩy tenant seed ra khỏi danh sách và làm đỏ một bài itest khác — đã xảy ra
+ * đúng một lần trên CI ngày 19/09/2026.
+ */
+const tenantDaTao = [];
+
+afterAll(async () => {
+  for (const id of tenantDaTao) {
+    await sql`DELETE FROM payment_event WHERE order_id IN (
+      SELECT id FROM customer_order WHERE tenant_id = ${id}::uuid)`;
+    await sql`DELETE FROM customer_order WHERE tenant_id = ${id}::uuid`;
+    await sql`DELETE FROM api_key WHERE tenant_id = ${id}::uuid`;
+    await sql`DELETE FROM tenant_member WHERE tenant_id = ${id}::uuid`;
+    await sql`UPDATE customer_account SET trial_tenant_id = NULL WHERE trial_tenant_id = ${id}::uuid`;
+    await sql`DELETE FROM tenant WHERE id = ${id}::uuid`;
+  }
+  await sql.end({ timeout: 5 });
+});
 
 const jwt = signAccessJwt({ email: 'phong@access-fake.local' });
 /** @param {string} path @param {RequestInit} [init] */
@@ -52,6 +71,7 @@ async function dangKy(ten) {
     body: JSON.stringify({ name: ten }),
   });
   const { tenant } = await tao.json();
+  tenantDaTao.push(tenant.id);
   return { email, khach, tenantId: tenant.id };
 }
 
