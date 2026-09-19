@@ -4,6 +4,7 @@ import { DelayedActionProvider } from '@mapslibvn/ui';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { MemoryRouter } from 'react-router';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { TenantsPage } from './page';
 
@@ -31,16 +32,18 @@ const stubFetch = (body: unknown, status = 200) =>
     ),
   );
 
-const renderPage = () =>
+const renderPage = (duong = '/tenants') =>
   render(
     <QueryClientProvider
       client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}
     >
       {/* AppShell bọc provider này quanh cả trang; ngăn chi tiết gọi useDelayedAction ngay cả khi
           đang đóng, nên test cũng phải dựng đúng khung đó. */}
-      <DelayedActionProvider>
-        <TenantsPage />
-      </DelayedActionProvider>
+      <MemoryRouter initialEntries={[duong]}>
+        <DelayedActionProvider>
+          <TenantsPage />
+        </DelayedActionProvider>
+      </MemoryRouter>
     </QueryClientProvider>,
   );
 
@@ -88,5 +91,11 @@ describe('TenantsPage', () => {
     await vi.waitFor(() =>
       expect(fetchMock.mock.calls.some(([path]) => String(path).includes('q=th'))).toBe(true),
     );
+  });
+
+  it('?id= trong URL mở ngăn chi tiết ngay', async () => {
+    stubFetch({ items: [tenant()], nextCursor: null, tenant: tenant(), keys: [], owner: null });
+    renderPage('/tenants?id=00000000-0000-4000-8000-0000000000cc');
+    expect(await screen.findByRole('dialog')).toBeVisible();
   });
 });

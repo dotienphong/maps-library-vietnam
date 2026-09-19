@@ -37,6 +37,8 @@ export interface TenantListPage {
 export interface TenantDetail {
   tenant: Tenant;
   keys: ApiKey[];
+  /** Chủ tổ chức (pha 4). null với tenant nội bộ hoặc tenant cũ chưa gắn tài khoản. */
+  owner: { email: string; billingEmail: string | null; accountId: string | null } | null;
 }
 
 export interface NewKeyInput {

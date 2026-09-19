@@ -1,12 +1,15 @@
 import { Badge, Button, EmptyState, ErrorState, LoadingSkeleton, RecordView } from '@mapslibvn/ui';
 import { useState } from 'react';
+import { useSearchParams } from 'react-router';
 import { TenantDetailPanel } from './detail';
 import { useTenantList } from './hooks';
 import { MODE_VI, TenantCard, tenantDate } from './tenant-card';
 
 export function TenantsPage() {
   const [q, setQ] = useState('');
-  const [openId, setOpenId] = useState<string | null>(null);
+  // Chi tiết khách hàng link tới đây bằng `?id=`; chỉ đọc lúc dựng — sau đó state là của trang.
+  const [params] = useSearchParams();
+  const [openId, setOpenId] = useState<string | null>(params.get('id'));
   const list = useTenantList(q);
   const items = list.data?.pages.flatMap((page) => page.items) ?? [];
 

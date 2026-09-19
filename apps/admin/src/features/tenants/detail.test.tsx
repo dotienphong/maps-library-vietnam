@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { act, useState } from 'react';
+import { MemoryRouter } from 'react-router';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { TenantDetailPanel } from './detail';
 
@@ -17,6 +18,7 @@ const detailBody = {
     created_at: new Date('2026-09-01T00:00:00.000Z').toISOString(),
     active_keys: 1,
   },
+  owner: null,
   keys: [
     {
       key_hash: 'a'.repeat(64),
@@ -68,9 +70,11 @@ const renderPanel = (id: string | null) =>
     <QueryClientProvider
       client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}
     >
-      <DelayedActionProvider>
-        <TenantDetailPanel id={id} onClose={vi.fn()} />
-      </DelayedActionProvider>
+      <MemoryRouter>
+        <DelayedActionProvider>
+          <TenantDetailPanel id={id} onClose={vi.fn()} />
+        </DelayedActionProvider>
+      </MemoryRouter>
     </QueryClientProvider>,
   );
 
@@ -152,9 +156,11 @@ const renderHarness = () =>
     <QueryClientProvider
       client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}
     >
-      <DelayedActionProvider>
-        <Harness />
-      </DelayedActionProvider>
+      <MemoryRouter>
+        <DelayedActionProvider>
+          <Harness />
+        </DelayedActionProvider>
+      </MemoryRouter>
     </QueryClientProvider>,
   );
 
@@ -200,5 +206,93 @@ describe('TenantDetailPanel — thao tác ghi', () => {
     renderPanel('t1');
     expect(await screen.findByRole('button', { name: /Chuyển sang thương mại/ })).toBeVisible();
     expect(screen.getByText(/bật chặn theo hạn mức ngay/)).toBeVisible();
+  });
+});
+
+describe('TenantDetailPanel — chủ tổ chức và đơn gần nhất (pha 4)', () => {
+  const ME = { email: 'p@t', permissions: ['tenants.read', 'orders.read'] };
+  const DON = {
+    items: [
+      {
+        id: 'd1',
+        orderCode: 100007,
+        noiDungChuyenKhoan: 'MLV100007',
+        kind: 'plan',
+        tier: 'starter',
+        months: 1,
+        quotaGroup: null,
+        packs: null,
+        moTa: 'Starter 1 tháng',
+        amountVnd: 650_000,
+        amountUsdCents: 2_500,
+        status: 'fulfilled',
+        checkoutUrl: null,
+        linkExpiresAt: null,
+        paidAt: null,
+        paidAmountVnd: 650_000,
+        fulfilledAt: null,
+        fulfilError: null,
+        fulfilAttempts: 0,
+        createdAt: '2026-09-19T02:00:00Z',
+        updatedAt: '2026-09-19T02:00:00Z',
+        tenantId: 't1',
+        tenantName: 'Công ty Thử Nghiệm',
+        accountId: 'a1',
+        paymentLinkId: null,
+        entitlementReceipt: null,
+        note: null,
+      },
+    ],
+    nextCursor: null,
+  };
+  const stubTheoDuong = (quyen: string[]) => {
+    const m = vi.fn(async (input: RequestInfo | URL) => {
+      const duongDan = new URL(String(input), 'https://admin.test').pathname;
+      const than =
+        duongDan === '/v1/admin/me'
+          ? { ...ME, permissions: quyen }
+          : duongDan === '/v1/admin/orders'
+            ? DON
+            : {
+                ...detailBody,
+                owner: { email: 'chu@vidu.vn', billingEmail: null, accountId: 'a1' },
+              };
+      return new Response(JSON.stringify(than), {
+        headers: { 'content-type': 'application/json' },
+      });
+    });
+    vi.stubGlobal('fetch', m);
+    return m;
+  };
+
+  it('hiện email chủ tổ chức (link sang Khách hàng) và 5 đơn gần nhất khi có orders.read', async () => {
+    stubTheoDuong(['tenants.read', 'orders.read']);
+    renderPanel('t1');
+    expect(await screen.findByRole('link', { name: 'chu@vidu.vn' })).toHaveAttribute(
+      'href',
+      '/customers?id=a1',
+    );
+    expect(await screen.findByText('Starter 1 tháng')).toBeVisible();
+    expect(screen.getByRole('link', { name: /Xem tất cả đơn/ })).toHaveAttribute(
+      'href',
+      '/orders?tenant=t1',
+    );
+  });
+
+  it('không có orders.read → không gọi /v1/admin/orders, không có mục đơn', async () => {
+    const m = stubTheoDuong(['tenants.read']);
+    renderPanel('t1');
+    expect(await screen.findByText('chu@vidu.vn')).toBeVisible();
+    expect(screen.queryByText(/Đơn gần nhất/)).toBeNull();
+    expect(m.mock.calls.map(([u]) => String(u)).some((u) => u.includes('/v1/admin/orders'))).toBe(
+      false,
+    );
+  });
+
+  it('tenant không có chủ (nội bộ) → "—"', async () => {
+    stubFetch({ ...detailBody, owner: null });
+    renderPanel('t1');
+    expect(await screen.findByText('Công ty Thử Nghiệm')).toBeVisible();
+    expect(screen.getByText('Chủ tổ chức').nextElementSibling).toHaveTextContent('—');
   });
 });

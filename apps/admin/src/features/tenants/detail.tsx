@@ -1,3 +1,4 @@
+import { dinhDangVnd } from '@mapslibvn/catalog';
 import {
   Badge,
   Button,
@@ -8,6 +9,10 @@ import {
 } from '@mapslibvn/ui';
 import * as Dialog from '@radix-ui/react-dialog';
 import { useState } from 'react';
+import { Link } from 'react-router';
+import { useDonGanNhat } from '@/features/orders/hooks';
+import { NHAN_TRANG_THAI } from '@/features/orders/trang-thai';
+import { can, useMe } from '@/lib/permissions';
 import type { ApiKey } from './api';
 import { useSetKeyRevoked, useSetQuotaMode, useTenantDetail } from './hooks';
 import { KeyRow } from './key-row';
@@ -31,6 +36,9 @@ export function TenantDetailPanel({ id, onClose }: TenantDetailPanelProps) {
   const revoke = useSetKeyRevoked();
   const doiGoi = useSetQuotaMode();
   const { schedule } = useDelayedAction();
+  const { data: me } = useMe();
+  const xemDon = can(me, 'orders.read');
+  const don = useDonGanNhat(id, { enabled: xemDon });
   if (id === null) return null;
 
   /**
@@ -112,6 +120,63 @@ export function TenantDetailPanel({ id, onClose }: TenantDetailPanelProps) {
                 <p className="select-all break-all font-mono text-xs text-[var(--text-muted)]">
                   {detail.data.tenant.id}
                 </p>
+
+                <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 text-sm">
+                  <dt className="text-[var(--text-muted)]">Chủ tổ chức</dt>
+                  <dd className="break-all">
+                    {detail.data.owner ? (
+                      detail.data.owner.accountId ? (
+                        <Link
+                          className="underline"
+                          to={`/customers?id=${detail.data.owner.accountId}`}
+                        >
+                          {detail.data.owner.email}
+                        </Link>
+                      ) : (
+                        detail.data.owner.email
+                      )
+                    ) : (
+                      '—'
+                    )}
+                  </dd>
+                </dl>
+
+                {xemDon && (
+                  <section>
+                    <div className="flex items-center gap-2">
+                      <h3 className="text-sm font-semibold">Đơn gần nhất</h3>
+                      <Link
+                        className="ml-auto text-sm underline"
+                        to={`/orders?tenant=${detail.data.tenant.id}`}
+                      >
+                        Xem tất cả đơn
+                      </Link>
+                    </div>
+                    {don.isPending && <LoadingSkeleton rows={1} />}
+                    {don.isError && (
+                      <p className="mt-1 text-sm text-[var(--text-muted)]">
+                        Không đọc được đơn của tenant này.
+                      </p>
+                    )}
+                    {don.data && don.data.items.length === 0 && (
+                      <p className="mt-1 text-sm text-[var(--text-muted)]">Chưa có đơn nào.</p>
+                    )}
+                    <ul className="mt-2 space-y-1 text-sm">
+                      {don.data?.items.map((d) => (
+                        <li key={d.id} className="flex flex-wrap items-center gap-2">
+                          <Link className="font-semibold underline" to={`/orders?id=${d.id}`}>
+                            {d.orderCode}
+                          </Link>
+                          <span>{d.moTa}</span>
+                          <span>{dinhDangVnd(d.amountVnd)}</span>
+                          <Badge tone={NHAN_TRANG_THAI[d.status].tone}>
+                            {NHAN_TRANG_THAI[d.status].nhan}
+                          </Badge>
+                        </li>
+                      ))}
+                    </ul>
+                  </section>
+                )}
 
                 <div className="rounded-[var(--radius-card)] border border-[var(--border)] p-3">
                   <p className="text-sm">

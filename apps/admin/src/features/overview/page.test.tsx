@@ -7,7 +7,7 @@ import { OverviewPage } from './page';
 
 const ME = {
   email: 'phong@test.invalid',
-  permissions: ['edits.read', 'billing.read', 'health.read', 'audit.read'],
+  permissions: ['edits.read', 'billing.read', 'health.read', 'audit.read', 'orders.read'],
 };
 const HEALTH = {
   checked_at: '2026-09-18T10:00:00.000Z',
@@ -83,6 +83,12 @@ function mo(override: (url: string) => Response | null = () => null) {
         '/v1/admin/metrics': METRICS,
         '/v1/admin/quota-summary': QUOTA,
         '/v1/admin/audit': AUDIT,
+        '/v1/admin/orders/summary': {
+          choXuLy: 3,
+          doanhThu30Ngay: 4_550_000,
+          pendingQua1Gio: 0,
+          khongKhop: 1,
+        },
       };
       return new Response(JSON.stringify(than[duongDan] ?? {}));
     }),
@@ -141,5 +147,35 @@ describe('OverviewPage', () => {
       (c) => String(c[0]),
     );
     expect(goi.some((u) => u.includes('/v1/admin/audit') && u.includes('limit=5'))).toBe(true);
+  });
+
+  it('có orders.read → hai ô Đơn chờ xử lý và Doanh thu 30 ngày, trỏ về màn Đơn hàng', async () => {
+    mo();
+    expect(await screen.findByRole('link', { name: /Đơn chờ xử lý/ })).toHaveAttribute(
+      'href',
+      '/orders?status=paid_unfulfilled',
+    );
+    expect(await screen.findByText('3')).toBeVisible();
+    expect(await screen.findByText('4.550.000đ')).toBeVisible();
+    expect(screen.getByRole('link', { name: /Doanh thu 30 ngày/ })).toHaveAttribute(
+      'href',
+      '/orders?status=fulfilled',
+    );
+  });
+
+  it('không có orders.read → không gọi summary, không có hai ô đó', async () => {
+    // So khớp theo ĐƯỜNG DẪN chứ không `includes`: '/v1/admin/metrics'.includes('/v1/admin/me')
+    // cũng là TRUE (vì "metrics" bắt đầu bằng "me"), sẽ làm hỏng luôn dữ liệu metrics.
+    mo((url) =>
+      new URL(url, 'https://admin.test').pathname === '/v1/admin/me'
+        ? new Response(JSON.stringify({ ...ME, permissions: ['edits.read'] }))
+        : null,
+    );
+    expect(await screen.findByRole('link', { name: /Đóng góp chờ duyệt/ })).toBeVisible();
+    expect(screen.queryByRole('link', { name: /Đơn chờ xử lý/ })).toBeNull();
+    const goi = (globalThis.fetch as unknown as { mock: { calls: unknown[][] } }).mock.calls.map(
+      (c) => String(c[0]),
+    );
+    expect(goi.some((u) => u.includes('/orders/summary'))).toBe(false);
   });
 });
