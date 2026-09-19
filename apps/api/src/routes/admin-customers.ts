@@ -12,7 +12,7 @@ import {
 import { endSql, getSql } from '../db';
 import type { AppEnv, Env } from '../env';
 import { ApiError } from '../errors';
-import { docJson, docLenh, NO_STORE, UUID } from './admin-lenh';
+import { docJson, docLenh, NO_STORE, UUID } from './admin-chung';
 import { encodeTenantCursor, parseTenantListParams } from './admin-tenant-params';
 
 type ChiTietAudit = Record<string, string | number | boolean | null>;

@@ -79,18 +79,27 @@ describe('voHieuHoaTaiKhoan', () => {
     });
     const kq = await voHieuHoaTaiKhoan(sql, ACCOUNT);
     expect(kq).toEqual({ doi: true, phienXoa: 2, tk: TK_MAU });
-    // Đúng ba câu, ĐỀU đi qua `tx` (bản fakeSql chạy `sql.begin` bằng chính client được truyền vào,
-    // nên `calls` gom cả ba) — không còn câu SELECT thứ tư nào chạy NGOÀI transaction.
-    expect(calls).toHaveLength(3);
-    expect(calls[0]?.text).toContain(
+    // Không đếm tổng số câu hay khớp mảnh SQL theo VỊ TRÍ — cả hai đều giòn trước một refactor vô
+    // hại (đổi alias bảng, thêm SET LOCAL). Thay vào đó: tìm đúng ba câu theo NGỮ NGHĨA rồi khẳng
+    // định cờ `inTx` — cờ này chỉ `true` khi câu chạy qua `tag` mà `sql.begin()` truyền vào
+    // callback, nên phân biệt được thật với "chạy ngoài transaction rồi tưởng là trong".
+    const trongTx = calls.filter((c) => c.inTx);
+    const capNhat = trongTx.find((c) => c.text.startsWith('UPDATE'));
+    const xoaPhien = trongTx.find((c) => c.text.startsWith('DELETE'));
+    const docLai = trongTx.find((c) => c !== capNhat && c !== xoaPhien);
+    expect(capNhat).toBeDefined();
+    expect(xoaPhien).toBeDefined();
+    expect(docLai).toBeDefined();
+    expect(capNhat?.text).toContain(
       'SET disabled_at = now() WHERE id = $1::uuid AND disabled_at IS NULL',
     );
     // RETURNING account_id chứ không phải token_hash — đếm dòng xoá được là đủ, không cần kéo
     // băm phiên vào bộ nhớ Worker.
-    expect(calls[1]?.text).toContain(
+    expect(xoaPhien?.text).toContain(
       'DELETE FROM customer_session WHERE account_id = $1::uuid RETURNING account_id',
     );
-    expect(calls[2]?.text).toContain('WHERE a.id = $1::uuid');
+    // Đọc đúng tài khoản vừa ghi — khẳng định theo tham số bind, không theo alias cột/bảng.
+    expect(docLai?.params).toContain(ACCOUNT);
   });
 
   it('đã bị khoá từ trước → doi:false nhưng phiên vẫn bị xoá (không để sót)', async () => {
@@ -107,11 +116,17 @@ describe('kichHoatLaiTaiKhoan', () => {
   it('chỉ đổi khi đang bị khoá; đọc lại tài khoản trong cùng transaction', async () => {
     const { sql, calls } = fakeSql([]);
     expect(await kichHoatLaiTaiKhoan(sql, ACCOUNT)).toEqual({ doi: false, tk: null });
-    expect(calls).toHaveLength(2);
-    expect(calls[0]?.text).toContain(
+    // Cùng cách làm với voHieuHoaTaiKhoan: khẳng định qua cờ `inTx` + ngữ nghĩa (tiền tố UPDATE,
+    // tham số bind), không đếm số câu hay khớp mảnh SQL theo vị trí.
+    const trongTx = calls.filter((c) => c.inTx);
+    const capNhat = trongTx.find((c) => c.text.startsWith('UPDATE'));
+    const docLai = trongTx.find((c) => c !== capNhat);
+    expect(capNhat).toBeDefined();
+    expect(docLai).toBeDefined();
+    expect(capNhat?.text).toContain(
       'SET disabled_at = NULL WHERE id = $1::uuid AND disabled_at IS NOT NULL',
     );
-    expect(calls[1]?.text).toContain('WHERE a.id = $1::uuid');
+    expect(docLai?.params).toContain(ACCOUNT);
   });
 });
 

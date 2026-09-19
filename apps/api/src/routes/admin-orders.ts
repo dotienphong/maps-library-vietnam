@@ -21,7 +21,7 @@ import { type ThongBaoDeps, thongBaoSauApDung } from '../commerce/thong-bao';
 import { endSql, getSql } from '../db';
 import type { AppEnv, Env } from '../env';
 import { ApiError, moTaLoi } from '../errors';
-import { docJson, docLyDo, docOperationId, NO_STORE, OPERATION_ID, UUID } from './admin-lenh';
+import { docJson, docLyDo, docOperationId, NO_STORE, OPERATION_ID, UUID } from './admin-chung';
 import { parseLimit } from './admin-list-params';
 import { donJson } from './console-orders';
 

@@ -1,13 +1,14 @@
 import { ApiError } from '../errors';
 
 /**
- * Hằng và bộ đọc lệnh dùng chung giữa hai nhóm route admin (`admin-customers.ts`,
- * `admin-orders.ts`): `NO_STORE`, khuôn `UUID`, khuôn `OPERATION_ID`, trần thân yêu cầu, đọc JSON
- * an toàn, và luật "lý do" + "operationId" bắt buộc cho mọi lệnh ghi (spec 13) — audit phải nói
- * được VÌ SAO. Tách ra đây vì hai bản đã bắt đầu trôi: `admin-orders.ts` tách `docLyDo` +
- * `docOperationId`, `admin-customers.ts` gộp thành `docLenh`. `confirm-manual` (trong
- * `admin-orders.ts`) viết một bản thứ ba inline với mã lỗi `invalid_confirm` riêng — đó là CỐ Ý,
- * hợp đồng lỗi cũ của pha 3 mà giao diện Admin đã bắt theo đúng mã này, và KHÔNG được gom vào đây.
+ * Hằng và tiện ích dùng chung giữa hai nhóm route admin (`admin-customers.ts`, `admin-orders.ts`):
+ * `NO_STORE` (header cache, dùng cả ở GET danh sách lẫn lệnh ghi), khuôn `UUID` (tham số đường
+ * dẫn), trần thân yêu cầu, đọc JSON an toàn, khuôn `OPERATION_ID`, và luật "lý do" + "operationId"
+ * bắt buộc cho mọi lệnh ghi (spec 13) — audit phải nói được VÌ SAO. Tách ra đây vì hai bản đã bắt
+ * đầu trôi: `admin-orders.ts` tách `docLyDo` + `docOperationId`, `admin-customers.ts` gộp thành
+ * `docLenh`. `confirm-manual` (trong `admin-orders.ts`) viết một bản thứ ba inline với mã lỗi
+ * `invalid_confirm` riêng — đó là CỐ Ý, hợp đồng lỗi cũ của pha 3 mà giao diện Admin đã bắt theo
+ * đúng mã này, và KHÔNG được gom vào đây.
  */
 
 export const NO_STORE = { 'cache-control': 'private, no-store' } as const;
