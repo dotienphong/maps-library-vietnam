@@ -86,10 +86,20 @@ khi Worker deploy trước migration và API chết nhiều giờ. Nó sẽ tự
    mẫu `mauMaDangNhap`, from `no-reply@ai-solutions.io.vn`, reply-to email hỗ trợ. Việc duy nhất
    còn lại của mục này là `wrangler secret put RESEND_API_KEY --env production`, PHONG chạy vì
    chế độ tự động chặn ghi secret.
-2. **Google Cloud.** Tạo OAuth client kiểu Web, thêm hai địa chỉ chuyển hướng:
-   `https://api.ai-solutions.io.vn/v1/console/auth/google/callback` và
-   `http://127.0.0.1:8799/v1/console/auth/google/callback` cho harness.
-3. **Turnstile.** Tạo widget, lấy site key và secret.
+2. ~~**Google Cloud.**~~ **XONG 19/09/2026.** Client Web trong project `mapslibvn`, hai địa chỉ
+   chuyển hướng đã khai, ứng dụng đã Publish sang In production. Hai secret đã nạp và
+   `/v1/console/config` trả `googleEnabled: true`. Chuỗi mà code sinh ra đã đối chiếu khớp từng
+   ký tự với chuỗi đã khai, cho cả production lẫn harness.
+   **Chưa nghiệm thu được luồng thật** vì `/v1/console/auth/google/start` đứng sau cổng tự phục
+   vụ, và cổng còn đóng. Bài kiểm đó phải chạy sau bước 7.
+   **Không tự động hoá được bước này:** Google không có API tạo OAuth client cho màn hình đồng ý;
+   đường API duy nhất thuộc Identity-Aware Proxy và khoá luôn redirect URI. MCP của Google Cloud
+   cũng không kết nối được từ Claude Code vì máy chủ của họ không hỗ trợ đăng ký client động.
+3. ~~**Turnstile.**~~ **Widget đã tạo 19/09/2026** qua API Cloudflare: tên `MapsLibVN Console`,
+   chế độ `managed`, giới hạn đúng `api.ai-solutions.io.vn` — cùng origin với cổng khách hàng vì
+   console được phục vụ từ chính Worker. Site key `0x4AAAAAAE8hg4LHjXPOrZF8` đã vào
+   `wrangler.toml` và đã lên production. Secret lấy lại được bất cứ lúc nào từ bảng điều khiển
+   Turnstile, nên không chép vào đây. Còn lại: `wrangler secret put TURNSTILE_SECRET`.
 4. **Đặt bốn secret** cho production:
    ```
    wrangler secret put RESEND_API_KEY --env production
@@ -100,10 +110,10 @@ khi Worker deploy trước migration và API chết nhiều giờ. Nó sẽ tự
    ```
    `SESSION_PEPPER` là chuỗi ngẫu nhiên 32 byte, sinh bằng
    `openssl rand -base64 32`. Đổi nó sau này sẽ làm mọi phiên đang mở bị đăng xuất.
-5. **Điền `TURNSTILE_SITE_KEY`** vào cả `[vars]` và khối `[env.production]` của
-   `apps/api/wrangler.toml`. Đây là giá trị công khai, không phải secret.
-6. **Chạy migration `0020` trên máy chủ TRƯỚC khi deploy Worker**, rồi đối chiếu `/healthz/db` thấy
-   `schema_migration` đã sang `0020`. Deploy trước migration đã từng làm chết API nhiều giờ.
+5. ~~**Điền `TURNSTILE_SITE_KEY`.**~~ **XONG 19/09/2026** (`2d25653`), cả hai chỗ. Deploy xanh và
+   `/v1/console/config` trả đúng site key.
+6. ~~**Chạy migration `0020` trên máy chủ.**~~ **XONG 19/09/2026**, trên máy chủ Ubuntu.
+   `/healthz/db` trả `0020_customer.sql`, cổng `check:migration` nhả, Deploy API xanh.
 7. **Đổi `SELF_SERVE` thành `"1"`** trong `[env.production]` rồi deploy lần nữa.
 8. **Tự đăng ký một tài khoản thật** bằng email của mình để nghiệm thu đầu cuối: nhận mã, tạo tổ
    chức, lấy khoá, gọi thử `/v1/autocomplete`.
