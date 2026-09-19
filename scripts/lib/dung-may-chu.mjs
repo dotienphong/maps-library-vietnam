@@ -11,6 +11,7 @@ export const CONTAINER_POSTGRES = 'mapslibvn-server-postgres-1';
  *
  * @param {string} dangChay output của `docker ps --filter ... --format {{.Names}}`
  * @param {string} daTungCo output của `docker ps -a --filter ...`
+ * @returns {{ oDay: boolean, ma: 'dang-chay' | 'co-nhung-da-tat' | 'khong-phai-may-nay' }}
  */
 export function tinhHinhMayChu(dangChay, daTungCo) {
   if (dangChay.trim()) return { oDay: true, ma: 'dang-chay' };
