@@ -3507,6 +3507,22 @@ export function CustomersPage() {
 Run: `pnpm exec vitest run apps/admin/src/features/customers apps/admin/src/routes.test.tsx && pnpm --filter @mapslibvn/admin typecheck && pnpm exec biome check apps/admin/src/features/customers`
 Expected: PASS; typecheck và biome sạch.
 
+- [ ] **Step 10b: Bốn việc dọn một dòng, gộp từ bản rà Task 6**
+
+1. `apps/admin/src/lib/permissions.test.ts` — thêm bài giữ nhánh `Array.isArray`, hiện không gì bảo vệ nó:
+
+```ts
+  it('me hỏng (permissions không phải mảng) → false, không ném', () => {
+    expect(can({ email: 'a@b.c', permissions: 'admin' } as unknown as Me, 'edits.read')).toBe(false);
+  });
+```
+
+2. `apps/admin/src/features/audit/api.ts` — thêm `'tenant.delete'` vào `LOAI_VIEC` (API phát ra loại việc này thật, ở `admin-tenants.ts`, nhưng ô gợi ý đang thiếu).
+3. `apps/admin/src/features/billing/error-vi.ts` — `customer_not_found` nói thêm vế đường dẫn sai: route trả mã này cả khi id không phải UUID, lúc đó tài khoản vẫn có thể tồn tại.
+4. `apps/admin/src/features/lenh/form-ly-do.tsx` — bỏ `aria-label="Lý do"` trên ô nhập; `<label>` đã bọc `<input>` nên tên truy cập có sẵn, giữ hai nguồn tên là mời chúng lệch nhau. `aria-label` trên thẻ `<form>` thì GIỮ NGUYÊN.
+
+Chạy lại `pnpm exec vitest run apps/admin/src` sau bốn việc này; commit kèm Task 8.
+
 - [ ] **Step 11: Commit**
 
 ```bash
