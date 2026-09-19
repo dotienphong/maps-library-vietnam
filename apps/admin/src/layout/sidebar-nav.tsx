@@ -21,6 +21,7 @@ const GROUPS: { title: string; items: NavItem[] }[] = [
     items: [
       { to: '/tenants', label: 'Tenant & khoá API', permission: 'tenants.read' },
       { to: '/billing', label: 'Gói cước & hạn mức', permission: 'billing.read' },
+      { to: '/orders', label: 'Đơn hàng & giao dịch', permission: 'orders.read' },
     ],
   },
   {

@@ -3,20 +3,24 @@ import { Hono } from 'hono';
 import { cors } from 'hono/cors';
 import { requireBillingAccess } from './access';
 import { analyticsMiddleware } from './analytics';
+import { chayCron } from './commerce/cron';
 import { dbHealth } from './db-health';
-import type { AppEnv } from './env';
+import type { AppEnv, Env } from './env';
 import { ApiError, errorResponse } from './errors';
 import { admin, requireSameSiteGhi } from './routes/admin';
+import { adminOrders } from './routes/admin-orders';
 import { adminQuotaSummary } from './routes/admin-quota-summary';
 import { autocomplete } from './routes/autocomplete';
 import { billingAdmin } from './routes/billing-admin';
 import { catalogRoute } from './routes/catalog';
 import { consoleRoutes } from './routes/console';
 import { consoleAuth } from './routes/console-auth';
+import { consoleOrders } from './routes/console-orders';
 import { directions } from './routes/directions';
 import { edits } from './routes/edits';
 import { geocodeRoute } from './routes/geocode';
 import { nearby } from './routes/nearby';
+import { payWebhook } from './routes/pay-webhook';
 import { places } from './routes/places';
 import { quotaReceipts } from './routes/quota-receipts';
 import { r2 } from './routes/r2';
@@ -27,7 +31,11 @@ import { tiles } from './routes/tiles';
 
 export { QuotaObject } from './billing/quota-object';
 
-const app = new Hono<AppEnv>();
+/**
+ * Xuất có tên để test dựng request thẳng vào router (`app.request`) — default export là object
+ * `{ fetch, scheduled }` nên không còn phương thức đó.
+ */
+export const app = new Hono<AppEnv>();
 app.use(
   '*',
   cors({
@@ -89,6 +97,17 @@ app.route('/', billingAdmin());
 app.use('/v1/admin/quota-summary', requireSameSiteGhi());
 app.use('/v1/admin/quota-summary', requireBillingAccess());
 app.route('/', adminQuotaSummary);
+// Đơn hàng và giao dịch là cùng lớp dữ liệu tiền như billing, nên chịu đúng hai cổng đó — kể cả
+// đường CHỈ ĐỌC: danh sách đơn cho biết ai trả bao nhiêu và khi nào.
+for (const duong of [
+  '/v1/admin/orders',
+  '/v1/admin/orders/*',
+  '/v1/admin/payment-events/*',
+] as const) {
+  app.use(duong, requireSameSiteGhi());
+  app.use(duong, requireBillingAccess());
+}
+app.route('/', adminOrders);
 app.get('/healthz/db', async (c) => c.json(await dbHealth(c.env, c.executionCtx)));
 app.get('/v1/attribution', (c) =>
   c.json({ text: attributionText(), html: attributionHtml(), links: ATTRIBUTION_LINKS }, 200, {
@@ -103,6 +122,12 @@ app.route('/', catalogRoute);
 app.use('/v1/console/*', requireSameSiteGhi());
 app.route('/', consoleAuth);
 app.route('/', consoleRoutes);
+app.route('/', consoleOrders);
+
+// Webhook PayOS đứng NGOÀI mọi cổng Access/CSRF/cookie: server-to-server, và chữ ký HMAC là cổng
+// duy nhất. Vì vậy nó phải nằm ngoài tiền tố `/v1/console/*` ở trên — một cổng chống CSRF ở đây
+// sẽ chặn đúng thứ cần cho qua, còn chữ ký thì đã chặn đúng thứ cần chặn.
+app.route('/', payWebhook);
 app.route('/', autocomplete);
 app.route('/', search);
 app.route('/', nearby);
@@ -117,4 +142,20 @@ app.route('/', styles);
 app.route('/', tiles);
 app.route('/', r2);
 
-export default app;
+/**
+ * Worker xuất một object thay vì mỗi `app`: `fetch` cho HTTP, `scheduled` cho cron (spec 9.4).
+ * `SELF.fetch` của cloudflare:test và `wrangler dev` đều nhận dạng này.
+ *
+ * `scheduled` KHÔNG await chayCron mà đẩy vào `waitUntil`: Cloudflare giới hạn thời gian của
+ * handler, còn từng việc bên trong đã tự bọc lỗi nên không có gì ném ra tới đây.
+ */
+export default {
+  fetch: app.fetch,
+  scheduled(controller: ScheduledController, env: Env, ctx: ExecutionContext) {
+    ctx.waitUntil(
+      chayCron(env, ctx, controller.cron).then((baoCao) => {
+        console.log(`[cron] ${controller.cron}: ${JSON.stringify(baoCao)}`);
+      }),
+    );
+  },
+};

@@ -1,6 +1,8 @@
 import { endSql, getSql } from '../db';
 import type { Env } from '../env';
 
+type Sql = ReturnType<typeof getSql>;
+
 /** Gói miễn phí của Resend: 100 thư mỗi ngày cho cả tài khoản. */
 export const TRAN_NGAY = 100;
 /** Chừa cho mã đăng nhập; việc gửi hàng loạt dừng khi phần còn lại thấp hơn mức này. */
@@ -20,14 +22,19 @@ export async function daGuiHomNay(
 ): Promise<number> {
   const sql = getSql(env);
   try {
-    const rows = await sql<{ n: number }[]>`
-      SELECT count(*)::int AS n FROM admin_audit
-      WHERE action = 'email.sent'
-        AND created_at >= date_trunc('day', now() AT TIME ZONE 'UTC')`;
-    return rows[0]?.n ?? 0;
+    return await daGuiHomNayVoiSql(sql);
   } finally {
     endSql(executionCtx, sql);
   }
+}
+
+/** Đếm bằng client đang mở — cho webhook và cron, nơi đã có `sql` trong tay. */
+export async function daGuiHomNayVoiSql(sql: Sql): Promise<number> {
+  const rows = await sql<{ n: number }[]>`
+    SELECT count(*)::int AS n FROM admin_audit
+    WHERE action = 'email.sent'
+      AND created_at >= date_trunc('day', now() AT TIME ZONE 'UTC')`;
+  return rows[0]?.n ?? 0;
 }
 
 /** Còn chỗ để gửi một thư giao dịch (mã đăng nhập, chào mừng, biên nhận) không. */

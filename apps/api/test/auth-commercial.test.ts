@@ -54,7 +54,7 @@ describe('commercial auth cutover', () => {
       paymentReference: crypto.randomUUID(),
       lineItemId: 'period',
     });
-    const app = (await import('../src/index')).default;
+    const { app } = await import('../src/index');
     const response = await app.request(
       'https://api.test/v1/autocomplete?q=cafe',
       { headers: { 'X-Api-Key': key } },

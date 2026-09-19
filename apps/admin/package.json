@@ -11,6 +11,7 @@
     "test:e2e": "playwright test"
   },
   "dependencies": {
+    "@mapslibvn/catalog": "workspace:^",
     "@mapslibvn/ui": "workspace:^",
     "@mapslibvn/web": "workspace:^",
     "@radix-ui/react-dialog": "^1.1.23",

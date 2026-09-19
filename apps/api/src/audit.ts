@@ -39,6 +39,24 @@ export async function writeAudit(sql: Sql, entry: AuditEntry): Promise<void> {
 }
 
 /**
+ * Actor của một dòng nhật ký. Người quản trị (email do Cloudflare Access xác thực) đứng trước;
+ * khách đã đăng nhập ở cổng tự phục vụ ghi dưới dạng `customer:<email>`, để đọc nhật ký phân biệt
+ * được hai loại người và một khách không bao giờ trông như một tài khoản có quyền Access.
+ *
+ * Sự cố phát hiện 19/09/2026: bản cũ chỉ đọc `reviewer`, mà không route nào của cổng khách hàng
+ * đặt biến đó — nên mọi dòng `customer.*` VÀ `email.sent` của pha 2 rơi vào im lặng, và ngân sách
+ * 100 thư/ngày của Resend (đếm bằng chính `email.sent`) chưa từng được tính.
+ */
+export function chonActor(bien: {
+  reviewer?: string | undefined;
+  customer?: { email: string } | undefined;
+}): string {
+  if (bien.reviewer) return bien.reviewer;
+  if (bien.customer?.email) return `customer:${bien.customer.email}`;
+  return '';
+}
+
+/**
  * Ghi nhật ký cho một request đang xử lý. Chạy trong `waitUntil` nên không cộng độ trễ vào phản
  * hồi; mở client riêng vì client của nhánh chính có thể đã bị `endSql` đóng trước khi tới đây.
  */
@@ -48,7 +66,7 @@ export function audit(
   target?: string,
   detail?: AuditEntry['detail'],
 ): void {
-  const actor = c.get('reviewer') ?? '';
+  const actor = chonActor({ reviewer: c.get('reviewer'), customer: c.get('customer') });
   if (!actor) return;
   try {
     const sql = getSql(c.env);

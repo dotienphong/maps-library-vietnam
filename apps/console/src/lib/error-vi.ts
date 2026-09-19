@@ -27,6 +27,21 @@ const CAU: Record<string, string> = {
   too_many_keys: 'Tổ chức đã đạt số khoá tối đa. Hãy thu hồi bớt khoá cũ.',
   key_not_found: 'Không tìm thấy khoá này.',
   server_misconfigured: 'Hệ thống chưa cấu hình đủ. Hãy liên hệ hỗ trợ.',
+  tenant_not_commercial: 'Tổ chức chưa ở chế độ thương mại. Hãy liên hệ hỗ trợ.',
+  credits_require_paid_active:
+    'Chỉ mua thêm lượt khi đang có gói trả phí. Hãy mua gói trước, hoặc gia hạn nếu gói đã hết hạn.',
+  too_many_pending_orders:
+    'Bạn đang có quá nhiều đơn chờ thanh toán. Hãy huỷ bớt ở mục Đơn hàng rồi thử lại.',
+  payment_provider_unavailable:
+    'Cổng thanh toán đang bận. Đơn đã được giữ; hãy mở đơn và bấm "Tạo lại link thanh toán".',
+  payment_provider_not_configured: 'Thanh toán trực tuyến chưa mở. Hãy liên hệ hỗ trợ.',
+  order_not_found: 'Không tìm thấy đơn này.',
+  order_not_cancellable: 'Đơn này không còn ở trạng thái huỷ được.',
+  invalid_kind: 'Nội dung đơn không hợp lệ.',
+  invalid_tier: 'Gói không hợp lệ.',
+  invalid_months: 'Kỳ thuê bao phải là 1, 3, 6 hoặc 12 tháng.',
+  invalid_group: 'Nhóm lượt không hợp lệ.',
+  invalid_packs: 'Số khối lượt phải từ 1 đến 1.000.',
   upstream_unavailable: 'Hệ thống đang bận. Hãy thử lại sau ít phút.',
 };
 

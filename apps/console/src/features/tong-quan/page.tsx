@@ -1,12 +1,15 @@
 import { PLAN_CATALOG } from '@mapslibvn/catalog';
-import { Button, LoadingSkeleton } from '@mapslibvn/ui';
+import { Badge, LoadingSkeleton } from '@mapslibvn/ui';
 import { useQuery } from '@tanstack/react-query';
-import { useRef } from 'react';
 import { Link } from 'react-router';
-import { khoaCache, useCauHinh, useToi } from '@/features/auth/hooks';
-import { layMucDung, type MucDung } from '@/lib/api';
+import { khoaCache, useToi } from '@/features/auth/hooks';
+import { NHAN_TRANG_THAI } from '@/features/don-hang/trang-thai';
+import { layDonHang, layMucDung, type MucDung } from '@/lib/api';
 import { LoiHop } from '@/lib/loi-hop';
 import { ThanhHanMuc } from './thanh-han-muc';
+
+const LOP_NUT =
+  'inline-flex min-h-11 items-center rounded-[var(--radius-btn)] border border-[var(--border)] px-4 font-semibold';
 
 const TEN_GOI: Record<string, string> = {
   trial: 'Bản dùng thử',
@@ -29,12 +32,16 @@ const soNgayConLai = (iso: string | null) =>
 
 export function TongQuan() {
   const { data: toi, isPending: dangTaiToi } = useToi();
-  const { data: cauHinh } = useCauHinh();
-  const hopThoai = useRef<HTMLDialogElement>(null);
 
   const mucDung = useQuery<MucDung>({
     queryKey: khoaCache.mucDung,
     queryFn: layMucDung,
+    enabled: toi?.onboarded === true,
+    retry: 1,
+  });
+  const donGanNhat = useQuery({
+    queryKey: khoaCache.donHang,
+    queryFn: layDonHang,
     enabled: toi?.onboarded === true,
     retry: 1,
   });
@@ -126,38 +133,49 @@ export function TongQuan() {
           </section>
 
           <section className="flex flex-wrap gap-3">
-            {['Gia hạn', 'Nâng gói', 'Mua thêm lượt'].map((nhan) => (
-              <Button key={nhan} variant="secondary" onClick={() => hopThoai.current?.showModal()}>
-                {nhan}
-              </Button>
-            ))}
+            {tier && tier !== 'trial' && (
+              <Link to={`/mua?goi=${tier}&ky=1`} className={LOP_NUT}>
+                Gia hạn
+              </Link>
+            )}
+            <Link to="/mua" className={LOP_NUT}>
+              {!tier || tier === 'trial' ? 'Mua gói' : 'Nâng gói'}
+            </Link>
+            {tier && tier !== 'trial' && (
+              <Link to="/mua?tab=luot" className={LOP_NUT}>
+                Mua thêm lượt
+              </Link>
+            )}
+          </section>
+
+          <section className="rounded-[var(--radius-card)] border border-[var(--border)] bg-[var(--surface)] p-5">
+            <div className="flex items-center justify-between">
+              <h2 className="text-base font-bold">Đơn gần nhất</h2>
+              <Link to="/don-hang" className="text-sm underline">
+                Tất cả
+              </Link>
+            </div>
+            {donGanNhat.data?.length === 0 && (
+              <p className="mt-2 text-sm text-[var(--text-muted)]">Chưa có đơn nào.</p>
+            )}
+            <ul className="mt-2 space-y-2">
+              {donGanNhat.data?.slice(0, 5).map((don) => (
+                <li
+                  key={don.id}
+                  className="flex flex-wrap items-center justify-between gap-2 text-sm"
+                >
+                  <Link to={`/don-hang/${don.id}`} className="underline">
+                    Đơn {don.orderCode} · {don.moTa}
+                  </Link>
+                  <Badge tone={NHAN_TRANG_THAI[don.status].tone}>
+                    {NHAN_TRANG_THAI[don.status].nhan}
+                  </Badge>
+                </li>
+              ))}
+            </ul>
           </section>
         </>
       )}
-
-      {/* Ba nút trên dẫn tới đây thay vì tới một trang trống: thanh toán tự phục vụ thuộc pha sau,
-          và một nút bấm vào không có gì xảy ra còn tệ hơn một câu nói thật. */}
-      <dialog
-        ref={hopThoai}
-        aria-label="Mua gói"
-        className="m-auto max-w-md rounded-[var(--radius-card)] border border-[var(--border)] bg-[var(--surface)] p-6 text-[var(--text)] backdrop:bg-black/45"
-      >
-        <h2 className="text-lg font-bold">Thanh toán tự phục vụ đang được hoàn thiện</h2>
-        <p className="mt-2 text-[var(--text-muted)]">
-          Hiện tại việc cấp gói và gia hạn làm thủ công. Hãy liên hệ để được báo giá và kích hoạt
-          trong ngày làm việc.
-        </p>
-        {cauHinh?.supportEmail && (
-          <p className="mt-3">
-            <a className="font-semibold underline" href={`mailto:${cauHinh.supportEmail}`}>
-              {cauHinh.supportEmail}
-            </a>
-          </p>
-        )}
-        <Button className="mt-5" block onClick={() => hopThoai.current?.close()}>
-          Đã hiểu
-        </Button>
-      </dialog>
     </div>
   );
 }

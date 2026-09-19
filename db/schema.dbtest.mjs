@@ -135,7 +135,7 @@ describe('lược đồ spec 5.2', () => {
     expect(owner.tableowner).toBe('pipeline');
   });
 
-  it('0015/0016/0020: api được UPDATE đúng danh sách cột, không thừa không thiếu', async () => {
+  it('0015/0016/0020/0023: api được UPDATE đúng danh sách cột, không thừa không thiếu', async () => {
     // Danh sách khớp chính xác, cả hai chiều. Thiếu một dòng nghĩa là một route quản trị sẽ trả
     // upstream_unavailable trên máy chủ thật (sự cố 15/09/2026: thu hồi khoá đổ vì 0005 chỉ cấp
     // SELECT trên api_key). Thừa một dòng nghĩa là Worker ghi được cột lẽ ra không được đụng.
@@ -156,6 +156,22 @@ describe('lược đồ spec 5.2', () => {
       'customer_account.trial_tenant_id',
       'customer_login_code.attempts',
       'customer_login_code.consumed_at',
+      // 0023 — đơn hàng. Cột nội dung và GIÁ (tenant_id, kind, tier, months, packs, amount_*,
+      // order_code, created_at) cố ý VẮNG: chúng chốt lúc tạo đơn và không route nào được đổi.
+      // Không có DELETE trên bảng nào: đơn và sự kiện thanh toán là hồ sơ tài chính.
+      'customer_order.checkout_url',
+      'customer_order.entitlement_receipt',
+      'customer_order.fulfil_attempts',
+      'customer_order.fulfil_error',
+      'customer_order.fulfilled_at',
+      'customer_order.link_expires_at',
+      'customer_order.note',
+      'customer_order.paid_amount_vnd',
+      'customer_order.paid_at',
+      'customer_order.payment_link_id',
+      'customer_order.qr_code',
+      'customer_order.status',
+      'customer_order.updated_at',
       'customer_session.expires_at',
       'customer_session.last_seen_at',
       'tenant.billing_address',
@@ -318,8 +334,9 @@ describe('lược đồ spec 5.2', () => {
       '0001_extensions.sql',
     ]);
     migrate();
-    // 21 = 17 bảng tới migration 0019, cộng bốn bảng của 0020: customer_account,
-    // customer_login_code, customer_session, tenant_member.
-    expect((await tables()).length).toBe(21);
+    // 23 = 17 bảng tới migration 0019, cộng bốn bảng của 0020 (customer_account,
+    // customer_login_code, customer_session, tenant_member) và hai bảng của 0023
+    // (customer_order, payment_event).
+    expect((await tables()).length).toBe(23);
   });
 });

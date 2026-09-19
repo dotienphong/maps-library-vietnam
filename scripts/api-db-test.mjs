@@ -9,6 +9,7 @@ import postgres from 'postgres';
 import { CERTS_PORT, FAKE_AUD, FAKE_TEAM_DOMAIN } from './lib/access-fake.mjs';
 import { DBTEST_DATABASE, isolatedDbUrl } from './lib/db-test.mjs';
 import { databaseUrlFromEnv } from './lib/migrations.mjs';
+import { FAKE_API_KEY, FAKE_CHECKSUM, FAKE_CLIENT_ID, PAYOS_FAKE_PORT } from './lib/payos-fake.mjs';
 
 const PORT = 8799;
 // Wrangler và itest phải dùng chung một pepper, nếu không `end_user_hash` do route tính sẽ không
@@ -110,6 +111,41 @@ await new Promise((resolve, reject) => {
 });
 console.log(`Access giả lập: JWKS http://127.0.0.1:${CERTS_PORT}, aud ${FAKE_AUD}`);
 
+// PayOS giả — tiến trình RIÊNG, cùng lý do với access-fake: harness gọi vitest bằng spawnSync và
+// chặn event loop của chính nó. PayOS không có sandbox thật, nên đây là nơi duy nhất kiểm được
+// đường thanh toán mà không mất tiền.
+const payosProc = spawn(process.execPath, ['scripts/lib/payos-fake.mjs'], { stdio: 'inherit' });
+// Đăng ký dọn NGAY sau khi spawn, không đợi tới `stopWrangler` phía dưới: nếu harness chết giữa
+// hai điểm đó thì payos-fake thành tiến trình mồ côi, và vì nó kế thừa stdout nên một lệnh dạng
+// `pnpm test:api-db | tail` sẽ treo mãi vì ống dẫn không bao giờ đóng. Đã vấp đúng một lần.
+const dungPayos = () => {
+  try {
+    payosProc.kill('SIGTERM');
+  } catch (error) {
+    if (!(error instanceof Error) || !('code' in error) || error.code !== 'ESRCH') throw error;
+  }
+};
+process.once('exit', dungPayos);
+process.once('SIGINT', dungPayos);
+process.once('SIGTERM', dungPayos);
+
+await new Promise((resolve, reject) => {
+  const deadline = Date.now() + 15_000;
+  const tick = async () => {
+    if (payosProc.exitCode !== null) return reject(new Error('payos-fake thoát sớm'));
+    try {
+      if ((await fetch(`http://127.0.0.1:${PAYOS_FAKE_PORT}/healthz`)).ok)
+        return resolve(undefined);
+    } catch {
+      // chưa lên, thử lại
+    }
+    if (Date.now() > deadline) return reject(new Error('payos-fake không lên trong 15 giây'));
+    setTimeout(tick, 250);
+  };
+  void tick();
+});
+console.log(`PayOS giả lập: http://127.0.0.1:${PAYOS_FAKE_PORT}`);
+
 // Tiles phục vụ tại chỗ: nạp fixture Quận 1 vào R2 local rồi trỏ TILES_BASE về chính harness.
 // Thiếu bước này, style trả về URL pmtiles trên tiles.ai-solutions.io.vn trỏ tới một release
 // chỉ có ở local (q1-fixture) nên luôn 404, và bản đồ trong trang admin trống trơn — mất luôn
@@ -167,6 +203,21 @@ const wrangler = crossSpawn(
     `SESSION_PEPPER:${IP_HASH_PEPPER}`,
     '--var',
     `TILES_BASE:http://127.0.0.1:${PORT}/r2`,
+    // Nhóm đơn hàng: ba khoá GIẢ và gốc trỏ về payos-fake. `CONSOLE_ORIGIN` để thư gửi từ cron có
+    // link; `--test-scheduled` mở `/__scheduled?cron=…` cho itest gọi cron bằng tay.
+    '--var',
+    `PAYOS_CLIENT_ID:${FAKE_CLIENT_ID}`,
+    '--var',
+    `PAYOS_API_KEY:${FAKE_API_KEY}`,
+    '--var',
+    `PAYOS_CHECKSUM_KEY:${FAKE_CHECKSUM}`,
+    '--var',
+    `PAYOS_BASE:http://127.0.0.1:${PAYOS_FAKE_PORT}`,
+    '--var',
+    `PAYOS_CHECKOUT_BASE:http://127.0.0.1:${PAYOS_FAKE_PORT}`,
+    '--var',
+    `CONSOLE_ORIGIN:http://127.0.0.1:${PORT}`,
+    '--test-scheduled',
   ],
   {
     stdio: 'inherit',
@@ -182,6 +233,7 @@ let stopped = false;
 function stopWrangler() {
   if (stopped) return;
   stopped = true;
+  dungPayos();
   for (const child of [wrangler, certsProc]) {
     try {
       if (detached && child.pid) process.kill(-child.pid, 'SIGTERM');
@@ -225,6 +277,7 @@ try {
   run('pnpm', ['exec', 'vitest', 'run', '--config', 'apps/api/vitest.itest.config.ts'], {
     PLACES_API_BASE: `http://127.0.0.1:${PORT}`,
     IP_HASH_PEPPER,
+    PAYOS_CHECKSUM_KEY: FAKE_CHECKSUM,
   });
 } finally {
   stopWrangler();

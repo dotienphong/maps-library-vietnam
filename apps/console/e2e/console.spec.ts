@@ -1,42 +1,5 @@
-import { expect, type Page, test } from '@playwright/test';
-
-/** Mỗi lượt chạy một email mới: bảng tài khoản sống qua các lần chạy trong cùng một harness. */
-const emailMoi = () => `thu-${Date.now()}-${Math.floor(Math.random() * 1000)}@vidu.vn`;
-
-/** Xin mã rồi đọc lại từ header `X-Debug-Otp` — đường này chỉ sống ngoài production. */
-async function xinMaVaDoc(page: Page, email: string): Promise<string> {
-  await page.goto('/console/dang-nhap');
-  await page.getByLabel('Email').fill(email);
-  const [res] = await Promise.all([
-    page.waitForResponse((r) => r.url().includes('/auth/otp/request')),
-    page.getByRole('button', { name: /Gửi mã/ }).click(),
-  ]);
-  const ma = res.headers()['x-debug-otp'];
-  expect(ma, 'harness phải trả mã qua header để e2e chạy được').toMatch(/^\d{6}$/);
-  return ma as string;
-}
-
-async function nhapMa(page: Page, ma: string) {
-  for (let i = 0; i < 6; i += 1) {
-    await page.getByLabel(`Chữ số thứ ${i + 1}`).fill(ma[i] as string);
-  }
-}
-
-async function dangNhap(page: Page, email: string) {
-  const ma = await xinMaVaDoc(page, email);
-  await nhapMa(page, ma);
-}
-
-/** Đăng ký trọn vẹn rồi trả về khoá API vừa cấp. */
-async function dangKyLayKhoa(page: Page, email: string, tenToChuc: string): Promise<string> {
-  await dangNhap(page, email);
-  await expect(page).toHaveURL(/\/console\/bat-dau/);
-  await page.getByLabel('Tên tổ chức').fill(tenToChuc);
-  await page.getByRole('button', { name: /Tạo và lấy khoá/ }).click();
-  const khoa = await page.getByTestId('khoa-mot-lan').innerText();
-  expect(khoa).toMatch(/^mlv_live_[0-9A-Za-z]{24}$/);
-  return khoa;
-}
+import { expect, test } from '@playwright/test';
+import { dangKyLayKhoa, emailMoi, nhapMa, xinMaVaDoc } from './helpers';
 
 test('người lạ đăng ký, lấy khoá và gọi được API thật bằng chính khoá đó', async ({
   page,

@@ -18,6 +18,13 @@ const TongQuan = lazy(() =>
 );
 const Khoa = lazy(() => import('@/features/khoa/page').then((m) => ({ default: m.Khoa })));
 const CaiDat = lazy(() => import('@/features/cai-dat/page').then((m) => ({ default: m.CaiDat })));
+const Mua = lazy(() => import('@/features/mua/page').then((m) => ({ default: m.Mua })));
+const DonHang = lazy(() =>
+  import('@/features/don-hang/page').then((m) => ({ default: m.DonHangPage })),
+);
+const ChiTietDon = lazy(() =>
+  import('@/features/don-hang/chi-tiet').then((m) => ({ default: m.ChiTietDon })),
+);
 
 const cho = (node: ReactNode) => (
   <Suspense fallback={<LoadingSkeleton rows={3} />}>{node}</Suspense>
@@ -43,6 +50,9 @@ export const router = createBrowserRouter(
         { path: 'bat-dau', element: cho(<BatDau />) },
         { path: 'khoa', element: cho(<Khoa />) },
         { path: 'cai-dat', element: cho(<CaiDat />) },
+        { path: 'mua', element: cho(<Mua />) },
+        { path: 'don-hang', element: cho(<DonHang />) },
+        { path: 'don-hang/:id', element: cho(<ChiTietDon />) },
         { path: '*', element: cho(<TongQuan />) },
       ],
     },

@@ -14,6 +14,8 @@ const ME = {
     'billing.read',
     'health.read',
     'audit.read',
+    'orders.read',
+    'orders.write',
   ],
 };
 

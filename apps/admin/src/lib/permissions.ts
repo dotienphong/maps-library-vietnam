@@ -9,7 +9,9 @@ export type Permission =
   | 'billing.read'
   | 'billing.write'
   | 'health.read'
-  | 'audit.read';
+  | 'audit.read'
+  | 'orders.read'
+  | 'orders.write';
 
 export interface Me {
   email: string;

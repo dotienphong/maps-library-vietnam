@@ -78,6 +78,9 @@ const ALL_PERMISSIONS = [
   'billing.write',
   'health.read',
   'audit.read',
+  // 0023 — đơn hàng và giao dịch (pha 3). `orders.write` gắn với mọi lệnh chạm tiền.
+  'orders.read',
+  'orders.write',
 ] as const;
 
 admin.get('/v1/admin/me', (c) =>

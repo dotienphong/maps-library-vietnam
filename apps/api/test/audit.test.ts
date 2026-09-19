@@ -1,5 +1,5 @@
-import { describe, expect, it } from 'vitest';
-import { audit, writeAudit } from '../src/audit';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import { audit, chonActor, writeAudit } from '../src/audit';
 import { fakeSql } from './helpers/fake-sql';
 
 type Sql = Parameters<typeof writeAudit>[0];
@@ -61,5 +61,54 @@ describe('audit() không bao giờ làm hỏng thao tác chính', () => {
     } as unknown as Parameters<typeof audit>[0];
 
     expect(() => audit(c, 'billing.command', 'tenant-1', { kind: 'suspend' })).not.toThrow();
+  });
+});
+
+describe('chonActor', () => {
+  it('có reviewer → actor là email do Cloudflare Access xác thực', () => {
+    expect(chonActor({ reviewer: 'phong@test.local' })).toBe('phong@test.local');
+  });
+
+  it('không có reviewer nhưng có khách đã đăng nhập → customer:<email>', () => {
+    // Tiền tố `customer:` để đọc nhật ký phân biệt được người quản trị với khách tự phục vụ,
+    // và để một khách không bao giờ trông như một người có quyền Access.
+    expect(chonActor({ customer: { email: 'khach@vidu.vn' } })).toBe('customer:khach@vidu.vn');
+  });
+
+  it('có cả hai → reviewer thắng', () => {
+    expect(chonActor({ reviewer: 'phong@test.local', customer: { email: 'khach@vidu.vn' } })).toBe(
+      'phong@test.local',
+    );
+  });
+
+  it('không có gì → chuỗi rỗng', () => {
+    expect(chonActor({})).toBe('');
+    expect(chonActor({ reviewer: '', customer: { email: '' } })).toBe('');
+  });
+});
+
+describe('audit() dùng chonActor', () => {
+  afterEach(() => vi.restoreAllMocks());
+
+  /** env rỗng nên getSql ném ngay; audit() nuốt lỗi và ghi log — dấu hiệu nó ĐÃ chạy tiếp. */
+  const goiVoi = (bien: Record<string, unknown>) => {
+    const loi = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const c = {
+      get: (k: string) => bien[k],
+      env: {},
+      executionCtx: { waitUntil: () => {} },
+    } as unknown as Parameters<typeof audit>[0];
+    audit(c, 'customer.key_issue', 'abc');
+    return loi;
+  };
+
+  it('chỉ có customer trong context → KHÔNG bỏ qua dòng nhật ký nữa', () => {
+    // Trước 19/09/2026 audit() chỉ đọc `reviewer`, nên mọi dòng customer.* và email.sent của cổng
+    // khách hàng rơi vào im lặng — và ngân sách 100 thư/ngày của Resend chưa từng được đếm.
+    expect(goiVoi({ customer: { email: 'khach@vidu.vn' } })).toHaveBeenCalled();
+  });
+
+  it('không có actor nào → vẫn bỏ qua, không chạm DB', () => {
+    expect(goiVoi({})).not.toHaveBeenCalled();
   });
 });
