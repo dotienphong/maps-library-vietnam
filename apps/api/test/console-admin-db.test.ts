@@ -19,8 +19,15 @@ describe('danhSachTaiKhoanAdmin', () => {
     expect(q.text).toContain("a.name ILIKE '%' || $");
     expect(q.text).toContain('LEFT JOIN LATERAL');
     expect(q.text).toContain("m.role = 'owner'");
+    // Giữ đúng LIMIT 1 bên trong LATERAL — đây là thứ chống nhân dòng khi một tài khoản làm owner
+    // nhiều tenant; bỏ mất nó thì mọi bài trên vẫn xanh (LATERAL vẫn chạy), chỉ có dữ liệu là sai.
+    expect(q.text).toContain('LIMIT 1) t ON true');
     expect(q.text).toContain('LIMIT $');
     expect(q.params).toContain(26);
+    // `google_sub` KHÔNG được lọt ra thành một cột riêng — chỉ được phép xuất hiện bên trong biểu
+    // thức `(a.google_sub IS NOT NULL)`. Không dùng `not.toContain('a.google_sub')` được vì chuỗi
+    // đó cũng nằm trong biểu thức hợp lệ; test bằng regex đòi dấu phẩy hoặc xuống dòng ngay sau.
+    expect(q.text).not.toMatch(/a\.google_sub\s*[,\n]/);
   });
 
   it('con trỏ bind qua ::text::timestamptz như danh sách tenant', async () => {
@@ -52,18 +59,24 @@ describe('phienCuaTaiKhoan', () => {
 describe('voHieuHoaTaiKhoan', () => {
   it('đặt disabled_at CHỈ khi còn NULL rồi xoá mọi phiên, trong một transaction', async () => {
     const { sql, calls } = fakeSql((q) =>
-      q.text.startsWith('UPDATE') ? [{ id: ACCOUNT }] : [{ token_hash: 'a' }, { token_hash: 'b' }],
+      q.text.startsWith('UPDATE')
+        ? [{ id: ACCOUNT }]
+        : [{ account_id: ACCOUNT }, { account_id: ACCOUNT }],
     );
     const kq = await voHieuHoaTaiKhoan(sql, ACCOUNT);
     expect(kq).toEqual({ doi: true, phienXoa: 2 });
     expect(calls[0]?.text).toContain(
       'SET disabled_at = now() WHERE id = $1::uuid AND disabled_at IS NULL',
     );
-    expect(calls[1]?.text).toContain('DELETE FROM customer_session WHERE account_id = $1::uuid');
+    // RETURNING account_id chứ không phải token_hash — đếm dòng xoá được là đủ, không cần kéo
+    // băm phiên vào bộ nhớ Worker.
+    expect(calls[1]?.text).toContain(
+      'DELETE FROM customer_session WHERE account_id = $1::uuid RETURNING account_id',
+    );
   });
 
   it('đã bị khoá từ trước → doi:false nhưng phiên vẫn bị xoá (không để sót)', async () => {
-    const { sql } = fakeSql((q) => (q.text.startsWith('UPDATE') ? [] : [{ token_hash: 'x' }]));
+    const { sql } = fakeSql((q) => (q.text.startsWith('UPDATE') ? [] : [{ account_id: ACCOUNT }]));
     expect(await voHieuHoaTaiKhoan(sql, ACCOUNT)).toEqual({ doi: false, phienXoa: 1 });
   });
 });

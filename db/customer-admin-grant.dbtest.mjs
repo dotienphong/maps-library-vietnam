@@ -18,6 +18,8 @@ const sql = postgres(url, { max: 1, onnotice: () => {} });
 
 const EMAIL = 'kiem-grant-admin-khach@vidu.vn';
 const TENANT = 'Kiểm GRANT admin khách';
+/** Tenant thứ hai, cùng chủ sở hữu — để bắt trường hợp LATERAL nhân dòng nếu thiếu LIMIT 1. */
+const TENANT2 = 'Kiểm GRANT admin khách 2';
 const TOKEN = 'c'.repeat(64);
 /** @type {string} */ let accountId;
 /** @type {string} */ let tenantId;
@@ -34,9 +36,9 @@ async function duoiRoleApi(fn) {
 
 async function don() {
   await sql`DELETE FROM customer_session WHERE token_hash = ${TOKEN}`;
-  await sql`DELETE FROM tenant_member WHERE tenant_id IN (SELECT id FROM tenant WHERE name = ${TENANT})`;
+  await sql`DELETE FROM tenant_member WHERE tenant_id IN (SELECT id FROM tenant WHERE name IN (${TENANT}, ${TENANT2}))`;
   await sql`UPDATE customer_account SET trial_tenant_id = NULL WHERE email = ${EMAIL}`;
-  await sql`DELETE FROM tenant WHERE name = ${TENANT}`;
+  await sql`DELETE FROM tenant WHERE name IN (${TENANT}, ${TENANT2})`;
   await sql`DELETE FROM customer_account WHERE email = ${EMAIL}`;
 }
 
@@ -48,7 +50,7 @@ const TU_TENANT = `FROM customer_account a
     SELECT m.tenant_id, tn.name AS tenant_name, tn.quota_mode AS tenant_quota_mode
     FROM tenant_member m JOIN tenant tn ON tn.id = m.tenant_id
     WHERE m.account_id = a.id AND m.role = 'owner'
-    ORDER BY m.created_at LIMIT 1) t ON true`;
+    ORDER BY m.created_at, m.tenant_id LIMIT 1) t ON true`;
 
 describe('GRANT cho admin tài khoản khách (pha 4) dưới role api', () => {
   beforeAll(async () => {
@@ -59,6 +61,13 @@ describe('GRANT cho admin tài khoản khách (pha 4) dưới role api', () => {
       INSERT INTO tenant (name, plan, quota_mode) VALUES (${TENANT}, 'free', 'commercial') RETURNING id`;
     await sql`INSERT INTO tenant_member (tenant_id, account_id, role)
       VALUES (${tenantId}::uuid, ${accountId}::uuid, 'owner')`;
+    // Tenant thứ hai, cùng chủ sở hữu, tạo trong cùng lần beforeAll nên created_at có thể trùng
+    // giây với tenant đầu — đúng kịch bản mà thiếu tie-breaker (m.tenant_id) sẽ làm LATERAL trả
+    // ngẫu nhiên giữa hai lần chạy.
+    const [{ id: tenantId2 }] = await sql`
+      INSERT INTO tenant (name, plan, quota_mode) VALUES (${TENANT2}, 'free', 'commercial') RETURNING id`;
+    await sql`INSERT INTO tenant_member (tenant_id, account_id, role)
+      VALUES (${tenantId2}::uuid, ${accountId}::uuid, 'owner')`;
     await sql`INSERT INTO customer_session (token_hash, account_id, expires_at, user_agent)
       VALUES (${TOKEN}, ${accountId}::uuid, now() + interval '1 day', 'kiem-grant')`;
   });
@@ -80,7 +89,9 @@ describe('GRANT cho admin tài khoản khách (pha 4) dưới role api', () => {
         ['kiem-grant-admin', null, null],
       );
       expect(ds.map((d) => d.email)).toContain(EMAIL);
-      expect(ds.find((d) => d.email === EMAIL).tenant_name).toBe(TENANT);
+      // Tài khoản là owner của HAI tenant nhưng phải chỉ hiện đúng MỘT dòng trong danh sách —
+      // đây là điều mà LIMIT 1 trong LATERAL đảm bảo; thiếu nó thì dòng bị nhân đôi.
+      expect(ds.filter((d) => d.email === EMAIL)).toHaveLength(1);
       expect(ds.find((d) => d.email === EMAIL).google_linked).toBe(false);
 
       const [chiTiet] = await sql.unsafe(`SELECT ${COT} ${TU_TENANT} WHERE a.id = $1::uuid`, [
@@ -102,7 +113,7 @@ describe('GRANT cho admin tài khoản khách (pha 4) dưới role api', () => {
         const doi = await tx`UPDATE customer_account SET disabled_at = now()
           WHERE id = ${accountId}::uuid AND disabled_at IS NULL RETURNING id`;
         const phien = await tx`DELETE FROM customer_session
-          WHERE account_id = ${accountId}::uuid RETURNING token_hash`;
+          WHERE account_id = ${accountId}::uuid RETURNING account_id`;
         return { doi: doi.length, phienXoa: phien.length };
       });
       expect(kq).toEqual({ doi: 1, phienXoa: 1 });

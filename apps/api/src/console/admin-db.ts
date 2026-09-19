@@ -41,8 +41,12 @@ const TU_TENANT = `FROM customer_account a
     SELECT m.tenant_id, tn.name AS tenant_name, tn.quota_mode AS tenant_quota_mode
     FROM tenant_member m JOIN tenant tn ON tn.id = m.tenant_id
     WHERE m.account_id = a.id AND m.role = 'owner'
-    ORDER BY m.created_at LIMIT 1) t ON true`;
+    ORDER BY m.created_at, m.tenant_id LIMIT 1) t ON true`;
 
+/**
+ * Danh sách tài khoản, phân trang bằng con trỏ. `p.limit` KHÔNG bị kẹp ở đây — tầng gọi (route)
+ * phải tự kẹp trước khi truyền vào, nếu không một request tuỳ ý có thể đòi `LIMIT` lớn tuỳ ý.
+ */
 export async function danhSachTaiKhoanAdmin(
   sql: Sql,
   p: { q: string | null; limit: number; cursor: { createdAt: string; id: string } | null },
@@ -99,8 +103,10 @@ export async function voHieuHoaTaiKhoan(
     const doi = await tx<{ id: string }[]>`
       UPDATE customer_account SET disabled_at = now()
       WHERE id = ${accountId}::uuid AND disabled_at IS NULL RETURNING id`;
-    const phien = await tx<{ token_hash: string }[]>`
-      DELETE FROM customer_session WHERE account_id = ${accountId}::uuid RETURNING token_hash`;
+    // RETURNING account_id chứ không phải token_hash — chỉ cần đếm số dòng xoá được, không có lý
+    // do gì kéo băm phiên vào bộ nhớ Worker rồi có thể lọt vào một stack dump nào đó sau này.
+    const phien = await tx<{ account_id: string }[]>`
+      DELETE FROM customer_session WHERE account_id = ${accountId}::uuid RETURNING account_id`;
     return { doi: doi.length > 0, phienXoa: phien.length };
   });
 }
