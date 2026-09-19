@@ -69,7 +69,8 @@ async function dangNhap(email) {
 /** @param {string} action @param {string} target */
 async function doiAudit(action, target) {
   for (let i = 0; i < 24; i += 1) {
-    const rows = await sql`SELECT detail FROM admin_audit WHERE action = ${action} AND target = ${target}`;
+    const rows = await sql`SELECT detail FROM admin_audit
+      WHERE action = ${action} AND target = ${target} ORDER BY created_at DESC`;
     if (rows.length > 0) return rows;
     await new Promise((r) => setTimeout(r, 250));
   }
@@ -131,12 +132,13 @@ describe('admin tài khoản khách — trọn chặng', () => {
     expect(audit).toHaveLength(1);
     expect(audit[0].detail.reason).toBe('Kiểm thử vô hiệu hoá');
 
-    // Gọi lại: thành công, không đổi gì.
+    // Gọi lại: thành công, không đổi gì, và KHÔNG ghi thêm dòng audit thứ hai.
     const lai = await adminFetch(`/v1/admin/customers/${id}/disable`, {
       method: 'POST',
       body: JSON.stringify(than),
     });
     expect((await lai.json()).moi).toBe(false);
+    expect(await doiAudit('admin.customer.disable', id)).toHaveLength(1);
 
     // Kích hoạt lại → đăng nhập được, /me 200.
     const mo = await adminFetch(`/v1/admin/customers/${id}/enable`, {
