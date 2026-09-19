@@ -3840,6 +3840,38 @@ Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>"
 
 ---
 
+### Task 9b: Gom hai chỗ trùng của giao diện admin
+
+Sinh ra từ ba bản rà (Task 7, 8, 9). **Chạy sau khi Task 10 đã chạy e2e xong**, để không làm bẩn cây lúc harness dựng bản build.
+
+**Files:**
+- Create: `apps/admin/src/features/orders/don-gan-nhat.tsx` (+ `.test.tsx`), `apps/admin/src/features/lenh/dung-lenh-hoan-lai.ts` (+ `.test.ts`)
+- Modify: `apps/admin/src/features/tenants/detail.tsx`, `apps/admin/src/features/customers/chi-tiet.tsx`, `apps/admin/src/features/orders/chi-tiet.tsx`
+
+- [ ] **Step 1: `DanhSachDonGanNhat` — một bản duy nhất**
+
+Chi tiết tenant và chi tiết khách hàng đang dựng cùng một danh sách "Đơn gần nhất" bằng hai đoạn mã ~25 dòng gần trùng, **và chúng đã lệch nhau ngay lần sinh thứ hai**: một bên `font-bold`, bên kia `font-semibold`; một bên có nhánh `isError`, bên kia không. Tách thành một component nhận `tenantId` và `enabled`, đặt trong `features/orders/` vì nó thuộc miền đơn hàng, rồi hai màn cùng dùng. Giữ nhánh lỗi (bản đầy đủ hơn trong hai bản). Bài kiểm: rỗng, có đơn, lỗi, và không gọi mạng khi `enabled` sai.
+
+- [ ] **Step 2: `dungLenhHoanLai()` — một chỗ giữ bất biến "operationId sinh lúc bấm"**
+
+Bốn chỗ đang lặp cùng một đoạn: `crypto.randomUUID()` → `schedule({ label, run })` → `onClose()`. Đó là nơi sống của một bất biến quan trọng, mà hiện mỗi bản tự giữ lấy. Gói thành một hook nhận `{ label, onClose }` và trả hàm chạy lệnh, để **một** bài kiểm khoá được cả bốn chỗ gọi. Không gói phần thân form.
+
+- [ ] **Step 3: Cổng và commit**
+
+```bash
+pnpm exec vitest run apps/admin/src
+pnpm --filter @mapslibvn/admin typecheck
+pnpm exec biome check apps/admin/src
+```
+
+```bash
+git commit apps/admin/src -m "refactor(admin): một bản danh sách Đơn gần nhất dùng chung, một hook giữ bất biến operationId sinh lúc bấm
+
+Co-Authored-By: Claude Opus 5 (1M context) <noreply@anthropic.com>"
+```
+
+---
+
 ### Task 10: e2e Playwright — khách hàng và huỷ đơn qua giao diện thật
 
 **Files:**
