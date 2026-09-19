@@ -146,6 +146,47 @@ dựng đúng cảnh "script không tải được" để chắc rằng nút v�
 canh, và nó sẽ hỏng đúng lúc gặp người dùng thật. Cùng lớp với "đo ở dev rồi kết luận" đã ghi ở
 các mốc trước.
 
+## 5c. Sự cố 19/09: khách bấm xin mã, màn hình chạy tiếp, thư không bao giờ tới
+
+**Nguyên nhân: khoá Resend nạp vào Worker thừa đúng MỘT ký tự.** Kết quả của công cụ in liền
+`Token: re_…dxgjhoIMPORTANT: The token above is only shown once`, và chữ `I` mở đầu chữ
+`IMPORTANT` bị đọc nhầm thành ký tự cuối của khoá. Resend trả 401 cho mọi lần gửi.
+
+Chứng minh bằng hai lời gọi thẳng vào Resend với cùng `from`, `to` và nội dung:
+
+| Khoá | Kết quả |
+|---|---|
+| `…dxgjhoI` (bản đã nạp) | 401 `API key is invalid` |
+| `…dxgjho` (bản đúng) | 200, thư gửi đi |
+
+**Vì sao không ai thấy gì.** Route `otp/request` gửi thư trong `waitUntil` để khách không phải
+chờ Resend, nên nó trả 200 và giao diện chuyển sang màn nhập mã như bình thường. Đó là thiết kế
+đúng, nhưng nó có nghĩa là **một khoá sai trông y hệt một hệ thống khoẻ mạnh** từ phía người dùng.
+
+**Log giấu mất câu trả lời.** Dòng `console.error('…', error)` đưa nguyên đối tượng `Error` cho
+Workers Observability, và cái còn lại trong log chỉ là `at Object.send (index.js:10009:15)` —
+không có `email_send_failed_401`. Đã sửa để in cả `message`. Con số 401 nằm sẵn trong log thì việc
+truy vết là một phút thay vì mười.
+
+**Ba mốc để lần sau soi đúng thứ tự:** Resend `list-emails` không có bản ghi nào (nếu Resend từ
+chối thì KHÔNG có bản ghi, nên "danh sách rỗng" không loại trừ việc Worker đã gọi) → log Worker
+có dòng lỗi từ `Object.send` → gọi thẳng Resend bằng đúng khoá đó để tách "khoá hỏng" khỏi "Worker
+không gọi".
+
+## 5d. Đăng nhập Google: ba lần hỏng, ba nguyên nhân khác nhau
+
+Đọc từ log Workers Observability, cả ba đều trước hoặc ngoài bản vá:
+
+| Lúc | Mã | Nguyên nhân đọc được từ log |
+|---|---|---|
+| 03:53 | 503 | lỗi Postgres trong callback, stack dừng ở `postgres.js` |
+| 03:59 | 503 | `doiCodeLayToken` — Google từ chối đổi `code` lấy token |
+| 04:16 | 400 | `invalid_oauth_state` — cookie `mlv_oauth` sống 600 giây, thử lại sau đó là mất state |
+
+Mọi lỗi không phải `ApiError` đều thành 503 `upstream_unavailable`, nên **mã 503 ở đây không nói
+được gì**; phải đọc dòng `console.error(requestId, err)` đi kèm mới biết. Chưa có một lần thử sạch
+nào trên bản vá, nên chưa kết luận được Google đã chạy đúng hay chưa.
+
 ## 6. Còn nợ, ghi rõ chứ không lờ đi
 
 - ~~**Chưa gửi được một lá thư thật nào.**~~ **ĐÃ GỬI 19/09/2026**, trạng thái `delivered` tới

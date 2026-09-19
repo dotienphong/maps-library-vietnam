@@ -149,7 +149,14 @@ export function consoleAuthWith(deps: ConsoleAuthDeps = {}) {
           audit(c, 'email.sent', 'ma-dang-nhap');
         })
         .catch((error: unknown) => {
-          console.error('[console] gửi mã đăng nhập lỗi', error);
+          // In CẢ `message`, không chỉ đối tượng lỗi. Workers Observability chỉ giữ lại stack khi
+          // nhận một Error, nên dòng log cũ chỉ nói "lỗi ở Object.send" mà giấu mất
+          // `email_send_failed_401` — thứ duy nhất chỉ thẳng ra khoá Resend sai. Sự cố 19/09/2026,
+          // mười phút truy vết cho một con số đáng lẽ nằm sẵn trong log.
+          // `resend.ts` cố ý không nhét nội dung phản hồi vào message, nên ở đây không có dữ liệu
+          // của khách để lọt ra ngoài.
+          const lyDo = error instanceof Error ? error.message : String(error);
+          console.error(`[console] gửi mã đăng nhập lỗi: ${lyDo}`, error);
         }),
     );
 
