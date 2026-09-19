@@ -29,6 +29,20 @@ export function ChiTietDon() {
     retry: 1,
   });
 
+  /**
+   * Đơn vừa chuyển sang `fulfilled` qua poll thì làm mới mức dùng và danh sách đơn ĐÚNG MỘT LẦN.
+   * Thiếu bước này, khách trả tiền xong bấm về Tổng quan vẫn thấy gói cũ tới 30 giây (hạn cache),
+   * kèm nút "Mua gói" thay vì "Gia hạn" — trông như tiền chưa vào. Bài e2e 19/09/2026 bắt được.
+   */
+  const trangThai = don.data?.status;
+  const [daLamMoiKhiXong, datDaLamMoiKhiXong] = useState(false);
+  useEffect(() => {
+    if (trangThai !== 'fulfilled' || daLamMoiKhiXong) return;
+    datDaLamMoiKhiXong(true);
+    void queryClient.invalidateQueries({ queryKey: khoaCache.mucDung });
+    void queryClient.invalidateQueries({ queryKey: khoaCache.donHang });
+  }, [trangThai, daLamMoiKhiXong, queryClient]);
+
   const [giay, datGiay] = useState<number | null>(null);
   const hetHanLink = don.data?.linkExpiresAt ?? null;
   useEffect(() => {
