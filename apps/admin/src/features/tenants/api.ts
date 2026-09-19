@@ -100,6 +100,26 @@ export function setKeyRevoked(
   });
 }
 
+export interface XoaTenantKetQua {
+  deleted: true;
+  name: string;
+  keys_deleted: number;
+  accounts_unlinked: number;
+}
+
+/**
+ * Xoá vĩnh viễn một tenant. `confirmName` phải khớp đúng tên; máy chủ trả 400
+ * `confirm_name_mismatch` nếu lệch, và 409 `tenant_has_edits` nếu tenant còn đóng góp POI.
+ * Hai lỗi đó là chốt an toàn, không phải sự cố — giao diện phải nói đúng chúng.
+ */
+export function xoaTenant(tenantId: string, confirmName: string): Promise<XoaTenantKetQua> {
+  return apiFetch<XoaTenantKetQua>(`/v1/admin/tenants/${tenantId}`, {
+    method: 'DELETE',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ confirm_name: confirmName }),
+  });
+}
+
 export function setQuotaMode(tenantId: string, mode: QuotaMode): Promise<{ mode: QuotaMode }> {
   return postJson<{ mode: QuotaMode }>(`/v1/admin/billing/${tenantId}/mode`, { mode });
 }

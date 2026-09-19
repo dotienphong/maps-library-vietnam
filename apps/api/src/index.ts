@@ -6,7 +6,7 @@ import { analyticsMiddleware } from './analytics';
 import { dbHealth } from './db-health';
 import type { AppEnv } from './env';
 import { ApiError, errorResponse } from './errors';
-import { admin, requireSameSitePost } from './routes/admin';
+import { admin, requireSameSiteGhi } from './routes/admin';
 import { adminQuotaSummary } from './routes/admin-quota-summary';
 import { autocomplete } from './routes/autocomplete';
 import { billingAdmin } from './routes/billing-admin';
@@ -80,13 +80,13 @@ app.get('/healthz', (c) => c.json({ ok: true, environment: c.env.ENVIRONMENT }))
 // Cổng chống CSRF phải đứng trước requireBillingAccess: một POST cross-site không được đi xa tới
 // mức chạm vào danh sách email, và người gửi phải nhận đúng 403 cross_site_request. Nhóm này mount
 // ở đây chứ không trong app `admin`, nên phải gắn lại cổng bằng tay — xem test/billing-csrf.test.ts.
-app.use('/v1/admin/billing/*', requireSameSitePost());
+app.use('/v1/admin/billing/*', requireSameSiteGhi());
 app.use('/v1/admin/billing/*', requireBillingAccess());
 app.route('/', billingAdmin());
 // Mức tiêu thụ của khách là cùng loại dữ liệu mà nhóm billing đang bảo vệ, nên route này chịu
 // đúng cổng đó. Đặt NGOÀI tiền tố `/v1/admin/billing/` vì trong đó có middleware coi đoạn đầu là
 // `:tenantId` và sẽ trả 404 cho một đường dẫn tĩnh — đúng lý do `plan-catalog` cũng đứng ngoài.
-app.use('/v1/admin/quota-summary', requireSameSitePost());
+app.use('/v1/admin/quota-summary', requireSameSiteGhi());
 app.use('/v1/admin/quota-summary', requireBillingAccess());
 app.route('/', adminQuotaSummary);
 app.get('/healthz/db', async (c) => c.json(await dbHealth(c.env, c.executionCtx)));
@@ -100,7 +100,7 @@ app.route('/', catalogRoute);
 // Nhóm cổng khách hàng. Khai cổng chống CSRF đúng MỘT chỗ cho cả tiền tố, để thêm route mới vào
 // `console-auth.ts` hay `console.ts` sau này không thể quên gắn. Cookie phiên là SameSite=Lax nên
 // cổng này cộng với nó là đủ, không cần token CSRF riêng.
-app.use('/v1/console/*', requireSameSitePost());
+app.use('/v1/console/*', requireSameSiteGhi());
 app.route('/', consoleAuth);
 app.route('/', consoleRoutes);
 app.route('/', autocomplete);

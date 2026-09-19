@@ -62,7 +62,7 @@ async function tenantKeysTuDb(
 /**
  * Hai route CHỈ ĐỌC của nhóm billing, dạng nhà máy để test tiêm được cổng đọc Postgres
  * (apps/api/test/** không có DB). Mount BÊN TRONG `billingAdmin()` nên hưởng đúng middleware kiểm
- * tenant tồn tại, và ở index.ts cả tiền tố đã nằm sau requireSameSitePost() + requireBillingAccess().
+ * tenant tồn tại, và ở index.ts cả tiền tố đã nằm sau requireSameSiteGhi() + requireBillingAccess().
  */
 export function billingReadWith(dependencies: BillingReadDependencies = {}) {
   const routes = new Hono<AppEnv>();

@@ -36,7 +36,7 @@ export function nenGiaHan(hetHan: Date, now: Date = new Date()): boolean {
 }
 
 /**
- * `SameSite=Lax` cộng cổng chống CSRF sẵn có (`requireSameSitePost`) là đủ cho mọi thao tác ghi,
+ * `SameSite=Lax` cộng cổng chống CSRF sẵn có (`requireSameSiteGhi`) là đủ cho mọi thao tác ghi,
  * nên không cần token CSRF riêng. `Path=/` vì cookie phải đi tới cả SPA ở `/console/*` lẫn API ở
  * `/v1/console/*`.
  */

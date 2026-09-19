@@ -13,6 +13,7 @@ import { useSetKeyRevoked, useSetQuotaMode, useTenantDetail } from './hooks';
 import { KeyRow } from './key-row';
 import { NewKeyDialog } from './new-key';
 import { MODE_VI, tenantDate } from './tenant-card';
+import { XoaTenantDialog } from './xoa-tenant';
 
 interface TenantDetailPanelProps {
   id: string | null;
@@ -26,6 +27,7 @@ interface TenantDetailPanelProps {
 export function TenantDetailPanel({ id, onClose }: TenantDetailPanelProps) {
   const detail = useTenantDetail(id);
   const [capKhoa, setCapKhoa] = useState(false);
+  const [xoaTenant, setXoaTenant] = useState(false);
   const revoke = useSetKeyRevoked();
   const doiGoi = useSetQuotaMode();
   const { schedule } = useDelayedAction();
@@ -152,11 +154,36 @@ export function TenantDetailPanel({ id, onClose }: TenantDetailPanelProps) {
               <Button block onClick={() => setCapKhoa(true)}>
                 Cấp khoá mới
               </Button>
+              {/* Xoá đứng RIÊNG và ở cuối hàng, cách xa nút dùng hằng ngày. Dùng `secondary` chứ
+                  không `danger`: nút đỏ nằm sẵn trên màn hình chính là mời bấm nhầm, còn màu đỏ
+                  thật thì để dành cho nút xác nhận cuối cùng trong hộp thoại. */}
+              <Button
+                variant="secondary"
+                className="text-red-700 dark:text-red-300"
+                onClick={() => setXoaTenant(true)}
+              >
+                Xoá tổ chức
+              </Button>
             </div>
           )}
 
           {capKhoa && detail.data && (
             <NewKeyDialog tenantId={detail.data.tenant.id} onClose={() => setCapKhoa(false)} />
+          )}
+
+          {xoaTenant && detail.data && (
+            <XoaTenantDialog
+              tenantId={detail.data.tenant.id}
+              tenantName={detail.data.tenant.name}
+              soKhoa={detail.data.keys.length}
+              onClose={() => setXoaTenant(false)}
+              // Tenant không còn nữa thì bảng chi tiết cũng không còn gì để hiện: đóng cả hai,
+              // trả người dùng về danh sách đã được làm mới.
+              onXoaXong={() => {
+                setXoaTenant(false);
+                onClose();
+              }}
+            />
           )}
         </Dialog.Content>
       </Dialog.Portal>

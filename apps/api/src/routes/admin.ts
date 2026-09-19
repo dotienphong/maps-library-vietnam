@@ -22,9 +22,22 @@ export const admin = new Hono<AppEnv>();
  * Xuất khẩu vì nhóm billing mount ở index.ts NGOÀI app này (nó phải nằm trước để giữ
  * requireBillingAccess), nên chỗ đó phải gắn lại cổng bằng chính hàm này — không chép lại logic.
  */
-export function requireSameSitePost() {
+/**
+ * Mọi phương thức THAY ĐỔI trạng thái, không riêng POST.
+ *
+ * Bản đầu chỉ kiểm `POST`, nên `PATCH`, `PUT` và `DELETE` đi thẳng qua cổng. Điều đó đủ an toàn
+ * chừng nào chưa có route nào dùng chúng — nhưng `PATCH /v1/console/tenant` (cổng khách hàng,
+ * cookie `SameSite=Lax`) và `DELETE /v1/admin/tenants/:id` (xoá vĩnh viễn) đã phá vỡ giả định đó.
+ * Phát hiện 19/09/2026 khi viết bài kiểm cổng cho đường xoá: bài đòi 403 mà nhận 401.
+ *
+ * `GET` và `HEAD` cố ý KHÔNG chặn: chúng không đổi gì, và chặn chúng sẽ làm hỏng cả việc mở một
+ * đường dẫn admin từ dấu trang.
+ */
+const PHUONG_THUC_GHI = new Set(['POST', 'PUT', 'PATCH', 'DELETE']);
+
+export function requireSameSiteGhi() {
   return async (c: Context<AppEnv>, next: Next) => {
-    if (c.req.method === 'POST') {
+    if (PHUONG_THUC_GHI.has(c.req.method)) {
       const site = c.req.header('Sec-Fetch-Site');
       const origin = c.req.header('Origin');
       const self = new URL(c.req.url).origin;
@@ -32,7 +45,7 @@ export function requireSameSitePost() {
         throw new ApiError(
           403,
           'cross_site_request',
-          'POST admin phải xuất phát từ chính trang admin',
+          'Thao tác ghi phải xuất phát từ chính trang này',
         );
       }
     }
@@ -40,7 +53,7 @@ export function requireSameSitePost() {
   };
 }
 
-admin.use('/v1/admin/*', requireSameSitePost());
+admin.use('/v1/admin/*', requireSameSiteGhi());
 admin.use('/v1/admin/*', requireAccess());
 
 // Mount SAU hai middleware trên: nhóm tenant hưởng đúng cổng chống CSRF và Access đã khai một

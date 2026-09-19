@@ -185,3 +185,90 @@ adminTenants.post('/v1/admin/tenants/:id/keys', async (c) => {
     endSql(c.executionCtx, sql);
   }
 });
+
+/**
+ * Xoá VĨNH VIỄN một tenant.
+ *
+ * Hai chốt, vì thao tác này không lùi lại được:
+ *
+ * 1. Body phải có `confirm_name` **khớp đúng** tên tenant. Một cú bấm nhầm không gõ ra được tên,
+ *    và khi tên đã gõ thì người bấm biết mình đang xoá cái gì. Đây là bản UI của cặp
+ *    `--apply --confirm` trong `scripts/db-tenant-xoa.mjs`.
+ * 2. Tenant còn đóng góp POI thì TỪ CHỐI. Đóng góp là dữ liệu bản đồ dùng chung, không phải tài
+ *    sản riêng của tenant; xoá kèm theo quán tính là mất công sức của người thật. Muốn xoá thì
+ *    phải xử lý đóng góp trước, bằng tay, có ý thức.
+ *
+ * `customer_account` được GIỮ LẠI và chỉ gỡ `trial_tenant_id`: khách vẫn đăng nhập được và tạo
+ * tổ chức mới. Xoá tài khoản là việc khác, không nằm trong nút này.
+ *
+ * Sổ quota nằm trong Durable Object chứ không trong Postgres, nên nó thành sổ mồ côi. Không ai
+ * đọc, không tốn gì đáng kể, và đi xoá nó cần một đường riêng.
+ */
+adminTenants.delete('/v1/admin/tenants/:id', async (c) => {
+  const id = tenantId(c.req.param('id'));
+  const body = (await c.req.json().catch(() => null)) as { confirm_name?: unknown } | null;
+  const xacNhan = typeof body?.confirm_name === 'string' ? body.confirm_name.trim() : '';
+
+  const sql = getSql(c.env);
+  try {
+    const [tenant] = await sql<{ name: string; edits: number; keys: number; accounts: number }[]>`
+      SELECT t.name,
+        (SELECT count(*) FROM poi_edit e WHERE e.tenant_id = t.id)::int          AS edits,
+        (SELECT count(*) FROM api_key k WHERE k.tenant_id = t.id)::int           AS keys,
+        (SELECT count(*) FROM customer_account a WHERE a.trial_tenant_id = t.id)::int AS accounts
+      FROM tenant t WHERE t.id = ${id}::uuid`;
+    if (!tenant) throw new ApiError(404, 'not_found', 'Không có tenant này');
+
+    if (xacNhan !== tenant.name) {
+      throw new ApiError(
+        400,
+        'confirm_name_mismatch',
+        'Gõ đúng tên tổ chức để xác nhận xoá',
+        undefined,
+        { expected_name: tenant.name },
+      );
+    }
+
+    if (tenant.edits > 0) {
+      throw new ApiError(
+        409,
+        'tenant_has_edits',
+        `Tổ chức còn ${tenant.edits} đóng góp POI — xử lý chúng trước rồi mới xoá được`,
+        undefined,
+        { edits: tenant.edits },
+      );
+    }
+
+    // Một transaction: hỏng nửa chừng thì DB về nguyên trạng, không để lại tenant mất khoá mà
+    // vẫn còn bản ghi.
+    await sql.begin(async (tx) => {
+      await tx`UPDATE customer_account SET trial_tenant_id = NULL WHERE trial_tenant_id = ${id}::uuid`;
+      await tx`DELETE FROM tenant_member WHERE tenant_id = ${id}::uuid`;
+      await tx`DELETE FROM api_key WHERE tenant_id = ${id}::uuid`;
+      await tx`DELETE FROM tenant WHERE id = ${id}::uuid`;
+    });
+
+    audit(c, 'tenant.delete', id, {
+      name: tenant.name,
+      keys_deleted: tenant.keys,
+      accounts_unlinked: tenant.accounts,
+    });
+
+    return c.json(
+      {
+        deleted: true,
+        name: tenant.name,
+        keys_deleted: tenant.keys,
+        accounts_unlinked: tenant.accounts,
+      },
+      200,
+      NO_STORE,
+    );
+  } catch (error) {
+    if (error instanceof ApiError) throw error;
+    console.error('admin/tenants/:id DELETE', error);
+    throw new ApiError(503, 'upstream_unavailable', 'Không xoá được tenant');
+  } finally {
+    endSql(c.executionCtx, sql);
+  }
+});

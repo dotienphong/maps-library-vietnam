@@ -39,3 +39,25 @@ describe('cổng vào của nhóm route tenant', () => {
     expect(await code(response)).toBe('missing_access_jwt');
   });
 });
+
+describe('cổng vào của DELETE tenant', () => {
+  it('DELETE từ trang lạ → 403 cross_site_request, chặn TRƯỚC cả bước kiểm JWT', async () => {
+    // Xoá tenant là thao tác không lùi lại được. Nếu CSRF lọt, một trang bất kỳ có thể mượn
+    // cookie Access của người đang đăng nhập để xoá sạch một tổ chức.
+    const response = await SELF.fetch(`https://api/v1/admin/tenants/${UUID}`, {
+      method: 'DELETE',
+      headers: { 'Sec-Fetch-Site': 'cross-site' },
+    });
+    expect(response.status).toBe(403);
+    expect(await code(response)).toBe('cross_site_request');
+  });
+
+  it('DELETE same-origin nhưng thiếu JWT → 401', async () => {
+    const response = await SELF.fetch(`https://api/v1/admin/tenants/${UUID}`, {
+      method: 'DELETE',
+      headers: { 'Sec-Fetch-Site': 'same-origin', Origin: 'https://api' },
+    });
+    expect(response.status).toBe(401);
+    expect(await code(response)).toBe('missing_access_jwt');
+  });
+});

@@ -32,3 +32,39 @@ describe('chống CSRF cho POST /v1/admin/* (audit 09/09/2026)', () => {
     expect(response.status).toBe(401);
   });
 });
+
+describe('cổng chống CSRF phải chặn MỌI phương thức ghi, không riêng POST', () => {
+  // Bản đầu chỉ kiểm POST. Đủ an toàn chừng nào chưa có route nào dùng phương thức khác — nhưng
+  // PATCH /v1/console/tenant và DELETE /v1/admin/tenants/:id đã phá vỡ giả định đó.
+  for (const method of ['POST', 'PUT', 'PATCH', 'DELETE'] as const) {
+    it(`${method} cross-site → 403 cross_site_request`, async () => {
+      const response = await SELF.fetch('https://api/v1/admin/tenants/x', {
+        method,
+        headers: { 'Sec-Fetch-Site': 'cross-site' },
+      });
+      expect(response.status).toBe(403);
+      expect(((await response.json()) as { error: { code: string } }).error.code).toBe(
+        'cross_site_request',
+      );
+    });
+  }
+
+  it('GET cross-site KHÔNG bị chặn ở cổng này — nó không đổi gì', async () => {
+    const response = await SELF.fetch('https://api/v1/admin/tenants', {
+      headers: { 'Sec-Fetch-Site': 'cross-site' },
+    });
+    // Rơi vào cổng xác thực chứ không phải cổng CSRF.
+    expect(response.status).toBe(401);
+  });
+
+  it('PATCH cross-site vào cổng khách hàng cũng bị chặn', async () => {
+    const response = await SELF.fetch('https://api/v1/console/tenant', {
+      method: 'PATCH',
+      headers: { 'Sec-Fetch-Site': 'cross-site' },
+    });
+    expect(response.status).toBe(403);
+    expect(((await response.json()) as { error: { code: string } }).error.code).toBe(
+      'cross_site_request',
+    );
+  });
+});

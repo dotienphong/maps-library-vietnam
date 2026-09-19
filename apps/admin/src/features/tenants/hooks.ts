@@ -7,6 +7,7 @@ import {
   type QuotaMode,
   setKeyRevoked,
   setQuotaMode,
+  xoaTenant,
 } from './api';
 
 export const tenantKeys = {
@@ -75,5 +76,22 @@ export function useSetQuotaMode() {
     mutationFn: ({ tenantId, mode }: { tenantId: string; mode: QuotaMode }) =>
       setQuotaMode(tenantId, mode),
     onSettled: invalidate,
+  });
+}
+
+/**
+ * Xoá tenant. Không `onSettled: invalidate` như các mutation khác mà làm mới CẢ cây `tenants`
+ * sau khi thành công — chi tiết của tenant vừa xoá không còn gì để đọc, giữ nó trong cache là mời
+ * giao diện gọi lại một id đã chết.
+ */
+export function useXoaTenant() {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: ({ tenantId, confirmName }: { tenantId: string; confirmName: string }) =>
+      xoaTenant(tenantId, confirmName),
+    onSuccess: (_, { tenantId }) => {
+      client.removeQueries({ queryKey: tenantKeys.detail(tenantId) });
+      void client.invalidateQueries({ queryKey: ['tenants'] });
+    },
   });
 }
