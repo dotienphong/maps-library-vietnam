@@ -7,9 +7,12 @@
 // Tham số được chuyển tiếp cho db-migrate: `pnpm server:migrate -- --down` revert một migration.
 import { existsSync, readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
+import { phaiDungTrenMayChu } from './lib/dung-may-chu.mjs';
 import { run } from './lib/run.mjs';
 import { parseEnv } from './lib/server-env.mjs';
 import { serverMigrateRun } from './lib/server-migrate.mjs';
+
+phaiDungTrenMayChu('pnpm server:migrate');
 
 const envFile = resolve('infra/server', '.env');
 if (!existsSync(envFile)) {

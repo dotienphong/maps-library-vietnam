@@ -6,9 +6,12 @@
 // và mount db/ của working tree vào để seed vừa viết xong cũng dùng được ngay.
 import { existsSync, readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
+import { phaiDungTrenMayChu } from './lib/dung-may-chu.mjs';
 import { run } from './lib/run.mjs';
 import { parseEnv } from './lib/server-env.mjs';
 import { serverSeedRun } from './lib/server-seed.mjs';
+
+phaiDungTrenMayChu('pnpm server:seed-tenant');
 
 const envFile = resolve('infra/server', '.env');
 if (!existsSync(envFile)) {
