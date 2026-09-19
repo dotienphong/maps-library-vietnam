@@ -253,6 +253,101 @@ describe('thu hồi khoá từ trang Admin (route billing dùng lại)', () => {
   });
 });
 
+describe('DELETE /v1/admin/tenants/:id', () => {
+  // Nhóm này ra đời sau sự cố 19/09/2026: route DELETE chưa có một bài itest nào, nên khi
+  // migration 0023 thêm `customer_order` với khoá ngoại tới `tenant`, nút "Xoá tổ chức" hỏng mà
+  // mọi cổng vẫn xanh. `apps/api/test/admin-tenants.test.ts` chỉ kiểm CSRF và JWT — nó dựng Hono
+  // không có DB, nên không thể thấy lớp lỗi này.
+
+  /** Tenant dùng một lần, kèm tài khoản khách trỏ tới nó. */
+  const dungTenant = async (ten) => {
+    const [t] = await sql`INSERT INTO tenant (name, plan, quota_mode)
+      VALUES (${ten}, 'free', 'commercial') RETURNING id`;
+    const [a] = await sql`INSERT INTO customer_account (email, trial_tenant_id)
+      VALUES (${`${ten}@itest.local`.toLowerCase()}, ${t.id}::uuid) RETURNING id`;
+    return { tenantId: t.id, accountId: a.id };
+  };
+
+  const xoa = (id, confirmName) =>
+    adminFetch(`/v1/admin/tenants/${id}`, {
+      method: 'DELETE',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ confirm_name: confirmName }),
+    });
+
+  it('gõ sai tên → 400 và tenant còn nguyên', async () => {
+    const ten = `itest xoa sai ten ${Date.now()}`;
+    const { tenantId } = await dungTenant(ten);
+    try {
+      const response = await xoa(tenantId, 'tên khác hẳn');
+      expect(response.status).toBe(400);
+      const body = await response.json();
+      expect(body.error.code).toBe('confirm_name_mismatch');
+      expect(body.error.details.expected_name).toBe(ten);
+      const [con] = await sql`SELECT count(*)::int AS n FROM tenant WHERE id = ${tenantId}::uuid`;
+      expect(con.n).toBe(1);
+    } finally {
+      await sql`UPDATE customer_account SET trial_tenant_id = NULL WHERE trial_tenant_id = ${tenantId}::uuid`;
+      await sql`DELETE FROM tenant WHERE id = ${tenantId}::uuid`;
+    }
+  });
+
+  it('tenant còn đơn hàng → 409 tenant_has_orders kèm SỐ ĐƠN, không phải 503 mù', async () => {
+    // Đây là sự cố thật, viết lại thành bài kiểm: tổ chức đã từng đặt đơn thì không xoá được, và
+    // trước 0024 người bấm chỉ nhận được "Không xoá được tenant" — một câu không nói phải làm gì.
+    const ten = `itest xoa co don ${Date.now()}`;
+    const { tenantId, accountId } = await dungTenant(ten);
+    await sql`INSERT INTO customer_order
+      (tenant_id, account_id, kind, tier, months, amount_vnd, amount_usd_cents, status)
+      VALUES (${tenantId}::uuid, ${accountId}::uuid, 'plan', 'starter', 1, 490000, 1900, 'fulfilled')`;
+    try {
+      const response = await xoa(tenantId, ten);
+      expect(response.status).toBe(409);
+      const body = await response.json();
+      expect(body.error.code).toBe('tenant_has_orders');
+      expect(body.error.details.orders).toBe(1);
+      // Thông điệp phải nói được đường đi tiếp, không chỉ nói "không".
+      expect(body.error.message).toContain('1');
+
+      // Và không được xoá mất gì: 409 là lời từ chối, không phải một lần xoá nửa vời.
+      const [con] = await sql`SELECT count(*)::int AS n FROM tenant WHERE id = ${tenantId}::uuid`;
+      expect(con.n).toBe(1);
+      const [don] =
+        await sql`SELECT count(*)::int AS n FROM customer_order WHERE tenant_id = ${tenantId}::uuid`;
+      expect(don.n).toBe(1);
+    } finally {
+      await sql`DELETE FROM customer_order WHERE tenant_id = ${tenantId}::uuid`;
+      await sql`UPDATE customer_account SET trial_tenant_id = NULL WHERE trial_tenant_id = ${tenantId}::uuid`;
+      await sql`DELETE FROM tenant WHERE id = ${tenantId}::uuid`;
+    }
+  });
+
+  it('tenant sạch → 200, khoá đi theo, tài khoản khách ở lại và được gỡ liên kết', async () => {
+    const ten = `itest xoa sach ${Date.now()}`;
+    const { tenantId, accountId } = await dungTenant(ten);
+    await sql`INSERT INTO api_key (key_hash, key_prefix, tenant_id, label, kind)
+      VALUES (${'cd'.repeat(32)}, ${'mlv_live_itestxoa'}, ${tenantId}::uuid, 'itest', 'server')`;
+
+    const response = await xoa(tenantId, ten);
+    expect(response.status).toBe(200);
+    const body = await response.json();
+    expect(body.deleted).toBe(true);
+    expect(body.keys_deleted).toBe(1);
+    expect(body.accounts_unlinked).toBe(1);
+
+    const [con] = await sql`SELECT count(*)::int AS n FROM tenant WHERE id = ${tenantId}::uuid`;
+    expect(con.n).toBe(0);
+    const [khoa] =
+      await sql`SELECT count(*)::int AS n FROM api_key WHERE tenant_id = ${tenantId}::uuid`;
+    expect(khoa.n).toBe(0);
+    // Tài khoản đăng nhập KHÔNG bị xoá theo — khách còn phải tạo được tổ chức mới.
+    const [tk] =
+      await sql`SELECT trial_tenant_id FROM customer_account WHERE id = ${accountId}::uuid`;
+    expect(tk.trial_tenant_id).toBeNull();
+    await sql`DELETE FROM customer_account WHERE id = ${accountId}::uuid`;
+  });
+});
+
 describe('lớp quyền billing không bị nới ra vì trang Admin (tiêu chí nghiệm thu số 3)', () => {
   it('email ngoài BILLING_ADMIN_EMAILS: xem được tenant nhưng KHÔNG thu hồi được khoá', async () => {
     // Đây là bài kiểm duy nhất chạy qua `requireBillingAccess()` THẬT. `apps/api/test/

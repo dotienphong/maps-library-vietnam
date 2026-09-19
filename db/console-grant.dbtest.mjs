@@ -8,6 +8,7 @@
 import 'dotenv/config';
 import postgres from 'postgres';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { BANG_DA_BIET, bangLa } from '../scripts/db-tenant-xoa.mjs';
 import { databaseUrlFromEnv } from '../scripts/lib/migrations.mjs';
 
 const url = databaseUrlFromEnv(process.env);
@@ -182,6 +183,67 @@ describe('GRANT của migration 0020 dưới role api', () => {
     const [con] = await sql`SELECT count(*)::int AS n FROM tenant WHERE name = ${TEN}`;
     expect(con.n).toBe(1);
     await sql`DELETE FROM poi_edit WHERE tenant_id = ${t.id}::uuid`;
+    await sql`DELETE FROM tenant WHERE id = ${t.id}::uuid`;
+  });
+
+  it('đường xoá tenant biết HẾT khoá ngoại đang có trong schema', async () => {
+    // Bài chống tái diễn, và là lý do cả nhóm test này tồn tại ở dạng dbtest.
+    //
+    // 19/09/2026: migration 0023 thêm `customer_order.tenant_id` → `tenant`. Hàm
+    // `xoa_tenant_hoan_toan` của 0022 không biết bảng đó, nên `DELETE FROM tenant` đụng 23503 và
+    // nút "Xoá tổ chức" trả 503 "Không xoá được tenant" — một thông báo không nói gì. Không bài
+    // nào đỏ, vì không bài nào hỏi câu này.
+    //
+    // Câu hỏi đúng không phải "hàm có xoá được tenant mẫu không" mà "schema có quan hệ nào mà
+    // đường xoá chưa biết không". Migration sau thêm khoá ngoại tới `tenant` sẽ làm bài này ĐỎ;
+    // lúc đó phải cập nhật CẢ HAI: `BANG_DA_BIET` ở scripts/db-tenant-xoa.mjs và hàm
+    // `xoa_tenant_hoan_toan` (bằng một migration mới) — script CLI và nút Admin là hai đường
+    // khác nhau tới cùng một việc.
+    const fks = await sql`
+      SELECT DISTINCT src.relname AS table_name
+      FROM pg_constraint c
+      JOIN pg_class src ON src.oid = c.conrelid
+      JOIN pg_class dst ON dst.oid = c.confrelid
+      WHERE c.contype = 'f' AND dst.relname = 'tenant'
+      ORDER BY src.relname`;
+
+    expect(fks.length).toBeGreaterThan(0);
+    expect(bangLa(fks)).toEqual([]);
+    // Vế ngược lại: một bảng biến mất khỏi schema mà danh sách vẫn giữ thì cũng phải biết.
+    const tenBang = fks.map((r) => r.table_name);
+    for (const bang of BANG_DA_BIET) expect(tenBang).toContain(bang);
+  });
+
+  it('hàm xoá TỪ CHỐI khi tenant còn đơn hàng — đơn là hồ sơ tài chính', async () => {
+    const TEN = 'Kiem ham xoa co don hang';
+    const EMAIL_DON = 'kiem-ham-xoa-don@vidu.vn';
+    await sql`DELETE FROM customer_order WHERE tenant_id IN (SELECT id FROM tenant WHERE name = ${TEN})`;
+    await sql`DELETE FROM customer_account WHERE email = ${EMAIL_DON}`;
+    await sql`DELETE FROM tenant WHERE name = ${TEN}`;
+    const [t] = await sql`INSERT INTO tenant (name, plan, quota_mode)
+      VALUES (${TEN}, 'free', 'commercial') RETURNING id`;
+    const [a] = await sql`INSERT INTO customer_account (email) VALUES (${EMAIL_DON}) RETURNING id`;
+    await sql`INSERT INTO customer_order
+      (tenant_id, account_id, kind, tier, months, amount_vnd, amount_usd_cents, status)
+      VALUES (${t.id}::uuid, ${a.id}::uuid, 'plan', 'starter', 1, 490000, 1900, 'fulfilled')`;
+
+    await duoiRoleApi(async () => {
+      // Phải là thông điệp của HÀM, không phải 23503 của khoá ngoại: route chỉ dịch được sang
+      // 409 tử tế khi nó nhận ra tên lỗi, còn 23503 thì rơi vào nhánh 503 bắt-tất.
+      await expect(sql`SELECT * FROM xoa_tenant_hoan_toan(${t.id}::uuid)`).rejects.toThrow(
+        /tenant_has_orders/,
+      );
+    });
+
+    // Không được xoá mất gì giữa chừng — kể cả khoá hay liên kết tài khoản.
+    const [con] = await sql`SELECT count(*)::int AS n FROM tenant WHERE name = ${TEN}`;
+    expect(con.n).toBe(1);
+    const [don] =
+      await sql`SELECT count(*)::int AS n FROM customer_order WHERE tenant_id = ${t.id}::uuid`;
+    expect(don.n).toBe(1);
+
+    await sql`DELETE FROM customer_order WHERE tenant_id = ${t.id}::uuid`;
+    await sql`DELETE FROM customer_account WHERE email = ${EMAIL_DON}`;
     await sql`DELETE FROM tenant WHERE id = ${t.id}::uuid`;
   });
 

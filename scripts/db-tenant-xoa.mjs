@@ -11,6 +11,9 @@
 //   node scripts/db-tenant-xoa.mjs --name "Phong Company Test"
 //   node scripts/db-tenant-xoa.mjs --name "Phong Company Test" --apply --confirm XOA-MOT-TENANT
 //
+// Tenant còn đóng góp POI thì thêm `--xoa-dong-gop`; còn đơn hàng thì thêm `--xoa-don-hang`.
+// Hai cờ riêng vì hai loại dữ liệu khác nhau, xem ghi chú ở `quyetDinh`.
+//
 // Chạy trên DB máy chủ qua `pnpm server:tenant-xoa` (container pipeline, superuser).
 import 'dotenv/config';
 import postgres from 'postgres';
@@ -24,8 +27,21 @@ export const CONFIRM_PHRASE = 'XOA-MOT-TENANT';
  * `poi_edit` KHÔNG nằm ở đây một cách vô điều kiện: đóng góp POI là dữ liệu bản đồ dùng chung,
  * xoá nhầm là mất công sức của người thật. Nếu tenant có đóng góp thì script DỪNG và bắt người
  * vận hành quyết định bằng `--xoa-dong-gop`.
+ *
+ * `customer_order` (migration 0023) cũng vậy, vì một lý do khác: đơn hàng là hồ sơ tài chính,
+ * không phải trạng thái ứng dụng. Cờ riêng `--xoa-don-hang`, không dùng chung với đóng góp POI.
+ *
+ * Danh sách này là NGUỒN DUY NHẤT cho câu hỏi "đường xoá tenant đã biết hết quan hệ chưa":
+ * `db/console-grant.dbtest.mjs` đối chiếu nó với khoá ngoại thật trong schema, nên một migration
+ * sau này thêm quan hệ mới sẽ làm bài đó ĐỎ thay vì làm hỏng lặng lẽ nút "Xoá tổ chức".
  */
-export const BANG_DA_BIET = ['api_key', 'poi_edit', 'tenant_member', 'customer_account'];
+export const BANG_DA_BIET = [
+  'api_key',
+  'poi_edit',
+  'tenant_member',
+  'customer_account',
+  'customer_order',
+];
 
 /** @param {string[]} argv */
 export function parseXoaArgs(argv) {
@@ -38,6 +54,7 @@ export function parseXoaArgs(argv) {
   const apply = argv.includes('--apply');
   const confirm = value('--confirm');
   const xoaDongGop = argv.includes('--xoa-dong-gop');
+  const xoaDonHang = argv.includes('--xoa-don-hang');
 
   if (!name || name.startsWith('--')) {
     throw new Error('Thiếu --name <tên tenant cần xoá>');
@@ -45,7 +62,7 @@ export function parseXoaArgs(argv) {
   if (apply && confirm !== CONFIRM_PHRASE) {
     throw new Error(`--apply phải đi kèm --confirm ${CONFIRM_PHRASE}`);
   }
-  return { name, apply, xoaDongGop };
+  return { name, apply, xoaDongGop, xoaDonHang };
 }
 
 /** @param {{table_name: string}[]} rows */
@@ -55,16 +72,21 @@ export function bangLa(rows) {
 
 /**
  * Câu trả lời cho "có được xoá không", tách riêng để kiểm được mà không cần DB.
- * @param {{ tenant: unknown, edits: number, xoaDongGop: boolean }} tinhHinh
+ *
+ * Hai chốt độc lập, mỗi chốt một cờ: `--xoa-dong-gop` KHÔNG mở khoá cho đơn hàng và ngược lại.
+ * Gộp chúng lại là để người vận hành gõ một cờ rồi xoá mất thứ mình không định xoá.
+ * @param {{ tenant: unknown, edits: number, xoaDongGop: boolean,
+ *           orders?: number, xoaDonHang?: boolean }} tinhHinh
  */
-export function quyetDinh({ tenant, edits, xoaDongGop }) {
+export function quyetDinh({ tenant, edits, xoaDongGop, orders = 0, xoaDonHang = false }) {
   if (!tenant) return { xoaDuoc: false, vi: 'khong-thay-tenant' };
   if (edits > 0 && !xoaDongGop) return { xoaDuoc: false, vi: 'con-dong-gop' };
+  if (orders > 0 && !xoaDonHang) return { xoaDuoc: false, vi: 'con-don-hang' };
   return { xoaDuoc: true, vi: '' };
 }
 
 if (import.meta.url === `file://${process.argv[1]}`) {
-  const { name, apply, xoaDongGop } = parseXoaArgs(process.argv.slice(2));
+  const { name, apply, xoaDongGop, xoaDonHang } = parseXoaArgs(process.argv.slice(2));
   const sql = postgres(databaseUrlFromEnv(process.env), { max: 1, onnotice: () => {} });
   try {
     // 1. Khoá ngoại tới `tenant` — đọc từ schema thật, không tin trí nhớ. Một migration sau này
@@ -95,11 +117,13 @@ if (import.meta.url === `file://${process.argv[1]}`) {
         (SELECT count(*) FROM api_key k WHERE k.tenant_id = t.id)::int        AS keys,
         (SELECT count(*) FROM poi_edit e WHERE e.tenant_id = t.id)::int       AS edits,
         (SELECT count(*) FROM tenant_member m WHERE m.tenant_id = t.id)::int  AS members,
-        (SELECT count(*) FROM customer_account a WHERE a.trial_tenant_id = t.id)::int AS accounts
+        (SELECT count(*) FROM customer_account a WHERE a.trial_tenant_id = t.id)::int AS accounts,
+        (SELECT count(*) FROM customer_order o WHERE o.tenant_id = t.id)::int AS orders
       FROM tenant t WHERE t.name = ${name}`;
 
     const edits = t ? Number(t.edits) : 0;
-    const { xoaDuoc, vi } = quyetDinh({ tenant: t, edits, xoaDongGop });
+    const orders = t ? Number(t.orders) : 0;
+    const { xoaDuoc, vi } = quyetDinh({ tenant: t, edits, xoaDongGop, orders, xoaDonHang });
 
     if (vi === 'khong-thay-tenant') {
       console.error(`✗ Không có tenant nào tên "${name}". Dừng lại.`);
@@ -121,6 +145,7 @@ if (import.meta.url === `file://${process.argv[1]}`) {
         api_key: Number(t.keys),
         poi_edit: edits,
         tenant_member: Number(t.members),
+        customer_order: orders,
         tai_khoan_tro_toi: Number(t.accounts),
       },
     ]);
@@ -133,9 +158,20 @@ if (import.meta.url === `file://${process.argv[1]}`) {
       process.exit(1);
     }
 
+    if (vi === 'con-don-hang') {
+      console.error(
+        `✗ Tenant này có ${orders} đơn hàng. Đơn là HỒ SƠ TÀI CHÍNH: giá và nội dung chốt lúc\n` +
+          '  tạo, và cả role `api` lẫn nút "Xoá tổ chức" ở trang Admin đều cố ý không xoá được\n' +
+          '  chúng. Nếu đây là tổ chức THỬ thì thêm --xoa-don-hang; nếu là khách thật thì đừng\n' +
+          '  xoá tenant, hãy để đó.',
+      );
+      process.exit(1);
+    }
+
     console.log(
       `Sẽ xoá: ${Number(t.keys)} api_key, ${Number(t.members)} tenant_member, ` +
-        `${edits} poi_edit, 1 tenant.\n` +
+        `${edits} poi_edit, ${xoaDonHang ? orders : 0} customer_order (kèm payment_event của ` +
+        'chúng), 1 tenant.\n' +
         `Sẽ đặt trial_tenant_id = NULL cho ${Number(t.accounts)} tài khoản khách — GIỮ tài khoản\n` +
         'lại để khách còn đăng nhập được và tạo tổ chức mới.',
     );
@@ -157,6 +193,13 @@ if (import.meta.url === `file://${process.argv[1]}`) {
       await tx`DELETE FROM tenant_member WHERE tenant_id = ${t.id}::uuid`;
       await tx`DELETE FROM api_key WHERE tenant_id = ${t.id}::uuid`;
       if (xoaDongGop) await tx`DELETE FROM poi_edit WHERE tenant_id = ${t.id}::uuid`;
+      if (xoaDonHang) {
+        // `payment_event.order_id` trỏ tới `customer_order`, nên nhật ký tiền vào phải đi trước
+        // đơn. Đổi thứ tự hai câu này là 23503 ngay, cùng lớp lỗi mà cả file này đang vá.
+        await tx`DELETE FROM payment_event WHERE order_id IN
+          (SELECT id FROM customer_order WHERE tenant_id = ${t.id}::uuid)`;
+        await tx`DELETE FROM customer_order WHERE tenant_id = ${t.id}::uuid`;
+      }
       await tx`DELETE FROM tenant WHERE id = ${t.id}::uuid`;
     });
 

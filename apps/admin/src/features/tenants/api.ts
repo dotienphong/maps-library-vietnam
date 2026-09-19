@@ -109,8 +109,9 @@ export interface XoaTenantKetQua {
 
 /**
  * Xoá vĩnh viễn một tenant. `confirmName` phải khớp đúng tên; máy chủ trả 400
- * `confirm_name_mismatch` nếu lệch, và 409 `tenant_has_edits` nếu tenant còn đóng góp POI.
- * Hai lỗi đó là chốt an toàn, không phải sự cố — giao diện phải nói đúng chúng.
+ * `confirm_name_mismatch` nếu lệch, 409 `tenant_has_edits` nếu tenant còn đóng góp POI, và 409
+ * `tenant_has_orders` nếu còn đơn hàng. Ba lỗi đó là chốt an toàn, không phải sự cố — giao diện
+ * phải nói đúng chúng, nên `XoaTenantDialog` hiện nguyên văn thông điệp máy chủ.
  */
 export function xoaTenant(tenantId: string, confirmName: string): Promise<XoaTenantKetQua> {
   return apiFetch<XoaTenantKetQua>(`/v1/admin/tenants/${tenantId}`, {

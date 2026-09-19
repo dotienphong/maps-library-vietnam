@@ -3476,3 +3476,37 @@ quyền database thật cùng vòng đời webhook → sổ quota; e2e bắt hai
 (cache mức dùng, và một bộ chọn giao diện sai). `db/commerce-grant.dbtest.mjs` chạy **nguyên văn**
 từng câu SQL dưới `SET ROLE api` — và khoá luôn vế thứ hai: bảy câu sửa giá hoặc xoá hồ sơ tài chính
 phải nhận `42501`.
+
+## 24. 19/09/2026 — Nút "Xoá tổ chức" chết vì một bảng ra đời sau nó
+
+PHONG bấm xoá "Phong Company Test" và nhận **"Không xoá được tenant"**. Câu đó là nhánh `catch`
+bắt-tất của `DELETE /v1/admin/tenants/:id` — nó không nói gì, và đó là một nửa vấn đề.
+
+**Nguyên nhân.** Migration `0023` (pha 3, merge cùng ngày) tạo `customer_order` với
+`tenant_id NOT NULL REFERENCES tenant (id)`, mặc định `ON DELETE NO ACTION`. Hàm
+`xoa_tenant_hoan_toan` của `0022` ra đời **trước** bảng đó, nên câu cuối cùng của nó —
+`DELETE FROM tenant` — đụng `23503`. Tổ chức nào đã từng đặt đơn là không xoá được nữa.
+
+Trong năm khoá ngoại trỏ tới `tenant`, hàm biết bốn. Không cổng nào đỏ, vì **không bài kiểm nào
+hỏi câu đó**: route `DELETE` khi ấy chưa có một bài `itest` nào, còn
+`apps/api/test/admin-tenants.test.ts` dựng Hono không có DB nên chỉ thấy được CSRF và JWT.
+
+**Chẩn đoán mất một lệnh, không phải một vòng truy vết.** `/healthz/db` trả `0023`, `grep` khoá
+ngoại tới `tenant` ra `customer_order`, và một transaction `ROLLBACK` trên DB dev in ra nguyên văn
+`customer_order_tenant_id_fkey`. Công cụ đã có sẵn từ mục 22; lần này chúng được dùng trước khi
+đoán, chứ không phải sau.
+
+**Vá ba phần, không phần nào là `GRANT DELETE`.**
+
+| Phần | Việc | Vì sao không làm cách khác |
+|---|---|---|
+| `0024` | Hàm đếm `customer_order` và ném `tenant_has_orders` | Xoá kèm đơn là cho một cú bấm quyền xoá sổ tiền — đúng thứ `0022` đã từ chối khi chọn `SECURITY DEFINER` |
+| Route | 409 kèm **số đơn** và câu lệnh phải gõ tiếp | `23503` chỉ ra được 503 mù; lỗi có tên mới nói được việc phải làm |
+| CLI | Cờ riêng `--xoa-don-hang` | Gộp vào `--xoa-dong-gop` là để người vận hành gõ một cờ rồi xoá thứ mình không định xoá |
+
+**Bài kiểm đáng giá nhất không kiểm tính năng, nó kiểm khoảng trống.** `db/console-grant.dbtest.mjs`
+nay đọc khoá ngoại thật của schema và đối chiếu với `BANG_DA_BIET` — danh sách mà script CLI đã
+dùng từ đầu để tự chặn mình. Migration sau này thêm quan hệ mới tới `tenant` sẽ làm bài đó **đỏ**,
+kèm ghi chú phải sửa cả hai đường: script và hàm. Chốt ấy đã tồn tại trong `db-tenant-xoa.mjs` từ
+ngày đầu và đã hoạt động đúng — nó dừng khi gặp `customer_order`. Chỉ là không ai nối nó sang
+đường thứ hai.

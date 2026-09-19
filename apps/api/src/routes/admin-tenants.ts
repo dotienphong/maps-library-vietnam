@@ -197,6 +197,10 @@ adminTenants.post('/v1/admin/tenants/:id/keys', async (c) => {
  * 2. Tenant còn đóng góp POI thì TỪ CHỐI. Đóng góp là dữ liệu bản đồ dùng chung, không phải tài
  *    sản riêng của tenant; xoá kèm theo quán tính là mất công sức của người thật. Muốn xoá thì
  *    phải xử lý đóng góp trước, bằng tay, có ý thức.
+ * 3. Tenant còn đơn hàng thì TỪ CHỐI, vì lý do khác: đơn là hồ sơ tài chính. Migration 0023 cố ý
+ *    không cấp DELETE trên `customer_order` cho role `api`, và nút này không được là cửa sau cho
+ *    đúng thứ đó. Tổ chức THỬ có đơn thì xoá bằng `pnpm server:tenant-xoa --xoa-don-hang` trên
+ *    máy chủ — một người, một lệnh, không phải một cú bấm.
  *
  * `customer_account` được GIỮ LẠI và chỉ gỡ `trial_tenant_id`: khách vẫn đăng nhập được và tạo
  * tổ chức mới. Xoá tài khoản là việc khác, không nằm trong nút này.
@@ -211,9 +215,12 @@ adminTenants.delete('/v1/admin/tenants/:id', async (c) => {
 
   const sql = getSql(c.env);
   try {
-    const [tenant] = await sql<{ name: string; edits: number; keys: number; accounts: number }[]>`
+    const [tenant] = await sql<
+      { name: string; edits: number; orders: number; keys: number; accounts: number }[]
+    >`
       SELECT t.name,
         (SELECT count(*) FROM poi_edit e WHERE e.tenant_id = t.id)::int          AS edits,
+        (SELECT count(*) FROM customer_order o WHERE o.tenant_id = t.id)::int    AS orders,
         (SELECT count(*) FROM api_key k WHERE k.tenant_id = t.id)::int           AS keys,
         (SELECT count(*) FROM customer_account a WHERE a.trial_tenant_id = t.id)::int AS accounts
       FROM tenant t WHERE t.id = ${id}::uuid`;
@@ -239,7 +246,23 @@ adminTenants.delete('/v1/admin/tenants/:id', async (c) => {
       );
     }
 
-    // Đi qua hàm `SECURITY DEFINER` của migration 0022, KHÔNG chạy DELETE trực tiếp: role `api`
+    // Đếm ở ĐÂY chứ không chỉ dựa vào hàm ném: một vi phạm khoá ngoại chỉ ra được 503 bắt-tất,
+    // còn con số này ra được một câu nói đúng việc phải làm tiếp. Sự cố 19/09/2026 là nguyên văn
+    // trường hợp này — `customer_order` của 0023 ra đời sau hàm xoá của 0022.
+    if (tenant.orders > 0) {
+      throw new ApiError(
+        409,
+        'tenant_has_orders',
+        `Tổ chức còn ${tenant.orders} đơn hàng — đó là hồ sơ tài chính, không xoá kèm. ` +
+          'Nếu đây là tổ chức thử thì xoá trên máy chủ bằng ' +
+          '`pnpm server:tenant-xoa --name "…" --apply --confirm XOA-MOT-TENANT --xoa-don-hang`.',
+        undefined,
+        { orders: tenant.orders },
+      );
+    }
+
+    // Đi qua hàm `SECURITY DEFINER` của migration 0022 (0024 dạy nó biết `customer_order`),
+    // KHÔNG chạy DELETE trực tiếp: role `api`
     // cố ý không có quyền xoá trên bảng nào, và cấp quyền đó chỉ để phục vụ một nút bấm là đổi
     // một lỗi vận hành lấy một rủi ro thường trực. Hàm tự chạy cả bốn bước trong một giao dịch.
     await sql`SELECT * FROM xoa_tenant_hoan_toan(${id}::uuid)`;
