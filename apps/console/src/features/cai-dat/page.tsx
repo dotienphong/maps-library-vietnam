@@ -2,22 +2,15 @@ import { Button, LoadingSkeleton, useDelayedAction } from '@mapslibvn/ui';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useEffect, useState } from 'react';
 import { dangXuat, dangXuatMoiThietBi } from '@/features/auth/api';
-import { khoaCache, useCauHinh, useToi } from '@/features/auth/hooks';
+import { khoaCache, useCauHinh, useTenant, useToi } from '@/features/auth/hooks';
+import type { TenantDayDu } from '@/lib/api';
 import { patchJson } from '@/lib/fetcher';
 import { LoiHop } from '@/lib/loi-hop';
-
-interface TenantChiTiet {
-  id: string;
-  name: string;
-  billing_name: string | null;
-  billing_tax_code: string | null;
-  billing_address: string | null;
-  billing_email: string | null;
-}
 
 export function CaiDat() {
   const { data: toi } = useToi();
   const { data: cauHinh } = useCauHinh();
+  const { data: tenant, isPending: dangTaiTenant } = useTenant(Boolean(toi?.onboarded));
   const queryClient = useQueryClient();
   const { schedule } = useDelayedAction();
   const [form, datForm] = useState({
@@ -29,22 +22,39 @@ export function CaiDat() {
   });
   const [daLuu, datDaLuu] = useState(false);
 
+  // Nạp CẢ NĂM trường, không riêng tên. Bản cũ chỉ nạp `name`, nên bốn ô biên nhận luôn hiện
+  // rỗng sau khi tải lại trang — trông như "bấm Lưu mà không lưu" — và tệ hơn: lần lưu kế tiếp
+  // gửi bốn ô rỗng đó lên và GHI NULL ĐÈ lên dữ liệu đã nhập, vì `PATCH /v1/console/tenant` đặt
+  // lại cả năm cột chứ không vá từng cột. Sự cố 19/09/2026.
   useEffect(() => {
-    if (toi?.tenant?.name) datForm((cu) => ({ ...cu, name: toi.tenant?.name ?? '' }));
-  }, [toi?.tenant?.name]);
+    if (!tenant) return;
+    datForm({
+      name: tenant.name ?? '',
+      billingName: tenant.billing_name ?? '',
+      billingTaxCode: tenant.billing_tax_code ?? '',
+      billingAddress: tenant.billing_address ?? '',
+      billingEmail: tenant.billing_email ?? '',
+    });
+  }, [tenant]);
 
   const luu = useMutation({
     mutationFn: () =>
-      patchJson<{ tenant: TenantChiTiet }>('/v1/console/tenant', {
+      patchJson<{ tenant: TenantDayDu }>('/v1/console/tenant', {
         name: form.name.trim(),
         billingName: form.billingName.trim() || null,
         billingTaxCode: form.billingTaxCode.trim() || null,
         billingAddress: form.billingAddress.trim() || null,
         billingEmail: form.billingEmail.trim() || null,
       }),
-    onSuccess: async () => {
+    onSuccess: async (ketQua) => {
       datDaLuu(true);
-      await queryClient.invalidateQueries({ queryKey: khoaCache.toi });
+      // Ghi thẳng kết quả vào cache rồi mới làm mới: giá trị máy chủ đã chuẩn hoá (cắt khoảng
+      // trắng, chuỗi rỗng thành null) là thứ biểu mẫu phải hiện, không phải thứ vừa gõ.
+      queryClient.setQueryData(khoaCache.tenant, ketQua.tenant);
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: khoaCache.toi }),
+        queryClient.invalidateQueries({ queryKey: khoaCache.tenant }),
+      ]);
     },
   });
 
@@ -103,7 +113,9 @@ export function CaiDat() {
         </dl>
       </section>
 
-      {toi.onboarded && (
+      {toi.onboarded && dangTaiTenant && <LoadingSkeleton rows={5} />}
+
+      {toi.onboarded && !dangTaiTenant && (
         <form
           className="space-y-4 rounded-[var(--radius-card)] border border-[var(--border)] bg-[var(--surface)] p-5"
           onSubmit={(su) => {

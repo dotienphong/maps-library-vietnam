@@ -6,6 +6,7 @@ import {
   capNhatTenant,
   daDungThu,
   demKhoaDangHoatDong,
+  docTenant,
   khoaCuaTenant,
   taoTenantChoKhach,
   voiSql,
@@ -149,6 +150,24 @@ export function consoleRoutesWith(deps: ConsoleDeps = {}) {
     }
 
     return c.json({ tenant: { id: tenant.id, name: tenant.name } }, 201, NO_STORE);
+  });
+
+  /**
+   * Đọc đầy đủ tổ chức, gồm cả bốn trường biên nhận.
+   *
+   * `/v1/console/me` cố ý KHÔNG trả bốn trường này: nó dựng câu trả lời từ dữ liệu phiên đã có
+   * sẵn trong context, nên mỗi lần tải trang không tốn thêm một truy vấn. Trang Cài đặt thì cần
+   * đủ, và trước khi có route này nó không có đường nào lấy được — biểu mẫu luôn hiện rỗng, còn
+   * lần lưu kế tiếp thì ghi NULL đè lên dữ liệu đã nhập. Sự cố 19/09/2026.
+   */
+  routes.get('/v1/console/tenant', async (c) => {
+    const khach = c.get('customer');
+    if (!khach?.tenantId) throw new ApiError(409, 'chua_co_tenant', 'Tài khoản chưa có tổ chức');
+    const tenant = await voiSql(c.env, c.executionCtx, (sql) =>
+      docTenant(sql, khach.tenantId as string),
+    );
+    if (!tenant) throw new ApiError(404, 'not_found', 'Không có tổ chức này');
+    return c.json({ tenant }, 200, NO_STORE);
   });
 
   routes.patch('/v1/console/tenant', async (c) => {

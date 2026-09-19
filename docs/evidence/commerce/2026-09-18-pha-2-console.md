@@ -248,6 +248,33 @@ thống đang bận" và cùng một mã `upstream_unavailable`. Thứ rút ng�
 đoán giỏi hơn, mà là bắt hệ thống nói ra lý do: sau khi vá chỗ ghi log ở 5e, lần thứ ba mất đúng
 một lượt.
 
+## 5g. Sự cố 19/09 lần bốn: trang Cài đặt lưu rồi mà hiện lại vẫn trống
+
+`PATCH /v1/console/tenant` trả **200**, không có dòng lỗi nào. Dữ liệu vào DB thật, nhưng biểu mẫu
+hiện rỗng sau khi tải lại.
+
+**Nguyên nhân: không có đường nào để trang đọc lại bốn trường biên nhận.** `/v1/console/me` dựng
+câu trả lời từ dữ liệu phiên có sẵn trong context — cố ý, để mỗi lần tải trang không tốn thêm một
+truy vấn — nên `tenant` nó trả về chỉ có `id` và `name`. `docTenant()` đọc đủ tám cột thì đã viết
+sẵn từ đầu nhưng **chưa route nào gọi**. Trang Cài đặt vì thế chỉ nạp được mỗi `name`.
+
+**Hệ quả thứ hai nặng hơn cái người dùng nhìn thấy: mất dữ liệu, im lặng.** `PATCH` đặt lại cả năm
+cột chứ không vá từng cột. Sau khi tải lại, bốn ô biên nhận rỗng; chỉ cần sửa tên tổ chức rồi bấm
+Lưu là bốn ô rỗng đó được gửi lên và **ghi NULL đè** lên thông tin đã nhập. Không có lỗi, không có
+cảnh báo, chỉ mất.
+
+**Bản vá:** thêm `GET /v1/console/tenant` dùng `docTenant()`, thêm hook `useTenant()` và cho biểu
+mẫu nạp đủ năm trường. Sau khi lưu, ghi thẳng câu trả lời của máy chủ vào cache — giá trị đã chuẩn
+hoá mới là thứ biểu mẫu phải hiện, không phải thứ vừa gõ. Biểu mẫu chỉ dựng sau khi nạp xong, nếu
+không `useEffect` sẽ ghi đè lên chữ người dùng đang gõ dở.
+
+**Bài kiểm đã được chứng minh là không rỗng.** Bài e2e mới điền bốn trường, tải lại, đổi tên tổ
+chức, lưu lần nữa, tải lại, rồi đối chiếu thẳng với máy chủ. Lùi tạm biểu mẫu về hành vi cũ thì
+bài đỏ ngay ở khẳng định đầu tiên.
+
+**Điểm chung với ba sự cố trước:** cả bốn đều là một nhánh mà không môi trường kiểm thử nào chạm
+tới. Lần này còn khó thấy hơn, vì cả máy chủ lẫn giao diện đều báo thành công.
+
 ## 6. Còn nợ, ghi rõ chứ không lờ đi
 
 - ~~**Chưa gửi được một lá thư thật nào.**~~ **ĐÃ GỬI 19/09/2026**, trạng thái `delivered` tới

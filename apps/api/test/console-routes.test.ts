@@ -56,6 +56,9 @@ describe('cổng đăng nhập', () => {
     ['/v1/console/usage', 'GET'],
     ['/v1/console/periods', 'GET'],
     ['/v1/console/tenant', 'POST'],
+    // GET tenant là đường mà trang Cài đặt dùng để nạp bốn trường biên nhận; nó phải nằm sau cổng
+    // đăng nhập như mọi đường khác, vì thông tin xuất biên nhận là dữ liệu riêng của tổ chức.
+    ['/v1/console/tenant', 'GET'],
   ] as const) {
     it(`${method} ${duong} chưa đăng nhập → 401 not_signed_in dạng JSON`, async () => {
       const res = await goi(moiTruong(), duong, { method });

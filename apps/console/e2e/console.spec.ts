@@ -183,3 +183,46 @@ test('cấp thêm khoá và danh sách đếm đúng số khoá đang dùng', as
   await expect(page.getByTestId('khoa-mot-lan')).toBeVisible();
   await expect(page.getByText('Đang dùng 2/10 khoá')).toBeVisible();
 });
+
+test('thông tin biên nhận sống qua lần tải lại, và lần lưu sau không xoá mất nó', async ({
+  page,
+}) => {
+  const email = emailMoi();
+  await dangKyLayKhoa(page, email, 'Công ty Biên Nhận');
+  await page.getByRole('button', { name: /Tôi đã lưu khoá/ }).click();
+
+  await page.goto('/console/cai-dat');
+  await page.getByLabel('Tên trên biên nhận').fill('Công ty TNHH Biên Nhận');
+  await page.getByLabel('Mã số thuế').fill('0312345678');
+  await page.getByLabel('Địa chỉ').fill('12 Nguyễn Huệ, Quận 1, TP.HCM');
+  await page.getByLabel('Email nhận biên nhận').fill('ketoan@bien-nhan.vn');
+  await page.getByRole('button', { name: 'Lưu thay đổi' }).click();
+  await expect(page.getByRole('status')).toHaveText('Đã lưu');
+
+  // Tải lại: bản cũ chỉ nạp `name` nên bốn ô này hiện rỗng, trông y như "bấm Lưu mà không lưu".
+  await page.reload();
+  await expect(page.getByLabel('Tên trên biên nhận')).toHaveValue('Công ty TNHH Biên Nhận');
+  await expect(page.getByLabel('Mã số thuế')).toHaveValue('0312345678');
+  await expect(page.getByLabel('Địa chỉ')).toHaveValue('12 Nguyễn Huệ, Quận 1, TP.HCM');
+  await expect(page.getByLabel('Email nhận biên nhận')).toHaveValue('ketoan@bien-nhan.vn');
+
+  // Phần nguy hiểm hơn: chỉ sửa tên tổ chức rồi lưu. `PATCH` đặt lại cả năm cột, nên nếu biểu mẫu
+  // không nạp đủ thì lần lưu này GHI NULL ĐÈ lên bốn trường vừa nhập — mất dữ liệu, im lặng.
+  await page.getByLabel('Tên tổ chức').fill('Công ty Biên Nhận Đã Đổi Tên');
+  await page.getByRole('button', { name: 'Lưu thay đổi' }).click();
+  await expect(page.getByRole('status')).toHaveText('Đã lưu');
+
+  await page.reload();
+  await expect(page.getByLabel('Tên tổ chức')).toHaveValue('Công ty Biên Nhận Đã Đổi Tên');
+  await expect(page.getByLabel('Mã số thuế')).toHaveValue('0312345678');
+  await expect(page.getByLabel('Email nhận biên nhận')).toHaveValue('ketoan@bien-nhan.vn');
+
+  // Máy chủ mới là nguồn sự thật, không phải state của trang.
+  const tuMayChu = await page.evaluate(async () => {
+    const r = await fetch('/v1/console/tenant', { credentials: 'same-origin' });
+    return r.json();
+  });
+  expect(tuMayChu.tenant.billing_tax_code).toBe('0312345678');
+  expect(tuMayChu.tenant.billing_address).toBe('12 Nguyễn Huệ, Quận 1, TP.HCM');
+  expect(tuMayChu.tenant.name).toBe('Công ty Biên Nhận Đã Đổi Tên');
+});
