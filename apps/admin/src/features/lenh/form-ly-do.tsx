@@ -39,7 +39,6 @@ export function FormLyDo({ tieuDe, moTa, nutGui, nguyHiem, onGui, onThoi }: Form
       <label className="block text-sm font-semibold">
         Lý do
         <input
-          aria-label="Lý do"
           className={`${O} mt-1`}
           value={lyDo}
           onChange={(e) => datLyDo(e.target.value)}

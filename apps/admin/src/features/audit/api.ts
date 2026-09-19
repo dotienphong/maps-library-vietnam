@@ -37,6 +37,7 @@ export const LOAI_VIEC = [
   'tenant.key_revoke',
   'tenant.key_restore',
   'tenant.quota_mode',
+  'tenant.delete',
   'billing.command',
   'billing.unlock_acks',
   'admin.order.fulfil',

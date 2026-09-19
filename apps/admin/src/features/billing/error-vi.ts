@@ -45,7 +45,8 @@ export const MA_LOI_BILLING: Record<string, string> = {
     'Thiếu lý do. Mọi lệnh tiền và lệnh khoá tài khoản đều phải có lý do để nhật ký đọc được.',
   payment_provider_unavailable:
     'PayOS không phản hồi nên CHƯA huỷ. Đơn vẫn đang chờ; thử lại sau một phút.',
-  customer_not_found: 'Không có tài khoản khách này.',
+  customer_not_found:
+    'Không có tài khoản khách này. Route trả mã này cả khi id không phải UUID — kiểm tra lại đường dẫn, tài khoản vẫn có thể tồn tại.',
   khong_goi_duoc: 'Không gọi được máy chủ. Kiểm tra mạng rồi thử lại.',
 };
 

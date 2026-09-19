@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { can } from './permissions';
+import { can, type Me } from './permissions';
 
 describe('can', () => {
   it('có quyền trong danh sách → true', () => {
@@ -12,5 +12,11 @@ describe('can', () => {
 
   it('chưa tải xong thông tin người dùng → false, không đoán bừa', () => {
     expect(can(undefined, 'edits.write')).toBe(false);
+  });
+
+  it('me hỏng (permissions không phải mảng) → false, không ném', () => {
+    expect(can({ email: 'a@b.c', permissions: 'admin' } as unknown as Me, 'edits.read')).toBe(
+      false,
+    );
   });
 });
