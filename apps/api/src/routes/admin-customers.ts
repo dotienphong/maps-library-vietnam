@@ -12,12 +12,8 @@ import {
 import { endSql, getSql } from '../db';
 import type { AppEnv, Env } from '../env';
 import { ApiError } from '../errors';
+import { docJson, docLenh, NO_STORE, UUID } from './admin-lenh';
 import { encodeTenantCursor, parseTenantListParams } from './admin-tenant-params';
-
-const NO_STORE = { 'cache-control': 'private, no-store' } as const;
-const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-const OPERATION_ID = /^[A-Za-z0-9_-]{8,64}$/;
-const MAX_BODY = 16 * 1024;
 
 type ChiTietAudit = Record<string, string | number | boolean | null>;
 
@@ -51,32 +47,6 @@ const phienJson = (p: PhienAdmin) => ({
   expiresAt: iso(p.expires_at),
   userAgent: p.user_agent,
 });
-
-async function docJson(request: Request): Promise<Record<string, unknown>> {
-  const text = await request.text();
-  if (new TextEncoder().encode(text).byteLength > MAX_BODY) {
-    throw new ApiError(413, 'payload_too_large', 'Thân yêu cầu quá lớn');
-  }
-  try {
-    const v = JSON.parse(text) as unknown;
-    return typeof v === 'object' && v !== null && !Array.isArray(v)
-      ? (v as Record<string, unknown>)
-      : {};
-  } catch {
-    return {};
-  }
-}
-
-/** Lý do và operationId là bắt buộc cho mọi lệnh ghi (spec 13): audit phải nói được VÌ SAO. */
-function docLenh(body: Record<string, unknown>): { reason: string; operationId: string } {
-  const operationId = body.operationId;
-  if (typeof operationId !== 'string' || !OPERATION_ID.test(operationId)) {
-    throw new ApiError(400, 'invalid_request', 'operationId phải có 8–64 ký tự [A-Za-z0-9_-]');
-  }
-  const reason = typeof body.reason === 'string' ? body.reason.trim().slice(0, 500) : '';
-  if (!reason) throw new ApiError(400, 'invalid_reason', 'Cần lý do');
-  return { reason, operationId };
-}
 
 const accountId = (raw: string): string => {
   if (!UUID.test(raw)) throw new ApiError(404, 'customer_not_found', 'Không có tài khoản này');
@@ -154,9 +124,8 @@ export function adminCustomersWith(deps: AdminCustomersDeps = {}) {
     const kq = await voiSqlCua(c, async (sql) => {
       const tk = await docTaiKhoanAdmin(sql, id);
       if (!tk) throw new ApiError(404, 'customer_not_found', 'Không có tài khoản này');
-      const { doi, phienXoa } = await voHieuHoaTaiKhoan(sql, id);
-      const sau = (await docTaiKhoanAdmin(sql, id)) ?? tk;
-      return { tk: sau, doi, phienXoa };
+      const { doi, phienXoa, tk: sau } = await voHieuHoaTaiKhoan(sql, id);
+      return { tk: sau ?? tk, doi, phienXoa };
     });
     if (kq.doi) {
       ghiAudit(c, 'admin.customer.disable', id, {
@@ -179,9 +148,8 @@ export function adminCustomersWith(deps: AdminCustomersDeps = {}) {
     const kq = await voiSqlCua(c, async (sql) => {
       const tk = await docTaiKhoanAdmin(sql, id);
       if (!tk) throw new ApiError(404, 'customer_not_found', 'Không có tài khoản này');
-      const doi = await kichHoatLaiTaiKhoan(sql, id);
-      const sau = (await docTaiKhoanAdmin(sql, id)) ?? tk;
-      return { tk: sau, doi };
+      const { doi, tk: sau } = await kichHoatLaiTaiKhoan(sql, id);
+      return { tk: sau ?? tk, doi };
     });
     if (kq.doi) {
       ghiAudit(c, 'admin.customer.enable', id, {

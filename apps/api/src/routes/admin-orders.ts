@@ -21,11 +21,10 @@ import { type ThongBaoDeps, thongBaoSauApDung } from '../commerce/thong-bao';
 import { endSql, getSql } from '../db';
 import type { AppEnv, Env } from '../env';
 import { ApiError, moTaLoi } from '../errors';
+import { docJson, docLyDo, docOperationId, NO_STORE, OPERATION_ID, UUID } from './admin-lenh';
 import { parseLimit } from './admin-list-params';
 import { donJson } from './console-orders';
 
-const NO_STORE = { 'cache-control': 'private, no-store' } as const;
-const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const CURSOR_TIME = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d{1,6})?Z$/;
 const TRANG_THAI = new Set<string>([
   'pending',
@@ -37,9 +36,6 @@ const TRANG_THAI = new Set<string>([
   'cancelled',
   'refunded',
 ]);
-/** operationId do trang Admin sinh; nó thành `reference = manual:<id>` nên phải an toàn làm khoá. */
-const OPERATION_ID = /^[A-Za-z0-9_-]{8,64}$/;
-const MAX_BODY = 16 * 1024;
 const NGAY = /^\d{4}-\d{2}-\d{2}$/;
 /** Mốc ISO đầy đủ BẮT BUỘC có offset (`Z` hoặc `±HH:MM`) — mượn khuôn `CURSOR_TIME`, nới phần
  * offset. Thiếu offset thì `Date.parse` đọc theo giờ MÁY CHỦ chạy Worker, lệch giữa dev (+07) và
@@ -78,20 +74,6 @@ function docMoc(raw: string | null, laMocCuoi: boolean): Date | null {
     );
   }
   return new Date(raw);
-}
-
-function docLyDo(body: Record<string, unknown>): string {
-  const reason = typeof body.reason === 'string' ? body.reason.trim().slice(0, 500) : '';
-  if (!reason) throw new ApiError(400, 'invalid_reason', 'Cần lý do');
-  return reason;
-}
-
-function docOperationId(body: Record<string, unknown>): string {
-  const v = body.operationId;
-  if (typeof v !== 'string' || !OPERATION_ID.test(v)) {
-    throw new ApiError(400, 'invalid_request', 'operationId phải có 8–64 ký tự [A-Za-z0-9_-]');
-  }
-  return v;
 }
 
 export interface AdminOrdersDeps extends FulfilDeps, ThongBaoDeps {
@@ -134,21 +116,6 @@ const suKienJson = (s: Awaited<ReturnType<typeof suKienCuaDon>>[number]) => ({
   tomTat: s.tom_tat,
   receivedAt: new Date(s.received_at).toISOString(),
 });
-
-async function docJson(request: Request): Promise<Record<string, unknown>> {
-  const text = await request.text();
-  if (new TextEncoder().encode(text).byteLength > MAX_BODY) {
-    throw new ApiError(413, 'payload_too_large', 'Thân yêu cầu quá lớn');
-  }
-  try {
-    const v = JSON.parse(text) as unknown;
-    return typeof v === 'object' && v !== null && !Array.isArray(v)
-      ? (v as Record<string, unknown>)
-      : {};
-  } catch {
-    return {};
-  }
-}
 
 const orderId = (raw: string): string => {
   if (!UUID.test(raw)) throw new ApiError(404, 'order_not_found', 'Không có đơn này');

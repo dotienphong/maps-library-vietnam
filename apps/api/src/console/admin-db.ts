@@ -1,3 +1,4 @@
+import type postgres from 'postgres';
 import type { getSql } from '../db';
 
 /**
@@ -8,6 +9,13 @@ import type { getSql } from '../db';
  */
 
 type Sql = ReturnType<typeof getSql>;
+/**
+ * `docTaiKhoanAdmin` được gọi cả với client thường LẪN với `tx` bên trong `sql.begin()` (đọc lại
+ * trong cùng transaction — xem `voHieuHoaTaiKhoan`/`kichHoatLaiTaiKhoan`). `postgres.TransactionSql`
+ * không tự gán được vào `Sql`: hai interface khác nhau dù cùng có tagged-template call và
+ * `.unsafe`, nên phải khai rộng kiểu tham số ra hợp của cả hai.
+ */
+type SqlHoacTx = Sql | postgres.TransactionSql;
 
 export interface TaiKhoanAdmin {
   id: string;
@@ -67,7 +75,7 @@ export async function danhSachTaiKhoanAdmin(
     LIMIT ${p.limit + 1}`;
 }
 
-export async function docTaiKhoanAdmin(sql: Sql, id: string): Promise<TaiKhoanAdmin | null> {
+export async function docTaiKhoanAdmin(sql: SqlHoacTx, id: string): Promise<TaiKhoanAdmin | null> {
   const rows = await sql<TaiKhoanAdmin[]>`
     SELECT ${sql.unsafe(COT)} ${sql.unsafe(TU_TENANT)} WHERE a.id = ${id}::uuid`;
   return rows[0] ?? null;
@@ -94,11 +102,17 @@ export async function phienCuaTaiKhoan(sql: Sql, accountId: string): Promise<Phi
  * hiệu lực tức thì (request kế tiếp của khách nhận 401); `disabled_at` là phần giữ hiệu lực khi
  * khách đăng nhập lại (console-auth trả 403 account_disabled). Gọi lại trên tài khoản đã khoá thì
  * `doi = false` nhưng phiên vẫn được quét — phòng phiên mới sinh giữa hai lần bấm.
+ *
+ * Đọc lại dòng tài khoản NGAY TRONG `tx`, cùng lúc với ghi — không phải một câu SELECT rời ngoài
+ * transaction sau khi commit. Hai admin bấm disable/enable ngược nhau cùng lúc thì bản đọc rời đó
+ * có thể trả một dòng đã bị lệnh kia ghi đè, khiến phản hồi nói sai trạng thái thật (`moi: true`
+ * kèm `disabledAt: null`) trong khi audit lại ghi đã khoá. Đọc trong cùng `tx` loại bỏ đường đua
+ * đó, và bớt luôn một lượt round-trip Hyperdrive.
  */
 export async function voHieuHoaTaiKhoan(
   sql: Sql,
   accountId: string,
-): Promise<{ doi: boolean; phienXoa: number }> {
+): Promise<{ doi: boolean; phienXoa: number; tk: TaiKhoanAdmin | null }> {
   return await sql.begin(async (tx) => {
     const doi = await tx<{ id: string }[]>`
       UPDATE customer_account SET disabled_at = now()
@@ -107,13 +121,21 @@ export async function voHieuHoaTaiKhoan(
     // do gì kéo băm phiên vào bộ nhớ Worker rồi có thể lọt vào một stack dump nào đó sau này.
     const phien = await tx<{ account_id: string }[]>`
       DELETE FROM customer_session WHERE account_id = ${accountId}::uuid RETURNING account_id`;
-    return { doi: doi.length > 0, phienXoa: phien.length };
+    const tk = await docTaiKhoanAdmin(tx, accountId);
+    return { doi: doi.length > 0, phienXoa: phien.length, tk };
   });
 }
 
-export async function kichHoatLaiTaiKhoan(sql: Sql, accountId: string): Promise<boolean> {
-  const rows = await sql<{ id: string }[]>`
-    UPDATE customer_account SET disabled_at = NULL
-    WHERE id = ${accountId}::uuid AND disabled_at IS NOT NULL RETURNING id`;
-  return rows.length > 0;
+/** Cùng lý do đọc-trong-tx với `voHieuHoaTaiKhoan` ở trên: ghi và đọc lại phải chung một `tx`. */
+export async function kichHoatLaiTaiKhoan(
+  sql: Sql,
+  accountId: string,
+): Promise<{ doi: boolean; tk: TaiKhoanAdmin | null }> {
+  return await sql.begin(async (tx) => {
+    const rows = await tx<{ id: string }[]>`
+      UPDATE customer_account SET disabled_at = NULL
+      WHERE id = ${accountId}::uuid AND disabled_at IS NOT NULL RETURNING id`;
+    const tk = await docTaiKhoanAdmin(tx, accountId);
+    return { doi: rows.length > 0, tk };
+  });
 }

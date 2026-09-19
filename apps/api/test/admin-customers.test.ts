@@ -12,7 +12,11 @@ const TENANT = '00000000-0000-4000-8000-0000000000c1';
 const NOW = new Date('2026-09-20T03:00:00Z');
 const moi = { ...env, ENVIRONMENT: 'test' } as unknown as Env;
 
-type Dong = TaiKhoanAdmin & { cursor_at?: string };
+// `google_sub` KHÔNG có trong `TaiKhoanAdmin` (đúng vậy: cột đó không được đọc ra bằng SQL thật).
+// Fixture vẫn cố tình gắn thêm khoá này để mô phỏng một hàng dữ liệu LỠ mang theo nó — nếu
+// `taiKhoanJson` một ngày nào đó đổi từ liệt kê từng trường sang một `...a` bất cẩn, khoá này sẽ
+// lọt ra ngoài và bài kiểm bên dưới bắt được ngay, thay vì im lặng xanh vì fixture chưa từng có nó.
+type Dong = TaiKhoanAdmin & { cursor_at?: string; google_sub?: string };
 const taiKhoan = (them: Partial<Dong> = {}): Dong => ({
   id: ACCOUNT,
   email: 'khach@vidu.vn',
@@ -25,6 +29,7 @@ const taiKhoan = (them: Partial<Dong> = {}): Dong => ({
   tenant_name: 'Công ty Thử',
   tenant_quota_mode: 'commercial',
   cursor_at: '2026-09-20T03:00:00.000000Z',
+  google_sub: 'sub-123',
   ...them,
 });
 
@@ -149,7 +154,8 @@ describe('GET /v1/admin/customers', () => {
 
 describe('GET /v1/admin/customers/:id', () => {
   it('tài khoản + phiên (không token_hash, không ip_hash); 404 khi không có; id rác → 404', async () => {
-    const res = await get(app(kho({ phien: 2 })), `/v1/admin/customers/${ACCOUNT}`);
+    const k = kho({ phien: 2 });
+    const res = await get(app(k), `/v1/admin/customers/${ACCOUNT}`);
     expect(res.status).toBe(200);
     const body = (await res.json()) as {
       account: { id: string };
@@ -164,6 +170,13 @@ describe('GET /v1/admin/customers/:id', () => {
       userAgent: 'UA 0',
     });
     expect(JSON.stringify(body)).not.toMatch(/token_hash|ip_hash|tokenHash|ipHash/);
+    // Fixture MANG `google_sub` (xem ghi chú ở khai báo `taiKhoan()`) — nếu `taiKhoanJson` một
+    // ngày nào đó gộp bằng `...a` thay vì liệt kê từng trường, dòng này đỏ ngay.
+    expect(JSON.stringify(body)).not.toMatch(/google_sub|sub-123/);
+    // Câu đọc phiên phải mang ĐÚNG id tài khoản đang hỏi, không phải một hằng số hay tham số khác.
+    expect(k.calls.find((q) => q.text.includes('FROM customer_session'))?.params).toContain(
+      ACCOUNT,
+    );
     expect((await get(app(kho({ tk: null })), `/v1/admin/customers/${ACCOUNT}`)).status).toBe(404);
     expect((await get(app(kho()), '/v1/admin/customers/rac')).status).toBe(404);
   });

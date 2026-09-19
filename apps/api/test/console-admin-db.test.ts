@@ -56,15 +56,32 @@ describe('phienCuaTaiKhoan', () => {
   });
 });
 
+/** Dòng tài khoản trả về cho câu SELECT `docTaiKhoanAdmin` chạy TRONG cùng transaction. */
+const TK_MAU = {
+  id: ACCOUNT,
+  email: 'khach@vidu.vn',
+  name: 'Khách Thử',
+  google_linked: false,
+  last_login_at: null,
+  disabled_at: null,
+  created_at: new Date('2026-09-01T00:00:00Z'),
+  tenant_id: null,
+  tenant_name: null,
+  tenant_quota_mode: null,
+};
+
 describe('voHieuHoaTaiKhoan', () => {
-  it('đặt disabled_at CHỈ khi còn NULL rồi xoá mọi phiên, trong một transaction', async () => {
-    const { sql, calls } = fakeSql((q) =>
-      q.text.startsWith('UPDATE')
-        ? [{ id: ACCOUNT }]
-        : [{ account_id: ACCOUNT }, { account_id: ACCOUNT }],
-    );
+  it('đặt disabled_at CHỈ khi còn NULL rồi xoá mọi phiên, đọc lại tài khoản, cả ba trong một transaction', async () => {
+    const { sql, calls } = fakeSql((q) => {
+      if (q.text.startsWith('UPDATE')) return [{ id: ACCOUNT }];
+      if (q.text.startsWith('DELETE')) return [{ account_id: ACCOUNT }, { account_id: ACCOUNT }];
+      return [TK_MAU];
+    });
     const kq = await voHieuHoaTaiKhoan(sql, ACCOUNT);
-    expect(kq).toEqual({ doi: true, phienXoa: 2 });
+    expect(kq).toEqual({ doi: true, phienXoa: 2, tk: TK_MAU });
+    // Đúng ba câu, ĐỀU đi qua `tx` (bản fakeSql chạy `sql.begin` bằng chính client được truyền vào,
+    // nên `calls` gom cả ba) — không còn câu SELECT thứ tư nào chạy NGOÀI transaction.
+    expect(calls).toHaveLength(3);
     expect(calls[0]?.text).toContain(
       'SET disabled_at = now() WHERE id = $1::uuid AND disabled_at IS NULL',
     );
@@ -73,21 +90,28 @@ describe('voHieuHoaTaiKhoan', () => {
     expect(calls[1]?.text).toContain(
       'DELETE FROM customer_session WHERE account_id = $1::uuid RETURNING account_id',
     );
+    expect(calls[2]?.text).toContain('WHERE a.id = $1::uuid');
   });
 
   it('đã bị khoá từ trước → doi:false nhưng phiên vẫn bị xoá (không để sót)', async () => {
-    const { sql } = fakeSql((q) => (q.text.startsWith('UPDATE') ? [] : [{ account_id: ACCOUNT }]));
-    expect(await voHieuHoaTaiKhoan(sql, ACCOUNT)).toEqual({ doi: false, phienXoa: 1 });
+    const { sql } = fakeSql((q) => {
+      if (q.text.startsWith('UPDATE')) return [];
+      if (q.text.startsWith('DELETE')) return [{ account_id: ACCOUNT }];
+      return [TK_MAU];
+    });
+    expect(await voHieuHoaTaiKhoan(sql, ACCOUNT)).toEqual({ doi: false, phienXoa: 1, tk: TK_MAU });
   });
 });
 
 describe('kichHoatLaiTaiKhoan', () => {
-  it('chỉ đổi khi đang bị khoá', async () => {
+  it('chỉ đổi khi đang bị khoá; đọc lại tài khoản trong cùng transaction', async () => {
     const { sql, calls } = fakeSql([]);
-    expect(await kichHoatLaiTaiKhoan(sql, ACCOUNT)).toBe(false);
+    expect(await kichHoatLaiTaiKhoan(sql, ACCOUNT)).toEqual({ doi: false, tk: null });
+    expect(calls).toHaveLength(2);
     expect(calls[0]?.text).toContain(
       'SET disabled_at = NULL WHERE id = $1::uuid AND disabled_at IS NOT NULL',
     );
+    expect(calls[1]?.text).toContain('WHERE a.id = $1::uuid');
   });
 });
 
