@@ -63,6 +63,9 @@ importers:
 
   apps/admin:
     dependencies:
+      '@mapslibvn/catalog':
+        specifier: workspace:^
+        version: link:../../packages/catalog
       '@mapslibvn/ui':
         specifier: workspace:^
         version: link:../../packages/ui

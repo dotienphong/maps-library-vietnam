@@ -14,7 +14,14 @@ const renderNav = (me: Me | undefined, pendingCount?: number) =>
 
 const FULL: Me = {
   email: 'phong@test.local',
-  permissions: ['edits.read', 'tenants.read', 'billing.read', 'health.read', 'audit.read'],
+  permissions: [
+    'edits.read',
+    'tenants.read',
+    'billing.read',
+    'health.read',
+    'audit.read',
+    'orders.read',
+  ],
 };
 
 describe('SidebarNav', () => {
@@ -39,5 +46,17 @@ describe('SidebarNav', () => {
   it('chưa biết người dùng là ai → không đoán, không hiện mục nào', () => {
     renderNav(undefined);
     expect(screen.queryAllByRole('link')).toHaveLength(0);
+  });
+});
+
+describe('mục Đơn hàng & giao dịch', () => {
+  it('hiện khi có quyền orders.read', () => {
+    renderNav(FULL);
+    expect(screen.getByRole('link', { name: 'Đơn hàng & giao dịch' })).toBeVisible();
+  });
+
+  it('ẩn khi không có quyền đó — giao diện ẩn cho gọn mắt, API mới là nơi chặn thật', () => {
+    renderNav({ email: 'a@b.c', permissions: ['edits.read'] });
+    expect(screen.queryByRole('link', { name: 'Đơn hàng & giao dịch' })).toBeNull();
   });
 });
