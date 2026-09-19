@@ -106,15 +106,24 @@ describe('GRANT của migration 0023 dưới role api', () => {
           AND ((link_expires_at IS NOT NULL AND link_expires_at + interval '1 hour' < now())
             OR (link_expires_at IS NULL AND created_at + interval '24 hours' < now()))
         ORDER BY created_at ASC LIMIT 100`);
-      await sql`SELECT o.id,
+      // from/to bind Date THẬT (không phải null) — repo đã trả giá hai lần vì bind qua Postgres
+      // trên Workers không giống bind ở máy dev (mảng SQL, timestamp mất micro giây); vế con trỏ
+      // cũng có mặt cho khớp đúng câu mã thật, dù giá trị null.
+      const tuNgay = new Date('2020-01-01T00:00:00.000Z');
+      const denNgay = new Date('2100-01-01T00:00:00.000Z');
+      expect(
+        await sql`SELECT o.id,
           to_char(o.created_at AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"') AS cursor_at,
           t.name AS tenant_name
         FROM customer_order o JOIN tenant t ON t.id = o.tenant_id
         WHERE (${null}::text IS NULL OR o.status = ${null})
           AND (${tenantId}::uuid IS NULL OR o.tenant_id = ${tenantId}::uuid)
-          AND (${null}::timestamptz IS NULL OR o.created_at >= ${null}::timestamptz)
-          AND (${null}::timestamptz IS NULL OR o.created_at < ${null}::timestamptz)
-        ORDER BY o.created_at DESC, o.id DESC LIMIT 26`;
+          AND (${tuNgay}::timestamptz IS NULL OR o.created_at >= ${tuNgay}::timestamptz)
+          AND (${denNgay}::timestamptz IS NULL OR o.created_at < ${denNgay}::timestamptz)
+          AND (${null}::text IS NULL
+               OR (o.created_at, o.id) < (${null}::text::timestamptz, ${null}::uuid))
+        ORDER BY o.created_at DESC, o.id DESC LIMIT 26`,
+      ).toHaveLength(1);
       await sql`SELECT
         (SELECT count(*)::int FROM customer_order WHERE status IN ('paid_unfulfilled', 'underpaid')) AS cho_xu_ly,
         (SELECT coalesce(sum(paid_amount_vnd), 0)::int FROM customer_order

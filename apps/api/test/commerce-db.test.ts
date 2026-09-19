@@ -219,10 +219,16 @@ describe('danhSachDonAdmin — bộ lọc pha 4', () => {
       cursor: null,
     });
     const q = calls[0] as RecordedQuery;
+    // `toContain` trên text + `arrayContaining` trên params không quan tâm THỨ TỰ — tráo
+    // `>= $to` / `< $from` vẫn xanh. Neo theo đúng chỉ số `$n` mà mỗi điều kiện dùng để biết
+    // chắc giá trị nào đi với điều kiện nào.
+    const viTri = (re: RegExp) => Number(re.exec(q.text)?.[1]) - 1;
     expect(q.text).toContain('o.tenant_id = $');
     expect(q.text).toContain('o.created_at >= $');
     expect(q.text).toContain('o.created_at < $');
-    expect(q.params).toEqual(expect.arrayContaining([TENANT, from, to]));
+    expect(q.params[viTri(/o\.tenant_id = \$(\d+)/)]).toBe(TENANT);
+    expect(q.params[viTri(/o\.created_at >= \$(\d+)/)]).toEqual(from);
+    expect(q.params[viTri(/o\.created_at < \$(\d+)/)]).toEqual(to);
   });
 
   it('không lọc gì thì mọi tham số lọc là null và LIMIT vẫn dư một dòng', async () => {
@@ -239,7 +245,8 @@ describe('danhSachDonAdmin — bộ lọc pha 4', () => {
     // status, tenantId, from, to, cursor createdAt (mỗi cái x2 vì xuất hiện ở cả nhánh IS NULL lẫn
     // nhánh so khớp) cộng cursorId (x1) — 11 tham số null; LIMIT là tham số thứ 12, giá trị 26.
     expect(q.params.filter((p) => p === null)).toHaveLength(11);
-    expect(q.params).toContain(26);
+    // LIMIT luôn là tham số CUỐI của câu này.
+    expect(q.params.at(-1)).toBe(26);
   });
 });
 
@@ -253,11 +260,16 @@ describe('hai lệnh admin của pha 4 mang điều kiện trạng thái cũ NGA
     expect(q.params).toEqual(['Khách đổi ý', ORDER]);
   });
 
-  it('danhDauHoanTien chỉ đụng đơn fulfilled; không có dòng nào thì false', async () => {
+  it('danhDauHoanTien nhận fulfilled, paid_unfulfilled, underpaid — KHÔNG nhận pending hay paid', async () => {
     const { sql, calls } = fakeSql([]);
     expect(await danhDauHoanTien(sql, ORDER, 'Hoàn theo yêu cầu')).toBe(false);
     const q = calls[0] as RecordedQuery;
     expect(q.text).toContain("SET status = 'refunded', note = $");
-    expect(q.text).toContain("AND status = 'fulfilled' RETURNING id");
+    expect(q.text).toContain(
+      "AND status IN ('fulfilled', 'paid_unfulfilled', 'underpaid') RETURNING id",
+    );
+    // 'paid' đứng ngoài cố ý: đó là trạng thái đi ngang vài giây giữa webhook và sổ quota, đánh dấu
+    // hoàn tiền vào đó chỉ đua vô ích với datDaCap.
+    expect(q.text).not.toContain("'paid',");
   });
 });

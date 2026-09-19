@@ -157,6 +157,7 @@ export function adminOrdersWith(deps: AdminOrdersDeps = {}) {
       }
       cursor = { createdAt, id };
     }
+    // TODO Task 2: nối tenant/from/to từ query; đang truyền null nên bộ lọc chưa chạy.
     const rows = await voiSqlCua(c, (sql) =>
       danhSachDonAdmin(sql, { status, tenantId: null, from: null, to: null, limit, cursor }),
     );
