@@ -15,6 +15,7 @@ export {
   type Tier,
   USD_REFERENCE_RATE,
 } from './plans';
+export { dinhDangSo, dinhDangUsd, dinhDangVnd, TEN_GOI } from './tien';
 export {
   CatalogError,
   type CatalogErrorCode,

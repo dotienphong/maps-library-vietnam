@@ -8,7 +8,7 @@
  *  - không dùng từ ngữ kiểu quảng cáo, không dấu chấm than lặp.
  */
 
-const KHUNG_HTML = (noiDung: string): string =>
+export const KHUNG_HTML = (noiDung: string): string =>
   `<!doctype html><html lang="vi"><body style="margin:0;padding:24px;background:#f7f8fa;font-family:system-ui,-apple-system,'Segoe UI',sans-serif;color:#101828;line-height:1.6">
 <div style="max-width:520px;margin:0 auto;background:#fff;border:1px solid #e3e6ec;border-radius:12px;padding:28px">
 <p style="margin:0 0 20px;font-size:18px;font-weight:700;color:#1b3a6b">MapsLibVN</p>
