@@ -3350,3 +3350,38 @@ gói, Đơn hàng, chi tiết đơn) phụ thuộc bảng `customer_order` của
 nút mua ở Tổng quan dẫn tới hộp thoại nói thật kèm email hỗ trợ, thay vì tới trang trống.
 
 Cổng đã chạy và việc tay còn lại: `docs/evidence/commerce/2026-09-18-pha-2-console.md`.
+
+---
+
+## 21. 19/09/2026 — Pha 2 lên production, cổng vẫn đóng
+
+PHONG chạy `pnpm server:migrate` **trên máy chủ Ubuntu**, `/healthz/db` sang
+`0020_customer.sql`, cổng `check:migration` nhả, `Deploy API` chạy bằng `workflow_dispatch` trên
+`36120bc` và xanh cả hai job.
+
+Nghiệm thu ngay sau deploy:
+
+| Đường dẫn | Mã | Ghi chú |
+|---|---|---|
+| `/console/` | 200 | `<title>Cổng khách hàng — MapsLibVN</title>` |
+| `/console/dang-nhap` | 200 | SPA fallback đúng nhánh |
+| `/v1/console/config` | 200 | `selfServe:false` → màn "Sắp mở" |
+| `/admin/` | 302 | vẫn sau Cloudflare Access |
+| `/v1/autocomplete` không khoá | 401 | không phải 5xx |
+| `/v1/catalog`, `/v1/attribution` | 200 | pha 0 không bị ảnh hưởng |
+
+**`SELF_SERVE` vẫn `"0"` và phải ở nguyên đó.** Năm secret của pha 2 chưa đặt — `wrangler secret
+list --env production` mới có `BILLING_BACKUP_EMAILS`, `CF_ANALYTICS_TOKEN`, `IP_HASH_PEPPER`,
+`ROUTING_ACCESS_CLIENT_ID`, `ROUTING_ACCESS_CLIENT_SECRET`. Deploy lúc này an toàn đúng vì cổng
+đóng: mọi route cần Resend/Google/Turnstile/`SESSION_PEPPER` đều nằm sau `selfServeOpen()`, và
+`/v1/console/config` đứng ngoài nên SPA vẫn nói được "Sắp mở" mà không chạm secret nào.
+
+**Một hiểu nhầm đã được đo và sửa:** tài liệu M2 (27/08) viết "máy dev **là** máy chủ tạm". Ngày
+19/09 trên MacBook, cả năm container `mapslibvn-server-*` đã `Exited (137)` 35 giờ và không có
+tiến trình `cloudflared` nào, trong khi `/healthz/db` vẫn trả lời. Máy chủ đã chuyển đi nơi khác.
+`pnpm server:migrate` chỉ là `docker compose run --no-deps pipeline`, nó tác động lên **máy đang
+gõ lệnh** chứ không đi xa, nên gõ nhầm máy là migrate vào một bản sao cũ. Xác nhận đứng đúng máy
+bằng `docker ps --filter name=mapslibvn-server` trước khi chạy.
+
+Còn lại: bốn việc tay đầu ở `docs/evidence/commerce/2026-09-18-pha-2-console.md` mục 5 (Resend,
+Google OAuth, Turnstile, năm secret), điền `TURNSTILE_SITE_KEY`, rồi mới bật `SELF_SERVE`.
