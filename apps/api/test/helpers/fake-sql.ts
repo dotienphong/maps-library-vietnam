@@ -46,5 +46,8 @@ export function fakeSql(
   // `sql.begin(fn)` của postgres.js chạy fn với client trong transaction; bản giả chạy ngay với
   // chính tag này — đủ để khẳng định thứ tự và nội dung câu lệnh, không giả lập rollback.
   tag.begin = <T>(fn: (tx: unknown) => Promise<T>): Promise<T> => fn(tag);
+  // `endSql()` gọi `sql.end({ timeout: 1 })` ở mọi route; thiếu hàm này thì route nào dùng client
+  // tiêm vào cũng ném ngay trong `finally` và mọi nhánh biến thành 503.
+  tag.end = (): Promise<void> => Promise.resolve();
   return { sql: tag as unknown as ReturnType<typeof getSql>, calls };
 }

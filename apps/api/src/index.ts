@@ -17,6 +17,7 @@ import { directions } from './routes/directions';
 import { edits } from './routes/edits';
 import { geocodeRoute } from './routes/geocode';
 import { nearby } from './routes/nearby';
+import { payWebhook } from './routes/pay-webhook';
 import { places } from './routes/places';
 import { quotaReceipts } from './routes/quota-receipts';
 import { r2 } from './routes/r2';
@@ -103,6 +104,11 @@ app.route('/', catalogRoute);
 app.use('/v1/console/*', requireSameSiteGhi());
 app.route('/', consoleAuth);
 app.route('/', consoleRoutes);
+
+// Webhook PayOS đứng NGOÀI mọi cổng Access/CSRF/cookie: server-to-server, và chữ ký HMAC là cổng
+// duy nhất. Vì vậy nó phải nằm ngoài tiền tố `/v1/console/*` ở trên — một cổng chống CSRF ở đây
+// sẽ chặn đúng thứ cần cho qua, còn chữ ký thì đã chặn đúng thứ cần chặn.
+app.route('/', payWebhook);
 app.route('/', autocomplete);
 app.route('/', search);
 app.route('/', nearby);
