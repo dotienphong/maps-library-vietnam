@@ -82,6 +82,19 @@ publish tuần tự core → web → react → react-native với public access.
 > Lệnh sẽ tự dừng nếu phát hiện package public mới chưa được phân loại. `@mapslibvn/style`
 > hiện là ngoại lệ nội bộ có tên rõ trong `NON_SDK_PACKAGE_DIRS`.
 
+## Thanh toán (PayOS)
+
+- Khách mua gói ở `/console/mua`; tiền về tài khoản ngân hàng đã liên kết với PayOS; gói tự vào sổ
+  quota khi webhook tới (`POST /v1/pay/payos/webhook`). Cron mỗi 5 phút đối soát phòng webhook rơi
+  và cấp lại đơn treo; 09:00 giờ VN gửi thư nhắc hạn.
+- Ba secret production: `wrangler secret put PAYOS_CLIENT_ID|PAYOS_API_KEY|PAYOS_CHECKSUM_KEY --env production`.
+  Thiếu bất kỳ khoá nào thì tạo đơn và webhook đều trả 503 — không có nhánh "tạm tin".
+- Thử ở máy: `pnpm test:api-db` tự dựng PayOS giả (`scripts/lib/payos-fake.mjs`, cổng 8791) vì
+  **PayOS không có môi trường sandbox**. Bắn một webhook đã ký vào harness:
+  `pnpm pay:fake-webhook --order-code <mã> --amount <tiền>` (script từ chối trỏ vào production).
+- Admin: `/admin/orders` — bốn ô đối soát, "Thử cấp lại" cho đơn tiền vào mà gói chưa vào, và
+  "Xác nhận đã nhận tiền (tay)" khi thấy tiền trong sao kê mà webhook không tới.
+
 ## Cập nhật dữ liệu bản đồ và POI
 
 Nên kiểm tra trước xem OSM hoặc Foursquare có phiên bản mới hay không:

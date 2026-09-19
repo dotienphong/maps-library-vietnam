@@ -8,9 +8,7 @@ const env = { ENVIRONMENT: 'test', SUPPORT_EMAIL: 'ho-tro@vidu.vn' } as Env;
 
 /** `daGui` là số thư đã gửi hôm nay mà bảng admin_audit trả về. */
 const kho = (daGui: number) =>
-  fakeSql((q: RecordedQuery) =>
-    q.text.includes("action = 'email.sent'") ? [{ n: daGui }] : [],
-  );
+  fakeSql((q: RecordedQuery) => (q.text.includes("action = 'email.sent'") ? [{ n: daGui }] : []));
 
 describe('guiThuGiaoDich', () => {
   it('gửi cho từng người nhận, mỗi thư một dòng email.sent', async () => {

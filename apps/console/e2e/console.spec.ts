@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { dangKyLayKhoa, dangNhap, emailMoi, nhapMa, xinMaVaDoc } from './helpers';
+import { dangKyLayKhoa, emailMoi, nhapMa, xinMaVaDoc } from './helpers';
 
 test('người lạ đăng ký, lấy khoá và gọi được API thật bằng chính khoá đó', async ({
   page,

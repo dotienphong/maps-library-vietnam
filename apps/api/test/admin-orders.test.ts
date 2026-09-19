@@ -53,9 +53,7 @@ interface DongAudit {
   detail: Record<string, unknown>;
 }
 
-function kho(
-  tuyChon: { danhSach?: DonAdmin[]; don?: DonAdmin | null; trungRef?: boolean } = {},
-) {
+function kho(tuyChon: { danhSach?: DonAdmin[]; don?: DonAdmin | null; trungRef?: boolean } = {}) {
   let hienTai = tuyChon.don === undefined ? don() : tuyChon.don;
   const suKien: { ref: string; amount: number | null; provider: string }[] = [];
   const audit: DongAudit[] = [];

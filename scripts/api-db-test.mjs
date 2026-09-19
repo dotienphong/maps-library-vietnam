@@ -8,13 +8,8 @@ import crossSpawn from 'cross-spawn';
 import postgres from 'postgres';
 import { CERTS_PORT, FAKE_AUD, FAKE_TEAM_DOMAIN } from './lib/access-fake.mjs';
 import { DBTEST_DATABASE, isolatedDbUrl } from './lib/db-test.mjs';
-import {
-  FAKE_API_KEY,
-  FAKE_CHECKSUM,
-  FAKE_CLIENT_ID,
-  PAYOS_FAKE_PORT,
-} from './lib/payos-fake.mjs';
 import { databaseUrlFromEnv } from './lib/migrations.mjs';
+import { FAKE_API_KEY, FAKE_CHECKSUM, FAKE_CLIENT_ID, PAYOS_FAKE_PORT } from './lib/payos-fake.mjs';
 
 const PORT = 8799;
 // Wrangler và itest phải dùng chung một pepper, nếu không `end_user_hash` do route tính sẽ không
@@ -139,7 +134,8 @@ await new Promise((resolve, reject) => {
   const tick = async () => {
     if (payosProc.exitCode !== null) return reject(new Error('payos-fake thoát sớm'));
     try {
-      if ((await fetch(`http://127.0.0.1:${PAYOS_FAKE_PORT}/healthz`)).ok) return resolve(undefined);
+      if ((await fetch(`http://127.0.0.1:${PAYOS_FAKE_PORT}/healthz`)).ok)
+        return resolve(undefined);
     } catch {
       // chưa lên, thử lại
     }

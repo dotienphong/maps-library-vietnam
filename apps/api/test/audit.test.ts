@@ -76,9 +76,9 @@ describe('chonActor', () => {
   });
 
   it('có cả hai → reviewer thắng', () => {
-    expect(
-      chonActor({ reviewer: 'phong@test.local', customer: { email: 'khach@vidu.vn' } }),
-    ).toBe('phong@test.local');
+    expect(chonActor({ reviewer: 'phong@test.local', customer: { email: 'khach@vidu.vn' } })).toBe(
+      'phong@test.local',
+    );
   });
 
   it('không có gì → chuỗi rỗng', () => {

@@ -41,4 +41,3 @@ export async function dangKyLayKhoa(page: Page, email: string, tenToChuc: string
   expect(khoa).toMatch(/^mlv_live_[0-9A-Za-z]{24}$/);
   return khoa;
 }
-

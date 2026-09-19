@@ -24,7 +24,7 @@ const ACCOUNT = '00000000-0000-4000-8000-0000000000a1';
 const ORDER = '00000000-0000-4000-8000-0000000000d1';
 
 describe('noiDungChuyenKhoan', () => {
-  it("đúng 9 ký tự — trần của PayOS với tài khoản chưa liên kết", () => {
+  it('đúng 9 ký tự — trần của PayOS với tài khoản chưa liên kết', () => {
     expect(noiDungChuyenKhoan(100001)).toBe('MLV100001');
     expect(noiDungChuyenKhoan(999999)).toHaveLength(9);
   });

@@ -1,4 +1,4 @@
-import type { OrderInput, PaidTier, PeriodMonths, Quote, QuotaGroup } from '@mapslibvn/catalog';
+import type { OrderInput, PaidTier, PeriodMonths, QuotaGroup, Quote } from '@mapslibvn/catalog';
 import type { getSql } from '../db';
 
 /**
@@ -297,11 +297,7 @@ export async function donCanCapLai(sql: Sql, tranThu: number, limit = 20): Promi
 }
 
 /** Pending có link, tạo quá 10 phút, link chưa hết hạn — ứng viên hỏi PayOS phòng webhook rơi. */
-export async function donPendingCanDoiSoat(
-  sql: Sql,
-  now: Date,
-  limit = 30,
-): Promise<DonHang[]> {
+export async function donPendingCanDoiSoat(sql: Sql, now: Date, limit = 30): Promise<DonHang[]> {
   return await sql<DonHang[]>`
     SELECT ${sql.unsafe(COT_DON)} FROM customer_order
     WHERE status = 'pending' AND payment_link_id IS NOT NULL
@@ -367,10 +363,7 @@ export async function daNhacRoi(sql: Sql, target: string): Promise<boolean> {
   return rows[0]?.co === true;
 }
 
-export async function donDepPhienVaMa(
-  sql: Sql,
-  now: Date,
-): Promise<{ ma: number; phien: number }> {
+export async function donDepPhienVaMa(sql: Sql, now: Date): Promise<{ ma: number; phien: number }> {
   const ma = await sql<{ id: number }[]>`
     DELETE FROM customer_login_code WHERE expires_at < ${now}::timestamptz RETURNING id`;
   const phien = await sql<{ token_hash: string }[]>`

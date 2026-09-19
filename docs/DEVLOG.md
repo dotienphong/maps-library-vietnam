@@ -3424,3 +3424,55 @@ cả bốn phương thức ghi; `GET` và `HEAD` cố ý không chặn.
 
 **Và một chốt vận hành:** `pnpm server:*` nay dừng ngay khi gõ nhầm máy, phân biệt "container đang
 tắt" với "máy này không phải máy chủ". Tài liệu M2 viết "máy dev là máy chủ" đã hết đúng từ lâu.
+
+## 23. Thương mại tự phục vụ — pha 3: thanh toán PayOS — 19/09/2026
+
+Khách tự trả tiền bằng chuyển khoản VietQR, gói tự vào sổ quota. 19 task, mã xong và mọi cổng xanh
+ở máy; **chưa lên production** vì còn chờ PHONG đăng ký PayOS (xác thực CCCD mất vài ngày).
+Chứng cứ đầy đủ: `docs/evidence/commerce/2026-09-19-pha-3-thanh-toan.md`.
+
+**Ba sự thật về PayOS, đối chiếu tài liệu chính thức và mã nguồn SDK `@payos/node@2.0.5` trước khi
+viết dòng mã nào:**
+
+1. **Không có sandbox.** Tài liệu viết thẳng: *"payOS không cung cấp môi trường test (sandbox/
+   staging) riêng biệt"*, và khuyên dùng "giá trị giao dịch nhỏ khi kiểm thử". Nên
+   `scripts/lib/payos-fake.mjs` là môi trường kiểm thử duy nhất ngoài tiền thật — và nó phải ký
+   bằng **đúng** thuật toán, nếu không bộ e2e chỉ chứng minh hai đoạn mã sai giống nhau. Vector chữ
+   ký tính độc lập bằng `node:crypto`, dùng chung cho cả `apps/api` lẫn bản giả.
+2. **`description` tối đa 9 ký tự** với tài khoản ngân hàng chưa liên kết → nội dung chuyển khoản là
+   `MLV` + orderCode, sequence bắt đầu 100001, đủ 9 ký tự tới 999999.
+3. **Không có timestamp, nonce, hay danh sách IP.** Chữ ký HMAC là cổng duy nhất, nên nó được kiểm
+   trước khi đọc bất kỳ trường nào, so sánh hằng thời gian, và thiếu khoá thì 503 chứ không "tạm tin".
+
+**Quyết định lệch spec, bảy điểm** — đáng nhớ nhất là hai:
+
+- **Tiền tính theo TỔNG các sự kiện hợp lệ**, không theo một webhook. PayOS hỗ trợ trả từng phần
+  (`amountPaid`/`amountRemaining`), và khách chuyển thiếu rồi chuyển bù là chuyện thường. Spec 9.2
+  bước 6 so `amount` của một webhook; một webhook đủ tiền cho ra kết quả y hệt.
+- **Không cài `@payos/node` vào Worker.** Toàn bộ giá trị của SDK với ta là ~90 dòng chữ ký và ba
+  lời gọi `fetch`. Đọc mã nguồn để lấy đúng thuật toán rồi viết tay, có vector cố định khoá lại.
+  Ít mã lạ chạy cạnh khoá thanh toán hơn.
+
+**Hai lỗi có sẵn, lộ ra trong lúc làm:**
+
+`audit()` của pha 2 **chưa từng ghi gì cho cổng khách hàng**. Nó đọc `c.get('reviewer')` — biến do
+Cloudflare Access đặt — rồi trả về sớm khi rỗng, mà không route nào của `/v1/console/*` đặt biến đó.
+Hệ quả: mọi dòng `customer.*` và cả `email.sent` im lặng từ pha 2, nghĩa là **ngân sách 100 thư/ngày
+của Resend chưa từng được đếm**. Không bài kiểm nào bắt được vì không bài nào đọc `admin_audit` sau
+một thao tác của khách. Đã sửa ở task đầu tiên, và itest của pha này đọc nhật ký thật.
+
+Console **không làm mới mức dùng** khi đơn chuyển sang `fulfilled` qua poll: khách trả tiền xong bấm
+về Tổng quan vẫn thấy gói cũ tới 30 giây, kèm nút "Mua gói" thay vì "Gia hạn" — trông y như tiền
+chưa vào. Bộ e2e bắt được, không phải bộ unit.
+
+**Một bẫy đo lường mới, đáng ghi:** lần chạy `pnpm test:db` đầu tiên đỏ 9 bài ở conflate,
+export-odbl và hai bài lùi migration. Không bài nào liên quan tới đơn hàng. Nguyên nhân là DB dev đã
+bị chính tôi làm bẩn khi chạy `db/schema.dbtest.mjs` **đứng một mình** trước đó — bài đó lùi toàn bộ
+migration rồi tiến lại. Chạy lại qua đúng harness container (DB cô lập) thì 13/13 xanh. Quy tắc rút
+ra: **không đọc kết quả `test:db` sau khi đã chạy tay một file dbtest nào đó.**
+
+**Ba tầng kiểm thử, và tầng nào bắt được gì.** Unit bắt hợp đồng và toán kỳ hạn; `test:api-db` bắt
+quyền database thật cùng vòng đời webhook → sổ quota; e2e bắt hai lỗi mà hai tầng kia không thấy
+(cache mức dùng, và một bộ chọn giao diện sai). `db/commerce-grant.dbtest.mjs` chạy **nguyên văn**
+từng câu SQL dưới `SET ROLE api` — và khoá luôn vế thứ hai: bảy câu sửa giá hoặc xoá hồ sơ tài chính
+phải nhận `42501`.

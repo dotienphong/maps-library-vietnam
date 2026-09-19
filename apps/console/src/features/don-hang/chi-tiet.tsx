@@ -7,7 +7,7 @@ import { khoaCache, useCauHinh } from '@/features/auth/hooks';
 import { huyDon, layDon, noiDungTuDon, taoDon } from '@/lib/api';
 import { LoiHop } from '@/lib/loi-hop';
 import { MaQr } from './ma-qr';
-import { chuKyPoll, giayConLai, ngayGioVn, NHAN_TRANG_THAI } from './trang-thai';
+import { chuKyPoll, giayConLai, NHAN_TRANG_THAI, ngayGioVn } from './trang-thai';
 
 const mmss = (giay: number) => `${Math.floor(giay / 60)}:${String(giay % 60).padStart(2, '0')}`;
 

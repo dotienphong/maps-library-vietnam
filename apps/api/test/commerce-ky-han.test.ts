@@ -100,9 +100,9 @@ describe('daCapChoDon', () => {
   });
 
   it('false khi sổ chưa có gì của đơn này', () => {
-    expect(daCapChoDon(lichSu([ky('starter', '2026-09-01T00:00:00Z', '2026-10-01T00:00:00Z')]), id)).toBe(
-      false,
-    );
+    expect(
+      daCapChoDon(lichSu([ky('starter', '2026-09-01T00:00:00Z', '2026-10-01T00:00:00Z')]), id),
+    ).toBe(false);
   });
 });
 

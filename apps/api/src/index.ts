@@ -99,7 +99,11 @@ app.use('/v1/admin/quota-summary', requireBillingAccess());
 app.route('/', adminQuotaSummary);
 // Đơn hàng và giao dịch là cùng lớp dữ liệu tiền như billing, nên chịu đúng hai cổng đó — kể cả
 // đường CHỈ ĐỌC: danh sách đơn cho biết ai trả bao nhiêu và khi nào.
-for (const duong of ['/v1/admin/orders', '/v1/admin/orders/*', '/v1/admin/payment-events/*'] as const) {
+for (const duong of [
+  '/v1/admin/orders',
+  '/v1/admin/orders/*',
+  '/v1/admin/payment-events/*',
+] as const) {
   app.use(duong, requireSameSiteGhi());
   app.use(duong, requireBillingAccess());
 }

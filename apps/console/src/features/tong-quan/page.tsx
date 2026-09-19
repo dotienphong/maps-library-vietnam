@@ -160,7 +160,10 @@ export function TongQuan() {
             )}
             <ul className="mt-2 space-y-2">
               {donGanNhat.data?.slice(0, 5).map((don) => (
-                <li key={don.id} className="flex flex-wrap items-center justify-between gap-2 text-sm">
+                <li
+                  key={don.id}
+                  className="flex flex-wrap items-center justify-between gap-2 text-sm"
+                >
                   <Link to={`/don-hang/${don.id}`} className="underline">
                     Đơn {don.orderCode} · {don.moTa}
                   </Link>
@@ -173,7 +176,6 @@ export function TongQuan() {
           </section>
         </>
       )}
-
     </div>
   );
 }

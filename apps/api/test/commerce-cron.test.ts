@@ -5,7 +5,7 @@ import type {
   PeriodHistory,
   UsageSnapshot,
 } from '../src/billing/types';
-import { chayCron, CRON_HANG_NGAY, CRON_MOI_5_PHUT, phanLoaiNhac } from '../src/commerce/cron';
+import { CRON_HANG_NGAY, CRON_MOI_5_PHUT, chayCron, phanLoaiNhac } from '../src/commerce/cron';
 import type { DonHang } from '../src/commerce/db';
 import type { PayosPort, ThongTinLink } from '../src/commerce/payos';
 import type { Env } from '../src/env';
@@ -80,7 +80,11 @@ function kho(
   const suKien: string[] = [...(tuyChon.suKienCu ?? [])];
   const trangThai = new Map<string, string>();
   const audit: string[] = [];
-  const tatCaDon = [...(tuyChon.capLai ?? []), ...(tuyChon.doiSoat ?? []), ...(tuyChon.quaHan ?? [])];
+  const tatCaDon = [
+    ...(tuyChon.capLai ?? []),
+    ...(tuyChon.doiSoat ?? []),
+    ...(tuyChon.quaHan ?? []),
+  ];
   const { sql, calls } = fakeSql((q: RecordedQuery) => {
     if (q.text.includes('fulfil_attempts < $')) return tuyChon.capLai ?? [];
     if (q.text.includes("interval '10 minutes'")) return tuyChon.doiSoat ?? [];
@@ -172,11 +176,7 @@ const payosGia = (tt: Partial<ThongTinLink> | null): PayosPort =>
   }) as unknown as PayosPort;
 
 const guiThu = vi.fn().mockResolvedValue({ id: 'r' });
-const deps = (
-  k: ReturnType<typeof kho>,
-  so: ReturnType<typeof soGia>['so'],
-  payos: PayosPort,
-) => ({
+const deps = (k: ReturnType<typeof kho>, so: ReturnType<typeof soGia>['so'], payos: PayosPort) => ({
   sql: () => k.sql,
   so: () => so,
   payos: () => payos,
@@ -252,7 +252,12 @@ describe('cron mỗi 5 phút', () => {
 
   it('doiSoatPending: CANCELLED/EXPIRED → expired, audit order.expired', async () => {
     const k = kho({ doiSoat: [don()] });
-    await chayCron(env, ctx, CRON_MOI_5_PHUT, deps(k, soGia().so, payosGia({ status: 'CANCELLED' })));
+    await chayCron(
+      env,
+      ctx,
+      CRON_MOI_5_PHUT,
+      deps(k, soGia().so, payosGia({ status: 'CANCELLED' })),
+    );
     expect(k.trangThai.get(ORDER)).toBe('expired');
     expect(k.audit).toContain('order.expired');
   });

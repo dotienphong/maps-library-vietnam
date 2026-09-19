@@ -55,8 +55,8 @@ test('admin thấy đơn mới, xác nhận tay → Đã cấp gói và sự ki�
   await page.goto(`/admin/orders?id=${don.id}`);
   // Giới hạn trong ngăn chi tiết: chữ "Đã cấp gói" cũng nằm trong ô lọc trạng thái dưới dạng
   // <option>, và Playwright coi option là phần tử ẩn.
-  const ngan = page.getByRole("dialog");
-  await expect(ngan.getByText("Đã cấp gói")).toBeVisible();
+  const ngan = page.getByRole('dialog');
+  await expect(ngan.getByText('Đã cấp gói')).toBeVisible();
   await expect(ngan.getByText(/^manual:/)).toBeVisible();
-  await expect(ngan.getByText("chữ ký hợp lệ").first()).toBeVisible();
+  await expect(ngan.getByText('chữ ký hợp lệ').first()).toBeVisible();
 });

@@ -5,7 +5,7 @@ import { Link } from 'react-router';
 import { khoaCache, useToi } from '@/features/auth/hooks';
 import { layDonHang } from '@/lib/api';
 import { LoiHop } from '@/lib/loi-hop';
-import { ngayGioVn, NHAN_TRANG_THAI } from './trang-thai';
+import { NHAN_TRANG_THAI, ngayGioVn } from './trang-thai';
 
 export function DonHangPage() {
   const { data: toi } = useToi();

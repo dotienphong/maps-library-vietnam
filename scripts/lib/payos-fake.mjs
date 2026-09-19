@@ -21,10 +21,13 @@ const sapXep = (gia) => {
   const o = /** @type {Record<string, unknown>} */ (gia ?? {});
   return Object.keys(o)
     .sort()
-    .reduce((a, k) => {
-      a[k] = o[k];
-      return a;
-    }, /** @type {Record<string, unknown>} */ ({}));
+    .reduce(
+      (a, k) => {
+        a[k] = o[k];
+        return a;
+      },
+      /** @type {Record<string, unknown>} */ ({}),
+    );
 };
 
 /** Đúng convertObjToQueryStr(sortObjDataByKey(data)) của @payos/node@2.0.5.
@@ -164,7 +167,10 @@ export function startPayosFake(port = PAYOS_FAKE_PORT, khoa = FAKE_CHECKSUM) {
     }
 
     // Từ đây là API của PayOS thật — kiểm header y như thật.
-    if (req.headers['x-client-id'] !== FAKE_CLIENT_ID || req.headers['x-api-key'] !== FAKE_API_KEY) {
+    if (
+      req.headers['x-client-id'] !== FAKE_CLIENT_ID ||
+      req.headers['x-api-key'] !== FAKE_API_KEY
+    ) {
       return traJson(res, 401, { code: '401', desc: 'Unauthorized' });
     }
 

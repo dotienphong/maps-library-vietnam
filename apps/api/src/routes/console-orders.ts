@@ -3,10 +3,10 @@ import { type Context, Hono, type MiddlewareHandler } from 'hono';
 import { audit } from '../audit';
 import { quotaObject } from '../billing/object';
 import {
+  type DonHang,
   danhSachDonCuaTenant,
   demDonPending,
   docDonCuaTenant,
-  type DonHang,
   huyDonCuaTenant,
   luuLinkThanhToan,
   noiDungChuyenKhoan,
@@ -31,11 +31,20 @@ const DON_PENDING_TOI_DA = 3;
 const LINK_SONG_MS = 24 * 3_600_000;
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
+type ChiTietAudit = Record<string, string | number | boolean | null>;
+
 export interface ConsoleOrdersDeps extends FulfilDeps {
   sql?: (env: Env) => ReturnType<typeof getSql>;
   payos?: (env: Env) => PayosPort;
   /** Test thay cổng phiên bằng middleware đặt sẵn `customer`; production dùng requireCustomer(). */
   xacThuc?: MiddlewareHandler<AppEnv>;
+  /**
+   * Cổng ghi nhật ký, tiêm được như billing-admin.ts và admin-orders.ts. Mặc định là `audit()`
+   * thật, và hàm đó mở client Postgres RIÊNG chạy trong waitUntil — client của request đã bị
+   * `endSql` đóng. Trong test thì client riêng đó nối vào cổng đóng và driver postgres.js ném một
+   * unhandled rejection không bắt được từ mã của ta, nên test tiêm bản ghi nhớ thay vì để nó chạy.
+   */
+  writeAuditEntry?: (entry: { action: string; target: string; detail: ChiTietAudit }) => void;
 }
 
 /**
@@ -116,6 +125,14 @@ export function consoleOrdersWith(deps: ConsoleOrdersDeps = {}) {
   const so = (env: Env, tenantId: string): CongSo => (deps.so ?? quotaObject)(env, tenantId);
   const payos = (env: Env) => (deps.payos ?? chonPayosPort)(env);
   const now = () => (deps.now ?? (() => new Date()))();
+
+  const ghiAudit = (c: Context<AppEnv>, action: string, target: string, detail: ChiTietAudit) => {
+    if (deps.writeAuditEntry) {
+      deps.writeAuditEntry({ action, target, detail });
+      return;
+    }
+    audit(c, action, target, detail);
+  };
 
   routes.use('/v1/console/orders', cong);
   routes.use('/v1/console/orders/*', cong);
@@ -210,7 +227,7 @@ export function consoleOrdersWith(deps: ConsoleOrdersDeps = {}) {
         don: input,
         gia,
       });
-      audit(c, 'customer.order_create', moi.id, {
+      ghiAudit(c, 'customer.order_create', moi.id, {
         order_code: moi.order_code,
         tenant_id: khach.tenantId,
         kind: input.kind,
@@ -320,7 +337,7 @@ export function consoleOrdersWith(deps: ConsoleOrdersDeps = {}) {
     }
     const daHuy = await voiSqlCua(c, (sql) => huyDonCuaTenant(sql, khach.tenantId, id));
     if (!daHuy) throw new ApiError(409, 'order_not_cancellable', 'Đơn vừa đổi trạng thái');
-    audit(c, 'customer.order_cancel', id, {
+    ghiAudit(c, 'customer.order_cancel', id, {
       order_code: don.order_code,
       tenant_id: khach.tenantId,
     });

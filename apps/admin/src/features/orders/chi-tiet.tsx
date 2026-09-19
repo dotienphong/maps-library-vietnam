@@ -80,7 +80,9 @@ export function ChiTietDonPanel({ id, onClose }: Props) {
           {d && (
             <div className="mt-4 space-y-5">
               <div className="flex flex-wrap items-center gap-2">
-                <Badge tone={NHAN_TRANG_THAI[d.status].tone}>{NHAN_TRANG_THAI[d.status].nhan}</Badge>
+                <Badge tone={NHAN_TRANG_THAI[d.status].tone}>
+                  {NHAN_TRANG_THAI[d.status].nhan}
+                </Badge>
                 <span className="text-sm text-[var(--text-muted)]">
                   {d.tenantName ?? d.tenantId}
                 </span>
@@ -189,8 +191,8 @@ export function ChiTietDonPanel({ id, onClose }: Props) {
                   }}
                 >
                   <p className="text-sm">
-                    Chỉ dùng khi đã thấy tiền trong sao kê mà webhook không tới. Lệnh gửi sau 5 giây,
-                    huỷ được trong lúc đếm ngược.
+                    Chỉ dùng khi đã thấy tiền trong sao kê mà webhook không tới. Lệnh gửi sau 5
+                    giây, huỷ được trong lúc đếm ngược.
                   </p>
                   <label className="block text-sm font-semibold">
                     Lý do

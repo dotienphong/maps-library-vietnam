@@ -185,7 +185,8 @@ export function phanLoaiNhac(
   history: Pick<PeriodHistory, 'periods'>,
   now: Date,
 ): { loai: LoaiNhac; periodId: string } | null {
-  if (!usage.endsAt || !usage.periodId || usage.tier === 'trial' || usage.tier === null) return null;
+  if (!usage.endsAt || !usage.periodId || usage.tier === 'trial' || usage.tier === null)
+    return null;
   const end = Date.parse(usage.endsAt);
   if (!Number.isFinite(end)) return null;
   const coKyKeTiep = history.periods.some(

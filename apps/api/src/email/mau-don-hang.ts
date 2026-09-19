@@ -145,7 +145,12 @@ export function mauNhacHan(d: {
     d.loai === 'het'
       ? `Gói ${d.tenGoi} của ${d.tenTenant} đã hết hạn ngày ${ngay}. Khoá API vẫn còn nhưng mọi lượt gọi bị từ chối cho tới khi gia hạn.`
       : `Gói ${d.tenGoi} của ${d.tenTenant} sẽ hết hạn ngày ${ngay}. Gia hạn trước ngày đó thì kỳ mới nối tiếp, không mất ngày nào.`;
-  const text = noiDong([cau, '', ...(d.consoleUrl ? [`Gia hạn: ${d.consoleUrl}`, ''] : []), CHAN_THU]);
+  const text = noiDong([
+    cau,
+    '',
+    ...(d.consoleUrl ? [`Gia hạn: ${d.consoleUrl}`, ''] : []),
+    CHAN_THU,
+  ]);
   const html = KHUNG_HTML(
     `<p style="margin:0 0 20px">${cau}</p>
 ${d.consoleUrl ? `<p style="margin:0"><a href="${d.consoleUrl}" style="display:inline-block;background:#1b3a6b;color:#fff;text-decoration:none;padding:12px 20px;border-radius:9px;font-weight:600">Gia hạn</a></p>` : ''}`,

@@ -2,16 +2,16 @@ import { type Context, Hono } from 'hono';
 import { audit } from '../audit';
 import {
   chuTenant,
+  type DonHang,
   daCoSuKien,
   danhSachDonAdmin,
   docDon,
-  type DonHang,
   ghiSuKienThanhToan,
   suKienCuaDon,
   suKienKhongKhop,
+  type TrangThaiDon,
   tomTatDon,
   tongTienDaNhan,
-  type TrangThaiDon,
 } from '../commerce/db';
 import { apDungThanhToan, type FulfilDeps, type KetQuaApDung } from '../commerce/fulfil';
 import { type ThongBaoDeps, thongBaoSauApDung } from '../commerce/thong-bao';
@@ -222,7 +222,10 @@ export function adminOrdersWith(deps: AdminOrdersDeps = {}) {
     ghiAudit(c, 'admin.order.fulfil', id, {
       order_code: kq.don.order_code,
       ket_qua: kq.trangThai,
-      loi: kq.trangThai === 'paid_unfulfilled' && kq.cap.status === 'paid_unfulfilled' ? kq.cap.error : null,
+      loi:
+        kq.trangThai === 'paid_unfulfilled' && kq.cap.status === 'paid_unfulfilled'
+          ? kq.cap.error
+          : null,
     });
     return c.json({ order: donJsonAdmin(kq.don), ketQua: kq.trangThai }, 200, NO_STORE);
   });
@@ -244,7 +247,11 @@ export function adminOrdersWith(deps: AdminOrdersDeps = {}) {
     const bankReference =
       typeof body.bankReference === 'string' ? body.bankReference.trim().slice(0, 64) : '';
     if (!operationId || !reason || !bankReference) {
-      throw new ApiError(400, 'invalid_confirm', 'Cần operationId, lý do và mã tham chiếu ngân hàng');
+      throw new ApiError(
+        400,
+        'invalid_confirm',
+        'Cần operationId, lý do và mã tham chiếu ngân hàng',
+      );
     }
     const soTienNhap = body.amountVnd === undefined ? null : Number(body.amountVnd);
     if (soTienNhap !== null && (!Number.isSafeInteger(soTienNhap) || soTienNhap <= 0)) {

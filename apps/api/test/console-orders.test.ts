@@ -18,7 +18,13 @@ const ORDER = '00000000-0000-4000-8000-0000000000d1';
 const NOW = new Date('2026-09-19T03:00:00Z');
 
 const moiTruong = (them: Record<string, unknown> = {}) =>
-  ({ ...env, ENVIRONMENT: 'test', SELF_SERVE: '1', SESSION_PEPPER: 'p', ...them }) as unknown as Env;
+  ({
+    ...env,
+    ENVIRONMENT: 'test',
+    SELF_SERVE: '1',
+    SESSION_PEPPER: 'p',
+    ...them,
+  }) as unknown as Env;
 
 const khach = {
   accountId: 'acc-1',
@@ -82,11 +88,16 @@ function kho(
         },
       ];
     }
-    if (q.text.includes('count(*)::int AS n FROM customer_order')) return [{ n: tuyChon.pending ?? 0 }];
+    if (q.text.includes('count(*)::int AS n FROM customer_order'))
+      return [{ n: tuyChon.pending ?? 0 }];
     if (q.text.includes('payment_link_id IS NULL')) return tuyChon.donCu ? [tuyChon.donCu] : [];
     if (q.text.includes('INSERT INTO customer_order')) return [don()];
     if (q.text.includes('FROM customer_order') && q.text.includes('tenant_id')) {
-      return tuyChon.donTheoId === undefined ? [don()] : tuyChon.donTheoId ? [tuyChon.donTheoId] : [];
+      return tuyChon.donTheoId === undefined
+        ? [don()]
+        : tuyChon.donTheoId
+          ? [tuyChon.donTheoId]
+          : [];
     }
     if (q.text.includes("SET status = 'cancelled'")) return [{ id: ORDER }];
     return [];
@@ -133,11 +144,19 @@ function boiCanh() {
   };
 }
 
+interface DongAudit {
+  action: string;
+  target: string;
+  detail: Record<string, unknown>;
+}
+const nhatKy: DongAudit[] = [];
+
 function app(
   k: ReturnType<typeof kho>,
   payos: PayosPort,
   tuyChon: { dangNhap?: boolean; tier?: 'trial' | 'starter' } = {},
 ) {
+  nhatKy.length = 0;
   const a = new Hono<AppEnv>();
   a.onError((err, c) => errorResponse(c, err));
   const xacThuc: MiddlewareHandler<AppEnv> = async (c, next) => {
@@ -151,6 +170,7 @@ function app(
       payos: () => payos,
       so: () => soGia(tuyChon.tier ?? 'trial') as never,
       now: () => NOW,
+      writeAuditEntry: (e) => nhatKy.push(e as DongAudit),
       ...(tuyChon.dangNhap === false ? {} : { xacThuc }),
     }),
   );
@@ -160,11 +180,16 @@ function app(
 const goi = (a: Hono<AppEnv>, duong: string, init: RequestInit = {}, moi = moiTruong()) =>
   a.request(`https://api${duong}`, init, moi, boiCanh().ctx);
 const post = (a: Hono<AppEnv>, duong: string, body: unknown, moi = moiTruong()) =>
-  goi(a, duong, {
-    method: 'POST',
-    headers: { 'content-type': 'application/json' },
-    body: JSON.stringify(body),
-  }, moi);
+  goi(
+    a,
+    duong,
+    {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify(body),
+    },
+    moi,
+  );
 const ma = async (res: Response) => ((await res.json()) as { error: { code: string } }).error.code;
 
 describe('cổng đăng nhập', () => {
@@ -202,9 +227,9 @@ describe('GET /v1/console/orders/quote', () => {
     expect(await ma(await goi(a, '/v1/console/orders/quote?kind=plan&tier=vip&months=3'))).toBe(
       'invalid_tier',
     );
-    expect(
-      await ma(await goi(a, '/v1/console/orders/quote?kind=plan&tier=starter&months=5')),
-    ).toBe('invalid_months');
+    expect(await ma(await goi(a, '/v1/console/orders/quote?kind=plan&tier=starter&months=5'))).toBe(
+      'invalid_months',
+    );
   });
 
   it('mua lượt khi đang dùng thử → 409 credits_require_paid_active', async () => {
@@ -245,9 +270,7 @@ describe('POST /v1/console/orders', () => {
     // Thông tin biên nhận của tổ chức đi kèm để PayOS dựng hoá đơn điện tử đúng tên.
     expect(goiPayos.buyerEmail).toBe('khach@vidu.vn');
     const luu = k.calls.find((c) => c.text.includes('payment_link_id = $'));
-    expect(luu?.params).toEqual(
-      expect.arrayContaining(['link-1', 'https://pay.test/web/link-1']),
-    );
+    expect(luu?.params).toEqual(expect.arrayContaining(['link-1', 'https://pay.test/web/link-1']));
   });
 
   it('tenant chưa ở chế độ thương mại → 409, không chạm PayOS', async () => {
@@ -366,6 +389,7 @@ describe('GET /v1/console/orders/:id và cancel', () => {
     );
     expect(res.status).toBe(200);
     expect(payos.huyLink).toHaveBeenCalledWith(100001, expect.any(String));
+    expect(nhatKy.map((d) => d.action)).toEqual(['customer.order_cancel']);
   });
 
   it('PayOS từ chối huỷ → 503 và KHÔNG đánh dấu cancelled (link còn sống)', async () => {

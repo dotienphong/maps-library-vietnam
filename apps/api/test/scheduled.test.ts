@@ -25,10 +25,14 @@ describe('scheduled()', () => {
   });
 
   it('vẫn phục vụ HTTP như trước khi có scheduled', async () => {
-    const res = await worker.fetch(new Request('https://api/healthz'), env as never, {
-      waitUntil: () => {},
-      passThroughOnException: () => {},
-    } as never);
+    const res = await worker.fetch(
+      new Request('https://api/healthz'),
+      env as never,
+      {
+        waitUntil: () => {},
+        passThroughOnException: () => {},
+      } as never,
+    );
     expect(res.status).toBe(200);
   });
 });
