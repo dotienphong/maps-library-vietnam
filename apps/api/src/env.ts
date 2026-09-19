@@ -48,6 +48,26 @@ export interface Env {
    */
   GOOGLE_CLIENT_ID?: string;
   GOOGLE_CLIENT_SECRET?: string;
+  /**
+   * Ba khoá PayOS, đặt bằng `wrangler secret put PAYOS_CLIENT_ID --env production` (tương tự hai
+   * khoá kia). Vắng bất kỳ khoá nào → tạo đơn trả 503 `payment_provider_not_configured` và webhook
+   * trả 503: KHÔNG có nhánh "tạm tin khi thiếu khoá". Harness nạp ba giá trị GIẢ và trỏ PAYOS_BASE
+   * về máy chủ giả trong scripts/lib/payos-fake.mjs — PayOS không có sandbox thật.
+   */
+  PAYOS_CLIENT_ID?: string;
+  PAYOS_API_KEY?: string;
+  PAYOS_CHECKSUM_KEY?: string;
+  /** Gốc API PayOS. Bỏ trống = https://api-merchant.payos.vn; harness trỏ về bản giả. */
+  PAYOS_BASE?: string;
+  /** Gốc trang thanh toán, để dựng lại checkoutUrl từ paymentLinkId. Bỏ trống = https://pay.payos.vn. */
+  PAYOS_CHECKOUT_BASE?: string;
+  /** Webhook sai chữ ký: tối đa 20 dòng ghi/phút mỗi IP để DB không bị lũ rác. */
+  PAYOS_WEBHOOK_RATE_LIMITER?: RateLimit;
+  /**
+   * Gốc URL cổng khách hàng để dựng link trong thư gửi từ cron (ở đó không có request nào để lấy
+   * origin). Production: https://api.ai-solutions.io.vn. Vắng → thư không có nút mở console.
+   */
+  CONSOLE_ORIGIN?: string;
   /** Mỗi email một mã mỗi phút. Binding Rate Limiting chỉ có chu kỳ 10 hoặc 60 giây. */
   OTP_EMAIL_RATE_LIMITER?: RateLimit;
   /** Mỗi IP ba lượt xin mã mỗi phút. */
