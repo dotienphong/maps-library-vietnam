@@ -119,10 +119,7 @@ export function ChiTietKhachPanel({ id, onClose }: Props) {
                 )}
                 <ul className="mt-2 space-y-1 text-sm">
                   {chiTiet.data?.sessions.map((p) => (
-                    <li
-                      key={`${p.createdAt}-${p.expiresAt}`}
-                      className="flex flex-wrap justify-between gap-2"
-                    >
+                    <li key={p.createdAt} className="flex flex-wrap justify-between gap-2">
                       <span>{rutGonUA(p.userAgent)}</span>
                       <span className="text-[var(--text-muted)]">
                         thấy lần cuối {gioNgay(p.lastSeenAt)}

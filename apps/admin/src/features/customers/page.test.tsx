@@ -2,7 +2,8 @@
 
 import { DelayedActionProvider } from '@mapslibvn/ui';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
+import { act } from 'react';
 import { MemoryRouter } from 'react-router';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { CustomersPage } from './page';
@@ -90,5 +91,60 @@ describe('CustomersPage', () => {
     stubFetch([khach()]);
     ve('/customers?id=00000000-0000-4000-8000-0000000000a1');
     expect(await screen.findByRole('dialog')).toBeVisible();
+  });
+});
+
+describe('CustomersPage — ô tìm gõ trễ (debounce)', () => {
+  afterEach(() => vi.useRealTimers());
+
+  const cacQDaGoi = (m: ReturnType<typeof stubFetch>) =>
+    m.mock.calls
+      .map(([u]) => new URL(String(u), 'https://admin.test'))
+      .filter((u) => u.pathname === '/v1/admin/customers')
+      .map((u) => u.searchParams.get('q'));
+
+  it('gõ liên tục nhiều ký tự chỉ sinh MỘT lời gọi danh sách mới, sau khi hết 300ms im lặng', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    const m = stubFetch([khach()]);
+    ve();
+    const o = await screen.findByLabelText('Tìm theo email hoặc tên');
+
+    // Gõ từng ký tự một — mỗi lần đổi giá trị phải KHÔNG bắn request ngay.
+    fireEvent.change(o, { target: { value: 'n' } });
+    fireEvent.change(o, { target: { value: 'ng' } });
+    fireEvent.change(o, { target: { value: 'ngu' } });
+    fireEvent.change(o, { target: { value: 'nguy' } });
+    fireEvent.change(o, { target: { value: 'nguye' } });
+    fireEvent.change(o, { target: { value: 'nguyen' } });
+
+    expect(cacQDaGoi(m)).not.toContain('nguyen');
+
+    await act(async () => {
+      vi.advanceTimersByTime(300);
+    });
+
+    const cacQ = cacQDaGoi(m);
+    expect(cacQ.filter((gia) => gia === 'nguyen').length).toBe(1);
+    // Không giá trị trung gian nào (n, ng, ngu, …) được gửi thành request riêng.
+    for (const trungGian of ['n', 'ng', 'ngu', 'nguy', 'nguye']) {
+      expect(cacQ).not.toContain(trungGian);
+    }
+  });
+
+  it('gõ rồi xoá sạch trong lúc còn đếm trễ → không gọi lại với q rỗng ngoài lần tải đầu', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    const m = stubFetch([khach()]);
+    ve();
+    const o = await screen.findByLabelText('Tìm theo email hoặc tên');
+
+    fireEvent.change(o, { target: { value: 'a' } });
+    fireEvent.change(o, { target: { value: '' } });
+
+    await act(async () => {
+      vi.advanceTimersByTime(300);
+    });
+
+    // Giá trị cuối là rỗng — giống hệt lần tải đầu, không sinh thêm lời gọi mới cho ô tìm.
+    expect(cacQDaGoi(m).filter((gia) => gia === 'a').length).toBe(0);
   });
 });

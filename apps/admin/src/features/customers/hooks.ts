@@ -19,6 +19,7 @@ export function useCustomerList(q: string) {
       listCustomers({ ...(q ? { q } : {}), ...(pageParam ? { cursor: pageParam } : {}) }),
     initialPageParam: '',
     getNextPageParam: (last) => last.nextCursor,
+    retry: false,
   });
 }
 
@@ -27,6 +28,7 @@ export const useCustomerDetail = (id: string | null) =>
     queryKey: customerKeys.detail(id ?? ''),
     queryFn: () => getCustomer(id as string),
     enabled: id !== null,
+    retry: false,
   });
 
 function useInvalidateCustomers() {

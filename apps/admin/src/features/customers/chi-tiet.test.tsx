@@ -4,6 +4,7 @@ import { DelayedActionProvider } from '@mapslibvn/ui';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { act } from 'react';
 import { MemoryRouter } from 'react-router';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { ChiTietKhachPanel } from './chi-tiet';
@@ -157,5 +158,80 @@ describe('ChiTietKhachPanel', () => {
     expect(screen.getByRole('form', { name: /Vô hiệu hoá khach@vidu.vn/ })).toBeVisible();
     expect(screen.getByText(/xoá mọi phiên/i)).toBeVisible();
     expect(screen.getByRole('button', { name: 'Vô hiệu hoá tài khoản' })).toBeDisabled();
+  });
+});
+
+/**
+ * Đường ghi thật sự (schedule → run sau 5 giây) trước đó KHÔNG có bài nào chạy qua: nếu
+ * `operationId` bị đổi sang sinh lúc `run()` thay vì lúc bấm, hoặc nhánh 'mo' gọi nhầm mutation
+ * vô hiệu hoá, bộ test cũ vẫn xanh. Idiom fake timers theo đúng khuôn
+ * `tenants/detail.test.tsx` — `shouldAdvanceTime: true` là bắt buộc, thiếu nó thì `findBy…` chờ
+ * trên timer đã đóng băng và test treo tới khi hết hạn chứ không phải hỏng logic.
+ */
+describe('ChiTietKhachPanel — đường ghi (đếm ngược 5 giây)', () => {
+  afterEach(() => vi.useRealTimers());
+
+  const goiToi = (m: ReturnType<typeof stub>, duoi: string) =>
+    m.mock.calls.find(([u]) => String(u).includes(duoi)) as
+      | [string, RequestInit | undefined]
+      | undefined;
+
+  it('Vô hiệu hoá: chưa gửi gì trong lúc đếm; sau 5 giây gửi đúng reason và operationId sinh lúc bấm, không sinh lại lúc gửi', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    const m = stub(chiTiet());
+    const idLucBam =
+      'aaaaaaaa-1111-4aaa-8aaa-aaaaaaaaaaaa' as `${string}-${string}-${string}-${string}-${string}`;
+    const idLucGuiNeuSinhLai =
+      'bbbbbbbb-2222-4bbb-8bbb-bbbbbbbbbbbb' as `${string}-${string}-${string}-${string}-${string}`;
+    const sinhUUID = vi
+      .spyOn(crypto, 'randomUUID')
+      .mockReturnValueOnce(idLucBam)
+      .mockReturnValue(idLucGuiNeuSinhLai);
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+    ve();
+
+    await user.click(await screen.findByRole('button', { name: 'Vô hiệu hoá' }));
+    await user.type(screen.getByLabelText('Lý do'), 'khách yêu cầu ngừng dịch vụ');
+    await user.click(screen.getByRole('button', { name: 'Vô hiệu hoá tài khoản' }));
+
+    // operationId chỉ sinh MỘT lần — lúc bấm gửi, không phải lúc request thật sự rời trình duyệt.
+    expect(sinhUUID).toHaveBeenCalledTimes(1);
+    expect(goiToi(m, '/disable')).toBeUndefined();
+
+    await act(async () => {
+      vi.advanceTimersByTime(5000);
+    });
+
+    const goi = goiToi(m, '/disable');
+    expect(goi).toBeDefined();
+    const than = JSON.parse(String(goi?.[1]?.body));
+    expect(than.reason).toBe('khách yêu cầu ngừng dịch vụ');
+    expect(than.operationId).toBe(idLucBam.replace(/-/g, ''));
+    expect(goiToi(m, '/enable')).toBeUndefined();
+
+    sinhUUID.mockRestore();
+  });
+
+  it('Kích hoạt lại: sau 5 giây gọi đúng /enable, không đụng /disable', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    const m = stub(chiTiet({ disabledAt: '2026-09-19T05:00:00Z' }));
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+    ve();
+
+    await user.click(await screen.findByRole('button', { name: 'Kích hoạt lại' }));
+    await user.type(screen.getByLabelText('Lý do'), 'khách xác minh lại danh tính');
+    await user.click(screen.getByRole('button', { name: 'Kích hoạt lại' }));
+
+    expect(goiToi(m, '/enable')).toBeUndefined();
+
+    await act(async () => {
+      vi.advanceTimersByTime(5000);
+    });
+
+    const goi = goiToi(m, '/enable');
+    expect(goi).toBeDefined();
+    const than = JSON.parse(String(goi?.[1]?.body));
+    expect(than.reason).toBe('khách xác minh lại danh tính');
+    expect(goiToi(m, '/disable')).toBeUndefined();
   });
 });
