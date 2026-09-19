@@ -2017,7 +2017,7 @@ Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>"
 Sinh ra từ hai bản rà chất lượng, **chạy sau khi Task 5 (itest) đã xanh** để không đổi mã API giữa lúc harness đang chạy.
 
 **Files:**
-- Create: `apps/api/src/routes/admin-lenh.ts`
+- Create: `apps/api/src/routes/admin-chung.ts`
 - Modify: `apps/api/src/console/admin-db.ts`, `apps/api/src/routes/admin-customers.ts`, `apps/api/src/routes/admin-orders.ts`, `apps/api/test/admin-customers.test.ts`, `apps/api/test/console-admin-db.test.ts`
 
 - [ ] **Step 1: Bỏ lần đọc thứ hai ngoài transaction (đua trạng thái)**
@@ -2035,7 +2035,7 @@ Route giữ lần đọc ĐẦU (để 404 sớm và lấy email cho audit) và 
 
 - [ ] **Step 2: Gom phần dùng chung của hai nhóm route lệnh**
 
-`NO_STORE`, `UUID`, `OPERATION_ID`, `MAX_BODY`, `docJson()` và luật `reason.trim().slice(0, 500)` đang bị chép nguyên văn ở `admin-orders.ts` lẫn `admin-customers.ts`, và đã bắt đầu trôi: một bên tách `docLyDo` + `docOperationId`, bên kia gộp thành `docLenh`, còn `confirm-manual` viết bản thứ ba inline. Tách `apps/api/src/routes/admin-lenh.ts` giữ `NO_STORE`, `UUID`, `OPERATION_ID`, `MAX_BODY`, `docJson`, `docLyDo`, `docOperationId`, `docLenh`; hai file cùng import. Thuần cơ học, **không đổi một hành vi nào** — mã lỗi cũ của `confirm-manual` (`invalid_confirm`) giữ nguyên.
+`NO_STORE`, `UUID`, `OPERATION_ID`, `MAX_BODY`, `docJson()` và luật `reason.trim().slice(0, 500)` đang bị chép nguyên văn ở `admin-orders.ts` lẫn `admin-customers.ts`, và đã bắt đầu trôi: một bên tách `docLyDo` + `docOperationId`, bên kia gộp thành `docLenh`, còn `confirm-manual` viết bản thứ ba inline. Tách `apps/api/src/routes/admin-chung.ts` giữ `NO_STORE`, `UUID`, `OPERATION_ID`, `MAX_BODY`, `docJson`, `docLyDo`, `docOperationId`, `docLenh`; hai file cùng import. Thuần cơ học, **không đổi một hành vi nào** — mã lỗi cũ của `confirm-manual` (`invalid_confirm`) giữ nguyên.
 
 - [ ] **Step 3: Hai bài kiểm còn thiếu ở tầng route**
 
@@ -2054,7 +2054,7 @@ pnpm test:api-db
 ```
 
 ```bash
-git commit apps/api/src/routes/admin-lenh.ts apps/api/src/routes/admin-customers.ts apps/api/src/routes/admin-orders.ts apps/api/src/console/admin-db.ts apps/api/test/admin-customers.test.ts apps/api/test/console-admin-db.test.ts -m "refactor(api): gom hằng và bộ đọc lệnh dùng chung của hai nhóm route admin; vô hiệu hoá/kích hoạt lại đọc lại trong cùng transaction
+git commit apps/api/src/routes/admin-chung.ts apps/api/src/routes/admin-customers.ts apps/api/src/routes/admin-orders.ts apps/api/src/console/admin-db.ts apps/api/test/admin-customers.test.ts apps/api/test/console-admin-db.test.ts -m "refactor(api): gom hằng và bộ đọc lệnh dùng chung của hai nhóm route admin; vô hiệu hoá/kích hoạt lại đọc lại trong cùng transaction
 
 Co-Authored-By: Claude Opus 5 (1M context) <noreply@anthropic.com>"
 ```
