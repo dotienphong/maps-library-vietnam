@@ -300,6 +300,12 @@ test('cấp khoá từ trang Admin rồi gọi API thật bằng chính khoá đ
 
   // Đóng hộp thoại rồi tải lại: chỉ còn tiền tố, khoá rõ không quay lại được.
   await page.getByRole('button', { name: 'Tôi đã lưu' }).click();
+  // "Tôi đã lưu" chỉ đóng hộp thoại cấp khoá — ngăn chi tiết tenant vẫn mở, và `?id=` của nó vẫn
+  // còn trong URL (pha 4: URL là nguồn sự thật cho ngăn, y hệt `orders/page.tsx` — "tải lại trang
+  // không mất chỗ đang xem"). Không đóng trước khi tải lại thì ngăn tự mở lại sau reload, và vì nó
+  // là Radix Dialog modal nên toàn bộ trang phía sau bị `aria-hidden`/pointer-events chặn — ô tìm
+  // và nút tenant bên dưới không bao giờ bấm tới.
+  await page.getByRole('button', { name: 'Đóng chi tiết tenant' }).click();
   await page.reload();
   await page.getByLabel('Tìm theo tên tenant').fill('M4 itest free');
   await page.getByRole('button').filter({ hasText: TENANT_FREE }).first().click();
