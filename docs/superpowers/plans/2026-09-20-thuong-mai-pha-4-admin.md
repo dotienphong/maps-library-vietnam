@@ -4008,7 +4008,8 @@ Cấu trúc như pha 3: `## 1. Cổng ở máy — số thật` (bảng lệnh �
 - `phienCuaTaiKhoan` cắt ở 20 phiên mà không báo cho giao diện biết là còn nữa.
 - `apps/admin/src/features/orders/chi-tiet.tsx` đã 338 dòng và giữ ba luồng lệnh; chỗ tách tự nhiên là form xác nhận tay và khối dòng thời gian tiền vào.
 - `apps/admin/src/features/billing/error-vi.ts` giờ chứa cả mã lỗi đơn hàng và tài khoản khách, tên thư mục `billing/` không còn đúng phạm vi; nên đổi về `lib/ma-loi-vi.ts` ở một lần dọn sau.
-- Phản hồi lỗi của toàn bộ nhóm admin không gắn `cache-control`; đây là hành vi chung có sẵn, không phải hồi quy của pha này., `## 7. Việc tay của PHONG` (không có migration, không có secret mới — chỉ cần Deploy API chạy sau merge; nghiệm thu trên production: mở `/admin/customers`, tìm email của chính PHONG, mở `/admin/orders?status=fulfilled` thấy đơn 100002/100003 với owner).
+- Phản hồi lỗi của toàn bộ nhóm admin không gắn `cache-control`; đây là hành vi chung có sẵn, không phải hồi quy của pha này.
+- **Chỗ mỏng cố ý, cần PHONG xác nhận khi gặp thật:** nhánh "huỷ một link PayOS đã huỷ rồi thì coi là thành công" nhận diện bằng chuỗi tiếng Việt trong `desc` mà PayOS trả về, và **chuỗi thật chưa ai thấy** — nó được đoán theo văn phong các thông điệp PayOS đã biết. Nếu PayOS dùng câu khác, lệnh huỷ lần hai lại rơi về 503 và đơn kẹt `pending` với link đã chết. Lôi ra lại ngay lần đầu tiên một admin bấm huỷ hai lần trên production: đọc `desc` thật trong log rồi sửa nhánh cho khớp., `## 7. Việc tay của PHONG` (không có migration, không có secret mới — chỉ cần Deploy API chạy sau merge; nghiệm thu trên production: mở `/admin/customers`, tìm email của chính PHONG, mở `/admin/orders?status=fulfilled` thấy đơn 100002/100003 với owner).
 
 - [ ] **Step 5: Biển trạng thái trên plan này**
 
