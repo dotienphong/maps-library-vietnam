@@ -20,6 +20,9 @@ const sql = postgres(url, { max: 1, onnotice: () => {} });
 const EMAIL = 'kiem-grant@vidu.vn';
 /** Email riêng cho bài ON CONFLICT: bài đó chạy câu lệnh hai lần nên cần một dòng của riêng nó. */
 const EMAIL_ONCONFLICT = 'kiem-grant-onconflict@vidu.vn';
+const KHOA_HASH = 'ab'.repeat(32);
+const KHOA_PREFIX = 'mlv_live_abcdefgh';
+const TENANT_KHOA = 'Kiem grant cap khoa';
 const TENANT = 'Kiểm GRANT console';
 const TOKEN = 'b'.repeat(64);
 
@@ -35,6 +38,8 @@ async function duoiRoleApi(fn) {
 
 describe('GRANT của migration 0020 dưới role api', () => {
   beforeAll(async () => {
+    await sql`DELETE FROM api_key WHERE key_hash = ${KHOA_HASH}`;
+    await sql`DELETE FROM tenant WHERE name = ${TENANT_KHOA}`;
     await sql`DELETE FROM customer_session WHERE token_hash = ${TOKEN}`;
     await sql`DELETE FROM tenant_member WHERE tenant_id IN (SELECT id FROM tenant WHERE name = ${TENANT})`;
     await sql`DELETE FROM customer_login_code WHERE email = ${EMAIL}`;
@@ -43,6 +48,8 @@ describe('GRANT của migration 0020 dưới role api', () => {
   });
 
   afterAll(async () => {
+    await sql`DELETE FROM api_key WHERE key_hash = ${KHOA_HASH}`;
+    await sql`DELETE FROM tenant WHERE name = ${TENANT_KHOA}`;
     await sql`DELETE FROM customer_session WHERE token_hash = ${TOKEN}`;
     await sql`DELETE FROM tenant_member WHERE tenant_id IN (SELECT id FROM tenant WHERE name = ${TENANT})`;
     await sql`DELETE FROM customer_login_code WHERE email = ${EMAIL}`;
@@ -80,6 +87,49 @@ describe('GRANT của migration 0020 dưới role api', () => {
     await duoiRoleApi(async () => {
       await expect(
         sql`UPDATE customer_account SET email = 'ke-gia-mao@vidu.vn' WHERE email = ${EMAIL_ONCONFLICT}`,
+      ).rejects.toThrow(/permission denied|quyền/i);
+    });
+  });
+
+  it('issueKeyForTenant chạy được nguyên văn — cấp khoá là việc cuối của luồng đăng ký', async () => {
+    // Sự cố 19/09/2026: khách đăng ký xong, tạo được tổ chức, rồi bấm lấy khoá thì nhận
+    // `permission denied for table api_key`. Máy chủ thiếu phần GRANT của 0016/0018 dù
+    // `schema_migration` đã ở 0020; migration 0021 cấp lại. Bài này dựng ĐÚNG câu mà
+    // `issueKeyForTenant` gửi đi, kể cả cách dựng mảng qua JSON, để lần sau thiếu quyền là đỏ ở
+    // đây chứ không phải ở tay khách hàng.
+    const mang = (v) =>
+      sql`ARRAY(SELECT json_array_elements_text(${JSON.stringify(v)}::text::json))`;
+    await sql`DELETE FROM api_key WHERE key_hash = ${KHOA_HASH}`;
+    // Tổ chức riêng cho bài này, dựng dưới role chủ sở hữu: các bài trong file chạy theo thứ tự
+    // khai báo và bài dựng tổ chức chung nằm phía dưới.
+    await sql`DELETE FROM tenant WHERE name = ${TENANT_KHOA}`;
+    const [tenant] = await sql`INSERT INTO tenant (name, plan, quota_mode)
+      VALUES (${TENANT_KHOA}, 'free', 'commercial') RETURNING id`;
+
+    await duoiRoleApi(async () => {
+      const t = tenant;
+      await sql`
+        INSERT INTO api_key
+          (key_hash, key_prefix, tenant_id, label, kind,
+           allowed_origins, allowed_bundle_ids, scopes, quota_directions_per_day)
+        VALUES (${KHOA_HASH}, ${KHOA_PREFIX}, ${t.id}::uuid, ${'Web'}, ${'web'},
+                ${mang([])}, ${mang([])}, ${mang(['places:read'])}, ${null})`;
+
+      // Đếm khoá đang hoạt động: route gọi câu này TRƯỚC khi cấp, để chặn ở trần 10 khoá.
+      const [dem] =
+        await sql`SELECT count(*)::int AS n FROM api_key WHERE tenant_id = ${t.id}::uuid AND active`;
+      expect(dem.n).toBeGreaterThanOrEqual(1);
+
+      // Thu hồi rồi khôi phục: hai cột của migration 0016.
+      await sql`UPDATE api_key SET active = false, revoked_at = now() WHERE key_hash = ${KHOA_HASH}`;
+      await sql`UPDATE api_key SET active = true, revoked_at = NULL WHERE key_hash = ${KHOA_HASH}`;
+    });
+  });
+
+  it('api KHÔNG được đổi tenant_id hay scopes của một khoá đã cấp', async () => {
+    await duoiRoleApi(async () => {
+      await expect(
+        sql`UPDATE api_key SET scopes = ARRAY['edits:write']::text[] WHERE key_hash = ${KHOA_HASH}`,
       ).rejects.toThrow(/permission denied|quyền/i);
     });
   });

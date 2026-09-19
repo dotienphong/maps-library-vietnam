@@ -217,6 +217,37 @@ văn câu của `taoHoacLayTaiKhoan` và gọi hai lần để đi qua nhánh `O
 **Bài học:** bài kiểm quyền phải chạy **nguyên văn** câu lệnh của mã thật. Viết lại cho gọn là
 đánh mất đúng thứ cần kiểm.
 
+## 5f. Sự cố 19/09 lần ba: tạo được tổ chức nhưng không lấy được khoá
+
+`POST /v1/console/tenant` trả 201, `POST /v1/console/keys` trả 503. Log Worker, sau khi đã vá chỗ
+ghi log ở 5e, nói thẳng:
+
+```
+permission denied for table api_key | code=42501   at issueKeyForTenant
+```
+
+**Máy chủ thiếu phần GRANT mà 0016 và 0018 lẽ ra đã đặt, dù `schema_migration` đã ở `0020`.** Cùng
+câu lệnh đó, dựng lại nguyên văn và chạy dưới chính role `api` trên DB dev, thì chạy được — nên
+chênh lệch nằm ở máy chủ chứ không ở mã.
+
+**Cách xử lý: migration `0021_cap_lai_grant_api_key.sql` cấp LẠI.** `GRANT` lặp lại được, chạy khi
+quyền đã có thì không đổi gì, nên đây là cách rẻ nhất và chắc chắn nhất để hai môi trường về cùng
+trạng thái — và nó để lại dấu vết trong lịch sử migration, khác hẳn với gõ tay một câu GRANT trên
+máy chủ rồi quên. Bản lùi của nó cố ý KHÔNG thu hồi gì, vì thu hồi sẽ xoá luôn quyền của 0016 và
+0018 trong khi hai migration đó vẫn được tính là đã áp dụng.
+
+**Bài kiểm mới, và nó đã được chứng minh là không rỗng.** Thêm vào `console-grant.dbtest.mjs` một
+bài dựng nguyên văn câu của `issueKeyForTenant` (kể cả cách dựng mảng qua JSON), cộng đếm khoá,
+thu hồi và khôi phục. Chạy thử với `REVOKE INSERT ON api_key FROM api` thì bài đó **đỏ đúng bằng
+thông báo production đã gặp**, trả lại quyền thì xanh. Thêm một bài nữa khẳng định `api` vẫn không
+đổi được `scopes` của khoá đã cấp.
+
+**Ba lần hỏng trong một buổi, ba nguyên nhân, một khuôn mặt.** Khoá Resend sai một ký tự, thiếu
+quyền UPDATE cột `email`, thiếu quyền INSERT bảng `api_key` — cả ba đều ra cùng một màn hình "Hệ
+thống đang bận" và cùng một mã `upstream_unavailable`. Thứ rút ngắn được thời gian không phải là
+đoán giỏi hơn, mà là bắt hệ thống nói ra lý do: sau khi vá chỗ ghi log ở 5e, lần thứ ba mất đúng
+một lượt.
+
 ## 6. Còn nợ, ghi rõ chứ không lờ đi
 
 - ~~**Chưa gửi được một lá thư thật nào.**~~ **ĐÃ GỬI 19/09/2026**, trạng thái `delivered` tới
