@@ -110,13 +110,17 @@ describe('GRANT của migration 0023 dưới role api', () => {
           to_char(o.created_at AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"') AS cursor_at,
           t.name AS tenant_name
         FROM customer_order o JOIN tenant t ON t.id = o.tenant_id
+        WHERE (${null}::text IS NULL OR o.status = ${null})
+          AND (${tenantId}::uuid IS NULL OR o.tenant_id = ${tenantId}::uuid)
+          AND (${null}::timestamptz IS NULL OR o.created_at >= ${null}::timestamptz)
+          AND (${null}::timestamptz IS NULL OR o.created_at < ${null}::timestamptz)
         ORDER BY o.created_at DESC, o.id DESC LIMIT 26`;
       await sql`SELECT
         (SELECT count(*)::int FROM customer_order WHERE status IN ('paid_unfulfilled', 'underpaid')) AS cho_xu_ly,
         (SELECT coalesce(sum(paid_amount_vnd), 0)::int FROM customer_order
           WHERE status = 'fulfilled' AND paid_at >= now() - interval '30 days') AS doanh_thu,
         (SELECT count(*)::int FROM payment_event WHERE order_id IS NULL) AS khong_khop`;
-      await sql`SELECT a.email, t.billing_email, t.name
+      await sql`SELECT a.email, t.billing_email, t.name, a.id AS account_id
         FROM tenant t
         JOIN tenant_member m ON m.tenant_id = t.id AND m.role = 'owner'
         JOIN customer_account a ON a.id = m.account_id
@@ -162,6 +166,16 @@ describe('GRANT của migration 0023 dưới role api', () => {
       await sql`UPDATE customer_order SET status = 'cancelled', updated_at = now()
         WHERE tenant_id = ${tenantId}::uuid AND id = ${orderId}::uuid AND status = 'pending'
         RETURNING id`;
+      // Hai lệnh admin của pha 4. Đơn đang fulfilled: huỷ không đổi dòng nào (đúng), hoàn tiền
+      // đổi đúng một dòng. Cả hai phải KHÔNG bị từ chối quyền (status, note, updated_at đã GRANT).
+      expect(
+        await sql`UPDATE customer_order SET status = 'cancelled', note = 'kiem-grant', updated_at = now()
+          WHERE id = ${orderId}::uuid AND status = 'pending' RETURNING id`,
+      ).toHaveLength(0);
+      expect(
+        await sql`UPDATE customer_order SET status = 'refunded', note = 'kiem-grant', updated_at = now()
+          WHERE id = ${orderId}::uuid AND status = 'fulfilled' RETURNING id`,
+      ).toHaveLength(1);
     });
   });
 

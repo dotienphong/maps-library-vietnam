@@ -157,7 +157,9 @@ export function adminOrdersWith(deps: AdminOrdersDeps = {}) {
       }
       cursor = { createdAt, id };
     }
-    const rows = await voiSqlCua(c, (sql) => danhSachDonAdmin(sql, { status, limit, cursor }));
+    const rows = await voiSqlCua(c, (sql) =>
+      danhSachDonAdmin(sql, { status, tenantId: null, from: null, to: null, limit, cursor }),
+    );
     const hasMore = rows.length > limit;
     const page = hasMore ? rows.slice(0, limit) : rows;
     const last = page.at(-1);

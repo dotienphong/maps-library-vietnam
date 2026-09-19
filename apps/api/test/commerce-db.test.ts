@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import {
   daCoSuKien,
+  danhDauHoanTien,
+  danhSachDonAdmin,
   danhSachDonCuaTenant,
   datCapHong,
   datDaCap,
@@ -10,6 +12,7 @@ import {
   demDonPending,
   docDonCuaTenant,
   ghiSuKienThanhToan,
+  huyDonAdmin,
   huyDonCuaTenant,
   luuLinkThanhToan,
   noiDungChuyenKhoan,
@@ -17,7 +20,7 @@ import {
   timDonPendingChuaCoLink,
   tongTienDaNhan,
 } from '../src/commerce/db';
-import { fakeSql } from './helpers/fake-sql';
+import { fakeSql, type RecordedQuery } from './helpers/fake-sql';
 
 const TENANT = '00000000-0000-4000-8000-0000000000c1';
 const ACCOUNT = '00000000-0000-4000-8000-0000000000a1';
@@ -199,5 +202,62 @@ describe('payment_event — nhật ký tiền vào', () => {
     const { sql, calls } = fakeSql([{ co: true }]);
     expect(await daCoSuKien(sql, 'manual', 'manual:op-1')).toBe(true);
     expect(calls[0]?.params).toEqual(['manual', 'manual:op-1']);
+  });
+});
+
+describe('danhSachDonAdmin — bộ lọc pha 4', () => {
+  it('tenant, from, to đều là điều kiện "NULL hoặc khớp" NGAY TRONG SQL', async () => {
+    const { sql, calls } = fakeSql([]);
+    const from = new Date('2026-08-31T17:00:00.000Z');
+    const to = new Date('2026-09-19T17:00:00.000Z');
+    await danhSachDonAdmin(sql, {
+      status: null,
+      tenantId: TENANT,
+      from,
+      to,
+      limit: 25,
+      cursor: null,
+    });
+    const q = calls[0] as RecordedQuery;
+    expect(q.text).toContain('o.tenant_id = $');
+    expect(q.text).toContain('o.created_at >= $');
+    expect(q.text).toContain('o.created_at < $');
+    expect(q.params).toEqual(expect.arrayContaining([TENANT, from, to]));
+  });
+
+  it('không lọc gì thì mọi tham số lọc là null và LIMIT vẫn dư một dòng', async () => {
+    const { sql, calls } = fakeSql([]);
+    await danhSachDonAdmin(sql, {
+      status: null,
+      tenantId: null,
+      from: null,
+      to: null,
+      limit: 25,
+      cursor: null,
+    });
+    const q = calls[0] as RecordedQuery;
+    // status, tenantId, from, to, cursor createdAt (mỗi cái x2 vì xuất hiện ở cả nhánh IS NULL lẫn
+    // nhánh so khớp) cộng cursorId (x1) — 11 tham số null; LIMIT là tham số thứ 12, giá trị 26.
+    expect(q.params.filter((p) => p === null)).toHaveLength(11);
+    expect(q.params).toContain(26);
+  });
+});
+
+describe('hai lệnh admin của pha 4 mang điều kiện trạng thái cũ NGAY TRONG SQL', () => {
+  it('huyDonAdmin chỉ đụng đơn pending, ghi note', async () => {
+    const { sql, calls } = fakeSql([{ id: ORDER }]);
+    expect(await huyDonAdmin(sql, ORDER, 'Khách đổi ý')).toBe(true);
+    const q = calls[0] as RecordedQuery;
+    expect(q.text).toContain("SET status = 'cancelled', note = $");
+    expect(q.text).toContain("AND status = 'pending' RETURNING id");
+    expect(q.params).toEqual(['Khách đổi ý', ORDER]);
+  });
+
+  it('danhDauHoanTien chỉ đụng đơn fulfilled; không có dòng nào thì false', async () => {
+    const { sql, calls } = fakeSql([]);
+    expect(await danhDauHoanTien(sql, ORDER, 'Hoàn theo yêu cầu')).toBe(false);
+    const q = calls[0] as RecordedQuery;
+    expect(q.text).toContain("SET status = 'refunded', note = $");
+    expect(q.text).toContain("AND status = 'fulfilled' RETURNING id");
   });
 });
