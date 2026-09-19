@@ -4,6 +4,7 @@ import { quotaObject } from '../billing/object';
 import type { EntitlementCommand, JournalEntry, SnapshotPage } from '../billing/types';
 import { endSql, getSql } from '../db';
 import type { AppEnv, Env } from '../env';
+import { moTaLoi } from '../errors';
 import { setKeyRevokedForTenant } from '../tenant-keys';
 import { billingRead } from './billing-read';
 
@@ -127,7 +128,7 @@ export function billingAdmin(dependencies: BillingAdminDependencies = {}) {
         return c.json({ error: { code: 'tenant_not_found' } }, 404);
       }
     } catch (error) {
-      console.error('billing tenant lookup', error);
+      console.error(`billing tenant lookup: ${moTaLoi(error)}`, error);
       return c.json({ error: { code: 'upstream_unavailable' } }, 503);
     }
     await next();
@@ -191,7 +192,7 @@ export function billingAdmin(dependencies: BillingAdminDependencies = {}) {
       // dưới dạng Error thường, mất hẳn class BillingCommandError.
       const status = ADMIN_COMMAND_STATUS.get(message);
       if (status) return c.json({ error: { code: message } }, status);
-      console.error('billing command', error);
+      console.error(`billing command: ${moTaLoi(error)}`, error);
       return c.json({ error: { code: 'upstream_unavailable' } }, 503);
     }
   });
@@ -226,7 +227,7 @@ export function billingAdmin(dependencies: BillingAdminDependencies = {}) {
       const message = error instanceof Error ? error.message : String(error);
       if (message === 'invalid_unlock') return c.json({ error: { code: message } }, 400);
       if (message === 'operation_conflict') return c.json({ error: { code: message } }, 409);
-      console.error('billing unlock', error);
+      console.error(`billing unlock: ${moTaLoi(error)}`, error);
       return c.json({ error: { code: 'upstream_unavailable' } }, 503);
     }
   });
@@ -247,7 +248,7 @@ export function billingAdmin(dependencies: BillingAdminDependencies = {}) {
       audit(c, 'tenant.quota_mode', tenantId, { mode: String(body.mode) });
       return c.json({ tenantId, mode: body.mode }, 200, { 'cache-control': 'private, no-store' });
     } catch (error) {
-      console.error('billing mode', error);
+      console.error(`billing mode: ${moTaLoi(error)}`, error);
       return c.json({ error: { code: 'upstream_unavailable' } }, 503);
     } finally {
       endSql(c.executionCtx, sql);
@@ -294,7 +295,7 @@ export function billingAdmin(dependencies: BillingAdminDependencies = {}) {
       });
       return c.json(receipt, 200, { 'cache-control': 'private, no-store' });
     } catch (error) {
-      console.error('billing key revocation', error);
+      console.error(`billing key revocation: ${moTaLoi(error)}`, error);
       return c.json({ error: { code: 'upstream_unavailable' } }, 503);
     } finally {
       endSql(c.executionCtx, sql);
@@ -421,7 +422,7 @@ async function backup(
     const message = error instanceof Error ? error.message : String(error);
     const status = BACKUP_STATUS.get(message);
     if (status) return c.json({ error: { code: message } }, status);
-    console.error('billing backup', error);
+    console.error(`billing backup: ${moTaLoi(error)}`, error);
     return c.json({ error: { code: 'upstream_unavailable' } }, 503);
   }
 }

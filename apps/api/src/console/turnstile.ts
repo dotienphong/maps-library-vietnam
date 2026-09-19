@@ -1,4 +1,5 @@
 import type { Env } from '../env';
+import { moTaLoi } from '../errors';
 
 const SITEVERIFY = 'https://challenges.cloudflare.com/turnstile/v0/siteverify';
 
@@ -34,7 +35,7 @@ export async function kiemTurnstile(
     const body = (await res.json()) as { success?: boolean };
     return body.success === true;
   } catch (error) {
-    console.error('[turnstile] siteverify lỗi', error);
+    console.error(`[turnstile] siteverify lỗi: ${moTaLoi(error)}`, error);
     return false;
   }
 }

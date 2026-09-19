@@ -14,7 +14,7 @@ import {
 import { selfServeOpen } from '../console/flags';
 import { requireCustomer } from '../console/require-customer';
 import type { AppEnv, Env } from '../env';
-import { ApiError } from '../errors';
+import { ApiError, moTaLoi } from '../errors';
 import { issueKeyForTenant, type LoaiKhoa, setKeyRevokedForTenant } from '../tenant-keys';
 
 const NO_STORE = { 'cache-control': 'private, no-store' } as const;
@@ -139,7 +139,7 @@ export function consoleRoutesWith(deps: ConsoleDeps = {}) {
       // dạng Error thường và mất hẳn class gốc.
       const ma = error instanceof Error ? error.message : String(error);
       if (ma !== 'operation_conflict' && ma !== 'trial_already_used') {
-        console.error('[console] kích hoạt bản dùng thử lỗi', error);
+        console.error(`[console] kích hoạt bản dùng thử lỗi: ${moTaLoi(error)}`, error);
         // Tenant đã tồn tại và vẫn dùng được; nói thật để giao diện mời thử lại, đừng giả vờ xong.
         throw new ApiError(
           503,

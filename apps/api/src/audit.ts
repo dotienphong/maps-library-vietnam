@@ -1,6 +1,7 @@
 import type { Context } from 'hono';
 import { endSql, getSql } from './db';
 import type { AppEnv } from './env';
+import { moTaLoi } from './errors';
 
 /**
  * Chỉ những gì sống sót qua `JSON.stringify`. Khai hẹp thay vì `unknown` để chỗ gọi không lỡ
@@ -33,7 +34,7 @@ export async function writeAudit(sql: Sql, entry: AuditEntry): Promise<void> {
       VALUES (${entry.actor}, ${entry.action}, ${entry.target ?? null},
               ${entry.detail ? sql.json(entry.detail) : null})`;
   } catch (error) {
-    console.error('admin_audit', error);
+    console.error(`admin_audit: ${moTaLoi(error)}`, error);
   }
 }
 
@@ -65,6 +66,6 @@ export function audit(
     // `c.executionCtx` NÉM khi ngữ cảnh không có nó — cùng lớp lỗi với việc mở client hỏng. Để nó
     // bay ra ngoài là biến một thao tác ĐÃ THÀNH CÔNG (khoá đã thu hồi, gói đã cấp) thành 503 cho
     // người gọi, đúng thứ hàm này tự nhận là không được làm. Mất một dòng nhật ký rẻ hơn nhiều.
-    console.error('admin_audit', error);
+    console.error(`admin_audit: ${moTaLoi(error)}`, error);
   }
 }

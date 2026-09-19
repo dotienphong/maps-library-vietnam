@@ -4,7 +4,7 @@ import { requireAuth } from '../auth';
 import { useSimilarityBranch } from '../autocomplete-sql';
 import { endSql, getSql } from '../db';
 import type { AppEnv } from '../env';
-import { ApiError } from '../errors';
+import { ApiError, moTaLoi } from '../errors';
 import { clampInt, parseBbox, parseLatLngPair, parseSources } from '../params';
 import { type PlaceRow, placeColumns, toPlace } from '../place';
 import { poiSourceFilter } from '../poi-sources';
@@ -94,7 +94,7 @@ search.get(
       });
     } catch (error) {
       if (error instanceof ApiError) throw error;
-      console.error('search', error);
+      console.error(`search: ${moTaLoi(error)}`, error);
       throw new ApiError(503, 'upstream_unavailable', 'Không truy vấn được DB');
     } finally {
       endSql(c.executionCtx, sql);

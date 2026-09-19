@@ -3,7 +3,7 @@ import { Hono } from 'hono';
 import { requireAuth } from '../auth';
 import { endSql, getSql } from '../db';
 import type { AppEnv } from '../env';
-import { ApiError } from '../errors';
+import { ApiError, moTaLoi } from '../errors';
 import { geocode } from '../geocode';
 import { clampInt, parseLatLngPair } from '../params';
 import { quotaMiddleware } from '../quota';
@@ -45,7 +45,7 @@ geocodeRoute.get(
       return c.json({ items: await geocode(sql, query, near, limit) });
     } catch (error) {
       if (error instanceof ApiError) throw error;
-      console.error('geocode', error);
+      console.error(`geocode: ${moTaLoi(error)}`, error);
       throw new ApiError(503, 'upstream_unavailable', 'Không truy vấn được DB');
     } finally {
       endSql(c.executionCtx, sql);

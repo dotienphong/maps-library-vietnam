@@ -3,7 +3,7 @@ import { audit } from '../audit';
 import { normalizeTextArray } from '../auth';
 import { endSql, getSql } from '../db';
 import type { AppEnv } from '../env';
-import { ApiError } from '../errors';
+import { ApiError, moTaLoi } from '../errors';
 import { issueKeyForTenant } from '../tenant-keys';
 import {
   encodeTenantCursor,
@@ -89,7 +89,7 @@ adminTenants.get('/v1/admin/tenants', async (c) => {
     );
   } catch (error) {
     if (error instanceof ApiError) throw error;
-    console.error('admin/tenants', error);
+    console.error(`admin/tenants: ${moTaLoi(error)}`, error);
     throw new ApiError(503, 'upstream_unavailable', 'Không truy vấn được danh sách tenant');
   } finally {
     endSql(c.executionCtx, sql);
@@ -138,7 +138,7 @@ adminTenants.get('/v1/admin/tenants/:id', async (c) => {
     );
   } catch (error) {
     if (error instanceof ApiError) throw error;
-    console.error('admin/tenants/:id', error);
+    console.error(`admin/tenants/:id: ${moTaLoi(error)}`, error);
     throw new ApiError(503, 'upstream_unavailable', 'Không đọc được chi tiết tenant');
   } finally {
     endSql(c.executionCtx, sql);
@@ -179,7 +179,7 @@ adminTenants.post('/v1/admin/tenants/:id/keys', async (c) => {
     return c.json({ key, key_prefix: keyPrefix, key_hash: keyHash, tenant_id: id }, 201, NO_STORE);
   } catch (error) {
     if (error instanceof ApiError) throw error;
-    console.error('admin/tenants/:id/keys', error);
+    console.error(`admin/tenants/:id/keys: ${moTaLoi(error)}`, error);
     throw new ApiError(503, 'upstream_unavailable', 'Không cấp được khoá');
   } finally {
     endSql(c.executionCtx, sql);
@@ -239,14 +239,10 @@ adminTenants.delete('/v1/admin/tenants/:id', async (c) => {
       );
     }
 
-    // Một transaction: hỏng nửa chừng thì DB về nguyên trạng, không để lại tenant mất khoá mà
-    // vẫn còn bản ghi.
-    await sql.begin(async (tx) => {
-      await tx`UPDATE customer_account SET trial_tenant_id = NULL WHERE trial_tenant_id = ${id}::uuid`;
-      await tx`DELETE FROM tenant_member WHERE tenant_id = ${id}::uuid`;
-      await tx`DELETE FROM api_key WHERE tenant_id = ${id}::uuid`;
-      await tx`DELETE FROM tenant WHERE id = ${id}::uuid`;
-    });
+    // Đi qua hàm `SECURITY DEFINER` của migration 0022, KHÔNG chạy DELETE trực tiếp: role `api`
+    // cố ý không có quyền xoá trên bảng nào, và cấp quyền đó chỉ để phục vụ một nút bấm là đổi
+    // một lỗi vận hành lấy một rủi ro thường trực. Hàm tự chạy cả bốn bước trong một giao dịch.
+    await sql`SELECT * FROM xoa_tenant_hoan_toan(${id}::uuid)`;
 
     audit(c, 'tenant.delete', id, {
       name: tenant.name,
@@ -266,7 +262,7 @@ adminTenants.delete('/v1/admin/tenants/:id', async (c) => {
     );
   } catch (error) {
     if (error instanceof ApiError) throw error;
-    console.error('admin/tenants/:id DELETE', error);
+    console.error(`admin/tenants/:id DELETE: ${moTaLoi(error)}`, error);
     throw new ApiError(503, 'upstream_unavailable', 'Không xoá được tenant');
   } finally {
     endSql(c.executionCtx, sql);

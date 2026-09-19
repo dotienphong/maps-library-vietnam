@@ -12,7 +12,7 @@ import { collectCandidates } from '../autocomplete-sql';
 import { cachedJson } from '../cache';
 import { endSql, getSql } from '../db';
 import type { AppEnv } from '../env';
-import { ApiError } from '../errors';
+import { ApiError, moTaLoi } from '../errors';
 import { clampInt, parseLatLngPair, parseSources, parseTypes } from '../params';
 import { quotaMiddleware } from '../quota';
 import { gridKey, isAdminOnlyQuery, rankScore, withAreaSlot } from '../ranking';
@@ -155,7 +155,7 @@ autocomplete.get(
         c.set('stageHit', rows.length ? Math.max(...rows.map((row) => row.stage ?? 1)) : 0);
         return { items: withAreaSlot(items, limit, isAdminOnlyQuery(parsed)) };
       } catch (error) {
-        console.error('autocomplete', error);
+        console.error(`autocomplete: ${moTaLoi(error)}`, error);
         throw new ApiError(503, 'upstream_unavailable', 'Không truy vấn được DB');
       } finally {
         endSql(c.executionCtx, sql);

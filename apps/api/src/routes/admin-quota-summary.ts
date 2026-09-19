@@ -4,7 +4,7 @@ import { quotaObject } from '../billing/object';
 import { cachedJson } from '../cache';
 import { endSql, getSql } from '../db';
 import type { AppEnv, Env } from '../env';
-import { ApiError } from '../errors';
+import { ApiError, moTaLoi } from '../errors';
 
 type WaitUntil = { waitUntil(promise: Promise<unknown>): void };
 
@@ -105,7 +105,7 @@ adminQuotaSummary.get('/v1/admin/quota-summary', async (c) => {
           };
         } catch (error) {
           // Một tenant hỏng sổ không được làm mất số của những tenant còn lại.
-          console.error('quota-summary tenant', tenant.id, error);
+          console.error(`quota-summary tenant: ${moTaLoi(error)}`, tenant.id, error);
           return null;
         }
       }),
@@ -119,7 +119,7 @@ adminQuotaSummary.get('/v1/admin/quota-summary', async (c) => {
     };
   }).catch((error: unknown) => {
     if (error instanceof ApiError) throw error;
-    console.error('admin/quota-summary', error);
+    console.error(`admin/quota-summary: ${moTaLoi(error)}`, error);
     throw new ApiError(503, 'upstream_unavailable', 'Không đọc được mức dùng hạn mức');
   });
 

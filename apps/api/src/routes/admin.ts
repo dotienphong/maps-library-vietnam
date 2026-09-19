@@ -4,7 +4,7 @@ import { audit } from '../audit';
 import { invalidateCachedJson, placeCacheUrl } from '../cache';
 import { endSql, getSql } from '../db';
 import type { AppEnv } from '../env';
-import { ApiError } from '../errors';
+import { ApiError, moTaLoi } from '../errors';
 import { adminAudit } from './admin-audit';
 import { adminCatalog } from './admin-catalog';
 import { parseEditListParams } from './admin-edit-params';
@@ -123,7 +123,7 @@ admin.get('/v1/admin/edits', async (c) => {
     });
   } catch (error) {
     if (error instanceof ApiError) throw error;
-    console.error('admin/edits', error);
+    console.error(`admin/edits: ${moTaLoi(error)}`, error);
     throw new ApiError(503, 'upstream_unavailable', 'Không truy vấn được DB');
   } finally {
     endSql(c.executionCtx, sql);
@@ -137,7 +137,7 @@ admin.get('/v1/admin/edits/count', async (c) => {
       SELECT count(*)::int AS count FROM poi_edit WHERE status = 'pending'`;
     return c.json({ pending: row?.count ?? 0 }, 200, { 'cache-control': 'private, no-store' });
   } catch (error) {
-    console.error('admin/edits/count', error);
+    console.error(`admin/edits/count: ${moTaLoi(error)}`, error);
     throw new ApiError(503, 'upstream_unavailable', 'Không đếm được đóng góp chờ duyệt');
   } finally {
     endSql(c.executionCtx, sql);
@@ -213,7 +213,7 @@ admin.get('/v1/admin/edits/:id', async (c) => {
     );
   } catch (error) {
     if (error instanceof ApiError) throw error;
-    console.error('admin/edits/:id', error);
+    console.error(`admin/edits/:id: ${moTaLoi(error)}`, error);
     throw new ApiError(503, 'upstream_unavailable', 'Không đọc được chi tiết đóng góp');
   } finally {
     endSql(c.executionCtx, sql);
@@ -251,7 +251,7 @@ admin.post('/v1/admin/edits/bulk', async (c) => {
           else failed.push(id);
         }
       } catch (error) {
-        console.error('admin/bulk item', id, error);
+        console.error(`admin/bulk item: ${moTaLoi(error)}`, id, error);
         failed.push(id);
       }
     }
@@ -276,7 +276,7 @@ admin.post('/v1/admin/edits/:id/approve', async (c) => {
     return c.json({ ok: true, poi_id: row.poi_id });
   } catch (error) {
     if (error instanceof ApiError) throw error;
-    console.error('admin/approve', error);
+    console.error(`admin/approve: ${moTaLoi(error)}`, error);
     throw new ApiError(503, 'upstream_unavailable', 'Không duyệt được edit');
   } finally {
     endSql(c.executionCtx, sql);
@@ -295,7 +295,7 @@ admin.post('/v1/admin/edits/:id/reject', async (c) => {
     return c.json({ ok: true });
   } catch (error) {
     if (error instanceof ApiError) throw error;
-    console.error('admin/reject', error);
+    console.error(`admin/reject: ${moTaLoi(error)}`, error);
     throw new ApiError(503, 'upstream_unavailable', 'Không từ chối được edit');
   } finally {
     endSql(c.executionCtx, sql);

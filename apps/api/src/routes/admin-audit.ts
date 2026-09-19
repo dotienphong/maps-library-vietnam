@@ -1,7 +1,7 @@
 import { Hono } from 'hono';
 import { endSql, getSql } from '../db';
 import type { AppEnv } from '../env';
-import { ApiError } from '../errors';
+import { ApiError, moTaLoi } from '../errors';
 import { parseAuditListParams } from './admin-audit-params';
 
 /**
@@ -40,7 +40,7 @@ adminAudit.get('/v1/admin/audit', async (c) => {
     });
   } catch (error) {
     if (error instanceof ApiError) throw error;
-    console.error('admin/audit', error);
+    console.error(`admin/audit: ${moTaLoi(error)}`, error);
     throw new ApiError(503, 'upstream_unavailable', 'Không truy vấn được DB');
   } finally {
     endSql(c.executionCtx, sql);

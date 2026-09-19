@@ -2,7 +2,7 @@ import { Hono } from 'hono';
 import { requireAuth } from '../auth';
 import { endSql, getSql } from '../db';
 import type { AppEnv } from '../env';
-import { ApiError } from '../errors';
+import { ApiError, moTaLoi } from '../errors';
 import { INTEGER_HOUSE_NUMBER_PATTERN } from '../geocode';
 import { parseSources } from '../params';
 import { type PlaceRow, placeColumns, toPlace } from '../place';
@@ -112,7 +112,7 @@ reverse.get(
       });
     } catch (error) {
       if (error instanceof ApiError) throw error;
-      console.error('reverse', error);
+      console.error(`reverse: ${moTaLoi(error)}`, error);
       throw new ApiError(503, 'upstream_unavailable', 'Không truy vấn được DB');
     } finally {
       endSql(c.executionCtx, sql);

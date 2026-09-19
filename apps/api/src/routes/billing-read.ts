@@ -3,6 +3,7 @@ import { legacyUsageForKeys } from '../billing/legacy-usage';
 import { quotaObject } from '../billing/object';
 import { endSql, getSql } from '../db';
 import type { AppEnv, Env } from '../env';
+import { moTaLoi } from '../errors';
 
 const NO_STORE = { 'cache-control': 'private, no-store' } as const;
 
@@ -106,7 +107,7 @@ export function billingReadWith(dependencies: BillingReadDependencies = {}) {
         NO_STORE,
       );
     } catch (error) {
-      console.error('billing legacy-usage', error);
+      console.error(`billing legacy-usage: ${moTaLoi(error)}`, error);
       return c.json({ error: { code: 'upstream_unavailable' } }, 503);
     }
   });

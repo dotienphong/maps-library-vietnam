@@ -134,6 +134,57 @@ describe('GRANT của migration 0020 dưới role api', () => {
     });
   });
 
+  it('xoá tenant đi qua hàm SECURITY DEFINER, và api vẫn KHÔNG xoá thẳng được', async () => {
+    // Migration 0022. Nút "Xoá tổ chức" ở trang Admin cần xoá tenant/api_key/tenant_member, mà
+    // role `api` cố ý không có DELETE trên bảng nào. Cấp DELETE cho `api` là đổi một lỗi vận hành
+    // lấy một rủi ro thường trực; thay vào đó mở đúng một cửa hẹp. Bài này khoá cả hai vế.
+    const TEN = 'Kiem ham xoa tenant';
+    await sql`DELETE FROM api_key WHERE tenant_id IN (SELECT id FROM tenant WHERE name = ${TEN})`;
+    await sql`DELETE FROM tenant WHERE name = ${TEN}`;
+    const [t] = await sql`INSERT INTO tenant (name, plan, quota_mode)
+      VALUES (${TEN}, 'free', 'commercial') RETURNING id`;
+    await sql`INSERT INTO api_key (key_hash, key_prefix, tenant_id, label, kind)
+      VALUES (${'ef'.repeat(32)}, ${'mlv_live_qqqqqqqq'}, ${t.id}::uuid, 'Thu', 'web')`;
+
+    await duoiRoleApi(async () => {
+      // Vế một: cửa hẹp mở.
+      const [r] = await sql`SELECT * FROM xoa_tenant_hoan_toan(${t.id}::uuid)`;
+      expect(r.khoa_da_xoa).toBe(1);
+
+      // Vế hai: cửa rộng vẫn khoá. Nếu ai đó "sửa cho tiện" bằng một dòng GRANT DELETE thì bài
+      // này đỏ, và đó đúng là lúc cần dừng lại suy nghĩ.
+      await expect(sql`DELETE FROM tenant WHERE id = ${t.id}::uuid`).rejects.toThrow(
+        /permission denied|quyền/i,
+      );
+    });
+
+    const [con] = await sql`SELECT count(*)::int AS n FROM tenant WHERE name = ${TEN}`;
+    expect(con.n).toBe(0);
+  });
+
+  it('hàm xoá TỪ CHỐI khi tenant còn đóng góp POI — tầng cuối trước dữ liệu người thật', async () => {
+    const TEN = 'Kiem ham xoa co dong gop';
+    await sql`DELETE FROM poi_edit WHERE tenant_id IN (SELECT id FROM tenant WHERE name = ${TEN})`;
+    await sql`DELETE FROM tenant WHERE name = ${TEN}`;
+    const [t] = await sql`INSERT INTO tenant (name, plan, quota_mode)
+      VALUES (${TEN}, 'free', 'commercial') RETURNING id`;
+    // `poi_id` nullable nên không cần POI thật: bài này kiểm điều kiện của hàm, không kiểm POI.
+    await sql`INSERT INTO poi_edit (tenant_id, kind, status)
+      VALUES (${t.id}::uuid, 'update', 'pending')`;
+
+    await duoiRoleApi(async () => {
+      await expect(sql`SELECT * FROM xoa_tenant_hoan_toan(${t.id}::uuid)`).rejects.toThrow(
+        /tenant_has_edits/,
+      );
+    });
+
+    // Tenant PHẢI còn nguyên: hàm ném giữa chừng mà đã xoá mất gì đó là kiểu hỏng tệ nhất.
+    const [con] = await sql`SELECT count(*)::int AS n FROM tenant WHERE name = ${TEN}`;
+    expect(con.n).toBe(1);
+    await sql`DELETE FROM poi_edit WHERE tenant_id = ${t.id}::uuid`;
+    await sql`DELETE FROM tenant WHERE id = ${t.id}::uuid`;
+  });
+
   it('chạy được mọi câu mà nhóm route console thật sự dùng', async () => {
     await duoiRoleApi(async () => {
       await sql`SELECT count(*) FROM customer_account`;

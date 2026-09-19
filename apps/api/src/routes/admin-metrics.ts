@@ -3,7 +3,7 @@ import { queryAnalytics } from '../analytics-sql';
 import { cachedJson } from '../cache';
 import { endSql, getSql } from '../db';
 import type { AppEnv, Env } from '../env';
-import { ApiError } from '../errors';
+import { ApiError, moTaLoi } from '../errors';
 import {
   type Khoang,
   type MetricsWindow,
@@ -45,7 +45,7 @@ async function nhanTenant(env: Env, ctx: WaitUntil): Promise<Record<string, stri
       SELECT id::text AS id, name FROM tenant`;
     return Object.fromEntries(rows.map((r) => [r.id, r.name]));
   } catch (error) {
-    console.error('admin/metrics nhãn tenant', error);
+    console.error(`admin/metrics nhãn tenant: ${moTaLoi(error)}`, error);
     return {};
   } finally {
     endSql(ctx, sql);
@@ -92,7 +92,7 @@ adminMetrics.get('/v1/admin/metrics', async (c) => {
     tinhSoLieu(c.env, c.executionCtx, khoang),
   ).catch((error: unknown) => {
     if (error instanceof ApiError) throw error;
-    console.error('admin/metrics', error);
+    console.error(`admin/metrics: ${moTaLoi(error)}`, error);
     throw new ApiError(503, 'upstream_unavailable', 'Không đọc được số liệu');
   });
 

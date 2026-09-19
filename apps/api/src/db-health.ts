@@ -1,6 +1,6 @@
 import { endSql, getSql } from './db';
 import type { Env } from './env';
-import { ApiError } from './errors';
+import { ApiError, moTaLoi } from './errors';
 
 /** Đúng kiểu `endSql` nhận: `c.executionCtx` của Hono không khớp ExecutionContext toàn cục. */
 type WaitUntil = { waitUntil(promise: Promise<unknown>): void };
@@ -47,7 +47,7 @@ export async function dbHealth(env: Env, ctx: WaitUntil): Promise<DbHealth> {
       schema_migration: schemaMigration,
     };
   } catch (err) {
-    console.error('healthz/db', err);
+    console.error(`healthz/db: ${moTaLoi(err)}`, err);
     throw new ApiError(503, 'upstream_unavailable', 'Không nối được DB');
   } finally {
     endSql(ctx, sql);

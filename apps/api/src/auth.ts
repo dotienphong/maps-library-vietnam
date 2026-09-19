@@ -3,7 +3,7 @@ import { quotaObject } from './billing/object';
 import { endSql, getSql } from './db';
 import { sha256Hex } from './edits/hash';
 import type { AppEnv } from './env';
-import { ApiError } from './errors';
+import { ApiError, moTaLoi } from './errors';
 import { timed } from './timing';
 
 /**
@@ -246,7 +246,7 @@ export function requireAuth(
       );
     } catch (err) {
       if (err instanceof ApiError) throw err;
-      console.error('auth', err);
+      console.error(`auth: ${moTaLoi(err)}`, err);
       throw new ApiError(503, 'upstream_unavailable', 'Không tra được khoá API');
     }
     if (!info) {

@@ -4,7 +4,7 @@ import { requireAuth } from '../auth';
 import { cachedJson, placeCacheUrl } from '../cache';
 import { endSql, getSql } from '../db';
 import type { AppEnv } from '../env';
-import { ApiError } from '../errors';
+import { ApiError, moTaLoi } from '../errors';
 import { type PlaceRow, placeColumns, toPlace } from '../place';
 import { quotaMiddleware } from '../quota';
 
@@ -40,7 +40,7 @@ places.get(
           };
         } catch (error) {
           if (error instanceof ApiError) throw error;
-          console.error('places/:id', error);
+          console.error(`places/:id: ${moTaLoi(error)}`, error);
           throw new ApiError(503, 'upstream_unavailable', 'Không truy vấn được DB');
         } finally {
           endSql(c.executionCtx, sql);
@@ -68,7 +68,7 @@ places.get(
         });
       } catch (err) {
         if (err instanceof ApiError) throw err;
-        console.error('places/:id pending', err);
+        console.error(`places/:id pending: ${moTaLoi(err)}`, err);
         throw new ApiError(503, 'upstream_unavailable', 'Không truy vấn được DB');
       } finally {
         endSql(c.executionCtx, sql);

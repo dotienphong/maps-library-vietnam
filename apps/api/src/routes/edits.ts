@@ -7,7 +7,7 @@ import { decideStatus, EDITS_PER_KEY_PER_DAY, EDITS_PER_USER_PER_DAY } from '../
 import { ulid } from '../edits/ulid';
 import { validateEditBody } from '../edits/validate';
 import type { AppEnv } from '../env';
-import { ApiError } from '../errors';
+import { ApiError, moTaLoi } from '../errors';
 import { secondsUntilVnDayReset, vnDay, vnDayStartUtc } from '../quota';
 
 export const edits = new Hono<AppEnv>();
@@ -116,7 +116,7 @@ edits.post('/v1/edits', requireAuth('edits:write'), async (c) => {
     return c.json({ edit_id: row.id, status, poi_id: poiId });
   } catch (error) {
     if (error instanceof ApiError) throw error;
-    console.error('edits', error);
+    console.error(`edits: ${moTaLoi(error)}`, error);
     throw new ApiError(503, 'upstream_unavailable', 'Không ghi được edit');
   } finally {
     endSql(c.executionCtx, sql);

@@ -1,6 +1,6 @@
 import type { Context, Next } from 'hono';
 import type { AppEnv } from './env';
-import { ApiError } from './errors';
+import { ApiError, moTaLoi } from './errors';
 
 /** JWKS Cloudflare Access — cache KV 1 giờ (cert xoay ~6 tuần). */
 interface AccessJwk {
@@ -60,7 +60,7 @@ export async function verifyAccessJwt(c: Context<AppEnv>, token: string): Promis
   try {
     keys = await loadCerts(c);
   } catch (error) {
-    console.error('access certs', error);
+    console.error(`access certs: ${moTaLoi(error)}`, error);
     throw new ApiError(503, 'upstream_unavailable', 'Không tải được JWKS Access');
   }
   const jwk = keys.find((k) => k.kid === header.kid);
