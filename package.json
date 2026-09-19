@@ -43,6 +43,7 @@
     "smoke:rate-limit": "node scripts/smoke-rate-limit.mjs",
     "smoke:directions": "node scripts/smoke-directions.mjs",
     "smoke:commercial": "node scripts/smoke-commercial.mjs",
+    "pay:fake-webhook": "node scripts/pay-fake-webhook.mjs",
     "check:git": "node scripts/check-git-identity.mjs",
     "check:migration": "node scripts/check-migration-gate.mjs",
     "test:db": "node scripts/db-test.mjs",
