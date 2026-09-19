@@ -19,7 +19,7 @@ EMAIL_FROM = "no-reply@ai-solutions.io.vn"
 SUPPORT_EMAIL = "dotienphong1993@gmail.com"
 # Site key Turnstile là giá trị CÔNG KHAI nằm trong HTML, nên để vars chứ không phải secret.
 # PHONG điền sau khi tạo widget; để trống thì bước chống bot bị bỏ qua ở dev và TỪ CHỐI ở production.
-TURNSTILE_SITE_KEY = ""
+TURNSTILE_SITE_KEY = "0x4AAAAAAE8hg4LHjXPOrZF8"
 # Trần request đồng thời mỗi tenant. Bỏ trống = mốc đo lại 15/09/2026 (50 Places / 32 tuyến,
 # docs/evidence/capacity/2026-09-15-inflight-ramp.md). Hạ ngay bằng `wrangler deploy --var` nếu origin
 # nghẽn; đây là trần THEO TỪNG tenant còn origin dùng chung, phải đo lại khi có tenant thứ hai.
@@ -81,7 +81,7 @@ localConnectionString = "postgres://mapslibvn:mapslibvn@localhost:5432/mapslibvn
 enabled = true
 
 [env.production]
-vars = { TILES_BASE = "https://tiles.ai-solutions.io.vn", ENVIRONMENT = "production", QUOTA_ENABLED = "1", COMMERCIAL_ADMISSION = "1", SELF_SERVE = "0", EMAIL_FROM = "no-reply@ai-solutions.io.vn", SUPPORT_EMAIL = "dotienphong1993@gmail.com", TURNSTILE_SITE_KEY = "", ROUTING_BASE = "https://maps-route.ai-solutions.io.vn", ACCESS_TEAM_DOMAIN = "snowy-credit-f444.cloudflareaccess.com", ACCESS_AUD = "26088029373e358f9a24e68f66fe85ccc0c771e53cde538638a54151969cc6f5", AUTOCOMPLETE_FAST = "1", CF_ACCOUNT_ID = "90de8c1aef96991cdf2a49008f9a0122" }
+vars = { TILES_BASE = "https://tiles.ai-solutions.io.vn", ENVIRONMENT = "production", QUOTA_ENABLED = "1", COMMERCIAL_ADMISSION = "1", SELF_SERVE = "0", EMAIL_FROM = "no-reply@ai-solutions.io.vn", SUPPORT_EMAIL = "dotienphong1993@gmail.com", TURNSTILE_SITE_KEY = "0x4AAAAAAE8hg4LHjXPOrZF8", ROUTING_BASE = "https://maps-route.ai-solutions.io.vn", ACCESS_TEAM_DOMAIN = "snowy-credit-f444.cloudflareaccess.com", ACCESS_AUD = "26088029373e358f9a24e68f66fe85ccc0c771e53cde538638a54151969cc6f5", AUTOCOMPLETE_FAST = "1", CF_ACCOUNT_ID = "90de8c1aef96991cdf2a49008f9a0122" }
 kv_namespaces = [{ binding = "META", id = "a50e778ff63a4ad7956f783eba456ed5" }]
 durable_objects = { bindings = [{ name = "QUOTA", class_name = "QuotaObject" }] }
 r2_buckets = [{ binding = "TILES", bucket_name = "mapslibvn-tiles" }]
