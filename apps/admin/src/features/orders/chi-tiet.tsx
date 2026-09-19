@@ -4,6 +4,7 @@ import * as Dialog from '@radix-ui/react-dialog';
 import { useState } from 'react';
 import { Link } from 'react-router';
 import { loiVi } from '@/features/billing/error-vi';
+import { dungLenhHoanLai } from '@/features/lenh/dung-lenh-hoan-lai';
 import { FormLyDo } from '@/features/lenh/form-ly-do';
 import {
   useCancelOrder,
@@ -68,46 +69,45 @@ export function ChiTietDonPanel({ id, onClose, onLenhLoi }: Props) {
    */
   const guiXacNhan = () => {
     if (!d) return;
-    const operationId = crypto.randomUUID().replace(/-/g, '');
-    const body = {
-      operationId,
-      reason: lyDo.trim(),
-      bankReference: maNganHang.trim(),
-      ...(soTien ? { amountVnd: Number(soTien) } : {}),
-    };
-    schedule({
-      label: `Xác nhận đã nhận ${dinhDangVnd(body.amountVnd ?? conThieu)} cho đơn ${d.orderCode}`,
-      run: async () => {
-        await xacNhan.mutateAsync({ id, body });
-      },
+    const amountVnd = soTien ? Number(soTien) : undefined;
+    const guiLenh = dungLenhHoanLai({
+      schedule,
+      onClose,
+      label: `Xác nhận đã nhận ${dinhDangVnd(amountVnd ?? conThieu)} cho đơn ${d.orderCode}`,
     });
-    onClose();
+    guiLenh((operationId) =>
+      xacNhan.mutateAsync({
+        id,
+        body: {
+          operationId,
+          reason: lyDo.trim(),
+          bankReference: maNganHang.trim(),
+          ...(amountVnd !== undefined ? { amountVnd } : {}),
+        },
+      }),
+    );
   };
 
   const guiHuy = (reason: string) => {
     if (!d) return;
-    const operationId = crypto.randomUUID().replace(/-/g, '');
-    schedule({
-      label: `Huỷ đơn ${d.orderCode}`,
-      run: async () => {
-        // Lỗi đã được báo qua onError ở cấp hook (xem khai báo useCancelOrder phía trên); bắt ở
-        // đây chỉ để tránh unhandled rejection, KHÔNG phải nơi hiện lỗi cho người dùng.
-        await huy.mutateAsync({ id, body: { operationId, reason } }).catch(() => {});
-      },
-    });
-    onClose();
+    const guiLenh = dungLenhHoanLai({ schedule, onClose, label: `Huỷ đơn ${d.orderCode}` });
+    guiLenh((operationId) =>
+      // Lỗi đã được báo qua onError ở cấp hook (xem khai báo useCancelOrder phía trên); bắt ở đây
+      // chỉ để tránh unhandled rejection, KHÔNG phải nơi hiện lỗi cho người dùng.
+      huy.mutateAsync({ id, body: { operationId, reason } }).catch(() => {}),
+    );
   };
 
   const guiHoanTien = (reason: string) => {
     if (!d) return;
-    const operationId = crypto.randomUUID().replace(/-/g, '');
-    schedule({
+    const guiLenh = dungLenhHoanLai({
+      schedule,
+      onClose,
       label: `Đánh dấu hoàn tiền đơn ${d.orderCode}`,
-      run: async () => {
-        await hoanTien.mutateAsync({ id, body: { operationId, reason } }).catch(() => {});
-      },
     });
-    onClose();
+    guiLenh((operationId) =>
+      hoanTien.mutateAsync({ id, body: { operationId, reason } }).catch(() => {}),
+    );
   };
 
   return (

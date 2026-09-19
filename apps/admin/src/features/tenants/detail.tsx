@@ -1,4 +1,3 @@
-import { dinhDangVnd } from '@mapslibvn/catalog';
 import {
   Badge,
   Button,
@@ -10,8 +9,7 @@ import {
 import * as Dialog from '@radix-ui/react-dialog';
 import { useState } from 'react';
 import { Link } from 'react-router';
-import { useDonGanNhat } from '@/features/orders/hooks';
-import { NHAN_TRANG_THAI } from '@/features/orders/trang-thai';
+import { DanhSachDonGanNhat } from '@/features/orders/don-gan-nhat';
 import { can, useMe } from '@/lib/permissions';
 import type { ApiKey } from './api';
 import { useSetKeyRevoked, useSetQuotaMode, useTenantDetail } from './hooks';
@@ -38,7 +36,6 @@ export function TenantDetailPanel({ id, onClose }: TenantDetailPanelProps) {
   const { schedule } = useDelayedAction();
   const { data: me } = useMe();
   const xemDon = can(me, 'orders.read');
-  const don = useDonGanNhat(id, { enabled: xemDon });
   if (id === null) return null;
 
   /**
@@ -146,42 +143,7 @@ export function TenantDetailPanel({ id, onClose }: TenantDetailPanelProps) {
                   </dd>
                 </dl>
 
-                {xemDon && (
-                  <section>
-                    <div className="flex items-center gap-2">
-                      <h3 className="text-sm font-semibold">Đơn gần nhất</h3>
-                      <Link
-                        className="ml-auto text-sm underline"
-                        to={`/orders?tenant=${detail.data.tenant.id}`}
-                      >
-                        Xem tất cả đơn
-                      </Link>
-                    </div>
-                    {don.isPending && <LoadingSkeleton rows={1} />}
-                    {don.isError && (
-                      <p className="mt-1 text-sm text-[var(--text-muted)]">
-                        Không đọc được đơn của tenant này.
-                      </p>
-                    )}
-                    {don.data && don.data.items.length === 0 && (
-                      <p className="mt-1 text-sm text-[var(--text-muted)]">Chưa có đơn nào.</p>
-                    )}
-                    <ul className="mt-2 space-y-1 text-sm">
-                      {don.data?.items.map((d) => (
-                        <li key={d.id} className="flex flex-wrap items-center gap-2">
-                          <Link className="font-semibold underline" to={`/orders?id=${d.id}`}>
-                            {d.orderCode}
-                          </Link>
-                          <span>{d.moTa}</span>
-                          <span>{dinhDangVnd(d.amountVnd)}</span>
-                          <Badge tone={NHAN_TRANG_THAI[d.status].tone}>
-                            {NHAN_TRANG_THAI[d.status].nhan}
-                          </Badge>
-                        </li>
-                      ))}
-                    </ul>
-                  </section>
-                )}
+                <DanhSachDonGanNhat tenantId={detail.data.tenant.id} enabled={xemDon} />
 
                 <div className="rounded-[var(--radius-card)] border border-[var(--border)] p-3">
                   <p className="text-sm">

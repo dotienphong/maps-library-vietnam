@@ -1,12 +1,11 @@
-import { dinhDangVnd } from '@mapslibvn/catalog';
 import { Badge, Button, ErrorState, LoadingSkeleton, useDelayedAction } from '@mapslibvn/ui';
 import * as Dialog from '@radix-ui/react-dialog';
 import { useState } from 'react';
 import { Link } from 'react-router';
 import { loiVi } from '@/features/billing/error-vi';
+import { dungLenhHoanLai } from '@/features/lenh/dung-lenh-hoan-lai';
 import { FormLyDo } from '@/features/lenh/form-ly-do';
-import { useDonGanNhat } from '@/features/orders/hooks';
-import { NHAN_TRANG_THAI } from '@/features/orders/trang-thai';
+import { DanhSachDonGanNhat } from '@/features/orders/don-gan-nhat';
 import { can, useMe } from '@/lib/permissions';
 import { gioNgay, rutGonUA } from './hien-thi';
 import { useCustomerDetail, useDisableCustomer, useEnableCustomer } from './hooks';
@@ -27,7 +26,6 @@ export function ChiTietKhachPanel({ id, onClose }: Props) {
   const chiTiet = useCustomerDetail(id);
   const tk = chiTiet.data?.account;
   const xemDon = can(me, 'orders.read');
-  const don = useDonGanNhat(tk?.tenant?.id ?? null, { enabled: xemDon });
   const voHieu = useDisableCustomer();
   const kichHoat = useEnableCustomer();
   const { schedule } = useDelayedAction();
@@ -36,16 +34,17 @@ export function ChiTietKhachPanel({ id, onClose }: Props) {
 
   const gui = (loai: 'khoa' | 'mo', reason: string) => {
     if (!tk) return;
-    const operationId = crypto.randomUUID().replace(/-/g, '');
-    schedule({
+    const guiLenh = dungLenhHoanLai({
+      schedule,
+      onClose,
       label: loai === 'khoa' ? `Vô hiệu hoá ${tk.email}` : `Kích hoạt lại ${tk.email}`,
-      run: async () => {
-        const body = { operationId, reason };
-        if (loai === 'khoa') await voHieu.mutateAsync({ id, body });
-        else await kichHoat.mutateAsync({ id, body });
-      },
     });
-    onClose();
+    guiLenh((operationId) => {
+      const body = { operationId, reason };
+      return loai === 'khoa'
+        ? voHieu.mutateAsync({ id, body })
+        : kichHoat.mutateAsync({ id, body });
+    });
   };
 
   return (
@@ -129,37 +128,7 @@ export function ChiTietKhachPanel({ id, onClose }: Props) {
                 </ul>
               </section>
 
-              {xemDon && tk.tenant && (
-                <section>
-                  <div className="flex items-center gap-2">
-                    <h3 className="text-sm font-bold">Đơn gần nhất</h3>
-                    <Link
-                      className="ml-auto text-sm underline"
-                      to={`/orders?tenant=${tk.tenant.id}`}
-                    >
-                      Xem tất cả đơn
-                    </Link>
-                  </div>
-                  {don.isPending && <LoadingSkeleton rows={1} />}
-                  {don.data && don.data.items.length === 0 && (
-                    <p className="mt-1 text-sm text-[var(--text-muted)]">Chưa có đơn nào.</p>
-                  )}
-                  <ul className="mt-2 space-y-1 text-sm">
-                    {don.data?.items.map((d) => (
-                      <li key={d.id} className="flex flex-wrap items-center gap-2">
-                        <Link className="font-semibold underline" to={`/orders?id=${d.id}`}>
-                          {d.orderCode}
-                        </Link>
-                        <span>{d.moTa}</span>
-                        <span>{dinhDangVnd(d.amountVnd)}</span>
-                        <Badge tone={NHAN_TRANG_THAI[d.status].tone}>
-                          {NHAN_TRANG_THAI[d.status].nhan}
-                        </Badge>
-                      </li>
-                    ))}
-                  </ul>
-                </section>
-              )}
+              {tk.tenant && <DanhSachDonGanNhat tenantId={tk.tenant.id} enabled={xemDon} />}
 
               {!tk.disabledAt && lenhMo !== 'khoa' && (
                 <Button
