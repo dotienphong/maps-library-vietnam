@@ -81,6 +81,9 @@ const ALL_PERMISSIONS = [
   // 0023 — đơn hàng và giao dịch (pha 3). `orders.write` gắn với mọi lệnh chạm tiền.
   'orders.read',
   'orders.write',
+  // Pha 4 — tài khoản khách hàng. Danh sách và vô hiệu hoá chỉ cần Access (spec 13), nên một
+  // quyền đọc là đủ; vô hiệu hoá không phải lệnh tiền.
+  'customers.read',
 ] as const;
 
 admin.get('/v1/admin/me', (c) =>
