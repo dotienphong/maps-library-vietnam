@@ -2,8 +2,16 @@ import { dinhDangVnd } from '@mapslibvn/catalog';
 import { Badge, Button, ErrorState, LoadingSkeleton, useDelayedAction } from '@mapslibvn/ui';
 import * as Dialog from '@radix-ui/react-dialog';
 import { useState } from 'react';
+import { Link } from 'react-router';
 import { loiVi } from '@/features/billing/error-vi';
-import { useConfirmManual, useFulfil, useOrderDetail } from './hooks';
+import { FormLyDo } from '@/features/lenh/form-ly-do';
+import {
+  useCancelOrder,
+  useConfirmManual,
+  useFulfil,
+  useOrderDetail,
+  useRefundOrder,
+} from './hooks';
 import { gioNgay, NHAN_TRANG_THAI } from './trang-thai';
 
 interface Props {
@@ -14,12 +22,19 @@ interface Props {
 const O =
   'min-h-11 w-full rounded-[var(--radius-btn)] border border-[var(--border)] bg-[var(--surface)] px-3 text-sm';
 
+/** Đơn ở trạng thái này đã có tiền vào sổ (hoặc ít nhất một phần) — hoàn tiền vẫn có nghĩa. */
+const CO_THE_HOAN_TIEN = ['fulfilled', 'paid_unfulfilled', 'underpaid'];
+
 export function ChiTietDonPanel({ id, onClose }: Props) {
   const chiTiet = useOrderDetail(id);
   const capLai = useFulfil();
   const xacNhan = useConfirmManual();
   const { schedule } = useDelayedAction();
-  const [moForm, datMoForm] = useState(false);
+  type Lenh = 'xac_nhan' | 'huy' | 'hoan_tien';
+  // Hai form cùng aria-label="Lý do" mở cùng lúc làm e2e mơ hồ: một state, mở lệnh này đóng lệnh kia.
+  const [lenhMo, datLenhMo] = useState<Lenh | null>(null);
+  const huy = useCancelOrder();
+  const hoanTien = useRefundOrder();
   const [lyDo, datLyDo] = useState('');
   const [maNganHang, datMaNganHang] = useState('');
   const [soTien, datSoTien] = useState('');
@@ -48,6 +63,30 @@ export function ChiTietDonPanel({ id, onClose }: Props) {
       label: `Xác nhận đã nhận ${dinhDangVnd(body.amountVnd ?? conThieu)} cho đơn ${d.orderCode}`,
       run: async () => {
         await xacNhan.mutateAsync({ id, body });
+      },
+    });
+    onClose();
+  };
+
+  const guiHuy = (reason: string) => {
+    if (!d) return;
+    const operationId = crypto.randomUUID().replace(/-/g, '');
+    schedule({
+      label: `Huỷ đơn ${d.orderCode}`,
+      run: async () => {
+        await huy.mutateAsync({ id, body: { operationId, reason } });
+      },
+    });
+    onClose();
+  };
+
+  const guiHoanTien = (reason: string) => {
+    if (!d) return;
+    const operationId = crypto.randomUUID().replace(/-/g, '');
+    schedule({
+      label: `Đánh dấu hoàn tiền đơn ${d.orderCode}`,
+      run: async () => {
+        await hoanTien.mutateAsync({ id, body: { operationId, reason } });
       },
     });
     onClose();
@@ -105,6 +144,12 @@ export function ChiTietDonPanel({ id, onClose }: Props) {
                 <dd>{gioNgay(d.paidAt)}</dd>
                 <dt className="text-[var(--text-muted)]">Cấp gói</dt>
                 <dd>{gioNgay(d.fulfilledAt)}</dd>
+                {d.note && (
+                  <>
+                    <dt className="text-[var(--text-muted)]">Ghi chú admin</dt>
+                    <dd>{d.note}</dd>
+                  </>
+                )}
                 {d.fulfilError && (
                   <>
                     <dt className="text-[var(--text-muted)]">Lỗi cấp gói</dt>
@@ -176,13 +221,13 @@ export function ChiTietDonPanel({ id, onClose }: Props) {
                 </section>
               )}
 
-              {['pending', 'underpaid', 'expired'].includes(d.status) && !moForm && (
-                <Button block variant="secondary" onClick={() => datMoForm(true)}>
+              {['pending', 'underpaid', 'expired'].includes(d.status) && lenhMo !== 'xac_nhan' && (
+                <Button block variant="secondary" onClick={() => datLenhMo('xac_nhan')}>
                   Xác nhận đã nhận tiền (tay)
                 </Button>
               )}
 
-              {moForm && (
+              {lenhMo === 'xac_nhan' && (
                 <form
                   className="space-y-3 rounded-[var(--radius-card)] border border-amber-300 p-4"
                   onSubmit={(e) => {
@@ -229,11 +274,60 @@ export function ChiTietDonPanel({ id, onClose }: Props) {
                     <Button type="submit" disabled={!lyDo.trim() || !maNganHang.trim()}>
                       Gửi xác nhận
                     </Button>
-                    <Button type="button" variant="secondary" onClick={() => datMoForm(false)}>
+                    <Button type="button" variant="secondary" onClick={() => datLenhMo(null)}>
                       Thôi
                     </Button>
                   </div>
                 </form>
+              )}
+
+              {d.status === 'pending' && lenhMo !== 'huy' && (
+                <Button block variant="secondary" onClick={() => datLenhMo('huy')}>
+                  Huỷ đơn
+                </Button>
+              )}
+              {lenhMo === 'huy' && (
+                <FormLyDo
+                  tieuDe={`Huỷ đơn ${d.orderCode}`}
+                  moTa="Sẽ huỷ link thanh toán ở PayOS trước, rồi đánh dấu đơn đã huỷ. Nếu khách vẫn chuyển tiền sau đó, tiền vào vẫn được ghi nhận và cấp gói. Lệnh gửi sau 5 giây, huỷ được trong lúc đếm ngược."
+                  nutGui="Huỷ đơn"
+                  onGui={guiHuy}
+                  onThoi={() => datLenhMo(null)}
+                />
+              )}
+
+              {CO_THE_HOAN_TIEN.includes(d.status) && lenhMo !== 'hoan_tien' && (
+                <Button block variant="secondary" onClick={() => datLenhMo('hoan_tien')}>
+                  Đánh dấu hoàn tiền
+                </Button>
+              )}
+              {lenhMo === 'hoan_tien' && (
+                <div className="space-y-2">
+                  <FormLyDo
+                    tieuDe="Đánh dấu hoàn tiền"
+                    moTa="Chỉ ghi nhận: tiền trả lại khách làm ngoài hệ thống (chuyển khoản lại). Lệnh này KHÔNG đụng sổ quota — gói đã cấp vẫn chạy."
+                    nutGui="Đánh dấu đã hoàn tiền"
+                    onGui={guiHoanTien}
+                    onThoi={() => datLenhMo(null)}
+                  />
+                  {/* Gợi ý suspend chỉ có nghĩa khi gói ĐÃ vào sổ; đơn paid_unfulfilled/underpaid
+                      thì chưa cấp gì nên không có quyền nào để thu hồi. */}
+                  {d.status === 'fulfilled' && (
+                    <p className="text-sm text-[var(--text-muted)]">
+                      Cần thu hồi quyền dùng? Dùng lệnh Tạm dừng ở{' '}
+                      <Link className="underline" to={`/billing?tenant=${d.tenantId}`}>
+                        Gói cước
+                      </Link>
+                      .
+                    </p>
+                  )}
+                </div>
+              )}
+
+              {(huy.isError || hoanTien.isError) && (
+                <p className="text-sm text-red-700 dark:text-red-200">
+                  {loiVi(huy.error ?? hoanTien.error).cau}
+                </p>
               )}
             </div>
           )}

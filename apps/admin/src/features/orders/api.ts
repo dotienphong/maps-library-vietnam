@@ -71,12 +71,28 @@ export interface ChiTietDon {
   owner: { email: string; billingEmail: string | null } | null;
 }
 
-export function listOrders(f: { status?: TrangThaiDon; cursor?: string }): Promise<TrangDon> {
-  const p = new URLSearchParams({ limit: '25' });
-  if (f.status) p.set('status', f.status);
-  if (f.cursor) p.set('cursor', f.cursor);
-  return apiFetch<TrangDon>(`/v1/admin/orders?${p.toString()}`);
+export interface BoLocDon {
+  status?: TrangThaiDon | '';
+  tenant?: string;
+  /** YYYY-MM-DD (giờ VN) hoặc ISO — máy chủ hiểu cả hai. */
+  from?: string;
+  to?: string;
+  cursor?: string;
+  limit?: number;
 }
+
+/** Thuần, để test không cần fetch: chỉ tham số có giá trị mới vào URL, thứ tự ổn định. */
+export function thamSoDon(f: BoLocDon): URLSearchParams {
+  const p = new URLSearchParams({ limit: String(f.limit ?? 25) });
+  for (const k of ['status', 'tenant', 'from', 'to', 'cursor'] as const) {
+    const v = f[k];
+    if (v) p.set(k, v);
+  }
+  return p;
+}
+
+export const listOrders = (f: BoLocDon): Promise<TrangDon> =>
+  apiFetch<TrangDon>(`/v1/admin/orders?${thamSoDon(f).toString()}`);
 
 export const getOrder = (id: string) => apiFetch<ChiTietDon>(`/v1/admin/orders/${id}`);
 export const getSummary = () => apiFetch<TomTatDon>('/v1/admin/orders/summary');
@@ -105,3 +121,14 @@ export const confirmManual = (id: string, body: XacNhanTay) =>
     `/v1/admin/orders/${id}/confirm-manual`,
     body,
   );
+
+export interface LenhCoLyDo {
+  operationId: string;
+  reason: string;
+}
+
+export const cancelOrder = (id: string, body: LenhCoLyDo) =>
+  postJson<{ order: DonHangAdmin; moi: boolean }>(`/v1/admin/orders/${id}/cancel`, body);
+
+export const refundOrder = (id: string, body: LenhCoLyDo) =>
+  postJson<{ order: DonHangAdmin; moi: boolean }>(`/v1/admin/orders/${id}/refund`, body);
