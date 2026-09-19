@@ -2012,6 +2012,55 @@ Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>"
 
 ---
 
+### Task 5b: Vòng dọn API sau rà Task 2 và Task 4
+
+Sinh ra từ hai bản rà chất lượng, **chạy sau khi Task 5 (itest) đã xanh** để không đổi mã API giữa lúc harness đang chạy.
+
+**Files:**
+- Create: `apps/api/src/routes/admin-lenh.ts`
+- Modify: `apps/api/src/console/admin-db.ts`, `apps/api/src/routes/admin-customers.ts`, `apps/api/src/routes/admin-orders.ts`, `apps/api/test/admin-customers.test.ts`, `apps/api/test/console-admin-db.test.ts`
+
+- [ ] **Step 1: Bỏ lần đọc thứ hai ngoài transaction (đua trạng thái)**
+
+`disable` và `enable` hiện đi ba lượt: đọc → ghi trong `sql.begin` → đọc lại **ngoài** transaction. Hai admin bấm ngược nhau cùng lúc thì phản hồi trả `moi: true` kèm `disabledAt: null` — báo sai trạng thái trong khi audit nói đã khoá. Cho `voHieuHoaTaiKhoan`/`kichHoatLaiTaiKhoan` đọc lại **trong cùng `tx`** và trả luôn dòng tài khoản:
+
+```ts
+export async function voHieuHoaTaiKhoan(
+  sql: Sql,
+  accountId: string,
+): Promise<{ doi: boolean; phienXoa: number; tk: TaiKhoanAdmin | null }> {
+```
+
+Route giữ lần đọc ĐẦU (để 404 sớm và lấy email cho audit) và bỏ hẳn lần đọc thứ hai. Bài kiểm: hai lệnh vẫn trả đúng `account.disabledAt` mới, và số lời gọi SQL giảm đúng một.
+
+- [ ] **Step 2: Gom phần dùng chung của hai nhóm route lệnh**
+
+`NO_STORE`, `UUID`, `OPERATION_ID`, `MAX_BODY`, `docJson()` và luật `reason.trim().slice(0, 500)` đang bị chép nguyên văn ở `admin-orders.ts` lẫn `admin-customers.ts`, và đã bắt đầu trôi: một bên tách `docLyDo` + `docOperationId`, bên kia gộp thành `docLenh`, còn `confirm-manual` viết bản thứ ba inline. Tách `apps/api/src/routes/admin-lenh.ts` giữ `NO_STORE`, `UUID`, `OPERATION_ID`, `MAX_BODY`, `docJson`, `docLyDo`, `docOperationId`, `docLenh`; hai file cùng import. Thuần cơ học, **không đổi một hành vi nào** — mã lỗi cũ của `confirm-manual` (`invalid_confirm`) giữ nguyên.
+
+- [ ] **Step 3: Hai bài kiểm còn thiếu ở tầng route**
+
+1. `admin-customers.test.ts`: fixture `taiKhoan()` thêm `google_sub: 'sub-123'` rồi khẳng định `expect(JSON.stringify(body)).not.toMatch(/google_sub|sub-123/)` — hiện fixture không có khoá đó nên một `...a` lỡ tay vẫn xanh.
+2. Cùng file: khẳng định câu đọc phiên mang đúng id tài khoản — `expect(k.calls.find((q) => q.text.includes('FROM customer_session'))?.params).toContain(ACCOUNT)`.
+
+- [ ] **Step 4: Cổng và commit**
+
+```bash
+pnpm --filter @mapslibvn/api test
+pnpm --filter @mapslibvn/api typecheck
+pnpm typecheck
+pnpm exec biome check apps/api/src/routes apps/api/src/console apps/api/test
+pnpm exec vitest run --config vitest.db.config.ts db/customer-admin-grant.dbtest.mjs
+pnpm test:api-db
+```
+
+```bash
+git commit apps/api/src/routes/admin-lenh.ts apps/api/src/routes/admin-customers.ts apps/api/src/routes/admin-orders.ts apps/api/src/console/admin-db.ts apps/api/test/admin-customers.test.ts apps/api/test/console-admin-db.test.ts -m "refactor(api): gom hằng và bộ đọc lệnh dùng chung của hai nhóm route admin; vô hiệu hoá/kích hoạt lại đọc lại trong cùng transaction
+
+Co-Authored-By: Claude Opus 5 (1M context) <noreply@anthropic.com>"
+```
+
+---
+
 ### Task 6: Admin nền — quyền, sidebar, route, mã lỗi, loại việc audit, form lý do dùng chung
 
 **Files:**
