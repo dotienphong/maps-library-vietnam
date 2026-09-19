@@ -162,12 +162,15 @@ describe('hai lệnh admin của pha 4 mang điều kiện trạng thái cũ NGA
     expect(q.params).toEqual(['Khách đổi ý', ORDER]);
   });
 
-  it('danhDauHoanTien chỉ đụng đơn fulfilled; không có dòng nào thì false', async () => {
+  it('danhDauHoanTien nhận fulfilled, paid_unfulfilled, underpaid — KHÔNG nhận pending hay paid', async () => {
     const { sql, calls } = fakeSql([]);
     expect(await danhDauHoanTien(sql, ORDER, 'Hoàn theo yêu cầu')).toBe(false);
     const q = calls[0] as RecordedQuery;
     expect(q.text).toContain("SET status = 'refunded', note = $");
-    expect(q.text).toContain("AND status = 'fulfilled' RETURNING id");
+    expect(q.text).toContain("AND status IN ('fulfilled', 'paid_unfulfilled', 'underpaid') RETURNING id");
+    // `paid` đứng ngoài có chủ đích: nó là trạng thái đi ngang vài giây, đánh dấu vào đó là đua
+    // với datDaCap. Khẳng định tường minh để lần sau ai thêm nó vào phải đọc lý do trước.
+    expect(q.text).not.toContain("'paid',");
   });
 });
 ```
@@ -227,11 +230,21 @@ export async function huyDonAdmin(sql: Sql, orderId: string, note: string): Prom
   return rows.length > 0;
 }
 
-/** Chỉ ghi nhận (spec 9.5): hoàn tiền làm ngoài hệ thống, sổ quota không bị đụng. */
+/**
+ * Chỉ ghi nhận (spec 9.5): hoàn tiền làm ngoài hệ thống, sổ quota không bị đụng.
+ *
+ * Nhận ba trạng thái chứ không riêng `fulfilled` như hình vẽ ở spec 5.3 — mục 9.5 không giới hạn
+ * trạng thái nguồn, và ca hoàn tiền hay gặp nhất lại là `paid_unfulfilled`: tiền đã vào, cấp gói
+ * hỏng, PHONG chuyển trả khách. Nếu chỉ nhận `fulfilled` thì đơn đó kẹt vĩnh viễn ở ô "Đơn chờ
+ * xử lý" và cron vẫn cố cấp gói cho một đơn đã hoàn tiền. `paid` cố ý ĐỨNG NGOÀI: nó là trạng
+ * thái đi ngang vài giây giữa webhook và sổ, đánh dấu vào đó chỉ tạo một cuộc đua vô ích với
+ * `datDaCap`; chờ nó lắng về `fulfilled` hoặc `paid_unfulfilled` rồi hãy đánh dấu.
+ */
 export async function danhDauHoanTien(sql: Sql, orderId: string, note: string): Promise<boolean> {
   const rows = await sql<{ id: string }[]>`
     UPDATE customer_order SET status = 'refunded', note = ${note}, updated_at = now()
-    WHERE id = ${orderId}::uuid AND status = 'fulfilled' RETURNING id`;
+    WHERE id = ${orderId}::uuid
+      AND status IN ('fulfilled', 'paid_unfulfilled', 'underpaid') RETURNING id`;
   return rows.length > 0;
 }
 ```
@@ -347,7 +360,7 @@ Trong `kho()`, thêm hai nhánh **trước** dòng `if (q.text.includes('tenant_
       return [{ id: ORDER }];
     }
     if (q.text.includes("SET status = 'refunded'") && hienTai) {
-      if (hienTai.status !== 'fulfilled') return [];
+      if (!['fulfilled', 'paid_unfulfilled', 'underpaid'].includes(hienTai.status)) return [];
       hienTai = { ...hienTai, status: 'refunded', note: q.params[0] as string };
       return [{ id: ORDER }];
     }
@@ -505,14 +518,25 @@ describe('POST /v1/admin/orders/:id/refund', () => {
     });
   });
 
-  it('đã refunded → 200 moi:false; pending → 409 order_not_refundable', async () => {
+  it('paid_unfulfilled và underpaid cũng đánh dấu được — đó là ca hoàn tiền hay gặp nhất', async () => {
+    for (const status of ['paid_unfulfilled', 'underpaid'] as const) {
+      const k = kho({ don: don({ status, paid_amount_vnd: 650_000 }) });
+      const res = await post(app(k), `/v1/admin/orders/${ORDER}/refund`, than);
+      expect(res.status).toBe(200);
+      expect(await res.json()).toMatchObject({ order: { status: 'refunded' }, moi: true });
+    }
+  });
+
+  it('đã refunded → 200 moi:false; pending và paid → 409 order_not_refundable', async () => {
     const lai = await post(app(kho({ don: don({ status: 'refunded' }) })), `/v1/admin/orders/${ORDER}/refund`, than);
     expect(lai.status).toBe(200);
     expect(await lai.json()).toMatchObject({ moi: false });
 
-    const res = await post(app(kho()), `/v1/admin/orders/${ORDER}/refund`, than);
-    expect(res.status).toBe(409);
-    expect(((await res.json()) as { error: { code: string } }).error.code).toBe('order_not_refundable');
+    for (const status of ['pending', 'paid'] as const) {
+      const res = await post(app(kho({ don: don({ status }) })), `/v1/admin/orders/${ORDER}/refund`, than);
+      expect(res.status).toBe(409);
+      expect(((await res.json()) as { error: { code: string } }).error.code).toBe('order_not_refundable');
+    }
   });
 
   it('thiếu reason → 400 invalid_reason', async () => {
@@ -557,6 +581,8 @@ Thêm hằng và helper (sau `MAX_BODY`):
 ```ts
 const NGAY = /^\d{4}-\d{2}-\d{2}$/;
 const MOT_NGAY_MS = 86_400_000;
+/** Trạng thái đánh dấu hoàn tiền được — giống hệt điều kiện trong `danhDauHoanTien`, xem lý do ở đó. */
+const CO_THE_HOAN_TIEN = new Set<TrangThaiDon>(['fulfilled', 'paid_unfulfilled', 'underpaid']);
 
 /**
  * `from`/`to` nhận "YYYY-MM-DD" hoặc ISO đầy đủ. Ngày-chỉ-có-ngày hiểu theo giờ Việt Nam (người
@@ -702,11 +728,11 @@ Thêm hai route mới **sau** `confirm-manual`, trước `return routes;`:
       const don = await docDon(sql, id);
       if (!don) throw new ApiError(404, 'order_not_found', 'Không có đơn này');
       if (don.status === 'refunded') return { don, moi: false };
-      if (don.status !== 'fulfilled') {
+      if (!CO_THE_HOAN_TIEN.has(don.status)) {
         throw new ApiError(
           409,
           'order_not_refundable',
-          'Chỉ đánh dấu hoàn tiền cho đơn đã cấp gói',
+          'Chỉ đánh dấu hoàn tiền cho đơn đã có tiền vào (đã cấp gói, tiền vào chưa cấp, hoặc thiếu tiền)',
         );
       }
       const doi = await danhDauHoanTien(sql, id, reason);
@@ -2326,6 +2352,14 @@ Thêm các bài:
     expect(screen.queryByRole('button', { name: /Gửi xác nhận/ })).toBeNull();
   });
 
+  it('paid_unfulfilled cũng có Đánh dấu hoàn tiền (cạnh Thử cấp lại), và form KHÔNG gợi ý Tạm dừng', async () => {
+    stub(don('paid_unfulfilled'));
+    ve();
+    expect(await screen.findByRole('button', { name: /Thử cấp lại/ })).toBeVisible();
+    await userEvent.click(screen.getByRole('button', { name: 'Đánh dấu hoàn tiền' }));
+    expect(screen.queryByRole('link', { name: /Gói cước/ })).toBeNull();
+  });
+
   it('form hoàn tiền nói rõ: không đụng sổ quota, thu hồi quyền dùng là lệnh Tạm dừng ở Gói cước', async () => {
     stub(don('fulfilled'));
     ve();
@@ -2627,10 +2661,13 @@ với hằng module `const O_INPUT = 'min-h-11 rounded-[var(--radius-btn)] borde
 
 - [ ] **Step 8: `orders/chi-tiet.tsx` — một state `lenhMo`, hai lệnh mới, ghi chú**
 
+Thêm hằng module (cạnh `O`): `const CO_THE_HOAN_TIEN = ['fulfilled', 'paid_unfulfilled', 'underpaid'];`
+
 Thay `const [moForm, datMoForm] = useState(false);` bằng:
 
 ```tsx
   type Lenh = 'xac_nhan' | 'huy' | 'hoan_tien';
+  // Cùng tập trạng thái mà `danhDauHoanTien` nhận; hằng module, không phải trong thân hàm.
   const [lenhMo, datLenhMo] = useState<Lenh | null>(null);
   const huy = useCancelOrder();
   const hoanTien = useRefundOrder();
@@ -2697,7 +2734,7 @@ Thêm sau khối form xác nhận tay:
                 />
               )}
 
-              {d.status === 'fulfilled' && lenhMo !== 'hoan_tien' && (
+              {CO_THE_HOAN_TIEN.includes(d.status) && lenhMo !== 'hoan_tien' && (
                 <Button block variant="secondary" onClick={() => datLenhMo('hoan_tien')}>
                   Đánh dấu hoàn tiền
                 </Button>
@@ -2711,13 +2748,17 @@ Thêm sau khối form xác nhận tay:
                     onGui={guiHoanTien}
                     onThoi={() => datLenhMo(null)}
                   />
-                  <p className="text-sm text-[var(--text-muted)]">
-                    Cần thu hồi quyền dùng? Dùng lệnh Tạm dừng ở{' '}
-                    <Link className="underline" to={`/billing?tenant=${d.tenantId}`}>
-                      Gói cước
-                    </Link>
-                    .
-                  </p>
+                  {/* Gợi ý suspend chỉ có nghĩa khi gói ĐÃ vào sổ; đơn paid_unfulfilled/underpaid
+                      thì chưa cấp gì nên không có quyền nào để thu hồi. */}
+                  {d.status === 'fulfilled' && (
+                    <p className="text-sm text-[var(--text-muted)]">
+                      Cần thu hồi quyền dùng? Dùng lệnh Tạm dừng ở{' '}
+                      <Link className="underline" to={`/billing?tenant=${d.tenantId}`}>
+                        Gói cước
+                      </Link>
+                      .
+                    </p>
+                  )}
                 </div>
               )}
 ```
@@ -3895,7 +3936,7 @@ Viết `## 26. 20/09/2026 — Thương mại tự phục vụ pha 4: admin đố
 
 - [ ] **Step 4: Chứng cứ `docs/evidence/commerce/2026-09-20-pha-4-admin.md`**
 
-Cấu trúc như pha 3: `## 1. Cổng ở máy — số thật` (bảng lệnh → kết quả), `## 2. Lời hứa của pha, chứng minh bằng itest và e2e` (liệt kê từng bài và tiêu chí spec nó đóng: 20.1, 20.10, 20.11), `## 3. Quyền database đã kiểm bằng role thật` (hai file grant), `## 4. Bất biến và nơi chứng minh` (sáu bất biến ở đầu plan → test nào), `## 5. Lệch spec có chủ ý` (mục sidebar tên "Tài khoản khách hàng"; đơn của khách lấy qua `/v1/admin/orders?tenant=` thay vì nhúng vào `/customers/:id` để giữ cổng billing; bộ lọc ngày theo +07:00), `## 6. Điều chưa làm, cố ý` (không email cho khách khi huỷ/hoàn; không thu hồi khoá API khi vô hiệu hoá tài khoản; không xoá tài khoản), `## 7. Việc tay của PHONG` (không có migration, không có secret mới — chỉ cần Deploy API chạy sau merge; nghiệm thu trên production: mở `/admin/customers`, tìm email của chính PHONG, mở `/admin/orders?status=fulfilled` thấy đơn 100002/100003 với owner).
+Cấu trúc như pha 3: `## 1. Cổng ở máy — số thật` (bảng lệnh → kết quả), `## 2. Lời hứa của pha, chứng minh bằng itest và e2e` (liệt kê từng bài và tiêu chí spec nó đóng: 20.1, 20.10, 20.11), `## 3. Quyền database đã kiểm bằng role thật` (hai file grant), `## 4. Bất biến và nơi chứng minh` (sáu bất biến ở đầu plan → test nào), `## 5. Lệch spec có chủ ý` (mục sidebar tên "Tài khoản khách hàng"; đơn của khách lấy qua `/v1/admin/orders?tenant=` thay vì nhúng vào `/customers/:id` để giữ cổng billing; bộ lọc ngày theo +07:00; **đánh dấu hoàn tiền nhận cả `paid_unfulfilled` và `underpaid`** chứ không chỉ `fulfilled` như hình 5.3 — nếu không, đơn tiền-vào-gói-hỏng đã hoàn tiền kẹt vĩnh viễn trong ô "Đơn chờ xử lý" và cron vẫn thử cấp; `paid` cố ý đứng ngoài), `## 6. Điều chưa làm, cố ý` (không email cho khách khi huỷ/hoàn; không thu hồi khoá API khi vô hiệu hoá tài khoản; không xoá tài khoản), `## 7. Việc tay của PHONG` (không có migration, không có secret mới — chỉ cần Deploy API chạy sau merge; nghiệm thu trên production: mở `/admin/customers`, tìm email của chính PHONG, mở `/admin/orders?status=fulfilled` thấy đơn 100002/100003 với owner).
 
 - [ ] **Step 5: Biển trạng thái trên plan này**
 
@@ -3936,7 +3977,7 @@ Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>"
 | Chi tiết đơn: mọi trường, dòng thời gian, biên lai, lỗi cấp gói | đã có pha 3; `note` thêm ở 7 |
 | Lệnh Thử cấp lại, Xác nhận tay | đã có pha 3 |
 | Lệnh Huỷ đơn (`pending`, gọi PayOS cancel rồi `cancelled`) | 2, 7, 10 |
-| Lệnh Đánh dấu hoàn tiền (`fulfilled` → `refunded`, không đụng sổ, gợi ý suspend) | 2, 7 |
+| Lệnh Đánh dấu hoàn tiền (→ `refunded`, không đụng sổ, gợi ý suspend) — **mở rộng có chủ đích:** nhận cả `paid_unfulfilled` và `underpaid`, xem lý do ở `danhDauHoanTien` | 2, 7 |
 | Mọi lệnh tiền sau `requireBillingAccess()`, `operationId` từ client, audit `admin.order.*` | 2 (mount không đổi), 5 |
 | Danh sách khách chỉ cần `requireAccess()` | 4 |
 | Chi tiết tenant hiện owner + 5 đơn gần nhất | 1, 4, 9 |
