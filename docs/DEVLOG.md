@@ -3385,3 +3385,42 @@ bằng `docker ps --filter name=mapslibvn-server` trước khi chạy.
 
 Còn lại: bốn việc tay đầu ở `docs/evidence/commerce/2026-09-18-pha-2-console.md` mục 5 (Resend,
 Google OAuth, Turnstile, năm secret), điền `TURNSTILE_SITE_KEY`, rồi mới bật `SELF_SERVE`.
+
+---
+
+## 22. 19/09/2026 — Người dùng thật đầu tiên, và năm sự cố trên đường tới đó
+
+Buổi sáng mở cổng tự phục vụ; buổi chiều PHONG tự đăng ký, lấy khoá, gọi `/v1/autocomplete` thành
+công. Giữa hai mốc đó là năm sự cố, **không cái nào bị bộ kiểm thử bắt được**, và cả năm đều hiện
+ra cùng một màn hình "Hệ thống đang bận".
+
+| # | Triệu chứng | Nguyên nhân | Vì sao test không thấy |
+|---|---|---|---|
+| 1 | Bấm gửi mã, báo "không qua được bước chống robot" | Nút bật khi token Turnstile còn rỗng; nút "Gửi lại mã" viết cứng chuỗi rỗng | Dev và harness không có site key nên nhánh widget không ai chạm |
+| 2 | Nhận được mã nhưng thư không bao giờ tới | Khoá Resend nạp vào Worker **thừa một ký tự** — lỗi của Claude khi đọc kết quả công cụ | Thư gửi trong `waitUntil` nên route vẫn trả 200 |
+| 3 | Nhập đúng mã vẫn `upstream_unavailable` | `ON CONFLICT DO UPDATE SET email` đòi quyền UPDATE cột `email` mà role `api` không có | `test:api-db` và e2e nối DB bằng role chủ sở hữu; bài kiểm quyền chạy `INSERT` trơn chứ không phải câu của mã thật |
+| 4 | Tạo được tổ chức nhưng không lấy được khoá | Máy chủ thiếu GRANT của 0016/0018 dù `schema_migration` đã ở 0020 | Cùng lý do #3 |
+| 5 | Trang Cài đặt lưu rồi mà hiện lại vẫn trống | Không có route nào đọc lại bốn trường biên nhận; `PATCH` đặt lại cả năm cột nên lần lưu sau **ghi NULL đè** | Cả máy chủ lẫn giao diện đều báo thành công |
+
+**Thứ rút ngắn thời gian không phải đoán giỏi hơn.** Ba sự cố đầu mỗi cái mất một vòng truy vết
+dài, vì Workers Observability nhận một `Error` thì chỉ giữ stack: log nói hỏng ở đâu mà không nói
+vì gì. Sau khi thêm `moTaLoi()` vào chỗ ghi log, sự cố thứ tư mất đúng một lượt — log in thẳng
+`permission denied for table api_key | code=42501`. Lần vá đầu chỉ chạm `errorResponse` nên các
+route có `catch` riêng vẫn câm; đã vá nốt cả hai mươi chỗ.
+
+**Xoá tenant: hai đường, cùng một nguyên tắc.** Thêm `pnpm server:tenant-xoa` (dòng lệnh) và nút
+"Xoá tổ chức" ở trang Admin. Cả hai đòi **gõ lại đúng tên tổ chức**, và cả hai **từ chối** nếu
+tenant còn đóng góp POI. Tài khoản đăng nhập của khách được giữ, chỉ gỡ liên kết.
+
+Route xoá hỏng ngay lần đầu vì role `api` không có DELETE trên bảng nào — phân quyền làm đúng việc.
+Không cấp `GRANT DELETE`: một dòng đó đổi một lỗi vận hành lấy một rủi ro thường trực. Migration
+`0022` mở cửa hẹp bằng hàm `SECURITY DEFINER`, và bài kiểm chốt **cả hai vế**: cửa hẹp mở được,
+cửa rộng vẫn khoá.
+
+**Một lỗ hổng lộ ra nhờ viết bài kiểm cho tính năng mới.** Bài "trang lạ không được gửi lệnh xoá"
+đòi 403 mà nhận 401: cổng chống CSRF chỉ kiểm `POST`, nên `PATCH`, `PUT`, `DELETE` đi thẳng qua —
+kể cả `PATCH /v1/console/tenant` chạy bằng cookie phiên. Đã đổi thành `requireSameSiteGhi()` chặn
+cả bốn phương thức ghi; `GET` và `HEAD` cố ý không chặn.
+
+**Và một chốt vận hành:** `pnpm server:*` nay dừng ngay khi gõ nhầm máy, phân biệt "container đang
+tắt" với "máy này không phải máy chủ". Tài liệu M2 viết "máy dev là máy chủ" đã hết đúng từ lâu.
