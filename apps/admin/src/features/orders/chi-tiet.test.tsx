@@ -124,6 +124,8 @@ describe('ChiTietDonPanel', () => {
   it('pending: có Huỷ đơn và Xác nhận tay; mở lệnh này thì lệnh kia đóng — chỉ MỘT ô Lý do', async () => {
     stub(don('pending'));
     ve();
+    // Đơn pending chưa có tiền vào sổ — không có gì để hoàn.
+    expect(screen.queryByRole('button', { name: 'Đánh dấu hoàn tiền' })).toBeNull();
     await userEvent.click(await screen.findByRole('button', { name: /Xác nhận đã nhận tiền/ }));
     expect(screen.getAllByLabelText('Lý do')).toHaveLength(1);
     await userEvent.click(screen.getByRole('button', { name: 'Huỷ đơn' }));
