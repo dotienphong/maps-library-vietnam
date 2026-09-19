@@ -34,6 +34,18 @@ export const MA_LOI_BILLING: Record<string, string> = {
   session_expired: 'Phiên đăng nhập đã hết hạn. Tải lại trang để đăng nhập lại.',
   upstream_unavailable:
     'Sổ quota hoặc cơ sở dữ liệu không phản hồi. CHƯA chắc lệnh đã chạy hay chưa — mở lại màn hình để đối chiếu, và nếu gửi lại thì phải dùng đúng mã thao tác cũ.',
+  order_not_found: 'Không có đơn này — có thể đã bị xoá cùng tổ chức thử.',
+  order_not_fulfillable: 'Chỉ cấp lại được đơn đã có tiền mà gói chưa vào sổ.',
+  order_not_confirmable: 'Chỉ xác nhận tay cho đơn đang chờ, thiếu tiền hoặc hết hạn.',
+  order_not_cancellable:
+    'Chỉ huỷ được đơn đang chờ thanh toán. Đơn đã có tiền thì không huỷ — dùng hoàn tiền sau khi cấp.',
+  order_not_refundable:
+    'Chỉ đánh dấu hoàn tiền cho đơn đã cấp gói. Đơn chưa cấp thì tiền chưa vào sổ, xử lý bằng huỷ hoặc chờ.',
+  invalid_reason:
+    'Thiếu lý do. Mọi lệnh tiền và lệnh khoá tài khoản đều phải có lý do để nhật ký đọc được.',
+  payment_provider_unavailable:
+    'PayOS không phản hồi nên CHƯA huỷ. Đơn vẫn đang chờ; thử lại sau một phút.',
+  customer_not_found: 'Không có tài khoản khách này.',
   khong_goi_duoc: 'Không gọi được máy chủ. Kiểm tra mạng rồi thử lại.',
 };
 
