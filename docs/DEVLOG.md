@@ -3541,3 +3541,11 @@ biệt đúng thứ cần phân biệt trước khi đi đăng ký webhook.
 webhook tới thẳng và `fulfilOrder` xong ngay lần nhận đầu. Ngưỡng 60 giây trong hướng dẫn là thừa
 thãi, và **đường cron đối soát của spec 9.4 chưa từng chạy bằng tiền thật** — nó vẫn chỉ có chứng
 cứ harness. Đó là chỗ mỏng nhất của pha 3 khi nhìn lại, không phải chỗ nào trong đường webhook.
+
+**Pha 3 ĐÓNG 20/09/2026 theo quyết định PHONG.** Hai tiêu chí của spec mục 20 đóng bằng chứng cứ
+harness chứ không bằng tiền thật (7: cron đối soát cấp bù khi webhook rơi; 8: chuyển thiếu tiền),
+và hai câu hỏi cho PayOS — hạn mức một link, biểu phí thực tế — **cố ý không hỏi**. Cả hai chỗ đó
+đều có điều kiện lôi ra lại ghi trong chứng cứ mục 9 và 10, vì một hồ sơ nói "xong" mà giấu chỗ
+mỏng thì lần sau không ai tìm ra chỗ mỏng đó nữa.
+
+Tiếp theo: **pha 4** — admin khách hàng/đơn hàng ("Huỷ đơn", "Đánh dấu hoàn tiền").

@@ -197,7 +197,44 @@ PHONG đọc lại 19/09/2026:
 đầu tiên. Đường cron đối soát (spec 9.4) vì thế **chưa từng được dùng bằng tiền thật** — nó vẫn chỉ
 có chứng cứ harness, xem mục 8.
 
-**Còn trống:** hai câu trả lời của PayOS ở mục 7 bước 1 — **hạn mức số tiền tối đa một link** và
-**biểu phí thực tế**. Chưa có con số. Hạn mức là thứ sẽ cắn vào đơn lớn nhất của catalog
-(Business 12 tháng = 124.800.000 ₫) chứ không cắn vào hai đơn nhỏ vừa chạy, nên nó ngủ yên cho tới
-khách đầu tiên mua gói lớn.
+**Bỏ qua có chủ ý (PHONG quyết định 20/09/2026):** hai câu trả lời của PayOS ở mục 7 bước 1 —
+**hạn mức số tiền tối đa một link** và **biểu phí thực tế** — không hỏi, không chặn việc đóng pha.
+Lý do chấp nhận được: cả hai chỉ cắn vào đơn lớn (Business 12 tháng = 124.800.000 ₫), không cắn
+vào hai đơn vừa chạy, và giá bán đã chốt nên biểu phí không đổi được quyết định giá nào hôm nay.
+
+**Điều kiện phải lôi ra lại** (đừng để ai đọc mục này rồi tưởng đã xong hẳn):
+- khách đầu tiên định mua **Professional hoặc Business kỳ dài** → hỏi hạn mức một link **trước**,
+  vì vượt hạn mức thì lỗi rơi vào mặt khách ở đúng lúc họ định trả tiền;
+- trước khi tính lãi lỗ thật của gói Starter → cần biểu phí thực tế, vì 26.000 ₫ một khối lượt là
+  biên mỏng.
+
+## 10. Đóng pha 3 — 20/09/2026
+
+**PHONG quyết định đóng.** Tiêu chí của spec mục 20 liên quan tới pha này:
+
+| # | Tiêu chí | Trạng thái |
+|---|---|---|
+| 1 | Sáu cổng xanh | ✅ số thật ở mục 1 |
+| 5 | Mua bằng tiền thật, đơn `fulfilled`, gói vào sổ, audit có `order.paid`/`order.fulfilled` | ✅ đơn 100002 và 100003, `fulfilled` trong vài giây — PHONG xác nhận, mục 9 |
+| 6 | Bắn lại webhook → 200, không cấp trùng | ✅ PHONG đã bắn lại |
+| 7 | Tắt webhook → cron đối soát cấp trong 10 phút | ⚠️ **chỉ harness** — xem mục 8 |
+| 8 | Chuyển thiếu tiền → `underpaid`, xác nhận tay → `fulfilled` | ⚠️ **chỉ harness** — xem mục 8 |
+| 9 | Mỗi bảng mới kiểm bằng role `api` thật; `/healthz/db` đúng trước khi deploy | ✅ mục 3; migration thật là `0023` (spec viết `0021` — lệch đã ghi ở mục 0.3) |
+| 10 | Tenant A không đọc được dữ liệu tenant B | ✅ itest + e2e cách ly tenant, mục 2 |
+| 11 | Tài khoản bị vô hiệu hoá mất quyền trong một request | ✅ pha 2, không đổi ở pha này |
+
+Tiêu chí 2, 3, 4, 12 thuộc pha 1 và 2, không thuộc pha này.
+
+**Hai chỗ mỏng còn lại, ghi ra để không ai phải tự phát hiện:**
+
+1. **Đường cron đối soát (spec 9.4) chưa từng chạy bằng tiền thật.** Cả hai đơn `fulfilled` trong
+   vài giây qua webhook, nên nhánh dự phòng — thứ cứu ta khi webhook rơi — vẫn chỉ có chứng cứ
+   harness. Tiêu chí 7 và 8 cùng nằm ở đây. Giá để đóng nốt: 26.000 ₫ mỗi tiêu chí.
+2. **Hạn mức một link và biểu phí PayOS chưa biết**, với điều kiện lôi ra lại đã ghi ở mục 9.
+
+**Không lùi được nữa:** `customer_order` có đơn thật → `0023_customer_order.down.sql` hết là đường
+rút. Đóng cửa thanh toán chỉ còn một cách đúng: xoá ba secret PayOS (tạo đơn 503, webhook 503,
+không mất dữ liệu).
+
+**Tiếp theo là pha 4** — admin khách hàng/đơn hàng: "Huỷ đơn" và "Đánh dấu hoàn tiền", hai thứ cố ý
+để ngoài bản tối thiểu của pha 3.

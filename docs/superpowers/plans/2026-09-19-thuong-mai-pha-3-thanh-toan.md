@@ -2,6 +2,13 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
+> **TRẠNG THÁI 20/09/2026 — PLAN ĐÃ THỰC THI XONG VÀ PHA ĐÃ ĐÓNG.**
+> Các ô `- [ ]` bên dưới **không được tick trong lúc chạy** — đừng đọc chúng là "chưa làm".
+> Bằng chứng là commit, không phải checkbox: 20 commit trên `feat/thuong-mai-pha-3`, merge
+> `00fd6c3`, sửa CI `0b01ada`, tài liệu `2c8b856`. Pha đã chạy tiền thật trên production
+> (đơn `100002`, `100003`). Hồ sơ đóng pha và hai chỗ mỏng còn lại:
+> `docs/evidence/commerce/2026-09-19-pha-3-thanh-toan.md` mục 9–10; DEVLOG mục 25.
+
 **Goal:** Khách tự trả tiền bằng chuyển khoản VietQR qua PayOS, gói tự vào sổ quota trong vòng một phút, và **không một đồng nào bị mất hay bị cấp hai lần** dù webhook rơi, gửi lại, hay máy chủ ngủ giữa chừng.
 
 **Architecture:** Đơn hàng sống trong Postgres (`customer_order`), mọi webhook nhận được — kể cả sai chữ ký — được ghi vào `payment_event` với `UNIQUE (provider, reference)` làm khoá chống trùng. Một hàm duy nhất `apDungThanhToan()` đọc **tổng tiền đã nhận từ các sự kiện hợp lệ** rồi quyết định `paid`/`underpaid`, và một hàm duy nhất `fulfilOrder()` gọi sổ quota với `operationId = order:<id>`; webhook, cron đối soát và nút admin đều đi qua đúng hai hàm đó. PayOS đứng sau một interface có bản giả chạy trong harness, nên toàn bộ pha kiểm được ở máy trước khi PHONG có khoá thật.
