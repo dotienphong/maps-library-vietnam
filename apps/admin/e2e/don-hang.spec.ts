@@ -61,14 +61,20 @@ test('admin thấy đơn mới, xác nhận tay → Đã cấp gói và sự ki�
   await expect(ngan.getByText('chữ ký hợp lệ').first()).toBeVisible();
 });
 
-test('admin huỷ đơn pending qua đếm ngược → Đã huỷ, ghi chú hiện trong ngăn', async ({ page, request }) => {
+test('admin huỷ đơn pending qua đếm ngược → Đã huỷ, ghi chú hiện trong ngăn', async ({
+  page,
+  request,
+}) => {
   const don = await taoDonKhach(request);
 
   await page.goto(`/admin/orders?id=${don.id}`);
   const ngan = page.getByRole('dialog');
   await ngan.getByRole('button', { name: 'Huỷ đơn' }).click();
   await ngan.getByLabel('Lý do').fill('E2E: khách đổi ý');
-  await ngan.getByRole('form', { name: /Huỷ đơn/ }).getByRole('button', { name: 'Huỷ đơn' }).click();
+  await ngan
+    .getByRole('form', { name: /Huỷ đơn/ })
+    .getByRole('button', { name: 'Huỷ đơn' })
+    .click();
   await page.waitForTimeout(6500);
 
   await page.goto(`/admin/orders?id=${don.id}`);

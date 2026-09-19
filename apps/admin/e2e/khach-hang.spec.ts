@@ -20,10 +20,15 @@ async function taoKhach(request: APIRequestContext) {
   const cookie = (xac.headers()['set-cookie'] ?? '').split(';')[0] as string;
   const h = { cookie, 'Sec-Fetch-Site': 'same-origin' };
   const { tenant } = await (
-    await request.post(`${API}/v1/console/tenant`, { headers: h, data: { name: 'Công ty Khách E2E' } })
+    await request.post(`${API}/v1/console/tenant`, {
+      headers: h,
+      data: { name: 'Công ty Khách E2E' },
+    })
   ).json();
   const ds = await (
-    await request.get(`${API}/v1/admin/customers?q=${encodeURIComponent(email)}`, { headers: ADMIN })
+    await request.get(`${API}/v1/admin/customers?q=${encodeURIComponent(email)}`, {
+      headers: ADMIN,
+    })
   ).json();
   return { email, cookie: h, tenantId: tenant.id as string, accountId: ds.items[0].id as string };
 }
@@ -59,14 +64,19 @@ test('tìm khách theo email → chi tiết có phiên và tổ chức → vô h
 
   await page.goto(`/admin/customers?id=${k.accountId}`);
   await expect(page.getByRole('dialog').getByText('Đã vô hiệu hoá')).toBeVisible();
-  await expect(page.getByRole('dialog').getByRole('button', { name: 'Kích hoạt lại' })).toBeVisible();
+  await expect(
+    page.getByRole('dialog').getByRole('button', { name: 'Kích hoạt lại' }),
+  ).toBeVisible();
 });
 
 test('chi tiết tenant hiện chủ tổ chức và link sang màn Khách hàng', async ({ page, request }) => {
   const k = await taoKhach(request);
   await page.goto(`/admin/tenants?id=${k.tenantId}`);
   const ngan = page.getByRole('dialog');
-  await expect(ngan.getByRole('link', { name: k.email })).toHaveAttribute('href', `/admin/customers?id=${k.accountId}`);
+  await expect(ngan.getByRole('link', { name: k.email })).toHaveAttribute(
+    'href',
+    `/admin/customers?id=${k.accountId}`,
+  );
   await ngan.getByRole('link', { name: k.email }).click();
   await expect(page.getByRole('dialog').getByText(k.email)).toBeVisible();
 });
