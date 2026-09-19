@@ -13,6 +13,7 @@ Ngày chạy: 19/09/2026. 18 task.
 | `pnpm test` | 194 file / **1.864 test** xanh, 5 skip |
 | `pnpm --filter @mapslibvn/api test` | 69 file / **550 test** xanh |
 | `pnpm test:api-db` (DB thật) | 11 file / **116 test** xanh |
+| `pnpm test:db` (schema, DB thật) | 12 file / **77 test** xanh |
 | `pnpm exec vitest run --config vitest.db.config.ts db/console-grant.dbtest.mjs` | 3 test xanh |
 | `pnpm test:console-e2e` | **8/8** xanh, 50 giây |
 | `pnpm test:admin-e2e` | 17/17 xanh (không hồi quy) |
@@ -56,6 +57,24 @@ Production đang mở `COMMERCIAL_ADMISSION = "1"` từ 15/09/2026, nên hiện 
 một ngày phải đóng khẩn cấp cổng thương mại, hãy biết rằng việc đó chặn luôn khách mới.
 
 Bộ e2e bắt được điều này vì harness ban đầu thiếu đúng cờ đó.
+
+## 4b. Một lần CI đỏ sau khi push, đã sửa
+
+Lần push đầu (`7b18308`) làm **DB tests đỏ**, và lý do là tôi chạy thiếu một lệnh. Plan Task 18
+liệt kê `pnpm test:api-db` nhưng quên `pnpm test:db` — hai bộ khác nhau, và bộ sau chứa
+`db/schema.dbtest.mjs`, nơi chốt cứng danh sách cột được cấp `UPDATE` cho role `api` cùng số bảng
+sau khi chạy lại toàn bộ migration. Migration `0020` làm cả hai con số lệch, đúng như bài đó sinh
+ra để phát hiện.
+
+Đã cập nhật: danh sách cột từ 3 lên 17 mục, số bảng từ 17 lên 21. Ghi chú trong test nói rõ vì sao
+`tenant.plan` cố ý vắng mặt còn `tenant.quota_mode` thì có.
+
+**Bài học lặp lại lần thứ hai trong dự án này:** chạy đúng những lệnh CI chạy, không chạy một tập
+con rồi tin là đủ. Pha 1 đã vấp với `pnpm typecheck` so với `turbo run typecheck`.
+
+**Deploy API cũng đỏ, nhưng đó là cổng làm đúng việc:** `check:migration` thấy máy chủ ở `0019`
+còn repo đã có `0020` nên chặn không cho Worker lên. Đây chính là cổng sinh ra sau sự cố 06–07/09
+khi Worker deploy trước migration và API chết nhiều giờ. Nó sẽ tự xanh sau bước 6 của mục 5.
 
 ## 5. Việc tay của PHONG, theo thứ tự
 

@@ -135,7 +135,7 @@ describe('lược đồ spec 5.2', () => {
     expect(owner.tableowner).toBe('pipeline');
   });
 
-  it('0015/0016: api được UPDATE đúng ba cột, không thừa không thiếu', async () => {
+  it('0015/0016/0020: api được UPDATE đúng danh sách cột, không thừa không thiếu', async () => {
     // Danh sách khớp chính xác, cả hai chiều. Thiếu một dòng nghĩa là một route quản trị sẽ trả
     // upstream_unavailable trên máy chủ thật (sự cố 15/09/2026: thu hồi khoá đổ vì 0005 chỉ cấp
     // SELECT trên api_key). Thừa một dòng nghĩa là Worker ghi được cột lẽ ra không được đụng.
@@ -147,6 +147,24 @@ describe('lược đồ spec 5.2', () => {
     expect(updates.map((row) => `${row.table_name}.${row.column_name}`)).toEqual([
       'api_key.active',
       'api_key.revoked_at',
+      // 0020 — cổng khách hàng. `customer_account` KHÔNG có quyền xoá: vô hiệu hoá một tài khoản
+      // là đặt `disabled_at`, giữ lại bản ghi để còn đối soát về sau.
+      'customer_account.disabled_at',
+      'customer_account.google_sub',
+      'customer_account.last_login_at',
+      'customer_account.name',
+      'customer_account.trial_tenant_id',
+      'customer_login_code.attempts',
+      'customer_login_code.consumed_at',
+      'customer_session.expires_at',
+      'customer_session.last_seen_at',
+      'tenant.billing_address',
+      'tenant.billing_email',
+      'tenant.billing_name',
+      'tenant.billing_tax_code',
+      'tenant.name',
+      // `tenant.plan` cố ý VẮNG: nó quyết định khách thuộc nhóm nào và không route nào của khách
+      // được đụng tới. `quota_mode` thì có, từ 0015, cho trang Admin đổi chế độ tenant.
       'tenant.quota_mode',
     ]);
   });
@@ -300,6 +318,8 @@ describe('lược đồ spec 5.2', () => {
       '0001_extensions.sql',
     ]);
     migrate();
-    expect((await tables()).length).toBe(17);
+    // 21 = 17 bảng tới migration 0019, cộng bốn bảng của 0020: customer_account,
+    // customer_login_code, customer_session, tenant_member.
+    expect((await tables()).length).toBe(21);
   });
 });
