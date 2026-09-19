@@ -2,7 +2,7 @@ name: Deploy API
 on:
   push:
     branches: [main]
-    paths: ['apps/api/**', 'apps/admin/**', 'packages/core/**', 'packages/style/**', 'pnpm-lock.yaml']
+    paths: ['apps/api/**', 'apps/admin/**', 'apps/console/**', 'packages/core/**', 'packages/style/**', 'packages/catalog/**', 'packages/ui/**', 'pnpm-lock.yaml']
   workflow_dispatch:
 jobs:
   # Cổng chặn deploy. 07/09/2026: `Deploy API` thành công trên 178d086 và 0585eb1 dù
