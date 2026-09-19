@@ -92,8 +92,11 @@ publish tuần tự core → web → react → react-native với public access.
 - Thử ở máy: `pnpm test:api-db` tự dựng PayOS giả (`scripts/lib/payos-fake.mjs`, cổng 8791) vì
   **PayOS không có môi trường sandbox**. Bắn một webhook đã ký vào harness:
   `pnpm pay:fake-webhook --order-code <mã> --amount <tiền>` (script từ chối trỏ vào production).
-- Admin: `/admin/orders` — bốn ô đối soát, "Thử cấp lại" cho đơn tiền vào mà gói chưa vào, và
-  "Xác nhận đã nhận tiền (tay)" khi thấy tiền trong sao kê mà webhook không tới.
+- Admin: `/admin/orders` — bốn ô đối soát, lọc theo trạng thái/tenant/khoảng ngày (giờ VN), "Thử cấp
+  lại", "Xác nhận đã nhận tiền (tay)", "Huỷ đơn" (huỷ link PayOS trước, đánh dấu sau) và "Đánh dấu
+  hoàn tiền" (chỉ ghi nhận, không đụng sổ quota — thu hồi quyền dùng là lệnh Tạm dừng ở Gói cước).
+  `/admin/customers` — tài khoản khách: tìm theo email, phiên đang mở, tổ chức, vô hiệu hoá (xoá mọi
+  phiên ngay) và kích hoạt lại. Mọi lệnh đi qua đếm ngược 5 giây và ghi lý do vào nhật ký.
 
 ## Cập nhật dữ liệu bản đồ và POI
 

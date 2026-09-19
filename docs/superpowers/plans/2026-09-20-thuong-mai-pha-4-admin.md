@@ -2,6 +2,11 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
+> **TRẠNG THÁI 20/09/2026 — PLAN ĐÃ THỰC THI XONG.** Các ô `- [ ]` bên dưới **không được tick trong
+> lúc chạy** — đừng đọc chúng là "chưa làm". Bằng chứng là commit trên `feat/thuong-mai-pha-4` (33
+> commit) và hồ sơ `docs/evidence/commerce/2026-09-20-pha-4-admin.md`. Hai task sinh thêm trong lúc
+> chạy, từ các bản rà chất lượng: **Task 5b** (dọn API) và **Task 9b** (gom trùng lặp giao diện).
+
 **Goal:** Người vận hành **đối soát được từng đơn và từng khách** trên trang Admin: tìm khách theo email, thấy phiên đang mở và tenant của họ, vô hiệu hoá/kích hoạt lại tài khoản; lọc đơn theo tenant và khoảng ngày; huỷ đơn `pending` (kèm huỷ link PayOS), đánh dấu `refunded` cho đơn đã cấp; chi tiết tenant hiện chủ sở hữu và 5 đơn gần nhất; Tổng quan có hai ô tiền.
 
 **Architecture:** Không có migration — mọi bảng và GRANT đã có từ `0020` và `0023`. Phía API thêm một route mới `admin-customers.ts` (mount **trong** app `admin`, chỉ cần `requireAccess()` như spec 13) với lớp SQL riêng `console/admin-db.ts` (câu KHÔNG theo tenant, chỉ admin import), và mở rộng `admin-orders.ts` (bộ lọc + hai lệnh tiền mới, vẫn sau `requireBillingAccess()`). Hai lệnh mới **không đụng sổ quota**: huỷ đơn chỉ gọi PayOS rồi đổi trạng thái; hoàn tiền chỉ ghi nhận. Phía Admin thêm feature `customers/`, mở rộng `orders/`, `tenants/`, `overview/`, và một form lý do dùng chung.
