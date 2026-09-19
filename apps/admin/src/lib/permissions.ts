@@ -11,7 +11,8 @@ export type Permission =
   | 'health.read'
   | 'audit.read'
   | 'orders.read'
-  | 'orders.write';
+  | 'orders.write'
+  | 'customers.read';
 
 export interface Me {
   email: string;
@@ -24,9 +25,13 @@ export interface Me {
  * sửa rải rác từng màn hình để tìm chỗ cần chặn.
  *
  * Giao diện chỉ ẩn cho gọn mắt — API mới là nơi chặn thật.
+ *
+ * `Array.isArray` chứ không `me?.permissions.includes`: một /v1/admin/me trả thân lạ (proxy chèn
+ * trang HTML, hay stub test trả nhầm) không được làm trắng cả trang vì `.includes` của undefined.
+ * Không có quyền thì ẩn, đó là hành vi đúng cho dữ liệu hỏng.
  */
 export function can(me: Me | undefined, permission: Permission): boolean {
-  return me?.permissions.includes(permission) ?? false;
+  return Array.isArray(me?.permissions) && me.permissions.includes(permission);
 }
 
 export function useMe() {

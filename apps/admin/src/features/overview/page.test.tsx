@@ -3,11 +3,12 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { orderKeys } from '@/features/orders/hooks';
 import { OverviewPage } from './page';
 
 const ME = {
   email: 'phong@test.invalid',
-  permissions: ['edits.read', 'billing.read', 'health.read', 'audit.read'],
+  permissions: ['edits.read', 'billing.read', 'health.read', 'audit.read', 'orders.read'],
 };
 const HEALTH = {
   checked_at: '2026-09-18T10:00:00.000Z',
@@ -65,7 +66,10 @@ const AUDIT = {
   nextCursor: null,
 };
 
-function mo(override: (url: string) => Response | null = () => null) {
+function mo(
+  override: (url: string) => Response | null = () => null,
+  seed?: (qc: QueryClient) => void,
+) {
   vi.stubGlobal(
     'fetch',
     vi.fn(async (input: RequestInfo | URL) => {
@@ -83,11 +87,21 @@ function mo(override: (url: string) => Response | null = () => null) {
         '/v1/admin/metrics': METRICS,
         '/v1/admin/quota-summary': QUOTA,
         '/v1/admin/audit': AUDIT,
+        '/v1/admin/orders/summary': {
+          choXuLy: 3,
+          doanhThu30Ngay: 4_550_000,
+          pendingQua1Gio: 0,
+          khongKhop: 1,
+        },
       };
       return new Response(JSON.stringify(than[duongDan] ?? {}));
     }),
   );
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  // `seed` ghi thẳng vào cache TRƯỚC khi dựng trang — dùng để kiểm hai ô tiền đọc ĐÚNG khoá mà
+  // đầu trang Đơn hàng dùng (`orderKeys.summary()`), chứ không phải chỉ đọc số máy chủ trả về
+  // cho URL nào cũng qua được dù khoá cache có bị đổi thành thứ riêng.
+  seed?.(qc);
   render(
     <QueryClientProvider client={qc}>
       <MemoryRouter>
@@ -141,5 +155,57 @@ describe('OverviewPage', () => {
       (c) => String(c[0]),
     );
     expect(goi.some((u) => u.includes('/v1/admin/audit') && u.includes('limit=5'))).toBe(true);
+  });
+
+  it('có orders.read → hai ô Đơn chờ xử lý và Doanh thu 30 ngày, trỏ về màn Đơn hàng', async () => {
+    mo();
+    expect(await screen.findByRole('link', { name: /Đơn chờ xử lý/ })).toHaveAttribute(
+      'href',
+      '/orders?status=paid_unfulfilled',
+    );
+    expect(await screen.findByText('3')).toBeVisible();
+    expect(await screen.findByText('4.550.000đ')).toBeVisible();
+    expect(screen.getByRole('link', { name: /Doanh thu 30 ngày/ })).toHaveAttribute(
+      'href',
+      '/orders?status=fulfilled',
+    );
+  });
+
+  it('hai ô tiền dùng CHUNG khoá cache với đầu trang Đơn hàng — dữ liệu đã có sẵn thì không gọi lại', async () => {
+    // Nếu ai đó lỡ đổi hai ô này sang một khoá cache riêng (vd ['overview','orders-summary']),
+    // trang vẫn tự fetch và hiện đúng số — mọi khẳng định của bài test phía trên vẫn xanh. Bài
+    // này khoá đúng điều Task 9 hứa: seed sẵn dữ liệu vào ĐÚNG khoá `orderKeys.summary()` (khoá
+    // mà đầu trang Đơn hàng dùng) rồi kiểm trang đọc thẳng từ đó, không có lời gọi mạng nào tới
+    // `/orders/summary`. `staleTime: 30_000` của `useOrderSummary` coi dữ liệu vừa seed là còn tươi.
+    mo(undefined, (qc) =>
+      qc.setQueryData(orderKeys.summary(), {
+        choXuLy: 9,
+        doanhThu30Ngay: 1_000_000,
+        pendingQua1Gio: 0,
+        khongKhop: 0,
+      }),
+    );
+    expect(await screen.findByText('9')).toBeVisible();
+    expect(await screen.findByText('1.000.000đ')).toBeVisible();
+    const goi = (globalThis.fetch as unknown as { mock: { calls: unknown[][] } }).mock.calls.map(
+      (c) => String(c[0]),
+    );
+    expect(goi.some((u) => u.includes('/orders/summary'))).toBe(false);
+  });
+
+  it('không có orders.read → không gọi summary, không có hai ô đó', async () => {
+    // So khớp theo ĐƯỜNG DẪN chứ không `includes`: '/v1/admin/metrics'.includes('/v1/admin/me')
+    // cũng là TRUE (vì "metrics" bắt đầu bằng "me"), sẽ làm hỏng luôn dữ liệu metrics.
+    mo((url) =>
+      new URL(url, 'https://admin.test').pathname === '/v1/admin/me'
+        ? new Response(JSON.stringify({ ...ME, permissions: ['edits.read'] }))
+        : null,
+    );
+    expect(await screen.findByRole('link', { name: /Đóng góp chờ duyệt/ })).toBeVisible();
+    expect(screen.queryByRole('link', { name: /Đơn chờ xử lý/ })).toBeNull();
+    const goi = (globalThis.fetch as unknown as { mock: { calls: unknown[][] } }).mock.calls.map(
+      (c) => String(c[0]),
+    );
+    expect(goi.some((u) => u.includes('/orders/summary'))).toBe(false);
   });
 });

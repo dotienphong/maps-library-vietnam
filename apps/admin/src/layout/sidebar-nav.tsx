@@ -19,6 +19,8 @@ const GROUPS: { title: string; items: NavItem[] }[] = [
   {
     title: 'Khách hàng',
     items: [
+      // "Tài khoản khách hàng" chứ không "Khách hàng": trùng chữ với tiêu đề nhóm ngay trên.
+      { to: '/customers', label: 'Tài khoản khách hàng', permission: 'customers.read' },
       { to: '/tenants', label: 'Tenant & khoá API', permission: 'tenants.read' },
       { to: '/billing', label: 'Gói cước & hạn mức', permission: 'billing.read' },
       { to: '/orders', label: 'Đơn hàng & giao dịch', permission: 'orders.read' },

@@ -32,6 +32,10 @@ const OrdersPage = lazy(() =>
   import('@/features/orders/page').then((module) => ({ default: module.OrdersPage })),
 );
 
+const CustomersPage = lazy(() =>
+  import('@/features/customers/page').then((module) => ({ default: module.CustomersPage })),
+);
+
 const wait = (node: ReactNode) => (
   <Suspense fallback={<LoadingSkeleton rows={4} />}>{node}</Suspense>
 );
@@ -52,6 +56,7 @@ export const router = createBrowserRouter(
         { path: 'tenants', element: wait(<TenantsPage />) },
         { path: 'billing', element: wait(<BillingPage />) },
         { path: 'orders', element: wait(<OrdersPage />) },
+        { path: 'customers', element: wait(<CustomersPage />) },
         { path: 'audit', element: wait(<AuditPage />) },
         { path: 'health', element: wait(<HealthPage />) },
         { path: '*', element: <NotFound /> },

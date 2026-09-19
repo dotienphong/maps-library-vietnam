@@ -21,6 +21,7 @@ const FULL: Me = {
     'health.read',
     'audit.read',
     'orders.read',
+    'customers.read',
   ],
 };
 
@@ -58,5 +59,17 @@ describe('mục Đơn hàng & giao dịch', () => {
   it('ẩn khi không có quyền đó — giao diện ẩn cho gọn mắt, API mới là nơi chặn thật', () => {
     renderNav({ email: 'a@b.c', permissions: ['edits.read'] });
     expect(screen.queryByRole('link', { name: 'Đơn hàng & giao dịch' })).toBeNull();
+  });
+});
+
+describe('mục Tài khoản khách hàng (pha 4)', () => {
+  it('hiện khi có quyền customers.read, đứng trong nhóm Khách hàng', () => {
+    renderNav(FULL);
+    expect(screen.getByRole('link', { name: 'Tài khoản khách hàng' })).toBeVisible();
+  });
+
+  it('ẩn khi không có quyền đó', () => {
+    renderNav({ email: 'a@b.c', permissions: ['edits.read', 'orders.read'] });
+    expect(screen.queryByRole('link', { name: 'Tài khoản khách hàng' })).toBeNull();
   });
 });

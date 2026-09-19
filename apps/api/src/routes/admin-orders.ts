@@ -4,9 +4,11 @@ import {
   chuTenant,
   type DonHang,
   daCoSuKien,
+  danhDauHoanTien,
   danhSachDonAdmin,
   docDon,
   ghiSuKienThanhToan,
+  huyDonAdmin,
   suKienCuaDon,
   suKienKhongKhop,
   type TrangThaiDon,
@@ -14,15 +16,15 @@ import {
   tongTienDaNhan,
 } from '../commerce/db';
 import { apDungThanhToan, type FulfilDeps, type KetQuaApDung } from '../commerce/fulfil';
+import { chonPayosPort, type PayosPort } from '../commerce/payos';
 import { type ThongBaoDeps, thongBaoSauApDung } from '../commerce/thong-bao';
 import { endSql, getSql } from '../db';
 import type { AppEnv, Env } from '../env';
-import { ApiError } from '../errors';
+import { ApiError, moTaLoi } from '../errors';
+import { docJson, docLyDo, docOperationId, NO_STORE, OPERATION_ID, UUID } from './admin-chung';
 import { parseLimit } from './admin-list-params';
 import { donJson } from './console-orders';
 
-const NO_STORE = { 'cache-control': 'private, no-store' } as const;
-const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const CURSOR_TIME = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d{1,6})?Z$/;
 const TRANG_THAI = new Set<string>([
   'pending',
@@ -34,14 +36,50 @@ const TRANG_THAI = new Set<string>([
   'cancelled',
   'refunded',
 ]);
-/** operationId do trang Admin sinh; nó thành `reference = manual:<id>` nên phải an toàn làm khoá. */
-const OPERATION_ID = /^[A-Za-z0-9_-]{8,64}$/;
-const MAX_BODY = 16 * 1024;
+const NGAY = /^\d{4}-\d{2}-\d{2}$/;
+/** Mốc ISO đầy đủ BẮT BUỘC có offset (`Z` hoặc `±HH:MM`) — mượn khuôn `CURSOR_TIME`, nới phần
+ * offset. Thiếu offset thì `Date.parse` đọc theo giờ MÁY CHỦ chạy Worker, lệch giữa dev (+07) và
+ * production (UTC) — bài học đã trả giá của dự án. */
+const MOC_ISO = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d{1,6})?(Z|[+-]\d{2}:\d{2})$/;
+const MOT_NGAY_MS = 86_400_000;
+const BAY_GIO_MS = 7 * 3_600_000;
+/** Trạng thái đánh dấu hoàn tiền được — giống hệt điều kiện trong `danhDauHoanTien`, xem lý do ở đó. */
+const CO_THE_HOAN_TIEN = new Set<TrangThaiDon>(['fulfilled', 'paid_unfulfilled', 'underpaid']);
 
 type ChiTietAudit = Record<string, string | number | boolean | null>;
 
+/**
+ * `from`/`to` nhận "YYYY-MM-DD" hoặc ISO đầy đủ CÓ offset. Ngày-chỉ-có-ngày hiểu theo giờ Việt Nam
+ * (người vận hành ngồi ở +07:00), và `to` dạng ngày là BAO GỒM cả ngày đó: ta trả ranh giới 00:00
+ * ngày kế tiếp để SQL dùng `<`. Mốc ISO đầy đủ giữ nguyên, nhưng phải mang offset — xem `MOC_ISO`.
+ */
+function docMoc(raw: string | null, laMocCuoi: boolean): Date | null {
+  if (raw === null || raw === '') return null;
+  if (NGAY.test(raw)) {
+    const ms = Date.parse(`${raw}T00:00:00+07:00`);
+    // Ngày không có thật (như 2026-02-31) bị Date.parse CUỘN sang tháng sau thay vì báo lỗi. Kiểm
+    // khứ hồi: in lại ngày đã parse theo giờ VN rồi so với chuỗi gốc.
+    const lai = new Date(ms + BAY_GIO_MS);
+    const inLai = `${lai.getUTCFullYear()}-${String(lai.getUTCMonth() + 1).padStart(2, '0')}-${String(lai.getUTCDate()).padStart(2, '0')}`;
+    if (!Number.isFinite(ms) || inLai !== raw) {
+      throw new ApiError(400, 'invalid_request', 'from/to không phải một ngày có thật');
+    }
+    return new Date(laMocCuoi ? ms + MOT_NGAY_MS : ms);
+  }
+  if (!MOC_ISO.test(raw)) {
+    throw new ApiError(
+      400,
+      'invalid_request',
+      'from/to phải là ngày YYYY-MM-DD hoặc mốc ISO có offset (Z hoặc ±HH:MM)',
+    );
+  }
+  return new Date(raw);
+}
+
 export interface AdminOrdersDeps extends FulfilDeps, ThongBaoDeps {
   sql?: (env: Env) => ReturnType<typeof getSql>;
+  /** Cổng PayOS, tiêm được: "Huỷ đơn" phải huỷ link ở PayOS trước khi đánh dấu. */
+  payos?: (env: Env) => PayosPort;
   /**
    * Cổng ghi nhật ký, tiêm được để test đọc nội dung dòng audit. Mặc định là `audit()` thật, và
    * hàm đó cố ý mở client Postgres RIÊNG chạy trong waitUntil — client của request đã bị `endSql`
@@ -79,21 +117,6 @@ const suKienJson = (s: Awaited<ReturnType<typeof suKienCuaDon>>[number]) => ({
   receivedAt: new Date(s.received_at).toISOString(),
 });
 
-async function docJson(request: Request): Promise<Record<string, unknown>> {
-  const text = await request.text();
-  if (new TextEncoder().encode(text).byteLength > MAX_BODY) {
-    throw new ApiError(413, 'payload_too_large', 'Thân yêu cầu quá lớn');
-  }
-  try {
-    const v = JSON.parse(text) as unknown;
-    return typeof v === 'object' && v !== null && !Array.isArray(v)
-      ? (v as Record<string, unknown>)
-      : {};
-  } catch {
-    return {};
-  }
-}
-
 const orderId = (raw: string): string => {
   if (!UUID.test(raw)) throw new ApiError(404, 'order_not_found', 'Không có đơn này');
   return raw;
@@ -108,6 +131,7 @@ const orderId = (raw: string): string => {
 export function adminOrdersWith(deps: AdminOrdersDeps = {}) {
   const routes = new Hono<AppEnv>();
   const now = () => (deps.now ?? (() => new Date()))();
+  const payos = (env: Env) => (deps.payos ?? chonPayosPort)(env);
 
   const ghiAudit = (c: Context<AppEnv>, action: string, target: string, detail: ChiTietAudit) => {
     if (deps.writeAuditEntry) {
@@ -147,6 +171,16 @@ export function adminOrdersWith(deps: AdminOrdersDeps = {}) {
       throw new ApiError(400, 'invalid_request', 'status không hợp lệ');
     }
     const status = (statusRaw as TrangThaiDon | null) ?? null;
+    const tenantRaw = q.get('tenant');
+    if (tenantRaw !== null && tenantRaw !== '' && !UUID.test(tenantRaw)) {
+      throw new ApiError(400, 'invalid_request', 'tenant phải là uuid');
+    }
+    const tenantId = tenantRaw ? tenantRaw : null;
+    const from = docMoc(q.get('from'), false);
+    const to = docMoc(q.get('to'), true);
+    if (from !== null && to !== null && from.getTime() > to.getTime()) {
+      throw new ApiError(400, 'invalid_request', 'from phải nhỏ hơn hoặc bằng to');
+    }
     const limit = parseLimit(q);
     let cursor: { createdAt: string; id: string } | null = null;
     const raw = q.get('cursor');
@@ -157,7 +191,9 @@ export function adminOrdersWith(deps: AdminOrdersDeps = {}) {
       }
       cursor = { createdAt, id };
     }
-    const rows = await voiSqlCua(c, (sql) => danhSachDonAdmin(sql, { status, limit, cursor }));
+    const rows = await voiSqlCua(c, (sql) =>
+      danhSachDonAdmin(sql, { status, tenantId, from, to, limit, cursor }),
+    );
     const hasMore = rows.length > limit;
     const page = hasMore ? rows.slice(0, limit) : rows;
     const last = page.at(-1);
@@ -246,6 +282,9 @@ export function adminOrdersWith(deps: AdminOrdersDeps = {}) {
     const reason = typeof body.reason === 'string' ? body.reason.trim().slice(0, 500) : '';
     const bankReference =
       typeof body.bankReference === 'string' ? body.bankReference.trim().slice(0, 64) : '';
+    // Mã lỗi `invalid_confirm` (không phải `invalid_request`/`invalid_reason` như cancel/refund
+    // pha 4) là CỐ Ý: đây là hợp đồng lỗi cũ của pha 3 mà giao diện Admin đã bắt theo đúng mã này.
+    // Nới trần 500 ký tự hay đổi thông điệp trong `docLyDo` KHÔNG kéo theo đổi route này.
     if (!operationId || !reason || !bankReference) {
       throw new ApiError(
         400,
@@ -310,6 +349,105 @@ export function adminOrdersWith(deps: AdminOrdersDeps = {}) {
       moi,
     });
     return c.json({ order: donJsonAdmin(kq.don), ketQua: kq.trangThai, moi }, 200, NO_STORE);
+  });
+
+  /**
+   * Huỷ đơn (spec 13). Thứ tự bắt buộc: PayOS huỷ link TRƯỚC, DB đánh dấu SAU — cùng lý do với
+   * `console-orders.ts`: link còn sống mà ta bảo "đã huỷ" là nói sai, và tiền vào sau đó vẫn phải
+   * được cấp (bất biến 5.3 — `datDaTra` đã nhận `cancelled`). Gọi lại trên đơn đã cancelled là
+   * thành công.
+   */
+  routes.post('/v1/admin/orders/:id/cancel', async (c) => {
+    const id = orderId(c.req.param('id'));
+    const body = await docJson(c.req.raw);
+    const operationId = docOperationId(body);
+    const reason = docLyDo(body);
+
+    const don = await voiSqlCua(c, (sql) => docDon(sql, id));
+    if (!don) throw new ApiError(404, 'order_not_found', 'Không có đơn này');
+    if (don.status === 'cancelled') {
+      return c.json({ order: donJsonAdmin(don), moi: false }, 200, NO_STORE);
+    }
+    if (don.status !== 'pending') {
+      throw new ApiError(409, 'order_not_cancellable', 'Chỉ huỷ được đơn đang chờ thanh toán');
+    }
+
+    // Gọi PayOS NGOÀI phạm vi client Postgres: một lời gọi mạng có thể mất mười giây.
+    if (don.payment_link_id) {
+      try {
+        await payos(c.env).huyLink(don.order_code, `Admin huỷ: ${reason}`.slice(0, 255));
+      } catch (error) {
+        console.error(`[commerce] admin huỷ link đơn ${don.order_code} lỗi: ${moTaLoi(error)}`);
+        throw new ApiError(
+          503,
+          'payment_provider_unavailable',
+          'Cổng thanh toán đang bận, chưa huỷ; hãy thử lại',
+        );
+      }
+    }
+
+    const capNhatLuc = await voiSqlCua(c, (sql) => huyDonAdmin(sql, id, reason));
+    if (!capNhatLuc) throw new ApiError(409, 'order_not_cancellable', 'Đơn vừa đổi trạng thái');
+    ghiAudit(c, 'admin.order.cancel', id, {
+      order_code: don.order_code,
+      tenant_id: don.tenant_id,
+      operation_id: operationId,
+      reason,
+      payos_link: don.payment_link_id !== null,
+    });
+    return c.json(
+      {
+        // updated_at lấy từ chính câu UPDATE (capNhatLuc), KHÔNG phải `don.updated_at` đọc trước
+        // khi ghi — nếu không giao diện nhận một mốc CŨ tới lần tải lại kế tiếp.
+        order: donJsonAdmin({ ...don, status: 'cancelled', note: reason, updated_at: capNhatLuc }),
+        moi: true,
+      },
+      200,
+      NO_STORE,
+    );
+  });
+
+  /**
+   * Đánh dấu hoàn tiền (spec 9.5, 13). Chỉ ghi nhận: tiền trả lại khách đi ngoài hệ thống, và sổ
+   * quota KHÔNG bị đụng — thu hồi quyền dùng là lệnh `suspend` riêng ở màn Gói cước, do người
+   * quyết định. Gọi lại trên đơn đã refunded là thành công.
+   */
+  routes.post('/v1/admin/orders/:id/refund', async (c) => {
+    const id = orderId(c.req.param('id'));
+    const body = await docJson(c.req.raw);
+    const operationId = docOperationId(body);
+    const reason = docLyDo(body);
+
+    const kq = await voiSqlCua(c, async (sql) => {
+      const don = await docDon(sql, id);
+      if (!don) throw new ApiError(404, 'order_not_found', 'Không có đơn này');
+      if (don.status === 'refunded') return { don, moi: false };
+      if (!CO_THE_HOAN_TIEN.has(don.status)) {
+        throw new ApiError(
+          409,
+          'order_not_refundable',
+          'Chỉ đánh dấu hoàn tiền cho đơn đã có tiền vào (đã cấp gói, tiền vào chưa cấp, hoặc thiếu tiền)',
+        );
+      }
+      const capNhatLuc = await danhDauHoanTien(sql, id, reason);
+      if (!capNhatLuc) throw new ApiError(409, 'order_not_refundable', 'Đơn vừa đổi trạng thái');
+      // Cùng lý do với cancel: updated_at lấy từ chính câu UPDATE, không phải bản đọc trước ghi.
+      return {
+        don: { ...don, status: 'refunded' as const, note: reason, updated_at: capNhatLuc },
+        moi: true,
+      };
+    });
+
+    if (kq.moi) {
+      ghiAudit(c, 'admin.order.refund', id, {
+        order_code: kq.don.order_code,
+        tenant_id: kq.don.tenant_id,
+        operation_id: operationId,
+        reason,
+        paid_amount_vnd: kq.don.paid_amount_vnd,
+      });
+    }
+    return c.json({ order: donJsonAdmin(kq.don), moi: kq.moi }, 200, NO_STORE);
   });
 
   return routes;

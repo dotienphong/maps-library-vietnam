@@ -8,6 +8,9 @@ import {
 } from '@mapslibvn/ui';
 import * as Dialog from '@radix-ui/react-dialog';
 import { useState } from 'react';
+import { Link } from 'react-router';
+import { DanhSachDonGanNhat } from '@/features/orders/don-gan-nhat';
+import { can, useMe } from '@/lib/permissions';
 import type { ApiKey } from './api';
 import { useSetKeyRevoked, useSetQuotaMode, useTenantDetail } from './hooks';
 import { KeyRow } from './key-row';
@@ -31,6 +34,8 @@ export function TenantDetailPanel({ id, onClose }: TenantDetailPanelProps) {
   const revoke = useSetKeyRevoked();
   const doiGoi = useSetQuotaMode();
   const { schedule } = useDelayedAction();
+  const { data: me } = useMe();
+  const xemDon = can(me, 'orders.read');
   if (id === null) return null;
 
   /**
@@ -112,6 +117,33 @@ export function TenantDetailPanel({ id, onClose }: TenantDetailPanelProps) {
                 <p className="select-all break-all font-mono text-xs text-[var(--text-muted)]">
                   {detail.data.tenant.id}
                 </p>
+
+                <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 text-sm">
+                  <dt className="text-[var(--text-muted)]">Chủ tổ chức</dt>
+                  <dd className="break-all">
+                    {detail.data.owner ? (
+                      detail.data.owner.accountId ? (
+                        <Link
+                          className="underline"
+                          to={`/customers?id=${detail.data.owner.accountId}`}
+                        >
+                          {detail.data.owner.email}
+                        </Link>
+                      ) : (
+                        detail.data.owner.email
+                      )
+                    ) : (
+                      <>
+                        {/* Trình đọc màn hình ở mức dấu câu mặc định không đọc gạch ngang — không
+                            có nhãn thì người dùng nghe thấy một ô trống, không phải "không có". */}
+                        <span aria-hidden="true">—</span>
+                        <span className="sr-only">Không có</span>
+                      </>
+                    )}
+                  </dd>
+                </dl>
+
+                <DanhSachDonGanNhat tenantId={detail.data.tenant.id} enabled={xemDon} />
 
                 <div className="rounded-[var(--radius-card)] border border-[var(--border)] p-3">
                   <p className="text-sm">

@@ -1,6 +1,7 @@
 import { Hono } from 'hono';
 import { audit } from '../audit';
 import { normalizeTextArray } from '../auth';
+import { chuTenant } from '../commerce/db';
 import { endSql, getSql } from '../db';
 import type { AppEnv } from '../env';
 import { ApiError, moTaLoi } from '../errors';
@@ -121,6 +122,10 @@ adminTenants.get('/v1/admin/tenants/:id', async (c) => {
       WHERE k.tenant_id = ${id}::uuid
       ORDER BY k.created_at DESC, k.key_hash`;
 
+    // Chủ tổ chức (pha 4): admin cần biết ai đứng sau tenant để liên hệ, và để nhảy sang màn Khách
+    // hàng. Tenant nội bộ/cũ không có owner → null, giao diện hiện "—".
+    const chu = await chuTenant(sql, id);
+
     return c.json(
       {
         tenant,
@@ -132,6 +137,9 @@ adminTenants.get('/v1/admin/tenants/:id', async (c) => {
           allowed_origins: normalizeTextArray(key.allowed_origins),
           allowed_bundle_ids: normalizeTextArray(key.allowed_bundle_ids),
         })),
+        owner: chu
+          ? { email: chu.email, billingEmail: chu.billingEmail, accountId: chu.accountId }
+          : null,
       },
       200,
       NO_STORE,

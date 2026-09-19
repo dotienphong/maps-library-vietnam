@@ -3549,3 +3549,59 @@ và hai câu hỏi cho PayOS — hạn mức một link, biểu phí thực tế
 mỏng thì lần sau không ai tìm ra chỗ mỏng đó nữa.
 
 Tiếp theo: **pha 4** — admin khách hàng/đơn hàng ("Huỷ đơn", "Đánh dấu hoàn tiền").
+
+## 26. 20/09/2026 — Thương mại tự phục vụ pha 4: admin đối soát được từng đơn, từng khách
+
+Pha 4 đóng vòng vận hành mà pha 3 để hở: tiền đã tự chạy vào sổ, nhưng khi một đơn đi lệch thì
+người trực chỉ có hai nút và không có đường tra ngược về người mua. Giờ `/admin/orders` lọc được
+theo tenant và khoảng ngày, huỷ được đơn còn chờ và đánh dấu được đơn đã hoàn tiền; `/admin/customers`
+cho tìm khách theo email, xem phiên đang mở, vô hiệu hoá và kích hoạt lại tài khoản. Không có
+migration nào: mọi bảng và mọi dòng `GRANT` đã có sẵn từ `0020` và `0023`.
+
+**Quyết định đáng nhớ nhất là một chỗ lệch khỏi spec.** Hình vẽ máy trạng thái ở spec 5.3 chỉ cho
+phép đánh dấu hoàn tiền từ `fulfilled`. Nhưng ca hoàn tiền hay gặp nhất lại là `paid_unfulfilled` —
+tiền đã vào, cấp gói hỏng, người bán chuyển trả khách ngoài hệ thống. Giữ đúng hình vẽ thì đơn đó
+kẹt vĩnh viễn trong ô "Đơn chờ xử lý" và cron vẫn cần mẫn cấp gói cho một đơn đã hoàn tiền. Nên lệnh
+nhận cả `paid_unfulfilled` và `underpaid`. `paid` thì cố ý đứng ngoài: nó chỉ sống vài giây giữa
+webhook và sổ, đánh dấu vào đó là đua vô ích với `datDaCap`.
+
+**Ba bất biến còn lại, viết ra để lần sau không ai phải suy lại.** Huỷ đơn gọi PayOS trước rồi mới
+chạm cơ sở dữ liệu — link còn sống mà ta bảo "đã huỷ" là nói sai, và khách vẫn quét mã đó rồi chuyển
+tiền cho một đơn ta coi là đã đóng. Hoàn tiền không đụng sổ quota một dòng nào; muốn thu hồi quyền
+dùng thì đó là lệnh Tạm dừng riêng ở màn Gói cước, do người quyết định. Vô hiệu hoá tài khoản đặt
+`disabled_at` và xoá mọi phiên trong cùng một transaction, nên hiệu lực tới ngay ở request kế tiếp
+của khách chứ không đợi phiên hết hạn.
+
+**Cổng quyền không đồng nhất, và đó là cố ý.** Danh sách tài khoản khách chỉ cần Cloudflare Access,
+còn mọi thứ chạm tiền vẫn nằm sau `requireBillingAccess()`. Hệ quả cho giao diện: các màn chỉ gọi
+đường đơn hàng khi người đăng nhập thật sự có quyền đó, thay vì bắn một request chắc chắn nhận 403.
+
+**Năm cái bẫy đã vấp, cái nào cũng đáng một dòng.**
+
+*Một callback lỗi không bao giờ chạy.* Lệnh admin đi qua đếm ngược 5 giây, và ngăn chi tiết đóng
+ngay khi xếp lịch. `onError` truyền làm tham số thứ hai của `mutateAsync` chỉ chạy khi observer còn
+sống, mà lúc lệnh thật sự gửi thì component đã unmount từ lâu — nên mọi lỗi lệnh bị nuốt im lặng.
+Chỗ đúng để đặt nó là tuỳ chọn của `useMutation`, vì callback đó thuộc về mutation trong cache chứ
+không thuộc về component.
+
+*Ba bài kiểm khẳng định thứ chúng không chứng minh được.* Phép thử đột biến tìm ra cả ba: bỏ
+`LIMIT 1` khỏi một `LATERAL`, thêm `google_sub` vào danh sách cột, và chuyển một lần đọc ra ngoài
+`sql.begin` — cả ba đều để bộ test xanh nguyên. Cái thứ ba là vì bản giả của tag `sql` chạy
+transaction bằng chính tag gốc, nên "trong" và "ngoài" transaction không phân biệt được; phải dạy nó
+đánh dấu thì bài kiểm mới khoá được điều nó tuyên bố.
+
+*Một bài kiểm chờ tới nửa đêm mới đỏ.* Bộ lọc ngày trong itest tính mốc từ đồng hồ tường, còn đơn
+mang `created_at` do Postgres sinh trước đó vài giây. Lượt chạy nào vắt qua 17:00 UTC là đỏ. Ghim
+mốc theo chính `created_at` của đơn thì hết đua.
+
+*JavaScript nhận ngày 31 tháng 2.* `2026-02-31` lặng lẽ cuộn sang tháng ba, và một chuỗi ISO không
+kèm offset thì được đọc theo múi giờ máy chủ — dev ở +07 và production ở UTC cho hai kết quả khác
+nhau. Bộ lọc giờ kiểm khứ hồi với ngày, và đòi offset tường minh với mốc ISO.
+
+*Một bài e2e cũ đỏ vì giả định đã cũ.* Màn Tenant giờ khôi phục ngăn chi tiết từ `?id=` sau khi tải
+lại trang, đúng nguyên tắc đã có sẵn ở màn Đơn hàng. Ngăn đó là hộp thoại modal nên nó che cả trang
+phía sau. Hành vi sản phẩm đúng; bài test viết từ thời chưa có `?id=` mới là chỗ sai.
+
+Tiếp theo: việc còn nợ từ pha 1 (chạy Lighthouse trên bản deploy, xác thực Google Search Console),
+và hai chỗ mỏng của pha 3 (đường cron đối soát chưa chạy bằng tiền thật, hạn mức và biểu phí PayOS
+chưa hỏi).

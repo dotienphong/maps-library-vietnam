@@ -3,6 +3,7 @@ import { Hono } from 'hono';
 import { describe, expect, it, vi } from 'vitest';
 import type { CommandReceipt, EntitlementCommand } from '../src/billing/types';
 import type { DonHang } from '../src/commerce/db';
+import type { PayosPort } from '../src/commerce/payos';
 import type { AppEnv, Env } from '../src/env';
 import { errorResponse } from '../src/errors';
 import { adminOrdersWith } from '../src/routes/admin-orders';
@@ -11,6 +12,8 @@ import { fakeSql, type RecordedQuery } from './helpers/fake-sql';
 const ORDER = '00000000-0000-4000-8000-0000000000d1';
 const TENANT = '00000000-0000-4000-8000-0000000000c1';
 const NOW = new Date('2026-09-19T03:00:00Z');
+/** Mốc DB ghi khi UPDATE — khác NOW để bài kiểm phân biệt được với `updated_at` cũ đọc trước ghi. */
+const NOW_MOI = new Date('2026-09-19T03:05:00Z');
 const moi = { ...env, ENVIRONMENT: 'test', SUPPORT_EMAIL: 'ho-tro@vidu.vn' } as unknown as Env;
 
 type DonAdmin = DonHang & { tenant_name?: string; cursor_at?: string };
@@ -107,6 +110,26 @@ function kho(tuyChon: { danhSach?: DonAdmin[]; don?: DonAdmin | null; trungRef?:
       hienTai = { ...hienTai, status: 'fulfilled' };
       return [{ id: ORDER }];
     }
+    if (q.text.includes("SET status = 'cancelled'") && hienTai) {
+      if (hienTai.status !== 'pending') return [];
+      hienTai = {
+        ...hienTai,
+        status: 'cancelled',
+        note: q.params[0] as string,
+        updated_at: NOW_MOI,
+      };
+      return [{ id: ORDER, updated_at: NOW_MOI }];
+    }
+    if (q.text.includes("SET status = 'refunded'") && hienTai) {
+      if (!['fulfilled', 'paid_unfulfilled', 'underpaid'].includes(hienTai.status)) return [];
+      hienTai = {
+        ...hienTai,
+        status: 'refunded',
+        note: q.params[0] as string,
+        updated_at: NOW_MOI,
+      };
+      return [{ id: ORDER, updated_at: NOW_MOI }];
+    }
     if (q.text.includes('tenant_member')) {
       return [{ email: 'khach@vidu.vn', billing_email: null, name: 'Công ty Thử' }];
     }
@@ -156,10 +179,20 @@ const boiCanh = () =>
     passThroughOnException: () => {},
   }) as unknown as ExecutionContext;
 
+const payosGia = (huyLink: PayosPort['huyLink'] = vi.fn(async () => {})) =>
+  ({
+    ten: 'payos',
+    taoLink: vi.fn(),
+    docLink: vi.fn(),
+    huyLink,
+    checkoutUrlTuId: (id: string) => `https://pay/web/${id}`,
+  }) as unknown as PayosPort;
+
 function app(
   k: ReturnType<typeof kho>,
   so: ReturnType<typeof soGia>['so'] = soGia().so,
   email: string | null = 'billing@test.local',
+  payos: PayosPort = payosGia(),
 ) {
   const a = new Hono<AppEnv>();
   a.onError((err, c) => errorResponse(c, err));
@@ -174,6 +207,7 @@ function app(
       sql: () => k.sql,
       so: () => so,
       now: () => NOW,
+      payos: () => payos,
       emailPort: () => ({ ten: 'debug', send: vi.fn().mockResolvedValue({ id: 'r' }) }),
       writeAuditEntry: (e) => k.audit.push(e as DongAudit),
     }),
@@ -238,6 +272,57 @@ describe('GET /v1/admin/orders', () => {
     const res = await get(app(kho()), '/v1/admin/payment-events/unmatched');
     const body = (await res.json()) as { items: { reference: string; signatureValid: boolean }[] };
     expect(body.items[0]).toMatchObject({ reference: 'invalid:abc', signatureValid: false });
+  });
+
+  it('lọc tenant + khoảng ngày: ngày-chỉ-có-ngày thành ranh giới ngày giờ Việt Nam', async () => {
+    const k = kho({ danhSach: [] });
+    const res = await get(
+      app(k),
+      `/v1/admin/orders?tenant=${TENANT}&from=2026-09-01&to=2026-09-19`,
+    );
+    expect(res.status).toBe(200);
+    const params = k.calls[0]?.params ?? [];
+    expect(params).toContain(TENANT);
+    // 00:00 ngày 01/09 giờ VN = 17:00 ngày 31/08 UTC; "đến 19/09" = trước 00:00 ngày 20/09 giờ VN.
+    expect(
+      params.some((p) => p instanceof Date && p.toISOString() === '2026-08-31T17:00:00.000Z'),
+    ).toBe(true);
+    expect(
+      params.some((p) => p instanceof Date && p.toISOString() === '2026-09-19T17:00:00.000Z'),
+    ).toBe(true);
+  });
+
+  it('mốc ISO đầy đủ giữ nguyên, không cộng ngày', async () => {
+    const k = kho({ danhSach: [] });
+    await get(app(k), '/v1/admin/orders?to=2026-09-19T03:00:00Z');
+    const params = k.calls[0]?.params ?? [];
+    expect(
+      params.some((p) => p instanceof Date && p.toISOString() === '2026-09-19T03:00:00.000Z'),
+    ).toBe(true);
+  });
+
+  it('tenant không phải uuid → 400; from rác → 400', async () => {
+    expect((await get(app(kho()), '/v1/admin/orders?tenant=rac')).status).toBe(400);
+    expect((await get(app(kho()), '/v1/admin/orders?from=hom-qua')).status).toBe(400);
+  });
+
+  it('ngày không tồn tại → 400 (không được cuộn sang tháng sau)', async () => {
+    expect((await get(app(kho()), '/v1/admin/orders?from=2026-02-31')).status).toBe(400);
+    expect((await get(app(kho()), '/v1/admin/orders?to=2026-09-31')).status).toBe(400);
+  });
+
+  it('mốc ISO thiếu offset → 400 (không được đọc theo giờ máy chủ)', async () => {
+    expect((await get(app(kho()), '/v1/admin/orders?to=2026-09-19T03:00:00')).status).toBe(400);
+    expect(
+      (await get(app(kho()), `/v1/admin/orders?to=${encodeURIComponent('2026-09-19 03:00:00')}`))
+        .status,
+    ).toBe(400);
+  });
+
+  it('from lớn hơn to → 400', async () => {
+    expect((await get(app(kho()), '/v1/admin/orders?from=2026-09-20&to=2026-09-01')).status).toBe(
+      400,
+    );
   });
 });
 
@@ -339,5 +424,163 @@ describe('POST /v1/admin/orders/:id/confirm-manual', () => {
       amountVnd: -1,
     });
     expect(res.status).toBe(400);
+  });
+});
+
+describe('POST /v1/admin/orders/:id/cancel', () => {
+  const than = { operationId: 'op-huy-0001', reason: 'Khách đổi ý, chưa chuyển tiền' };
+
+  it('pending có link → gọi PayOS huỷ đúng orderCode, rồi cancelled; audit giữ lý do', async () => {
+    const k = kho();
+    const huyLink = vi.fn(async () => {});
+    const res = await post(
+      app(k, undefined, undefined, payosGia(huyLink)),
+      `/v1/admin/orders/${ORDER}/cancel`,
+      than,
+    );
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as {
+      order: { status: string; note: string; updatedAt: string };
+    };
+    expect(body).toMatchObject({
+      order: { status: 'cancelled', note: than.reason },
+      moi: true,
+    });
+    // updatedAt phải là mốc CHÍNH CÂU UPDATE ghi (NOW_MOI), không phải updated_at cũ đọc TRƯỚC khi
+    // ghi (NOW, mốc mặc định của don()) — bài học pha 4: đọc rồi tự gán lại mốc cũ.
+    expect(body.order.updatedAt).toBe(NOW_MOI.toISOString());
+    expect(huyLink).toHaveBeenCalledWith(100001, expect.stringContaining('Khách đổi ý'));
+    expect(k.doc()?.status).toBe('cancelled');
+    expect(k.audit.find((d) => d.action === 'admin.order.cancel')?.detail).toMatchObject({
+      reason: than.reason,
+      operation_id: 'op-huy-0001',
+      order_code: 100001,
+    });
+  });
+
+  it('pending chưa có link → không gọi PayOS, vẫn cancelled', async () => {
+    const k = kho({ don: don({ payment_link_id: null, checkout_url: null }) });
+    const huyLink = vi.fn(async () => {});
+    const res = await post(
+      app(k, undefined, undefined, payosGia(huyLink)),
+      `/v1/admin/orders/${ORDER}/cancel`,
+      than,
+    );
+    expect(res.status).toBe(200);
+    expect(huyLink).not.toHaveBeenCalled();
+  });
+
+  it('PayOS lỗi → 503 payment_provider_unavailable và đơn ĐỨNG IM ở pending', async () => {
+    const k = kho();
+    const huyLink = vi.fn(async () => {
+      throw new Error('payos_unreachable');
+    });
+    const res = await post(
+      app(k, undefined, undefined, payosGia(huyLink)),
+      `/v1/admin/orders/${ORDER}/cancel`,
+      than,
+    );
+    expect(res.status).toBe(503);
+    expect(k.doc()?.status).toBe('pending');
+    expect(k.audit.some((d) => d.action === 'admin.order.cancel')).toBe(false);
+  });
+
+  it('đã cancelled → 200 moi:false, không gọi PayOS; fulfilled → 409 order_not_cancellable', async () => {
+    const huyLink = vi.fn(async () => {});
+    const daHuy = await post(
+      app(kho({ don: don({ status: 'cancelled' }) }), undefined, undefined, payosGia(huyLink)),
+      `/v1/admin/orders/${ORDER}/cancel`,
+      than,
+    );
+    expect(daHuy.status).toBe(200);
+    expect(await daHuy.json()).toMatchObject({ moi: false });
+    expect(huyLink).not.toHaveBeenCalled();
+
+    const res = await post(
+      app(kho({ don: don({ status: 'fulfilled' }) })),
+      `/v1/admin/orders/${ORDER}/cancel`,
+      than,
+    );
+    expect(res.status).toBe(409);
+    expect(((await res.json()) as { error: { code: string } }).error.code).toBe(
+      'order_not_cancellable',
+    );
+  });
+
+  it('thiếu reason hoặc operationId hợp lệ → 400', async () => {
+    const a = app(kho());
+    expect(
+      (await post(a, `/v1/admin/orders/${ORDER}/cancel`, { ...than, reason: '  ' })).status,
+    ).toBe(400);
+    expect(
+      (await post(a, `/v1/admin/orders/${ORDER}/cancel`, { ...than, operationId: 'x' })).status,
+    ).toBe(400);
+  });
+});
+
+describe('POST /v1/admin/orders/:id/refund', () => {
+  const than = { operationId: 'op-hoan-0001', reason: 'Khách yêu cầu, đã chuyển trả 650.000' };
+
+  it('fulfilled → refunded, không lệnh nào tới sổ quota; audit giữ lý do và số tiền đã nhận', async () => {
+    const k = kho({ don: don({ status: 'fulfilled', paid_amount_vnd: 650_000 }) });
+    const { so, lenh } = soGia();
+    const res = await post(app(k, so), `/v1/admin/orders/${ORDER}/refund`, than);
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as {
+      order: { status: string; note: string; updatedAt: string };
+    };
+    expect(body).toMatchObject({
+      order: { status: 'refunded', note: than.reason },
+      moi: true,
+    });
+    // Cùng bài học với cancel: updatedAt phải là mốc chính câu UPDATE ghi, không phải bản đọc trước.
+    expect(body.order.updatedAt).toBe(NOW_MOI.toISOString());
+    expect(lenh).toHaveLength(0);
+    expect(k.audit.find((d) => d.action === 'admin.order.refund')?.detail).toMatchObject({
+      reason: than.reason,
+      operation_id: 'op-hoan-0001',
+      paid_amount_vnd: 650_000,
+    });
+  });
+
+  it('paid_unfulfilled và underpaid cũng đánh dấu được — đó là ca hoàn tiền hay gặp nhất', async () => {
+    for (const status of ['paid_unfulfilled', 'underpaid'] as const) {
+      const k = kho({ don: don({ status, paid_amount_vnd: 650_000 }) });
+      const res = await post(app(k), `/v1/admin/orders/${ORDER}/refund`, than);
+      expect(res.status).toBe(200);
+      expect(await res.json()).toMatchObject({ order: { status: 'refunded' }, moi: true });
+    }
+  });
+
+  it('đã refunded → 200 moi:false; pending và paid → 409 order_not_refundable', async () => {
+    const lai = await post(
+      app(kho({ don: don({ status: 'refunded' }) })),
+      `/v1/admin/orders/${ORDER}/refund`,
+      than,
+    );
+    expect(lai.status).toBe(200);
+    expect(await lai.json()).toMatchObject({ moi: false });
+
+    for (const status of ['pending', 'paid'] as const) {
+      const res = await post(
+        app(kho({ don: don({ status }) })),
+        `/v1/admin/orders/${ORDER}/refund`,
+        than,
+      );
+      expect(res.status).toBe(409);
+      expect(((await res.json()) as { error: { code: string } }).error.code).toBe(
+        'order_not_refundable',
+      );
+    }
+  });
+
+  it('thiếu reason → 400 invalid_reason', async () => {
+    const res = await post(
+      app(kho({ don: don({ status: 'fulfilled' }) })),
+      `/v1/admin/orders/${ORDER}/refund`,
+      { operationId: 'op-hoan-0001' },
+    );
+    expect(res.status).toBe(400);
+    expect(((await res.json()) as { error: { code: string } }).error.code).toBe('invalid_reason');
   });
 });

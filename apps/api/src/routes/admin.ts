@@ -7,6 +7,7 @@ import type { AppEnv } from '../env';
 import { ApiError, moTaLoi } from '../errors';
 import { adminAudit } from './admin-audit';
 import { adminCatalog } from './admin-catalog';
+import { adminCustomers } from './admin-customers';
 import { parseEditListParams } from './admin-edit-params';
 import { adminHealth } from './admin-health';
 import { adminMetrics } from './admin-metrics';
@@ -59,6 +60,9 @@ admin.use('/v1/admin/*', requireAccess());
 // Mount SAU hai middleware trên: nhóm tenant hưởng đúng cổng chống CSRF và Access đã khai một
 // lần ở đây, thay vì mỗi file route tự nhớ gắn lại.
 admin.route('/', adminTenants);
+// Tài khoản khách hàng (pha 4): cùng cổng Access + chống CSRF như tenant; không chạm tiền nên
+// không qua requireBillingAccess — đơn của khách giao diện lấy ở /v1/admin/orders?tenant=….
+admin.route('/', adminCustomers);
 admin.route('/', adminAudit);
 admin.route('/', adminCatalog);
 admin.route('/', adminMetrics);
@@ -81,6 +85,9 @@ const ALL_PERMISSIONS = [
   // 0023 — đơn hàng và giao dịch (pha 3). `orders.write` gắn với mọi lệnh chạm tiền.
   'orders.read',
   'orders.write',
+  // Pha 4 — tài khoản khách hàng. Danh sách và vô hiệu hoá chỉ cần Access (spec 13), nên một
+  // quyền đọc là đủ; vô hiệu hoá không phải lệnh tiền.
+  'customers.read',
 ] as const;
 
 admin.get('/v1/admin/me', (c) =>

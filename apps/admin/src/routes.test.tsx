@@ -16,6 +16,7 @@ const ME = {
     'audit.read',
     'orders.read',
     'orders.write',
+    'customers.read',
   ],
 };
 
@@ -105,5 +106,11 @@ describe('định tuyến trang Admin', () => {
     mo('/admin/edits');
     await waitFor(() => expect(screen.getByRole('heading', { level: 1 })).toBeVisible());
     expect(screen.getByRole('main').textContent).not.toBe(goc);
+  });
+
+  it('/admin/customers có màn hình thật từ pha 4 thương mại', async () => {
+    mo('/admin/customers');
+    expect(await screen.findByLabelText('Tìm theo email hoặc tên')).toBeVisible();
+    expect(document.body.textContent).not.toContain('Không có màn hình này');
   });
 });

@@ -327,18 +327,23 @@ export interface ChuTenant {
   email: string;
   billingEmail: string | null;
   tenantName: string;
+  accountId: string;
 }
 
 export async function chuTenant(sql: Sql, tenantId: string): Promise<ChuTenant | null> {
-  const rows = await sql<{ email: string; billing_email: string | null; name: string }[]>`
-    SELECT a.email, t.billing_email, t.name
+  const rows = await sql<
+    { email: string; billing_email: string | null; name: string; account_id: string }[]
+  >`
+    SELECT a.email, t.billing_email, t.name, a.id AS account_id
     FROM tenant t
     JOIN tenant_member m ON m.tenant_id = t.id AND m.role = 'owner'
     JOIN customer_account a ON a.id = m.account_id
     WHERE t.id = ${tenantId}::uuid
     ORDER BY m.created_at LIMIT 1`;
   const r = rows[0];
-  return r ? { email: r.email, billingEmail: r.billing_email, tenantName: r.name } : null;
+  return r
+    ? { email: r.email, billingEmail: r.billing_email, tenantName: r.name, accountId: r.account_id }
+    : null;
 }
 
 /** Tenant thương mại có chủ sở hữu còn hoạt động — ứng viên nhận thư nhắc hạn. */
@@ -378,18 +383,23 @@ export interface DonHangAdmin extends DonHang {
   cursor_at: string;
 }
 
-export async function danhSachDonAdmin(
-  sql: Sql,
-  p: {
-    status: TrangThaiDon | null;
-    limit: number;
-    cursor: { createdAt: string; id: string } | null;
-  },
-): Promise<DonHangAdmin[]> {
+export interface BoLocDonAdmin {
+  status: TrangThaiDon | null;
+  tenantId: string | null;
+  /** Mốc bao gồm (`>=`). Route đã đổi "ngày-chỉ-có-ngày" sang 00:00 giờ Việt Nam. */
+  from: Date | null;
+  /** Mốc LOẠI TRỪ (`<`). Với "đến ngày D" route truyền 00:00 giờ VN của ngày D+1. */
+  to: Date | null;
+  limit: number;
+  cursor: { createdAt: string; id: string } | null;
+}
+
+export async function danhSachDonAdmin(sql: Sql, p: BoLocDonAdmin): Promise<DonHangAdmin[]> {
   const createdAt = p.cursor?.createdAt ?? null;
   const cursorId = p.cursor?.id ?? null;
   // Lấy dư một dòng để biết còn trang sau; to_char giữ micro giây cho con trỏ, và bind lại bằng
-  // ::text::timestamptz — đi qua Date của JavaScript sẽ cắt mất ba chữ số cuối.
+  // ::text::timestamptz — đi qua Date của JavaScript sẽ cắt mất ba chữ số cuối. Hai mốc from/to
+  // KHÔNG phải con trỏ nên bind Date thẳng là đủ: lệch một mili giây ở ranh giới ngày không sao.
   return await sql<DonHangAdmin[]>`
     SELECT ${sql.unsafe(COT_DON_O)},
            t.name AS tenant_name,
@@ -397,10 +407,51 @@ export async function danhSachDonAdmin(
     FROM customer_order o
     JOIN tenant t ON t.id = o.tenant_id
     WHERE (${p.status}::text IS NULL OR o.status = ${p.status})
+      AND (${p.tenantId}::uuid IS NULL OR o.tenant_id = ${p.tenantId}::uuid)
+      AND (${p.from}::timestamptz IS NULL OR o.created_at >= ${p.from}::timestamptz)
+      AND (${p.to}::timestamptz IS NULL OR o.created_at < ${p.to}::timestamptz)
       AND (${createdAt}::text IS NULL
            OR (o.created_at, o.id) < (${createdAt}::text::timestamptz, ${cursorId}::uuid))
     ORDER BY o.created_at DESC, o.id DESC
     LIMIT ${p.limit + 1}`;
+}
+
+/**
+ * Admin huỷ đơn — chỉ SAU khi PayOS đã xác nhận huỷ link (route lo việc đó). `note` giữ lý do để
+ * người đọc chi tiết đơn sau này không phải mở nhật ký. Không có tenant_id trong điều kiện vì
+ * admin đọc mọi tenant; điều kiện `status = 'pending'` mới là thứ ngăn huỷ nhầm đơn đã có tiền.
+ *
+ * Trả `updated_at` MỚI từ chính câu UPDATE (không phải `null` cho thất bại): route dựng phản hồi
+ * ngay từ giá trị này, tránh bẫy "đọc bản ghi trước khi ghi rồi lấy `updated_at` cũ" — giao diện
+ * nhận một mốc SAI cho tới lần tải lại kế tiếp.
+ */
+export async function huyDonAdmin(sql: Sql, orderId: string, note: string): Promise<Date | null> {
+  const rows = await sql<{ id: string; updated_at: Date }[]>`
+    UPDATE customer_order SET status = 'cancelled', note = ${note}, updated_at = now()
+    WHERE id = ${orderId}::uuid AND status = 'pending' RETURNING id, updated_at`;
+  return rows[0]?.updated_at ?? null;
+}
+
+/**
+ * Chỉ ghi nhận (spec 9.5): hoàn tiền làm ngoài hệ thống, sổ quota không bị đụng. Nhận cả
+ * `paid_unfulfilled` và `underpaid` cùng với `fulfilled` vì ca hay gặp nhất là tiền đã vào nhưng
+ * cấp gói hỏng (`paid_unfulfilled`) — admin hoàn tiền ngoài hệ thống cho khách, và nếu hàm này chỉ
+ * nhận `fulfilled` thì đơn đó kẹt vĩnh viễn ở ô "Đơn chờ xử lý" còn cron vẫn cố cấp gói cho một đơn
+ * đã hoàn tiền. `paid` CỐ Ý đứng ngoài: đó là trạng thái đi ngang vài giây giữa webhook và sổ quota,
+ * đánh dấu hoàn tiền vào đó chỉ đua vô ích với `datDaCap`.
+ *
+ * Trả `updated_at` MỚI từ chính câu UPDATE — cùng lý do với `huyDonAdmin`.
+ */
+export async function danhDauHoanTien(
+  sql: Sql,
+  orderId: string,
+  note: string,
+): Promise<Date | null> {
+  const rows = await sql<{ id: string; updated_at: Date }[]>`
+    UPDATE customer_order SET status = 'refunded', note = ${note}, updated_at = now()
+    WHERE id = ${orderId}::uuid
+      AND status IN ('fulfilled', 'paid_unfulfilled', 'underpaid') RETURNING id, updated_at`;
+  return rows[0]?.updated_at ?? null;
 }
 
 export interface SuKien {

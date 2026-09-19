@@ -1,5 +1,6 @@
 import { dinhDangVnd } from '@mapslibvn/catalog';
 import { Badge, Button, EmptyState, ErrorState, LoadingSkeleton, RecordView } from '@mapslibvn/ui';
+import { useState } from 'react';
 import { useSearchParams } from 'react-router';
 import { O } from '@/features/overview/tile';
 import type { TrangThaiDon } from './api';
@@ -8,13 +9,28 @@ import { useOrderList, useOrderSummary } from './hooks';
 import { KhongKhop } from './khong-khop';
 import { NHAN_TRANG_THAI, TAT_CA_TRANG_THAI, tuoi } from './trang-thai';
 
+const O_INPUT =
+  'min-h-11 rounded-[var(--radius-btn)] border border-[var(--border)] bg-[var(--surface)] px-3 text-sm font-normal';
+
 export function OrdersPage() {
   const [q, datQ] = useSearchParams();
-  const status = (q.get('status') ?? '') as TrangThaiDon | '';
+  const boLoc = {
+    status: (q.get('status') ?? '') as TrangThaiDon | '',
+    tenant: q.get('tenant') ?? '',
+    from: q.get('from') ?? '',
+    to: q.get('to') ?? '',
+  };
   const id = q.get('id');
-  const list = useOrderList(status);
+  const list = useOrderList(boLoc);
   const tomTat = useOrderSummary();
   const items = list.data?.pages.flatMap((p) => p.items) ?? [];
+  // Tên tenant để gắn lên chip: lấy từ dòng đầu, vì URL chỉ mang id.
+  const tenTenantLoc = items[0]?.tenantName ?? boLoc.tenant;
+  /**
+   * Lệnh Huỷ/Hoàn tiền chạy sau 5 giây đếm ngược, lúc đó ngăn chi tiết đã đóng — lỗi phải hiện ở
+   * đây, cấp trang, chứ không phải trong một panel đã biến mất.
+   */
+  const [loiLenh, datLoiLenh] = useState<string | null>(null);
 
   // Bộ lọc và đơn đang mở nằm trong URL: tải lại trang không mất chỗ đang xem, và gửi link cho
   // người khác thì họ mở đúng đơn đó.
@@ -59,26 +75,71 @@ export function OrdersPage() {
         />
       </div>
 
-      <label className="block text-sm font-semibold">
-        Trạng thái
-        <select
-          value={status}
-          onChange={(event) => doi('status', event.target.value || null)}
-          className="mt-1 block min-h-11 rounded-[var(--radius-btn)] border border-[var(--border)] bg-[var(--surface)] px-3 text-sm font-normal"
+      <div className="flex flex-wrap items-end gap-3">
+        <label className="block text-sm font-semibold">
+          Trạng thái
+          <select
+            value={boLoc.status}
+            onChange={(event) => doi('status', event.target.value || null)}
+            className={`${O_INPUT} mt-1 block`}
+          >
+            <option value="">Tất cả</option>
+            {TAT_CA_TRANG_THAI.map((s) => (
+              <option key={s} value={s}>
+                {NHAN_TRANG_THAI[s].nhan}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className="block text-sm font-semibold">
+          Từ ngày
+          <input
+            type="date"
+            aria-label="Từ ngày"
+            value={boLoc.from}
+            onChange={(event) => doi('from', event.target.value || null)}
+            className={`${O_INPUT} mt-1 block`}
+          />
+        </label>
+        <label className="block text-sm font-semibold">
+          Đến ngày
+          <input
+            type="date"
+            aria-label="Đến ngày"
+            value={boLoc.to}
+            onChange={(event) => doi('to', event.target.value || null)}
+            className={`${O_INPUT} mt-1 block`}
+          />
+        </label>
+        {boLoc.tenant && (
+          <span className="flex min-h-11 items-center gap-2 text-sm">
+            <Badge tone="brand">Tenant: {tenTenantLoc}</Badge>
+            <Button variant="secondary" onClick={() => doi('tenant', null)}>
+              Bỏ lọc tenant
+            </Button>
+          </span>
+        )}
+      </div>
+
+      {loiLenh && (
+        <p
+          role="alert"
+          className="flex items-start justify-between gap-3 rounded-[var(--radius-btn)] border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-700 dark:border-red-800 dark:bg-red-950 dark:text-red-200"
         >
-          <option value="">Tất cả</option>
-          {TAT_CA_TRANG_THAI.map((s) => (
-            <option key={s} value={s}>
-              {NHAN_TRANG_THAI[s].nhan}
-            </option>
-          ))}
-        </select>
-      </label>
+          <span>{loiLenh}</span>
+          <Button variant="secondary" onClick={() => datLoiLenh(null)}>
+            Đóng
+          </Button>
+        </p>
+      )}
 
       {list.isPending && <LoadingSkeleton rows={4} />}
       {list.isError && <ErrorState error={list.error} onRetry={() => void list.refetch()} />}
       {list.data && items.length === 0 && (
-        <EmptyState title="Không có đơn nào" hint="Đổi bộ lọc trạng thái để xem đơn khác." />
+        <EmptyState
+          title="Không có đơn nào"
+          hint="Đổi bộ lọc trạng thái, ngày hoặc bỏ lọc tenant để xem đơn khác."
+        />
       )}
 
       {items.length > 0 && (
@@ -142,7 +203,17 @@ export function OrdersPage() {
       )}
 
       <KhongKhop />
-      <ChiTietDonPanel id={id} onClose={() => doi('id', null)} />
+      {/*
+       * `key` bắt buộc: nếu không, đổi từ đơn A sang đơn B (kể cả qua id=null ở giữa) giữ nguyên
+       * instance React, nên state `lenhMo` bên trong panel (lệnh Huỷ/Hoàn tiền đang mở) sống sót
+       * qua lần mở sau — form của đơn A hiện lên khi đang xem đơn B.
+       */}
+      <ChiTietDonPanel
+        key={id ?? 'dong'}
+        id={id}
+        onClose={() => doi('id', null)}
+        onLenhLoi={datLoiLenh}
+      />
     </div>
   );
 }

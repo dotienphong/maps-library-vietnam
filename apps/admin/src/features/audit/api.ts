@@ -37,8 +37,15 @@ export const LOAI_VIEC = [
   'tenant.key_revoke',
   'tenant.key_restore',
   'tenant.quota_mode',
+  'tenant.delete',
   'billing.command',
   'billing.unlock_acks',
+  'admin.order.fulfil',
+  'admin.order.confirm_manual',
+  'admin.order.cancel',
+  'admin.order.refund',
+  'admin.customer.disable',
+  'admin.customer.enable',
 ] as const;
 
 export function listAudit(filter: AuditFilter, limit = 25): Promise<AuditPage> {

@@ -106,17 +106,30 @@ describe('GRANT của migration 0023 dưới role api', () => {
           AND ((link_expires_at IS NOT NULL AND link_expires_at + interval '1 hour' < now())
             OR (link_expires_at IS NULL AND created_at + interval '24 hours' < now()))
         ORDER BY created_at ASC LIMIT 100`);
-      await sql`SELECT o.id,
+      // from/to bind Date THẬT (không phải null) — repo đã trả giá hai lần vì bind qua Postgres
+      // trên Workers không giống bind ở máy dev (mảng SQL, timestamp mất micro giây); vế con trỏ
+      // cũng có mặt cho khớp đúng câu mã thật, dù giá trị null.
+      const tuNgay = new Date('2020-01-01T00:00:00.000Z');
+      const denNgay = new Date('2100-01-01T00:00:00.000Z');
+      expect(
+        await sql`SELECT o.id,
           to_char(o.created_at AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"') AS cursor_at,
           t.name AS tenant_name
         FROM customer_order o JOIN tenant t ON t.id = o.tenant_id
-        ORDER BY o.created_at DESC, o.id DESC LIMIT 26`;
+        WHERE (${null}::text IS NULL OR o.status = ${null})
+          AND (${tenantId}::uuid IS NULL OR o.tenant_id = ${tenantId}::uuid)
+          AND (${tuNgay}::timestamptz IS NULL OR o.created_at >= ${tuNgay}::timestamptz)
+          AND (${denNgay}::timestamptz IS NULL OR o.created_at < ${denNgay}::timestamptz)
+          AND (${null}::text IS NULL
+               OR (o.created_at, o.id) < (${null}::text::timestamptz, ${null}::uuid))
+        ORDER BY o.created_at DESC, o.id DESC LIMIT 26`,
+      ).toHaveLength(1);
       await sql`SELECT
         (SELECT count(*)::int FROM customer_order WHERE status IN ('paid_unfulfilled', 'underpaid')) AS cho_xu_ly,
         (SELECT coalesce(sum(paid_amount_vnd), 0)::int FROM customer_order
           WHERE status = 'fulfilled' AND paid_at >= now() - interval '30 days') AS doanh_thu,
         (SELECT count(*)::int FROM payment_event WHERE order_id IS NULL) AS khong_khop`;
-      await sql`SELECT a.email, t.billing_email, t.name
+      await sql`SELECT a.email, t.billing_email, t.name, a.id AS account_id
         FROM tenant t
         JOIN tenant_member m ON m.tenant_id = t.id AND m.role = 'owner'
         JOIN customer_account a ON a.id = m.account_id
@@ -162,6 +175,19 @@ describe('GRANT của migration 0023 dưới role api', () => {
       await sql`UPDATE customer_order SET status = 'cancelled', updated_at = now()
         WHERE tenant_id = ${tenantId}::uuid AND id = ${orderId}::uuid AND status = 'pending'
         RETURNING id`;
+      // Hai lệnh admin của pha 4. Đơn đang fulfilled: huỷ không đổi dòng nào (đúng), hoàn tiền
+      // đổi đúng một dòng. Cả hai phải KHÔNG bị từ chối quyền (status, note, updated_at đã GRANT).
+      // RETURNING id, updated_at khớp NGUYÊN VĂN câu thật của huyDonAdmin/danhDauHoanTien: route
+      // dựng phản hồi từ updated_at trả về đây, không đọc lại — thiếu GRANT SELECT trên cột đó chỉ
+      // lộ ở đây, không lộ ở test giả lập (fake-sql không kiểm quyền).
+      expect(
+        await sql`UPDATE customer_order SET status = 'cancelled', note = 'kiem-grant', updated_at = now()
+          WHERE id = ${orderId}::uuid AND status = 'pending' RETURNING id, updated_at`,
+      ).toHaveLength(0);
+      expect(
+        await sql`UPDATE customer_order SET status = 'refunded', note = 'kiem-grant', updated_at = now()
+          WHERE id = ${orderId}::uuid AND status = 'fulfilled' RETURNING id, updated_at`,
+      ).toHaveLength(1);
     });
   });
 

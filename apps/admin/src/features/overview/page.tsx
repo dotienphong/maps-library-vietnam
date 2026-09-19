@@ -1,8 +1,10 @@
+import { dinhDangVnd } from '@mapslibvn/catalog';
 import { Badge, Card, CardTitle } from '@mapslibvn/ui';
 import { Link } from 'react-router';
 import { gioNgay } from '@/features/audit/page';
 import { usePendingCount } from '@/features/edits/hooks';
 import { useHealth, useMetrics } from '@/features/health/hooks';
+import { useOrderSummary } from '@/features/orders/hooks';
 import { can, useMe } from '@/lib/permissions';
 import { useQuotaSummary, useVietGanNhat } from './hooks';
 import { O } from './tile';
@@ -21,6 +23,10 @@ export function OverviewPage() {
   const metrics = useMetrics('24h');
   const quota = useQuotaSummary();
   const viec = useVietGanNhat();
+  // Cùng khoá cache với đầu trang Đơn hàng (spec 13): mở Tổng quan rồi sang Đơn hàng không tốn
+  // thêm truy vấn. Chỉ gọi khi có quyền — đường này đứng sau cổng billing.
+  const xemDon = can(me, 'orders.read');
+  const donHang = useOrderSummary({ enabled: xemDon });
 
   const tong429 = metrics.data?.tenants.reduce((tong, t) => tong + t.quota_429, 0);
   const caoNhat = quota.data?.tenants[0];
@@ -69,6 +75,25 @@ export function OverviewPage() {
                 ? `tuyến thử ${health.data.routing.distance_km} km`
                 : undefined
             }
+          />
+        )}
+        {xemDon && (
+          <O
+            ten="Đơn chờ xử lý"
+            den="/orders?status=paid_unfulfilled"
+            dangTai={donHang.isPending}
+            loi={donHang.isError}
+            so={donHang.data?.choXuLy}
+            phu="tiền vào chưa cấp + thiếu tiền"
+          />
+        )}
+        {xemDon && (
+          <O
+            ten="Doanh thu 30 ngày"
+            den="/orders?status=fulfilled"
+            dangTai={donHang.isPending}
+            loi={donHang.isError}
+            so={donHang.data ? dinhDangVnd(donHang.data.doanhThu30Ngay) : undefined}
           />
         )}
       </div>
