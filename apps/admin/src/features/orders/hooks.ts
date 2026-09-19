@@ -96,18 +96,31 @@ export function useConfirmManual() {
   });
 }
 
-export function useCancelOrder() {
+export interface TuyChonLenh {
+  /**
+   * Lệnh chạy sau 5 giây (`useDelayedAction`), lúc đó panel gọi nó thường đã đóng. `onError` ở
+   * ĐÂY (tuỳ chọn của `useMutation`, không phải tham số thứ hai của `mutate`/`mutateAsync`) là bắt
+   * buộc: react-query chỉ gọi callback lỗi truyền qua `mutate(vars, { onError })` khi observer còn
+   * `hasListeners()` — tức component gọi nó còn mounted. Callback ở cấp hook luôn chạy, kể cả khi
+   * component đã unmount.
+   */
+  onError?: (error: unknown) => void;
+}
+
+export function useCancelOrder(tuyChon: TuyChonLenh = {}) {
   const invalidate = useInvalidateOrders();
   return useMutation({
     mutationFn: ({ id, body }: { id: string; body: LenhCoLyDo }) => cancelOrder(id, body),
+    ...(tuyChon.onError ? { onError: tuyChon.onError } : {}),
     onSettled: invalidate,
   });
 }
 
-export function useRefundOrder() {
+export function useRefundOrder(tuyChon: TuyChonLenh = {}) {
   const invalidate = useInvalidateOrders();
   return useMutation({
     mutationFn: ({ id, body }: { id: string; body: LenhCoLyDo }) => refundOrder(id, body),
+    ...(tuyChon.onError ? { onError: tuyChon.onError } : {}),
     onSettled: invalidate,
   });
 }

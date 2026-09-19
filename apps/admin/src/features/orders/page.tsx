@@ -1,5 +1,6 @@
 import { dinhDangVnd } from '@mapslibvn/catalog';
 import { Badge, Button, EmptyState, ErrorState, LoadingSkeleton, RecordView } from '@mapslibvn/ui';
+import { useState } from 'react';
 import { useSearchParams } from 'react-router';
 import { O } from '@/features/overview/tile';
 import type { TrangThaiDon } from './api';
@@ -25,6 +26,11 @@ export function OrdersPage() {
   const items = list.data?.pages.flatMap((p) => p.items) ?? [];
   // Tên tenant để gắn lên chip: lấy từ dòng đầu, vì URL chỉ mang id.
   const tenTenantLoc = items[0]?.tenantName ?? boLoc.tenant;
+  /**
+   * Lệnh Huỷ/Hoàn tiền chạy sau 5 giây đếm ngược, lúc đó ngăn chi tiết đã đóng — lỗi phải hiện ở
+   * đây, cấp trang, chứ không phải trong một panel đã biến mất.
+   */
+  const [loiLenh, datLoiLenh] = useState<string | null>(null);
 
   // Bộ lọc và đơn đang mở nằm trong URL: tải lại trang không mất chỗ đang xem, và gửi link cho
   // người khác thì họ mở đúng đơn đó.
@@ -115,6 +121,18 @@ export function OrdersPage() {
         )}
       </div>
 
+      {loiLenh && (
+        <p
+          role="alert"
+          className="flex items-start justify-between gap-3 rounded-[var(--radius-btn)] border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-700 dark:border-red-800 dark:bg-red-950 dark:text-red-200"
+        >
+          <span>{loiLenh}</span>
+          <Button variant="secondary" onClick={() => datLoiLenh(null)}>
+            Đóng
+          </Button>
+        </p>
+      )}
+
       {list.isPending && <LoadingSkeleton rows={4} />}
       {list.isError && <ErrorState error={list.error} onRetry={() => void list.refetch()} />}
       {list.data && items.length === 0 && (
@@ -185,7 +203,17 @@ export function OrdersPage() {
       )}
 
       <KhongKhop />
-      <ChiTietDonPanel id={id} onClose={() => doi('id', null)} />
+      {/*
+       * `key` bắt buộc: nếu không, đổi từ đơn A sang đơn B (kể cả qua id=null ở giữa) giữ nguyên
+       * instance React, nên state `lenhMo` bên trong panel (lệnh Huỷ/Hoàn tiền đang mở) sống sót
+       * qua lần mở sau — form của đơn A hiện lên khi đang xem đơn B.
+       */}
+      <ChiTietDonPanel
+        key={id ?? 'dong'}
+        id={id}
+        onClose={() => doi('id', null)}
+        onLenhLoi={datLoiLenh}
+      />
     </div>
   );
 }

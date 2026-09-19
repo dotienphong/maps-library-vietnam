@@ -17,6 +17,11 @@ import { gioNgay, NHAN_TRANG_THAI } from './trang-thai';
 interface Props {
   id: string | null;
   onClose: () => void;
+  /**
+   * Lệnh Huỷ/Hoàn tiền chạy sau 5 giây, lúc đó panel này đã đóng (`onClose` gọi ngay). Lỗi phải
+   * báo lên cấp trang qua đây — hiện trong panel là hiện cho một màn hình không ai còn nhìn.
+   */
+  onLenhLoi?: (thongDiep: string) => void;
 }
 
 const O =
@@ -25,7 +30,7 @@ const O =
 /** Đơn ở trạng thái này đã có tiền vào sổ (hoặc ít nhất một phần) — hoàn tiền vẫn có nghĩa. */
 const CO_THE_HOAN_TIEN = ['fulfilled', 'paid_unfulfilled', 'underpaid'];
 
-export function ChiTietDonPanel({ id, onClose }: Props) {
+export function ChiTietDonPanel({ id, onClose, onLenhLoi }: Props) {
   const chiTiet = useOrderDetail(id);
   const capLai = useFulfil();
   const xacNhan = useConfirmManual();
@@ -33,14 +38,25 @@ export function ChiTietDonPanel({ id, onClose }: Props) {
   type Lenh = 'xac_nhan' | 'huy' | 'hoan_tien';
   // Hai form cùng aria-label="Lý do" mở cùng lúc làm e2e mơ hồ: một state, mở lệnh này đóng lệnh kia.
   const [lenhMo, datLenhMo] = useState<Lenh | null>(null);
-  const huy = useCancelOrder();
-  const hoanTien = useRefundOrder();
+  const d = chiTiet.data?.order;
+  /**
+   * `onError` khai ở ĐÂY (tuỳ chọn hook của `useMutation`) chứ không phải tham số thứ hai của
+   * `mutateAsync` bên dưới — lệnh chạy 5 giây sau khi panel đã đóng (`onClose` gọi ngay), và
+   * react-query chỉ gọi callback lỗi kiểu thứ hai khi observer còn `hasListeners()`. Panel đã
+   * unmount lúc đó nên callback kiểu thứ hai không bao giờ chạy; callback ở cấp hook thì luôn chạy.
+   */
+  const huy = useCancelOrder({
+    onError: (error) => d && onLenhLoi?.(`Huỷ đơn ${d.orderCode}: ${loiVi(error).cau}`),
+  });
+  const hoanTien = useRefundOrder({
+    onError: (error) =>
+      d && onLenhLoi?.(`Đánh dấu hoàn tiền đơn ${d.orderCode}: ${loiVi(error).cau}`),
+  });
   const [lyDo, datLyDo] = useState('');
   const [maNganHang, datMaNganHang] = useState('');
   const [soTien, datSoTien] = useState('');
   if (id === null) return null;
 
-  const d = chiTiet.data?.order;
   const conThieu = d ? d.amountVnd - (d.paidAmountVnd ?? 0) : 0;
 
   /**
@@ -74,7 +90,9 @@ export function ChiTietDonPanel({ id, onClose }: Props) {
     schedule({
       label: `Huỷ đơn ${d.orderCode}`,
       run: async () => {
-        await huy.mutateAsync({ id, body: { operationId, reason } });
+        // Lỗi đã được báo qua onError ở cấp hook (xem khai báo useCancelOrder phía trên); bắt ở
+        // đây chỉ để tránh unhandled rejection, KHÔNG phải nơi hiện lỗi cho người dùng.
+        await huy.mutateAsync({ id, body: { operationId, reason } }).catch(() => {});
       },
     });
     onClose();
@@ -86,7 +104,7 @@ export function ChiTietDonPanel({ id, onClose }: Props) {
     schedule({
       label: `Đánh dấu hoàn tiền đơn ${d.orderCode}`,
       run: async () => {
-        await hoanTien.mutateAsync({ id, body: { operationId, reason } });
+        await hoanTien.mutateAsync({ id, body: { operationId, reason } }).catch(() => {});
       },
     });
     onClose();
@@ -286,7 +304,7 @@ export function ChiTietDonPanel({ id, onClose }: Props) {
                   Huỷ đơn
                 </Button>
               )}
-              {lenhMo === 'huy' && (
+              {d.status === 'pending' && lenhMo === 'huy' && (
                 <FormLyDo
                   tieuDe={`Huỷ đơn ${d.orderCode}`}
                   moTa="Sẽ huỷ link thanh toán ở PayOS trước, rồi đánh dấu đơn đã huỷ. Nếu khách vẫn chuyển tiền sau đó, tiền vào vẫn được ghi nhận và cấp gói. Lệnh gửi sau 5 giây, huỷ được trong lúc đếm ngược."
@@ -301,7 +319,7 @@ export function ChiTietDonPanel({ id, onClose }: Props) {
                   Đánh dấu hoàn tiền
                 </Button>
               )}
-              {lenhMo === 'hoan_tien' && (
+              {CO_THE_HOAN_TIEN.includes(d.status) && lenhMo === 'hoan_tien' && (
                 <div className="space-y-2">
                   <FormLyDo
                     tieuDe="Đánh dấu hoàn tiền"
@@ -322,12 +340,6 @@ export function ChiTietDonPanel({ id, onClose }: Props) {
                     </p>
                   )}
                 </div>
-              )}
-
-              {(huy.isError || hoanTien.isError) && (
-                <p className="text-sm text-red-700 dark:text-red-200">
-                  {loiVi(huy.error ?? hoanTien.error).cau}
-                </p>
               )}
             </div>
           )}
