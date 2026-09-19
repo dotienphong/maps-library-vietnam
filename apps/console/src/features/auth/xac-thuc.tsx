@@ -4,8 +4,9 @@ import { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router';
 import { LoiHop } from '@/lib/loi-hop';
 import { xacThucMa, xinMa } from './api';
-import { khoaCache } from './hooks';
+import { khoaCache, useCauHinh } from './hooks';
 import { OMa } from './o-ma';
+import { useTurnstile } from './turnstile';
 
 /** Máy chủ cho một mã mỗi phút; nút gửi lại khoá đúng bằng con số đó thay vì để khách nhận 429. */
 const CHO_GUI_LAI_GIAY = 60;
@@ -17,6 +18,11 @@ export function XacThuc() {
   const dieuHuong = useNavigate();
   const queryClient = useQueryClient();
   const [conLai, datConLai] = useState(CHO_GUI_LAI_GIAY);
+  const { data: cauHinh } = useCauHinh();
+  // Gửi lại mã cũng đi qua `otp/request`, nên nó cũng cần token chống bot. Bản đầu gửi chuỗi rỗng
+  // và vì môi trường phát triển bỏ qua bước kiểm nên không ai thấy; trên production nút này hỏng
+  // một trăm phần trăm.
+  const turnstile = useTurnstile(cauHinh?.turnstileSiteKey);
 
   useEffect(() => {
     if (conLai <= 0) return;
@@ -35,7 +41,9 @@ export function XacThuc() {
   });
 
   const guiLai = useMutation({
-    mutationFn: () => xinMa(email, ''),
+    mutationFn: () => xinMa(email, turnstile.token),
+    // Token của Turnstile dùng được đúng một lần, nên phải xin cái mới cho lần bấm sau.
+    onSettled: () => turnstile.datLai(),
     onSuccess: () => datConLai(CHO_GUI_LAI_GIAY),
   });
 
@@ -72,13 +80,19 @@ export function XacThuc() {
         </div>
       )}
 
+      <div ref={turnstile.oWidget} className="mt-8 flex justify-center" />
+
       <div className="mt-8 text-center">
         <Button
           variant="secondary"
-          disabled={conLai > 0 || guiLai.isPending}
+          disabled={conLai > 0 || guiLai.isPending || turnstile.dangCho}
           onClick={() => guiLai.mutate()}
         >
-          {conLai > 0 ? `Gửi lại mã sau ${conLai} giây` : 'Gửi lại mã'}
+          {conLai > 0
+            ? `Gửi lại mã sau ${conLai} giây`
+            : turnstile.dangCho
+              ? 'Đang kiểm tra trình duyệt…'
+              : 'Gửi lại mã'}
         </Button>
         <p className="mt-4">
           <Button variant="ghost" onClick={() => void dieuHuong('/dang-nhap')}>

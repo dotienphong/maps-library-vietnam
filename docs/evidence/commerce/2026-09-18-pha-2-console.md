@@ -110,8 +110,11 @@ khi Worker deploy trước migration và API chết nhiều giờ. Nó sẽ tự
    ```
    `SESSION_PEPPER` là chuỗi ngẫu nhiên 32 byte, sinh bằng
    `openssl rand -base64 32`. Đổi nó sau này sẽ làm mọi phiên đang mở bị đăng xuất.
-5. ~~**Điền `TURNSTILE_SITE_KEY`.**~~ **XONG 19/09/2026** (`2d25653`), cả hai chỗ. Deploy xanh và
-   `/v1/console/config` trả đúng site key.
+5. ~~**Điền `TURNSTILE_SITE_KEY`.**~~ **XONG 19/09/2026**, nhưng **CHỈ trong `[env.production]`**.
+   Bản hướng dẫn cũ ở đây viết "điền vào cả `[vars]`" và điều đó SAI: máy chủ bỏ qua bước kiểm
+   chống bot ngoài production, nên site key ở `[vars]` làm giao diện dựng widget thật trong
+   harness, widget không giải được trong trình duyệt tự động, nút "Gửi mã" khoá vĩnh viễn và bảy
+   trên tám bài e2e của cổng khách hàng treo ngay bước đầu.
 6. ~~**Chạy migration `0020` trên máy chủ.**~~ **XONG 19/09/2026**, trên máy chủ Ubuntu.
    `/healthz/db` trả `0020_customer.sql`, cổng `check:migration` nhả, Deploy API xanh.
 7. **Đổi `SELF_SERVE` thành `"1"`** trong `[env.production]` rồi deploy lần nữa.
@@ -120,6 +123,28 @@ khi Worker deploy trước migration và API chết nhiều giờ. Nó sẽ tự
 
 Bước 1 đến 5 làm được trước lúc nào cũng được; thiếu chúng thì cổng vẫn đóng và không ai bị ảnh
 hưởng. Bước 6 là bước duy nhất chạm dữ liệu production.
+
+## 5b. Hai lỗi chỉ lộ trên production, tìm ra lúc nghiệm thu 19/09
+
+Cả hai nằm ở giao diện, cùng một gốc: **môi trường phát triển và harness không có site key nên
+Turnstile bị bỏ qua hoàn toàn, và không bài kiểm nào chạm tới nhánh có widget.**
+
+1. **Nút "Gửi mã đăng nhập" bật khi token còn rỗng.** Điều kiện khoá cũ chỉ là
+   `gui.isPending || !email.trim()`. Ai gõ email rồi bấm trong mấy giây đầu — hoặc mạng chậm làm
+   script Turnstile tải lâu — sẽ gửi token rỗng, nhận 403 `turnstile_failed`, và đọc được câu
+   "Không qua được bước xác minh chống robot". Người thật bị gọi là robot ngay ở màn đầu tiên.
+2. **Nút "Gửi lại mã" gửi token rỗng một cách cố định.** `xinMa(email, '')` viết cứng chuỗi rỗng,
+   nên trên production chức năng này hỏng một trăm phần trăm, không phải thỉnh thoảng.
+
+Bản vá gom việc dựng widget vào một hook dùng chung `useTurnstile`, khoá nút theo cờ `dangCho`,
+xoá token khi Turnstile báo hết hạn hoặc lỗi, và xin token mới sau mỗi lần gửi vì token của
+Turnstile dùng được đúng một lần. Chín bài kiểm mới khoá lại từng hành vi đó, trong đó có bài
+dựng đúng cảnh "script không tải được" để chắc rằng nút vẫn khoá thay vì mở ra cho người dùng ăn
+403.
+
+**Bài học lặp lại:** một nhánh mã mà mọi môi trường kiểm thử đều tắt thì không có bài kiểm nào
+canh, và nó sẽ hỏng đúng lúc gặp người dùng thật. Cùng lớp với "đo ở dev rồi kết luận" đã ghi ở
+các mốc trước.
 
 ## 6. Còn nợ, ghi rõ chứ không lờ đi
 

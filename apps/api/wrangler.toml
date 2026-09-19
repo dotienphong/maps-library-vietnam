@@ -18,8 +18,11 @@ SELF_SERVE = "0"
 EMAIL_FROM = "no-reply@ai-solutions.io.vn"
 SUPPORT_EMAIL = "dotienphong1993@gmail.com"
 # Site key Turnstile là giá trị CÔNG KHAI nằm trong HTML, nên để vars chứ không phải secret.
-# PHONG điền sau khi tạo widget; để trống thì bước chống bot bị bỏ qua ở dev và TỪ CHỐI ở production.
-TURNSTILE_SITE_KEY = "0x4AAAAAAE8hg4LHjXPOrZF8"
+# CHỈ điền trong [env.production] và PHẢI để trống ở đây. Máy chủ bỏ qua bước kiểm chống bot ngoài
+# production, nên nếu dev và harness cũng có site key thì giao diện dựng widget thật, widget không
+# giải được trong trình duyệt tự động, nút "Gửi mã" khoá vĩnh viễn và cả bộ e2e của cổng khách
+# hàng treo ở bước đầu tiên. Đã vấp đúng một lần, 19/09/2026.
+TURNSTILE_SITE_KEY = ""
 # Trần request đồng thời mỗi tenant. Bỏ trống = mốc đo lại 15/09/2026 (50 Places / 32 tuyến,
 # docs/evidence/capacity/2026-09-15-inflight-ramp.md). Hạ ngay bằng `wrangler deploy --var` nếu origin
 # nghẽn; đây là trần THEO TỪNG tenant còn origin dùng chung, phải đo lại khi có tenant thứ hai.

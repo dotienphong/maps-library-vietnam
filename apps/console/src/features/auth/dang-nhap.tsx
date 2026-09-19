@@ -1,27 +1,21 @@
 import { Button } from '@mapslibvn/ui';
 import { useMutation } from '@tanstack/react-query';
-import { useEffect, useRef, useState } from 'react';
+import { useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router';
 import { LoiHop } from '@/lib/loi-hop';
 import { xinMa } from './api';
 import { useCauHinh } from './hooks';
-
-declare global {
-  interface Window {
-    turnstile?: { render(el: HTMLElement, opts: Record<string, unknown>): string };
-  }
-}
+import { useTurnstile } from './turnstile';
 
 export function DangNhap() {
   const { data: cauHinh, isPending } = useCauHinh();
   const [tham] = useSearchParams();
   const dieuHuong = useNavigate();
   const [email, datEmail] = useState('');
-  const [tokenTurnstile, datToken] = useState('');
-  const oTurnstile = useRef<HTMLDivElement>(null);
+  const turnstile = useTurnstile(cauHinh?.turnstileSiteKey);
 
   const gui = useMutation({
-    mutationFn: () => xinMa(email.trim(), tokenTurnstile),
+    mutationFn: () => xinMa(email.trim(), turnstile.token),
     onSuccess: () => {
       const next = tham.get('next');
       const q = new URLSearchParams({ email: email.trim().toLowerCase() });
@@ -29,23 +23,6 @@ export function DangNhap() {
       void dieuHuong(`/xac-thuc?${q.toString()}`);
     },
   });
-
-  // Turnstile chỉ dựng khi máy chủ có site key. Nạp script một lần, và nếu không có key thì bỏ
-  // qua hẳn — ở môi trường phát triển máy chủ cũng bỏ qua bước kiểm.
-  useEffect(() => {
-    const key = cauHinh?.turnstileSiteKey;
-    if (!key || !oTurnstile.current) return;
-    const script = document.createElement('script');
-    script.src = 'https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit';
-    script.async = true;
-    script.onload = () => {
-      if (oTurnstile.current) {
-        window.turnstile?.render(oTurnstile.current, { sitekey: key, callback: datToken });
-      }
-    };
-    document.head.append(script);
-    return () => script.remove();
-  }, [cauHinh?.turnstileSiteKey]);
 
   if (isPending) return <p className="p-8 text-center text-[var(--text-muted)]">Đang tải…</p>;
 
@@ -78,12 +55,16 @@ export function DangNhap() {
           />
         </div>
 
-        <div ref={oTurnstile} />
+        <div ref={turnstile.oWidget} />
 
         {gui.isError && <LoiHop error={gui.error} />}
 
-        <Button type="submit" block disabled={gui.isPending || !email.trim()}>
-          {gui.isPending ? 'Đang gửi mã…' : 'Gửi mã đăng nhập'}
+        <Button type="submit" block disabled={gui.isPending || !email.trim() || turnstile.dangCho}>
+          {gui.isPending
+            ? 'Đang gửi mã…'
+            : turnstile.dangCho
+              ? 'Đang kiểm tra trình duyệt…'
+              : 'Gửi mã đăng nhập'}
         </Button>
       </form>
 
