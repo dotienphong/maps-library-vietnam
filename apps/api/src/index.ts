@@ -8,6 +8,7 @@ import { dbHealth } from './db-health';
 import type { AppEnv, Env } from './env';
 import { ApiError, errorResponse } from './errors';
 import { admin, requireSameSiteGhi } from './routes/admin';
+import { adminOrders } from './routes/admin-orders';
 import { adminQuotaSummary } from './routes/admin-quota-summary';
 import { autocomplete } from './routes/autocomplete';
 import { billingAdmin } from './routes/billing-admin';
@@ -96,6 +97,13 @@ app.route('/', billingAdmin());
 app.use('/v1/admin/quota-summary', requireSameSiteGhi());
 app.use('/v1/admin/quota-summary', requireBillingAccess());
 app.route('/', adminQuotaSummary);
+// Đơn hàng và giao dịch là cùng lớp dữ liệu tiền như billing, nên chịu đúng hai cổng đó — kể cả
+// đường CHỈ ĐỌC: danh sách đơn cho biết ai trả bao nhiêu và khi nào.
+for (const duong of ['/v1/admin/orders', '/v1/admin/orders/*', '/v1/admin/payment-events/*'] as const) {
+  app.use(duong, requireSameSiteGhi());
+  app.use(duong, requireBillingAccess());
+}
+app.route('/', adminOrders);
 app.get('/healthz/db', async (c) => c.json(await dbHealth(c.env, c.executionCtx)));
 app.get('/v1/attribution', (c) =>
   c.json({ text: attributionText(), html: attributionHtml(), links: ATTRIBUTION_LINKS }, 200, {
