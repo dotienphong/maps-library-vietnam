@@ -41,25 +41,43 @@ const TRANG_THAI = new Set<string>([
 const OPERATION_ID = /^[A-Za-z0-9_-]{8,64}$/;
 const MAX_BODY = 16 * 1024;
 const NGAY = /^\d{4}-\d{2}-\d{2}$/;
+/** Mốc ISO đầy đủ BẮT BUỘC có offset (`Z` hoặc `±HH:MM`) — mượn khuôn `CURSOR_TIME`, nới phần
+ * offset. Thiếu offset thì `Date.parse` đọc theo giờ MÁY CHỦ chạy Worker, lệch giữa dev (+07) và
+ * production (UTC) — bài học đã trả giá của dự án. */
+const MOC_ISO = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d{1,6})?(Z|[+-]\d{2}:\d{2})$/;
 const MOT_NGAY_MS = 86_400_000;
+const BAY_GIO_MS = 7 * 3_600_000;
 /** Trạng thái đánh dấu hoàn tiền được — giống hệt điều kiện trong `danhDauHoanTien`, xem lý do ở đó. */
 const CO_THE_HOAN_TIEN = new Set<TrangThaiDon>(['fulfilled', 'paid_unfulfilled', 'underpaid']);
 
 type ChiTietAudit = Record<string, string | number | boolean | null>;
 
 /**
- * `from`/`to` nhận "YYYY-MM-DD" hoặc ISO đầy đủ. Ngày-chỉ-có-ngày hiểu theo giờ Việt Nam (người
- * vận hành ngồi ở +07:00), và `to` dạng ngày là BAO GỒM cả ngày đó: ta trả ranh giới 00:00 ngày
- * kế tiếp để SQL dùng `<`. Mốc ISO đầy đủ giữ nguyên.
+ * `from`/`to` nhận "YYYY-MM-DD" hoặc ISO đầy đủ CÓ offset. Ngày-chỉ-có-ngày hiểu theo giờ Việt Nam
+ * (người vận hành ngồi ở +07:00), và `to` dạng ngày là BAO GỒM cả ngày đó: ta trả ranh giới 00:00
+ * ngày kế tiếp để SQL dùng `<`. Mốc ISO đầy đủ giữ nguyên, nhưng phải mang offset — xem `MOC_ISO`.
  */
 function docMoc(raw: string | null, laMocCuoi: boolean): Date | null {
   if (raw === null || raw === '') return null;
-  const chiNgay = NGAY.test(raw);
-  const ms = Date.parse(chiNgay ? `${raw}T00:00:00+07:00` : raw);
-  if (!Number.isFinite(ms)) {
-    throw new ApiError(400, 'invalid_request', 'from/to phải là ngày YYYY-MM-DD hoặc mốc ISO');
+  if (NGAY.test(raw)) {
+    const ms = Date.parse(`${raw}T00:00:00+07:00`);
+    // Ngày không có thật (như 2026-02-31) bị Date.parse CUỘN sang tháng sau thay vì báo lỗi. Kiểm
+    // khứ hồi: in lại ngày đã parse theo giờ VN rồi so với chuỗi gốc.
+    const lai = new Date(ms + BAY_GIO_MS);
+    const inLai = `${lai.getUTCFullYear()}-${String(lai.getUTCMonth() + 1).padStart(2, '0')}-${String(lai.getUTCDate()).padStart(2, '0')}`;
+    if (!Number.isFinite(ms) || inLai !== raw) {
+      throw new ApiError(400, 'invalid_request', 'from/to không phải một ngày có thật');
+    }
+    return new Date(laMocCuoi ? ms + MOT_NGAY_MS : ms);
   }
-  return new Date(chiNgay && laMocCuoi ? ms + MOT_NGAY_MS : ms);
+  if (!MOC_ISO.test(raw)) {
+    throw new ApiError(
+      400,
+      'invalid_request',
+      'from/to phải là ngày YYYY-MM-DD hoặc mốc ISO có offset (Z hoặc ±HH:MM)',
+    );
+  }
+  return new Date(raw);
 }
 
 function docLyDo(body: Record<string, unknown>): string {
@@ -193,6 +211,9 @@ export function adminOrdersWith(deps: AdminOrdersDeps = {}) {
     const tenantId = tenantRaw ? tenantRaw : null;
     const from = docMoc(q.get('from'), false);
     const to = docMoc(q.get('to'), true);
+    if (from !== null && to !== null && from.getTime() > to.getTime()) {
+      throw new ApiError(400, 'invalid_request', 'from phải nhỏ hơn hoặc bằng to');
+    }
     const limit = parseLimit(q);
     let cursor: { createdAt: string; id: string } | null = null;
     const raw = q.get('cursor');
@@ -294,6 +315,9 @@ export function adminOrdersWith(deps: AdminOrdersDeps = {}) {
     const reason = typeof body.reason === 'string' ? body.reason.trim().slice(0, 500) : '';
     const bankReference =
       typeof body.bankReference === 'string' ? body.bankReference.trim().slice(0, 64) : '';
+    // Mã lỗi `invalid_confirm` (không phải `invalid_request`/`invalid_reason` như cancel/refund
+    // pha 4) là CỐ Ý: đây là hợp đồng lỗi cũ của pha 3 mà giao diện Admin đã bắt theo đúng mã này.
+    // Nới trần 500 ký tự hay đổi thông điệp trong `docLyDo` KHÔNG kéo theo đổi route này.
     if (!operationId || !reason || !bankReference) {
       throw new ApiError(
         400,
@@ -395,8 +419,8 @@ export function adminOrdersWith(deps: AdminOrdersDeps = {}) {
       }
     }
 
-    const daHuy = await voiSqlCua(c, (sql) => huyDonAdmin(sql, id, reason));
-    if (!daHuy) throw new ApiError(409, 'order_not_cancellable', 'Đơn vừa đổi trạng thái');
+    const capNhatLuc = await voiSqlCua(c, (sql) => huyDonAdmin(sql, id, reason));
+    if (!capNhatLuc) throw new ApiError(409, 'order_not_cancellable', 'Đơn vừa đổi trạng thái');
     ghiAudit(c, 'admin.order.cancel', id, {
       order_code: don.order_code,
       tenant_id: don.tenant_id,
@@ -405,7 +429,12 @@ export function adminOrdersWith(deps: AdminOrdersDeps = {}) {
       payos_link: don.payment_link_id !== null,
     });
     return c.json(
-      { order: donJsonAdmin({ ...don, status: 'cancelled', note: reason }), moi: true },
+      {
+        // updated_at lấy từ chính câu UPDATE (capNhatLuc), KHÔNG phải `don.updated_at` đọc trước
+        // khi ghi — nếu không giao diện nhận một mốc CŨ tới lần tải lại kế tiếp.
+        order: donJsonAdmin({ ...don, status: 'cancelled', note: reason, updated_at: capNhatLuc }),
+        moi: true,
+      },
       200,
       NO_STORE,
     );
@@ -433,9 +462,13 @@ export function adminOrdersWith(deps: AdminOrdersDeps = {}) {
           'Chỉ đánh dấu hoàn tiền cho đơn đã có tiền vào (đã cấp gói, tiền vào chưa cấp, hoặc thiếu tiền)',
         );
       }
-      const doi = await danhDauHoanTien(sql, id, reason);
-      if (!doi) throw new ApiError(409, 'order_not_refundable', 'Đơn vừa đổi trạng thái');
-      return { don: { ...don, status: 'refunded' as const, note: reason }, moi: true };
+      const capNhatLuc = await danhDauHoanTien(sql, id, reason);
+      if (!capNhatLuc) throw new ApiError(409, 'order_not_refundable', 'Đơn vừa đổi trạng thái');
+      // Cùng lý do với cancel: updated_at lấy từ chính câu UPDATE, không phải bản đọc trước ghi.
+      return {
+        don: { ...don, status: 'refunded' as const, note: reason, updated_at: capNhatLuc },
+        moi: true,
+      };
     });
 
     if (kq.moi) {

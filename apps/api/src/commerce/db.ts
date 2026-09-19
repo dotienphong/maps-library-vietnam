@@ -420,12 +420,16 @@ export async function danhSachDonAdmin(sql: Sql, p: BoLocDonAdmin): Promise<DonH
  * Admin huỷ đơn — chỉ SAU khi PayOS đã xác nhận huỷ link (route lo việc đó). `note` giữ lý do để
  * người đọc chi tiết đơn sau này không phải mở nhật ký. Không có tenant_id trong điều kiện vì
  * admin đọc mọi tenant; điều kiện `status = 'pending'` mới là thứ ngăn huỷ nhầm đơn đã có tiền.
+ *
+ * Trả `updated_at` MỚI từ chính câu UPDATE (không phải `null` cho thất bại): route dựng phản hồi
+ * ngay từ giá trị này, tránh bẫy "đọc bản ghi trước khi ghi rồi lấy `updated_at` cũ" — giao diện
+ * nhận một mốc SAI cho tới lần tải lại kế tiếp.
  */
-export async function huyDonAdmin(sql: Sql, orderId: string, note: string): Promise<boolean> {
-  const rows = await sql<{ id: string }[]>`
+export async function huyDonAdmin(sql: Sql, orderId: string, note: string): Promise<Date | null> {
+  const rows = await sql<{ id: string; updated_at: Date }[]>`
     UPDATE customer_order SET status = 'cancelled', note = ${note}, updated_at = now()
-    WHERE id = ${orderId}::uuid AND status = 'pending' RETURNING id`;
-  return rows.length > 0;
+    WHERE id = ${orderId}::uuid AND status = 'pending' RETURNING id, updated_at`;
+  return rows[0]?.updated_at ?? null;
 }
 
 /**
@@ -435,13 +439,19 @@ export async function huyDonAdmin(sql: Sql, orderId: string, note: string): Prom
  * nhận `fulfilled` thì đơn đó kẹt vĩnh viễn ở ô "Đơn chờ xử lý" còn cron vẫn cố cấp gói cho một đơn
  * đã hoàn tiền. `paid` CỐ Ý đứng ngoài: đó là trạng thái đi ngang vài giây giữa webhook và sổ quota,
  * đánh dấu hoàn tiền vào đó chỉ đua vô ích với `datDaCap`.
+ *
+ * Trả `updated_at` MỚI từ chính câu UPDATE — cùng lý do với `huyDonAdmin`.
  */
-export async function danhDauHoanTien(sql: Sql, orderId: string, note: string): Promise<boolean> {
-  const rows = await sql<{ id: string }[]>`
+export async function danhDauHoanTien(
+  sql: Sql,
+  orderId: string,
+  note: string,
+): Promise<Date | null> {
+  const rows = await sql<{ id: string; updated_at: Date }[]>`
     UPDATE customer_order SET status = 'refunded', note = ${note}, updated_at = now()
     WHERE id = ${orderId}::uuid
-      AND status IN ('fulfilled', 'paid_unfulfilled', 'underpaid') RETURNING id`;
-  return rows.length > 0;
+      AND status IN ('fulfilled', 'paid_unfulfilled', 'underpaid') RETURNING id, updated_at`;
+  return rows[0]?.updated_at ?? null;
 }
 
 export interface SuKien {

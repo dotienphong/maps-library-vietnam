@@ -244,4 +244,29 @@ describe('huyLink', () => {
     );
     await expect(cong(khongCo).huyLink(1, 'x')).resolves.toBeUndefined();
   });
+
+  it('link ĐÃ huỷ trước đó cũng coi là xong — gọi lại sau khi DB ghi lỗi không được kẹt 503', async () => {
+    const daHuy = vi.fn(
+      async () =>
+        new Response(
+          JSON.stringify({ code: '20', desc: 'Đơn thanh toán đã hủy trước đó', data: null }),
+          {
+            headers: { 'content-type': 'application/json' },
+          },
+        ),
+    );
+    await expect(cong(daHuy).huyLink(100001, 'x')).resolves.toBeUndefined();
+
+    // Cả hai cách viết có/không dấu huyền của "huỷ"/"hủy" đều phải khớp — PayOS không cam kết chữ.
+    const daHuyKhongDau = vi.fn(
+      async () =>
+        new Response(
+          JSON.stringify({ code: '20', desc: 'Đơn thanh toán đã huỷ trước đó', data: null }),
+          {
+            headers: { 'content-type': 'application/json' },
+          },
+        ),
+    );
+    await expect(cong(daHuyKhongDau).huyLink(100001, 'x')).resolves.toBeUndefined();
+  });
 });

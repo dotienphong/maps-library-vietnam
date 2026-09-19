@@ -12,6 +12,8 @@ import { fakeSql, type RecordedQuery } from './helpers/fake-sql';
 const ORDER = '00000000-0000-4000-8000-0000000000d1';
 const TENANT = '00000000-0000-4000-8000-0000000000c1';
 const NOW = new Date('2026-09-19T03:00:00Z');
+/** Mốc DB ghi khi UPDATE — khác NOW để bài kiểm phân biệt được với `updated_at` cũ đọc trước ghi. */
+const NOW_MOI = new Date('2026-09-19T03:05:00Z');
 const moi = { ...env, ENVIRONMENT: 'test', SUPPORT_EMAIL: 'ho-tro@vidu.vn' } as unknown as Env;
 
 type DonAdmin = DonHang & { tenant_name?: string; cursor_at?: string };
@@ -110,13 +112,23 @@ function kho(tuyChon: { danhSach?: DonAdmin[]; don?: DonAdmin | null; trungRef?:
     }
     if (q.text.includes("SET status = 'cancelled'") && hienTai) {
       if (hienTai.status !== 'pending') return [];
-      hienTai = { ...hienTai, status: 'cancelled', note: q.params[0] as string };
-      return [{ id: ORDER }];
+      hienTai = {
+        ...hienTai,
+        status: 'cancelled',
+        note: q.params[0] as string,
+        updated_at: NOW_MOI,
+      };
+      return [{ id: ORDER, updated_at: NOW_MOI }];
     }
     if (q.text.includes("SET status = 'refunded'") && hienTai) {
       if (!['fulfilled', 'paid_unfulfilled', 'underpaid'].includes(hienTai.status)) return [];
-      hienTai = { ...hienTai, status: 'refunded', note: q.params[0] as string };
-      return [{ id: ORDER }];
+      hienTai = {
+        ...hienTai,
+        status: 'refunded',
+        note: q.params[0] as string,
+        updated_at: NOW_MOI,
+      };
+      return [{ id: ORDER, updated_at: NOW_MOI }];
     }
     if (q.text.includes('tenant_member')) {
       return [{ email: 'khach@vidu.vn', billing_email: null, name: 'Công ty Thử' }];
@@ -293,6 +305,25 @@ describe('GET /v1/admin/orders', () => {
     expect((await get(app(kho()), '/v1/admin/orders?tenant=rac')).status).toBe(400);
     expect((await get(app(kho()), '/v1/admin/orders?from=hom-qua')).status).toBe(400);
   });
+
+  it('ngày không tồn tại → 400 (không được cuộn sang tháng sau)', async () => {
+    expect((await get(app(kho()), '/v1/admin/orders?from=2026-02-31')).status).toBe(400);
+    expect((await get(app(kho()), '/v1/admin/orders?to=2026-09-31')).status).toBe(400);
+  });
+
+  it('mốc ISO thiếu offset → 400 (không được đọc theo giờ máy chủ)', async () => {
+    expect((await get(app(kho()), '/v1/admin/orders?to=2026-09-19T03:00:00')).status).toBe(400);
+    expect(
+      (await get(app(kho()), `/v1/admin/orders?to=${encodeURIComponent('2026-09-19 03:00:00')}`))
+        .status,
+    ).toBe(400);
+  });
+
+  it('from lớn hơn to → 400', async () => {
+    expect((await get(app(kho()), '/v1/admin/orders?from=2026-09-20&to=2026-09-01')).status).toBe(
+      400,
+    );
+  });
 });
 
 describe('GET /v1/admin/orders/:id', () => {
@@ -408,10 +439,16 @@ describe('POST /v1/admin/orders/:id/cancel', () => {
       than,
     );
     expect(res.status).toBe(200);
-    expect(await res.json()).toMatchObject({
+    const body = (await res.json()) as {
+      order: { status: string; note: string; updatedAt: string };
+    };
+    expect(body).toMatchObject({
       order: { status: 'cancelled', note: than.reason },
       moi: true,
     });
+    // updatedAt phải là mốc CHÍNH CÂU UPDATE ghi (NOW_MOI), không phải updated_at cũ đọc TRƯỚC khi
+    // ghi (NOW, mốc mặc định của don()) — bài học pha 4: đọc rồi tự gán lại mốc cũ.
+    expect(body.order.updatedAt).toBe(NOW_MOI.toISOString());
     expect(huyLink).toHaveBeenCalledWith(100001, expect.stringContaining('Khách đổi ý'));
     expect(k.doc()?.status).toBe('cancelled');
     expect(k.audit.find((d) => d.action === 'admin.order.cancel')?.detail).toMatchObject({
@@ -489,10 +526,15 @@ describe('POST /v1/admin/orders/:id/refund', () => {
     const { so, lenh } = soGia();
     const res = await post(app(k, so), `/v1/admin/orders/${ORDER}/refund`, than);
     expect(res.status).toBe(200);
-    expect(await res.json()).toMatchObject({
+    const body = (await res.json()) as {
+      order: { status: string; note: string; updatedAt: string };
+    };
+    expect(body).toMatchObject({
       order: { status: 'refunded', note: than.reason },
       moi: true,
     });
+    // Cùng bài học với cancel: updatedAt phải là mốc chính câu UPDATE ghi, không phải bản đọc trước.
+    expect(body.order.updatedAt).toBe(NOW_MOI.toISOString());
     expect(lenh).toHaveLength(0);
     expect(k.audit.find((d) => d.action === 'admin.order.refund')?.detail).toMatchObject({
       reason: than.reason,

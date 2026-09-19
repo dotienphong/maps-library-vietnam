@@ -177,13 +177,16 @@ describe('GRANT của migration 0023 dưới role api', () => {
         RETURNING id`;
       // Hai lệnh admin của pha 4. Đơn đang fulfilled: huỷ không đổi dòng nào (đúng), hoàn tiền
       // đổi đúng một dòng. Cả hai phải KHÔNG bị từ chối quyền (status, note, updated_at đã GRANT).
+      // RETURNING id, updated_at khớp NGUYÊN VĂN câu thật của huyDonAdmin/danhDauHoanTien: route
+      // dựng phản hồi từ updated_at trả về đây, không đọc lại — thiếu GRANT SELECT trên cột đó chỉ
+      // lộ ở đây, không lộ ở test giả lập (fake-sql không kiểm quyền).
       expect(
         await sql`UPDATE customer_order SET status = 'cancelled', note = 'kiem-grant', updated_at = now()
-          WHERE id = ${orderId}::uuid AND status = 'pending' RETURNING id`,
+          WHERE id = ${orderId}::uuid AND status = 'pending' RETURNING id, updated_at`,
       ).toHaveLength(0);
       expect(
         await sql`UPDATE customer_order SET status = 'refunded', note = 'kiem-grant', updated_at = now()
-          WHERE id = ${orderId}::uuid AND status = 'fulfilled' RETURNING id`,
+          WHERE id = ${orderId}::uuid AND status = 'fulfilled' RETURNING id, updated_at`,
       ).toHaveLength(1);
     });
   });

@@ -251,25 +251,39 @@ describe('danhSachDonAdmin — bộ lọc pha 4', () => {
 });
 
 describe('hai lệnh admin của pha 4 mang điều kiện trạng thái cũ NGAY TRONG SQL', () => {
-  it('huyDonAdmin chỉ đụng đơn pending, ghi note', async () => {
-    const { sql, calls } = fakeSql([{ id: ORDER }]);
-    expect(await huyDonAdmin(sql, ORDER, 'Khách đổi ý')).toBe(true);
+  const LUC_GHI = new Date('2026-09-20T01:00:00Z');
+
+  it('huyDonAdmin chỉ đụng đơn pending, ghi note, trả updated_at MỚI từ chính câu UPDATE', async () => {
+    const { sql, calls } = fakeSql([{ id: ORDER, updated_at: LUC_GHI }]);
+    // Trả updated_at của DB (không phải đọc lại): route dựng phản hồi ngay từ giá trị này, nên đọc
+    // lại bản ghi trước khi ghi rồi tự gán `updatedAt` là mốc CŨ — bài học đã trả giá ở pha 4.
+    expect(await huyDonAdmin(sql, ORDER, 'Khách đổi ý')).toEqual(LUC_GHI);
     const q = calls[0] as RecordedQuery;
     expect(q.text).toContain("SET status = 'cancelled', note = $");
-    expect(q.text).toContain("AND status = 'pending' RETURNING id");
+    expect(q.text).toContain("AND status = 'pending' RETURNING id, updated_at");
     expect(q.params).toEqual(['Khách đổi ý', ORDER]);
   });
 
-  it('danhDauHoanTien nhận fulfilled, paid_unfulfilled, underpaid — KHÔNG nhận pending hay paid', async () => {
-    const { sql, calls } = fakeSql([]);
-    expect(await danhDauHoanTien(sql, ORDER, 'Hoàn theo yêu cầu')).toBe(false);
+  it('huyDonAdmin không đổi dòng nào (đơn đã đổi trạng thái) → null', async () => {
+    const { sql } = fakeSql([]);
+    expect(await huyDonAdmin(sql, ORDER, 'Khách đổi ý')).toBeNull();
+  });
+
+  it('danhDauHoanTien nhận fulfilled, paid_unfulfilled, underpaid — KHÔNG nhận pending hay paid; trả updated_at MỚI', async () => {
+    const { sql, calls } = fakeSql([{ id: ORDER, updated_at: LUC_GHI }]);
+    expect(await danhDauHoanTien(sql, ORDER, 'Hoàn theo yêu cầu')).toEqual(LUC_GHI);
     const q = calls[0] as RecordedQuery;
     expect(q.text).toContain("SET status = 'refunded', note = $");
     expect(q.text).toContain(
-      "AND status IN ('fulfilled', 'paid_unfulfilled', 'underpaid') RETURNING id",
+      "AND status IN ('fulfilled', 'paid_unfulfilled', 'underpaid') RETURNING id, updated_at",
     );
     // 'paid' đứng ngoài cố ý: đó là trạng thái đi ngang vài giây giữa webhook và sổ quota, đánh dấu
     // hoàn tiền vào đó chỉ đua vô ích với datDaCap.
     expect(q.text).not.toContain("'paid',");
+  });
+
+  it('danhDauHoanTien không đổi dòng nào → null', async () => {
+    const { sql } = fakeSql([]);
+    expect(await danhDauHoanTien(sql, ORDER, 'Hoàn theo yêu cầu')).toBeNull();
   });
 });

@@ -96,6 +96,10 @@ function maTuDesc(than: ThanPayos): string {
   const desc = (than.desc ?? '').toLowerCase();
   if (desc.includes('đã tồn tại')) return 'payos_order_exists';
   if (desc.includes('không tồn tại')) return 'payos_not_found';
+  // Gọi huỷ lần hai trên một link ĐÃ huỷ (ví dụ admin bấm lại sau khi DB ghi lỗi): PayOS từ chối
+  // bằng một desc báo "đã huỷ"/"đã hủy" thay vì "không tồn tại" — khớp cả hai cách viết có/không
+  // dấu huyền vì PayOS không cam kết chữ nào.
+  if (desc.includes('đã hủy') || desc.includes('đã huỷ')) return 'payos_already_cancelled';
   return `payos_${than.code ?? 'unknown'}`;
 }
 
@@ -241,8 +245,13 @@ export function chonPayosPort(env: PayosEnv, fetchImpl: typeof fetch = fetch): P
       const than = await goi('POST', `/v2/payment-requests/${orderCode}/cancel`, {
         cancellationReason: lyDo,
       });
-      // Huỷ một link không còn tồn tại là thành công: kết quả mong muốn đã đạt.
-      if (than.code !== '00' && maTuDesc(than) === 'payos_not_found') return;
+      // Huỷ một link không còn tồn tại, hoặc đã bị huỷ từ trước, đều là thành công: kết quả mong
+      // muốn (link không còn hiệu lực) đã đạt. Admin bấm "Huỷ đơn" lần hai sau khi DB ghi lỗi
+      // (huyDonAdmin thất bại dù PayOS đã huỷ xong) không được kẹt vĩnh viễn ở 503.
+      if (than.code !== '00') {
+        const ma = maTuDesc(than);
+        if (ma === 'payos_not_found' || ma === 'payos_already_cancelled') return;
+      }
       await duLieuDaKiem(than);
     },
   };
