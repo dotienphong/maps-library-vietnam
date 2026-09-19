@@ -13,7 +13,8 @@ afterAll(async () => {
     if (!tk) continue;
     await sql`DELETE FROM customer_session WHERE account_id = ${tk.id}::uuid`;
     await sql`DELETE FROM customer_login_code WHERE email = ${email}`;
-    const tenants = await sql`SELECT tenant_id FROM tenant_member WHERE account_id = ${tk.id}::uuid`;
+    const tenants =
+      await sql`SELECT tenant_id FROM tenant_member WHERE account_id = ${tk.id}::uuid`;
     await sql`DELETE FROM tenant_member WHERE account_id = ${tk.id}::uuid`;
     await sql`UPDATE customer_account SET trial_tenant_id = NULL WHERE id = ${tk.id}::uuid`;
     for (const { tenant_id } of tenants) {
@@ -87,7 +88,12 @@ describe('admin tài khoản khách — trọn chặng', () => {
     // Danh sách: tìm theo email, chưa có tổ chức.
     let ds = await (await adminFetch(`/v1/admin/customers?q=${encodeURIComponent(email)}`)).json();
     expect(ds.items).toHaveLength(1);
-    expect(ds.items[0]).toMatchObject({ email, googleLinked: false, disabledAt: null, tenant: null });
+    expect(ds.items[0]).toMatchObject({
+      email,
+      googleLinked: false,
+      disabledAt: null,
+      tenant: null,
+    });
     const id = ds.items[0].id;
 
     // Tạo tổ chức → danh sách hiện tên tenant; chi tiết tenant hiện owner.
@@ -145,7 +151,7 @@ describe('admin tài khoản khách — trọn chặng', () => {
       method: 'POST',
       body: JSON.stringify({ operationId: `op-mo-${Date.now()}`, reason: 'Đã xác minh' }),
     });
-    expect((await mo.json())).toMatchObject({ moi: true, account: { disabledAt: null } });
+    expect(await mo.json()).toMatchObject({ moi: true, account: { disabledAt: null } });
     const k3 = await dangNhap(email);
     expect(k3.status).toBe(200);
     expect((await k3.khach('/v1/console/me')).status).toBe(200);
@@ -154,10 +160,13 @@ describe('admin tài khoản khách — trọn chặng', () => {
 
   it('cổng: thiếu JWT → 401; POST cross-site → 403 trước cả JWT', async () => {
     expect((await fetch(`${base}/v1/admin/customers`)).status).toBe(401);
-    const res = await fetch(`${base}/v1/admin/customers/00000000-0000-4000-8000-000000000001/disable`, {
-      method: 'POST',
-      headers: { 'Sec-Fetch-Site': 'cross-site' },
-    });
+    const res = await fetch(
+      `${base}/v1/admin/customers/00000000-0000-4000-8000-000000000001/disable`,
+      {
+        method: 'POST',
+        headers: { 'Sec-Fetch-Site': 'cross-site' },
+      },
+    );
     expect(res.status).toBe(403);
     expect((await res.json()).error.code).toBe('cross_site_request');
   });

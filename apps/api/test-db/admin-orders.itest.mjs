@@ -64,7 +64,12 @@ async function dangKy(ten) {
   const khach = (path, init = {}) =>
     fetch(base + path, {
       ...init,
-      headers: { cookie, 'Sec-Fetch-Site': 'same-origin', 'content-type': 'application/json', ...(init.headers ?? {}) },
+      headers: {
+        cookie,
+        'Sec-Fetch-Site': 'same-origin',
+        'content-type': 'application/json',
+        ...(init.headers ?? {}),
+      },
     });
   const { tenant } = await (
     await khach('/v1/console/tenant', { method: 'POST', body: JSON.stringify({ name: ten }) })
@@ -76,10 +81,14 @@ async function dangKy(ten) {
 
 /** @param {{khach: (p: string, i?: RequestInit) => Promise<Response>}} k */
 const taoDonStarter = async (k) =>
-  (await (await k.khach('/v1/console/orders', {
-    method: 'POST',
-    body: JSON.stringify({ kind: 'plan', tier: 'starter', months: 1 }),
-  })).json()).order;
+  (
+    await (
+      await k.khach('/v1/console/orders', {
+        method: 'POST',
+        body: JSON.stringify({ kind: 'plan', tier: 'starter', months: 1 }),
+      })
+    ).json()
+  ).order;
 
 /** @param {string} action @param {string} target */
 async function doiAudit(action, target) {
@@ -117,9 +126,15 @@ describe('admin đơn hàng — huỷ, hoàn tiền, bộ lọc', () => {
     expect(don.status).toBe('pending');
 
     const than = { operationId: `op-huy-${don.orderCode}`, reason: 'Khách gọi điện xin huỷ' };
-    const huy = await adminFetch(`/v1/admin/orders/${don.id}/cancel`, { method: 'POST', body: JSON.stringify(than) });
+    const huy = await adminFetch(`/v1/admin/orders/${don.id}/cancel`, {
+      method: 'POST',
+      body: JSON.stringify(than),
+    });
     expect(huy.status).toBe(200);
-    expect(await huy.json()).toMatchObject({ moi: true, order: { status: 'cancelled', note: than.reason } });
+    expect(await huy.json()).toMatchObject({
+      moi: true,
+      order: { status: 'cancelled', note: than.reason },
+    });
 
     const tt = await (
       await fetch(`${payosFake}/v2/payment-requests/${don.orderCode}`, {
@@ -128,13 +143,18 @@ describe('admin đơn hàng — huỷ, hoàn tiền, bộ lọc', () => {
     ).json();
     expect(tt.data.status).toBe('CANCELLED');
 
-    expect((await (await k.khach(`/v1/console/orders/${don.id}`)).json()).order.status).toBe('cancelled');
+    expect((await (await k.khach(`/v1/console/orders/${don.id}`)).json()).order.status).toBe(
+      'cancelled',
+    );
     const audit = await doiAudit('admin.order.cancel', don.id);
     expect(audit[0].detail).toMatchObject({ reason: than.reason, payos_link: true });
     const soDong = await demAudit('admin.order.cancel', don.id);
 
     // Gọi lại: moi:false, và KHÔNG ghi thêm dòng audit thứ hai.
-    const lai = await adminFetch(`/v1/admin/orders/${don.id}/cancel`, { method: 'POST', body: JSON.stringify(than) });
+    const lai = await adminFetch(`/v1/admin/orders/${don.id}/cancel`, {
+      method: 'POST',
+      body: JSON.stringify(than),
+    });
     expect((await lai.json()).moi).toBe(false);
     expect(await demAudit('admin.order.cancel', don.id)).toBe(soDong);
   });
@@ -146,14 +166,23 @@ describe('admin đơn hàng — huỷ, hoàn tiền, bộ lọc', () => {
       await fetch(`${payosFake}/__fake/pay/${don.orderCode}`, {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ webhookUrl: `${base}/v1/pay/payos/webhook`, reference: `FT-HOAN-${don.orderCode}` }),
+        body: JSON.stringify({
+          webhookUrl: `${base}/v1/pay/payos/webhook`,
+          reference: `FT-HOAN-${don.orderCode}`,
+        }),
       })
     ).json();
     expect(tra.webhookBody).toMatchObject({ status: 'fulfilled' });
 
     const truoc = await (await adminFetch(`/v1/admin/billing/${k.tenantId}/periods`)).json();
-    const than = { operationId: `op-hoan-${don.orderCode}`, reason: 'Khách không dùng, đã chuyển trả' };
-    const hoan = await adminFetch(`/v1/admin/orders/${don.id}/refund`, { method: 'POST', body: JSON.stringify(than) });
+    const than = {
+      operationId: `op-hoan-${don.orderCode}`,
+      reason: 'Khách không dùng, đã chuyển trả',
+    };
+    const hoan = await adminFetch(`/v1/admin/orders/${don.id}/refund`, {
+      method: 'POST',
+      body: JSON.stringify(than),
+    });
     expect(hoan.status).toBe(200);
     expect(await hoan.json()).toMatchObject({
       moi: true,
@@ -174,10 +203,15 @@ describe('admin đơn hàng — huỷ, hoàn tiền, bộ lọc', () => {
       body: JSON.stringify(tra.webhook),
     });
     expect(lai.status).toBe(200);
-    expect((await (await adminFetch(`/v1/admin/orders/${don.id}`)).json()).order.status).toBe('refunded');
+    expect((await (await adminFetch(`/v1/admin/orders/${don.id}`)).json()).order.status).toBe(
+      'refunded',
+    );
 
     const donMoi = await taoDonStarter(k);
-    const tuChoi = await adminFetch(`/v1/admin/orders/${donMoi.id}/refund`, { method: 'POST', body: JSON.stringify(than) });
+    const tuChoi = await adminFetch(`/v1/admin/orders/${donMoi.id}/refund`, {
+      method: 'POST',
+      body: JSON.stringify(than),
+    });
     expect(tuChoi.status).toBe(409);
     expect((await tuChoi.json()).error.code).toBe('order_not_refundable');
   });
