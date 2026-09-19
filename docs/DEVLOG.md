@@ -3533,5 +3533,11 @@ phân biệt luôn "khoá đúng" với "khoá sai" mà không phải mở log. 
 là ba secret đã có; trả **503** nghĩa là thiếu. Không cần đăng nhập dashboard, không lộ gì, và phân
 biệt đúng thứ cần phân biệt trước khi đi đăng ký webhook.
 
-**Hệ quả không lùi được:** `customer_order` đã có đơn thật, nên `0023_customer_order.down.sql`
-không còn là đường rút. Đóng cửa thanh toán từ nay chỉ có một cách đúng — xoá ba secret PayOS.
+**Hệ quả không lùi được:** `customer_order` đã có đơn thật (mã **100002** và **100003**), nên
+`0023_customer_order.down.sql` không còn là đường rút. Đóng cửa thanh toán từ nay chỉ có một cách
+đúng — xoá ba secret PayOS.
+
+**Số đo duy nhất gây bất ngờ: "vài giây".** Cả hai đơn chạm `fulfilled` gần như tức thì, nghĩa là
+webhook tới thẳng và `fulfilOrder` xong ngay lần nhận đầu. Ngưỡng 60 giây trong hướng dẫn là thừa
+thãi, và **đường cron đối soát của spec 9.4 chưa từng chạy bằng tiền thật** — nó vẫn chỉ có chứng
+cứ harness. Đó là chỗ mỏng nhất của pha 3 khi nhìn lại, không phải chỗ nào trong đường webhook.

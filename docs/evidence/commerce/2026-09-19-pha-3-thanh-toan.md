@@ -181,12 +181,23 @@ Những dòng có lệnh kèm theo là thứ máy tự đo được.
 Từ đây trở đi `0023` không lùi được nữa: đã có đơn thật trong `customer_order`. Cách đóng cửa duy
 nhất còn đúng là xoá ba secret PayOS (tạo đơn 503, webhook 503, không mất dữ liệu).
 
-### Số đo còn thiếu
+### Số đo của hai đơn thật
 
-Không chặn việc đóng pha, nhưng còn trống trong hồ sơ — điền khi PHONG đọc lại:
+PHONG đọc lại 19/09/2026:
 
-- mã hai đơn và số tiền từng đơn;
-- thời gian từ lúc chuyển khoản tới khi đơn chạm `fulfilled`;
-- **tiêu chí 20.6**: kết quả bắn lại webhook thật lần hai (phải 200, không cấp trùng);
-- câu "hiệu lực từ …" mà giao diện hiện ở đơn mua gói (luật 9.3 — kỳ mới xếp sau kỳ đang chạy);
-- hai câu trả lời của PayOS ở mục 7 bước 1: **hạn mức số tiền một link** và **biểu phí thực tế**.
+| Hạng mục | Kết quả |
+|---|---|
+| Mã đơn | **100002** và **100003** (`order_code` chạy từ 100001) |
+| Nội dung chuyển khoản tương ứng | `MLV100002`, `MLV100003` — `noiDungChuyenKhoan()`, `db.ts:77` |
+| Từ lúc chuyển khoản tới `fulfilled` | **vài giây** — webhook, không phải cron đối soát. Ngưỡng của mục 7 là 60 giây; cron 5 phút không phải chạm tới |
+| Tiêu chí 20.6 — bắn lại webhook thật lần hai | **Đã bắn.** Không có sự cố cấp trùng được báo |
+| Luật 9.3 — kỳ mới xếp sau kỳ đang chạy, giao diện nói "hiệu lực từ …" | **Đạt** |
+
+"Vài giây" là con số đáng giữ: nó nói webhook tới thẳng và `fulfilOrder` chạy ngay trong lần nhận
+đầu tiên. Đường cron đối soát (spec 9.4) vì thế **chưa từng được dùng bằng tiền thật** — nó vẫn chỉ
+có chứng cứ harness, xem mục 8.
+
+**Còn trống:** hai câu trả lời của PayOS ở mục 7 bước 1 — **hạn mức số tiền tối đa một link** và
+**biểu phí thực tế**. Chưa có con số. Hạn mức là thứ sẽ cắn vào đơn lớn nhất của catalog
+(Business 12 tháng = 124.800.000 ₫) chứ không cắn vào hai đơn nhỏ vừa chạy, nên nó ngủ yên cho tới
+khách đầu tiên mua gói lớn.
