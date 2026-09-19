@@ -18,6 +18,8 @@ if (!['localhost', '127.0.0.1', 'postgres'].includes(host)) {
 
 const sql = postgres(url, { max: 1, onnotice: () => {} });
 const EMAIL = 'kiem-grant@vidu.vn';
+/** Email riêng cho bài ON CONFLICT: bài đó chạy câu lệnh hai lần nên cần một dòng của riêng nó. */
+const EMAIL_ONCONFLICT = 'kiem-grant-onconflict@vidu.vn';
 const TENANT = 'Kiểm GRANT console';
 const TOKEN = 'b'.repeat(64);
 
@@ -36,7 +38,7 @@ describe('GRANT của migration 0020 dưới role api', () => {
     await sql`DELETE FROM customer_session WHERE token_hash = ${TOKEN}`;
     await sql`DELETE FROM tenant_member WHERE tenant_id IN (SELECT id FROM tenant WHERE name = ${TENANT})`;
     await sql`DELETE FROM customer_login_code WHERE email = ${EMAIL}`;
-    await sql`DELETE FROM customer_account WHERE email = ${EMAIL}`;
+    await sql`DELETE FROM customer_account WHERE email IN (${EMAIL}, ${EMAIL_ONCONFLICT})`;
     await sql`DELETE FROM tenant WHERE name = ${TENANT}`;
   });
 
@@ -44,9 +46,42 @@ describe('GRANT của migration 0020 dưới role api', () => {
     await sql`DELETE FROM customer_session WHERE token_hash = ${TOKEN}`;
     await sql`DELETE FROM tenant_member WHERE tenant_id IN (SELECT id FROM tenant WHERE name = ${TENANT})`;
     await sql`DELETE FROM customer_login_code WHERE email = ${EMAIL}`;
-    await sql`DELETE FROM customer_account WHERE email = ${EMAIL}`;
+    await sql`DELETE FROM customer_account WHERE email IN (${EMAIL}, ${EMAIL_ONCONFLICT})`;
     await sql`DELETE FROM tenant WHERE name = ${TENANT}`;
     await sql.end({ timeout: 5 });
+  });
+
+  it('taoHoacLayTaiKhoan chạy được nguyên văn, kể cả nhánh ON CONFLICT', async () => {
+    // Bài này dựng lại ĐÚNG câu mà `taoHoacLayTaiKhoan` gửi đi, không phải một câu tương đương.
+    // Bản cũ viết `DO UPDATE SET email = EXCLUDED.email`, mà `email` không nằm trong GRANT UPDATE
+    // của migration 0020. Postgres kiểm quyền theo câu lệnh chứ không đợi có xung đột thật, nên
+    // nó hỏng ngay lần đăng nhập đầu tiên trên production — trong khi bài kiểm cũ chỉ chạy
+    // `INSERT` trơn nên không thấy gì, và e2e cũng không thấy vì harness nối DB bằng role chủ
+    // sở hữu. Sự cố 19/09/2026.
+    const chay = () => sql`
+      INSERT INTO customer_account (email) VALUES (${EMAIL_ONCONFLICT})
+      ON CONFLICT (email) DO UPDATE SET name = customer_account.name
+      RETURNING id, email, name, google_sub, trial_tenant_id, disabled_at`;
+
+    await duoiRoleApi(async () => {
+      const lanDau = await chay();
+      expect(lanDau).toHaveLength(1);
+      expect(lanDau[0].email).toBe(EMAIL_ONCONFLICT);
+
+      // Lần hai đi vào nhánh ON CONFLICT và vẫn phải trả về đúng một dòng: cả luồng mã một lần
+      // lẫn luồng Google đều dựa vào `RETURNING` này để biết tài khoản nào vừa đăng nhập.
+      const lanHai = await chay();
+      expect(lanHai).toHaveLength(1);
+      expect(lanHai[0].id).toBe(lanDau[0].id);
+    });
+  });
+
+  it('api KHÔNG được sửa cột email — đổi email người khác là chiếm tài khoản', async () => {
+    await duoiRoleApi(async () => {
+      await expect(
+        sql`UPDATE customer_account SET email = 'ke-gia-mao@vidu.vn' WHERE email = ${EMAIL_ONCONFLICT}`,
+      ).rejects.toThrow(/permission denied|quyền/i);
+    });
   });
 
   it('chạy được mọi câu mà nhóm route console thật sự dùng', async () => {

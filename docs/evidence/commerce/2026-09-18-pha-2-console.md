@@ -187,6 +187,36 @@ Mọi lỗi không phải `ApiError` đều thành 503 `upstream_unavailable`, n
 được gì**; phải đọc dòng `console.error(requestId, err)` đi kèm mới biết. Chưa có một lần thử sạch
 nào trên bản vá, nên chưa kết luận được Google đã chạy đúng hay chưa.
 
+## 5e. Sự cố 19/09 lần hai: nhập đúng mã vẫn `upstream_unavailable`
+
+**Nguyên nhân: `taoHoacLayTaiKhoan` viết `ON CONFLICT (email) DO UPDATE SET email =
+EXCLUDED.email`, mà `email` không nằm trong `GRANT UPDATE` của migration 0020.** Postgres kiểm
+quyền theo câu lệnh chứ không đợi có xung đột thật, nên câu đó bị từ chối ngay từ lần đăng nhập
+đầu tiên. Lỗi không phải `ApiError` nên `errorResponse` gộp thành 503 `upstream_unavailable`, và
+khách chỉ đọc được "Hệ thống đang bận".
+
+Đo dưới role `api` trên DB dev:
+
+| Câu lệnh | Kết quả |
+|---|---|
+| `DO UPDATE SET email = EXCLUDED.email` | `permission denied for table customer_account` |
+| `DO UPDATE SET name = customer_account.name` | chạy được |
+
+Bản vá đổi sang `SET name = customer_account.name`, một phép không đổi dữ liệu trên cột mà `api`
+có quyền. **Không dùng `EXCLUDED.name`**: giá trị đó là NULL và sẽ xoá mất tên đã lưu. Cũng không
+dùng `DO NOTHING`: nó trả về rỗng, mà cả luồng mã một lần lẫn luồng Google đều đọc `RETURNING`
+để biết tài khoản nào vừa đăng nhập.
+
+**Vì sao ba lớp kiểm thử đều bỏ sót.** `pnpm test:api-db` và e2e nối DB bằng **role chủ sở hữu**
+nên mọi thiếu sót về GRANT đều vô hình. Còn `db/console-grant.dbtest.mjs`, file sinh ra đúng để
+bắt lớp lỗi này, lại chạy `INSERT INTO customer_account (email) VALUES (...)` trơn — một câu
+*tương đương về ý* nhưng không phải câu mã thật gửi đi. Đã thêm hai bài: một bài dựng lại nguyên
+văn câu của `taoHoacLayTaiKhoan` và gọi hai lần để đi qua nhánh `ON CONFLICT`, một bài khẳng định
+`api` vẫn KHÔNG sửa được cột `email` — đổi email người khác là chiếm tài khoản.
+
+**Bài học:** bài kiểm quyền phải chạy **nguyên văn** câu lệnh của mã thật. Viết lại cho gọn là
+đánh mất đúng thứ cần kiểm.
+
 ## 6. Còn nợ, ghi rõ chứ không lờ đi
 
 - ~~**Chưa gửi được một lá thư thật nào.**~~ **ĐÃ GỬI 19/09/2026**, trạng thái `delivered` tới

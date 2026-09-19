@@ -52,9 +52,16 @@ export async function timTaiKhoanTheoEmail(sql: Sql, email: string): Promise<Tai
  * lại phải truy vấn lần hai.
  */
 export async function taoHoacLayTaiKhoan(sql: Sql, email: string): Promise<TaiKhoan> {
+  // `DO UPDATE` là cách lấy được dòng cũ qua `RETURNING` khi email đã tồn tại; `DO NOTHING` trả
+  // về rỗng. Nhưng cột đặt trong `SET` phải là cột mà role `api` được cấp quyền UPDATE, và `email`
+  // KHÔNG nằm trong danh sách đó — Postgres kiểm quyền theo câu lệnh chứ không đợi có xung đột
+  // thật, nên bản cũ (`SET email = EXCLUDED.email`) hỏng ngay từ lần đăng nhập đầu tiên trên
+  // production. Gán `name` về chính nó là phép không đổi dữ liệu, và `name` thì api có quyền.
+  // Không dùng `EXCLUDED.name`: giá trị đó là NULL và sẽ xoá mất tên đã lưu.
+  // Sự cố 19/09/2026 — chỉ lộ trên production vì harness nối DB bằng role chủ sở hữu.
   const rows = await sql<TaiKhoan[]>`
     INSERT INTO customer_account (email) VALUES (${email})
-    ON CONFLICT (email) DO UPDATE SET email = EXCLUDED.email
+    ON CONFLICT (email) DO UPDATE SET name = customer_account.name
     RETURNING id, email, name, google_sub, trial_tenant_id, disabled_at`;
   return rows[0] as TaiKhoan;
 }
