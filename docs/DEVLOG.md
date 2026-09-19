@@ -3510,3 +3510,28 @@ dùng từ đầu để tự chặn mình. Migration sau này thêm quan hệ m�
 kèm ghi chú phải sửa cả hai đường: script và hàm. Chốt ấy đã tồn tại trong `db-tenant-xoa.mjs` từ
 ngày đầu và đã hoạt động đúng — nó dừng khi gặp `customer_order`. Chỉ là không ai nối nó sang
 đường thứ hai.
+
+## 25. 19/09/2026 — Đồng tiền thật đầu tiên chạy qua pha 3
+
+Pha 3 đóng bằng thứ duy nhất không giả được: PHONG tự đặt **một đơn mua gói và một đơn mua thêm
+lượt** trên production, chuyển khoản thật, và gói vào sổ quota mà không ai bấm gì. PayOS không có
+sandbox nên đây luôn là bài kiểm cuối cùng, và nó chỉ chạy được sau khi năm việc tay của mục 7 hồ
+sơ chứng cứ xong theo đúng thứ tự — migration trước deploy, deploy trước đăng ký webhook, cấp tay
+một kỳ trả phí trước khi mua thêm lượt.
+
+**Thứ tự ấy không phải lễ nghi.** `fulfil.ts:81` từ chối `addCredits` khi tenant không ở trạng thái
+trả phí đang hoạt động; mua thêm lượt trước khi có kỳ thì tiền vẫn bị trừ còn đơn nằm lại ở
+`paid_unfulfilled`. Cấp tay một kỳ Starter ở `/admin/billing` là cách duy nhất mở đường mà không
+tốn đồng nào.
+
+**Việc chẩn đoán bước 5 rẻ hơn dự tính.** Không cần `wrangler tail`: webhook thử của PayOS để lại
+một dòng ở "Giao dịch không khớp đơn", và nhãn của dòng đó — `không khớp đơn` hay `chữ ký sai` —
+phân biệt luôn "khoá đúng" với "khoá sai" mà không phải mở log. Cái nhãn ấy sinh ra từ
+`khong-khop.tsx:26` chính vì hai ca đó nhìn từ phía PayOS giống hệt nhau.
+
+**Một phép đo gián tiếp đáng giữ lại:** `POST /v1/pay/payos/webhook` với thân `{}` trả **400** nghĩa
+là ba secret đã có; trả **503** nghĩa là thiếu. Không cần đăng nhập dashboard, không lộ gì, và phân
+biệt đúng thứ cần phân biệt trước khi đi đăng ký webhook.
+
+**Hệ quả không lùi được:** `customer_order` đã có đơn thật, nên `0023_customer_order.down.sql`
+không còn là đường rút. Đóng cửa thanh toán từ nay chỉ có một cách đúng — xoá ba secret PayOS.

@@ -154,8 +154,39 @@ Bước 1 và 2 **không chạm production** và làm được ngay. Bước 3 t
 
 ## 8. Điều chưa làm, cố ý
 
-- **Chưa có đồng tiền thật nào chạy qua.** Mọi con số ở mục 1 và 2 đến từ PayOS giả.
+- ~~Chưa có đồng tiền thật nào chạy qua.~~ **Hết đúng từ 19/09/2026 — xem mục 9.** Mọi con
+  số ở mục 1 và 2 vẫn đến từ PayOS giả; mục 9 là chỗ duy nhất nói về tiền thật.
 - Tiêu chí 20.7 (tắt webhook, cron cấp trong 10 phút) và 20.8 (chuyển thiếu) đã chứng minh trên
   harness; làm lại bằng tiền thật chỉ khi PHONG muốn chi thêm 26.000 ₫ cho mỗi tiêu chí.
 - Màn admin của pha này là **bản tối thiểu**: danh sách, chi tiết, thử cấp lại, xác nhận tay, giao
   dịch không khớp. "Huỷ đơn" và "Đánh dấu hoàn tiền" phía admin thuộc pha 4.
+
+## 9. Nghiệm thu bằng tiền thật trên production — 19/09/2026
+
+**Nguồn: PHONG xác nhận trực tiếp sau khi tự thao tác.** Phiên làm việc này không đo lại được phần
+tiền: `/admin/orders` và `admin_audit` nằm sau Cloudflare Access, DB máy chủ không đọc được từ đây.
+Những dòng có lệnh kèm theo là thứ máy tự đo được.
+
+| Việc tay của mục 7 | Trạng thái | Bằng chứng |
+|---|---|---|
+| 1. Đăng ký PayOS, tạo kênh, lấy ba khoá | ✅ | PHONG |
+| 2. Ba secret trên production | ✅ | `POST /v1/pay/payos/webhook` thân `{}` trả **400 `invalid_webhook`**, không phải 503 `payment_provider_not_configured` — `PAYOS_CHECKSUM_KEY` có mặt trên Worker |
+| 3. Migration trên máy chủ | ✅ | `/healthz/db` → `0023_customer_order.sql` (nay đã là `0024_xoa_tenant_don_hang.sql`, xem DEVLOG mục 24) |
+| 4. Push, Deploy API xanh | ✅ | `main` không lệch `origin/main` |
+| 5. Đăng ký webhook URL | ✅ | Admin hiện đúng một dòng ở "Giao dịch không khớp đơn" — webhook thử của PayOS, dấu hiệu đúng theo `pay-webhook.ts:99` |
+| 6. Đơn tiền thật | ✅ | PHONG: **một đơn mua gói và một đơn mua thêm lượt, cả hai thành công trên production** |
+| 7. Rollback | — | Không dùng tới |
+
+**Lời hứa của pha 3 — "khách tự trả tiền, gói tự vào sổ quota" — nay đã chạy bằng tiền thật.**
+Từ đây trở đi `0023` không lùi được nữa: đã có đơn thật trong `customer_order`. Cách đóng cửa duy
+nhất còn đúng là xoá ba secret PayOS (tạo đơn 503, webhook 503, không mất dữ liệu).
+
+### Số đo còn thiếu
+
+Không chặn việc đóng pha, nhưng còn trống trong hồ sơ — điền khi PHONG đọc lại:
+
+- mã hai đơn và số tiền từng đơn;
+- thời gian từ lúc chuyển khoản tới khi đơn chạm `fulfilled`;
+- **tiêu chí 20.6**: kết quả bắn lại webhook thật lần hai (phải 200, không cấp trùng);
+- câu "hiệu lực từ …" mà giao diện hiện ở đơn mua gói (luật 9.3 — kỳ mới xếp sau kỳ đang chạy);
+- hai câu trả lời của PayOS ở mục 7 bước 1: **hạn mức số tiền một link** và **biểu phí thực tế**.
