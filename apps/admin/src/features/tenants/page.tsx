@@ -7,9 +7,17 @@ import { MODE_VI, TenantCard, tenantDate } from './tenant-card';
 
 export function TenantsPage() {
   const [q, setQ] = useState('');
-  // Chi tiết khách hàng link tới đây bằng `?id=`; chỉ đọc lúc dựng — sau đó state là của trang.
-  const [params] = useSearchParams();
-  const [openId, setOpenId] = useState<string | null>(params.get('id'));
+  // URL là nguồn sự thật duy nhất cho ngăn chi tiết (khuôn orders/page.tsx): chi tiết khách hàng
+  // link tới đây bằng `?id=`, mở tenant khác ghi đè đúng tham số đó, đóng ngăn thì xoá tham số —
+  // không còn state cục bộ nào có thể lệch khỏi URL đang hiện trên thanh địa chỉ.
+  const [params, setParams] = useSearchParams();
+  const openId = params.get('id');
+  const setOpenId = (id: string | null) => {
+    const m = new URLSearchParams(params);
+    if (id) m.set('id', id);
+    else m.delete('id');
+    setParams(m);
+  };
   const list = useTenantList(q);
   const items = list.data?.pages.flatMap((page) => page.items) ?? [];
 
@@ -87,7 +95,12 @@ export function TenantsPage() {
         </Button>
       )}
 
-      <TenantDetailPanel id={openId} onClose={() => setOpenId(null)} />
+      {/*
+       * `key` bắt buộc (khuôn orders/page.tsx): đổi từ tenant A sang tenant B mà không remount thì
+       * state cục bộ bên trong panel (đang mở hộp thoại Cấp khoá/Xoá tổ chức) sống sót qua lần mở
+       * sau — hộp thoại của tenant A hiện lên khi đang xem tenant B.
+       */}
+      <TenantDetailPanel key={openId ?? 'dong'} id={openId} onClose={() => setOpenId(null)} />
     </div>
   );
 }

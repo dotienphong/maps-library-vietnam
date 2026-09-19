@@ -136,7 +136,12 @@ export function TenantDetailPanel({ id, onClose }: TenantDetailPanelProps) {
                         detail.data.owner.email
                       )
                     ) : (
-                      '—'
+                      <>
+                        {/* Trình đọc màn hình ở mức dấu câu mặc định không đọc gạch ngang — không
+                            có nhãn thì người dùng nghe thấy một ô trống, không phải "không có". */}
+                        <span aria-hidden="true">—</span>
+                        <span className="sr-only">Không có</span>
+                      </>
                     )}
                   </dd>
                 </dl>

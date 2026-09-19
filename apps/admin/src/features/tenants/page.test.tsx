@@ -4,9 +4,16 @@ import { DelayedActionProvider } from '@mapslibvn/ui';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { MemoryRouter } from 'react-router';
+import { MemoryRouter, useLocation } from 'react-router';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { TenantsPage } from './page';
+
+/** Đọc URL hiện tại của MemoryRouter — để kiểm URL là nguồn sự thật của ngăn chi tiết, không
+ * phải state cục bộ đã lệch khỏi nó. */
+function HienThiUrl() {
+  const loc = useLocation();
+  return <span data-testid="url">{loc.pathname + loc.search}</span>;
+}
 
 const tenant = (extra: Record<string, unknown> = {}) => ({
   id: '00000000-0000-4000-8000-0000000000cc',
@@ -41,6 +48,7 @@ const renderPage = (duong = '/tenants') =>
           đang đóng, nên test cũng phải dựng đúng khung đó. */}
       <MemoryRouter initialEntries={[duong]}>
         <DelayedActionProvider>
+          <HienThiUrl />
           <TenantsPage />
         </DelayedActionProvider>
       </MemoryRouter>
@@ -97,5 +105,51 @@ describe('TenantsPage', () => {
     stubFetch({ items: [tenant()], nextCursor: null, tenant: tenant(), keys: [], owner: null });
     renderPage('/tenants?id=00000000-0000-4000-8000-0000000000cc');
     expect(await screen.findByRole('dialog')).toBeVisible();
+  });
+
+  it('URL là nguồn sự thật duy nhất: mở tenant khác ghi đè ?id=, đóng ngăn thì ?id= biến mất', async () => {
+    // Trước bản sửa này, ngăn chi tiết giữ id trong state cục bộ chỉ đọc URL MỘT lần lúc dựng:
+    // mở/đóng ngăn đổi được cái đang hiện nhưng không viết lại URL — gửi link đi là sai tenant,
+    // và nút Back của trình duyệt không đóng được ngăn.
+    const tenantA = tenant({ id: 'aaaaaaaa-0000-4000-8000-0000000000aa', name: 'Tenant A' });
+    const tenantB = tenant({ id: 'bbbbbbbb-0000-4000-8000-0000000000bb', name: 'Tenant B' });
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (input: RequestInfo | URL) => {
+        const duongDan = new URL(String(input), 'https://admin.test').pathname;
+        const than =
+          duongDan === '/v1/admin/tenants'
+            ? { items: [tenantA, tenantB], nextCursor: null }
+            : { tenant: tenantA, keys: [], owner: null };
+        return new Response(JSON.stringify(than), {
+          headers: { 'content-type': 'application/json' },
+        });
+      }),
+    );
+
+    renderPage();
+    const dsNut = await screen.findAllByRole('button', { name: 'Xem khoá' });
+    expect(dsNut).toHaveLength(2);
+    const [nutA] = dsNut;
+    if (!nutA) throw new Error('cần ít nhất 1 nút Xem khoá');
+
+    await userEvent.click(nutA);
+    expect(await screen.findByRole('dialog')).toBeVisible();
+    await vi.waitFor(() =>
+      expect(screen.getByTestId('url').textContent).toBe(`/tenants?id=${tenantA.id}`),
+    );
+
+    // Modal của ngăn chi tiết chặn mọi thứ khác trên trang (aria-hidden + pointer-events: none),
+    // nên phải đóng trước khi mở tenant khác — giống hệt khuôn `detail.test.tsx`.
+    await userEvent.click(screen.getByRole('button', { name: 'Đóng chi tiết tenant' }));
+    await vi.waitFor(() => expect(screen.getByTestId('url').textContent).toBe('/tenants'));
+
+    const [, nutB] = screen.getAllByRole('button', { name: 'Xem khoá' });
+    if (!nutB) throw new Error('cần đúng 2 nút Xem khoá sau khi đóng ngăn');
+    await userEvent.click(nutB);
+    expect(await screen.findByRole('dialog')).toBeVisible();
+    await vi.waitFor(() =>
+      expect(screen.getByTestId('url').textContent).toBe(`/tenants?id=${tenantB.id}`),
+    );
   });
 });

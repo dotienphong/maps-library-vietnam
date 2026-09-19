@@ -3,6 +3,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { orderKeys } from '@/features/orders/hooks';
 import { OverviewPage } from './page';
 
 const ME = {
@@ -65,7 +66,10 @@ const AUDIT = {
   nextCursor: null,
 };
 
-function mo(override: (url: string) => Response | null = () => null) {
+function mo(
+  override: (url: string) => Response | null = () => null,
+  seed?: (qc: QueryClient) => void,
+) {
   vi.stubGlobal(
     'fetch',
     vi.fn(async (input: RequestInfo | URL) => {
@@ -94,6 +98,10 @@ function mo(override: (url: string) => Response | null = () => null) {
     }),
   );
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  // `seed` ghi thẳng vào cache TRƯỚC khi dựng trang — dùng để kiểm hai ô tiền đọc ĐÚNG khoá mà
+  // đầu trang Đơn hàng dùng (`orderKeys.summary()`), chứ không phải chỉ đọc số máy chủ trả về
+  // cho URL nào cũng qua được dù khoá cache có bị đổi thành thứ riêng.
+  seed?.(qc);
   render(
     <QueryClientProvider client={qc}>
       <MemoryRouter>
@@ -161,6 +169,28 @@ describe('OverviewPage', () => {
       'href',
       '/orders?status=fulfilled',
     );
+  });
+
+  it('hai ô tiền dùng CHUNG khoá cache với đầu trang Đơn hàng — dữ liệu đã có sẵn thì không gọi lại', async () => {
+    // Nếu ai đó lỡ đổi hai ô này sang một khoá cache riêng (vd ['overview','orders-summary']),
+    // trang vẫn tự fetch và hiện đúng số — mọi khẳng định của bài test phía trên vẫn xanh. Bài
+    // này khoá đúng điều Task 9 hứa: seed sẵn dữ liệu vào ĐÚNG khoá `orderKeys.summary()` (khoá
+    // mà đầu trang Đơn hàng dùng) rồi kiểm trang đọc thẳng từ đó, không có lời gọi mạng nào tới
+    // `/orders/summary`. `staleTime: 30_000` của `useOrderSummary` coi dữ liệu vừa seed là còn tươi.
+    mo(undefined, (qc) =>
+      qc.setQueryData(orderKeys.summary(), {
+        choXuLy: 9,
+        doanhThu30Ngay: 1_000_000,
+        pendingQua1Gio: 0,
+        khongKhop: 0,
+      }),
+    );
+    expect(await screen.findByText('9')).toBeVisible();
+    expect(await screen.findByText('1.000.000đ')).toBeVisible();
+    const goi = (globalThis.fetch as unknown as { mock: { calls: unknown[][] } }).mock.calls.map(
+      (c) => String(c[0]),
+    );
+    expect(goi.some((u) => u.includes('/orders/summary'))).toBe(false);
   });
 
   it('không có orders.read → không gọi summary, không có hai ô đó', async () => {
