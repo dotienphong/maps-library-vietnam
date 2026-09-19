@@ -78,8 +78,14 @@ khi Worker deploy trước migration và API chết nhiều giờ. Nó sẽ tự
 
 ## 5. Việc tay của PHONG, theo thứ tự
 
-1. **Resend.** Tạo tài khoản, thêm tên miền `ai-solutions.io.vn`, đặt bản ghi DKIM và SPF trên
-   Cloudflare DNS, chờ trạng thái Verified. Gói miễn phí 3.000 thư mỗi tháng và 100 mỗi ngày.
+1. ~~**Resend.**~~ **XONG 19/09/2026.** Tên miền `ai-solutions.io.vn` ở trạng thái `verified`,
+   region `ap-northeast-1`. Ba bản ghi của Resend nằm trên subdomain `send` nên MX gốc của
+   Cloudflare Email Routing và bản ghi SPF gốc không bị đụng. Đã thêm DMARC `p=none` với địa chỉ
+   báo cáo là email hỗ trợ. Khoá `mapslibvn-console-production` cấp quyền `sending_access` và
+   giới hạn đúng tên miền này. **Một lá thư thật đã gửi và Resend báo `delivered`** — dùng đúng
+   mẫu `mauMaDangNhap`, from `no-reply@ai-solutions.io.vn`, reply-to email hỗ trợ. Việc duy nhất
+   còn lại của mục này là `wrangler secret put RESEND_API_KEY --env production`, PHONG chạy vì
+   chế độ tự động chặn ghi secret.
 2. **Google Cloud.** Tạo OAuth client kiểu Web, thêm hai địa chỉ chuyển hướng:
    `https://api.ai-solutions.io.vn/v1/console/auth/google/callback` và
    `http://127.0.0.1:8799/v1/console/auth/google/callback` cho harness.
@@ -107,8 +113,9 @@ hưởng. Bước 6 là bước duy nhất chạm dữ liệu production.
 
 ## 6. Còn nợ, ghi rõ chứ không lờ đi
 
-- **Chưa gửi được một lá thư thật nào.** Toàn bộ đường email chạy qua bản ghi log trong test; bản
-  Resend chỉ được kiểm bằng `fetch` giả. Lá thư thật đầu tiên sẽ đi ở bước 8 của mục 5.
+- ~~**Chưa gửi được một lá thư thật nào.**~~ **ĐÃ GỬI 19/09/2026**, trạng thái `delivered` tới
+  Gmail, message id của `ap-northeast-1.amazonses.com`. Đường DKIM và SPF đã chứng minh chạy thật.
+  Cái chưa chứng minh là Worker tự gọi Resend, vì secret chưa đặt.
 - **Chưa đăng nhập Google thật lần nào.** Phần xác thực `id_token` kiểm bằng khoá RSA tự sinh và
   phủ năm nhánh từ chối, nhưng luồng chuyển hướng thật với Google thì chưa chạy.
 - **Ba màn hình của pha 3 chưa có** (Mua gói, Đơn hàng, chi tiết đơn). Ba nút mua ở Tổng quan dẫn
