@@ -7,6 +7,7 @@ import { applyTheme, readStoredTheme } from '@/lib/theme';
 const MUC = [
   { den: '/', nhan: 'Tổng quan' },
   { den: '/khoa', nhan: 'Khoá API' },
+  { den: '/don-hang', nhan: 'Đơn hàng' },
   { den: '/cai-dat', nhan: 'Cài đặt' },
 ] as const;
 

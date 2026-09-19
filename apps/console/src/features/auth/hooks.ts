@@ -7,6 +7,9 @@ export const khoaCache = {
   mucDung: ['muc-dung'] as const,
   khoa: ['khoa'] as const,
   tenant: ['tenant'] as const,
+  donHang: ['don-hang'] as const,
+  don: (id: string) => ['don-hang', id] as const,
+  baoGia: (d: unknown) => ['bao-gia', d] as const,
 };
 
 export function useCauHinh() {

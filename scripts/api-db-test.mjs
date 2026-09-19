@@ -120,6 +120,20 @@ console.log(`Access giả lập: JWKS http://127.0.0.1:${CERTS_PORT}, aud ${FAKE
 // chặn event loop của chính nó. PayOS không có sandbox thật, nên đây là nơi duy nhất kiểm được
 // đường thanh toán mà không mất tiền.
 const payosProc = spawn(process.execPath, ['scripts/lib/payos-fake.mjs'], { stdio: 'inherit' });
+// Đăng ký dọn NGAY sau khi spawn, không đợi tới `stopWrangler` phía dưới: nếu harness chết giữa
+// hai điểm đó thì payos-fake thành tiến trình mồ côi, và vì nó kế thừa stdout nên một lệnh dạng
+// `pnpm test:api-db | tail` sẽ treo mãi vì ống dẫn không bao giờ đóng. Đã vấp đúng một lần.
+const dungPayos = () => {
+  try {
+    payosProc.kill('SIGTERM');
+  } catch (error) {
+    if (!(error instanceof Error) || !('code' in error) || error.code !== 'ESRCH') throw error;
+  }
+};
+process.once('exit', dungPayos);
+process.once('SIGINT', dungPayos);
+process.once('SIGTERM', dungPayos);
+
 await new Promise((resolve, reject) => {
   const deadline = Date.now() + 15_000;
   const tick = async () => {
@@ -223,7 +237,8 @@ let stopped = false;
 function stopWrangler() {
   if (stopped) return;
   stopped = true;
-  for (const child of [wrangler, certsProc, payosProc]) {
+  dungPayos();
+  for (const child of [wrangler, certsProc]) {
     try {
       if (detached && child.pid) process.kill(-child.pid, 'SIGTERM');
       else child.kill('SIGTERM');
