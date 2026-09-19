@@ -61,7 +61,7 @@ describe('commercial quota middleware', () => {
     await seedKey(key, { tenantId, plan: 'paid', quotaMode: 'commercial' });
     const object = env.QUOTA.get(env.QUOTA.idFromName(tenantId));
     await object.applyCommand(grant(tenantId));
-    const response = await (await import('../src/index')).default.request(
+    const response = await (await import('../src/index')).app.request(
       'https://api.test/v1/autocomplete?q=x',
       { headers: { 'X-Api-Key': key } },
       env,

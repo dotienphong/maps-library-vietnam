@@ -3,8 +3,9 @@ import { Hono } from 'hono';
 import { cors } from 'hono/cors';
 import { requireBillingAccess } from './access';
 import { analyticsMiddleware } from './analytics';
+import { chayCron } from './commerce/cron';
 import { dbHealth } from './db-health';
-import type { AppEnv } from './env';
+import type { AppEnv, Env } from './env';
 import { ApiError, errorResponse } from './errors';
 import { admin, requireSameSiteGhi } from './routes/admin';
 import { adminQuotaSummary } from './routes/admin-quota-summary';
@@ -29,7 +30,11 @@ import { tiles } from './routes/tiles';
 
 export { QuotaObject } from './billing/quota-object';
 
-const app = new Hono<AppEnv>();
+/**
+ * Xuất có tên để test dựng request thẳng vào router (`app.request`) — default export là object
+ * `{ fetch, scheduled }` nên không còn phương thức đó.
+ */
+export const app = new Hono<AppEnv>();
 app.use(
   '*',
   cors({
@@ -125,4 +130,20 @@ app.route('/', styles);
 app.route('/', tiles);
 app.route('/', r2);
 
-export default app;
+/**
+ * Worker xuất một object thay vì mỗi `app`: `fetch` cho HTTP, `scheduled` cho cron (spec 9.4).
+ * `SELF.fetch` của cloudflare:test và `wrangler dev` đều nhận dạng này.
+ *
+ * `scheduled` KHÔNG await chayCron mà đẩy vào `waitUntil`: Cloudflare giới hạn thời gian của
+ * handler, còn từng việc bên trong đã tự bọc lỗi nên không có gì ném ra tới đây.
+ */
+export default {
+  fetch: app.fetch,
+  scheduled(controller: ScheduledController, env: Env, ctx: ExecutionContext) {
+    ctx.waitUntil(
+      chayCron(env, ctx, controller.cron).then((baoCao) => {
+        console.log(`[cron] ${controller.cron}: ${JSON.stringify(baoCao)}`);
+      }),
+    );
+  },
+};
