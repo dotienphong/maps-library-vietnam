@@ -7,7 +7,7 @@ import worker from '../src/index';
  * cron chạy lúc DB không trả lời. Yêu cầu là Worker vẫn sống và không việc nào ném ra ngoài.
  */
 describe('scheduled()', () => {
-  it('DB không nối được → mọi việc báo lỗi, KHÔNG ném, Worker vẫn sống', async () => {
+  it('cron 5 phút: hai việc nền (đơn hàng + sức khoẻ), DB không nối được vẫn KHÔNG ném', async () => {
     const viecNen: Promise<unknown>[] = [];
     const ctx = {
       waitUntil: (p: Promise<unknown>) => viecNen.push(p),
@@ -20,8 +20,24 @@ describe('scheduled()', () => {
         ctx as never,
       ),
     ).not.toThrow();
-    expect(viecNen).toHaveLength(1);
+    // Việc sức khoẻ được xếp nhưng kết thúc `thieu-cau-hinh`: tầng test không có ALERT_EMAIL, nên
+    // không có lượt đo nào chạy (và không phải chờ 15 s đo lại).
+    expect(viecNen).toHaveLength(2);
     await expect(Promise.all(viecNen)).resolves.toBeDefined();
+  });
+
+  it('cron hằng ngày: chỉ việc đơn hàng, không đo sức khoẻ', () => {
+    const viecNen: Promise<unknown>[] = [];
+    const ctx = {
+      waitUntil: (p: Promise<unknown>) => void viecNen.push(p.catch(() => {})),
+      passThroughOnException: () => {},
+    };
+    worker.scheduled(
+      { cron: '0 2 * * *', scheduledTime: Date.now(), noRetry: () => {} } as never,
+      { ...env, PAYOS_CLIENT_ID: 'x', PAYOS_API_KEY: 'x', PAYOS_CHECKSUM_KEY: 'x' } as never,
+      ctx as never,
+    );
+    expect(viecNen).toHaveLength(1);
   });
 
   it('vẫn phục vụ HTTP như trước khi có scheduled', async () => {

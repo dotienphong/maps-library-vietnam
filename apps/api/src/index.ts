@@ -3,10 +3,11 @@ import { Hono } from 'hono';
 import { cors } from 'hono/cors';
 import { requireBillingAccess } from './access';
 import { analyticsMiddleware } from './analytics';
-import { chayCron } from './commerce/cron';
+import { CRON_MOI_5_PHUT, chayCron } from './commerce/cron';
 import { dbHealth } from './db-health';
 import type { AppEnv, Env } from './env';
 import { ApiError, errorResponse } from './errors';
+import { theoDoiSucKhoe } from './health/canh-bao';
 import { admin, requireSameSiteGhi } from './routes/admin';
 import { adminOrders } from './routes/admin-orders';
 import { adminQuotaSummary } from './routes/admin-quota-summary';
@@ -157,5 +158,14 @@ export default {
         console.log(`[cron] ${controller.cron}: ${JSON.stringify(baoCao)}`);
       }),
     );
+    // Cảnh báo sức khoẻ đi RIÊNG một waitUntil, không nằm trong chayCron: đó là mã nghiệp vụ đơn
+    // hàng, còn đây là vận hành. Chỉ theo nhịp 5 phút — lịch 09:00 là thư nhắc hạn.
+    if (controller.cron === CRON_MOI_5_PHUT) {
+      ctx.waitUntil(
+        theoDoiSucKhoe(env, ctx).then((baoCao) => {
+          console.log(`[health] ${JSON.stringify(baoCao)}`);
+        }),
+      );
+    }
   },
 };
