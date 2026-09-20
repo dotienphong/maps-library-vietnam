@@ -108,8 +108,8 @@ và ở màn hình rộng thì không có nút ☰.
    sau vẫn được; tắt một bài thì đổi `daDuyet` về `false`.
 3. **Xác thực Google Search Console và Bing Webmaster** cho `mapslibvn-site.pages.dev`, gửi
    `sitemap-index.xml`, rồi ghi ngày kiểm lại chỉ mục vào đây.
-4. **Chạy Lighthouse mobile** trên bản deploy thật cho trang chủ và trang bảng giá, dán bốn điểm
-   vào bảng dưới. Số ở máy không thay thế được số trên bản deploy.
+4. ~~**Chạy Lighthouse mobile** trên bản deploy thật~~ — **XONG 20/09/2026: PHONG đã chạy và báo
+   xanh.** Tiêu chí 2 của spec coi như đạt.
 
 | Trang | Performance | Accessibility | Best practices | SEO | LCP |
 |---|---|---|---|---|---|
@@ -118,11 +118,16 @@ và ở màn hình rộng thì không có nút ☰.
 
 Ngưỡng spec: Performance ≥ 90, SEO 100, Accessibility ≥ 95, LCP ≤ 2,5 s, CLS ≤ 0,1, TBT ≤ 200 ms.
 
+**Bảng trên vẫn trống có chủ đích, không phải quên.** PHONG báo "chạy xanh" nhưng bốn con số và ảnh
+chụp chưa được dán vào. Spec đòi ảnh chụp trong hồ sơ, nên về mặt giấy tờ đây là *lời khai đã được
+chấp nhận*, không phải *số đo đã lưu*. Muốn đóng kín thì dán bốn điểm của hai trang vào bảng; nếu
+sau này đổi tên miền hoặc đổi ảnh hero, không có số cũ để so thì không biết mình đã tụt hay chưa.
+
 ## 6. Còn nợ, ghi rõ chứ không lờ đi
 
 - **Ba bài viết lên web trước khi PHONG đọc**, theo lựa chọn của PHONG ngày 18/09. Rủi ro: Google
   có thể lập chỉ mục bản chưa duyệt; sửa sau thì phải chờ lập chỉ mục lại.
-- Chưa đo Lighthouse trên bản deploy, nên bốn ngưỡng hiệu năng của spec **chưa được chứng minh**;
-  số ở mục 2 chỉ nói về khối lượng tải, không nói về điểm số.
+- ~~Chưa đo Lighthouse trên bản deploy~~ — PHONG đã chạy và báo xanh 20/09/2026. Còn thiếu **bốn
+  con số và ảnh chụp** để làm mốc so sánh cho lần sau (xem mục 5).
 - Tên miền vẫn là `pages.dev`. PHONG đã biết và chấp nhận SEO tính lại khi đổi; cách đổi ghi ở
   README và trong `site.config.mjs`.
