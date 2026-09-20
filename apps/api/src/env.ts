@@ -30,6 +30,13 @@ export interface Env {
   /** Địa chỉ nhận thư trả lời, cũng là email hỗ trợ hiện trên website. */
   SUPPORT_EMAIL?: string;
   /**
+   * Địa chỉ nhận thư cảnh báo sức khoẻ từ cron (spec 2026-09-20-canh-bao-suc-khoe). Vắng → cron
+   * KHÔNG đo, báo cáo `thieu-cau-hinh`; dev không đặt để không gọi Valhalla mỗi 5 phút ở máy.
+   * Không dùng lại SUPPORT_EMAIL dù hôm nay cùng địa chỉ: một cái là nơi khách trả lời, một cái là
+   * nơi máy gọi người trực.
+   */
+  ALERT_EMAIL?: string;
+  /**
    * Pepper băm token phiên và mã đăng nhập của khách. Đặt bằng
    * `wrangler secret put SESSION_PEPPER --env production`. Vắng ở production → nhóm route console
    * trả 503 chứ không băm yếu, cùng cách IP_HASH_PEPPER đã làm cho /v1/edits.
