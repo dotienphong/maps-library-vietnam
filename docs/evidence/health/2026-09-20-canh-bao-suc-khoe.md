@@ -32,6 +32,11 @@ Spec: `docs/superpowers/specs/2026-09-20-canh-bao-suc-khoe-design.md`. Plan: `do
 - Việc còn lại của PHONG: bấm xác nhận trong thư "Verify your email" của Cloudflare Notifications nếu
   có; chưa xác nhận thì chính sách không gửi. Kiểm thật duy nhất là một lần tunnel down; khi có, ghi
   lại ở đây.
+- **Token máy dev đã có `Account · Notifications · Edit` (PHONG thêm 20/09 ~03:42 UTC).** Kiểm bằng
+  `PUT /alerting/v3/policies/{id}` với đúng nội dung hiện có → `success: true`, nội dung không đổi,
+  chỉ `modified` nhảy lên 03:44:32 UTC. Lưu ý API: cập nhật chính sách là **PUT toàn thân**, PATCH trả
+  `10405 Method not allowed for this authentication scheme` — mã lỗi đó là do sai method, không phải
+  thiếu quyền. Token vẫn không thấy tunnel (`cfd_tunnel` rỗng) — không cần cho việc này.
 
 ## 3. Lớp B — cron Worker trên production
 
