@@ -30,8 +30,16 @@ Spec: `docs/superpowers/specs/2026-09-20-canh-bao-suc-khoe-design.md`. Plan: `do
   enabled, và **không bao giờ khớp** — một lớp cảnh báo xanh giả. Lần sau tạo bằng API phải dùng đúng
   hằng `TUNNEL_STATUS_TYPE_*` (suy ra: `TUNNEL_STATUS_TYPE_HEALTHY`, `_DEGRADED`, `_INACTIVE`).
 - Việc còn lại của PHONG: bấm xác nhận trong thư "Verify your email" của Cloudflare Notifications nếu
-  có; chưa xác nhận thì chính sách không gửi. Kiểm thật duy nhất là một lần tunnel down; khi có, ghi
-  lại ở đây.
+  có; chưa xác nhận thì chính sách không gửi.
+- **ĐÃ KIỂM BẰNG TUNNEL DOWN THẬT, 20/09 ~03:45–03:48 UTC.** PHONG tắt tunnel khoảng 2 phút rồi mở lại.
+  Lịch sử Notification (`GET /alerting/v3/history`): `tunnel_health_event` gửi email lúc
+  **03:46:43 UTC** (dòng 03:36:24 trước đó là nút **Test** trên dashboard). PHONG xác nhận nhận được
+  thư. Bộ lọc `TUNNEL_STATUS_TYPE_DOWN` khớp thật — điểm mù "chưa kiểm được" của lớp A đã đóng.
+- **Lớp B KHÔNG gửi thư trong lần này, và đó là đúng thiết kế hiện tại:** cron đo lúc :45:17 và :50:17
+  (nhịp 5 phút), KV sau sự cố vẫn cả ba `ok: true`, `guiTrongNgay.so` vẫn 1, `kiemLuc` 03:40:17 (không
+  ghi vì không đổi). Một lần down ~2 phút rơi giữa hai lượt đo; muốn lớp B bắt thì sự cố phải phủ một
+  lượt đo **và** lượt đo lại 15 s sau. Hệ quả: lớp B chỉ bảo đảm cho sự cố kéo dài ≥ ~5 phút. Quyết định
+  có rút nhịp xuống 1 phút hay không ghi ở mục 4.
 - **Token máy dev đã có `Account · Notifications · Edit` (PHONG thêm 20/09 ~03:42 UTC).** Kiểm bằng
   `PUT /alerting/v3/policies/{id}` với đúng nội dung hiện có → `success: true`, nội dung không đổi,
   chỉ `modified` nhảy lên 03:44:32 UTC. Lưu ý API: cập nhật chính sách là **PUT toàn thân**, PATCH trả
@@ -86,4 +94,9 @@ Spec: `docs/superpowers/specs/2026-09-20-canh-bao-suc-khoe-design.md`. Plan: `do
 
 ## 4. Điểm mù còn lại
 
-Xem spec mục 8. Phát sinh trong lúc làm: lớp A phải tạo tay (mục 2); chưa có sự kiện tunnel down thật để kiểm bộ lọc.
+Xem spec mục 8. Phát sinh trong lúc làm: lớp A phải tạo tay (mục 2), đã kiểm bằng down thật.
+
+**Điểm mù mới thấy khi kiểm thật:** sự cố ngắn hơn nhịp cron (5 phút) không tới được lớp B. Lựa chọn
+đang chờ PHONG: thêm lịch `* * * * *` riêng cho việc sức khoẻ (phát hiện ≤ ~1,5 phút; 1.440 lượt
+`/route` + `SELECT 1` mỗi ngày, KV không tăng vì ghi chọn lọc, Resend không tăng vì chỉ gửi khi đổi
+trạng thái), hoặc giữ 5 phút và chấp nhận bỏ qua chớp ngắn.

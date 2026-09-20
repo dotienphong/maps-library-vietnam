@@ -3662,3 +3662,10 @@ mà tôi định gửi. Nếu token có quyền ghi, chính sách `["down"]` đ�
 khớp — đúng loại xanh giả mà toàn bộ việc này sinh ra để chống. Bài học: bộ lọc Notification không
 có enum trong schema thì tạo một bản trên dashboard trước, đọc lại bằng API, rồi mới viết payload.
 Còn nợ: PHONG bấm xác nhận email trong thư của Cloudflare Notifications, nếu có.
+
+**Kiểm thật, và thấy đúng giới hạn đã chọn.** PHONG tắt tunnel khoảng hai phút lúc ~03:46 UTC. Cloudflare
+gửi thư Down lúc 03:46:43 — bộ lọc `TUNNEL_STATUS_TYPE_DOWN` khớp thật, lớp A đóng điểm mù. Cron thì im:
+nó đo lúc :45 và :50, sự cố nằm trọn giữa hai lượt, KV không đổi một byte. Đó không phải lỗi mà là hệ quả
+của nhịp 5 phút: lớp B chỉ bảo đảm cho sự cố dài hơn nhịp đo. Câu hỏi để PHONG chốt là có đáng thêm một
+lịch `* * * * *` riêng cho việc sức khoẻ hay không — chi phí là 1.440 lượt đo/ngày, gần như miễn phí, đổi
+lấy phát hiện trong ~1,5 phút.
