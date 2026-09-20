@@ -3654,5 +3654,6 @@ Resend nhận. Bằng chứng ở `docs/evidence/health/2026-09-20-canh-bao-suc-
 `wrangler` không tương tác không đọc `.env` gốc repo (một vòng poll 9 phút trôi qua vì tưởng KV
 trống), và macOS không có `timeout`.
 
+PHONG xác nhận thư "PHỤC HỒI: Định tuyến (hỏng 12 phút)" đã tới hộp thư — lớp B nghiệm thu xong.
 Còn nợ: PHONG tạo tay chính sách Tunnel Health Alert (lớp A) và xác nhận email trong thư của
-Cloudflare; xác nhận thư "PHỤC HỒI: Định tuyến" đã tới hộp thư.
+Cloudflare.

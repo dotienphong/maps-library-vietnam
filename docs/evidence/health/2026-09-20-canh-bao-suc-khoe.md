@@ -59,8 +59,9 @@ Spec: `docs/superpowers/specs/2026-09-20-canh-bao-suc-khoe-design.md`. Plan: `do
   ```
 
   `so: 1` chỉ tăng sau khi `port.send()` trả về không lỗi, nên Resend đã nhận thư. Tiêu đề theo mẫu:
-  `[MapsLibVN] PHỤC HỒI: Định tuyến (hỏng 12 phút)` (02:53:32 → 03:05:17). **PHONG xác nhận trong hộp
-  thư dotienphong1993@gmail.com** — máy không đọc được hộp thư đó.
+  `[MapsLibVN] PHỤC HỒI: Định tuyến (hỏng 12 phút)` (02:53:32 → 03:05:17). **PHONG xác nhận đã nhận
+  thư trong hộp dotienphong1993@gmail.com lúc ~10:10 giờ VN ngày 20/09/2026** — đường thư nghiệm thu
+  đầu-cuối trên production.
 - Trang `/admin/health` sau lượt này phải hiện "Giám sát tự động: đo lần cuối 10:05 · đã gửi 1 cảnh
   báo hôm nay" (giờ Việt Nam). PHONG kiểm khi mở trang.
 - Bẫy gặp trong lúc nghiệm thu: `wrangler` chạy không tương tác **không đọc `.env`** ở gốc repo — phải
