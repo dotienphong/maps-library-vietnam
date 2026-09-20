@@ -1289,6 +1289,11 @@ Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>"
 
 ### Task 7: Lớp A — chính sách Tunnel Health Alert trên Cloudflare
 
+> **Kết quả thực tế 20/09/2026:** Step 1 trả `10000 Authentication error` (token thiếu `Notifications
+> Write`) → PHONG tạo tay trên Dashboard, id `474c4effac064a91806ed562e136a594`. Đọc lại cho thấy giá
+> trị bộ lọc thật là `"new_status": ["TUNNEL_STATUS_TYPE_DOWN"]` — **payload `["down"]` bên dưới là
+> SAI**, giữ lại để làm chứng; tạo bằng API lần sau phải dùng `TUNNEL_STATUS_TYPE_DOWN`.
+
 **Files:** không sửa mã. Kết quả ghi vào evidence ở Task 8.
 
 - [ ] **Step 1: Tạo chính sách bằng API (token máy dev, đọc từ `.env` gốc repo)**

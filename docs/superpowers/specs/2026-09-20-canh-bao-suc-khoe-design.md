@@ -47,10 +47,12 @@ dotienphong1993@gmail.com. Tunnel `mapslibvn-db` mang **cả** hostname `maps-db
   error — token thiếu `Notifications Write`). Vì vậy PHONG tạo tay: Dashboard → Notifications → Add
   → Cloudflare Tunnel → Tunnel Health Alert → email → chỉ chọn trạng thái **Down** — đúng bước 5
   "tuỳ chọn" trong `infra/server/README.md`, nay đổi thành **bắt buộc**.
-- Bộ lọc `new_status`: chỉ `down` (và không lọc theo `tunnel_id`, vì token không thấy tunnel — bộ
-  lọc rỗng áp cho mọi tunnel của tài khoản, hiện chỉ có một). Không nhận `degraded`: một `cloudflared`
-  giữ bốn kết nối HA, rớt hai trong bốn là chuyện bình thường của mạng nhà và không làm dịch vụ chết.
-  Không nhận `healthy`: thư phục hồi để lớp B lo, vì lớp B biết nói "hỏng bao lâu".
+- Bộ lọc `new_status`: chỉ **Down**. Giá trị thật trong API là `TUNNEL_STATUS_TYPE_DOWN` (đọc lại
+  từ chính sách dashboard tạo ngày 20/09), **không phải** `down` chữ thường như trường `status` của
+  API tunnel — schema OpenAPI không liệt kê, và đoán sai là một chính sách enabled không bao giờ khớp.
+  Dashboard cũng gắn `tunnel_id` của `mapslibvn-db`. Không nhận Degraded: một `cloudflared` giữ bốn kết
+  nối HA, rớt hai trong bốn là chuyện bình thường của mạng nhà và không làm dịch vụ chết. Không nhận
+  Healthy: thư phục hồi để lớp B lo, vì lớp B biết nói "hỏng bao lâu".
 - Email lần đầu vào chính sách phải được **xác nhận**: Cloudflare gửi thư xác nhận, PHONG bấm link.
   Chưa bấm thì chính sách tồn tại mà không gửi gì — ghi vào checklist nghiệm thu.
 

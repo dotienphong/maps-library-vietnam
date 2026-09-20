@@ -13,15 +13,25 @@ Spec: `docs/superpowers/specs/2026-09-20-canh-bao-suc-khoe-design.md`. Plan: `do
 
 ## 2. Lớp A — Tunnel Health Alert
 
-- **Trạng thái: chờ PHONG tạo tay.** `POST /accounts/{id}/alerting/v3/policies` với `CLOUDFLARE_API_TOKEN`
-  trả `success: false`, lỗi `10000 Authentication error`: token thiếu `Notifications Write` (đọc danh
-  sách chính sách thì được). Token cũng không thấy tunnel nào (`cfd_tunnel` trả rỗng) nên không lọc
-  được theo `tunnel_id` — bộ lọc rỗng áp cho mọi tunnel của tài khoản, hiện chỉ có `mapslibvn-db`.
-- Bước tạo: Dashboard → **Notifications** → **Add** → Product **Cloudflare Tunnel** → **Tunnel Health
-  Alert** → tên `MapsLibVN — Tunnel mapslibvn-db down` → email `dotienphong1993@gmail.com` → trạng thái
-  chỉ chọn **Down** → Create. Sau đó bấm xác nhận trong thư "Verify your email" của Cloudflare nếu có.
-- Chưa kiểm được: giá trị bộ lọc trạng thái mà Cloudflare so khớp (schema OpenAPI không liệt kê).
-  Cách kiểm thật duy nhất là một lần tunnel down thật; khi có, ghi lại ở đây.
+- **ĐÃ TẠO 20/09/2026 03:34 UTC, PHONG tạo tay trên Dashboard** (token API của máy dev thiếu
+  `Notifications Write`: POST trả `10000 Authentication error`; đọc thì được). Đọc lại bằng API:
+
+  | Trường | Giá trị |
+  |---|---|
+  | id | `474c4effac064a91806ed562e136a594` |
+  | alert_type | `tunnel_health_event`, enabled |
+  | filters.new_status | `["TUNNEL_STATUS_TYPE_DOWN"]` |
+  | filters.tunnel_id | `["dd6713db-c7b4-48e2-8700-3e4a38dc1356"]` (mapslibvn-db) |
+  | email | dotienphong1993@gmail.com |
+
+- **Bài học giá trị bộ lọc.** Schema OpenAPI không liệt kê giá trị của `new_status`; plan Task 7 định
+  gửi `["down"]` chữ thường theo trường `status` của API tunnel. Dashboard sinh ra
+  `TUNNEL_STATUS_TYPE_DOWN`. Nếu token có quyền ghi và tôi POST `["down"]`, chính sách sẽ tồn tại,
+  enabled, và **không bao giờ khớp** — một lớp cảnh báo xanh giả. Lần sau tạo bằng API phải dùng đúng
+  hằng `TUNNEL_STATUS_TYPE_*` (suy ra: `TUNNEL_STATUS_TYPE_HEALTHY`, `_DEGRADED`, `_INACTIVE`).
+- Việc còn lại của PHONG: bấm xác nhận trong thư "Verify your email" của Cloudflare Notifications nếu
+  có; chưa xác nhận thì chính sách không gửi. Kiểm thật duy nhất là một lần tunnel down; khi có, ghi
+  lại ở đây.
 
 ## 3. Lớp B — cron Worker trên production
 
@@ -71,4 +81,4 @@ Spec: `docs/superpowers/specs/2026-09-20-canh-bao-suc-khoe-design.md`. Plan: `do
 
 ## 4. Điểm mù còn lại
 
-Xem spec mục 8. Phát sinh trong lúc làm: lớp A phụ thuộc một bước tay của PHONG (mục 2).
+Xem spec mục 8. Phát sinh trong lúc làm: lớp A phải tạo tay (mục 2); chưa có sự kiện tunnel down thật để kiểm bộ lọc.

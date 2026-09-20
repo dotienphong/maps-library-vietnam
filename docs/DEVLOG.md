@@ -3655,5 +3655,10 @@ Resend nhận. Bằng chứng ở `docs/evidence/health/2026-09-20-canh-bao-suc-
 trống), và macOS không có `timeout`.
 
 PHONG xác nhận thư "PHỤC HỒI: Định tuyến (hỏng 12 phút)" đã tới hộp thư — lớp B nghiệm thu xong.
-Còn nợ: PHONG tạo tay chính sách Tunnel Health Alert (lớp A) và xác nhận email trong thư của
-Cloudflare.
+
+**Lớp A tạo tay lúc 03:34 UTC, và cái tay đó cứu một lỗi câm.** Đọc lại chính sách bằng API cho thấy
+dashboard ghi bộ lọc là `TUNNEL_STATUS_TYPE_DOWN`, không phải `down` như trường `status` của API tunnel
+mà tôi định gửi. Nếu token có quyền ghi, chính sách `["down"]` đã được tạo, enabled, và không bao giờ
+khớp — đúng loại xanh giả mà toàn bộ việc này sinh ra để chống. Bài học: bộ lọc Notification không
+có enum trong schema thì tạo một bản trên dashboard trước, đọc lại bằng API, rồi mới viết payload.
+Còn nợ: PHONG bấm xác nhận email trong thư của Cloudflare Notifications, nếu có.
