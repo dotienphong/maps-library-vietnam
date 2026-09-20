@@ -3645,3 +3645,14 @@ Tunnel cũng không hiện qua token này. PHONG tạo tay trên Dashboard, bư�
 `infra/server/README.md` nay là bắt buộc. Một điểm chưa kiểm được ghi lại cho lần sau: schema OpenAPI
 khai bộ lọc `new_status` là mảng chuỗi không liệt kê giá trị; tài liệu chỉ nêu bốn trạng thái
 `Healthy/Inactive/Down/Degraded`. Cách kiểm thật duy nhất là một lần tunnel down thật.
+
+**Nghiệm thu trên production trong 20 phút sau merge.** Lượt cron đầu 02:55 UTC ghi KV với cả ba
+thành phần tốt; lượt 03:00 không ghi vì không có gì đổi — đúng quy tắc tiết kiệm hạn mức. Diễn tập
+đường thư không cần làm hỏng gì: ghi tay vào KV rằng định tuyến đang hỏng từ 12 phút trước, lượt cron
+03:05 thấy nó tốt, chuyển trạng thái và gửi thư — `guiTrongNgay.so` từ 0 lên 1, con số chỉ tăng sau khi
+Resend nhận. Bằng chứng ở `docs/evidence/health/2026-09-20-canh-bao-suc-khoe.md`. Hai bẫy vặn tay:
+`wrangler` không tương tác không đọc `.env` gốc repo (một vòng poll 9 phút trôi qua vì tưởng KV
+trống), và macOS không có `timeout`.
+
+Còn nợ: PHONG tạo tay chính sách Tunnel Health Alert (lớp A) và xác nhận email trong thư của
+Cloudflare; xác nhận thư "PHỤC HỒI: Định tuyến" đã tới hộp thư.

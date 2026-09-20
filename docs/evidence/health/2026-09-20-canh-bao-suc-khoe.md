@@ -25,7 +25,48 @@ Spec: `docs/superpowers/specs/2026-09-20-canh-bao-suc-khoe-design.md`. Plan: `do
 
 ## 3. Lớp B — cron Worker trên production
 
-(điền sau deploy — xem mục 9 của spec)
+- Merge `5e7fc17` lên `main` lúc 02:46 UTC; bốn workflow (Deploy API, CI, Deploy Docs, Routing tests)
+  xanh; `/healthz` và `/healthz/db` trả 200 sau deploy.
+- **Lượt cron đầu 02:55:18 UTC** ghi KV `health:canh-bao` (đọc bằng `wrangler kv key get --remote`):
+
+  ```json
+  {"v":1,"kiemLuc":"2026-09-20T02:55:18.436Z","ghiLuc":"2026-09-20T02:55:18.436Z",
+   "thanhPhan":{"db":{"ok":true,"tuLuc":"2026-09-20T02:55:18.436Z"},
+                "routing":{"ok":true,"tuLuc":"2026-09-20T02:55:18.436Z"},
+                "data":{"ok":true,"tuLuc":"2026-09-20T02:55:18.436Z"}},
+   "guiTrongNgay":{"ngay":"2026-09-20","so":0}}
+  ```
+
+- Lượt 03:00 UTC **không ghi KV** (trạng thái không đổi, bản ghi mới 5 phút) — đúng quy tắc ghi chọn
+  lọc ở spec 5.3; `kiemLuc` vẫn là 02:55:18 khi đọc lúc 03:04.
+- **Diễn tập đường thư (spec 9.4)** lúc 03:03:32 UTC: `wrangler kv key put` trạng thái với
+  `routing = {ok:false, tuLuc:"2026-09-20T02:53:32.000Z", loi:"diễn tập đường thư 20/09/2026"}`, phần
+  còn lại giữ nguyên. Lượt cron **03:05:17 UTC** thấy định tuyến tốt → chuyển trạng thái → gửi thư.
+  KV sau đó:
+
+  ```json
+  {"v":1,"kiemLuc":"2026-09-20T03:05:17.945Z","ghiLuc":"2026-09-20T03:05:17.945Z",
+   "thanhPhan":{"db":{"ok":true,"tuLuc":"2026-09-20T02:55:18.436Z"},
+                "routing":{"ok":true,"tuLuc":"2026-09-20T03:05:17.945Z"},
+                "data":{"ok":true,"tuLuc":"2026-09-20T02:55:18.436Z"}},
+   "guiTrongNgay":{"ngay":"2026-09-20","so":1}}
+  ```
+
+  Dòng log của chính lượt đó (`wrangler tail --env production`):
+
+  ```
+  [health] {"ten":"canhBaoSucKhoe","ok":true,"trangThai":"da-gui","hong":[],"phucHoi":["routing"],"daGhiKv":true}
+  ```
+
+  `so: 1` chỉ tăng sau khi `port.send()` trả về không lỗi, nên Resend đã nhận thư. Tiêu đề theo mẫu:
+  `[MapsLibVN] PHỤC HỒI: Định tuyến (hỏng 12 phút)` (02:53:32 → 03:05:17). **PHONG xác nhận trong hộp
+  thư dotienphong1993@gmail.com** — máy không đọc được hộp thư đó.
+- Trang `/admin/health` sau lượt này phải hiện "Giám sát tự động: đo lần cuối 10:05 · đã gửi 1 cảnh
+  báo hôm nay" (giờ Việt Nam). PHONG kiểm khi mở trang.
+- Bẫy gặp trong lúc nghiệm thu: `wrangler` chạy không tương tác **không đọc `.env`** ở gốc repo — phải
+  `set -a; source ../../.env; set +a` trước, nếu không `kv key get` báo thiếu `CLOUDFLARE_API_TOKEN`
+  (và một vòng poll 9 phút đã trôi qua vì thế). macOS không có `timeout`; `wrangler tail` giới hạn
+  thời gian bằng `&` + `sleep` + `kill`.
 
 ## 4. Điểm mù còn lại
 
