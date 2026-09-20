@@ -42,9 +42,10 @@ Một chính sách Notification loại `tunnel_health_event` trong tài khoản 
 dotienphong1993@gmail.com. Tunnel `mapslibvn-db` mang **cả** hostname `maps-db` (Postgres) và
 `maps-route` (Valhalla), nên một chính sách là đủ cho cả hai.
 
-- Tạo bằng API `POST /accounts/{id}/alerting/v3/policies` với `CLOUDFLARE_API_TOKEN` của máy dev.
-  Token này đọc được danh sách chính sách (đã thử 20/09), chưa biết có ghi được không. Nếu 403 thì
-  PHONG bấm tay: Zero Trust → Networks → Tunnels → `mapslibvn-db` → Notifications — đúng bước 5
+- Thử tạo bằng API `POST /accounts/{id}/alerting/v3/policies` với `CLOUDFLARE_API_TOKEN` của máy
+  dev ngày 20/09: đọc được danh sách chính sách nhưng **ghi bị từ chối** (10000 Authentication
+  error — token thiếu `Notifications Write`). Vì vậy PHONG tạo tay: Dashboard → Notifications → Add
+  → Cloudflare Tunnel → Tunnel Health Alert → email → chỉ chọn trạng thái **Down** — đúng bước 5
   "tuỳ chọn" trong `infra/server/README.md`, nay đổi thành **bắt buộc**.
 - Bộ lọc `new_status`: chỉ `down` (và không lọc theo `tunnel_id`, vì token không thấy tunnel — bộ
   lọc rỗng áp cho mọi tunnel của tài khoản, hiện chỉ có một). Không nhận `degraded`: một `cloudflared`
@@ -167,8 +168,9 @@ Hyperdrive trỏ cổng đóng nên phép đo DB luôn hỏng, đúng cảnh c�
 
 `test/email-mau-canh-bao.test.ts` — có cả `html` và `text`; tiêu đề đúng ba dạng ở 5.4.
 
-`test/scheduled.test.ts` — cron `*/5` với `ALERT_EMAIL` và DB không nối được: hai việc nền, không
-ném. Không có `ALERT_EMAIL` → việc sức khoẻ vẫn được xếp nhưng kết thúc `thieu-cau-hinh`.
+`test/scheduled.test.ts` — cron `*/5` xếp **hai** việc nền (đơn hàng + sức khoẻ) và không ném khi DB
+không nối được; cron `0 2` chỉ một việc. Tầng test không có `ALERT_EMAIL` nên việc sức khoẻ kết
+thúc `thieu-cau-hinh` — cố ý: có nó thì ba phép đo đều hỏng và bài test phải chờ 15 s đo lại.
 
 `test/admin-health.test.ts` — `watcher` là `null` khi KV trống; đúng nội dung khi có trạng thái.
 Các bài cũ giữ nguyên: tách hàm không được đổi hình dạng phản hồi.

@@ -3605,3 +3605,43 @@ phía sau. Hành vi sản phẩm đúng; bài test viết từ thời chưa có 
 Tiếp theo: việc còn nợ từ pha 1 (chạy Lighthouse trên bản deploy, xác thực Google Search Console),
 và hai chỗ mỏng của pha 3 (đường cron đối soát chưa chạy bằng tiền thật, hạn mức và biểu phí PayOS
 chưa hỏi).
+
+## 27. 20/09/2026 — Cảnh báo sức khoẻ: ba thẻ ở /admin/health giờ biết gọi người
+
+Ba thẻ Cơ sở dữ liệu, Định tuyến, Dữ liệu trên trang Sức khoẻ đến từ một endpoint chạy ba phép đo
+song song, và chỉ đo **khi có người mở trang**. Máy chủ ở nhà ngủ lúc 2 giờ sáng thì khách nhận 503
+suốt đêm mà không ai biết. Hôm nay hệ thống có hai lớp cảnh báo email, spec
+`docs/superpowers/specs/2026-09-20-canh-bao-suc-khoe-design.md`, plan cùng tên trong `plans/`.
+
+**Hai lớp vì hai nhóm lỗi khác nhau.** Cloudflare Tunnel Health Alert đo từ phía edge, sống kể cả khi
+Worker của ta hỏng, nhưng chỉ thấy tunnel — máy chủ ngủ, mất mạng, `cloudflared` tắt. Nó không thấy
+graph rỗng (Valhalla vẫn trả 200 cho `/status`, tiền lệ nghiệm thu xanh giả), container postgres
+chết trong khi tunnel còn, hay manifest KV hỏng. Lớp thứ hai là cron Worker mỗi 5 phút chạy đúng ba
+phép đo của trang, tách ra `health/phep-do.ts` để route và cron dùng **chung một hàm** — hai nơi đo
+"có sống không" mà trả lời khác nhau là cách để một sự cố trông như hai sự cố.
+
+**Gửi khi trạng thái đổi, không phải khi hỏng.** Một sự cố kéo dài cả đêm là một thư "HỎNG: Định
+tuyến" và một thư "PHỤC HỒI: Định tuyến (hỏng 412 phút)", không phải 96 thư. Hai thành phần chết
+cùng lượt — hình dạng thật của máy ngủ — là một thư gộp với cả hai tên trong tiêu đề. Phép đo hỏng
+được đo lại sau 15 s và chỉ tính hỏng khi cả hai lần đều hỏng: một `/route` quá hạn vì máy chủ đang
+bận build graph không phải sự cố, và một thư lúc 3 giờ sáng vì việc đó là cách nhanh nhất để người
+trực tắt cảnh báo. Trạng thái lần trước nằm ở KV `META` khoá `health:canh-bao`.
+
+**Đường gửi thư không chạm Postgres.** `guiThuGiaoDich` đếm ngân sách Resend và ghi audit trong DB —
+mà DB có thể chính là thứ đang chết. Thư cảnh báo đi thẳng qua `chonEmailPort`, trần 10 thư/ngày đếm
+trong KV theo ngày UTC. Gửi thất bại thì thành phần vừa chuyển trạng thái giữ trạng thái cũ để lượt
+sau thử gửi lại. KV chỉ ghi khi có chuyển trạng thái hoặc khi bản ghi cũ hơn 30 phút: cron chạy 288
+lượt/ngày, ghi mỗi lượt là tiêu gần một phần ba hạn mức 1.000 ghi/ngày của Workers Free cho một
+việc phụ.
+
+**Ai canh người canh.** Cron chết thì im lặng, và im lặng trông giống hệt "mọi thứ tốt". Endpoint
+`/v1/admin/health` giờ trả thêm `watcher` đọc từ KV, và trang Sức khoẻ hiện "Giám sát tự động: đo lần
+cuối HH:MM · đã gửi N cảnh báo hôm nay", tô đỏ nếu lần đo cuối cũ hơn 60 phút (ngưỡng gấp đôi nhịp
+ghi 30 phút, để một bản ghi cũ 29 phút không bị coi là sự cố).
+
+**Lớp A chưa tạo được bằng máy.** `CLOUDFLARE_API_TOKEN` của máy dev đọc được danh sách chính sách
+Notification nhưng bị từ chối khi ghi (10000 Authentication error — thiếu `Notifications Write`).
+Tunnel cũng không hiện qua token này. PHONG tạo tay trên Dashboard, bước 5 của
+`infra/server/README.md` nay là bắt buộc. Một điểm chưa kiểm được ghi lại cho lần sau: schema OpenAPI
+khai bộ lọc `new_status` là mảng chuỗi không liệt kê giá trị; tài liệu chỉ nêu bốn trạng thái
+`Healthy/Inactive/Down/Degraded`. Cách kiểm thật duy nhất là một lần tunnel down thật.
