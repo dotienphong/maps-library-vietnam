@@ -191,4 +191,40 @@ describe('BillingPage', () => {
     expect(await screen.findByText(/revision_conflict/)).toBeVisible();
     expect(screen.getByText(/Bấm Tải lại rồi gửi lại/)).toBeVisible();
   });
+
+  it('tenant legacy: lệnh mang expectedRevision THẬT của sổ, không phải 0 bịa ra', async () => {
+    // Sự cố 20/09/2026: với tenant legacy truy vấn `usage` bị tắt, hộp thoại nhận một bản ghi giả
+    // `revision: 0`, nên mọi lệnh sau lệnh đầu tiên nhận revision_conflict vĩnh viễn — và nút
+    // "Tải lại" trong thông báo lỗi vô dụng vì tải lại chỉ dựng lại đúng số 0 đó.
+    const mock = batFetch('legacy');
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+    dungTrang();
+    await user.click(await screen.findByRole('button', { name: /Bật dùng thử/ }));
+    await user.type(await screen.findByLabelText(/Lý do/), 'khách xin dùng thử');
+    await user.click(screen.getByRole('button', { name: /Gửi lệnh/ }));
+    await act(async () => {
+      vi.advanceTimersByTime(6_000);
+    });
+    const goi = mock.mock.calls.find(
+      ([path, init]) =>
+        String(path).includes('/commands') && (init as RequestInit | undefined)?.method === 'POST',
+    );
+    expect(goi).toBeDefined();
+    const init = (goi as [string, RequestInit])[1];
+    const body = JSON.parse(String(init.body)) as Record<string, unknown>;
+    expect(body.expectedRevision).toBe(usage.revision);
+  });
+
+  it('tenant legacy: chỉ đọc /usage KHI mở hộp thoại lệnh, không phải lúc mở màn hình', async () => {
+    const mock = batFetch('legacy');
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+    dungTrang();
+    expect(await screen.findByText(/Hôm nay/)).toBeVisible();
+    const truoc = mock.mock.calls.map(([path]) => String(path));
+    expect(truoc.some((path) => path.endsWith('/usage'))).toBe(false);
+    await user.click(screen.getByRole('button', { name: /Bật dùng thử/ }));
+    await screen.findByLabelText(/Lý do/);
+    const sau = mock.mock.calls.map(([path]) => String(path));
+    expect(sau.some((path) => path.endsWith('/usage'))).toBe(true);
+  });
 });

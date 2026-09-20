@@ -69,9 +69,22 @@ function ChonTenant({ onChon }: { onChon: (id: string) => void }) {
 }
 
 function BillingTenant({ tenantId, onDoiTenant }: { tenantId: string; onDoiTenant: () => void }) {
+  const [hopThoai, setHopThoai] = useState<LoaiLenh | null>(null);
+  const [ketQua, setKetQua] = useState<KetQuaLenh | null>(null);
   const detail = useTenantDetail(tenantId);
   const thuongMai = detail.data?.tenant.quota_mode === 'commercial';
-  const usage = useUsage(tenantId, thuongMai);
+  /**
+   * Sổ quota là nguồn DUY NHẤT của `expectedRevision`, nên phải đọc nó trước MỌI lệnh — kể cả cho
+   * tenant legacy, nơi màn hình cố ý không đọc để khỏi tạo sổ Durable Object. Mở hộp thoại lệnh
+   * là lúc ngoại lệ đó hết giá trị: lệnh sắp gửi tự nó tạo sổ rồi.
+   *
+   * Sự cố 20/09/2026: trước đây hộp thoại nhận một bản ghi giả `revision: 0` khi truy vấn này bị
+   * tắt. Lệnh ĐẦU TIÊN trên một tenant legacy chạy được (sổ đang ở 0), rồi mọi lệnh sau đó nhận
+   * `revision_conflict` vĩnh viễn — và "Bấm Tải lại rồi gửi lại" trong thông báo lỗi không cứu
+   * được, vì tải lại chỉ dựng lại đúng số 0 bịa ra đó.
+   */
+  const soDaBat = thuongMai || hopThoai !== null;
+  const usage = useUsage(tenantId, soDaBat);
   const periods = usePeriods(tenantId, thuongMai);
   const legacy = useLegacyUsage(tenantId, detail.data !== undefined && !thuongMai);
   const catalog = useCatalog();
@@ -79,8 +92,6 @@ function BillingTenant({ tenantId, onDoiTenant }: { tenantId: string; onDoiTenan
   const moKhoa = useUnlockAcks();
   const doiCheDo = useSetQuotaMode();
   const { schedule } = useDelayedAction();
-  const [hopThoai, setHopThoai] = useState<LoaiLenh | null>(null);
-  const [ketQua, setKetQua] = useState<KetQuaLenh | null>(null);
 
   const onGui = (command: Command, nhan: string) => {
     schedule({
@@ -175,8 +186,8 @@ function BillingTenant({ tenantId, onDoiTenant }: { tenantId: string; onDoiTenan
         </div>
       )}
 
-      {thuongMai && usage.isPending && <LoadingSkeleton rows={2} />}
-      {thuongMai && usage.isError && (
+      {soDaBat && usage.isPending && <LoadingSkeleton rows={2} />}
+      {soDaBat && usage.isError && (
         <ErrorState error={usage.error} onRetry={() => void usage.refetch()} />
       )}
       {thuongMai && soHienTai && <UsagePanel usage={soHienTai} />}
@@ -213,25 +224,16 @@ function BillingTenant({ tenantId, onDoiTenant }: { tenantId: string; onDoiTenan
 
       {thuongMai && periods.data && <PeriodsPanel history={periods.data} />}
 
-      {hopThoai && (
+      {/*
+        KHÔNG có nhánh dự phòng dựng sổ giả ở đây: một `expectedRevision` bịa ra thì hoặc bị máy
+        chủ chặn bằng `revision_conflict`, hoặc — tệ hơn — trùng số thật và ghi đè lên một thay
+        đổi mà người vận hành chưa hề nhìn thấy. Chưa đọc được sổ thì chưa mở hộp thoại; khung
+        chờ và ô lỗi ở trên đã nói rõ đang ở trạng thái nào.
+      */}
+      {hopThoai && soHienTai && (
         <CommandDialog
           loai={hopThoai}
-          usage={
-            soHienTai ?? {
-              tenantId,
-              status: 'none',
-              tier: null,
-              revision: 0,
-              periodId: null,
-              startsAt: null,
-              endsAt: null,
-              trialUsedOnce: false,
-              maintenance: false,
-              missingAcks: { count: 0, limit: 3, locked: false, opensAt: null },
-              places: { limit: 0, used: 0, reserved: 0, credits: 0, available: 0 },
-              directions: { limit: 0, used: 0, reserved: 0, credits: 0, available: 0 },
-            }
-          }
+          usage={soHienTai}
           catalog={catalog.data}
           onGui={onGui}
           onMoKhoa={onMoKhoa}
