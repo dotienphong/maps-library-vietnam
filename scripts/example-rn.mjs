@@ -31,6 +31,16 @@
 // `--release` giờ CHẶN sớm nếu hash `@expo/fingerprint` của thư mục native lệch với lần build gần
 // nhất (xem `lib/native-fingerprint.mjs`) — báo lỗi kèm đúng lệnh khắc phục thay vì âm thầm cài
 // app dùng quyền/plugin cũ.
+//
+// iOS + `--release`: trước khi gọi Expo, script tự kiểm HỒ SƠ KÝ (provisioning profile) còn hạn
+// không, thiếu/sắp hết thì tự chạy một lượt `xcodebuild … -allowProvisioningUpdates` để xin hồ sơ
+// mới (xem `lib/ios-provisioning.mjs`). Lý do: hồ sơ của Apple ID cá nhân sống ĐÚNG 7 ngày, và
+// Expo CLI chỉ truyền cờ đó khi pbxproj CHƯA có `DEVELOPMENT_TEAM` — mà chính nó ghi trường đó vào
+// từ lần build đầu, nên từ lần hai trở đi không bao giờ xin lại được. Không có lưới này thì
+// `pnpm release:ios` chết đều đặn mỗi tuần với `No profiles for 'vn.mapslibvn.demo' were found`
+// (sự cố thật 20/09/2026). Hồ sơ mới kéo theo một bước TAY: iPhone chặn MỞ app tới khi vào Cài đặt
+// → Cài đặt chung → VPN & Quản lý thiết bị → Tin cậy; script in nhắc cả lúc xin xong lẫn lúc Expo
+// thoát lỗi vì bị chặn mở.
 import {
   existsSync,
   mkdirSync,
@@ -48,11 +58,13 @@ import {
   androidEnv,
   androidStudioJdk,
   availableIosDevices,
+  BUNDLE_ID,
   DEFAULT_API,
   defaultAndroidSdk,
   EXAMPLE_RN_DIR,
   envFileContent,
   expoRunArgs,
+  findIosDevice,
   KEY_ENV_NAME_RN,
   packedTarballName,
   parseAdbDevices,
@@ -65,6 +77,14 @@ import {
   uninstallCommand,
 } from './lib/example-rn.mjs';
 import { resolveKey } from './lib/example-serve.mjs';
+import {
+  iosWorkspace,
+  listProvisioningProfiles,
+  provisioningDecision,
+  provisioningProfilesDir,
+  provisioningWarmupArgs,
+  trustReminder,
+} from './lib/ios-provisioning.mjs';
 import {
   assertNativeFingerprintFresh,
   recordNativeFingerprint,
@@ -92,6 +112,16 @@ if (!existsSync(join(appDir, 'package.json'))) {
 let androidSerial;
 
 /**
+ * Identifier (UDID CoreDevice) của máy iOS đã chọn — `xcodebuild -destination id=<…>` của lượt xin
+ * hồ sơ ký chỉ nhận identifier, không nhận tên. Rỗng trên Android (không dùng tới).
+ * @type {string | undefined}
+ */
+let iosDeviceId;
+
+/** Cấu hình build của bản Release — dùng chung cho Expo và lượt xin hồ sơ ký, để không lệch nhau. */
+const RELEASE_CONFIGURATION = 'Release';
+
+/**
  * Tên/UDID (iOS) hoặc model (Android) máy thật để truyền cho `expo run:<platform> --device` —
  * bắt buộc khi `--release`, không rơi vào hỏi chọn tương tác của Expo CLI. Android: `--device`
  * của Expo CLI so khớp theo model chứ không theo serial, nên serial do người dùng chỉ định qua
@@ -100,14 +130,22 @@ let androidSerial;
  */
 function resolveDeviceName() {
   if (platform === 'ios') {
-    if (deviceName) return deviceName;
+    // Luôn liệt kê máy, KỂ CẢ khi đã truyền `--device-name`: lượt xin hồ sơ ký cần identifier của
+    // máy, mà `--device-name` là tên người đọc. Tra sớm cũng đổi lỗi gõ sai tên từ thông báo khó
+    // hiểu của Expo/xcodebuild thành một dòng liệt kê đúng tên máy đang cắm.
     const devices = availableIosDevices(
       parseDevicectlDevices(capture('xcrun', ['devicectl', 'list', 'devices'])),
     );
-    return pickSingleDevice(
-      devices.map((d) => d.name),
-      'iOS',
+    const device = findIosDevice(
+      devices,
+      deviceName ??
+        pickSingleDevice(
+          devices.map((d) => d.name),
+          'iOS',
+        ),
     );
+    iosDeviceId = device.identifier;
+    return device.name;
   }
   const devices = parseAdbDevices(capture('adb', ['devices', '-l']));
   const serial =
@@ -119,6 +157,53 @@ function resolveDeviceName() {
   androidSerial = serial;
   return androidDeviceArg(devices, serial);
 }
+
+/**
+ * Đảm bảo có hồ sơ ký (provisioning profile) còn hạn cho `BUNDLE_ID` trước khi giao việc cho Expo.
+ *
+ * Hồ sơ của Apple ID cá nhân sống ĐÚNG 7 ngày, nên `pnpm release:ios` chết đều đặn mỗi tuần với
+ * `No profiles for '…' were found … pass -allowProvisioningUpdates` (sự cố thật 20/09/2026, hồ sơ
+ * tạo 13/09 hết hạn đúng hôm đó). Expo CLI không tự chữa được vì nó chỉ truyền
+ * `-allowProvisioningUpdates` khi pbxproj CHƯA có `DEVELOPMENT_TEAM` — mà chính nó đã ghi trường
+ * đó vào từ lần build đầu tiên; `expo run:ios` cũng không có cờ passthrough xuống `xcodebuild`
+ * (chi tiết trong `lib/ios-provisioning.mjs`). Nên ta tự chạy một lượt `xcodebuild` có cờ đó.
+ *
+ * Chỉ chạy khi hồ sơ thiếu/sắp hết hạn → lượt release bình thường không chậm thêm.
+ * @returns {boolean} true nếu vừa xin hồ sơ mới (kéo theo bước Tin cậy bằng tay trên iPhone)
+ */
+function ensureIosProvisioning() {
+  const profiles = listProvisioningProfiles(provisioningProfilesDir(homedir()));
+  const decision = provisioningDecision({ profiles, bundleId: BUNDLE_ID, now: new Date() });
+  if (!decision.warmup) {
+    console.log(`  ${decision.reason}`);
+    return false;
+  }
+  if (!iosDeviceId) throw new Error('iosDeviceId rỗng — resolveDeviceName() chưa chạy?');
+  console.log(`▶ xin hồ sơ ký mới: ${decision.reason}`);
+  console.log('  (Expo bỏ quên -allowProvisioningUpdates → tự chạy xcodebuild một lượt, vài phút)');
+  const { workspace, scheme } = iosWorkspace(appDir);
+  try {
+    run(
+      'xcodebuild',
+      provisioningWarmupArgs({
+        workspace,
+        scheme,
+        configuration: RELEASE_CONFIGURATION,
+        destinationId: iosDeviceId,
+      }),
+      { cwd: join(appDir, 'ios') },
+    );
+  } catch (err) {
+    throw new Error(
+      `Không xin được hồ sơ ký cho ${BUNDLE_ID} (${err instanceof Error ? err.message : err}).
+  Thường là phiên đăng nhập Apple ID trong Xcode đã hết hạn — mở Xcode → Settings → Accounts,
+  đăng nhập lại rồi chạy lại lệnh release. Máy không đăng nhập hộ được (cần mật khẩu + 2FA).`,
+    );
+  }
+  console.log(`✓ đã có hồ sơ ký mới. ${trustReminder(BUNDLE_ID)}`);
+  return true;
+}
+
 const resolvedDeviceName = release ? resolveDeviceName() : undefined;
 if (release) console.log(`  Máy: ${resolvedDeviceName}`);
 
@@ -150,6 +235,9 @@ writeFileSync(join(appDir, '.env'), envFileContent(key, api));
 console.log('▶ 4/5 npm install tarball (cài lại mỗi lần để không dính bản cũ)');
 run('npm', ['install', '--no-audit', '--no-fund', `./vendor/${TARBALL}`], { cwd: appDir });
 
+/** Lượt này vừa xin hồ sơ ký mới → iPhone sẽ chặn MỞ app cho tới khi người dùng bấm Tin cậy. */
+let hoSoKyMoi = false;
+
 if (packOnly) {
   console.log('✓ --pack-only: xong. Chạy tay: cd examples/embed-rn && npx expo run:ios');
 } else {
@@ -179,6 +267,10 @@ if (packOnly) {
       );
       for (const dir of stale) rmSync(dir, { recursive: true, force: true });
     }
+    if (platform === 'ios') {
+      console.log('▶ kiểm hồ sơ ký còn hạn không (Apple ID cá nhân: hồ sơ chỉ sống 7 ngày)');
+      hoSoKyMoi = ensureIosProvisioning();
+    }
   }
   const runArgs = expoRunArgs(platform, device, release, resolvedDeviceName);
   console.log(`▶ 5/5 npx ${runArgs.join(' ')} (lần đầu prebuild + CocoaPods/Gradle, vài phút)`);
@@ -196,7 +288,16 @@ if (packOnly) {
     if (extraEnv.ANDROID_HOME) console.log(`  ANDROID_HOME chưa đặt → dùng ${sdk}`);
     if (extraEnv.JAVA_HOME) console.log('  JAVA_HOME chưa đặt → dùng JDK của Android Studio');
   }
-  run('npx', runArgs, { cwd: appDir, env: { ...process.env, ...extraEnv } });
+  try {
+    run('npx', runArgs, { cwd: appDir, env: { ...process.env, ...extraEnv } });
+  } catch (err) {
+    // Hồ sơ mới ⇒ `devicectl … process launch` bị iPhone từ chối với
+    // `FBSOpenApplicationErrorDomain error 3` SAU KHI đã cài xong app. Expo coi đó là build thất
+    // bại và thoát mã 1, nên nếu không nói ở đây thì người dùng tưởng build hỏng trong khi app đã
+    // nằm sẵn trên máy và chỉ thiếu một cú bấm Tin cậy.
+    if (hoSoKyMoi) console.error(`\n⚠ ${trustReminder(BUNDLE_ID)}`);
+    throw err;
+  }
   if (release) {
     // Build vừa thành công → thư mục native (dù mới prebuild hay dùng lại) khớp app.json hiện tại.
     // Ghi mốc để lần release kế tiếp so sánh.

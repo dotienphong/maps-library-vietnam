@@ -221,6 +221,26 @@ export function pickSingleDevice(names, kind) {
 }
 
 /**
+ * Tra máy iOS theo thứ người dùng gõ ở `--device-name` — chấp nhận cả TÊN lẫn identifier, vì
+ * `expo run:ios --device` nhận cả hai. Cần identifier (không chỉ tên) cho lượt hâm nóng hồ sơ ký:
+ * `xcodebuild -destination id=<…>` chỉ nhận identifier (xem `lib/ios-provisioning.mjs`).
+ * @param {{ name: string, identifier: string }[]} devices máy đang có mặt (availableIosDevices)
+ * @param {string} wanted tên hoặc identifier
+ * @returns {{ name: string, identifier: string }}
+ */
+export function findIosDevice(devices, wanted) {
+  const device = devices.find((d) => d.name === wanted || d.identifier === wanted);
+  if (!device) {
+    throw new Error(
+      `Không thấy máy iOS "${wanted}" trong số đang có mặt: ${
+        devices.map((d) => `"${d.name}"`).join(', ') || '(không có máy nào)'
+      }. Kiểm tra lại dấu tiếng Việt trong tên, hoặc cắm máy rồi thử lại.`,
+    );
+  }
+  return device;
+}
+
+/**
  * Thư mục SDK Android mặc định của mỗi hệ điều hành — dùng khi `ANDROID_HOME` chưa đặt.
  * @param {string} platform process.platform
  * @param {string} home thư mục người dùng

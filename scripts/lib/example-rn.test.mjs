@@ -10,6 +10,7 @@ import {
   EXAMPLE_RN_DIR,
   envFileContent,
   expoRunArgs,
+  findIosDevice,
   KEY_ENV_NAME_RN,
   packedTarballName,
   parseAdbDevices,
@@ -280,5 +281,29 @@ describe('staleBundleDirs — output của task bundle Gradle phải xoá trư�
 
   it('ios: không có cache tương đương (script phase Xcode chạy mỗi lần) → rỗng', () => {
     expect(staleBundleDirs('ios', '/repo/examples/embed-rn')).toEqual([]);
+  });
+});
+
+describe('findIosDevice', () => {
+  const devices = [
+    { name: 'iPhone của Phong', identifier: '600EE67B-0B24-5249-BDFC-DAA46353D9AC' },
+    { name: 'TranTran💕', identifier: '59749ACD-033F-5DE4-B0AF-B3AC7C1939E5' },
+  ];
+
+  // Lượt hâm nóng hồ sơ ký (xem lib/ios-provisioning.mjs) gọi thẳng `xcodebuild -destination
+  // id=<…>`, mà `--device-name` người dùng gõ lại là TÊN máy — phải tra ngược ra identifier.
+  it('tra theo tên → trả identifier để truyền cho xcodebuild', () => {
+    expect(findIosDevice(devices, 'iPhone của Phong').identifier).toBe(
+      '600EE67B-0B24-5249-BDFC-DAA46353D9AC',
+    );
+  });
+
+  it('tra theo identifier cũng được — `expo run:ios --device` nhận cả UDID, không chỉ tên', () => {
+    expect(findIosDevice(devices, '59749ACD-033F-5DE4-B0AF-B3AC7C1939E5').name).toBe('TranTran💕');
+  });
+
+  it('gõ sai tên → lỗi liệt kê tên đang có, không để rơi xuống lỗi khó hiểu của xcodebuild', () => {
+    expect(() => findIosDevice(devices, 'iPhone cua Phong')).toThrow(/iPhone cua Phong/);
+    expect(() => findIosDevice(devices, 'iPhone cua Phong')).toThrow(/"iPhone của Phong"/);
   });
 });

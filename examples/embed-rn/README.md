@@ -87,6 +87,47 @@ pnpm release:android --accept-native
 Từ lần sau, cổng kiểm hoạt động bình thường không cần cờ này nữa — chỉ dùng lại khi bị chặn sau khi
 đã prebuild đúng cách.
 
+### iOS: hồ sơ ký hết hạn mỗi 7 ngày (đã tự xử lý từ 20/09/2026)
+
+Hồ sơ ký (provisioning profile) cấp bởi **Apple ID cá nhân** (free personal team) sống đúng **7
+ngày**. Hết hạn thì Xcode dọn nó đi và `pnpm release:ios` chết với:
+
+```
+❌ No profiles for 'vn.mapslibvn.demo' were found: Xcode couldn't find any iOS App Development
+   provisioning profiles matching 'vn.mapslibvn.demo'. Automatic signing is disabled and unable to
+   generate a profile. To enable automatic signing, pass -allowProvisioningUpdates to xcodebuild.
+```
+
+Đừng đi tìm lỗi ở chứng chỉ: **chứng chỉ vẫn còn, chỉ hồ sơ mất**. Chứng chỉ `Apple Development`
+sống 1 năm, hồ sơ mới là thứ hết hạn hằng tuần. Kiểm bằng:
+
+```bash
+security find-identity -v -p codesigning          # chứng chỉ — thường vẫn "1 valid identities"
+ls ~/Library/Developer/Xcode/UserData/"Provisioning Profiles"/   # hồ sơ — thường RỖNG
+```
+
+Thư mục hồ sơ của Xcode 16+ là đường dẫn trên; `~/Library/MobileDevice/Provisioning Profiles` là
+chỗ cũ, nhìn vào đó dễ kết luận nhầm là "vẫn còn hồ sơ".
+
+Expo CLI **không tự chữa được**: nó chỉ truyền `-allowProvisioningUpdates` khi `project.pbxproj`
+chưa có `DEVELOPMENT_TEAM`, mà chính nó ghi trường đó vào từ lần build đầu tiên
+(`@expo/cli` → `run/ios/codeSigning/configureCodeSigning.js` + `run/ios/XcodeBuild.js`); `expo
+run:ios` cũng không có cờ nào chuyển tiếp tham số xuống `xcodebuild`.
+
+Từ 20/09/2026 `pnpm release:ios` tự kiểm hồ sơ trước khi gọi Expo, và tự chạy một lượt `xcodebuild
+… -allowProvisioningUpdates -allowProvisioningDeviceRegistration` để xin hồ sơ mới khi hồ sơ thiếu
+hoặc còn dưới 24 giờ. Không cần làm gì bằng tay — chỉ mất thêm vài phút ở đúng lượt xin hồ sơ, các
+lượt release khác không chậm đi.
+
+Hai trường hợp vẫn cần tay:
+
+- **Phiên đăng nhập Apple ID trong Xcode hết hạn** → lượt xin hồ sơ thất bại. Mở Xcode → Settings →
+  Accounts, đăng nhập lại (cần mật khẩu + 2FA), rồi chạy lại lệnh release.
+- **iPhone từ chối MỞ app** (`FBSOpenApplicationErrorDomain error 3`, "profile has not been
+  explicitly trusted by the user") — app đã cài xong trên máy, chỉ lần mở bị chặn: Cài đặt → Cài
+  đặt chung → VPN & Quản lý thiết bị → chọn `Apple Development: …` → **Tin cậy**. Cái được tin cậy
+  là **chứng chỉ**, nên chỉ phải làm một lần cho mỗi chứng chỉ, không phải mỗi tuần.
+
 ## La bàn và con quay hồi chuyển
 
 Chấm xanh có nón hướng hiện trước khi dẫn đường (nguồn `expoLocationSource({ background: false })` +
