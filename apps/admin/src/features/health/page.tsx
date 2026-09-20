@@ -63,6 +63,34 @@ function Dong({ nhan, gia }: { nhan: string; gia: ReactNode }) {
   );
 }
 
+/** Quá ngưỡng này mà cron chưa ghi gì thì không còn cách giải thích nào khác ngoài cron không chạy. */
+const CRON_IM_LANG_PHUT = 60;
+
+/**
+ * Cron chết thì im lặng, và im lặng trông giống hệt "mọi thứ tốt". Dòng này là chỗ duy nhất trên
+ * giao diện cho biết lớp cảnh báo email còn sống.
+ */
+function GiamSat({ watcher }: { watcher: Health['watcher'] }) {
+  if (!watcher) {
+    return (
+      <p className="text-xs text-[var(--text-muted)]">
+        Giám sát tự động chưa chạy lần nào — sau deploy, đợi tối đa 5 phút rồi tải lại.
+      </p>
+    );
+  }
+  const phut = Math.round((Date.now() - new Date(watcher.kiem_luc).getTime()) / 60_000);
+  const imLang = phut > CRON_IM_LANG_PHUT;
+  return (
+    <p className="flex flex-wrap items-center gap-2 text-xs text-[var(--text-muted)]">
+      <span>
+        Giám sát tự động: đo lần cuối {gio(watcher.kiem_luc)} · đã gửi {watcher.gui_trong_ngay} cảnh
+        báo hôm nay
+      </span>
+      {imLang && <Badge tone="danger">Im lặng {phut} phút — cron có thể đang không chạy</Badge>}
+    </p>
+  );
+}
+
 const cotRoute: Column<DongRoute>[] = [
   {
     key: 'route',
@@ -146,7 +174,12 @@ export function HealthPage() {
     <div className="space-y-4">
       {health.isPending && <LoadingSkeleton rows={3} />}
       {health.isError && <ErrorState error={health.error} onRetry={() => health.refetch()} />}
-      {health.data && <TrangThai health={health.data} />}
+      {health.data && (
+        <>
+          <TrangThai health={health.data} />
+          <GiamSat watcher={health.data.watcher} />
+        </>
+      )}
 
       <div className="flex flex-wrap items-center gap-2">
         {CUA_SO.map((w) => (
