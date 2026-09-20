@@ -17,6 +17,7 @@ const HEALTH = {
   },
   routing: { ok: false, ms: 6001, error: 'Dịch vụ chỉ đường không phản hồi' },
   data: { ok: true, ms: 12, tiles: 'vn-20260901', poi: 'poi-20260901', updated_at: null },
+  watcher: null,
 };
 
 const METRICS = {
@@ -39,14 +40,14 @@ const METRICS = {
 
 let duocGoi: string[] = [];
 
-function mo() {
+function mo(health: object = HEALTH) {
   duocGoi = [];
   vi.stubGlobal(
     'fetch',
     vi.fn(async (input: RequestInfo | URL) => {
       const url = String(input);
       duocGoi.push(url);
-      return new Response(JSON.stringify(url.includes('/v1/admin/health') ? HEALTH : METRICS));
+      return new Response(JSON.stringify(url.includes('/v1/admin/health') ? health : METRICS));
     }),
   );
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
@@ -99,5 +100,27 @@ describe('HealthPage', () => {
     expect(screen.getByText(/5xx 5\.0%/)).toBeVisible();
     // Dòng không có lượt 429 nào phải là 0.0%, còn mẫu số 0 mới là "—".
     expect(screen.getByText(/429 0\.0%/)).toBeVisible();
+  });
+
+  it('cron chưa chạy lần nào → nói thẳng, không giả vờ đang giám sát', async () => {
+    mo();
+    expect(await screen.findByText(/Giám sát tự động chưa chạy lần nào/)).toBeVisible();
+  });
+
+  it('cron vừa đo → hiện giờ đo cuối và số thư hôm nay', async () => {
+    const vuaRoi = new Date(Date.now() - 4 * 60_000).toISOString();
+    mo({ ...HEALTH, watcher: { kiem_luc: vuaRoi, gui_trong_ngay: 1 } });
+    const dong = await screen.findByText(/Giám sát tự động: đo lần cuối/);
+    expect(dong).toBeVisible();
+    expect(dong.textContent).toContain('1 cảnh báo hôm nay');
+    expect(screen.queryByText(/cron có thể đang không chạy/)).toBeNull();
+  });
+
+  it('lần đo cuối cũ hơn 60 phút → cảnh báo cron có thể đang không chạy', async () => {
+    // Nhịp ghi KV là 30 phút, nên 29 phút cũ vẫn bình thường; 3 giờ thì không còn cách giải thích
+    // nào khác ngoài cron không chạy.
+    const baGioTruoc = new Date(Date.now() - 3 * 3_600_000).toISOString();
+    mo({ ...HEALTH, watcher: { kiem_luc: baGioTruoc, gui_trong_ngay: 0 } });
+    expect(await screen.findByText(/cron có thể đang không chạy/)).toBeVisible();
   });
 });

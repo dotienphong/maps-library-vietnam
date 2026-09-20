@@ -73,4 +73,16 @@ pnpm key:issue --tenant <uuid> --label "app của tôi" --kind web --origins htt
 
 ## 6. Giám sát
 
-Cảnh báo email khi Tunnel down, số liệu 5xx và p95 của Worker trên dashboard, và báo cáo sử dụng hằng tuần tự động gửi email từ Analytics Engine do container `pipeline` chạy vào thứ Hai lúc 08:00 giờ Việt Nam.
+Hai lớp cảnh báo email, mỗi lớp bắt một nhóm lỗi khác nhau (spec `2026-09-20-canh-bao-suc-khoe`):
+
+- **Cloudflare Tunnel Health Alert** — chính sách Notification `tunnel_health_event`, lọc trạng thái
+  `down`, gửi tới email vận hành. Bắt máy chủ ngủ, mất mạng, `cloudflared` tắt. Sống độc lập với
+  Worker. Email nhận phải bấm xác nhận trong thư của Cloudflare một lần.
+- **Cron Worker mỗi 5 phút** đo ba phép đo của trang `/admin/health` (DB `SELECT 1`, một `/route`
+  Valhalla thật, manifest KV), đo lại phép hỏng sau 15 s, và gửi **một** thư gộp tới `ALERT_EMAIL`
+  khi trạng thái **đổi** (hỏng → thư "HỎNG: …", phục hồi → thư "PHỤC HỒI: … (hỏng N phút)"). Trạng
+  thái nằm ở KV `META` khoá `health:canh-bao`; trần 10 thư/ngày. Trang Sức khoẻ hiện dòng "Giám sát
+  tự động: đo lần cuối …" và tô đỏ nếu cron im lặng quá 60 phút.
+
+Ngoài hai lớp trên: số liệu 5xx và p95 của Worker ở `/admin/health`, và báo cáo sử dụng hằng tuần
+tự động gửi email từ Analytics Engine do container `pipeline` chạy vào thứ Hai lúc 08:00 giờ Việt Nam.

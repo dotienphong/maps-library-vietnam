@@ -21,6 +21,8 @@ export interface Health {
   }>;
   routing: PhepDo<{ distance_km: number; phut: number }>;
   data: PhepDo<{ tiles: string | null; poi: string | null; updated_at: string | null }>;
+  /** Cron cảnh báo: `null` khi chưa chạy lần nào. `gui_trong_ngay` đếm theo ngày UTC. */
+  watcher: { kiem_luc: string; gui_trong_ngay: number } | null;
 }
 
 export interface DongRoute {

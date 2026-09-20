@@ -67,6 +67,7 @@ interface Body {
   db: PhepDo;
   routing: PhepDo & { distance_km?: number; phut?: number };
   data: PhepDo & { tiles?: string | null };
+  watcher: { kiem_luc: string; gui_trong_ngay: number } | null;
 }
 
 beforeAll(async () => {
@@ -149,5 +150,32 @@ describe('GET /v1/admin/health', () => {
     const body = (await (await goi()).json()) as Body;
     expect(body.routing.ok).toBe(false);
     expect(body.routing.error).toMatch(/0 km|rỗng/);
+  });
+
+  it('chưa có trạng thái cron → watcher là null, không phải lỗi', async () => {
+    mockRoute(200, TUYEN_OK);
+    const body = (await (await goi()).json()) as Body;
+    expect(body.watcher).toBeNull();
+  });
+
+  it('có trạng thái cron trong KV → watcher nói lần đo cuối và số thư hôm nay', async () => {
+    mockRoute(200, TUYEN_OK);
+    const homNay = new Date().toISOString();
+    await env.META.put(
+      'health:canh-bao',
+      JSON.stringify({
+        v: 1,
+        kiemLuc: homNay,
+        ghiLuc: homNay,
+        thanhPhan: {
+          db: { ok: true, tuLuc: homNay },
+          routing: { ok: true, tuLuc: homNay },
+          data: { ok: true, tuLuc: homNay },
+        },
+        guiTrongNgay: { ngay: homNay.slice(0, 10), so: 2 },
+      }),
+    );
+    const body = (await (await goi()).json()) as Body;
+    expect(body.watcher).toEqual({ kiem_luc: homNay, gui_trong_ngay: 2 });
   });
 });
