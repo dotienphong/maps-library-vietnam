@@ -9,7 +9,7 @@ hero:
       link: /bat-dau/
       icon: right-arrow
     - text: Mở playground
-      link: /playground.html
+      link: /playground
       variant: minimal
 ---
 
@@ -18,12 +18,12 @@ import { Aside, Card, CardGrid, LinkCard, TabItem, Tabs } from '@astrojs/starlig
 <div class="home-map">
   <iframe
     class="home-map__frame"
-    src="/playground.html?embed=1"
+    src="/playground?embed=1"
     title="Bản đồ MapsLibVN"
     loading="lazy"
   ></iframe>
   <p class="home-map__caption">
-    Bấm vào biểu tượng POI để xem tên · <a href="/playground.html">Mở playground đầy đủ →</a>
+    Bấm vào biểu tượng POI để xem tên · <a href="/playground">Mở playground đầy đủ →</a>
   </p>
 </div>
 
@@ -56,7 +56,7 @@ import { Aside, Card, CardGrid, LinkCard, TabItem, Tabs } from '@astrojs/starlig
   </Card>
 </CardGrid>
 
-## Ba cách nhúng
+## Bốn cách nhúng
 
 <Tabs>
 <TabItem label="Script tag">
@@ -113,9 +113,29 @@ import { MapsLibVNMap, Marker } from '@mapslibvn/react';
 ```
 
 </TabItem>
+<TabItem label="React Native">
+
+```tsx
+import { MapsLibVNMap, Marker } from '@mapslibvn/react-native';
+
+<MapsLibVNMap
+  apiKey="mlv_live_…"
+  apiBase="https://api.ai-solutions.io.vn"
+  center={[106.7, 10.776]}
+  zoom={13}
+>
+  <Marker lng={106.6981} lat={10.7725} color="#e53935" />
+</MapsLibVNMap>;
+```
+
+Khoá phải là kind `mobile`; app cần New Architecture và không chạy trên Expo Go —
+[React Native](/react-native/).
+
+</TabItem>
 </Tabs>
 
-Bốn cách nhúng đầy đủ, kể cả React Native, nằm ở [Cài đặt](/cai-dat/).
+Yêu cầu từng môi trường, bước worker MapLibre cho bundler và bảng lỗi hay gặp nằm ở
+[Cài đặt](/cai-dat/).
 
 ## Mở và tự host
 

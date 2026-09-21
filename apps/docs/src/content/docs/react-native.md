@@ -25,7 +25,7 @@ Tiles và style dùng nguyên của web — MapLibre Native đọc `pmtiles://` 
 
 ```bash
 npx expo install @maplibre/maplibre-react-native expo-application
-npm install <đường dẫn tarball @mapslibvn/react-native>   # xem mục 7
+npm install @mapslibvn/react-native
 ```
 
 `app.json`: thêm `"plugins": ["@maplibre/maplibre-react-native"]`, rồi `npx expo run:ios` / `run:android`.
@@ -35,7 +35,7 @@ Với SDK 54–56 thêm cả `"newArchEnabled": true`; SDK 57 đã bỏ khoá n�
 **Bare React Native**
 
 ```bash
-npm install @maplibre/maplibre-react-native <tarball @mapslibvn/react-native>
+npm install @maplibre/maplibre-react-native @mapslibvn/react-native
 cd ios && pod install
 ```
 
@@ -164,10 +164,12 @@ và plugin `expo-sensors` trong `app.json`, kèm quyền Android `HIGH_SAMPLING_
 ## 7. Giới hạn hiện tại
 
 - Dẫn đường (định vị nền, giọng Việt) có từ 0.5: xem [Dẫn đường trên React Native](/dan-duong-react-native/).
-- Chưa publish npm (đã sẵn sàng, chưa chạy publish). Cài từ tarball do `pnpm --filter @mapslibvn/react-native pack`
-  sinh ra — app thử `examples/embed-rn` trong repo minh hoạ trọn quy trình bằng `pnpm example:rn`.
+- Gói đã public trên npm dưới dist-tag `latest`, cùng version với ba gói web. App thử
+  `examples/embed-rn` trong repo vẫn cài từ tarball (`pnpm example:rn`) vì nó kiểm thử **source
+  local** trước mỗi lần phát hành, không phải vì gói thiếu trên registry.
 - Chưa có tiles offline; MapLibre Native đọc được PMTiles `file://` nên có thể thêm sau.
-- `onPoiClick` truy vấn đúng một điểm chạm: lệch khỏi biểu tượng POI vài pixel là không có kết quả.
+- `onPoiClick` truy vấn ô vuông **±12 px** quanh điểm chạm, nên lệch vài pixel vẫn trúng; lệch xa
+  hơn thì không có kết quả.
 - La bàn giả định màn hình dọc; simulator không có la bàn.
 
 Biểu tượng POI xuất hiện tăng dần từ zoom 10 theo độ quan trọng và mật độ. Nhãn địa danh lớn xuất

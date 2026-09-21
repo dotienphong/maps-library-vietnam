@@ -79,7 +79,7 @@ export default defineConfig({
         {
           label: 'Thử nghiệm',
           items: [
-            { label: 'Playground', link: '/playground.html' },
+            { label: 'Playground', link: '/playground' },
             { label: 'React demo', link: '/react-demo/' },
             { label: 'Nhúng thử trang của bạn', slug: 'nhung-thu' },
           ],

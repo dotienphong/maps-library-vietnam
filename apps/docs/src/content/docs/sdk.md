@@ -23,6 +23,43 @@ registry.
 Cả bốn gói đã phát hành công khai lên npm dưới dist-tag `latest`. Cách cài npm,
 UMD hoặc tarball được mô tả ở [Cài đặt](/cai-dat/).
 
+### Nâng từ 0.7.x lên 0.12.x — không có thay đổi phá vỡ
+
+Cả chặng này **chỉ thêm** API và đổi hành vi bên trong; không giá trị nào bị xoá khỏi contract
+công khai, nên code đang chạy biên dịch được nguyên vẹn. Ba điều đáng đọc kỹ vì chúng đổi *hành
+vi* chứ không đổi *kiểu*:
+
+**0.11.0 — `signal` không còn huỷ request ở lớp mạng.** Truyền `signal` vẫn làm lời gọi của bạn
+reject **ngay** khi abort, đúng như trước, nhưng request HTTP vẫn chạy tới cùng ở phía dưới để kịp
+nhận và xác nhận receipt. Nghĩa là **abort không tiết kiệm lượt** — máy chủ đã phục vụ xong rồi.
+Sửa vì `usePlaces` abort mỗi lần người dùng gõ thêm một ký tự: mỗi lần như vậy vứt mất một receipt,
+receipt mồ côi thành `missed_ack` sau 120 giây, và ba cái là khoá cả tenant bằng `429 ack_required`.
+Muốn thật sự không tốn lượt thì đừng gửi request — debounce và đệm ở mục
+[Tìm kiếm & autocomplete](/tim-kiem/) làm đúng việc đó. Abort **trước** khi gọi thì không có
+request nào được gửi.
+
+**0.12.0 — debounce mặc định của `<mapslibvn-autocomplete>` từ 200 lên 300 ms, cộng đệm 20 truy vấn
+gần nhất trong phiên.** Gõ lùi hoặc thêm dấu cách không gọi lại API. Đo được giảm khoảng một nửa
+số lượt trên cùng một chuỗi gõ. Muốn giữ nhịp cũ: đặt `debounce="200"` trên thẻ.
+
+**0.9.0 — kho receipt bền vững và ACK chạy nền.** Client tự lưu receipt chưa xác nhận rồi ACK lại
+sau, và ném `quota_ack_pending` khi còn quá nhiều receipt chưa xác nhận thay vì cứ gửi tiếp. Ứng
+dụng mobile nên truyền `receiptStore` (mục 2) để hàng đợi sống qua lần mở app sau.
+
+Các API mới, tất cả đều tuỳ chọn:
+
+| Bản | Thêm gì |
+|---|---|
+| 0.8.0 | RN: props `styleJson`, `prefetch` cho `<MapsLibVNMap>`, export `ROUTE_ALT_SOURCE_ID`; core: `routeFeatures`, `altRouteFeatures`, `liveRouteFeatures`, `decodeRoutes`, `EMPTY_ROUTE_FEATURES` |
+| 0.9.0 | core: `receiptStore` trong `ClientOptions`, `createReceiptStore`, kiểu `QuotaReceipt`, `QuotaReceiptStore`, `ReceiptKeyValueStorage`; mã lỗi `quota_ack_pending` |
+| 0.10.0 | core: `client.flushReceipts()`; RN: `useFlushReceiptsOnBackground()` |
+| 0.11.0 | — (chỉ đổi hành vi `signal`) |
+| 0.12.0 | web: đệm gợi ý trong phiên cho web component |
+
+Hai thay đổi hành vi nhỏ khác ở 0.8.0: `onLoad` (React Native) **không** còn gọi lại khi đổi
+`style`, `lang` hay `poiLayer` — nó chỉ chạy một lần cho mỗi bản đồ; và chạm POI trên React Native
+bắt trong ô vuông **±12 px** quanh điểm chạm thay vì đúng một điểm.
+
 ### Nâng từ 0.4.x lên 0.7.x — có một thay đổi phá vỡ
 
 Đây là chặng duy nhất từ trước tới nay **xoá** một giá trị khỏi contract công khai. Nếu app của bạn
@@ -108,7 +145,12 @@ Toàn bộ export của `packages/core/src/index.ts`:
 | Biến đổi style | `localizeStyle`, `hidePoiLayer`, `nameExpression`, `isNameLabelLayer`, `POI_LAYER_ID`, kiểu `Lang`, `StyleLike`, `StyleLayerLike` |
 | Kiểu dữ liệu API | `Place`, `PlaceDetails`, `PlaceCategory`, `PlaceAddress`, `PlaceSource`, `AutocompleteItem`, `AutocompleteType`, `GeocodeItem`, `GeocodeMatched`, `GeocodePrecision`, `ReverseResponse`, `ReverseAddress`, `EditKind`, `EditChanges`, `SuggestEditRequest`, `SuggestEditResponse`, `PoiFeature`, `TravelMode`, `DirectionsLang`, `ManeuverKind`, `Route`, `RouteLeg`, `RouteStep`, `Waypoint`, `DirectionsResponse`, `GeoFix`, `RouteProvider`, `PositionSource`, `PositionError`, `NavigationStatus`, `NavigationThresholds`, `NavigationProgress`, `Announcement`, `NavigationEvents`, `NavigatorOptions`, `Navigator` |
 | Chỉ đường | `decodePolyline6`, `encodePolyline6`, `MANEUVER_KINDS`, `VALHALLA_MANEUVER_KIND`, `maneuverKindFromValhalla`, kiểu `DirectionsOptions` |
-| Dẫn đường | `createNavigator`, `NAVIGATION_THRESHOLDS`, `simulateFixes`, `SIMULATE_DEFAULT_SPEED_MPS`, `formatDistance`, `formatDistanceShort`, `roundForSpeech`, `composeApproach`, `planAnnouncements`, `buildRouteIndex`, `progressAt`, `stepAt`, `snapToRoute`, `haversineM`, `bearingDeg`, `projectOnSegment`, `cumulativeDistances` — xem [Dẫn đường](/dan-duong/) mục 5 |
+| Dẫn đường | `createNavigator`, `NAVIGATION_THRESHOLDS`, `simulateFixes`, `SIMULATE_DEFAULT_SPEED_MPS`, `formatDistance`, `formatDistanceShort`, `roundForSpeech`, `lowerFirst`, `composeApproach`, `planAnnouncements`, `buildRouteIndex`, `progressAt`, `stepAt`, `snapToRoute`, `haversineM`, `bearingDeg`, `angleDiffDeg`, `projectOnSegment`, `cumulativeDistances`, kiểu `FlatStep`, `RouteIndex`, `ProgressAt`, `SnapOptions`, `SnapResult`, `SimulateOptions`, `Projection`, `LngLat` — xem [Dẫn đường](/dan-duong/) mục 5 |
+| Tuyến dạng GeoJSON | `routeFeatures`, `altRouteFeatures`, `liveRouteFeatures`, `decodeRoutes`, `EMPTY_ROUTE_FEATURES`, `FIRST_SYMBOL_LAYER_ID`, kiểu `RouteFeature`, `RouteFeatureCollection`, `RouteFeatureKind`, `RouteFeaturesOptions`, `RouteLineFeature`, `RoutePuckFeature`, `RouteProgressCut` — nguyên liệu để tự vẽ tuyến khi không dùng `map.routes` |
+| Receipt hạn mức | `createReceiptStore`, kiểu `QuotaReceipt`, `QuotaReceiptStore`, `ReceiptKeyValueStorage` |
+| La bàn | `createHeadingFilter`, `wrapDeg`, `signedDiffDeg`, `yawRateDps`, `MOVING_SPEED_MPS`, kiểu `HeadingFix`, `HeadingSource`, `HeadingError`, `HeadingAccuracy`, `HeadingFilter`, `HeadingFilterOptions`, `CompassSample`, `RotationRate`, `RotationRate3`, `Vec3` |
+| Khoá tìm kiếm tiếng Việt | `searchKeys`, `viKey`, `foldTelex`, `looksLikeTelex`, `adminAliasKeys`, `applyToponymAlias`, `filterNameAlt`, `TOPONYM_ALIAS`, `mulberry32`, kiểu `SearchKeys`, `ToponymEntry`, `AdminAliasKeyInput` — cùng thuật toán chuẩn hoá máy chủ dùng để so khớp |
+| Style | thêm `isPoiStyleLayer` bên cạnh `isNameLabelLayer` |
 
 Định nghĩa từng kiểu dữ liệu API ở [REST API](/api/) mục 7.
 
@@ -130,6 +172,7 @@ const client = createClient({
 | `fetch` | `typeof fetch` | `globalThis.fetch` | tiêm fetch riêng cho test hoặc môi trường không có fetch toàn cục |
 | `headers` | `Record<string, string>` | `{}` | header thêm cho mọi request, ví dụ `X-Bundle-Id` với khoá `mobile`; **không ghi đè được** `X-Api-Key` |
 | `poiSources` | `PoiSource[]` | cả hai nguồn (`all`) | nhận ba profile nêu trên; áp cho autocomplete/search/nearby/reverse và URL style; `getPlace`/geocode không lọc |
+| `receiptStore` | `QuotaReceiptStore` | bộ nhớ trong tiến trình | kho lưu receipt chưa xác nhận. Trên mobile hãy truyền `createReceiptStore(AsyncStorage)` để hàng đợi sống qua lần mở app sau |
 
 ### Phương thức client ứng với endpoint nào
 
@@ -146,6 +189,7 @@ const client = createClient({
 | `reverse(lat, lng)` | `GET /v1/reverse` | `ReverseResponse` |
 | `directions(opts)` | `GET /v1/directions` | `DirectionsResponse` |
 | `suggestEdit(edit)` | `POST /v1/edits` | `SuggestEditResponse` |
+| `flushReceipts()` | `POST /v1/quota/receipts/{id}/ack` cho mọi receipt còn chờ | `Promise<boolean>` — `true` khi hàng đợi đã sạch |
 
 Tham số của `opts` khớp một-một với query string của endpoint tương ứng:
 
@@ -157,7 +201,7 @@ Tham số của `opts` khớp một-một với query string của endpoint tư�
 | `geocode` | `near`, `limit` |
 | `directions` | `from`, `to` (bắt buộc, `[lat, lng]`), `via`, `mode`, `lang`, `alternatives` |
 
-`signal` là `AbortSignal` phía client để huỷ request đang bay — không giống các trường còn lại trong bảng, nó không phải tham số gửi lên server và không xuất hiện trong query string. `usePlaces()` và `<mapslibvn-autocomplete>` tự quản lý `AbortController` bên trong nên không cần tự truyền; chỉ cần đến nó khi gọi thẳng `client.autocomplete()`.
+`signal` là `AbortSignal` phía client; không giống các trường còn lại trong bảng, nó không phải tham số gửi lên server và không xuất hiện trong query string. **Từ 0.11.0 nó không huỷ request ở lớp mạng**: lời gọi của bạn reject ngay khi abort, nhưng request vẫn chạy tới cùng để nhận và xác nhận receipt — nên abort **không** tiết kiệm lượt. Abort *trước* khi gọi thì không có request nào được gửi. `usePlaces()` và `<mapslibvn-autocomplete>` tự quản lý `AbortController` bên trong nên không cần tự truyền; chỉ cần đến nó khi gọi thẳng `client.autocomplete()`.
 
 Lưu ý về thứ tự toạ độ: `near` là `[lat, lng]` (**vĩ độ trước**, đúng như tham số `near` của API), còn `bbox` là `[minLng, minLat, maxLng, maxLat]` và `center` của bản đồ là `[lng, lat]`. Tham số `undefined` bị bỏ khỏi URL, nên client không tự áp mặc định nào — mặc định do máy chủ quyết định, xem [REST API](/api/) mục 4.
 
@@ -183,7 +227,8 @@ try {
   await client.getPlace(id);
 } catch (err) {
   if (err instanceof MapsLibVNError && err.code === 'quota_exceeded') {
-    // 429 — thử lại sau, header retry-after là 3600 giây
+    // 429 — hết hạn mức. Đọc `error.details.resetAt` khi có; máy chủ chỉ đặt `retry-after`
+    // khi biết chắc thời điểm thử lại (60 giây với burst limit) — xem REST API mục 2.
   }
 }
 ```
@@ -198,7 +243,7 @@ try {
 
 ## 3. `@mapslibvn/web`
 
-Export của `packages/web/src/index.ts`: `createMap`, `applyLanguage`, `nameExpression`, `MapsLibVNAutocomplete`, `defineAutocomplete`, các kiểu `CreateMapOptions`, `MapEvents`, `MapsLibVNMap`, `MarkerOptions`, `PoiFeature`, `Lang`, và re-export từ core: `createClient`, `MapsLibVNError`, `attributionText`, `attributionHtml` cùng kiểu `AttributionResponse`, `ClientOptions`, `MapsLibVNClient`, `Theme`, `geolocationSource`, `playbackSource`, `toGeoFix`, `createSpeech`, `ROUTE_SOURCE_ID`, `ROUTE_LAYER_IDS`, `FOLLOW_ZOOM`, các kiểu `RoutesLayer`, `NavigationController`, `NavigationStartOptions`, `WebNavigationEvents`, và re-export dẫn đường từ core (`createNavigator`, `simulateFixes`, `formatDistance`, `formatDistanceShort`, `NAVIGATION_THRESHOLDS`).
+Export của `packages/web/src/index.ts`: `createMap`, `applyLanguage`, `nameExpression`, `MapsLibVNAutocomplete`, `defineAutocomplete`, các kiểu `CreateMapOptions`, `MapEvents`, `MapsLibVNMap`, `MarkerOptions`, `PoiFeature`, `Lang`, và re-export từ core: `createClient`, `MapsLibVNError`, `attributionText`, `attributionHtml` cùng kiểu `AttributionResponse`, `ClientOptions`, `MapsLibVNClient`, `Theme`, `geolocationSource`, `playbackSource`, `toGeoFix`, `createSpeech`, `ROUTE_SOURCE_ID`, `ROUTE_LAYER_IDS`, `FOLLOW_ZOOM`, các kiểu `RoutesLayer`, `NavigationController`, `NavigationStartOptions`, `WebNavigationEvents`, các kiểu `GeolocationSourceOptions`, `Speech`, `SpeechOptions`, và re-export dẫn đường từ core (`createNavigator`, `simulateFixes`, `formatDistance`, `formatDistanceShort`, `NAVIGATION_THRESHOLDS`).
 
 ### createMap — tuỳ chọn và mặc định
 
@@ -268,7 +313,7 @@ Tham số thứ hai là `deps`. Bản ESM cần `{ maplibre: maplibregl }`; nế
 | `api-base` | có | — | như trên |
 | `placeholder` | không | `Tìm địa điểm…` | đổi được lúc chạy |
 | `near` | không | — | `"lat,lng"`; bị **bỏ qua** nếu đã gán thuộc tính JS `.map` |
-| `debounce` | không | `200` | mili giây; giá trị không hợp lệ (không phải số, hoặc âm) rơi về mặc định kèm cảnh báo console |
+| `debounce` | không | `300` | mili giây; giá trị không hợp lệ (không phải số, hoặc âm) rơi về mặc định kèm cảnh báo console |
 
 | Thuộc tính JS | Kiểu | Ghi chú |
 |---|---|---|
@@ -299,7 +344,7 @@ document.querySelector('mapslibvn-autocomplete').addEventListener('select', (eve
 
 ## 4. `@mapslibvn/react`
 
-Export của `packages/react/src/index.ts`: `MapsLibVNMap`, `useMap`, `Marker`, `usePlaces`, `useNavigation`, các kiểu `MapsLibVNMapProps`, `UsePlacesOptions`, `UsePlacesResult`, `UseNavigationResult`, và re-export kiểu `AutocompleteItem`, `MapsLibVNClient`, `Place`, `Announcement`, `NavigationProgress`, `NavigationStatus`, `RouteProvider` từ core và `NavigationStartOptions` từ `@mapslibvn/web`.
+Export của `packages/react/src/index.ts`: `MapsLibVNMap`, `useMap`, `Marker`, `usePlaces`, `useNavigation`, các kiểu `MapsLibVNMapProps`, `UsePlacesOptions`, `UsePlacesResult`, `UseNavigationResult`, và re-export kiểu `AutocompleteItem`, `MapsLibVNClient`, `Place`, `PoiSource`, `Announcement`, `NavigationProgress`, `NavigationStatus`, `RouteProvider` từ core và `NavigationStartOptions` từ `@mapslibvn/web`. Gói này **chỉ** re-export kiểu — cần hàm của core (ví dụ `createClient`, `formatDistanceShort`) thì import thẳng từ `@mapslibvn/core` hoặc `@mapslibvn/web`.
 
 ### `<MapsLibVNMap>`
 
@@ -341,16 +386,33 @@ Hook chỉ gọi API khi `query` có từ **2 ký tự** trở lên sau khi bỏ
 
 ## 5. `@mapslibvn/react-native`
 
-Cùng bộ API với `@mapslibvn/react` nhưng bọc `@maplibre/maplibre-react-native`. Export của `packages/react-native/src/index.ts`: `MapsLibVNMap`, `useMap`, `Marker`, `usePlaces`, `DEFAULT_CENTER` (`[106.7, 10.776]`), `DEFAULT_ZOOM` (`12`), `DEFAULT_MARKER_COLOR` (`'#3FB1CE'`), `COMPACT_ATTRIBUTION`, các kiểu `MapsLibVNMapProps`, `MarkerProps`, `MapHandle`, `UsePlacesOptions`, `UsePlacesResult`, và re-export kiểu `AutocompleteItem`, `Lang`, `MapsLibVNClient`, `Place`, `PoiFeature`, `Theme` từ core.
+Cùng bộ API với `@mapslibvn/react` nhưng bọc `@maplibre/maplibre-react-native`. Export của
+`packages/react-native/src/index.ts`, theo nhóm:
 
-La bàn + con quay hồi chuyển: `useHeading`, prop `userLocation` (kiểu `UserLocationOptions`,
-`UserLocationHandle`), `follow.bearing`, hằng `USER_LOCATION_SOURCE_ID`, `USER_LOCATION_LAYER_IDS`,
-`HEADING_CONE_IMAGE_KEY`, `HEADING_FRESH_MS`, `CAMERA_BEARING_MIN_MS`, `CAMERA_BEARING_MIN_DEG`; re-export
-từ core: `createHeadingFilter`, `wrapDeg`, `signedDiffDeg`, `MOVING_SPEED_MPS` và kiểu `HeadingFix`,
-`HeadingSource`, `HeadingError`, `HeadingAccuracy`, `HeadingFilter`, `HeadingFilterOptions`,
-`CompassSample`, `RotationRate`. Entry `/expo`: `expoHeadingSource`, `ExpoHeadingOptions`,
-`HEADING_ACCURACY_LEVELS`, `toCompassSample`, `toAccuracy`; `expoNavigation({ heading })`.
-Phiên: tuỳ chọn `heading`, sự kiện `heading`/`headingUnavailable`, getter `session.heading`.
+| Nhóm | Export |
+|---|---|
+| Bản đồ | `MapsLibVNMap`, `useMap`, `Marker`, `usePlaces`, `DEFAULT_CENTER` (`[106.7, 10.776]`), `DEFAULT_ZOOM` (`12`), `DEFAULT_MARKER_COLOR` (`'#3FB1CE'`), `COMPACT_ATTRIBUTION`, kiểu `MapsLibVNMapProps`, `MarkerProps`, `MapHandle`, `UsePlacesOptions`, `UsePlacesResult` |
+| Phiên dẫn đường | `createNavigationSession`, `useNavigation`, `MISSING_SOURCE_MESSAGE`, `playbackSource`, kiểu `NavigationSession`, `NavigationSessionOptions`, `NavigationSessionStartOptions`, `SessionEvents`, `SessionPositionSource`, `AudioSession`, `KeepAwake`, `Speaker`, `BackgroundUnavailable`, `UseNavigationResult` |
+| Vẽ tuyến và camera | `ROUTE_SOURCE_ID`, `ROUTE_ALT_SOURCE_ID`, `ROUTE_LAYER_IDS`, `ROUTE_COLOR`, `ALT_ROUTE_COLOR`, `DESTINATION_COLOR`, `FOLLOW_ZOOM`, `FOLLOW_PITCH` (`45`), `CAMERA_BEARING_MIN_MS`, `CAMERA_BEARING_MIN_DEG`, kiểu `RouteStyle`, `FollowOptions`, `BindingEvents`, `MapNavigationBinding` |
+| Chấm xanh và la bàn | `useHeading`, `USER_LOCATION_SOURCE_ID`, `USER_LOCATION_LAYER_IDS`, `USER_FOLLOW_ZOOM` (`16`), `HEADING_CONE_IMAGE_KEY`, `HEADING_FRESH_MS`, kiểu `UserLocationOptions`, `UserLocationHandle` |
+| Hạn mức | `useFlushReceiptsOnBackground(client)` — gọi `client.flushReceipts()` khi app vào nền; `<MapsLibVNMap>` đã tự dùng cho client của chính nó |
+| Re-export từ core | `createClient`, `createNavigator`, `createHeadingFilter`, `simulateFixes`, `decodePolyline6`, `formatDistance`, `formatDistanceShort`, `wrapDeg`, `signedDiffDeg`, `MOVING_SPEED_MPS`, `NAVIGATION_THRESHOLDS`, cùng các kiểu `AutocompleteItem`, `Lang`, `MapsLibVNClient`, `Place`, `PoiFeature`, `PoiSource`, `Theme`, `GeoFix`, `PositionSource`, `PositionError`, `Route`, `RouteLeg`, `RouteStep`, `TravelMode`, `DirectionsOptions`, `DirectionsResponse`, `DirectionsLang`, `ManeuverKind`, `Announcement`, `NavigationProgress`, `NavigationStatus`, `NavigationEvents`, `NavigationThresholds`, `RouteProvider`, `HeadingFix`, `HeadingSource`, `HeadingError`, `HeadingAccuracy`, `HeadingFilter`, `HeadingFilterOptions`, `CompassSample`, `RotationRate` |
+
+Entry riêng `@mapslibvn/react-native/expo` (chỉ import khi bạn dùng adapter Expo — Metro mới đi
+resolve các module `expo-*` lúc đó):
+
+| Export | Làm gì |
+|---|---|
+| `expoNavigation(opts?)` | gói sẵn bốn adapter dưới đây cho `createNavigationSession`; `{ heading: false }` để bỏ la bàn |
+| `expoLocationSource(opts?)` | nguồn vị trí `expo-location`, có tuỳ chọn chạy nền |
+| `expoHeadingSource(opts?)` | la bàn `expo-location` trộn con quay `expo-sensors` |
+| `expoSpeech(opts?)` | đọc câu chỉ dẫn bằng `expo-speech` |
+| `expoAudioSession()`, `expoKeepAwake()` | phiên âm thanh khi nền, giữ màn hình sáng |
+| `defineNavigationTask()`, `NAVIGATION_TASK`, `KEEP_AWAKE_TAG` | đăng ký task nền — gọi ở phạm vi toàn cục của `index.ts` |
+| `toGeoFix`, `toCompassSample`, `toAccuracy`, `HEADING_ACCURACY_LEVELS` | chuyển đổi kiểu của Expo sang kiểu SDK |
+| kiểu | `ExpoNavigationOptions`, `ExpoLocationSourceOptions`, `ExpoLocationAccuracy`, `ExpoHeadingOptions`, `ExpoSpeechOptions` |
+
+Phiên có thêm tuỳ chọn `heading`, sự kiện `heading`/`headingUnavailable` và getter `session.heading`.
 
 Bốn khác biệt đáng nhớ:
 

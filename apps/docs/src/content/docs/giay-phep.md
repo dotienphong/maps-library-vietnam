@@ -5,9 +5,9 @@ description: SDK MIT; dữ liệu OpenStreetMap (ODbL), Foursquare OS Places (Ap
 
 ## 1. Mã nguồn SDK — MIT
 
-`@mapslibvn/core`, `@mapslibvn/web` và `@mapslibvn/react` phát hành theo giấy phép **MIT**. Bạn được dùng thương mại, sửa, phân phối lại; chỉ cần giữ thông báo bản quyền. Mỗi gói kèm `LICENSE` và `THIRD_PARTY_NOTICES.md` — xem [Thông báo bên thứ ba](/thong-bao-ben-thu-ba/) để biết nguyên văn giấy phép của từng thành phần.
+`@mapslibvn/core`, `@mapslibvn/web`, `@mapslibvn/react` và `@mapslibvn/react-native` phát hành theo giấy phép **MIT**. Bạn được dùng thương mại, sửa, phân phối lại; chỉ cần giữ thông báo bản quyền. Mỗi gói kèm `LICENSE` và `THIRD_PARTY_NOTICES.md` — xem [Thông báo bên thứ ba](/thong-bao-ben-thu-ba/) để biết nguyên văn giấy phép của từng thành phần.
 
-Phần máy chủ (Worker API, pipeline dữ liệu, hạ tầng) không được phân phối trong giai đoạn nội bộ.
+Phần máy chủ (Worker API, pipeline dữ liệu, hạ tầng) không được phân phối.
 
 ## 2. Dữ liệu — ba nguồn, ba giấy phép
 
@@ -56,5 +56,5 @@ Phông Noto Sans theo SIL Open Font License 1.1, icon Maki theo CC0 1.0, style s
 ## 6. Pháp luật Việt Nam
 
 - Bản đồ thể hiện đầy đủ chủ quyền Việt Nam với Hoàng Sa và Trường Sa ở mọi mức zoom. Đây là yêu cầu kỹ thuật bắt buộc của pipeline tiles và là điều kiện sử dụng, xem [Điều khoản tenant](/dieu-khoan/) mục 4.
-- Giai đoạn hiện tại là **sử dụng nội bộ**, chưa kinh doanh. Việc xin giấy phép hoạt động đo đạc và bản đồ theo Điều 51 Luật Đo đạc và bản đồ 2018 sẽ được xác nhận với luật sư trước khi thu phí.
+- MapsLibVN đã có gói trả phí (xem [Khoá API](/khoa-api/) mục 0). Hồ sơ giấy phép hoạt động đo đạc và bản đồ theo Điều 51 Luật Đo đạc và bản đồ 2018 đang trong quá trình rà soát với luật sư; trang này sẽ ghi số giấy phép khi có.
 - Về dữ liệu cá nhân theo Nghị định 13/2023: MapsLibVN không nhận dữ liệu định danh người dùng cuối; nghĩa vụ xin phép truy cập vị trí thuộc ứng dụng nhúng. Chi tiết ở [Điều khoản tenant](/dieu-khoan/) mục 5.

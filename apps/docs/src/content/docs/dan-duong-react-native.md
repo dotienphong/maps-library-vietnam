@@ -255,7 +255,6 @@ Chấm xanh có nón hướng **ngoài** dẫn đường: prop `userLocation` �
 - Nội dung thông báo foreground service Android cố định từ lúc `start()` (không đổi theo câu rẽ).
 - Chưa có config plugin riêng của MapsLibVN — cấu hình theo mục 2.
 - Chưa ETA theo giao thông, làn đường, map-matching máy chủ, tiles offline (giống web).
-- Gói chưa publish npm — cài từ tarball như [React Native](/react-native/) mục 7.
 - La bàn tham chiếu cạnh trên máy ở tư thế **dọc**; app xoay ngang chưa được bù.
 - Simulator iOS không có la bàn (`headingUnavailable`); Android emulator chỉ có cảm biến ảo.
 - Android cần hiệu chuẩn la bàn lần đầu (xoay máy hình số 8) — trước đó `accuracy` là `low`/`unreliable`.

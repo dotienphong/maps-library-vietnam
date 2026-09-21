@@ -3,7 +3,7 @@ title: Tự host
 description: Dựng lại toàn bộ MapsLibVN từ repo — tiles trên R2, Worker API, Postgres/PostGIS trên máy nội bộ qua Cloudflare Tunnel — bằng các lệnh một dòng.
 ---
 
-MapsLibVN được thiết kế để dựng lại **bằng một lệnh** trên macOS, Windows qua WSL2, hay Linux. Trang này tóm tắt đường đi; chi tiết từng bước nằm trong repo tại `infra/server/README.md` và `docs/DEVLOG.md`. Repo hiện **private** trong giai đoạn nội bộ, liên hệ theo [Điều khoản tenant](/dieu-khoan/) mục 10 để được cấp quyền.
+MapsLibVN được thiết kế để dựng lại **bằng một lệnh** trên macOS, Windows qua WSL2, hay Linux. Trang này tóm tắt đường đi; chi tiết từng bước nằm trong repo tại `infra/server/README.md` và `docs/DEVLOG.md`. Bốn gói SDK là mã mở (MIT) trên npm, nhưng **mã máy chủ chưa mở**: repo hiện private, liên hệ theo [Điều khoản tenant](/dieu-khoan/) mục 10 để được cấp quyền.
 
 ## 1. Kiến trúc cần dựng
 
@@ -12,6 +12,7 @@ MapsLibVN được thiết kế để dựng lại **bằng một lệnh** trên
 | Tiles PMTiles nền Việt Nam và lớp POI | Cloudflare R2 kèm custom domain, client đọc thẳng bằng HTTP Range | 0 đồng egress |
 | Places API, styles, trang duyệt đóng góp | Cloudflare Worker chạy Hono | gói Workers Free đủ cho nội bộ |
 | Postgres 16 kèm PostGIS | máy nội bộ chạy 24/7 trong Docker, nối ra qua Cloudflare Tunnel rồi Access rồi Hyperdrive | tiền điện và máy |
+| Engine chỉ đường Valhalla | container `valhalla` trên cùng máy chủ, không mở cổng; Worker gọi qua Cloudflare Tunnel | tiền điện và máy |
 | Pipeline dữ liệu OSM, Foursquare | container `pipeline` trên máy chủ, cron thứ Hai 02:00 | — |
 | Tài liệu | Cloudflare Pages | 0 đồng |
 
@@ -39,7 +40,11 @@ pnpm server:setup   # sinh .env máy chủ, cert TLS, compose up, migration, in 
 
 Việc tay một lần trên Cloudflare, theo đúng checklist mà script in ra: tạo **Tunnel** với hostname kiểu TCP trỏ vào `postgres:5432`, tạo **service token** và **Access application** bảo vệ hostname đó, tạo **Hyperdrive** trỏ tới hostname qua Access với user chỉ đọc. Dán Hyperdrive ID vào cấu hình Worker.
 
-Compose có bốn dịch vụ: `postgres` bắt buộc TLS và không mở cổng, `cloudflared`, `backup` chạy `pg_dump` hằng ngày lúc 03:00 đẩy lên R2 giữ 7 bản ngày và 4 bản tuần, `pipeline` chạy cron.
+Compose có năm dịch vụ, **không dịch vụ nào mở cổng ra ngoài** — chỉ `cloudflared` nối ra Internet:
+`postgres` bắt buộc TLS, `cloudflared`, `backup` chạy `pg_dump` hằng ngày lúc 03:00 rồi mã hoá
+AES-256 và đẩy lên bucket R2 riêng (giữ 7 bản ngày và 4 bản tuần), `pipeline` chạy cron, và
+`valhalla` phục vụ chỉ đường ở cổng nội bộ 8002. Lần đầu dựng, `valhalla` phải build graph từ PBF
+nên `healthcheck` có `start_period` 1 giờ — trong lúc đó `/v1/directions` trả `503`.
 
 Chuyển sang máy khác: chạy `pnpm server:setup` trên máy mới, rồi `pnpm db:restore --latest`, rồi trỏ lại Tunnel. Dưới một giờ.
 
@@ -62,7 +67,20 @@ pnpm --filter @mapslibvn/docs build
 pnpm --filter @mapslibvn/docs exec wrangler pages deploy dist --project-name <pages-project>
 ```
 
-Worker cần các binding R2, KV, Hyperdrive và Analytics Engine, cùng các biến `TILES_BASE`, `ENVIRONMENT`, `QUOTA_ENABLED`, và hai biến Access để bảo vệ trang duyệt đóng góp.
+Worker cần các binding: R2 (`TILES`), KV (`META`), Hyperdrive (`DB`), Analytics Engine
+(`ANALYTICS`), Durable Object `QUOTA` (sổ hạn mức thương mại, kèm migration `new_sqlite_classes`),
+assets `ASSETS` (trang quản trị build từ `apps/admin`), sáu bộ rate limiter (Places, Chỉ đường theo
+IP và theo khoá, OTP theo email và theo IP, webhook PayOS) và hai cron trigger (`*/5 * * * *` cho
+cảnh báo sức khoẻ, `0 2 * * *` cho việc hằng ngày).
+
+Biến cần đặt: `TILES_BASE`, `ENVIRONMENT`, `QUOTA_ENABLED`, `ROUTING_BASE` (hostname Tunnel của
+Valhalla), `ACCESS_TEAM_DOMAIN` và `ACCESS_AUD` (bảo vệ `/v1/admin/*`), `CF_ACCOUNT_ID`; và nếu bật
+cổng khách hàng tự phục vụ thì thêm `SELF_SERVE`, `COMMERCIAL_ADMISSION`, `CONSOLE_ORIGIN`,
+`EMAIL_FROM`, `SUPPORT_EMAIL`, `ALERT_EMAIL`, `TURNSTILE_SITE_KEY` cùng bộ secret tương ứng
+(Turnstile, Resend, PayOS, khoá ký JWT phiên).
+
+`TURNSTILE_SITE_KEY` chỉ đặt trong khối `[env.production]`. Để nó ở `[vars]` dùng chung sẽ làm bộ
+e2e của môi trường dev treo, vì nhánh mã Turnstile chỉ sống ở production.
 
 Cấp khoá API cho ứng dụng nhúng:
 
@@ -75,8 +93,10 @@ pnpm key:issue --tenant <uuid> --label "app của tôi" --kind web --origins htt
 
 Hai lớp cảnh báo email, mỗi lớp bắt một nhóm lỗi khác nhau (spec `2026-09-20-canh-bao-suc-khoe`):
 
-- **Cloudflare Tunnel Health Alert** — chính sách Notification `tunnel_health_event`, lọc trạng thái
-  `down`, gửi tới email vận hành. Bắt máy chủ ngủ, mất mạng, `cloudflared` tắt. Sống độc lập với
+- **Cloudflare Tunnel Health Alert** — chính sách Notification `tunnel_health_event`, bộ lọc
+  `tunnel_status_type` nhận đúng chuỗi **`TUNNEL_STATUS_TYPE_DOWN`** (không phải `down`; API nhận
+  giá trị sai mà không báo lỗi, nên hãy tạo cảnh báo rồi đọc lại bằng API để đối chiếu), gửi tới
+  email vận hành. Bắt máy chủ ngủ, mất mạng, `cloudflared` tắt. Sống độc lập với
   Worker. Email nhận phải bấm xác nhận trong thư của Cloudflare một lần.
 - **Cron Worker mỗi 5 phút** đo ba phép đo của trang `/admin/health` (DB `SELECT 1`, một `/route`
   Valhalla thật, manifest KV), đo lại phép hỏng sau 15 s, và gửi **một** thư gộp tới `ALERT_EMAIL`

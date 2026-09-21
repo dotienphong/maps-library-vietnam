@@ -139,12 +139,12 @@ bản React.
 
 ```bash
 npx expo install @maplibre/maplibre-react-native expo-application
-npm install <đường dẫn tarball @mapslibvn/react-native>
+npm install @mapslibvn/react-native
 ```
 
 Khác với web ở bốn điểm: cần khoá kind **`mobile`** (không kiểm origin), cần New Architecture,
-**không chạy trên Expo Go**, và tarball của gói này **tự chứa** `@mapslibvn/core` nên chỉ cần cài
-một file. Lệnh `pnpm example:rn` trong repo dựng sẵn cả quy trình.
+**không chạy trên Expo Go**, và gói này **tự chứa** `@mapslibvn/core` trong `dist` nên chỉ cần cài
+một gói. Lệnh `pnpm example:rn` trong repo dựng sẵn cả quy trình từ source local.
 
 Toàn bộ hướng dẫn: [React Native](/react-native/).
 
@@ -236,7 +236,7 @@ cd packages/core && pnpm pack --pack-destination /tmp/mlv && cd -
 cd packages/web  && pnpm pack --pack-destination /tmp/mlv && cd -
 
 # trong dự án của bạn
-# tên file mang version trong package.json, ví dụ mapslibvn-core-0.7.1.tgz — `ls /tmp/mlv` để lấy
+# tên file mang version trong package.json — chạy `ls /tmp/mlv` để lấy tên thật
 npm install /tmp/mlv/mapslibvn-core-*.tgz /tmp/mlv/mapslibvn-web-*.tgz maplibre-gl
 ```
 
@@ -267,7 +267,7 @@ Ba dấu hiệu cài đúng:
 | Hiện tượng | Nguyên nhân | Cách xử lý |
 |---|---|---|
 | Không có bản đồ, console báo `403` với `origin_not_allowed` | Khoá kind `web` nhưng origin của trang không nằm trong `allowed_origins` | Xin bổ sung origin, hoặc thử bằng khoá demo trên `localhost` — xem [Khoá API](/khoa-api/) |
-| `401 missing_key` / `401 invalid_key` | Chưa truyền khoá, hoặc khoá đã bị thu hồi | Truyền qua header `X-Api-Key` hoặc `?key=` |
+| `401 missing_key` / `401 invalid_key` | Chưa truyền khoá, hoặc khoá đã bị thu hồi | Truyền qua header `X-Api-Key` — máy chủ không còn nhận khoá trên URL |
 | Bản đồ hiện nhưng điều khiển vỡ, popup không có khung | Thiếu CSS | Bản UMD: thêm `mapslibvn.css`. Bản ESM: `import 'maplibre-gl/dist/maplibre-gl.css'` |
 | Bản đồ trống trơn **chỉ ở bản build**, dev server vẫn tốt; Network có `maplibre-gl-worker.mjs` **404** trong khi style JSON và pmtiles đều 200 | Bundler gộp maplibre vào chunk của bạn nhưng không phát ra file worker cạnh chunk đó | Copy `maplibre-gl-worker.mjs` + `maplibre-gl-shared.mjs` vào thư mục tĩnh rồi gọi `setWorkerUrl` — [mục 2](#2-worker-của-maplibre-khi-dùng-bundler) |
 | `Error: Cần maplibre-gl…` | Bản ESM thiếu peer `maplibre-gl`, hoặc quên truyền `{ maplibre: maplibregl }` | Cài `maplibre-gl@^6.4.1` và truyền vào `createMap` |

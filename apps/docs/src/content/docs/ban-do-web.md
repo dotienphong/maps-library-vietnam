@@ -227,6 +227,10 @@ for (const p of items) map.addMarker({ lng: p.lng, lat: p.lat, popupHtml: p.name
 
 Danh sách phương thức đầy đủ ở [Tìm kiếm & autocomplete](/tim-kiem/) và [SDK JavaScript](/sdk/).
 
+Ngoài `gl` và `places`, đối tượng map còn có `routes` (vẽ tuyến: `show`, `setActive`,
+`setProgress`, `clear`) và `navigation` (dẫn đường từng bước: `start`, `stop`, `recenter`,
+`reroute`) — xem [Dẫn đường](/dan-duong/).
+
 ## 11. Gỡ bản đồ
 
 ```js

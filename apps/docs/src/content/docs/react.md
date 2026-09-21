@@ -119,8 +119,8 @@ function NutVeTrungTam() {
 }
 ```
 
-Trả về chính đối tượng map của `@mapslibvn/web`: `gl`, `places`, `addMarker`, `fitBounds`, `flyTo`,
-`on`, `off`, `remove`. Gọi **ngoài** `<MapsLibVNMap>` sẽ ném
+Trả về chính đối tượng map của `@mapslibvn/web`: `gl`, `places`, `routes`, `navigation`,
+`addMarker`, `fitBounds`, `flyTo`, `on`, `off`, `remove`. Gọi **ngoài** `<MapsLibVNMap>` sẽ ném
 `Error('useMap phải được gọi bên trong <MapsLibVNMap>')`.
 
 Component dùng `useMap()` phải nằm trong `children` của `<MapsLibVNMap>`. Cần điều khiển bản đồ từ

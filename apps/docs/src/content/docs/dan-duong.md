@@ -39,7 +39,7 @@ startButton.onclick = () => map.navigation.start({ response });
 đi, đọc câu chỉ dẫn bằng `speechSynthesis` giọng tiếng Việt và tự tính lại tuyến khi bạn lệch. Gọi
 `map.navigation.stop()` để dừng; tuyến vẫn trên bản đồ cho tới khi `map.routes.clear()`.
 
-Muốn thử ngay không cần code: mở [Playground](/playground.html?tab=dan-duong) → bấm "Dẫn đường".
+Muốn thử ngay không cần code: mở [Playground](/playground?tab=dan-duong) → bấm "Dẫn đường".
 
 ## 2. Vẽ UI từ sự kiện
 
@@ -123,7 +123,7 @@ map.navigation.start({
 ```
 
 `simulateFixes` đi dọc tuyến với vận tốc theo phương tiện; `jitter_m` thêm nhiễu GPS. Muốn thử lệch
-tuyến, dịch toạ độ một đoạn fix rồi truyền vào `playbackSource`. [Playground → Dẫn đường](/playground.html?tab=dan-duong)
+tuyến, dịch toạ độ một đoạn fix rồi truyền vào `playbackSource`. [Playground → Dẫn đường](/playground?tab=dan-duong)
 có nút Giả lập làm đúng việc này.
 
 ## 5. Dùng logic không cần bản đồ

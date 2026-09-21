@@ -9,8 +9,13 @@ tenant và một plan. Trang này nói khoá hoạt động thế nào và làm 
 ## 0. Lấy khoá trong năm phút
 
 Tự đăng ký ở [cổng khách hàng](https://api.ai-solutions.io.vn/console/): nhập email, nhận mã sáu
-số, đặt tên tổ chức, và khoá đầu tiên hiện ra ngay. Bản dùng thử gồm 2.000 lượt Places cùng 200
-lượt tính tuyến trong 30 ngày, không cần thẻ thanh toán.
+số (hoặc đăng nhập bằng Google), đặt tên tổ chức, và khoá đầu tiên hiện ra ngay. Bản dùng thử gồm
+2.000 lượt Places cùng 200 lượt tính tuyến trong 30 ngày, không cần thẻ thanh toán.
+
+Hết dùng thử thì chọn gói ngay trong cổng đó: Starter, Professional hoặc Business, kỳ 1, 3, 6 hay
+12 tháng, thanh toán qua PayOS; hạn mức mở lại khi thanh toán được xác nhận. Đang có thuê bao trả
+phí thì mua thêm lượt theo khối 1.000, tách riêng Places và Chỉ đường. Giá và hạn mức từng gói đọc
+bằng máy ở [`GET /v1/catalog`](/api/#get-v1catalog) — trang này cố ý không chép cứng số tiền.
 
 Ba điều cần nhớ:
 
@@ -143,7 +148,7 @@ Hạn mức từng gói, quy tắc reset, lượt mua thêm và ví dụ JSON c�
 
 ## 6. Khoá demo
 
-Để thử nhanh, không cần xin gì: mở [playground](/playground.html) — ô **Khoá API** để trống là
+Để thử nhanh, không cần xin gì: mở [playground](/playground) — ô **Khoá API** để trống là
 trang tự dùng khoá demo. Cần chuỗi khoá để dán vào mã của bạn thì lấy ngay trong ô đó.
 
 Khoá demo không in ở đây vì nó được xoay định kỳ; một trang tài liệu chép cứng chuỗi khoá sẽ chỉ
@@ -178,7 +183,8 @@ Gửi email tới **dotienphong1993@gmail.com**, tiêu đề bắt đầu bằng
 4. **Mục đích và quy mô ước tính** — để chọn hạn mức.
 5. **Có cần `edits:write`** hay không.
 
-MapsLibVN đang ở giai đoạn nội bộ, chưa thu phí. Điều kiện sử dụng nằm trong
+Khoá `web` tự cấp được ngay ở cổng khách hàng (mục 0) — đường email này dành cho khoá `mobile`,
+khoá `server`, scope `edits:write` và các yêu cầu cần xét riêng. Điều kiện sử dụng nằm trong
 [Điều khoản tenant](/dieu-khoan/).
 
 ## 8. Khi lộ khoá

@@ -20,7 +20,7 @@ import { createClient } from '@mapslibvn/core';
 
 const client = createClient({
   apiKey: 'mlv_live_…',
-  baseUrl: 'https://api.mapslibvn.example',
+  baseUrl: 'https://api.ai-solutions.io.vn',
 });
 
 // end_user_token: chuỗi BẤT KỲ ổn định theo người dùng của app bạn (id nội bộ, uuid lưu

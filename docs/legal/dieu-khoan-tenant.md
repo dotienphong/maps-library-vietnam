@@ -1,10 +1,10 @@
 # Điều khoản sử dụng MapsLibVN dành cho tenant
 
-*Bản nội bộ 1.0 — 02/09/2026. Áp dụng cho các ứng dụng nhúng MapsLibVN trong giai đoạn nội bộ. Chưa được luật sư rà soát; xem `docs/legal/checklist-phap-ly.md`.*
+*Bản 1.1 — 21/09/2026. Áp dụng cho mọi ứng dụng nhúng MapsLibVN, kể cả tenant đang dùng thử và tenant trả phí. Chưa được luật sư rà soát; xem `docs/legal/checklist-phap-ly.md`.*
 
 ## 1. Định nghĩa
 
-- **MapsLibVN**: nền tảng bản đồ (tiles, Places API, SDK web/React) do Đỗ Tiến Phong vận hành. MapsLibVN là thư viện độc lập, không gắn với bất kỳ ứng dụng cụ thể nào.
+- **MapsLibVN**: nền tảng bản đồ (tiles, Places API, Routing API, SDK web/React/React Native) do Đỗ Tiến Phong vận hành. MapsLibVN là thư viện độc lập, không gắn với bất kỳ ứng dụng cụ thể nào.
 - **Tenant**: tổ chức hoặc cá nhân được cấp khoá API (`mlv_live_…`) để nhúng MapsLibVN vào ứng dụng của mình.
 - **Người dùng cuối**: người sử dụng ứng dụng của tenant.
 - **Dữ liệu nền**: dữ liệu bản đồ và địa điểm MapsLibVN cung cấp qua tiles và API, gồm dữ liệu OpenStreetMap (ODbL), Foursquare OS Places (Apache-2.0) và dữ liệu do người dùng đóng góp.
@@ -14,7 +14,10 @@
 1. Khoá `web` gắn với danh sách origin (`allowed_origins`, hỗ trợ wildcard subdomain); khoá `server` là bí mật, chỉ dùng phía máy chủ; khoá `mobile` gắn bundle id.
 2. Tenant chịu trách nhiệm cho mọi request mang khoá của mình. Khoá bị lộ phải báo để thu hồi và cấp lại.
 3. MapsLibVN có thể tạm ngưng khoá khi phát hiện vi phạm mục 4 hoặc tải bất thường gây ảnh hưởng tenant khác; sẽ thông báo qua email đăng ký.
-4. Giai đoạn nội bộ: không thu phí, không cam kết SLA. Hạn mức (quota) có thể được áp dụng khi chuyển sang giai đoạn thương mại và sẽ được báo trước 30 ngày.
+4. Tenant tự đăng ký ở cổng khách hàng (`https://api.ai-solutions.io.vn/console/`); mỗi tổ chức giữ tối đa 10 khoá đang hoạt động. Mọi khoá của một tổ chức tiêu chung một hạn mức — cấp thêm khoá không cấp thêm lượt.
+5. **Hạn mức đang có hiệu lực.** Bản dùng thử 30 ngày và các gói trả phí đều bị chặn theo hạn mức của gói; vượt trả `429 quota_exceeded`, hết quyền dùng trả `403 subscription_expired`. Con số từng gói ở `GET /v1/catalog` và trang REST API của tài liệu.
+6. **Thanh toán.** Gói mua theo kỳ 1, 3, 6 hoặc 12 tháng, giá nhân đơn theo số tháng, thanh toán qua PayOS; hạn mức mở khi thanh toán được xác nhận. Lượt mua thêm bán theo khối 1.000, tách riêng Places và Chỉ đường, **hết hạn cùng kỳ đã mua và không chuyển sang kỳ sau**, chỉ dùng được khi thuê bao trả phí còn hoạt động. Lượt trong gói được tiêu trước lượt mua thêm.
+7. **Chưa cam kết SLA.** MapsLibVN chưa cam kết mức sẵn sàng hay thời gian khắc phục; tenant chịu rủi ro gián đoạn. Thay đổi giá hoặc hạn mức của gói được báo trước ít nhất 30 ngày qua email đăng ký và áp dụng từ kỳ kế tiếp, không hồi tố kỳ đã thanh toán.
 
 ## 3. Ghi nguồn (attribution)
 
@@ -50,11 +53,11 @@ Nếu tenant cần dữ liệu OSM dẫn xuất theo ODbL, hãy yêu cầu bản
 
 1. Dữ liệu nền được tổng hợp từ nguồn mở và đóng góp cộng đồng; MapsLibVN **không bảo đảm** tính chính xác, đầy đủ hay cập nhật. Mỗi kết quả geocode kèm `precision` và `confidence` — tenant phải dùng chúng khi ra quyết định (xem trang "Độ chính xác geocode").
 2. Không dùng MapsLibVN cho mục đích mà sai lệch vị trí có thể gây thiệt hại về người hoặc tài sản (điều hướng khẩn cấp, hàng không, hàng hải) nếu không có nguồn xác minh độc lập.
-3. Trong mọi trường hợp, trách nhiệm của MapsLibVN đối với tenant không vượt quá số tiền tenant đã trả trong 12 tháng gần nhất (giai đoạn nội bộ: 0 đ).
+3. Trong mọi trường hợp, trách nhiệm của MapsLibVN đối với tenant không vượt quá số tiền tenant đã trả cho MapsLibVN trong 12 tháng gần nhất; với tenant chỉ dùng bản dùng thử, con số đó là 0 đồng.
 
 ## 8. Thay đổi dịch vụ
 
-MapsLibVN có thể thay đổi API, style, domain hoặc điều khoản này; thay đổi không tương thích ngược sẽ được báo trước ít nhất 30 ngày qua email đăng ký và trang docs. Domain tiles/API hiện tại (`tiles.ai-solutions.io.vn`, `api.ai-solutions.io.vn`) là tạm thời trong giai đoạn nội bộ.
+MapsLibVN có thể thay đổi API, style, domain hoặc điều khoản này; thay đổi không tương thích ngược sẽ được báo trước ít nhất 30 ngày qua email đăng ký và trang docs. Domain tiles/API hiện tại (`tiles.ai-solutions.io.vn`, `api.ai-solutions.io.vn`) là **tạm thời** và sẽ đổi khi MapsLibVN có tên miền riêng; việc đổi này cũng theo thời hạn báo trước 30 ngày.
 
 ## 9. Chấm dứt
 

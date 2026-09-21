@@ -39,7 +39,7 @@ Tạo một thư mục trống, đặt file `index.html` với nội dung sau. K
   <script src="https://mapslibvn-docs.pages.dev/sdk/mapslibvn.umd.js"></script>
   <script>
     // Dán khoá của bạn vào đây. Muốn thử nhanh thì lấy khoá demo trong ô "Khoá API" của
-    // playground (https://mapslibvn-docs.pages.dev/playground.html) — nó chỉ chạy trên
+    // playground (https://mapslibvn-docs.pages.dev/playground) — nó chỉ chạy trên
     // localhost / 127.0.0.1 (mọi port) và trên trang tài liệu.
     // Mở trang với ?key=mlv_live_… cũng ghi đè được mà không phải sửa file.
     const DEMO_KEY = 'mlv_live_…';
@@ -154,11 +154,13 @@ Chi tiết: [Khoá API](/khoa-api/) mục 3.
 
 ## 4. Chuyển sang tên miền thật
 
-Khoá demo cố tình **không** chạy trên tên miền của bạn. Khi trang thử đã chạy, xin một khoá `web`
+Khoá demo cố tình **không** chạy trên tên miền của bạn. Khi trang thử đã chạy, lấy một khoá `web`
 kèm origin thật:
 
-- Gửi email `[MapsLibVN]` tới `dotienphong1993@gmail.com` — nội dung cần ghi nằm ở
-  [Khoá API](/khoa-api/) mục 7.
+- Nhanh nhất: tự đăng ký ở [cổng khách hàng](https://api.ai-solutions.io.vn/console/) — email, mã
+  sáu số, tên tổ chức, rồi tự khai origin khi tạo khoá. Bản dùng thử 30 ngày, không cần thẻ.
+- Khoá `mobile`, khoá `server` hay scope `edits:write`: gửi email `[MapsLibVN]` tới
+  `dotienphong1993@gmail.com` — nội dung cần ghi nằm ở [Khoá API](/khoa-api/) mục 7.
 - Kê đủ origin: `https://vidu.vn` và `https://*.vidu.vn` là hai mẫu khác nhau; staging cũng phải kê.
 - Cả `api.ai-solutions.io.vn` lẫn `mapslibvn-docs.pages.dev` đều là endpoint **tạm thời** của giai
   đoạn nội bộ. Muốn không phụ thuộc chúng, hãy [tự host](/tu-host/) và thay hai tên miền trong file
@@ -190,4 +192,4 @@ pnpm example:rn --android
 Không chạy được trên Expo Go vì cần native module. Xem [React Native](/react-native/).
 
 Đọc thêm: [Cài đặt](/cai-dat/) cho bốn cách nhúng, [Khoá API](/khoa-api/) để xin khoá,
-[Playground](/playground.html) để thử toàn bộ Places API ngay trên trang này.
+[Playground](/playground) để thử toàn bộ Places API ngay trên trang này.

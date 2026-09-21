@@ -68,7 +68,7 @@ Mọi lỗi trả JSON cùng một hình dạng:
 | `code` | HTTP | Khi nào |
 |---|---|---|
 | `invalid_request` | 400 | tham số thiếu, sai kiểu hoặc sai định dạng; body `POST /v1/edits` không hợp lệ |
-| `missing_key` | 401 | không có `X-Api-Key` và không có `?key=` |
+| `missing_key` | 401 | không có header `X-Api-Key` |
 | `invalid_key` | 401 | khoá không tồn tại, đã tắt hoặc đã thu hồi |
 | `scope` | 403 | khoá không có scope mà endpoint yêu cầu |
 | `origin_not_allowed` | 403 | khoá `web` và `Origin`/`Referer` không nằm trong `allowed_origins` |
@@ -159,8 +159,10 @@ Lượt trong gói được dùng **trước**, hết mới tới lượt mua th
 hết hạn sớm hơn sẽ đi trước. Lượt mua thêm hết hạn **cùng kỳ đã mua**, không chuyển sang kỳ sau, và
 chỉ dùng được khi thuê bao trả phí còn hoạt động.
 
-MapsLibVN đang ở giai đoạn nội bộ: chưa có trang tự đăng ký hay tự thanh toán. Cấp gói, gia hạn và
-mua thêm lượt hiện làm qua email ở [Khoá API](/khoa-api/#7-xin-khoá-riêng).
+Đăng ký, chọn gói, gia hạn và mua thêm lượt làm ở [cổng khách hàng](https://api.ai-solutions.io.vn/console/):
+đặt đơn `plan` (gói + kỳ 1/3/6/12 tháng) hoặc `addon` (số khối 1.000 lượt của một nhóm), thanh toán
+qua PayOS, hạn mức mở ngay khi thanh toán được xác nhận. Đơn `addon` chỉ đặt được khi thuê bao trả
+phí còn hoạt động. Bảng giá và danh sách kỳ đọc bằng máy ở `GET /v1/catalog` (mục 6).
 
 ### Ví dụ lỗi hạn mức
 
@@ -698,6 +700,39 @@ curl "https://api.ai-solutions.io.vn/v1/attribution"
 ```
 
 Dùng chuỗi này khi bạn hiển thị kết quả API ngoài bản đồ. Nghĩa vụ chi tiết ở [Giấy phép & ghi nguồn](/giay-phep/).
+
+### GET /v1/catalog
+
+Bảng giá công khai: đúng những con số cổng khách hàng và website đang dùng. **Không cần khoá API.**
+Cache 1 giờ.
+
+```bash
+curl "https://api.ai-solutions.io.vn/v1/catalog"
+```
+
+```json
+{
+  "currency": "VND",
+  "usdReferenceRate": 26000,
+  "periodMonths": [1, 3, 6, 12],
+  "tiers": [
+    { "tier": "trial", "priceVnd": 0, "places": 2000, "directions": 200,
+      "dailyPlaces": 200, "dailyDirections": 20, "onlineSupport": false },
+    { "tier": "starter", "priceVnd": 650000, "places": 30000, "directions": 3000,
+      "dailyPlaces": null, "dailyDirections": null, "onlineSupport": false }
+  ],
+  "addOns": [
+    { "group": "places", "units": 1000, "priceVnd": 26000 },
+    { "group": "directions", "units": 1000, "priceVnd": 78000 }
+  ]
+}
+```
+
+`priceVnd` là giá **một tháng** của gói; kỳ nhiều tháng nhân đơn, không chiết khấu. `priceCents` đi
+kèm mỗi dòng là quy đổi USD **tham chiếu** theo `usdReferenceRate`, không phải đồng tiền thu.
+`dailyPlaces`/`dailyDirections` là trần ngày, `null` nghĩa là gói đó không có trần ngày riêng.
+
+Hãy đọc endpoint này thay vì chép cứng con số: giá và hạn mức đổi bằng một lần phát hành máy chủ.
 
 ### GET /v1/styles/{theme}.json
 

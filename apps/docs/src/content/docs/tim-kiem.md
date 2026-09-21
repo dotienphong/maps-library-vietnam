@@ -101,7 +101,7 @@ Gợi ý `type: 'area'` mang thêm `bbox`, nên hãy khớp khung nhìn theo c�
 điểm. Vùng không có `id`, vì vậy **không** gọi `getPlace()` cho nó.
 
 ```html
-<mapslibvn-autocomplete id="ac" api-key="mlv_live_…" api-base="https://api.mapslibvn.vn">
+<mapslibvn-autocomplete id="ac" api-key="mlv_live_…" api-base="https://api.ai-solutions.io.vn">
 </mapslibvn-autocomplete>
 <script type="module">
   document.getElementById('ac').addEventListener('select', (event) => {
@@ -187,8 +187,9 @@ và độ phổ biến quyết định.
 ### Cách viết địa phương và tên cũ
 
 Người Việt viết một địa danh theo nhiều cách, và nhiều tuyến đường vẫn được gọi bằng tên cũ. API
-xử lý việc này theo **ba bậc**, và bậc sau **chỉ chạy khi bậc trước chưa đủ kết quả** — truy vấn
-thông thường không phải trả giá cho chúng.
+xử lý việc này theo **ba bậc**. Từ 08/09/2026 cả ba bậc chạy **song song** trong cùng một lượt —
+mọi truy vấn được phát đi trước khi chờ cái nào, nên phần cộng vào độ trễ là bậc chậm nhất chứ
+không phải tổng ba bậc.
 
 | Bạn gõ | Ra | Nhờ đâu |
 |---|---|---|
@@ -201,8 +202,15 @@ Khoá ngữ âm gộp những khác biệt thường gặp: `ch`/`tr`, `x`/`s`, 
 âm cuối `-ng`/`-n`, `-t`/`-c`. Nó gộp được dính/tách từ trong **cùng một tên** (`nha trang` ↔
 `nhatrang`), nhưng không phải mọi cách viết dính đều gộp.
 
-Điểm của kết quả bậc sau bị trừ một khoảng nhỏ, nên khi bậc 1 đã có kết quả tương đương thì kết quả
-đó vẫn đứng trước.
+Bậc 2 chỉ có dữ kiện để chạy khi truy vấn từ **hai token** trở lên; bậc 3 chạy khi truy vấn tạo
+được khoá ngữ âm. Điểm của kết quả bậc sau bị trừ **0,05 mỗi bậc**, nên khi bậc 1 đã có kết quả
+tương đương thì kết quả đó vẫn đứng trước — bậc sau chỉ nổi lên khi bậc trước không có gì tương
+đương.
+
+Phiên bản trước 08/09/2026 chỉ chạy bậc sau khi bậc trước trả **thiếu** `limit`. Đo trên dữ liệu
+thật cho thấy bậc 1 luôn lấp đủ 10 suất nên bậc 2 và 3 gần như không bao giờ chạy; vì vậy điều
+kiện đó đã bị bỏ. Nếu ứng dụng của bạn từng dựa vào việc "gõ sai thì không ra gì", hãy đọc lại
+`score` thay vì số lượng kết quả.
 
 ## 6. `search` — tìm theo tên, loại hoặc vùng
 

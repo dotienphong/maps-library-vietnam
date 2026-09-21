@@ -60,7 +60,7 @@ và tên; các nguồn khác gắn vai trò `secondary` và hiện trong trườ
 
 ## 3. Places API
 
-Tám endpoint: bảy đọc, một ghi. Xác thực bằng header `X-Api-Key` hoặc tham số `?key=`.
+Chín endpoint: tám đọc, một ghi. Xác thực bằng header `X-Api-Key` — từ 09/09/2026 máy chủ không còn nhận khoá trên URL.
 
 | Endpoint | Làm gì | Tham số chính |
 |---|---|---|
@@ -70,11 +70,13 @@ Tám endpoint: bảy đọc, một ghi. Xác thực bằng header `X-Api-Key` ho
 | `GET /v1/places/{id}` | chi tiết một POI | trả thêm `sources` và `attribution` |
 | `GET /v1/geocode` | địa chỉ chữ → toạ độ | `q` từ 2 ký tự; `near`; `limit` 1–5 (5) |
 | `GET /v1/reverse` | toạ độ → địa chỉ | `lat`, `lng` |
+| `GET /v1/directions` | tuyến đường, bước rẽ tiếng Việt | `from`, `to` "lat,lng" bắt buộc; `via` tối đa 5 điểm; `mode` `motorbike`/`car`/`walk`; tính vào quota **Chỉ đường** riêng |
 | `GET /v1/attribution` | chuỗi ghi nguồn chuẩn | không cần khoá |
 | `POST /v1/edits` | gửi đóng góp, sửa POI | cần scope `edits:write` |
 
-Ngoài ra có `GET /v1/styles/{light|dark}.json` cho style bản đồ và `GET /healthz` để kiểm tra
-dịch vụ. Chi tiết đầy đủ ở [REST API](/api/).
+Ngoài ra có `GET /v1/styles/{light|dark}.json` cho style bản đồ, `GET /v1/catalog` cho bảng giá
+đọc bằng máy, và `GET /healthz` (kèm `/healthz/db`, `/healthz/routing`) để kiểm tra dịch vụ — cả ba
+đều không cần khoá. Chi tiết đầy đủ ở [REST API](/api/).
 
 ## 4. Geocode trung thực về độ chính xác
 
@@ -136,6 +138,7 @@ bằng đúng một thẻ `<script>`, không cần bước build.
 | Tiles PMTiles nền Việt Nam và lớp POI | Cloudflare R2 kèm custom domain, client đọc thẳng bằng HTTP Range | 0 đồng egress |
 | Places API, styles, trang duyệt đóng góp | Cloudflare Worker chạy Hono | gói Workers Free đủ cho nội bộ |
 | Postgres 16 kèm PostGIS | máy nội bộ chạy 24/7 trong Docker, nối ra qua Cloudflare Tunnel rồi Access rồi Hyperdrive | tiền điện và máy |
+| Engine chỉ đường Valhalla | container `valhalla` trên cùng máy chủ, không mở cổng; Worker gọi qua Cloudflare Tunnel | tiền điện và máy |
 | Pipeline dữ liệu OSM, Foursquare | container `pipeline` trên máy chủ, cron thứ Hai 02:00 | — |
 | Tài liệu | Cloudflare Pages | 0 đồng |
 
@@ -160,8 +163,12 @@ Vì tiles không chạm Worker, lượt tải bản đồ không tính vào hạ
   chỉ lấy vùng thì gọi `/v1/autocomplete` với `types=area`.
 - **Chỉ đường** dựa trên dữ liệu đường một chiều và cấm rẽ của OSM Việt Nam, còn thiếu ở nhiều nơi; tuyến nội thành có thể kém ứng dụng thương mại. ETA theo cấp đường, không có giao thông trực tiếp.
 - **Chưa có tiles offline.** MapLibre Native đọc được PMTiles qua `file://` nên có thể bổ sung sau.
-- Repo hiện private; liên hệ theo [Điều khoản tenant](/dieu-khoan/) mục 10 để xin quyền hoặc xin
-  khoá API.
+- Khoá API tự cấp được ở [cổng khách hàng](https://api.ai-solutions.io.vn/console/) (bản dùng thử
+  30 ngày, không cần thẻ); khoá `mobile`, khoá `server` và scope `edits:write` vẫn xin qua email —
+  xem [Khoá API](/khoa-api/).
+- **Mã máy chủ chưa mở.** Bốn gói SDK là MIT trên npm, nhưng Worker API, pipeline và hạ tầng nằm
+  trong repo private; liên hệ theo [Điều khoản tenant](/dieu-khoan/) mục 10 để xin quyền.
+- **Chưa cam kết SLA.** Xem [Điều khoản tenant](/dieu-khoan/) mục 2.
 
 Đọc thêm: [Cài đặt](/cai-dat/), [Bản đồ web](/ban-do-web/),
 [Tìm kiếm & autocomplete](/tim-kiem/), [REST API](/api/), [SDK JavaScript](/sdk/).
