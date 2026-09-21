@@ -2,6 +2,8 @@
 
 Máy ≥ 8 GB RAM, SSD ≥ 50 GB, Docker (Linux ưu tiên; macOS qua Docker Desktop; Windows qua WSL2 và tắt chế độ ngủ). Không dùng laptop làm việc. Khuyến nghị UPS.
 
+**Điều khiển máy chủ từ xa (Tailscale): `infra/server/SSH.md`.** Mọi lệnh `server:*` dưới đây phải gõ TRÊN máy chủ, không phải trên máy dev.
+
 ## Dựng lần đầu
 
 Onboarding Windows/WSL2 xem `Setup_Local_Guide.md` ở thư mục gốc. `server:setup` chỉ dựng stack và
