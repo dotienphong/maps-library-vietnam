@@ -46,11 +46,11 @@ describe('/v1/matrix trên Valhalla fixture Quận 1', () => {
     expect(body.distances_m[0][1]).toBeNull();
   });
 
-  it('11 × 10 → 400 invalid_request nêu 100 cặp', async () => {
-    const eleven = Array.from({ length: 11 }, (_, i) => `10.77,106.${600 + i}`).join(';');
+  it('6 × 10 → 400 invalid_request nêu 50 cặp', async () => {
+    const six = Array.from({ length: 6 }, (_, i) => `10.77,106.${600 + i}`).join(';');
     const ten = Array.from({ length: 10 }, (_, i) => `10.78,106.${700 + i}`).join(';');
-    const response = await get(`sources=${eleven}&targets=${ten}`);
+    const response = await get(`sources=${six}&targets=${ten}`);
     expect(response.status).toBe(400);
-    expect((await response.json()).error.message).toMatch(/100 cặp/);
+    expect((await response.json()).error.message).toMatch(/50 cặp/);
   });
 });

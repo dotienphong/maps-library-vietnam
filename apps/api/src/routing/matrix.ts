@@ -14,13 +14,14 @@ import { ROUTING_ATTRIBUTION } from './translate';
 import { VALHALLA_COSTING, type ValhallaMatrixResponse } from './valhalla';
 
 /**
- * Trần cỡ (spec 22/09/2026 mục 4.6): ngang một request Distance Matrix của Google (25 × 25, ≤ 100
- * element) và bằng 4 % trần 2.500 cặp của Valhalla. Một request = MỘT lượt nhóm `directions` bất kể
- * cỡ, nên trần cặp là lớp bảo vệ máy chủ 1 luồng. Đổi số ở đây phải đổi cả docs và site (mục 6.3).
+ * Trần cỡ (spec 22/09/2026 mục 4.6, hạ từ 100 → 50 cặp sau phép đo cùng ngày). Máy chủ là **2 nhân,
+ * 3,7 GB RAM** và Valhalla chạy **1 luồng**: với 100 cặp, năm request song song đẩy p95 của
+ * `/v1/directions` lên 2,7–5,3 s cho mọi khách khác. Trần cặp giới hạn MỘT request; nhịp tổng do
+ * `MATRIX_RATE_LIMITER` (6/phút/khoá) giữ — cần cả hai. Đổi số ở đây phải đổi cả docs và site.
  */
 export const MATRIX_MAX_SOURCES = 25;
 export const MATRIX_MAX_TARGETS = 25;
-export const MATRIX_MAX_PAIRS = 100;
+export const MATRIX_MAX_PAIRS = 50;
 
 export interface MatrixParams {
   sources: LatLng[];

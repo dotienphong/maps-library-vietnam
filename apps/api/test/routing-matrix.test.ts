@@ -35,8 +35,8 @@ function expectInvalidRequest(action: () => unknown, message?: RegExp): void {
 }
 
 describe('parseMatrixParams', () => {
-  it('trần: 25 sources, 25 targets, 100 cặp', () => {
-    expect([MATRIX_MAX_SOURCES, MATRIX_MAX_TARGETS, MATRIX_MAX_PAIRS]).toEqual([25, 25, 100]);
+  it('trần: 25 sources, 25 targets, 50 cặp (hạ từ 100 sau phép đo 22/09/2026)', () => {
+    expect([MATRIX_MAX_SOURCES, MATRIX_MAX_TARGETS, MATRIX_MAX_PAIRS]).toEqual([25, 25, 50]);
   });
 
   it('mặc định motorbike; giữ thứ tự điểm', () => {
@@ -72,14 +72,18 @@ describe('parseMatrixParams', () => {
     );
   });
 
-  it('25 × 25 hợp lệ từng bên nhưng 625 cặp → 400 nêu phép nhân; 25 × 4 = 100 qua', () => {
+  it('25 × 25 hợp lệ từng bên nhưng 625 cặp → 400 nêu phép nhân; 25 × 2 = 50 qua, 25 × 4 = 100 thì không', () => {
     expectInvalidRequest(
       () => parseMatrixParams({ sources: points(25), targets: points(25, 10.78) }),
-      /tối đa 100 cặp .*25 × 25 = 625/,
+      /tối đa 50 cặp .*25 × 25 = 625/,
     );
-    const ok = parseMatrixParams({ sources: points(25), targets: points(4, 10.78) });
+    expectInvalidRequest(
+      () => parseMatrixParams({ sources: points(25), targets: points(4, 10.78) }),
+      /tối đa 50 cặp .*25 × 4 = 100/,
+    );
+    const ok = parseMatrixParams({ sources: points(25), targets: points(2, 10.78) });
     expect(ok.sources).toHaveLength(25);
-    expect(ok.targets).toHaveLength(4);
+    expect(ok.targets).toHaveLength(2);
   });
 
   it('điểm ngoài hộp Việt Nam → 400 "Việt Nam"', () => {

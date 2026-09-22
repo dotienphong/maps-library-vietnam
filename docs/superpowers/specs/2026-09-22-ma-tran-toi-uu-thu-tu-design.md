@@ -60,7 +60,7 @@ site. Gói core thêm `client.matrix()` và `client.optimizedRoute()`; response 
 |---|---|---|
 | Phạm vi | Tầng 1 + tầng 2; tầng 3 để sau | Hai tầng đầu có sẵn trong Valhalla, không cần dịch vụ mới; tầng 3 cần container solver và spec riêng; chưa có người dùng thật đòi (95 % request 10 ngày qua là phép đo của chính mình) |
 | Tính lượt | **Một request = một lượt nhóm `directions`**, bù bằng trần cỡ chặt | Không đụng sổ `QuotaObject` đang chạy tiền thật (hardcode `['places','directions']` ở bốn chỗ, `reserve()` chỉ trừ một lượt), không đụng catalog, migration, admin, console. Là điểm bán rõ ràng so với Google tính theo từng cặp. Nâng cách tính khi có khách thật (mục 12) |
-| Loại khoá được gọi | Mọi loại khoá, kể cả `web`/`mobile` công khai; dùng chung burst 20/phút/khoá+IP và trần 100/phút/khoá web-mobile của directions | App shipper trên điện thoại gọi thẳng được — đúng use case. Không thêm binding Rate Limiting. Trần cỡ là lớp bảo vệ chính |
+| Loại khoá được gọi | Mọi loại khoá, kể cả `web`/`mobile` công khai. Giữ burst 20/phút/khoá+IP và trần 100/phút/khoá web-mobile của directions, **cộng thêm `MATRIX_RATE_LIMITER` 6/phút theo khoá thuần riêng cho hai endpoint này** (bổ sung 22/09 sau khi đo — xem mục 6.3) | App shipper trên điện thoại gọi thẳng được. Trần cỡ giới hạn một request; nhịp riêng giới hạn tải tổng lên engine 1 luồng của máy 2 nhân |
 | Trình bày trên site | Mục riêng "Giao hàng & vận tải" ở trang Tính năng + thẻ bento mới ở trang chủ; bảng đối đầu tách hàng cũ thành hai | Mục tiêu PHONG nêu là thu hút người tìm giải pháp giao hàng; gộp vào Dẫn đường dễ bị bỏ sót |
 | Cách làm kỹ thuật | Cách 1: hai endpoint **GET** riêng, mở rộng module `routing/` sẵn có | Ít mã nhất; cache, 405 HEAD, rate limit, analytics, khuôn docs "endpoint GET" đều có sẵn. POST JSON (cách 2) phá khuôn và đòi hash body cho cache; gộp vào `/v1/directions?optimize=1` (cách 3) chỉ giải quyết nửa việc |
 | Ngữ nghĩa `to` của optimized-route | Tuỳ chọn; **bỏ trống = quay về `from`** (round trip) | Khớp cách Valhalla làm được; open-end ghi rõ chưa có |
@@ -83,7 +83,9 @@ site. Gói core thêm `client.matrix()` và `client.optimizedRoute()`; response 
 - Response `POST /sources_to_targets` (gửi `units: "kilometers"`): `sources_to_targets[i][j]` là object `{ from_index, to_index, time (giây), distance (km), begin_lat, begin_lon, end_lat, end_lon, begin_heading, end_heading }`; `sources`/`targets` là mảng **phẳng** `{ lat, lon }` với toạ độ **đã bám** vào đường (khác `/route`, vốn trả toạ độ gốc). Cặp không nối được (đã thấy với target Vũng Tàu nằm ngoài graph Quận 1 nhưng vẫn bám được vào một edge) → `time: null, distance: null`, HTTP vẫn 200, các ô khác đầy đủ.
 - Cặp vượt `max_matrix_distance` → HTTP 400 `error_code 154` "Path distance exceeds the max distance limit" cho **cả request** (đã thấy với xe máy TP.HCM → Hà Nội, và ô tô 400 km).
 - `POST /optimized_route` với `locations` kiểu `break`: trả `trip` cùng hình dạng `/route` (`legs[].shape` polyline6, `maneuvers`, `summary`), và `trip.locations[]` **theo thứ tự đi** kèm `original_index` là chỉ số trong request. Điểm đầu và cuối luôn giữ nguyên chỗ (`original_index` 0 và n−1). Round trip (điểm cuối trùng toạ độ điểm đầu) chạy bình thường, trả n−1 leg. Request 2 điểm (không có điểm giữa) cũng chạy. Một điểm dừng không nối được → HTTP 400 `error_code 442` cho cả request (đúng ca `no_route` sẵn có).
-- Production: `server_threads = 1` (`VALHALLA_THREADS` mặc định, `infra/server/README.md`); p95 `/v1/directions` đo 11/09 là 280–480 ms; máy chủ 15,6 GB RAM, đỉnh RAM khi build graph 3,7 GB. **Chưa có số đo nào** cho hai action mới trên graph Việt Nam — mục 6.
+- **Máy chủ production (đo trên chính máy 22/09/2026): Ubuntu, `nproc` = 2 nhân, tổng RAM 3,7 GB (còn trống ~1 GB), Postgres 592 MB, Valhalla 343 MB lúc rảnh.** Bản đầu của spec này chép nhầm "15,6 GB RAM, đỉnh build 3,7 GB" từ `docs/evidence/routing/build-stats.txt` — file đó đo trên **MacBook** ngày 11/09, không phải máy chủ (bài học đã ghi: máy chủ production không ở MacBook). Mọi tính toán dung lượng trong spec này dựa trên **2 nhân / 3,7 GB**.
+- Production: `server_threads = 1` (`VALHALLA_THREADS` mặc định). Thử `= 2` ngày 22/09 và **đã quay lại 1**: trên máy 2 nhân, hai luồng Valhalla chiếm cả hai nhân lúc bận, không còn nhân cho `cloudflared` (đường vào mọi request) và Postgres — p95 `/v1/directions` lúc rảnh tụt từ ~0,8 s xuống 1,7–3,9 s trong khi lúc bận không nhanh hơn. Số đo ở `docs/evidence/routing/2026-09-22-matrix.md`.
+- p95 `/v1/directions` đo 11/09 là 280–480 ms, nhưng **không so trực tiếp được với hôm nay**: lúc đó tenant còn quota legacy (KV), nay là quota thương mại và `server-timing` cho thấy sổ DO tốn `reserve 166 ms + prepare 158 ms` mỗi request.
 - Sổ quota `apps/api/src/billing/quota-object.ts`: `reserve(requestId, group, keyHash)` trừ đúng một lượt, `group` phải thuộc `['places','directions']` (kiểm ở bốn chỗ). `quotaMiddleware('directions', preflight)` dùng lại nguyên cho hai endpoint mới.
 - `analyticsMiddleware` ghi `c.req.routePath` vào blob4 → hai route mới tự có mẫu `/v1/matrix`, `/v1/optimized-route`, không thêm cột.
 - Gói core: `.size-limit.json` trần **16 kB gzip** cho barrel `dist/index.js`; barrel đã minify từ 17/09.
@@ -342,15 +344,35 @@ Kết quả ghi `docs/evidence/routing/2026-09-<ngày>-matrix.md`: bảng p95 t�
 ### 6.2 Ngưỡng nghiệm thu
 
 - p95 bài A, B, C mỗi bài **< 3.000 ms**.
-- p95 directions **trong lúc** năm ma trận chạy ≤ **2 ×** p95 directions lúc rảnh (đo trong cùng vòng).
-- 0 lỗi 5xx; không có 429 (nếu có là smoke sai nhịp, sửa smoke chứ không sửa trần).
+- p95 directions **trong lúc** năm ma trận chạy: ≤ **2 ×** p95 lúc rảnh **VÀ** dưới **2.000 ms tuyệt đối**.
+  Hai điều kiện, không phải một. Bản đầu chỉ có tỷ lệ và nó **đã bị qua mặt** ngày 22/09: đặt
+  `VALHALLA_THREADS=2` làm p95 lúc rảnh xấu đi (0,8 s → 3,9 s) nên tỷ lệ tụt từ 5,3× xuống 1,4× trong
+  khi `busy_p95` gần như không đổi (5.287 → 5.493 ms). Một ngưỡng tương đối tự nó luôn thoả được bằng
+  cách làm mẫu số tệ đi.
+- 0 lỗi 5xx; không có 429; **0 ACK receipt trượt** (mục 7).
+- Đo xong chạy thêm `pnpm smoke:directions -- --confirm-production --requests=20` để chắc bộ bốn tuyến
+  chuẩn không hồi quy — đây là phép so duy nhất có mốc lịch sử.
 
-### 6.3 Nếu hụt ngưỡng
+### 6.3 Nếu hụt ngưỡng — và điều đã thật sự xảy ra ngày 22/09/2026
 
-1. Hạ `MATRIX_MAX_PAIRS` 100 → 50 và `OPTIMIZED_MAX_STOPS` 10 → 8 (một commit + deploy), đo lại. Docs công bố số đã hạ, không công bố số cũ.
-2. Hoặc PHONG đặt `VALHALLA_THREADS=2` trong `infra/server/.env` rồi `docker compose up -d valhalla` trên máy chủ (nạp lại tar, không build lại; `/v1/directions` trả 503 khoảng một phút), đo lại. RAM còn dư (đỉnh build 3,7 GB / 15,6 GB).
-3. Quyết định lấy gì là của PHONG, ghi DEVLOG kèm số đo hai lần.
+Lần đo đầu với trần 100 cặp / 10 điểm dừng và 1 luồng: A/B/C đạt (1.483 / 1.857 / 2.178 ms) nhưng bài
+D hụt nặng — p95 directions lúc bận gấp **4,1–5,3 lần** lúc rảnh (2,7–5,3 s).
 
+Ba đường đã cân nhắc, và kết quả:
+
+1. **Tăng `VALHALLA_THREADS` 1 → 2 — ĐÃ THỬ, ĐÃ HOÀN NGUYÊN.** Máy chỉ 2 nhân nên hai luồng Valhalla
+   lấy hết CPU của `cloudflared` và Postgres. Tỷ lệ trông đẹp hơn (1,25–1,43×) nhưng chỉ vì baseline
+   tệ đi; `pnpm smoke:directions` trên bốn tuyến chuẩn cho p95 1,1–4,0 s, vượt xa ngưỡng 800 ms đã
+   chốt 11/09. Đã quay về 1 luồng. Đường này đóng cho tới khi máy chủ có nhiều nhân hơn.
+2. **Hạ trần cỡ: `MATRIX_MAX_PAIRS` 100 → 50, `OPTIMIZED_MAX_STOPS` 10 → 8** (PHONG chốt 22/09). Giảm
+   tải của MỘT request, nhưng không chặn được năm khách cùng gọi.
+3. **Rate limiter riêng cho hai endpoint nặng: `MATRIX_RATE_LIMITER`, 6 request/phút theo khoá thuần**
+   (PHONG chốt 22/09, đảo quyết định "dùng chung limiter" ở mục 1.5 khi chưa có số). Đây mới là thứ
+   giới hạn **tải tổng** lên engine: trần cỡ giới hạn một request, nhịp giới hạn số request. Áp cho cả
+   `web`/`mobile` lẫn `server` vì mục tiêu là bảo vệ origin, không phải chống spam theo IP.
+
+Làm cả 2 và 3, rồi đo lại. Vẫn hụt thì hạ tiếp trần xuống 25 cặp, hoặc để tính năng ở trạng thái
+"đã có endpoint nhưng chưa công bố" cho tới khi máy chủ được nâng cấp — **không** nới ngưỡng.
 ## 7. Kiểm thử
 
 | Lớp | File | Kiểm gì |

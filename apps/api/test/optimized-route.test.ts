@@ -31,13 +31,13 @@ beforeEach(async () => {
 });
 
 describe('GET /v1/optimized-route', () => {
-  it('không khoá → 401; thiếu stops, 11 stops, mode lạ, ngoài VN, chim bay → 400 mà KHÔNG gọi Valhalla', async () => {
+  it('không khoá → 401; thiếu stops, 9 stops, mode lạ, ngoài VN, chim bay → 400 mà KHÔNG gọi Valhalla', async () => {
     expect(
       (await SELF.fetch('https://api/v1/optimized-route?from=10,106&stops=11,107')).status,
     ).toBe(401);
     expect((await call('from=10.77,106.70')).status).toBe(400);
-    const eleven = Array.from({ length: 11 }, (_, i) => `10.77,106.${600 + i}`).join(';');
-    expect((await call(`from=10.77,106.70&stops=${eleven}`)).status).toBe(400);
+    const nine = Array.from({ length: 9 }, (_, i) => `10.77,106.${600 + i}`).join(';');
+    expect((await call(`from=10.77,106.70&stops=${nine}`)).status).toBe(400);
     expect((await call('from=10.77,106.70&stops=10.78,106.71&mode=bike')).status).toBe(400);
     expect((await call('from=10.77,106.70&stops=13.75,100.50')).status).toBe(400);
     expect((await call('from=10.7798,106.6990&stops=21.0285,105.8542')).status).toBe(400);

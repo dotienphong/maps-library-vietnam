@@ -16,10 +16,11 @@ import { translateDirections } from './translate';
 import { VALHALLA_COSTING, VALHALLA_LANGUAGE, type ValhallaRouteResponse } from './valhalla';
 
 /**
- * 10 điểm dừng = 12 điểm kể cả from/to, dưới `max_locations = 20` của costing auto (spec 22/09/2026
- * mục 4.6). Một request = MỘT lượt nhóm `directions`. Đổi số ở đây phải đổi docs và site (mục 6.3).
+ * 8 điểm dừng = 10 điểm kể cả from/to, dưới `max_locations = 20` của costing auto (spec 22/09/2026
+ * mục 4.6; hạ từ 10 → 8 sau phép đo cùng ngày trên máy chủ 2 nhân / Valhalla 1 luồng). Một request =
+ * MỘT lượt nhóm `directions`, nhịp tổng do `MATRIX_RATE_LIMITER` giữ. Đổi số phải đổi docs và site.
  */
-export const OPTIMIZED_MAX_STOPS = 10;
+export const OPTIMIZED_MAX_STOPS = 8;
 
 export interface OptimizedParams {
   from: LatLng;

@@ -4,6 +4,7 @@ import { cachedJson } from '../cache';
 import type { AppEnv } from '../env';
 import { quotaMiddleware } from '../quota';
 import { graphBuiltAt } from '../routing/graph';
+import { apDungNhipMaTran } from '../routing/nhip';
 import {
   optimizedBody,
   optimizedCacheUrl,
@@ -22,6 +23,13 @@ export const optimized = new Hono<AppEnv>();
 optimized.get(
   '/v1/optimized-route',
   requireAuth('places:read', { deferRevocation: true }),
+  // Nhịp riêng 6/phút/khoá ĐỨNG TRƯỚC quota: hai endpoint này nặng gấp nhiều lần một lượt chỉ đường
+  // trên engine 1 luồng, và trần cỡ chỉ giới hạn được từng request (spec mục 6.3).
+  async (c, next) => {
+    const auth = c.get('auth');
+    if (auth) await apDungNhipMaTran(c.env.MATRIX_RATE_LIMITER, auth.keyHash);
+    return next();
+  },
   quotaMiddleware('directions', (c) => {
     parseOptimizedParams(c.req.query());
   }),

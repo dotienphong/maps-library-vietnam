@@ -103,6 +103,7 @@ theo [REST API](/api/#xác-nhận-receipt-khi-gọi-rest-trực-tiếp).
 | Burst Places | 60 lượt / phút / điểm Cloudflare | mỗi cặp khoá + IP, gộp 6 endpoint `places:read` |
 | Burst Chỉ đường | 20 lượt / phút / điểm Cloudflare | mỗi cặp khoá + IP, gộp `/v1/directions`, `/v1/matrix`, `/v1/optimized-route` |
 | Trần theo khoá Chỉ đường | 100 lượt / phút / điểm Cloudflare | mọi IP cộng lại; chỉ khoá `web` và `mobile` (kể cả tenant internal), khoá `server` không chịu; gộp cả ba endpoint |
+| Nhịp Ma trận / Tối ưu thứ tự | 6 lượt / phút / điểm Cloudflare | mọi IP cộng lại, **mọi loại khoá kể cả `server`**; riêng `/v1/matrix` và `/v1/optimized-route` |
 | Lượt gọi Places | 20.000 / ngày (plan `free`) | mỗi khoá, gộp cả 6 endpoint `places:read` |
 | Đóng góp theo người dùng cuối | 20 / ngày | mỗi `end_user_token` |
 | Đóng góp theo khoá | 500 / ngày | mỗi khoá API |

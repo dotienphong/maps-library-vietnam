@@ -113,7 +113,7 @@ Sáu endpoint đọc dữ liệu địa điểm (`/v1/autocomplete`, `/v1/search
 
 **Quota Chỉ đường.** `GET /v1/directions` có quota **riêng**, cũng theo ngày Việt Nam và cũng chặn ở 2× hạn mức: plan `free` mặc định **2.000** lượt/ngày, khoá có thể được đặt hạn riêng (`quota_directions_per_day`). Tenant `internal` không bị đếm theo ngày. Burst **20 request/phút** cho mỗi cặp khoá + IP (riêng, không dùng chung 60 của Places). Ngoài ra khoá `web` và `mobile` — kể cả của tenant `internal`, vì khoá loại này nằm công khai trong trang/app — chịu **trần 100 request/phút cho cả khoá** (mọi IP cộng lại); khoá `server` không chịu trần này. Vượt trả `429 rate_limit_exceeded` với `retry-after: 60`.
 
-`GET /v1/matrix` và `GET /v1/optimized-route` tính vào **cùng quota Chỉ đường** và tính **một lượt mỗi request bất kể cỡ**: một ma trận 10 × 10 (100 cặp) hay một lần tối ưu 10 điểm dừng đều là một lượt. Bù lại cỡ mỗi request có trần (tối đa 100 cặp, tối đa 10 điểm dừng — xem từng endpoint ở mục 4). Ba endpoint dùng chung burst 20 request/phút/khoá + IP và trần 100 request/phút cho khoá `web`/`mobile`.
+`GET /v1/matrix` và `GET /v1/optimized-route` tính vào **cùng quota Chỉ đường** và tính **một lượt mỗi request bất kể cỡ**: một ma trận 10 × 5 (50 cặp) hay một lần tối ưu 8 điểm dừng đều là một lượt. Bù lại cỡ mỗi request có trần (tối đa 50 cặp, tối đa 8 điểm dừng — xem từng endpoint ở mục 4), **và hai endpoint này có nhịp riêng 6 request/phút cho mỗi khoá** (mọi IP cộng lại, áp cho cả khoá `server`) vì chúng nặng hơn hẳn một lượt chỉ đường trên engine. Ngoài ra vẫn chịu burst 20 request/phút/khoá + IP và trần 100 request/phút của khoá `web`/`mobile` dùng chung với `/v1/directions`. Vượt nhịp riêng trả `429 rate_limit_exceeded` với `retry-after: 60`.
 
 ### Hai lớp giới hạn khác nhau
 
@@ -652,7 +652,7 @@ Bảng thời gian và quãng đường từ N điểm đi tới M điểm đế
 | `targets` | `lat,lng;lat,lng…` | có | — | 1–25 điểm đến |
 | `mode` | `motorbike` \| `car` \| `walk` | không | `motorbike` | |
 
-Trần mỗi request: `sources × targets ≤ 100` cặp (ví dụ 10 × 10, 25 × 4, 1 × 100). Mọi điểm trong Việt Nam. Khoảng cách đường chim bay lớn nhất giữa bất kỳ điểm đi và điểm đến: xe máy 200 km, ô tô 400 km, đi bộ 50 km. Vượt bất kỳ trần nào → `400 invalid_request` nói rõ trần và phần tử vi phạm, **không tính lượt**.
+Trần mỗi request: `sources × targets ≤ 50` cặp (ví dụ 10 × 5, 25 × 2, 1 × 50). Mọi điểm trong Việt Nam. Khoảng cách đường chim bay lớn nhất giữa bất kỳ điểm đi và điểm đến: xe máy 200 km, ô tô 400 km, đi bộ 50 km. Vượt bất kỳ trần nào → `400 invalid_request` nói rõ trần và phần tử vi phạm, **không tính lượt**.
 
 ```bash
 curl -H "X-Api-Key: mlv_live_…" \
@@ -687,7 +687,7 @@ Sắp thứ tự ghé tối ưu cho **một** chuyến nhiều điểm dừng �
 | Tham số | Kiểu | Bắt buộc | Mặc định | Ghi chú |
 |---|---|---|---|---|
 | `from` | `lat,lng` | có | — | điểm xuất phát, luôn đứng đầu |
-| `stops` | `lat,lng;lat,lng…` | có | — | 1–10 điểm cần ghé, thứ tự tuỳ ý |
+| `stops` | `lat,lng;lat,lng…` | có | — | 1–8 điểm cần ghé, thứ tự tuỳ ý |
 | `to` | `lat,lng` | không | — | điểm kết thúc, luôn đứng cuối; **bỏ trống = quay về `from`** |
 | `mode` | `motorbike` \| `car` \| `walk` | không | `motorbike` | |
 | `lang` | `vi` \| `en` | không | `vi` | ngôn ngữ câu chỉ dẫn |
@@ -721,6 +721,7 @@ curl -H "X-Api-Key: mlv_live_…" \
 - Không hỗ trợ kết thúc ở điểm bất kỳ (open-end), sức chứa, khung giờ khách hẹn hay nhiều xe — xem "Những thứ chưa có" trên website.
 - Một điểm dừng không tới được → `404 no_route` cho cả chuyến.
 - `stops` một điểm vẫn hợp lệ (`order: [0]`) để ứng dụng không phải rẽ nhánh theo số đơn.
+- Cần nhiều hơn 50 cặp hay 8 điểm dừng thì chia thành nhiều request, nhớ nhịp 6 request/phút.
 
 ## 5. Endpoint ghi
 

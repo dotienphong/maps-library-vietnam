@@ -9,7 +9,7 @@
 
 ## 0. Tóm tắt một đoạn
 
-Thêm dịch vụ chỉ đường **Valhalla** tự host trên máy chủ nội bộ (cùng máy Postgres, 16 GB RAM),
+Thêm dịch vụ chỉ đường **Valhalla** tự host trên máy chủ nội bộ (cùng máy Postgres; đo 22/09/2026: 2 nhân, 3,7 GB RAM),
 build graph từ file OSM Việt Nam mà pipeline tiles đã tải sẵn, phục vụ ba phương tiện **xe máy, ô tô,
 đi bộ**. Worker có endpoint mới `GET /v1/directions` gọi Valhalla qua Cloudflare Tunnel + Access
 service token (cùng mô hình với Postgres) và **dịch kết quả sang schema tuyến riêng của MapsLibVN**
@@ -77,7 +77,7 @@ dẫn đường cùng lúc không tạo tải cho máy chủ.
 - Fixture PBF có sẵn: `pipelines/poi/fixtures/q1.osm.pbf` (2,1 MB, cắt `-s smart` từ PBF Việt Nam, 13.436 way có `highway`, kiểm bằng `osmium tags-filter` 10/09) — đủ để build graph mini cho test tích hợp, không cần cắt fixture mới.
 - Costing có sẵn: `auto`, `motor_scooter`, `motorcycle`, `pedestrian`, `bicycle`, `truck`, `bus`, `taxi`… Xe máy dùng `motor_scooter` (tránh cao tốc, ưu tiên đường nhỏ, đúng luật VN cấm xe máy lên cao tốc).
 - Mã maneuver Valhalla: số nguyên 0–43 (`kNone`…`kBuildingExit`). Không có đường → HTTP 400 với `error_code` 442; điểm quá xa mạng đường → 171; vượt khoảng cách → 154.
-- Máy chủ: 16 GB RAM, Postgres `shared_buffers` = 25 % RAM (4 GB). File PBF Việt Nam đã có tại `pipeline-work:/app/work/data/sources/vietnam.osm.pbf` (`pipelines/tiles/src/lib/env.mjs`). Image pipeline có `osmium-tool` để cắt fixture.
+- Máy chủ: ~~16 GB RAM~~ — **đo lại 22/09/2026 trên chính máy chủ Ubuntu: 2 nhân, 3,7 GB RAM tổng.** Con số 16 GB ở đây là giả định lúc viết spec (10/09) khi còn định chạy trên MacBook; máy chủ thật nhỏ hơn nhiều. Postgres `shared_buffers` = 25 % RAM. File PBF Việt Nam đã có tại `pipeline-work:/app/work/data/sources/vietnam.osm.pbf` (`pipelines/tiles/src/lib/env.mjs`). Image pipeline có `osmium-tool` để cắt fixture.
 - Worker gọi máy chủ nhà hiện qua Hyperdrive → Access → Tunnel `mapslibvn-db` (`infra/server/README.md` mục 1–4). Valhalla dùng cùng tunnel, thêm public hostname loại HTTP.
 - **Chưa có số**: thời gian build graph Việt Nam, RAM đỉnh lúc build, dung lượng tar, p95 tính tuyến. Plan phải đo và ghi `docs/evidence/routing/`.
 

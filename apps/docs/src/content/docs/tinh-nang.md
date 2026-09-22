@@ -71,8 +71,8 @@ Mười một endpoint: mười đọc, một ghi. Xác thực bằng header `X-
 | `GET /v1/geocode` | địa chỉ chữ → toạ độ | `q` từ 2 ký tự; `near`; `limit` 1–5 (5) |
 | `GET /v1/reverse` | toạ độ → địa chỉ | `lat`, `lng` |
 | `GET /v1/directions` | tuyến đường, bước rẽ tiếng Việt | `from`, `to` "lat,lng" bắt buộc; `via` tối đa 5 điểm; `mode` `motorbike`/`car`/`walk`; tính vào quota **Chỉ đường** riêng |
-| `GET /v1/matrix` | bảng thời gian/quãng đường N×M | `sources`, `targets` "lat,lng;…" 1–25 điểm mỗi bên, tối đa 100 cặp; `mode`; **một lượt** quota Chỉ đường |
-| `GET /v1/optimized-route` | thứ tự ghé tối ưu cho một chuyến + tuyến đầy đủ | `from`, `stops` 1–10 điểm bắt buộc; `to` tuỳ chọn (bỏ = quay về `from`); `mode`, `lang`; **một lượt** quota Chỉ đường |
+| `GET /v1/matrix` | bảng thời gian/quãng đường N×M | `sources`, `targets` "lat,lng;…" 1–25 điểm mỗi bên, tối đa 50 cặp; `mode`; **một lượt** quota Chỉ đường, nhịp riêng 6/phút/khoá |
+| `GET /v1/optimized-route` | thứ tự ghé tối ưu cho một chuyến + tuyến đầy đủ | `from`, `stops` 1–8 điểm bắt buộc; `to` tuỳ chọn (bỏ = quay về `from`); `mode`, `lang`; **một lượt** quota Chỉ đường |
 | `GET /v1/attribution` | chuỗi ghi nguồn chuẩn | không cần khoá |
 | `POST /v1/edits` | gửi đóng góp, sửa POI | cần scope `edits:write` |
 
@@ -104,9 +104,9 @@ chuyển: puck xoay theo điện thoại khi đứng yên, chấm xanh có nón 
 Chi tiết REST API ở [REST API](/api/) mục 4.
 
 **Giao hàng và vận tải.** `GET /v1/matrix` trả bảng thời gian và quãng đường giữa N điểm đi và M điểm
-đến (tối đa 100 cặp mỗi lượt) để chọn tài xế hay kho gần nhất; `GET /v1/optimized-route` sắp thứ tự
-ghé tối ưu cho một chuyến tối đa 10 điểm dừng và trả luôn tuyến đầy đủ để vẽ. Cả hai tính **một lượt**
-Chỉ đường mỗi request bất kể cỡ. Chưa có tối ưu đội xe nhiều xe (sức chứa, khung giờ, chia đơn cho xe).
+đến (tối đa 50 cặp mỗi lượt) để chọn tài xế hay kho gần nhất; `GET /v1/optimized-route` sắp thứ tự
+ghé tối ưu cho một chuyến tối đa 8 điểm dừng và trả luôn tuyến đầy đủ để vẽ. Cả hai tính **một lượt**
+Chỉ đường mỗi request bất kể cỡ, và có nhịp riêng 6 request/phút cho mỗi khoá. Chưa có tối ưu đội xe nhiều xe (sức chứa, khung giờ, chia đơn cho xe).
 
 ## 6. Đóng góp và duyệt
 

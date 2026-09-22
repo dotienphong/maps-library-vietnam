@@ -55,8 +55,8 @@ describe('bảng đối đầu', () => {
       (h) => h.tieuChi === 'Ma trận khoảng cách và tối ưu thứ tự điểm dừng',
     );
     expect(hoa?.thang).toBe('hoa');
-    expect(hoa?.ta).toMatch(/100 cặp/);
-    expect(hoa?.ta).toMatch(/10 điểm dừng/);
+    expect(hoa?.ta).toMatch(/50 cặp/);
+    expect(hoa?.ta).toMatch(/8 điểm dừng/);
     const doiXe = doiDauGoogle().find((h) => h.tieuChi === 'Tối ưu đội xe nhiều xe');
     expect(doiXe?.thang).toBe('ho');
     expect(doiXe?.ta).toBe('Chưa có');

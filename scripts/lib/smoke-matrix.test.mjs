@@ -24,13 +24,16 @@ describe('HCM_POINTS', () => {
 });
 
 describe('planBai', () => {
-  it('A 10×10, B 25×4, C from + 10 stops + to, D 5 ma trận 10×10 dịch nhau', () => {
+  it('mọi bài nằm trong trần 50 cặp / 8 điểm dừng: A 10×5, B 25×2, C from + 8 stops + to, D 5 ma trận 10×5', () => {
     const bai = planBai();
     expect(bai.A.sources).toHaveLength(10);
-    expect(bai.A.targets).toHaveLength(10);
+    expect(bai.A.targets).toHaveLength(5);
     expect(bai.B.sources).toHaveLength(25);
-    expect(bai.B.targets).toHaveLength(4);
-    expect(bai.C.stops).toHaveLength(10);
+    expect(bai.B.targets).toHaveLength(2);
+    expect(bai.C.stops).toHaveLength(8);
+    for (const m of [bai.A, bai.B, ...bai.D]) {
+      expect(m.sources.length * m.targets.length).toBeLessThanOrEqual(50);
+    }
     expect(bai.D).toHaveLength(5);
     expect(bai.D[0]?.sources).not.toEqual(bai.D[1]?.sources);
     // Không có điểm nào vừa là source vừa là target trong cùng bài (ô 0 giây làm hỏng phép kiểm dương).
@@ -105,6 +108,7 @@ describe('parseMatrixSmokeArgs', () => {
       p95Max: null,
       rounds: 0,
       ratioMax: 2,
+      busyMax: 2000,
     });
   });
   it('đọc cờ; cờ lạ, lặp, ngoài khoảng → ném', () => {
@@ -114,6 +118,7 @@ describe('parseMatrixSmokeArgs', () => {
       '--rounds=3',
       '--p95-max=3000',
       '--ratio-max=1.5',
+      '--busy-max=1500',
       '--base=https://x.test',
     ]);
     expect(args).toMatchObject({
@@ -122,6 +127,7 @@ describe('parseMatrixSmokeArgs', () => {
       rounds: 3,
       p95Max: 3000,
       ratioMax: 1.5,
+      busyMax: 1500,
     });
     expect(() => parseMatrixSmokeArgs(['--foo=1'])).toThrow(/Cờ không hợp lệ/);
     expect(() => parseMatrixSmokeArgs(['--requests=0'])).toThrow(/từ 1 đến 50/);

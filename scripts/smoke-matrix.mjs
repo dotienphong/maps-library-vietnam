@@ -2,7 +2,7 @@
 // Smoke ma trận và tối ưu thứ tự trên production (spec 22/09/2026 mục 6.1): bài A 10×10, B 25×4, C TSP
 // 12 điểm, mỗi bài N lượt cách 3,5 s, in p95; --rounds=K chạy thêm bài D: K vòng, mỗi vòng đo 5 lượt
 // directions lúc rảnh → bắn 5 ma trận 10×10 SONG SONG + 5 directions xen kẽ → nghỉ hết phút.
-//   pnpm smoke:matrix -- --confirm-production [--requests=20] [--rounds=3] [--p95-max=3000] [--ratio-max=2]
+//   pnpm smoke:matrix -- --confirm-production [--requests=20] [--rounds=3] [--p95-max=3000] [--ratio-max=2] [--busy-max=2000]
 // Ba endpoint dùng CHUNG burst 20 request/phút/khoá+IP: A–C cách 3,5 s (~17/phút); mỗi vòng D đúng 15
 // request rồi nghỉ tới đủ 60 s; giữa C và D nghỉ 60 s. Gặp 429 là smoke sai nhịp — sửa smoke, không sửa trần.
 // Mỗi lượt A–C dịch điểm đầu 0,0001° × k để không trúng cache (khoá cache làm tròn 4 chữ số).
@@ -194,6 +194,13 @@ async function main() {
     }
     console.table(dRows);
     const worst = Math.max(...dRows.map((r) => r.ratio));
+    const busyWorst = Math.max(...dRows.map((r) => r.busy_p95_ms));
+    // HAI điều kiện. Tỷ lệ một mình có thể được thoả bằng cách làm baseline tệ đi (đã xảy ra 22/09).
+    if (busyWorst > args.busyMax) {
+      throw new Error(
+        `bài D: p95 directions lúc bận ${busyWorst} ms, vượt ngưỡng tuyệt đối ${args.busyMax} ms`,
+      );
+    }
     if (worst > args.ratioMax) {
       throw new Error(
         `bài D: p95 directions lúc bận gấp ${worst} lần lúc rảnh, vượt ${args.ratioMax}`,

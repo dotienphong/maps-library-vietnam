@@ -50,7 +50,7 @@ export function doiDauGoogle(): HangDoiDau[] {
       tieuChi: 'Ma trận khoảng cách và tối ưu thứ tự điểm dừng',
       // Số trần chép tay từ MATRIX_MAX_PAIRS / OPTIMIZED_MAX_STOPS của apps/api (site không import
       // Worker). Đổi trần bên API phải đổi dòng này cùng commit (spec 22/09/2026 mục 6.3).
-      ta: 'Có; tối đa 100 cặp hoặc 10 điểm dừng mỗi lượt, tính một lượt Chỉ đường',
+      ta: 'Có; tối đa 50 cặp hoặc 8 điểm dừng mỗi lượt, tính một lượt Chỉ đường',
       ho: 'Có; cỡ lớn hơn, tính tiền theo từng cặp',
       thang: 'hoa',
     },

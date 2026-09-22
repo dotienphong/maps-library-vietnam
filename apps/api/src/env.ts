@@ -152,6 +152,16 @@ export interface Env {
    * chỉ cho 1.000 ghi KV/ngày (quyết định PHONG 10/09/2026).
    */
   DIRECTIONS_KEY_RATE_LIMITER?: RateLimit;
+  /**
+   * Nhịp riêng cho `/v1/matrix` và `/v1/optimized-route`: 6 request/phút/colo theo KHOÁ thuần
+   * (mọi IP cộng lại), áp cho cả khoá `server` (quyết định PHONG 22/09/2026 sau phép đo).
+   *
+   * Vì sao cần thêm dù đã có burst 20/phút của directions: trần cỡ giới hạn MỘT request (≤ 50 cặp),
+   * còn đây giới hạn TẢI TỔNG lên engine. Máy chủ là 2 nhân và Valhalla chạy 1 luồng — đo 22/09 cho
+   * thấy năm ma trận cỡ tối đa chạy song song đẩy p95 của `/v1/directions` lên 2,7–5,3 s cho MỌI
+   * khách khác. Với 20/phút, một khoá duy nhất đủ làm việc đó.
+   */
+  MATRIX_RATE_LIMITER?: RateLimit;
 }
 
 /** Kiểu Hono chung cho app: Variables.auth do requireAuth() gán, reviewer do requireAccess(). */

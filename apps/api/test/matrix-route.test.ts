@@ -31,7 +31,7 @@ beforeEach(async () => {
 });
 
 describe('GET /v1/matrix', () => {
-  it('không khoá → 401; thiếu targets, mode lạ, ngoài VN, 26 sources, 11×10, chim bay → 400 mà KHÔNG gọi Valhalla', async () => {
+  it('không khoá → 401; thiếu targets, mode lạ, ngoài VN, 26 sources, 6×10, chim bay → 400 mà KHÔNG gọi Valhalla', async () => {
     // Không có interceptor nào: nếu route gọi Valhalla, fetch-mock ném → 503 chứ không phải 400.
     expect((await SELF.fetch('https://api/v1/matrix?sources=10,106&targets=11,107')).status).toBe(
       401,
@@ -41,12 +41,12 @@ describe('GET /v1/matrix', () => {
     expect((await call('sources=10.77,106.70&targets=13.75,100.50')).status).toBe(400);
     const many = Array.from({ length: 26 }, (_, i) => `10.77,106.${600 + i}`).join(';');
     expect((await call(`sources=${many}&targets=10.78,106.71`)).status).toBe(400);
-    const eleven = Array.from({ length: 11 }, (_, i) => `10.77,106.${600 + i}`).join(';');
+    const six = Array.from({ length: 6 }, (_, i) => `10.77,106.${600 + i}`).join(';');
     const ten = Array.from({ length: 10 }, (_, i) => `10.78,106.${700 + i}`).join(';');
-    const pairs = await call(`sources=${eleven}&targets=${ten}`);
+    const pairs = await call(`sources=${six}&targets=${ten}`);
     expect(pairs.status).toBe(400);
     expect(((await pairs.json()) as { error: { message: string } }).error.message).toMatch(
-      /100 cặp/,
+      /50 cặp/,
     );
     expect((await call('sources=10.7798,106.6990&targets=21.0285,105.8542')).status).toBe(400);
   });
@@ -99,6 +99,22 @@ describe('GET /v1/matrix', () => {
     const res = await call(q(5));
     expect(res.status).toBe(503);
     expect(await code(res)).toBe('upstream_unavailable');
+  });
+
+  it('vượt nhịp riêng MATRIX_RATE_LIMITER → 429 rate_limit_exceeded, retry-after 60', async () => {
+    // Binding thật trong vitest.config đặt ngưỡng 10.000 để test khác không vướng; ở đây thay bằng
+    // limiter giả luôn từ chối để kiểm ĐÚNG quyết định chặn, không phụ thuộc bộ đếm dùng chung.
+    const bindings = env as unknown as Record<string, unknown>;
+    const original = bindings.MATRIX_RATE_LIMITER;
+    bindings.MATRIX_RATE_LIMITER = { limit: async () => ({ success: false }) };
+    try {
+      const res = await call(q(10));
+      expect(res.status).toBe(429);
+      expect(await code(res)).toBe('rate_limit_exceeded');
+      expect(res.headers.get('retry-after')).toBe('60');
+    } finally {
+      bindings.MATRIX_RATE_LIMITER = original;
+    }
   });
 
   it('HEAD → 405 kèm Allow: GET', async () => {

@@ -56,6 +56,25 @@ describe('ackReceipt', () => {
     expect(
       await ackReceipt('https://api.test', 'k', { id: 'r', token: 't' }, { fetchImpl: boom }),
     ).toBe(false);
+    expect(boom).toHaveBeenCalledTimes(2); // thử lại một lần
+
+    // Trượt lần đầu rồi thành công: phải trả true, không được tính là receipt treo.
+    let lan = 0;
+    const chapChon = vi.fn(async () => {
+      lan += 1;
+      return lan === 1 ? new Response('', { status: 503 }) : new Response('{}', { status: 200 });
+    });
+    expect(
+      await ackReceipt('https://api.test', 'k', { id: 'r', token: 't' }, { fetchImpl: chapChon }),
+    ).toBe(true);
+    expect(chapChon).toHaveBeenCalledTimes(2);
+
+    // 403 (token sai) là lỗi thật: KHÔNG thử lại, tốn thêm một vòng vô ích.
+    const tokenSai = vi.fn(async () => new Response('{}', { status: 403 }));
+    expect(
+      await ackReceipt('https://api.test', 'k', { id: 'r', token: 't' }, { fetchImpl: tokenSai }),
+    ).toBe(false);
+    expect(tokenSai).toHaveBeenCalledTimes(1);
 
     // Không có receipt thì không gọi mạng.
     const never = vi.fn();

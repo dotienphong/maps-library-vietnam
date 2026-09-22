@@ -47,22 +47,27 @@ export const HCM_POINTS = [
 /** @typedef {{ sources: (readonly [number, number])[], targets: (readonly [number, number])[], mode: 'motorbike' | 'car' | 'walk' }} BaiMaTran */
 /** @typedef {{ from: readonly [number, number], stops: (readonly [number, number])[], to: readonly [number, number], mode: 'motorbike' | 'car' | 'walk' }} BaiToiUu */
 
-/** Bài A 10×10 xe máy, B 25×4 ô tô, C TSP 12 điểm, D năm ma trận 10×10 dịch nhau (không trùng URL). */
+/**
+ * Cỡ bài bám đúng trần đang chạy (50 cặp, 8 điểm dừng — hạ 22/09/2026): A 10×5 xe máy, B 25×2 ô tô,
+ * C TSP 10 điểm (from + 8 stops + to), D năm ma trận 10×5 dịch nhau để không trùng URL.
+ * Đổi `MATRIX_MAX_PAIRS` / `OPTIMIZED_MAX_STOPS` bên Worker thì sửa cả đây, nếu không smoke đo một
+ * cỡ mà production cho phép một cỡ khác.
+ */
 export function planBai() {
   const P = HCM_POINTS;
   /** @type {BaiMaTran} */
-  const A = { sources: P.slice(0, 10), targets: P.slice(10, 20), mode: 'motorbike' };
+  const A = { sources: P.slice(0, 10), targets: P.slice(10, 15), mode: 'motorbike' };
   /** @type {BaiMaTran} */
-  const B = { sources: P.slice(0, 25), targets: P.slice(25, 29), mode: 'car' };
+  const B = { sources: P.slice(0, 25), targets: P.slice(25, 27), mode: 'car' };
   const from = P[0];
   const to = P[11];
   if (!from || !to) throw new Error('HCM_POINTS thiếu điểm');
   /** @type {BaiToiUu} */
-  const C = { from, stops: P.slice(1, 11), to, mode: 'motorbike' };
+  const C = { from, stops: P.slice(1, 9), to, mode: 'motorbike' };
   /** @type {BaiMaTran[]} */
   const D = Array.from({ length: 5 }, (_, i) => ({
     sources: P.slice(i, i + 10),
-    targets: P.slice(10 + i, 20 + i),
+    targets: P.slice(15 + i, 20 + i),
     mode: 'motorbike',
   }));
   return { A, B, C, D };
@@ -176,7 +181,9 @@ export function parseMatrixSmokeArgs(argv) {
       confirmProduction = true;
       continue;
     }
-    const match = /^--(base|requests|p95-max|interval-ms|rounds|ratio-max)=(.+)$/.exec(value);
+    const match = /^--(base|requests|p95-max|interval-ms|rounds|ratio-max|busy-max)=(.+)$/.exec(
+      value,
+    );
     if (!match) throw new Error(`Cờ không hợp lệ hoặc thiếu giá trị: ${value}`);
     const name = match[1];
     const raw = match[2];
@@ -195,5 +202,8 @@ export function parseMatrixSmokeArgs(argv) {
         : boundedNumber(values['p95-max'], '--p95-max', 1, 120_000, false),
     rounds: boundedNumber(values.rounds ?? '0', '--rounds', 0, 10, true),
     ratioMax: boundedNumber(values['ratio-max'] ?? '2', '--ratio-max', 1, 10, false),
+    // Ngưỡng TUYỆT ĐỐI cho directions lúc bận. Chỉ có tỷ lệ là không đủ: 22/09/2026 đặt
+    // VALHALLA_THREADS=2 làm baseline xấu đi nên tỷ lệ tụt 5,3× → 1,4× trong khi busy_p95 không đổi.
+    busyMax: boundedNumber(values['busy-max'] ?? '2000', '--busy-max', 1, 120_000, false),
   };
 }

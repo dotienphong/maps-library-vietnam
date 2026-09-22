@@ -31,8 +31,8 @@ function expectInvalidRequest(action: () => unknown, message?: RegExp): void {
 }
 
 describe('parseOptimizedParams', () => {
-  it('trần 10 điểm dừng', () => {
-    expect(OPTIMIZED_MAX_STOPS).toBe(10);
+  it('trần 8 điểm dừng (hạ từ 10 sau phép đo 22/09/2026)', () => {
+    expect(OPTIMIZED_MAX_STOPS).toBe(8);
   });
 
   it('from, stops theo thứ tự gửi, to; mặc định motorbike/vi', () => {
@@ -64,11 +64,11 @@ describe('parseOptimizedParams', () => {
     expectInvalidRequest(() => parseOptimizedParams({ ...base, lang: 'fr' }), /lang chỉ nhận/);
   });
 
-  it('đếm stops trước parse: 11 phần tử hỏng → "stops tối đa 10 điểm"', () => {
-    const many = Array.from({ length: 11 }, () => 'x').join(';');
+  it('đếm stops trước parse: 9 phần tử hỏng → "stops tối đa 8 điểm"', () => {
+    const many = Array.from({ length: 9 }, () => 'x').join(';');
     expectInvalidRequest(
       () => parseOptimizedParams({ from: NTDB, stops: many }),
-      /stops tối đa 10 điểm/,
+      /stops tối đa 8 điểm/,
     );
   });
 

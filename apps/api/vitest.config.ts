@@ -35,6 +35,10 @@ export default defineConfig({
             namespace_id: '20260912',
             simple: { limit: 10_000, period: 60 },
           },
+          MATRIX_RATE_LIMITER: {
+            namespace_id: '20260923',
+            simple: { limit: 10_000, period: 60 },
+          },
         },
       },
     }),

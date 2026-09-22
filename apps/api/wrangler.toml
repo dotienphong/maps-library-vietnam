@@ -107,6 +107,10 @@ ratelimits = [
   { name = "PLACES_RATE_LIMITER", namespace_id = "20260910", simple = { limit = 60, period = 60 } },
   { name = "DIRECTIONS_RATE_LIMITER", namespace_id = "20260911", simple = { limit = 20, period = 60 } },
   { name = "DIRECTIONS_KEY_RATE_LIMITER", namespace_id = "20260912", simple = { limit = 100, period = 60 } },
+  # Ma trận và tối ưu thứ tự: 6 request/phút theo khoá thuần. Hai endpoint này nặng gấp nhiều lần một
+  # lượt chỉ đường trên engine 1 luồng của máy 2 nhân (số đo 22/09/2026), nên nhịp phải thấp hơn hẳn
+  # burst 20/phút của directions — trần cỡ ≤ 50 cặp chỉ giới hạn được một request.
+  { name = "MATRIX_RATE_LIMITER", namespace_id = "20260923", simple = { limit = 6, period = 60 } },
   # Mã đăng nhập của cổng khách hàng. Binding Rate Limiting chỉ nhận chu kỳ 10 hoặc 60 giây, nên
   # hành vi thật là "mỗi email một mã mỗi phút" — giao diện phải nói đúng câu đó thay vì hứa khác.
   { name = "OTP_EMAIL_RATE_LIMITER", namespace_id = "20260920", simple = { limit = 1, period = 60 } },

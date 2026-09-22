@@ -30,21 +30,29 @@ export function receiptFrom(response) {
 export async function ackReceipt(root, key, receipt, options = {}) {
   if (!receipt) return true;
   const fetchImpl = options.fetchImpl ?? fetch;
-  try {
-    const response = await fetchImpl(
-      `${root}/v1/quota/receipts/${encodeURIComponent(receipt.id)}/ack`,
-      {
-        method: 'POST',
-        headers: { 'X-Api-Key': key, 'content-type': 'application/json' },
-        body: JSON.stringify({ token: receipt.token }),
-        signal: AbortSignal.timeout(options.timeoutMs ?? 10_000),
-      },
-    );
-    // 404 = tenant legacy (không có sổ receipt): không có gì để xác nhận, coi như xong.
-    return response.ok || response.status === 404;
-  } catch {
-    return false;
+  // Thử LẠI một lần: máy chủ chậm nhất thời hay một lỗi mạng lẻ không được biến thành receipt treo —
+  // ba cái treo là khoá cả tenant 24 giờ. Đo 22/09/2026 gặp 2/80 lượt trượt ở lần thử đầu.
+  for (let lan = 0; lan < 2; lan += 1) {
+    if (lan > 0) await new Promise((resolve) => setTimeout(resolve, 500));
+    try {
+      const response = await fetchImpl(
+        `${root}/v1/quota/receipts/${encodeURIComponent(receipt.id)}/ack`,
+        {
+          method: 'POST',
+          headers: { 'X-Api-Key': key, 'content-type': 'application/json' },
+          body: JSON.stringify({ token: receipt.token }),
+          signal: AbortSignal.timeout(options.timeoutMs ?? 10_000),
+        },
+      );
+      // 404 = tenant legacy (không có sổ receipt): không có gì để xác nhận, coi như xong.
+      if (response.ok || response.status === 404) return true;
+      // 429 do burst: chờ rồi thử lại. 4xx khác là receipt hỏng thật, thử lại cũng vô ích.
+      if (response.status !== 429 && response.status < 500) return false;
+    } catch {
+      // lỗi mạng: rơi xuống vòng sau
+    }
   }
+  return false;
 }
 
 /**
