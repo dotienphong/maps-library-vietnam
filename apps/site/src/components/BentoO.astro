@@ -1,0 +1,36 @@
+---
+import Nhan from './Nhan.astro';
+import The from './The.astro';
+
+/**
+ * Một ô bento: nhãn (tuỳ chọn), tiêu đề h3, mô tả (slot mặc định), minh hoạ (slot `minh-hoa`),
+ * link "→". `span` là số cột ở ≥ 1024 px; `spanNho` ở dưới đó (mặc định trọn hàng). Tên lớp viết
+ * ĐỦ trong bảng tra chứ không ghép chuỗi: Tailwind quét mã nguồn bằng văn bản, lớp ghép động sẽ
+ * không được sinh CSS và ô im lặng mất bố cục.
+ */
+interface Props {
+  span: 4 | 8 | 12;
+  spanNho?: 6 | 12 | undefined;
+  tieuDe: string;
+  href: string;
+  nhanLink: string;
+  nhan?: string | undefined;
+}
+
+const { span, spanNho = 12, tieuDe, href, nhanLink, nhan } = Astro.props;
+const SPAN = { 4: 'lg:col-span-4', 8: 'lg:col-span-8', 12: 'lg:col-span-12' } as const;
+const SPAN_NHO = { 6: 'col-span-6', 12: 'col-span-12' } as const;
+---
+
+<The as="article" nen="surface-2" class:list={[SPAN_NHO[spanNho], SPAN[span], 'flex flex-col']}>
+  {nhan && <p class="mb-3"><Nhan chu={nhan} /></p>}
+  <h3 class="t-h3">{tieuDe}</h3>
+  <div class="t-body mt-3 text-muted"><slot /></div>
+  <div class="mt-4 flex-1"><slot name="minh-hoa" /></div>
+  <a
+    href={href}
+    class="mt-4 inline-flex min-h-11 items-center self-start font-semibold text-accent-text hover:underline"
+  >
+    {nhanLink} →
+  </a>
+</The>

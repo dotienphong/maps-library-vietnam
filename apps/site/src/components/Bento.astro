@@ -1,0 +1,11 @@
+---
+/** Lưới 12 cột, gap 16 px (spec 4.3). Ô con là BentoO. */
+interface Props {
+  class?: string | undefined;
+}
+const { class: lop = '' } = Astro.props;
+---
+
+<div class:list={['grid grid-cols-12 gap-4', lop]}>
+  <slot />
+</div>
