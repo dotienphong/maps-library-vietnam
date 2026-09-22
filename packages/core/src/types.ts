@@ -234,3 +234,24 @@ export interface DirectionsResponse {
   /** Thông tin chẩn đoán, không phải hợp đồng ổn định. */
   engine?: { name: string; graph: string | null };
 }
+
+/** `GET /v1/matrix` (spec 22/09/2026 mục 4.1). Toạ độ `[lng, lat]`; ô `null` là không nối được. */
+export interface MatrixResponse {
+  mode: TravelMode;
+  /** Toạ độ bạn gửi, theo thứ tự gửi, đổi sang [lng, lat]. */
+  sources: [number, number][];
+  targets: [number, number][];
+  /** durations_s[i][j]: giây từ sources[i] tới targets[j]. */
+  durations_s: (number | null)[][];
+  /** distances_m[i][j]: mét; null cùng ô với durations_s. */
+  distances_m: (number | null)[][];
+  attribution: string;
+  /** Thông tin chẩn đoán, không phải hợp đồng ổn định. */
+  engine?: { name: string; graph: string | null };
+}
+
+/** `GET /v1/optimized-route` (spec 22/09/2026 mục 4.2): tuyến đầy đủ cộng thứ tự ghé. */
+export interface OptimizedRouteResponse extends DirectionsResponse {
+  /** Chỉ số vào mảng `stops` bạn gửi, theo thứ tự nên đi; `waypoints` và `legs` đã xếp theo đó. */
+  order: number[];
+}
