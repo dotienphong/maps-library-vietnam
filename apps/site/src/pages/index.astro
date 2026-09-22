@@ -67,7 +67,7 @@ const VI_SAO = [
 
   <section aria-labelledby="tt-tinh-nang" class="mx-auto max-w-[1200px] px-4 py-16 sm:px-6 lg:py-24">
     <p class="mb-3"><Nhan chu="Có sẵn những gì" noiBat /></p>
-    <h2 id="tt-tinh-nang" class="t-h2 max-w-2xl">Sáu mảng đang chạy thật, không phải lộ trình</h2>
+    <h2 id="tt-tinh-nang" class="t-h2 max-w-2xl">Bảy mảng đang chạy thật, không phải lộ trình</h2>
     <Bento class="mt-10">
       <BentoO
         span={8}
@@ -120,7 +120,7 @@ const VI_SAO = [
       </BentoO>
 
       <BentoO
-        span={8}
+        span={4}
         tieuDe="Dẫn đường"
         href={`${DOCS_URL}/dan-duong/`}
         nhanLink="Hướng dẫn dẫn đường"
@@ -128,35 +128,34 @@ const VI_SAO = [
       >
         Tính tuyến cho xe máy, ô tô và đi bộ, trả hướng dẫn từng chặng bằng tiếng Việt, dùng được cả
         trên web lẫn React Native.
-        <div slot="minh-hoa" class="flex flex-wrap items-center gap-4">
-          <ul class="flex gap-2">
-            {
-              ['Xe máy', 'Ô tô', 'Đi bộ'].map((c) => (
-                <li class="t-small rounded-full border border-border px-3 py-1 text-text">{c}</li>
-              ))
-            }
-          </ul>
-          <svg viewBox="0 0 240 60" class="h-12 w-60" aria-hidden="true">
-            <path
-              d="M6 48 C 60 10, 110 62, 160 30 S 220 8, 234 14"
-              fill="none"
-              stroke="var(--border-strong)"
-              stroke-width="6"
-              stroke-linecap="round"></path>
-            <path
-              d="M6 48 C 60 10, 110 62, 160 30"
-              fill="none"
-              stroke="var(--accent-text)"
-              stroke-width="6"
-              stroke-linecap="round"></path>
-            <circle cx="6" cy="48" r="5" fill="var(--accent-text)"></circle>
-            <circle cx="234" cy="14" r="5" fill="var(--text)"></circle>
-          </svg>
-        </div>
+        <ul slot="minh-hoa" class="flex flex-wrap gap-2">
+          {
+            ['Xe máy', 'Ô tô', 'Đi bộ'].map((c) => (
+              <li class="t-small rounded-full border border-border px-3 py-1 text-text">{c}</li>
+            ))
+          }
+        </ul>
       </BentoO>
 
       <BentoO
         span={4}
+        tieuDe="Giao hàng & vận tải"
+        href={`${DOCS_URL}/api/#get-v1matrix`}
+        nhanLink="Tham chiếu API ma trận"
+        nhan="MATRIX"
+      >
+        Ma trận khoảng cách N×M và thứ tự ghé tối ưu cho một chuyến, mỗi request tính một lượt.
+        <div slot="minh-hoa" class="flex flex-wrap gap-2">
+          {
+            ['≤ 100 cặp / lượt', '≤ 10 điểm dừng', '1 lượt Chỉ đường'].map((c) => (
+              <span class="t-small rounded-full border border-border px-3 py-1 text-text">{c}</span>
+            ))
+          }
+        </div>
+      </BentoO>
+
+      <BentoO
+        span={8}
         tieuDe="Bốn SDK, một API"
         href={`${DOCS_URL}/cai-dat/`}
         nhanLink="Cài đặt"

@@ -40,4 +40,34 @@ describe('bảng đối đầu', () => {
       });
     });
   }
+
+  it('CHUA_CO không còn ma trận và tối ưu một xe, nhưng vẫn giữ đội xe nhiều xe (spec 22/09/2026)', () => {
+    expect(CHUA_CO).toEqual([
+      'tối ưu đội xe nhiều xe',
+      'giao thông thời gian thực',
+      'Street View',
+      'ảnh vệ tinh',
+    ]);
+  });
+
+  it('Google: một hàng HOÀ về ma trận/tối ưu thứ tự nêu đúng trần, một hàng ĐỐI THỦ thắng về đội xe', () => {
+    const hoa = doiDauGoogle().find(
+      (h) => h.tieuChi === 'Ma trận khoảng cách và tối ưu thứ tự điểm dừng',
+    );
+    expect(hoa?.thang).toBe('hoa');
+    expect(hoa?.ta).toMatch(/100 cặp/);
+    expect(hoa?.ta).toMatch(/10 điểm dừng/);
+    const doiXe = doiDauGoogle().find((h) => h.tieuChi === 'Tối ưu đội xe nhiều xe');
+    expect(doiXe?.thang).toBe('ho');
+    expect(doiXe?.ta).toBe('Chưa có');
+  });
+
+  it('VIETMAP: hàng vận tải vẫn đối thủ thắng nhưng nói rõ đã có ma trận và tối ưu một xe', () => {
+    const hang = doiDauVietmap().find(
+      (h) => h.tieuChi === 'Bài toán vận tải và theo dõi phương tiện',
+    );
+    expect(hang?.thang).toBe('ho');
+    expect(hang?.ta).toMatch(/ma trận khoảng cách/i);
+    expect(hang?.ta).toMatch(/chưa có đội xe nhiều xe/);
+  });
 });

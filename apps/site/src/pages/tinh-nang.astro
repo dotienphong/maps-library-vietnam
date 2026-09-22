@@ -32,6 +32,13 @@ const SDK = ['@mapslibvn/core', '@mapslibvn/web', '@mapslibvn/react', '@mapslibv
 
 const CHANG = ['Đi theo Nguyễn Huệ về hướng bắc 400 m', 'Rẽ phải vào Lê Lợi', 'Đến nơi ở bên trái'];
 
+/** Số phút minh hoạ cho bảng 3×3 ở mục Giao hàng — ô ≤ 6 phút tô màu nhấn là "tài xế gần nhất". */
+const MA_TRAN_MINH_HOA: readonly { ten: string; phut: readonly number[] }[] = [
+  { ten: 'Tài xế A', phut: [6, 14, 21] },
+  { ten: 'Tài xế B', phut: [11, 5, 17] },
+  { ten: 'Tài xế C', phut: [19, 12, 4] },
+];
+
 const MUC = [
   {
     id: 'ban-do',
@@ -87,6 +94,17 @@ const MUC = [
     ],
     href: `${DOCS_URL}/dan-duong/`,
     nhanLink: 'Hướng dẫn dẫn đường',
+  },
+  {
+    id: 'giao-hang',
+    nhan: 'Giao hàng',
+    tieuDe: 'Giao hàng & vận tải',
+    doan: [
+      'Ma trận khoảng cách trả bảng thời gian và quãng đường từ N điểm đi tới M điểm đến trong một lượt gọi — chọn tài xế gần nhất, kho gần nhất mà không phải tính từng tuyến. Tối đa 100 cặp mỗi lượt.',
+      'Tối ưu thứ tự điểm dừng sắp lại tối đa 10 điểm giao cho một chuyến và trả luôn tuyến đầy đủ để vẽ và dẫn đường. Cả hai tính một lượt Chỉ đường. Chưa có tối ưu đội xe nhiều xe.',
+    ],
+    href: `${DOCS_URL}/api/#get-v1matrix`,
+    nhanLink: 'Tham chiếu API ma trận',
   },
   {
     id: 'sdk',
@@ -224,6 +242,60 @@ const MUC = [
                       {CHANG.map((c) => (
                         <li>{c}</li>
                       ))}
+                    </ol>
+                  </The>
+                )}
+
+                {muc.id === 'giao-hang' && (
+                  <The nen="surface-2">
+                    <table class="w-full border-collapse text-left">
+                      <caption class="t-small pb-2 text-muted">
+                        Phút xe máy từ 3 tài xế tới 3 đơn
+                      </caption>
+                      <thead>
+                        <tr class="t-small text-muted">
+                          <th scope="col" class="py-1 pr-3 font-normal" />
+                          <th scope="col" class="py-1 pr-3 font-normal">Đơn 1</th>
+                          <th scope="col" class="py-1 pr-3 font-normal">Đơn 2</th>
+                          <th scope="col" class="py-1 font-normal">Đơn 3</th>
+                        </tr>
+                      </thead>
+                      <tbody class="t-small">
+                        {
+                          MA_TRAN_MINH_HOA.map(({ ten, phut }) => (
+                            <tr class="border-t border-border">
+                              <th scope="row" class="py-1 pr-3 font-normal text-muted">
+                                {ten}
+                              </th>
+                              {phut.map((p) => (
+                                <td
+                                  class:list={[
+                                    'py-1 pr-3 font-semibold',
+                                    p <= 6 && 'text-accent-text',
+                                  ]}
+                                >
+                                  {p}
+                                </td>
+                              ))}
+                            </tr>
+                          ))
+                        }
+                      </tbody>
+                    </table>
+                    <p class="t-small mt-4 text-muted">Thứ tự ghé tối ưu cho một chuyến 3 điểm:</p>
+                    <ol class="t-code mt-1 flex flex-wrap items-center gap-2 text-text">
+                      {
+                        ['Kho', '2', '3', '1', 'Kho'].map((b, i) => (
+                          <li class="flex items-center gap-2">
+                            {i > 0 && (
+                              <span aria-hidden="true" class="text-muted">
+                                →
+                              </span>
+                            )}
+                            <span class="rounded-full border border-border px-3 py-1">{b}</span>
+                          </li>
+                        ))
+                      }
                     </ol>
                   </The>
                 )}

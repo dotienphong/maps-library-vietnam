@@ -166,7 +166,7 @@ test('bốn tab mã nhúng đổi được bằng chuột và bàn phím', async
   );
 });
 
-test('bento sáu ô đúng thứ tự và mỗi ô có link tài liệu', async ({ page }) => {
+test('bento bảy ô đúng thứ tự và mỗi ô có link tài liệu', async ({ page }) => {
   await page.goto('/');
   const khoi = page.locator('section[aria-labelledby="tt-tinh-nang"]');
   await expect(khoi.getByRole('heading', { level: 3 })).toHaveText([
@@ -175,9 +175,10 @@ test('bento sáu ô đúng thứ tự và mỗi ô có link tài liệu', async 
     '164 loại địa điểm',
     'Geocode nói thật',
     'Dẫn đường',
+    'Giao hàng & vận tải',
     'Bốn SDK, một API',
   ]);
-  await expect(khoi.getByRole('link', { name: /→$/ })).toHaveCount(6);
+  await expect(khoi.getByRole('link', { name: /→$/ })).toHaveCount(7);
   // Con số rẻ hơn Google tính từ catalog, không gõ tay.
   await expect(khoi.getByText(/^\d+–\d+%$/)).toBeVisible();
 });
@@ -275,15 +276,15 @@ test('không còn lớp brand- nào trên bảy trang', async ({ page }) => {
   }
 });
 
-test('trang Tính năng: mục lục dính và sáu hàng, mỗi hàng có bằng chứng nhìn được', async ({
+test('trang Tính năng: mục lục dính và bảy hàng, mỗi hàng có bằng chứng nhìn được', async ({
   page,
 }) => {
   await page.setViewportSize({ width: 1280, height: 900 });
   await page.goto('/tinh-nang/');
   const mucLuc = page.getByRole('navigation', { name: 'Mục lục tính năng' });
-  await expect(mucLuc.getByRole('link')).toHaveCount(6);
+  await expect(mucLuc.getByRole('link')).toHaveCount(7);
   // Mỗi hàng phải có thứ NHÌN được, không chỉ chữ — đó là điều tách trang này khỏi bản cũ.
-  await expect(page.locator('[data-bang-chung]')).toHaveCount(6);
+  await expect(page.locator('[data-bang-chung]')).toHaveCount(7);
   // Bản đồ LUÔN sáng như ở trang chủ: đúng MỘT ảnh, không phải một cặp đổi theo theme.
   await expect(page.locator('[data-bang-chung] img')).toHaveCount(1);
 });

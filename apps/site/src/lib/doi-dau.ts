@@ -17,8 +17,7 @@ export interface HangDoiDau {
  * kiểm sẽ tự cho phép hàng tương ứng đổi bên.
  */
 export const CHUA_CO = [
-  'ma trận khoảng cách',
-  'tối ưu lộ trình đội xe',
+  'tối ưu đội xe nhiều xe',
   'giao thông thời gian thực',
   'Street View',
   'ảnh vệ tinh',
@@ -48,9 +47,17 @@ export function doiDauGoogle(): HangDoiDau[] {
       thang: 'ho',
     },
     {
-      tieuChi: 'Ma trận khoảng cách và tối ưu lộ trình đội xe',
+      tieuChi: 'Ma trận khoảng cách và tối ưu thứ tự điểm dừng',
+      // Số trần chép tay từ MATRIX_MAX_PAIRS / OPTIMIZED_MAX_STOPS của apps/api (site không import
+      // Worker). Đổi trần bên API phải đổi dòng này cùng commit (spec 22/09/2026 mục 6.3).
+      ta: 'Có; tối đa 100 cặp hoặc 10 điểm dừng mỗi lượt, tính một lượt Chỉ đường',
+      ho: 'Có; cỡ lớn hơn, tính tiền theo từng cặp',
+      thang: 'hoa',
+    },
+    {
+      tieuChi: 'Tối ưu đội xe nhiều xe',
       ta: 'Chưa có',
-      ho: 'Có',
+      ho: 'Có (Route Optimization API)',
       thang: 'ho',
     },
     {
@@ -115,7 +122,7 @@ export function doiDauVietmap(): HangDoiDau[] {
     },
     {
       tieuChi: 'Bài toán vận tải và theo dõi phương tiện',
-      ta: 'Chưa có',
+      ta: 'Có ma trận khoảng cách và tối ưu thứ tự cho một xe; chưa có đội xe nhiều xe, chưa theo dõi phương tiện',
       ho: 'Có hệ sản phẩm riêng',
       thang: 'ho',
     },
