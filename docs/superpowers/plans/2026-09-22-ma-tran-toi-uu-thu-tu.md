@@ -804,7 +804,7 @@ describe('parseMatrixParams', () => {
   it('chim bay: HCM → HN vượt 200 km xe máy, nêu đúng cặp; ô tô 400 km cũng vượt; đi bộ 50 km', () => {
     expectInvalidRequest(
       () => parseMatrixParams({ sources: `${NTDB};${BT}`, targets: `${NHTP};${HN}` }),
-      /sources\[0\] → targets\[1\] cách 1\.1\d\d km, ma trận motorbike tối đa 200 km/,
+      /sources\[0\] → targets\[1\] cách 11\d\d km, ma trận motorbike tối đa 200 km/,
     );
     expectInvalidRequest(
       () => parseMatrixParams({ sources: NTDB, targets: HN, mode: 'car' }),
@@ -1481,7 +1481,7 @@ describe('parseOptimizedParams', () => {
     expectInvalidRequest(() => parseOptimizedParams({ from: NTDB, stops: '13.75,100.50' }), /Việt Nam/);
     expectInvalidRequest(
       () => parseOptimizedParams({ from: NTDB, stops: `${BX};${HN}` }),
-      /stops\[1\] cách from 1\.1\d\d km, tối ưu thứ tự motorbike tối đa 200 km/,
+      /stops\[1\] cách from 11\d\d km, tối ưu thứ tự motorbike tối đa 200 km/,
     );
     expectInvalidRequest(
       () => parseOptimizedParams({ from: NTDB, stops: BX, to: HN, mode: 'car' }),
