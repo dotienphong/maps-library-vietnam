@@ -73,7 +73,7 @@ Mọi lỗi trả JSON cùng một hình dạng:
 | `scope` | 403 | khoá không có scope mà endpoint yêu cầu |
 | `origin_not_allowed` | 403 | khoá `web` và `Origin`/`Referer` không nằm trong `allowed_origins` |
 | `not_found` | 404 | không có route, không có POI, không có theme hoặc bộ tiles |
-| `no_route` | 404 | `GET /v1/directions`: không có đường giữa các điểm, hoặc điểm quá xa mạng đường / vùng không kết nối |
+| `no_route` | 404 | `GET /v1/directions` và `/v1/optimized-route`: không có đường giữa các điểm, hoặc điểm quá xa mạng đường / vùng không kết nối. `/v1/matrix`: chỉ khi một điểm không bám được vào đường nào — cặp không nối được trả `null` trong bảng, không lỗi |
 | `rate_limit_exceeded` | 429 | vượt burst/phút của Places hoặc Chỉ đường |
 | `quota_exceeded` | 429 | hết hạn mức Places/Chỉ đường; `details` có `group`, `reason` (`daily`/`period`/`trial_total`), `resetAt` khi thật sự có mốc cấp lại, và `actions` |
 | `subscription_expired` | 403 | hết **quyền** dùng chứ không phải hết lượt: trial hết hạn, thuê bao hết hạn, bị tạm dừng, hoặc chưa được cấp quyền. Không gợi ý mua thêm lượt |
@@ -90,8 +90,8 @@ Header `retry-after` chỉ có khi máy chủ biết thời gian thử lại h�
 
 Route quản trị `/v1/admin/*` dùng thêm hai mã `missing_access_jwt` và `invalid_access_jwt` (401) — xem mục 6.
 
-:::caution[Thay đổi hành vi: `HEAD` trên bảy API dữ liệu trả 405]
-Bảy endpoint dữ liệu (sáu API Places và `/v1/directions`) nay trả **`405` kèm `Allow: GET`** cho
+:::caution[Thay đổi hành vi: `HEAD` trên chín API dữ liệu trả 405]
+Chín endpoint dữ liệu (sáu API Places, `/v1/directions`, `/v1/matrix` và `/v1/optimized-route`) nay trả **`405` kèm `Allow: GET`** cho
 `HEAD`, thay vì chạy như `GET` rồi trả 200 không body như trước. Lý do: `HEAD` vẫn chạy trọn truy
 vấn ở máy chủ nhưng không trả dữ liệu gì cho người gọi — vừa tốn tài nguyên vừa bị tính vào hạn
 mức. Nếu bạn đang dùng `HEAD` để kiểm tra dịch vụ sống, hãy đổi sang `GET /healthz`
@@ -112,6 +112,8 @@ Tenant thương mại dùng sổ quota chính xác theo tenant: Free có tổng 
 Sáu endpoint đọc dữ liệu địa điểm (`/v1/autocomplete`, `/v1/search`, `/v1/nearby`, `/v1/places/{id}`, `/v1/geocode`, `/v1/reverse`) tính vào quota này. `POST /v1/edits` có giới hạn riêng theo ngày (mục 5), không tính vào quota Places.
 
 **Quota Chỉ đường.** `GET /v1/directions` có quota **riêng**, cũng theo ngày Việt Nam và cũng chặn ở 2× hạn mức: plan `free` mặc định **2.000** lượt/ngày, khoá có thể được đặt hạn riêng (`quota_directions_per_day`). Tenant `internal` không bị đếm theo ngày. Burst **20 request/phút** cho mỗi cặp khoá + IP (riêng, không dùng chung 60 của Places). Ngoài ra khoá `web` và `mobile` — kể cả của tenant `internal`, vì khoá loại này nằm công khai trong trang/app — chịu **trần 100 request/phút cho cả khoá** (mọi IP cộng lại); khoá `server` không chịu trần này. Vượt trả `429 rate_limit_exceeded` với `retry-after: 60`.
+
+`GET /v1/matrix` và `GET /v1/optimized-route` tính vào **cùng quota Chỉ đường** và tính **một lượt mỗi request bất kể cỡ**: một ma trận 10 × 10 (100 cặp) hay một lần tối ưu 10 điểm dừng đều là một lượt. Bù lại cỡ mỗi request có trần (tối đa 100 cặp, tối đa 10 điểm dừng — xem từng endpoint ở mục 4). Ba endpoint dùng chung burst 20 request/phút/khoá + IP và trần 100 request/phút cho khoá `web`/`mobile`.
 
 ### Hai lớp giới hạn khác nhau
 
@@ -249,14 +251,16 @@ hiện quy trình này.
 | `/v1/autocomplete` | 10 phút | 1 giờ |
 | `/v1/places/{id}` | 1 giờ | 2 giờ |
 | `/v1/directions` | 60 giây | 5 phút |
+| `/v1/matrix` | 60 giây | 5 phút |
+| `/v1/optimized-route` | 60 giây | 5 phút |
 | `/v1/attribution` | 24 giờ | — |
 | `/v1/styles/{theme}.json` | 1 giờ | — |
 | `/v1/tiles/{set}.json` | 1 giờ | — |
 | tile `.pbf` | 1 ngày | thêm 7 ngày `stale-while-revalidate` |
 
-Với `/v1/autocomplete`, `/v1/places/{id}` và `/v1/directions`, phản hồi lấy từ cache có header `x-mlv-cache`: `hit` là bản còn tươi, `stale` là bản cũ được trả vì truy vấn mới thất bại. Lỗi 4xx không bao giờ được cache. Các endpoint còn lại truy vấn trực tiếp, không cache.
+Với `/v1/autocomplete`, `/v1/places/{id}`, `/v1/directions`, `/v1/matrix` và `/v1/optimized-route`, phản hồi lấy từ cache có header `x-mlv-cache`: `hit` là bản còn tươi, `stale` là bản cũ được trả vì truy vấn mới thất bại. Lỗi 4xx không bao giờ được cache. Các endpoint còn lại truy vấn trực tiếp, không cache.
 
-Khoá cache của `/v1/autocomplete` gồm truy vấn đã chuẩn hoá (bỏ dấu, viết tắt đã bung), ô lưới của `near`, danh sách `types` và `limit` — nên hai truy vấn khác nhau về cách viết dấu vẫn dùng chung một bản cache.
+Khoá cache của `/v1/autocomplete` gồm truy vấn đã chuẩn hoá (bỏ dấu, viết tắt đã bung), ô lưới của `near`, danh sách `types` và `limit` — nên hai truy vấn khác nhau về cách viết dấu vẫn dùng chung một bản cache. Khoá cache của ba endpoint dẫn đường làm tròn toạ độ 4 chữ số (~11 m) với ma trận và tối ưu thứ tự, 5 chữ số với directions.
 
 ## 4. Endpoint dữ liệu địa điểm
 
@@ -638,6 +642,86 @@ curl -H "X-Api-Key: mlv_live_…" \
 - Toạ độ `from`/`to`/`via` nằm trong URL nên có trong log request của Cloudflare Workers (giữ tối đa 30 ngày, chỉ để chẩn đoán; xem [Điều khoản tenant](/dieu-khoan/) mục 5). Tenant là bên kiểm soát dữ liệu vị trí của người dùng cuối.
 - Không có đường → `404 no_route`. Dịch vụ đang build lại dữ liệu (thứ Hai ~02:00 giờ VN, vài chục phút) → `503 upstream_unavailable` với `retry-after: 30`; bản cache còn trong 5 phút vẫn được trả.
 
+### GET /v1/matrix
+
+Bảng thời gian và quãng đường từ N điểm đi tới M điểm đến — để chọn tài xế gần nhất, kho gần nhất, cửa hàng gần nhất. Không có hình tuyến, không có bước rẽ. Tính bởi Valhalla trên dữ liệu đường OpenStreetMap, cùng graph với `/v1/directions`. Cần scope `places:read`, tính **một lượt quota Chỉ đường** bất kể cỡ (mục 3).
+
+| Tham số | Kiểu | Bắt buộc | Mặc định | Ghi chú |
+|---|---|---|---|---|
+| `sources` | `lat,lng;lat,lng…` | có | — | 1–25 điểm đi, vĩ độ trước |
+| `targets` | `lat,lng;lat,lng…` | có | — | 1–25 điểm đến |
+| `mode` | `motorbike` \| `car` \| `walk` | không | `motorbike` | |
+
+Trần mỗi request: `sources × targets ≤ 100` cặp (ví dụ 10 × 10, 25 × 4, 1 × 100). Mọi điểm trong Việt Nam. Khoảng cách đường chim bay lớn nhất giữa bất kỳ điểm đi và điểm đến: xe máy 200 km, ô tô 400 km, đi bộ 50 km. Vượt bất kỳ trần nào → `400 invalid_request` nói rõ trần và phần tử vi phạm, **không tính lượt**.
+
+```bash
+curl -H "X-Api-Key: mlv_live_…" \
+  "https://api.ai-solutions.io.vn/v1/matrix?sources=10.7798,106.6990;10.7725,106.6980&targets=10.7769,106.7032;10.7716,106.7043"
+```
+
+```json
+{
+  "mode": "motorbike",
+  "sources": [[106.699, 10.7798], [106.698, 10.7725]],
+  "targets": [[106.7032, 10.7769], [106.7043, 10.7716]],
+  "durations_s": [[163, 253], [288, 199]],
+  "distances_m": [[868, 1351], [1504, 1218]],
+  "attribution": "© OpenStreetMap contributors",
+  "engine": { "name": "valhalla", "graph": "2026-09-17" }
+}
+```
+
+Điểm cần chú ý:
+
+- `durations_s[i][j]` và `distances_m[i][j]` là từ `sources[i]` tới `targets[j]`, số nguyên (giây, mét).
+- Cặp **không nối được** (đảo, vùng đường tách rời) → `null` ở cả hai bảng; request vẫn `200`. Chỉ khi một điểm không bám được vào đường nào (giữa biển, giữa rừng) mới trả `404 no_route`.
+- `sources`/`targets` trong response là toạ độ bạn gửi, đổi sang **`[lng, lat]`** (GeoJSON) như mọi response dẫn đường; tham số vào vẫn `lat,lng`.
+- Cùng một điểm có thể xuất hiện ở cả hai bên; ô đó là `0`.
+- Toạ độ nằm trong URL nên có trong log request của Cloudflare Workers (giữ tối đa 30 ngày, chỉ để chẩn đoán; xem [Điều khoản tenant](/dieu-khoan/) mục 5).
+- Dịch vụ đang build lại dữ liệu (thứ Hai ~02:00 giờ VN) → `503 upstream_unavailable` với `retry-after: 30`; bản cache còn trong 5 phút vẫn được trả.
+
+### GET /v1/optimized-route
+
+Sắp thứ tự ghé tối ưu cho **một** chuyến nhiều điểm dừng — shipper nhận 8 đơn buổi sáng, hỏi đi theo thứ tự nào cho ngắn nhất. Điểm xuất phát và điểm kết thúc cố định, các điểm dừng được sắp lại. Response là đúng schema của `/v1/directions` cộng mảng `order`, nên vẽ và dẫn đường bằng cùng mã. Cần scope `places:read`, tính **một lượt quota Chỉ đường** bất kể số điểm.
+
+| Tham số | Kiểu | Bắt buộc | Mặc định | Ghi chú |
+|---|---|---|---|---|
+| `from` | `lat,lng` | có | — | điểm xuất phát, luôn đứng đầu |
+| `stops` | `lat,lng;lat,lng…` | có | — | 1–10 điểm cần ghé, thứ tự tuỳ ý |
+| `to` | `lat,lng` | không | — | điểm kết thúc, luôn đứng cuối; **bỏ trống = quay về `from`** |
+| `mode` | `motorbike` \| `car` \| `walk` | không | `motorbike` | |
+| `lang` | `vi` \| `en` | không | `vi` | ngôn ngữ câu chỉ dẫn |
+
+Mọi điểm trong Việt Nam; mỗi điểm dừng và `to` cách `from` không quá: xe máy 200 km, ô tô 400 km, đi bộ 50 km (đường chim bay). Không có `alternatives`.
+
+```bash
+curl -H "X-Api-Key: mlv_live_…" \
+  "https://api.ai-solutions.io.vn/v1/optimized-route?from=10.7798,106.6990&stops=10.7716,106.7043;10.7769,106.7032&to=10.7725,106.6980"
+```
+
+```json
+{
+  "order": [1, 0],
+  "routes": [{ "mode": "motorbike", "distance_m": 2604, "duration_s": 470, "legs": ["…3 leg…"], "…": "…" }],
+  "waypoints": [
+    { "location": [106.699, 10.7798], "snapped": [106.699, 10.7798], "name": null },
+    { "location": [106.7032, 10.7769], "snapped": [106.7032, 10.7769], "name": null },
+    { "location": [106.7043, 10.7716], "snapped": [106.7043, 10.7716], "name": null },
+    { "location": [106.698, 10.7725], "snapped": [106.6981, 10.7725], "name": null }
+  ],
+  "attribution": "© OpenStreetMap contributors",
+  "engine": { "name": "valhalla", "graph": "2026-09-17" }
+}
+```
+
+Điểm cần chú ý:
+
+- `order[k]` là **chỉ số vào mảng `stops` bạn gửi** của điểm ghé thứ k. Ví dụ trên: đi `from` → `stops[1]` → `stops[0]` → `to`. `waypoints` và `routes[0].legs` đã xếp theo thứ tự đó; `routes[0].legs.length = stops + 1`.
+- Response là `DirectionsResponse` đầy đủ (`geometry` polyline6, `steps` với câu tiếng Việt) — xem `GET /v1/directions` ở trên; đưa thẳng vào `map.routes.show()` hoặc `navigation.start()`.
+- Không hỗ trợ kết thúc ở điểm bất kỳ (open-end), sức chứa, khung giờ khách hẹn hay nhiều xe — xem "Những thứ chưa có" trên website.
+- Một điểm dừng không tới được → `404 no_route` cho cả chuyến.
+- `stops` một điểm vẫn hợp lệ (`order: [0]`) để ứng dụng không phải rẽ nhánh theo số đơn.
+
 ## 5. Endpoint ghi
 
 ### POST /v1/edits
@@ -992,6 +1076,20 @@ interface DirectionsResponse {
   attribution: string;
   engine?: { name: string; graph: string | null };
 }
+
+interface MatrixResponse {
+  mode: TravelMode;
+  sources: [number, number][];        // [lng, lat], theo thứ tự bạn gửi
+  targets: [number, number][];
+  durations_s: (number | null)[][];   // [i][j]: giây từ sources[i] tới targets[j]; null = không nối được
+  distances_m: (number | null)[][];   // mét; null cùng ô với durations_s
+  attribution: string;
+  engine?: { name: string; graph: string | null };
+}
+
+interface OptimizedRouteResponse extends DirectionsResponse {
+  order: number[];                    // chỉ số vào `stops` theo thứ tự nên đi
+}
 ```
 
 Vài điểm dễ sai:
@@ -1004,6 +1102,7 @@ Vài điểm dễ sai:
 - `PoiFeature.lngLat` theo thứ tự **kinh độ trước** (chuẩn GeoJSON), còn tham số `near` của API theo thứ tự **vĩ độ trước**.
 - `contact` và `hours` có thể là `null`. `hours` không có kiểu chặt vì giữ nguyên chuỗi opening_hours của nguồn.
 - `Route.geometry` là polyline6 (không phải GeoJSON); mọi toạ độ trong `Route`/`Waypoint` là `[lng, lat]`.
+- `MatrixResponse.durations_s` và `distances_m` là mảng hai chiều `[source][target]`; `null` là không nối được, không phải lỗi.
 
 ## 8. Đọc thêm
 

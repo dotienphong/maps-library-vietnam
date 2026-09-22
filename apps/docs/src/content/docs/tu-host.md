@@ -43,7 +43,8 @@ Việc tay một lần trên Cloudflare, theo đúng checklist mà script in ra:
 Compose có năm dịch vụ, **không dịch vụ nào mở cổng ra ngoài** — chỉ `cloudflared` nối ra Internet:
 `postgres` bắt buộc TLS, `cloudflared`, `backup` chạy `pg_dump` hằng ngày lúc 03:00 rồi mã hoá
 AES-256 và đẩy lên bucket R2 riêng (giữ 7 bản ngày và 4 bản tuần), `pipeline` chạy cron, và
-`valhalla` phục vụ chỉ đường ở cổng nội bộ 8002. Lần đầu dựng, `valhalla` phải build graph từ PBF
+`valhalla` phục vụ chỉ đường ở cổng nội bộ 8002. Cùng tiến trình đó phục vụ ma trận (`sources_to_targets`) và tối ưu thứ tự
+(`optimized_route`) cho `/v1/matrix` và `/v1/optimized-route` — image đã bật sẵn, không cần cấu hình thêm. Lần đầu dựng, `valhalla` phải build graph từ PBF
 nên `healthcheck` có `start_period` 1 giờ — trong lúc đó `/v1/directions` trả `503`.
 
 Chuyển sang máy khác: chạy `pnpm server:setup` trên máy mới, rồi `pnpm db:restore --latest`, rồi trỏ lại Tunnel. Dưới một giờ.

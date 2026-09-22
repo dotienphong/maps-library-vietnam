@@ -39,7 +39,7 @@ dẫn đường cùng lúc không tạo tải cho máy chủ.
 
 ### 1.3 Ngoài phạm vi spec A (có chỗ trong kiến trúc)
 
-- Map-matching (bám chuỗi GPS vào đường trên máy chủ), ma trận ETA nhiều điểm, isochrone.
+- Map-matching (bám chuỗi GPS vào đường trên máy chủ), ma trận ETA nhiều điểm, isochrone. Ma trận và tối ưu thứ tự điểm dừng đã có spec riêng 22/09/2026: `2026-09-22-ma-tran-toi-uu-thu-tu-design.md`.
 - Giao thông trực tiếp, tránh phí, tránh cao tốc, giờ khởi hành, thời tiết.
 - Ngôn ngữ ngoài `vi` và `en`.
 - Máy trạng thái dẫn đường, GPS, lệch tuyến, vẽ tuyến, đọc chỉ dẫn (spec B, C).

@@ -156,7 +156,39 @@ function Panel({ response }) {
 
 Hook phải nằm trong `<MapsLibVNMap>`. Xem [React](/react/) mục 6.
 
-## 7. Giới hạn trình duyệt cần biết
+## 7. Tối ưu thứ tự điểm dừng
+
+Chuyến có nhiều điểm giao thì gọi `optimizedRoute()` thay cho `directions()`. Response là
+`DirectionsResponse` cộng `order`, nên phần vẽ và dẫn đường **không đổi một dòng**:
+
+```ts
+const response = await map.places.optimizedRoute({
+  from: [10.7798, 106.699],
+  stops: [
+    [10.7716, 106.7043],
+    [10.7769, 106.7032],
+    [10.7686, 106.7069],
+  ],
+  // bỏ `to` = quay về `from`
+});
+map.routes.show(response);
+map.fitBounds(response.routes[0].bbox, 60);
+
+// Đánh số điểm ghé theo thứ tự nên đi: waypoints[k + 1] là điểm ghé thứ k (waypoints[0] là from).
+// MarkerOptions của @mapslibvn/web nhận lng/lat rời và popupHtml, không có nhãn chữ trên ghim.
+response.order.forEach((stopIndex, k) => {
+  const [lng, lat] = response.waypoints[k + 1].location;
+  map.addMarker({ lng, lat, popupHtml: `Điểm ghé ${k + 1} (đơn số ${stopIndex + 1})` });
+});
+
+startButton.onclick = () => map.navigation.start({ response });
+```
+
+Tối đa 10 điểm dừng, tính một lượt Chỉ đường. Điểm kết thúc phải cố định (`to`, hoặc quay về
+`from`); chưa có "kết thúc ở đâu cũng được". Chi tiết ở
+[REST API — optimized-route](/api/#get-v1optimized-route).
+
+## 8. Giới hạn trình duyệt cần biết
 
 - **Cần HTTPS** (hoặc `localhost`) để có Geolocation.
 - **Không dẫn đường nền trên web.** iOS và Android tạm dừng `watchPosition` khi tắt màn hình hoặc

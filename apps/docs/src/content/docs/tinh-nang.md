@@ -60,7 +60,7 @@ và tên; các nguồn khác gắn vai trò `secondary` và hiện trong trườ
 
 ## 3. Places API
 
-Chín endpoint: tám đọc, một ghi. Xác thực bằng header `X-Api-Key` — từ 09/09/2026 máy chủ không còn nhận khoá trên URL.
+Mười một endpoint: mười đọc, một ghi. Xác thực bằng header `X-Api-Key` — từ 09/09/2026 máy chủ không còn nhận khoá trên URL.
 
 | Endpoint | Làm gì | Tham số chính |
 |---|---|---|
@@ -71,6 +71,8 @@ Chín endpoint: tám đọc, một ghi. Xác thực bằng header `X-Api-Key` �
 | `GET /v1/geocode` | địa chỉ chữ → toạ độ | `q` từ 2 ký tự; `near`; `limit` 1–5 (5) |
 | `GET /v1/reverse` | toạ độ → địa chỉ | `lat`, `lng` |
 | `GET /v1/directions` | tuyến đường, bước rẽ tiếng Việt | `from`, `to` "lat,lng" bắt buộc; `via` tối đa 5 điểm; `mode` `motorbike`/`car`/`walk`; tính vào quota **Chỉ đường** riêng |
+| `GET /v1/matrix` | bảng thời gian/quãng đường N×M | `sources`, `targets` "lat,lng;…" 1–25 điểm mỗi bên, tối đa 100 cặp; `mode`; **một lượt** quota Chỉ đường |
+| `GET /v1/optimized-route` | thứ tự ghé tối ưu cho một chuyến + tuyến đầy đủ | `from`, `stops` 1–10 điểm bắt buộc; `to` tuỳ chọn (bỏ = quay về `from`); `mode`, `lang`; **một lượt** quota Chỉ đường |
 | `GET /v1/attribution` | chuỗi ghi nguồn chuẩn | không cần khoá |
 | `POST /v1/edits` | gửi đóng góp, sửa POI | cần scope `edits:write` |
 
@@ -100,6 +102,11 @@ tuyến, đọc câu tiếng Việt đúng lúc bằng giọng nói, tự tính 
 [Dẫn đường trên React Native](/dan-duong-react-native/). Trên React Native còn có la bàn + con quay hồi
 chuyển: puck xoay theo điện thoại khi đứng yên, chấm xanh có nón hướng, `useHeading()` cho UI riêng.
 Chi tiết REST API ở [REST API](/api/) mục 4.
+
+**Giao hàng và vận tải.** `GET /v1/matrix` trả bảng thời gian và quãng đường giữa N điểm đi và M điểm
+đến (tối đa 100 cặp mỗi lượt) để chọn tài xế hay kho gần nhất; `GET /v1/optimized-route` sắp thứ tự
+ghé tối ưu cho một chuyến tối đa 10 điểm dừng và trả luôn tuyến đầy đủ để vẽ. Cả hai tính **một lượt**
+Chỉ đường mỗi request bất kể cỡ. Chưa có tối ưu đội xe nhiều xe (sức chứa, khung giờ, chia đơn cho xe).
 
 ## 6. Đóng góp và duyệt
 

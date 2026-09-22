@@ -143,8 +143,8 @@ Toàn bộ export của `packages/core/src/index.ts`:
 | Chuẩn hoá tiếng Việt | `normalizeVi`, `stripDiacritics`, `expandAbbrev`, `applyBrandAlias`, `nameCore`, `NAME_FILLERS` |
 | Phân tích địa chỉ | `parseAddress`, kiểu `ParsedAddress`, `AlleyKeyword` |
 | Biến đổi style | `localizeStyle`, `hidePoiLayer`, `nameExpression`, `isNameLabelLayer`, `POI_LAYER_ID`, kiểu `Lang`, `StyleLike`, `StyleLayerLike` |
-| Kiểu dữ liệu API | `Place`, `PlaceDetails`, `PlaceCategory`, `PlaceAddress`, `PlaceSource`, `AutocompleteItem`, `AutocompleteType`, `GeocodeItem`, `GeocodeMatched`, `GeocodePrecision`, `ReverseResponse`, `ReverseAddress`, `EditKind`, `EditChanges`, `SuggestEditRequest`, `SuggestEditResponse`, `PoiFeature`, `TravelMode`, `DirectionsLang`, `ManeuverKind`, `Route`, `RouteLeg`, `RouteStep`, `Waypoint`, `DirectionsResponse`, `GeoFix`, `RouteProvider`, `PositionSource`, `PositionError`, `NavigationStatus`, `NavigationThresholds`, `NavigationProgress`, `Announcement`, `NavigationEvents`, `NavigatorOptions`, `Navigator` |
-| Chỉ đường | `decodePolyline6`, `encodePolyline6`, `MANEUVER_KINDS`, `VALHALLA_MANEUVER_KIND`, `maneuverKindFromValhalla`, kiểu `DirectionsOptions` |
+| Kiểu dữ liệu API | `Place`, `PlaceDetails`, `PlaceCategory`, `PlaceAddress`, `PlaceSource`, `AutocompleteItem`, `AutocompleteType`, `GeocodeItem`, `GeocodeMatched`, `GeocodePrecision`, `ReverseResponse`, `ReverseAddress`, `EditKind`, `EditChanges`, `SuggestEditRequest`, `SuggestEditResponse`, `PoiFeature`, `TravelMode`, `DirectionsLang`, `ManeuverKind`, `Route`, `RouteLeg`, `RouteStep`, `Waypoint`, `DirectionsResponse`, `MatrixResponse`, `OptimizedRouteResponse`, `GeoFix`, `RouteProvider`, `PositionSource`, `PositionError`, `NavigationStatus`, `NavigationThresholds`, `NavigationProgress`, `Announcement`, `NavigationEvents`, `NavigatorOptions`, `Navigator` |
+| Chỉ đường | `decodePolyline6`, `encodePolyline6`, `MANEUVER_KINDS`, `VALHALLA_MANEUVER_KIND`, `maneuverKindFromValhalla`, kiểu `DirectionsOptions`, `MatrixOptions`, `OptimizedRouteOptions` |
 | Dẫn đường | `createNavigator`, `NAVIGATION_THRESHOLDS`, `simulateFixes`, `SIMULATE_DEFAULT_SPEED_MPS`, `formatDistance`, `formatDistanceShort`, `roundForSpeech`, `lowerFirst`, `composeApproach`, `planAnnouncements`, `buildRouteIndex`, `progressAt`, `stepAt`, `snapToRoute`, `haversineM`, `bearingDeg`, `angleDiffDeg`, `projectOnSegment`, `cumulativeDistances`, kiểu `FlatStep`, `RouteIndex`, `ProgressAt`, `SnapOptions`, `SnapResult`, `SimulateOptions`, `Projection`, `LngLat` — xem [Dẫn đường](/dan-duong/) mục 5 |
 | Tuyến dạng GeoJSON | `routeFeatures`, `altRouteFeatures`, `liveRouteFeatures`, `decodeRoutes`, `EMPTY_ROUTE_FEATURES`, `FIRST_SYMBOL_LAYER_ID`, kiểu `RouteFeature`, `RouteFeatureCollection`, `RouteFeatureKind`, `RouteFeaturesOptions`, `RouteLineFeature`, `RoutePuckFeature`, `RouteProgressCut` — nguyên liệu để tự vẽ tuyến khi không dùng `map.routes` |
 | Receipt hạn mức | `createReceiptStore`, kiểu `QuotaReceipt`, `QuotaReceiptStore`, `ReceiptKeyValueStorage` |
@@ -188,6 +188,8 @@ const client = createClient({
 | `geocode(q, opts?)` | `GET /v1/geocode` | `{ items: GeocodeItem[] }` |
 | `reverse(lat, lng)` | `GET /v1/reverse` | `ReverseResponse` |
 | `directions(opts)` | `GET /v1/directions` | `DirectionsResponse` |
+| `matrix(opts)` | `GET /v1/matrix` | `MatrixResponse` |
+| `optimizedRoute(opts)` | `GET /v1/optimized-route` | `OptimizedRouteResponse` (= `DirectionsResponse` + `order`) |
 | `suggestEdit(edit)` | `POST /v1/edits` | `SuggestEditResponse` |
 | `flushReceipts()` | `POST /v1/quota/receipts/{id}/ack` cho mọi receipt còn chờ | `Promise<boolean>` — `true` khi hàng đợi đã sạch |
 
@@ -200,12 +202,14 @@ Tham số của `opts` khớp một-một với query string của endpoint tư�
 | `nearby` | `lat`, `lng` (bắt buộc), `radius`, `category`, `limit` |
 | `geocode` | `near`, `limit` |
 | `directions` | `from`, `to` (bắt buộc, `[lat, lng]`), `via`, `mode`, `lang`, `alternatives` |
+| `matrix` | `sources`, `targets` (bắt buộc, mảng `[lat, lng]`, tối đa 100 cặp), `mode` |
+| `optimizedRoute` | `from`, `stops` (bắt buộc, `[lat, lng]`, 1–10 điểm), `to` (bỏ = quay về `from`), `mode`, `lang` |
 
 `signal` là `AbortSignal` phía client; không giống các trường còn lại trong bảng, nó không phải tham số gửi lên server và không xuất hiện trong query string. **Từ 0.11.0 nó không huỷ request ở lớp mạng**: lời gọi của bạn reject ngay khi abort, nhưng request vẫn chạy tới cùng để nhận và xác nhận receipt — nên abort **không** tiết kiệm lượt. Abort *trước* khi gọi thì không có request nào được gửi. `usePlaces()` và `<mapslibvn-autocomplete>` tự quản lý `AbortController` bên trong nên không cần tự truyền; chỉ cần đến nó khi gọi thẳng `client.autocomplete()`.
 
 Lưu ý về thứ tự toạ độ: `near` là `[lat, lng]` (**vĩ độ trước**, đúng như tham số `near` của API), còn `bbox` là `[minLng, minLat, maxLng, maxLat]` và `center` của bản đồ là `[lng, lat]`. Tham số `undefined` bị bỏ khỏi URL, nên client không tự áp mặc định nào — mặc định do máy chủ quyết định, xem [REST API](/api/) mục 4.
 
-Với `directions`, tham số vào là `[lat, lng]` nhưng mọi toạ độ trong `DirectionsResponse` là `[lng, lat]`; giải mã `Route.geometry` bằng `decodePolyline6`.
+Với `directions`, `matrix` và `optimizedRoute`, tham số vào là `[lat, lng]` nhưng mọi toạ độ trong response là `[lng, lat]`; giải mã `Route.geometry` bằng `decodePolyline6`.
 
 ### MapsLibVNError
 
@@ -396,7 +400,7 @@ Cùng bộ API với `@mapslibvn/react` nhưng bọc `@maplibre/maplibre-react-n
 | Vẽ tuyến và camera | `ROUTE_SOURCE_ID`, `ROUTE_ALT_SOURCE_ID`, `ROUTE_LAYER_IDS`, `ROUTE_COLOR`, `ALT_ROUTE_COLOR`, `DESTINATION_COLOR`, `FOLLOW_ZOOM`, `FOLLOW_PITCH` (`45`), `CAMERA_BEARING_MIN_MS`, `CAMERA_BEARING_MIN_DEG`, kiểu `RouteStyle`, `FollowOptions`, `BindingEvents`, `MapNavigationBinding` |
 | Chấm xanh và la bàn | `useHeading`, `USER_LOCATION_SOURCE_ID`, `USER_LOCATION_LAYER_IDS`, `USER_FOLLOW_ZOOM` (`16`), `HEADING_CONE_IMAGE_KEY`, `HEADING_FRESH_MS`, kiểu `UserLocationOptions`, `UserLocationHandle` |
 | Hạn mức | `useFlushReceiptsOnBackground(client)` — gọi `client.flushReceipts()` khi app vào nền; `<MapsLibVNMap>` đã tự dùng cho client của chính nó |
-| Re-export từ core | `createClient`, `createNavigator`, `createHeadingFilter`, `simulateFixes`, `decodePolyline6`, `formatDistance`, `formatDistanceShort`, `wrapDeg`, `signedDiffDeg`, `MOVING_SPEED_MPS`, `NAVIGATION_THRESHOLDS`, cùng các kiểu `AutocompleteItem`, `Lang`, `MapsLibVNClient`, `Place`, `PoiFeature`, `PoiSource`, `Theme`, `GeoFix`, `PositionSource`, `PositionError`, `Route`, `RouteLeg`, `RouteStep`, `TravelMode`, `DirectionsOptions`, `DirectionsResponse`, `DirectionsLang`, `ManeuverKind`, `Announcement`, `NavigationProgress`, `NavigationStatus`, `NavigationEvents`, `NavigationThresholds`, `RouteProvider`, `HeadingFix`, `HeadingSource`, `HeadingError`, `HeadingAccuracy`, `HeadingFilter`, `HeadingFilterOptions`, `CompassSample`, `RotationRate` |
+| Re-export từ core | `createClient`, `createNavigator`, `createHeadingFilter`, `simulateFixes`, `decodePolyline6`, `formatDistance`, `formatDistanceShort`, `wrapDeg`, `signedDiffDeg`, `MOVING_SPEED_MPS`, `NAVIGATION_THRESHOLDS`, cùng các kiểu `AutocompleteItem`, `Lang`, `MapsLibVNClient`, `Place`, `PoiFeature`, `PoiSource`, `Theme`, `GeoFix`, `PositionSource`, `PositionError`, `Route`, `RouteLeg`, `RouteStep`, `TravelMode`, `DirectionsOptions`, `DirectionsResponse`, `MatrixOptions`, `MatrixResponse`, `OptimizedRouteOptions`, `OptimizedRouteResponse`, `DirectionsLang`, `ManeuverKind`, `Announcement`, `NavigationProgress`, `NavigationStatus`, `NavigationEvents`, `NavigationThresholds`, `RouteProvider`, `HeadingFix`, `HeadingSource`, `HeadingError`, `HeadingAccuracy`, `HeadingFilter`, `HeadingFilterOptions`, `CompassSample`, `RotationRate` |
 
 Entry riêng `@mapslibvn/react-native/expo` (chỉ import khi bạn dùng adapter Expo — Metro mới đi
 resolve các module `expo-*` lúc đó):
