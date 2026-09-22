@@ -27,7 +27,7 @@ const ANH_HERO = [
 //   - thiếu dải `latin` thì mọi ký tự ASCII ("MapsLibVN", chữ số) rơi về font hệ thống, vì tệp
 //     `vietnamese-*` chỉ chứa ký tự riêng của tiếng Việt. Cùng cái bẫy đã gặp ở global.css.
 const THU_MUC_FONT = resolve(GOC, 'apps/site/node_modules/@fontsource/be-vietnam-pro/files');
-const FONT_NET = [400, 700];
+const FONT_NET = [400, 800];
 const FONT_DAI = ['latin', 'vietnamese'];
 
 /**
@@ -48,7 +48,7 @@ const FONT_DAI = ['latin', 'vietnamese'];
  * @typedef {{ net: number, b64: string }} NetFont
  */
 
-/** Bốn ảnh OG. `ten` phải KHỚP trường `og` trong apps/site/src/lib/trang.ts. */
+/** Bốn ảnh OG. `ten` + `-v2` phải KHỚP trường `og` trong apps/site/src/lib/trang.ts. */
 const ANH_OG = [
   { ten: 'mac-dinh', tieuDe: 'MapsLibVN', phu: 'API bản đồ và địa điểm Việt Nam' },
   {
@@ -91,13 +91,18 @@ function trangOg({ tieuDe, phu }, fontBase64) {
     justify-content: space-between; padding: 72px;
     /* Nền PHẲNG chứ không chuyển màu: PNG nén dải chuyển màu rất kém, một tấm gradient nặng gấp
        gần mười lần cùng nội dung trên nền phẳng. */
-    background: #1b3a6b;
-    color: #fff; font-family: 'Be Vietnam Pro', sans-serif; font-weight: 400;
+    background: #0a0a0a;
+    color: #fafafa; font-family: 'Be Vietnam Pro', sans-serif; font-weight: 400;
   }
-  .nhan { font-size: 28px; letter-spacing: .04em; opacity: .85; font-weight: 700; }
-  .gach { width: 120px; height: 8px; background: #fff; opacity: .9; border-radius: 4px; }
-  h1 { margin-top: 28px; font-size: 62px; line-height: 1.16; max-width: 17ch; font-weight: 700; }
-  .phu { font-size: 29px; opacity: .85; }
+  .nhan { font-size: 28px; letter-spacing: .04em; color: #a1a1aa; font-weight: 800; }
+  /* Gạch nhấn là chỗ DUY NHẤT dùng xanh chanh trên ảnh này — cùng quy tắc một màu nhấn cho một
+     việc như trên website. */
+  .gach { width: 120px; height: 8px; background: #a3e635; border-radius: 4px; }
+  h1 {
+    margin-top: 28px; font-size: 62px; line-height: 1.06; max-width: 17ch;
+    font-weight: 800; letter-spacing: -.03em;
+  }
+  .phu { font-size: 29px; color: #a1a1aa; }
 </style></head>
 <body>
   <div class="nhan">MapsLibVN</div>
@@ -126,10 +131,12 @@ async function sinhAnhOg(chromium) {
       await trang.setContent(trangOg(anh, fontBase64), { waitUntil: 'load' });
       // Chờ font nạp xong, nếu không chữ có dấu bị vẽ bằng font dự phòng rồi mới đổi.
       await trang.evaluate(() => document.fonts.ready);
-      const duong = resolve(THU_MUC_OG, `${anh.ten}.png`);
+      // Tên có hậu tố phiên bản: mạng xã hội cache ảnh OG theo URL, giữ tên cũ thì bản navy còn
+      // sống trong bộ nhớ đệm của Facebook/Zalo rất lâu sau khi đã đổi.
+      const duong = resolve(THU_MUC_OG, `${anh.ten}-v2.png`);
       await trang.screenshot({ path: duong });
       const { size } = await stat(duong);
-      console.log(`  og/${anh.ten}.png — ${Math.round(size / 1024)} KB`);
+      console.log(`  og/${anh.ten}-v2.png — ${Math.round(size / 1024)} KB`);
     }
   } finally {
     await trinhDuyet.close();

@@ -20,7 +20,7 @@ export const TRANG = {
       'API bản đồ, tìm kiếm địa điểm và dẫn đường cho Việt Nam trên dữ liệu mở. Nhúng bằng một dòng, gói trả phí từ 650.000đ mỗi tháng, có bản dùng thử.',
     h1: 'Bản đồ Việt Nam cho ứng dụng của bạn',
     nhan: 'Trang chủ',
-    og: '/og/trang-chu.png',
+    og: '/og/trang-chu-v2.png',
   },
   tinhNang: {
     path: '/tinh-nang/',
@@ -37,7 +37,7 @@ export const TRANG = {
       'Bốn gói từ bản dùng thử miễn phí tới 10.400.000đ mỗi tháng, tính theo lượt gọi API chứ không theo số người dùng. Có bảng so sánh với Google và VIETMAP.',
     h1: 'Bảng giá',
     nhan: 'Bảng giá',
-    og: '/og/bang-gia.png',
+    og: '/og/bang-gia-v2.png',
   },
   soSanhGoogle: {
     path: '/so-sanh/google-maps-api/',
@@ -46,7 +46,7 @@ export const TRANG = {
       'So sánh chi phí và tính năng giữa MapsLibVN và Google Maps Platform cho ba mức dùng thật, kèm giả định, ngày đối chiếu và những chỗ Google vẫn hơn hẳn.',
     h1: 'MapsLibVN so với Google Maps Platform',
     nhan: 'So với Google',
-    og: '/og/so-sanh.png',
+    og: '/og/so-sanh-v2.png',
   },
   soSanhVietmap: {
     path: '/so-sanh/vietmap/',
@@ -55,7 +55,7 @@ export const TRANG = {
       'Đối chiếu chi phí, cách tính lượt và quyền với dữ liệu giữa MapsLibVN và VIETMAP cho ba mức dùng thật, kèm giả định và ngày đối chiếu cụ thể để tự kiểm.',
     h1: 'MapsLibVN so với VIETMAP',
     nhan: 'So với VIETMAP',
-    og: '/og/so-sanh.png',
+    og: '/og/so-sanh-v2.png',
   },
   baiViet: {
     path: '/bai-viet/',
