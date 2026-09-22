@@ -4,21 +4,13 @@ import { DOCS_URL } from '../../site.config.mjs';
 import sang from '../assets/ban-do-hero.jpg';
 import toi from '../assets/ban-do-hero-dark.jpg';
 import Nut from './Nut.astro';
+import OGoiY from './OGoiY.astro';
 
 /**
  * Khối bản đồ trải ngang dưới hero (spec 5.3). Lúc mở trang chỉ có ảnh tĩnh + ô tìm kiếm vẽ bằng
  * HTML. iframe playground (1,1 MB SDK + tiles) chỉ được tạo khi người dùng cuộn lần đầu và khối đã
  * lộ ≥ 25 %, hoặc khi bấm nút. Kích thước khối cố định nên CLS = 0.
- *
- * `goiY` là ba gợi ý THẬT lấy từ autocomplete production cho truy vấn `truyVan`, để người xem hiểu
- * đây là bản đồ có tìm kiếm chứ không phải ảnh trang trí.
  */
-interface Props {
-  truyVan: string;
-  goiY: readonly { ten: string; phu: string }[];
-}
-
-const { truyVan, goiY } = Astro.props;
 const srcToi = `${DOCS_URL}/playground?embed=1&style=dark`;
 const srcSang = `${DOCS_URL}/playground?embed=1&style=light`;
 const ALT =
@@ -56,25 +48,7 @@ const ALT =
         class="absolute inset-0 h-full w-full object-cover dark:hidden"
       />
 
-      <div
-        aria-hidden="true"
-        class="pointer-events-none absolute left-4 top-4 w-[min(360px,calc(100%-2rem))] rounded-[10px] border border-border bg-surface p-3"
-      >
-        <p class="t-small flex items-center gap-2 text-muted">
-          <span>🔍</span>
-          <span class="text-text">{truyVan}</span>
-        </p>
-        <ul class="mt-2 divide-y divide-border">
-          {
-            goiY.map((g) => (
-              <li class="py-2">
-                <p class="t-small font-semibold text-text">{g.ten}</p>
-                <p class="text-[13px] text-muted">{g.phu}</p>
-              </li>
-            ))
-          }
-        </ul>
-      </div>
+      <OGoiY class="absolute left-4 top-4 w-[min(360px,calc(100%-2rem))]" />
 
       <div class="absolute bottom-4 right-4">
         <Nut id="nut-ban-do" kieu="phu" class="bg-surface">Mở bản đồ tương tác</Nut>

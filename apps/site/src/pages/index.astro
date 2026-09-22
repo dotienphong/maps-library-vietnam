@@ -8,6 +8,7 @@ import Faq from '../components/Faq.astro';
 import Hero from '../components/Hero.astro';
 import Nhan from '../components/Nhan.astro';
 import Nut from '../components/Nut.astro';
+import OGoiY from '../components/OGoiY.astro';
 import SoLieu from '../components/SoLieu.astro';
 import The from '../components/The.astro';
 import Base from '../layouts/Base.astro';
@@ -19,21 +20,6 @@ import { TRANG } from '../lib/trang';
 const phanTram = soSanh().map((row) => row.reHonGoogle);
 const thap = Math.round(Math.min(...phanTram));
 const cao = Math.round(Math.max(...phanTram));
-
-/**
- * Ba gợi ý THẬT, đọc từ autocomplete production ngày 22/09/2026 cho truy vấn không dấu
- * "nha tho duc ba" (lấy qua playground để SDK tự xác nhận receipt, không gọi REST trần).
- * Dòng phụ là đơn vị hành chính HIỆN HÀNH sau sắp xếp 2025 — chính là thứ đang muốn khoe.
- */
-const TRUY_VAN = 'nha tho duc ba';
-const GOI_Y = [
-  { ten: 'Nhà thờ Đức Bà', phu: 'Phường Sài Gòn, Thành phố Hồ Chí Minh' },
-  {
-    ten: 'Nhà thờ Đức Bà Sài Gòn',
-    phu: 'Công trường Công xã Paris, Phường Sài Gòn, Thành phố Hồ Chí Minh',
-  },
-  { ten: 'Súp Cua Nhà thờ Đức Bà', phu: 'Phường Sài Gòn, Thành phố Hồ Chí Minh' },
-] as const;
 
 const SDK = ['@mapslibvn/core', '@mapslibvn/web', '@mapslibvn/react', '@mapslibvn/react-native'];
 
@@ -77,7 +63,7 @@ const VI_SAO = [
 <Base trang={TRANG.trangChu} jsonLd={[softwareApplicationJsonLd(), faqJsonLd(CAU_HOI)]}>
   <Hero />
 
-  <BanDoSong truyVan={TRUY_VAN} goiY={GOI_Y} />
+  <BanDoSong />
 
   <section aria-labelledby="tt-tinh-nang" class="mx-auto max-w-[1200px] px-4 py-16 sm:px-6 lg:py-24">
     <p class="mb-3"><Nhan chu="Có sẵn những gì" noiBat /></p>
@@ -92,26 +78,7 @@ const VI_SAO = [
       >
         Gõ tới đâu gợi ý tới đó, chịu được viết không dấu, viết tắt, cách viết địa phương và tên đơn
         vị hành chính cũ lẫn mới.
-        <div
-          slot="minh-hoa"
-          aria-hidden="true"
-          class="rounded-[10px] border border-border bg-surface p-3"
-        >
-          <p class="t-small flex items-center gap-2 text-muted">
-            <span>🔍</span>
-            <span class="text-text">{TRUY_VAN}</span>
-          </p>
-          <ul class="mt-2 divide-y divide-border">
-            {
-              GOI_Y.map((g) => (
-                <li class="py-2">
-                  <p class="t-small font-semibold text-text">{g.ten}</p>
-                  <p class="text-[13px] text-muted">{g.phu}</p>
-                </li>
-              ))
-            }
-          </ul>
-        </div>
+        <OGoiY slot="minh-hoa" />
       </BentoO>
 
       <BentoO

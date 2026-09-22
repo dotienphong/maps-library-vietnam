@@ -262,3 +262,14 @@ test('không còn lớp brand- nào trên bảy trang', async ({ page }) => {
     expect(con, `còn brand- ở ${path}`).toEqual([]);
   }
 });
+
+test('trang Tính năng: mục lục dính và sáu hàng, mỗi hàng có bằng chứng nhìn được', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await page.goto('/tinh-nang/');
+  const mucLuc = page.getByRole('navigation', { name: 'Mục lục tính năng' });
+  await expect(mucLuc.getByRole('link')).toHaveCount(6);
+  // Mỗi hàng phải có thứ NHÌN được, không chỉ chữ — đó là điều tách trang này khỏi bản cũ.
+  await expect(page.locator('[data-bang-chung]')).toHaveCount(6);
+});

@@ -1,0 +1,31 @@
+---
+import { GOI_Y, TRUY_VAN } from '../lib/goi-y';
+
+/**
+ * Ô tìm kiếm TĨNH vẽ bằng HTML, không gọi API. Mục đích là cho người xem thấy ngay "gõ không dấu
+ * vẫn ra đúng chỗ, kèm đơn vị hành chính mới" mà không phải tải SDK. `aria-hidden` vì đây là ảnh
+ * minh hoạ chứ không phải ô nhập dùng được.
+ */
+interface Props {
+  class?: string | undefined;
+}
+
+const { class: lop = '' } = Astro.props;
+---
+
+<div aria-hidden="true" class:list={['rounded-[10px] border border-border bg-surface p-3', lop]}>
+  <p class="t-small flex items-center gap-2 text-muted">
+    <span>🔍</span>
+    <span class="text-text">{TRUY_VAN}</span>
+  </p>
+  <ul class="mt-2 divide-y divide-border">
+    {
+      GOI_Y.map((g) => (
+        <li class="py-2">
+          <p class="t-small font-semibold text-text">{g.ten}</p>
+          <p class="text-[13px] text-muted">{g.phu}</p>
+        </li>
+      ))
+    }
+  </ul>
+</div>
