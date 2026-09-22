@@ -175,7 +175,9 @@ test('bento sáu ô đúng thứ tự và mỗi ô có link tài liệu', async 
   await expect(khoi.getByText(/^\d+–\d+%$/)).toBeVisible();
 });
 
-test('khối giá: bốn thẻ, Professional nổi bật là nút nhấn duy nhất trong khối', async ({ page }) => {
+test('khối giá: bốn thẻ, Professional nổi bật là nút nhấn duy nhất trong khối', async ({
+  page,
+}) => {
   await page.goto('/');
   const khoi = page.locator('section[aria-labelledby="tt-gia"]');
   await expect(khoi.getByRole('heading', { level: 3 })).toHaveText([

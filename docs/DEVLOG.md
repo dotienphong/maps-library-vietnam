@@ -3749,3 +3749,38 @@ PHONG quyết có đổi hay không.
 Cổng: lint xanh toàn repo; vitest 354/354 (59 tệp); typecheck ui/admin/console/site đều 0 lỗi; build
 admin, console, site (11 trang); Playwright site 28/28. Ảnh hai theme ở
 `docs/evidence/site-redesign/pha-0/`. Chưa push.
+
+## 30. Giao diện mới — pha 1: trang chủ — 22/09/2026
+
+Plan `2026-09-22-giao-dien-pha-1-trang-chu.md`, cùng nhánh `feat/giao-dien-moi`. Trang chủ theo
+spec mục 5: hero căn giữa không ảnh (LCP là h1), bản đồ trải ngang, bento sáu ô, bốn cách nhúng,
+giá bốn thẻ, FAQ hai cột, CTA. Component mới: `Nhan`, `Nut`, `The`, `SoLieu`, `Bento`/`BentoO`,
+`BanDoSong`; `Feature.astro` bị xoá. **Năm trang con vẫn bố cục cũ** — đó là pha 2.
+
+**Bản đồ nạp sau LẦN CUỘN ĐẦU, không chỉ theo giao cắt.** Ở 1280×720 khối bản đồ đã nằm trong
+viewport ngay lúc mở trang, nên `IntersectionObserver` thuần sẽ nạp luôn 1,1 MB SDK và mất đúng lời
+hứa "mở trang không kéo một byte nào của playground". Điều kiện thật là *đã lộ ≥ 25 %* **và** *người
+dùng đã cuộn ít nhất một lần*; vẫn có nút cho ai không cuộn. e2e khoá cả ba đường.
+
+**Task 7 phải làm trước Task 5.** Hero cũ mang đúng hai id `khoi-ban-do` và `nut-ban-do` mà
+`BanDoSong` dùng. Để hai khối cùng tồn tại thì `getElementById` trả về khối của Hero, script mới
+điều khiển nhầm phần tử, còn Playwright báo "strict mode violation". Plan đã ghi lại thứ tự đúng.
+
+**`set:html` để tô tên hàm là chỗ dễ tự bắn vào chân.** Mẫu mã của tab "Thẻ script" chứa
+`<script src=…>`; không thoát HTML TRƯỚC khi chèn thẻ `<b>` thì trang tự chèn một thẻ script thật.
+Kiểm bản dựng: 0 thẻ thật lọt, `&lt;script src=` được thoát đúng.
+
+**Ba gợi ý trong ô tìm kiếm minh hoạ là kết quả THẬT.** Truy vấn không dấu `nha tho duc ba`, đọc từ
+autocomplete production qua playground **bằng trình duyệt** để SDK tự ACK receipt. Dòng phụ là đơn
+vị hành chính hiện hành sau sắp xếp 2025 — đúng thứ trang đang muốn khoe.
+
+**Sự cố tự gây, đã đóng:** trước đó tôi gọi REST trần bằng `curl` với khoá demo nhiều lần mà không
+ACK receipt, làm tenant nội bộ bị khoá `ack_required` (429) — tìm kiếm và chỉ đường trên playground
+của trang tài liệu hỏng với mọi khách, còn bản đồ/style/ghi nguồn vẫn 200. PHONG mở khoá bằng Admin
+→ /billing → "Mở khoá receipt". Quy tắc từ nay: lấy dữ liệu ví dụ qua trình duyệt điều khiển bằng
+Playwright, không `curl` endpoint có kiểm khoá.
+
+Cổng: lint xanh toàn repo, vitest 98/98 (site + ui), `astro check` 0 lỗi, build 11 trang, Playwright
+site 31/31, không mã màu cứng nào trong `apps/site/src` ngoài hai giá trị theme-color. Bốn ảnh
+nghiệm thu (tối/sáng × 1280/390) ở `docs/evidence/site-redesign/pha-1/`. Chưa push — chờ PHONG
+duyệt bằng mắt trước khi sang pha 2.
