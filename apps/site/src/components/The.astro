@@ -11,13 +11,27 @@ interface Props {
   noiBat?: boolean | undefined;
   class?: string | undefined;
   id?: string | undefined;
+  /**
+   * Mọi thuộc tính khác (`hidden`, `data-*`, `aria-*`) được chuyển tiếp nguyên vẹn. Thiếu phần này
+   * thì `<The data-… hidden>` im lặng mất cả hai thứ, và script đi kèm không bao giờ tìm thấy khối
+   * — đúng lỗi đã vấp ở thanh ước tính giá.
+   */
+  [key: string]: unknown;
 }
 
-const { as: Tag = 'div', nen = 'surface', noiBat = false, class: lop = '', id } = Astro.props;
+const {
+  as: Tag = 'div',
+  nen = 'surface',
+  noiBat = false,
+  class: lop = '',
+  id,
+  ...con
+} = Astro.props;
 ---
 
 <Tag
   id={id}
+  {...con}
   class:list={[
     'rounded-[var(--radius-card)] border p-5 transition-colors duration-150 sm:p-6',
     nen === 'surface' ? 'bg-surface' : 'bg-surface-2',

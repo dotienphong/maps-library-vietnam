@@ -273,3 +273,32 @@ test('trang Tính năng: mục lục dính và sáu hàng, mỗi hàng có bằn
   // Mỗi hàng phải có thứ NHÌN được, không chỉ chữ — đó là điều tách trang này khỏi bản cũ.
   await expect(page.locator('[data-bang-chung]')).toHaveCount(6);
 });
+
+test('bảng giá: thanh ước tính chỉ đúng gói theo số nhập', async ({ page }) => {
+  await page.goto('/bang-gia/');
+  const places = page.getByLabel('Lượt Places mỗi tháng');
+  const tuyen = page.getByLabel('Lượt tính tuyến mỗi tháng');
+  const ketQua = page.getByTestId('goi-goi-y');
+
+  await places.fill('120000');
+  await tuyen.fill('5000');
+  await expect(ketQua).toContainText('Business');
+
+  await places.fill('20000');
+  await tuyen.fill('2000');
+  await expect(ketQua).toContainText('Starter');
+
+  // Hai nhóm hạn mức ĐỘC LẬP: vượt tuyến là phải lên gói dù Places còn thừa rất nhiều. Đây là
+  // luật của máy chủ, không phải chi tiết giao diện, nên khoá lại.
+  await tuyen.fill('5000');
+  await expect(ketQua).toContainText('Professional');
+
+  await places.fill('500000');
+  await expect(ketQua).toContainText('liên hệ');
+});
+
+test('bảng giá: bảng đối chiếu hạn mức có cột tiêu chí và bốn cột gói', async ({ page }) => {
+  await page.goto('/bang-gia/');
+  const bang = page.getByRole('table', { name: /hạn mức/i });
+  await expect(bang.getByRole('columnheader')).toHaveCount(5);
+});
