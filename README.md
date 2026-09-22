@@ -80,8 +80,16 @@ Tài khoản npm bật 2FA thì lệnh trên dừng với `npm error code EOTP`.
 NPM_CONFIG_OTP=123456 pnpm sdk:publish
 ```
 
-Lệnh dừng giữa chừng thì kiểm `npm view @mapslibvn/<gói> version` cho cả bốn trước
-khi chạy lại — publish lại một version đã tồn tại sẽ lỗi `EPUBLISHCONFLICT`.
+Sau khi publish, lệnh tự đối chiếu registry và **báo lỗi nếu gói nào chưa lên** — vì
+publish tuần tự `core → web → react → react-native`, một gói đầu thất bại mà gói sau
+vẫn lên sẽ để lại trên npm một gói trỏ dependency vào version không tồn tại (đã xảy ra
+22/09/2026: `@mapslibvn/react@0.13.0` đòi `@mapslibvn/core@0.13.0` chưa có, ai cài đều
+gặp `ETARGET`). Khi đó publish riêng gói còn thiếu, **đừng** chạy lại lệnh tổng vì gói
+đã lên sẽ lỗi `EPUBLISHCONFLICT` và chặn luôn phần còn lại:
+
+```bash
+cd packages/core && NPM_CONFIG_OTP=123456 pnpm publish --access public --publish-branch main --no-git-checks
+```
 
 Lệnh chạy lint, typecheck, test, build và dry-run toàn bộ package trước khi
 publish tuần tự core → web → react → react-native với public access.

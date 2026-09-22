@@ -1,7 +1,8 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import {
   createSdkPublishCommands,
   createSdkReleaseCommands,
+  daLenRegistry,
   discoverPublicPackageDirs,
   exportsProblemsFor,
   parseSdkPublishArgs,
@@ -139,5 +140,37 @@ describe('npm SDK release', () => {
         './umd': './dist/x.umd.js',
       }),
     ).toEqual([]);
+  });
+});
+
+describe('daLenRegistry', () => {
+  /** @param {Record<string, unknown>} body @param {number} [status] */
+  const fetchGia = (body, status = 200) =>
+    vi.fn(async () => new Response(JSON.stringify(body), { status }));
+
+  it('đúng version trong registry → true', async () => {
+    const fetchImpl = fetchGia({ versions: { '0.12.1': {}, '0.13.0': {} } });
+    expect(await daLenRegistry('@mapslibvn/core', '0.13.0', { fetchImpl })).toBe(true);
+  });
+
+  it('chưa có version đó → false (gói phụ thuộc chưa lên, không được publish gói sau)', async () => {
+    const fetchImpl = fetchGia({ versions: { '0.12.1': {} } });
+    expect(await daLenRegistry('@mapslibvn/core', '0.13.0', { fetchImpl })).toBe(false);
+  });
+
+  it('404 (gói mới hoàn toàn) → false, không ném', async () => {
+    expect(await daLenRegistry('@mapslibvn/moi', '0.1.0', { fetchImpl: fetchGia({}, 404) })).toBe(
+      false,
+    );
+  });
+
+  it('registry lỗi hoặc mất mạng → null: KHÔNG chặn publish vì một sự cố mạng', async () => {
+    const boom = vi.fn(async () => {
+      throw new Error('ECONNREFUSED');
+    });
+    expect(await daLenRegistry('@mapslibvn/core', '0.13.0', { fetchImpl: boom })).toBeNull();
+    expect(
+      await daLenRegistry('@mapslibvn/core', '0.13.0', { fetchImpl: fetchGia({}, 500) }),
+    ).toBeNull();
   });
 });

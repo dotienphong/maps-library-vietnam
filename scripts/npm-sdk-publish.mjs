@@ -4,6 +4,7 @@
 // script: cờ nằm trong argv nên mã sẽ lọt vào log lệnh và lịch sử shell.
 import {
   createSdkReleaseCommands,
+  daLenRegistry,
   discoverPublicPackageDirs,
   parseSdkPublishArgs,
   readSdkPackages,
@@ -30,6 +31,31 @@ try {
 
   const commands = createSdkReleaseCommands(packages, options);
   for (const { command, args, cwd } of commands) run(command, args, cwd ? { cwd } : undefined);
+
+  // Sau khi publish thật: đối chiếu registry. Publish tuần tự core → web → react → react-native, nên
+  // một gói đầu thất bại (mã 2FA hết hạn giữa chừng) mà gói sau vẫn lên sẽ để lại trên npm một gói
+  // trỏ dependency vào version không tồn tại — đã xảy ra 22/09/2026 với @mapslibvn/react@0.13.0.
+  // `run()` chỉ biết mã thoát của từng lệnh, không biết trạng thái cuối trên registry.
+  if (!options.dryRun) {
+    const thieu = [];
+    for (const { name } of packages) {
+      const co = await daLenRegistry(name, version);
+      if (co === null) {
+        console.warn(`[npm-sdk] Không hỏi được registry về ${name}@${version} — hãy tự kiểm.`);
+      } else if (!co) {
+        thieu.push(name);
+      }
+    }
+    if (thieu.length > 0) {
+      throw new Error(
+        `${thieu.join(', ')} CHƯA lên npm ở version ${version} dù lệnh publish đã chạy. ` +
+          'Các gói phụ thuộc chúng có thể đã lên và đang hỏng (ETARGET khi cài). ' +
+          'Publish riêng từng gói còn thiếu: cd packages/<gói> && ' +
+          'NPM_CONFIG_OTP=<mã> pnpm publish --access public --publish-branch main --no-git-checks',
+      );
+    }
+    console.log(`[npm-sdk] Registry xác nhận đủ ${packages.length} gói ở ${version}.`);
+  }
 
   console.log(
     options.dryRun

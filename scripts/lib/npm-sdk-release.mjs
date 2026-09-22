@@ -84,6 +84,36 @@ export function readSdkPackages(rootDir = process.cwd()) {
 }
 
 /**
+ * Gói + version đã có trên npm chưa? `true` có, `false` chưa, **`null` không biết** (registry lỗi,
+ * mất mạng) — người gọi phải phân biệt "chưa lên" với "không hỏi được", vì chặn phát hành chỉ vì một
+ * sự cố mạng còn tệ hơn.
+ *
+ * Vì sao cần: `pnpm sdk:publish` publish tuần tự core → web → react → react-native, nhưng KHÔNG kiểm
+ * gói trước đã lên thật chưa. Ngày 22/09/2026 hai gói đầu thất bại (mã 2FA hết hạn giữa chừng) còn hai
+ * gói sau vẫn lên, và `@mapslibvn/react@0.13.0` nằm trên npm với `dependencies` trỏ
+ * `@mapslibvn/core@0.13.0` không tồn tại — ai `npm install` gói đó đều gặp `ETARGET`.
+ *
+ * @param {string} name @param {string} version
+ * @param {{ fetchImpl?: typeof fetch, timeoutMs?: number }} [options]
+ * @returns {Promise<boolean | null>}
+ */
+export async function daLenRegistry(name, version, options = {}) {
+  const fetchImpl = options.fetchImpl ?? fetch;
+  const url = `https://registry.npmjs.org/${name.replace('/', '%2F')}`;
+  try {
+    const response = await fetchImpl(url, {
+      signal: AbortSignal.timeout(options.timeoutMs ?? 15_000),
+    });
+    if (response.status === 404) return false;
+    if (!response.ok) return null;
+    const body = /** @type {{ versions?: Record<string, unknown> }} */ (await response.json());
+    return Object.hasOwn(body.versions ?? {}, version);
+  } catch {
+    return null;
+  }
+}
+
+/**
  * @param {{ dir: string, name: string, version: string }[]} packages
  * @param {{ dryRun: boolean, noGitChecks?: boolean }} options
  * @returns {ReleaseCommand[]}
