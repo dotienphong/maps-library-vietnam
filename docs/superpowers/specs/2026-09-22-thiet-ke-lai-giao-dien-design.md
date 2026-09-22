@@ -354,10 +354,12 @@ Component **không** được ghi mã màu; chỉ dùng token. Lint: grep `#[0-9
   favicon riêng nếu có thì đổi cùng màu.
 - **Ảnh OG** (`scripts/site-images.mjs`): nền `#0a0a0a`, tiêu đề `#fafafa` Be Vietnam Pro 800, gạch
   nhấn `#a3e635`; sinh lại 4 ảnh hiện có. Script hiện có đã dùng Playwright.
-- **Ảnh chỗ giữ bản đồ tối** `apps/site/src/assets/ban-do-hero-dark.jpg`: chụp
-  `${DOCS_URL}/playground?embed=1&style=dark` ở 1600×700 bằng Playwright, thêm lệnh `--hero` vào
-  `scripts/site-images.mjs`; ảnh sáng hiện có giữ cho bản sáng. Ảnh là nguồn tĩnh, không sinh lúc
-  build site.
+- **Ảnh chỗ giữ bản đồ** `apps/site/src/assets/ban-do-hero.jpg`: chụp
+  `${DOCS_URL}/playground?embed=1&style=light` ở 1600×700 bằng Playwright, qua lệnh
+  `node scripts/site-images.mjs --hero`. Ảnh là nguồn tĩnh commit vào repo, không sinh lúc build.
+  **Chỉ một ảnh, luôn bản sáng** (PHONG chốt 22/09/2026): bản đồ là ảnh sản phẩm nên giữ một diện
+  mạo duy nhất ở cả hai theme của trang. Ảnh này tự mang chuỗi ghi nguồn ODbL/Apache-2.0 do MapLibre
+  vẽ ở góc dưới phải — đó là lý do chân trang bỏ được khối ghi nguồn.
 
 ## 10. Ràng buộc kỹ thuật giữ nguyên và kiểm thử
 

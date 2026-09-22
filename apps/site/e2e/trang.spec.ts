@@ -284,6 +284,8 @@ test('trang Tính năng: mục lục dính và sáu hàng, mỗi hàng có bằn
   await expect(mucLuc.getByRole('link')).toHaveCount(6);
   // Mỗi hàng phải có thứ NHÌN được, không chỉ chữ — đó là điều tách trang này khỏi bản cũ.
   await expect(page.locator('[data-bang-chung]')).toHaveCount(6);
+  // Bản đồ LUÔN sáng như ở trang chủ: đúng MỘT ảnh, không phải một cặp đổi theo theme.
+  await expect(page.locator('[data-bang-chung] img')).toHaveCount(1);
 });
 
 test('bảng giá: thanh ước tính chỉ đúng gói theo số nhập', async ({ page }) => {

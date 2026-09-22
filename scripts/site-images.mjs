@@ -14,12 +14,11 @@ const THU_MUC_OG = resolve(GOC, 'apps/site/public/og');
 // JPEG chứ không PNG: đây là ảnh raster nhiều màu như một tấm ảnh chụp, PNG cho ra tệp nặng gấp
 // gần mười lần mà mắt không thấy khác. Astro vẫn chuyển sang AVIF/WebP lúc build, tệp này chỉ là
 // bản gốc nằm trong repo.
-// HAI ảnh chỗ giữ cho khối bản đồ trải ngang: bản tối là mặc định của site, bản sáng cho ai chọn
-// sáng. Playground nhận `style=dark|light` qua URL (playground-lib.js `fromSearchParams`).
-const ANH_HERO = [
-  { tep: resolve(GOC, 'apps/site/src/assets/ban-do-hero.jpg'), style: 'light' },
-  { tep: resolve(GOC, 'apps/site/src/assets/ban-do-hero-dark.jpg'), style: 'dark' },
-];
+// MỘT ảnh chỗ giữ duy nhất cho khối bản đồ: bản đồ luôn dùng theme sáng ở cả hai theme của trang
+// (PHONG chốt 22/09/2026) — nó là ảnh sản phẩm, không phải một mảng giao diện.
+// Playground nhận `style=dark|light` qua URL (playground-lib.js `fromSearchParams`) nếu sau này
+// cần bản tối trở lại.
+const ANH_HERO = [{ tep: resolve(GOC, 'apps/site/src/assets/ban-do-hero.jpg'), style: 'light' }];
 // pnpm không nâng dependency lên node_modules gốc, nên font nằm trong node_modules của chính
 // apps/site. Nhúng vào HTML dạng base64 để ảnh OG có dấu tiếng Việt vẽ đúng.
 // Phải nhúng CẢ hai nét và CẢ hai dải:
