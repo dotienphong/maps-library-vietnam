@@ -6,6 +6,8 @@ import {
   SUPPORT_PHONE,
   SUPPORT_PHONE_HIEN_THI,
 } from '../../site.config.mjs';
+import Nhan from '../components/Nhan.astro';
+import The from '../components/The.astro';
 import Base from '../layouts/Base.astro';
 import { breadcrumbJsonLd } from '../lib/seo';
 import { TRANG } from '../lib/trang';
@@ -39,86 +41,91 @@ const NHANH = [
     ]),
   ]}
 >
-  <section class="mx-auto max-w-3xl px-4 py-12">
-    <h1 class="text-3xl font-bold sm:text-4xl">{TRANG.lienHe.h1}</h1>
-    <p class="mt-4 text-lg text-[var(--text-muted)]">
+  <section class="mx-auto max-w-[1200px] px-4 pt-14 sm:px-6">
+    <p class="mb-3"><Nhan chu="Liên hệ" noiBat /></p>
+    <h1 class="t-h1">{TRANG.lienHe.h1}</h1>
+    <p class="t-lead mt-5 max-w-2xl text-muted">
       Gọi điện hoặc viết thư đều được. Hiện chưa có hộp thoại trò chuyện trực tiếp trên website.
     </p>
+  </section>
 
-    <div class="mt-8 grid gap-4 sm:grid-cols-2">
-      <div class="rounded-[var(--radius-card)] border border-[var(--border)] bg-[var(--surface)] p-6">
-        <h2 class="text-base font-bold">Điện thoại</h2>
+  <div class="mx-auto grid max-w-[1200px] gap-8 px-4 py-12 sm:px-6 lg:grid-cols-2">
+    <div class="space-y-4">
+      {/* Gọi điện là đường nhanh nhất nên nó là thứ duy nhất được viền nhấn trên trang này. */}
+      <The noiBat data-testid="the-goi">
+        <p><Nhan chu="Gọi" /></p>
         <p class="mt-2">
           {/* href dạng E.164 không khoảng trắng; chạm trên điện thoại là gọi ngay. */}
           <a
             href={`tel:${SUPPORT_PHONE}`}
-            class="inline-flex min-h-11 items-center text-lg font-semibold text-accent-text hover:underline"
+            class="t-h2 inline-flex min-h-11 items-center text-accent-text hover:underline"
           >
             {SUPPORT_PHONE_HIEN_THI}
           </a>
         </p>
-        <p class="text-sm text-[var(--text-muted)]">
-          Gọi trong giờ hỗ trợ bên dưới. Ngoài giờ, hãy để lại thư và bạn sẽ được trả lời vào buổi
+        <p class="t-small mt-2 text-muted">
+          Gọi trong giờ hỗ trợ bên cạnh. Ngoài giờ, hãy để lại thư và bạn sẽ được trả lời vào buổi
           làm việc kế tiếp.
         </p>
-      </div>
+      </The>
 
-      <div class="rounded-[var(--radius-card)] border border-[var(--border)] bg-[var(--surface)] p-6">
-      <h2 class="text-base font-bold">Thư điện tử</h2>
-      <p class="mt-2">
-        <a
-          href={`mailto:${SUPPORT_EMAIL}`}
-          class="inline-flex min-h-11 items-center text-lg font-semibold text-accent-text hover:underline"
-        >
-          {SUPPORT_EMAIL}
-        </a>
-      </p>
-      <p class="text-sm text-[var(--text-muted)]">
-        Ghi rõ tên tổ chức và tiền tố khoá API nếu bạn đang là khách hàng, thư sẽ được xử lý nhanh
-        hơn. Đừng gửi khoá API đầy đủ qua thư.
-      </p>
-      </div>
+      <The data-testid="the-thu">
+        <p><Nhan chu="Thư" /></p>
+        <p class="mt-2">
+          <a
+            href={`mailto:${SUPPORT_EMAIL}`}
+            class="t-h3 inline-flex min-h-11 items-center break-all hover:underline"
+          >
+            {SUPPORT_EMAIL}
+          </a>
+        </p>
+        <p class="t-small mt-2 text-muted">
+          Ghi rõ tên tổ chức và tiền tố khoá API nếu bạn đang là khách hàng, thư sẽ được xử lý nhanh
+          hơn. Đừng gửi khoá API đầy đủ qua thư.
+        </p>
+      </The>
     </div>
 
-    <section aria-labelledby="tt-gio" class="mt-10">
-      <h2 id="tt-gio" class="mb-2 text-2xl font-bold">Giờ hỗ trợ trực tuyến</h2>
-      <p class="mb-4 text-[var(--text-muted)]">
-        Áp dụng cho gói Professional và Business, theo giờ Việt Nam. Gói Starter và bản dùng thử
-        được hỗ trợ qua tài liệu.
-      </p>
-      <table class="w-full max-w-md border-collapse overflow-hidden rounded-[var(--radius-card)] border border-[var(--border)] text-sm">
-        <tbody>
+    <div class="space-y-8">
+      <section aria-labelledby="tt-gio">
+        <h2 id="tt-gio" class="t-h2">Giờ hỗ trợ trực tuyến</h2>
+        <p class="t-body mt-3 text-muted">
+          Áp dụng cho gói Professional và Business, theo giờ Việt Nam. Gói Starter và bản dùng thử
+          được hỗ trợ qua tài liệu.
+        </p>
+        <table
+          class="mt-5 w-full border-collapse overflow-hidden rounded-[var(--radius-card)] border border-border"
+        >
+          <tbody>
+            {
+              GIO.map(([ngay, gio]) => (
+                <tr class="border-b border-border last:border-0">
+                  <th scope="row" class="t-small px-4 py-3 text-left font-normal text-muted">
+                    {ngay}
+                  </th>
+                  <td class="t-small px-4 py-3 text-right font-semibold">{gio}</td>
+                </tr>
+              ))
+            }
+          </tbody>
+        </table>
+      </section>
+
+      <section aria-labelledby="tt-nhanh">
+        <h2 id="tt-nhanh" class="t-h2">Có thể bạn cần ngay</h2>
+        <ul class="mt-5 divide-y divide-border border-y border-border">
           {
-            GIO.map(([ngay, gio]) => (
-              <tr class="border-b border-[var(--border)] last:border-0">
-                <th scope="row" class="px-4 py-3 text-left font-normal">
-                  {ngay}
-                </th>
-                <td class="px-4 py-3 text-right font-semibold">{gio}</td>
-              </tr>
+            NHANH.map((n) => (
+              <li>
+                <a href={n.href} class="block py-4 hover:text-accent-text">
+                  <span class="t-h3">{n.nhan} →</span>
+                  <span class="t-small mt-1 block text-muted">{n.mo}</span>
+                </a>
+              </li>
             ))
           }
-        </tbody>
-      </table>
-    </section>
-
-    <section aria-labelledby="tt-nhanh" class="mt-10">
-      <h2 id="tt-nhanh" class="mb-4 text-2xl font-bold">Có thể bạn cần ngay</h2>
-      <ul class="space-y-3">
-        {
-          NHANH.map((n) => (
-            <li class="rounded-[var(--radius-card)] border border-[var(--border)] bg-[var(--surface)] p-4">
-              <a
-                href={n.href}
-                class="font-semibold text-accent-text hover:underline"
-              >
-                {n.nhan} →
-              </a>
-              <p class="text-sm text-[var(--text-muted)]">{n.mo}</p>
-            </li>
-          ))
-        }
-      </ul>
-    </section>
-  </section>
+        </ul>
+      </section>
+    </div>
+  </div>
 </Base>

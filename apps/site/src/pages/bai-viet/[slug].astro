@@ -1,7 +1,10 @@
 ---
 import { getCollection, render } from 'astro:content';
 import { CONSOLE_URL } from '../../../site.config.mjs';
+import MucLucDinh from '../../components/MucLucDinh.astro';
+import Nut from '../../components/Nut.astro';
 import Prose from '../../components/Prose.astro';
+import The from '../../components/The.astro';
 import Base from '../../layouts/Base.astro';
 import { ngayVn } from '../../lib/bai-viet';
 import { articleJsonLd, breadcrumbJsonLd } from '../../lib/seo';
@@ -14,7 +17,9 @@ export async function getStaticPaths() {
 }
 
 const { item } = Astro.props;
-const { Content } = await render(item);
+const { Content, headings } = await render(item);
+// Mục lục chỉ lấy h2: h3 làm danh sách quá sâu cho một cột hẹp bên phải.
+const muc = headings.filter((h) => h.depth === 2).map((h) => ({ id: h.slug, nhan: h.text }));
 const path = `/bai-viet/${item.id}/`;
 
 // Metadata của bài là ĐỘNG nên không nằm trong bảng TRANG, nhưng vẫn đúng kiểu TrangMeta để
@@ -46,34 +51,37 @@ const trang: TrangMeta = {
     ]),
   ]}
 >
-  <article class="mx-auto max-w-3xl px-4 py-12">
-    <p class="text-sm text-[var(--text-muted)]">
-      <a class="hover:underline" href={TRANG.baiViet.path}>Bài viết</a> ·
-      <time datetime={item.data.publishedAt}>{ngayVn(item.data.publishedAt)}</time>
-      {item.data.updatedAt && <span> · cập nhật {ngayVn(item.data.updatedAt)}</span>}
-    </p>
-    <h1 class="mt-2 text-3xl font-bold sm:text-4xl">{item.data.title}</h1>
-    <p class="mt-4 text-lg text-[var(--text-muted)]">{item.data.description}</p>
-
-    <hr class="my-8 border-[var(--border)]" />
-
-    <Prose>
-      <Content />
-    </Prose>
-
-    <aside
-      class="mt-12 rounded-[var(--radius-card)] border border-[var(--border)] bg-[var(--surface)] p-6 text-center"
-    >
-      <p class="font-semibold">Thử MapsLibVN trên chính dữ liệu của bạn</p>
-      <p class="mt-2 text-sm text-[var(--text-muted)]">
-        Bản dùng thử 2.000 lượt Places trong 30 ngày, không cần thẻ thanh toán.
+  <div class="mx-auto max-w-[1200px] px-4 py-14 sm:px-6 xl:grid xl:grid-cols-[1fr_200px] xl:gap-12">
+    <article class="mx-auto w-full max-w-3xl">
+      <p class="t-small text-muted">
+        <a class="text-accent-text hover:underline" href={TRANG.baiViet.path}>Bài viết</a> ·
+        <time datetime={item.data.publishedAt}>{ngayVn(item.data.publishedAt)}</time>
+        {item.data.updatedAt && <span> · cập nhật {ngayVn(item.data.updatedAt)}</span>}
       </p>
-      <a
-        href={CONSOLE_URL}
-        class="mt-4 inline-flex min-h-11 items-center rounded-[var(--radius-btn)] bg-accent px-6 font-semibold text-accent-ink hover:brightness-95"
-      >
-        Lấy khoá API
-      </a>
-    </aside>
-  </article>
+      <h1 class="t-h1 mt-3">{item.data.title}</h1>
+      <p class="t-lead mt-5 text-muted">{item.data.description}</p>
+
+      <hr class="my-10 border-border" />
+
+      <Prose>
+        <Content />
+      </Prose>
+
+      <The nen="surface-2" class="mt-14 text-center">
+        <p class="t-h3">Thử MapsLibVN trên chính dữ liệu của bạn</p>
+        <p class="t-small mt-3 text-muted">
+          Bản dùng thử 2.000 lượt Places trong 30 ngày, không cần thẻ thanh toán.
+        </p>
+        <div class="mt-6">
+          <Nut href={CONSOLE_URL}>Lấy khoá API</Nut>
+        </div>
+      </The>
+    </article>
+
+    {
+      muc.length > 1 && (
+        <MucLucDinh nhanNav="Mục lục bài" muc={muc} class="hidden h-fit xl:block" />
+      )
+    }
+  </div>
 </Base>

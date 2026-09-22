@@ -1,5 +1,7 @@
 ---
 import { getCollection } from 'astro:content';
+import Nhan from '../../components/Nhan.astro';
+import The from '../../components/The.astro';
 import Base from '../../layouts/Base.astro';
 import { ngayVn, sapTheoNgayMoi } from '../../lib/bai-viet';
 import { breadcrumbJsonLd } from '../../lib/seo';
@@ -13,6 +15,7 @@ const bai = sapTheoNgayMoi(
     ...item.data,
   })),
 );
+const [dan, ...conLai] = bai;
 ---
 
 <Base
@@ -24,41 +27,70 @@ const bai = sapTheoNgayMoi(
     ]),
   ]}
 >
-  <section class="mx-auto max-w-3xl px-4 py-12">
-    <h1 class="text-3xl font-bold sm:text-4xl">{TRANG.baiViet.h1}</h1>
-    <p class="mt-4 text-lg text-[var(--text-muted)]">
+  <section class="mx-auto max-w-[1200px] px-4 pt-14 sm:px-6">
+    <p class="mb-3"><Nhan chu="Bài viết" noiBat /></p>
+    <h1 class="t-h1">{TRANG.baiViet.h1}</h1>
+    <p class="t-lead mt-5 max-w-2xl text-muted">
       Ghi chép kỹ thuật về chi phí API bản đồ, dữ liệu mở và chất lượng geocode tại Việt Nam.
     </p>
+  </section>
 
+  <div class="mx-auto max-w-[1200px] px-4 pb-20 pt-12 sm:px-6">
     {
-      bai.length === 0 ? (
-        <p class="mt-10 rounded-[var(--radius-card)] border border-dashed border-[var(--border)] p-8 text-center text-[var(--text-muted)]">
+      dan === undefined ? (
+        <p class="t-body rounded-[var(--radius-card)] border border-dashed border-border p-8 text-center text-muted">
           Chưa có bài nào được đăng. Bài đầu tiên đang trong quá trình biên tập.
         </p>
       ) : (
-        <ul class="mt-10 space-y-4">
-          {bai.map((b) => (
-            <li class="rounded-[var(--radius-card)] border border-[var(--border)] bg-[var(--surface)] p-5">
-              <p class="text-sm text-[var(--text-muted)]">
-                <time datetime={b.publishedAt}>{ngayVn(b.publishedAt)}</time>
-              </p>
-              <h2 class="mt-1 text-xl font-bold">
-                <a href={`/bai-viet/${b.slug}/`} class="hover:underline">
-                  {b.title}
-                </a>
-              </h2>
-              <p class="mt-2 text-[var(--text-muted)]">{b.description}</p>
-              <ul class="mt-3 flex flex-wrap gap-2">
-                {b.tags.map((tag) => (
-                  <li class="rounded-full bg-black/5 px-2.5 py-0.5 text-xs font-semibold text-[var(--text-muted)] dark:bg-white/10">
-                    {tag}
-                  </li>
-                ))}
-              </ul>
-            </li>
-          ))}
-        </ul>
+        <>
+          {/* Bài mới nhất chiếm một khối lớn: người đọc lần đầu cần biết nên đọc gì trước, còn ba
+              thẻ bằng nhau thì không nói được điều đó. */}
+          <The as="article" data-testid="bai-dan" class="sm:p-8">
+            <div class="grid items-center gap-8 lg:grid-cols-2">
+              <div
+                aria-hidden="true"
+                class="hidden h-56 items-center rounded-[var(--radius-card)] bg-surface-2 p-6 lg:flex"
+              >
+                <p class="t-h3 text-muted">{dan.description}</p>
+              </div>
+              <div>
+                <p class="t-mono-label">{ngayVn(dan.publishedAt).replaceAll('/', '.')}</p>
+                <h2 class="t-h2 mt-3">
+                  <a class="hover:underline" href={`/bai-viet/${dan.slug}/`}>
+                    {dan.title}
+                  </a>
+                </h2>
+                <p class="t-body mt-4 text-muted">{dan.description}</p>
+                <ul class="mt-5 flex flex-wrap gap-2">
+                  {dan.tags.map((tag) => (
+                    <li class="t-small rounded-full border border-border px-3 py-1 text-muted">
+                      {tag}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+          </The>
+
+          {conLai.length > 0 && (
+            <ul class="mt-4 divide-y divide-border border-y border-border">
+              {conLai.map((b) => (
+                <li data-testid="bai-hang">
+                  <a
+                    href={`/bai-viet/${b.slug}/`}
+                    class="flex flex-wrap items-baseline justify-between gap-2 py-5 hover:text-accent-text"
+                  >
+                    <span class="t-h3">{b.title}</span>
+                    <time class="t-mono-label" datetime={b.publishedAt}>
+                      {ngayVn(b.publishedAt).replaceAll('/', '.')}
+                    </time>
+                  </a>
+                </li>
+              ))}
+            </ul>
+          )}
+        </>
       )
     }
-  </section>
+  </div>
 </Base>

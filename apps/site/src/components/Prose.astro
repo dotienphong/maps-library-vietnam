@@ -10,25 +10,36 @@
 </div>
 
 <style>
+  /* Cùng thang với `t-h2` của site (spec 4.2) — bài viết không được có thang chữ riêng.
+     `scroll-margin` để mục lục bài nhảy tới không bị header dính che mất tiêu đề. */
   .prose-bai :global(h2) {
-    margin-top: 2.5rem;
+    margin-top: 3rem;
     margin-bottom: 0.75rem;
-    font-size: 1.5rem;
+    font-size: clamp(24px, 1vw + 18px, 28px);
     font-weight: 700;
-    line-height: 1.3;
+    letter-spacing: -0.02em;
+    line-height: 1.15;
+    scroll-margin-top: 6rem;
+    color: var(--text);
   }
 
   .prose-bai :global(h3) {
     margin-top: 2rem;
     margin-bottom: 0.5rem;
-    font-size: 1.125rem;
+    font-size: clamp(18px, 0.5vw + 15px, 20px);
     font-weight: 700;
+    letter-spacing: -0.01em;
+    line-height: 1.25;
+    scroll-margin-top: 6rem;
+    color: var(--text);
   }
 
   .prose-bai :global(p),
   .prose-bai :global(ul),
   .prose-bai :global(ol) {
-    margin-bottom: 1rem;
+    margin-bottom: 1.125rem;
+    font-size: clamp(16px, 0.25vw + 14.5px, 17px);
+    line-height: 1.75;
     color: var(--text-muted);
   }
 
@@ -43,6 +54,7 @@
   }
 
   .prose-bai :global(a) {
+    color: var(--accent-text);
     text-decoration: underline;
   }
 

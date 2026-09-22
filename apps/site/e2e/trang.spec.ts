@@ -319,3 +319,24 @@ test('so sánh VIETMAP: bảng đối đầu có cả hàng đối thủ thắng
   const khaoSat = bang.getByRole('row').filter({ hasText: 'Nguồn dữ liệu' });
   await expect(khaoSat.getByRole('cell').nth(1)).toContainText('✓');
 });
+
+test('bài viết: một bài dẫn lớn, các bài còn lại là hàng gọn', async ({ page }) => {
+  await page.goto('/bai-viet/');
+  await expect(page.getByTestId('bai-dan')).toHaveCount(1);
+  await expect(page.getByTestId('bai-hang')).toHaveCount(2);
+});
+
+test('trang bài dài có mục lục riêng ở màn rộng', async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto('/bai-viet/chi-phi-google-maps-api-cho-doanh-nghiep-viet-nam-2026/');
+  const mucLuc = page.getByRole('navigation', { name: 'Mục lục bài' });
+  await expect(mucLuc).toBeVisible();
+  await expect(mucLuc.getByRole('link').first()).toHaveAttribute('href', /^#/);
+});
+
+test('liên hệ: thẻ gọi điện được làm nổi bật hơn thẻ thư', async ({ page }) => {
+  await page.goto('/lien-he/');
+  const goi = page.getByTestId('the-goi');
+  await expect(goi).toHaveClass(/border-accent-text/);
+  await expect(page.getByTestId('the-thu')).not.toHaveClass(/border-accent-text/);
+});
