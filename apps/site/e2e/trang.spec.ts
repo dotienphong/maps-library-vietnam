@@ -225,12 +225,17 @@ test('đã chọn tối thì reload vẫn tối', async ({ page }) => {
   expect(await page.locator('html').evaluate((el) => el.classList.contains('dark'))).toBe(true);
 });
 
-test('ghi nguồn dữ liệu mở có mặt ở mọi trang — đây là nghĩa vụ giấy phép', async ({ page }) => {
+test('mọi trang có đường tới giấy phép và ghi nguồn — đây là nghĩa vụ giấy phép', async ({
+  page,
+}) => {
+  // Chân trang KHÔNG còn in chuỗi ghi nguồn (PHONG chốt 22/09/2026). Nghĩa vụ ODbL vẫn được giữ ở
+  // đúng chỗ dữ liệu xuất hiện: ảnh bản đồ và iframe playground tự mang ghi nguồn. Thứ phải có ở
+  // MỌI trang là đường tới bản đầy đủ — bài này khoá đúng điều đó.
   for (const path of TRANG) {
     await page.goto(path);
     await expect(
-      page.getByRole('contentinfo').getByText('OpenStreetMap contributors'),
-      `thiếu ghi nguồn ở ${path}`,
+      page.getByRole('contentinfo').getByRole('link', { name: 'Giấy phép và ghi nguồn' }),
+      `thiếu đường tới giấy phép ở ${path}`,
     ).toBeVisible();
   }
 });

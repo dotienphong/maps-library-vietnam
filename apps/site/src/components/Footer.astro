@@ -28,6 +28,16 @@ const COT = [
       { nhan: 'Bài viết', href: TRANG.baiViet.path },
     ],
   },
+  /**
+   * Ghi nguồn ODbL và Apache-2.0 KHÔNG nằm ở chân trang nữa (PHONG chốt 22/09/2026). Nghĩa vụ vẫn
+   * được giữ ở đúng chỗ dữ liệu xuất hiện: cả hai ảnh bản đồ (`ban-do-hero*.jpg`) đều có chuỗi
+   * "© MapsLibVN · © OpenStreetMap contributors (ODbL) · © OpenMapTiles · Foursquare OS Places
+   * (Apache-2.0)" vẽ sẵn ở góc dưới phải, và iframe playground mang điều khiển ghi nguồn của
+   * MapLibre. Trang nào không hiện bản đồ thì cũng không hiển thị dữ liệu OSM.
+   *
+   * Link "Giấy phép và ghi nguồn" dưới đây là đường tới bản đầy đủ và PHẢI có ở mọi trang —
+   * `e2e/trang.spec.ts` khoá lại. Đừng bỏ nó đi cùng lúc với chân trang.
+   */
   {
     ten: 'Pháp lý',
     muc: [
@@ -37,8 +47,6 @@ const COT = [
     ],
   },
 ] as const;
-
-const nam = new Date().getFullYear();
 ---
 
 <footer class="mt-24 border-t border-border bg-surface">
@@ -92,23 +100,5 @@ const nam = new Date().getFullYear();
       </div>
     </div>
 
-    <div class="mt-10 border-t border-border pt-6 t-small text-muted">
-      <!-- Ghi nguồn là NGHĨA VỤ giấy phép của ODbL và Apache-2.0, không phải trang trí, nên nó
-           nằm ở mọi trang chứ không riêng trang giấy phép. -->
-      <p>
-        Dữ liệu bản đồ © <a
-          class="underline"
-          href="https://www.openstreetmap.org/copyright"
-          rel="noopener"
-          target="_blank">OpenStreetMap contributors</a
-        > (ODbL) và <a
-          class="underline"
-          href="https://opensource.foursquare.com/os-places/"
-          rel="noopener"
-          target="_blank">Foursquare OS Places</a
-        > (Apache-2.0).
-      </p>
-      <p class="mt-2">© {nam} MapsLibVN. Bản đồ dựng từ dữ liệu mở, Việt Nam trước.</p>
-    </div>
   </div>
 </footer>
