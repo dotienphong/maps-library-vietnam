@@ -1,28 +1,49 @@
 @import "tailwindcss";
-/* Token màu và bo góc dùng chung với trang Admin (packages/ui). Website chỉ dùng token, không
+/* Token màu và bo góc dùng chung với Admin và console (packages/ui). Website chỉ dùng token, không
    dùng component nào của package, nên KHÔNG cần @source. */
 @import "../../../../packages/ui/src/tokens.css";
-/* Be Vietnam Pro: font Việt, dấu đặt đúng ở mọi cỡ, giấy phép OFL. Ba nét là đủ cho cả site.
+/* Be Vietnam Pro: font Việt, dấu đặt đúng ở mọi cỡ, giấy phép OFL. Bốn nét: 400 thân, 600 nhãn,
+   700 tiêu đề mục, 800 tiêu đề lớn (spec 22/09 mục 4.2).
    Dùng bản ĐỦ DẢI (400.css) chứ không phải `vietnamese-400.css`: bản đủ dải khai ba @font-face
    kèm `unicode-range` nên trình duyệt chỉ tải đúng tệp woff2 cho chữ có trên trang, còn bản
    vietnamese-* chỉ phủ ký tự tiếng Việt và sẽ làm mọi chữ ASCII rơi về font hệ thống. */
 @import "@fontsource/be-vietnam-pro/400.css";
 @import "@fontsource/be-vietnam-pro/600.css";
 @import "@fontsource/be-vietnam-pro/700.css";
+@import "@fontsource/be-vietnam-pro/800.css";
+/* JetBrains Mono CHỈ subset latin và CHỈ cho chuỗi ASCII (số, mã, tên gói, nhãn như SDK/API):
+   font này thiếu dải Latin Extended Additional nên dấu tiếng Việt sẽ lệch. Nhãn có dấu dùng
+   Be Vietnam Pro 600 viết hoa. Nhập thẳng `latin-*.css` vì đây là lựa chọn CÓ Ý: không bao giờ
+   có chữ ngoài ASCII trong font này, nên không cần dải nào khác.
+   CHỈ nét 400: đo 22/09 cho thấy thêm nét 800 của Be Vietnam Pro (33,9 KB) cộng hai nét mono
+   (42,0 KB) là 75,9 KB, vượt ngân sách 60 KB ở spec mục 10. Nhãn mono dùng luôn nét 400 thay vì
+   600 — vừa đủ ngân sách (54,6 KB), vừa tránh chữ đậm GIẢ mà trình duyệt tự bịa khi thiếu nét,
+   thứ trông nhoè rõ ở cỡ 12 px. Chất "nhãn" đến từ viết hoa, giãn chữ và màu. */
+@import "@fontsource/jetbrains-mono/latin-400.css";
 
 @custom-variant dark (&:where(.dark, .dark *));
 
 @theme {
   --font-sans: "Be Vietnam Pro", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
 }
 
 html {
   scroll-behavior: smooth;
+  /* Nền đặt ở html chứ không chỉ body: vùng cuộn quá đà (overscroll) trên iOS lấy màu của html. */
+  background: var(--bg);
 }
 
 @media (prefers-reduced-motion: reduce) {
   html {
     scroll-behavior: auto;
+  }
+
+  *,
+  *::before,
+  *::after {
+    transition: none !important;
+    animation: none !important;
   }
 }
 
@@ -30,10 +51,97 @@ body {
   background: var(--bg);
   color: var(--text);
   font-family: var(--font-sans);
-  /* Website là để ĐỌC nên chữ nền tối thiểu 16px, khác trang Admin (14px). */
-  font-size: 16px;
-  line-height: 1.6;
+  /* Thân 17 px desktop, 16 px mobile (spec 4.2 hàng body); website là để ĐỌC nên không xuống 14. */
+  font-size: clamp(16px, 0.25vw + 14.5px, 17px);
+  line-height: 1.7;
   margin: 0;
+}
+
+/* Thang cỡ chữ (spec 4.2). Dùng lớp `t-*` thay vì text-xl/2xl của Tailwind để cả site đi một
+   thang, và để đổi thang là đổi đúng một chỗ. Số đo desktop / mobile nội suy bằng clamp. */
+@layer components {
+  .t-display {
+    font-size: clamp(36px, 3vw + 24px, 52px);
+    font-weight: 800;
+    letter-spacing: -0.035em;
+    line-height: 1.02;
+    text-wrap: balance;
+  }
+
+  .t-h1 {
+    font-size: clamp(32px, 2vw + 20px, 44px);
+    font-weight: 800;
+    letter-spacing: -0.03em;
+    line-height: 1.05;
+    text-wrap: balance;
+  }
+
+  .t-h2 {
+    font-size: clamp(24px, 1vw + 18px, 28px);
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    line-height: 1.15;
+    text-wrap: balance;
+  }
+
+  .t-h3 {
+    font-size: clamp(18px, 0.5vw + 15px, 20px);
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    line-height: 1.25;
+  }
+
+  .t-lead {
+    font-size: clamp(17px, 0.5vw + 14px, 19px);
+    line-height: 1.55;
+  }
+
+  .t-body {
+    font-size: clamp(16px, 0.25vw + 14.5px, 17px);
+    line-height: 1.7;
+  }
+
+  .t-small {
+    font-size: clamp(14px, 0.25vw + 12.5px, 15px);
+    line-height: 1.5;
+  }
+
+  /* Con số nổi bật: Be Vietnam Pro 800 (không mono — chuỗi như "37–68%" có gạch ngang ngoài ASCII). */
+  .t-stat {
+    font-size: clamp(28px, 1.5vw + 18px, 34px);
+    font-weight: 800;
+    letter-spacing: -0.03em;
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* Nhãn chữ máy viết hoa, CHỈ dùng cho chuỗi ASCII. Màu muted (7,7:1), không dùng faint.
+     Nét 400 vì chỉ nét đó được tải — xem ghi chú @import ở đầu tệp. */
+  .t-mono-label {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    font-weight: 400;
+    letter-spacing: 0.06em;
+    line-height: 1;
+    text-transform: uppercase;
+    color: var(--text-muted);
+  }
+
+  /* Nhãn tiếng Việt viết hoa: cùng vai với t-mono-label nhưng font có dấu. */
+  .t-nhan {
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    line-height: 1;
+    text-transform: uppercase;
+    color: var(--text-muted);
+  }
+
+  .t-code {
+    font-family: var(--font-mono);
+    font-size: clamp(13px, 0.25vw + 11.5px, 14px);
+    line-height: 1.6;
+  }
 }
 
 @layer base {
@@ -42,5 +150,10 @@ body {
   summary,
   label[for] {
     cursor: pointer;
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--focus);
+    outline-offset: 2px;
   }
 }

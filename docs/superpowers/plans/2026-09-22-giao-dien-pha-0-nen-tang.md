@@ -726,7 +726,7 @@ git commit -m "refactor(site): thay brand-* bằng token nhấn; e2e khoá khôn
 
 ```bash
 pnpm --filter @mapslibvn/site add @fontsource/jetbrains-mono
-ls apps/site/node_modules/@fontsource/jetbrains-mono/ | grep -E "^latin-(400|600)\.css$"
+ls apps/site/node_modules/@fontsource/jetbrains-mono/ | grep -E "^latin-400\.css$"
 ```
 
 Expected: hai tệp `latin-400.css`, `latin-600.css` có mặt. Nếu gói chỉ có `400.css`/`600.css` thì import hai tệp đó (chúng khai nhiều @font-face theo `unicode-range`, trình duyệt vẫn chỉ tải subset latin khi trang chỉ có ASCII trong font mono).

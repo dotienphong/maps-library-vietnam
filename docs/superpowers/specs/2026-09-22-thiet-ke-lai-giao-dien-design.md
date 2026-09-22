@@ -107,8 +107,10 @@ bốn app; grep `brand-` trên `apps/` và `packages/ui` phải trả 0 (trừ t
 ### 4.2. Chữ
 
 Font: **Be Vietnam Pro** 400 / 600 / 700 / **800** (thêm nét 800 từ `@fontsource/be-vietnam-pro`,
-bản đủ dải như hiện nay) và **JetBrains Mono** 400 / 600 (`@fontsource/jetbrains-mono`, chỉ cần
-subset `latin`). Mọi font tự host, `font-display: swap`, preload đúng hai tệp woff2 dùng trên màn
+bản đủ dải như hiện nay) và **JetBrains Mono** chỉ nét **400**, chỉ subset `latin`
+(`@fontsource/jetbrains-mono`). Đo 22/09: nét 800 là 33,9 KB, mỗi nét mono ~21 KB — lấy cả hai nét
+mono thì thành 75,9 KB, vượt ngân sách 60 KB ở mục 10. Nhãn mono do đó dùng nét 400, chất "nhãn"
+đến từ viết hoa, giãn chữ và màu; ép 600 khi không có nét sẽ ra chữ đậm giả, nhoè ở 12 px. Mọi font tự host, `font-display: swap`, preload đúng hai tệp woff2 dùng trên màn
 đầu (Be Vietnam Pro 800 latin + vietnamese).
 
 Quy tắc chữ máy: JetBrains Mono **chỉ cho chuỗi ASCII**: số tiền, phần trăm, mã lệnh, đường dẫn API,
@@ -128,7 +130,7 @@ Thang cỡ (desktop ≥ 1024 px / mobile < 640 px):
 | body | 17 / 16 | 400 | 0 | 1,7 | thân |
 | small | 15 / 14 | 400 | 0 | 1,5 | ghi chú, footer |
 | stat | 34 / 28 | 800 | −0,03em | 1 | con số nổi bật, màu `--accent` |
-| mono-label | 12 | 600 | +0,06em | 1 | nhãn ASCII viết hoa, màu `--text-muted` (không dùng `--text-faint`, xem 4.1) |
+| mono-label | 12 | 400 | +0,06em | 1 | nhãn ASCII viết hoa, màu `--text-muted` (không dùng `--text-faint`, xem 4.1) |
 | code | 14 / 13 | 400 | 0 | 1,6 | khối mã |
 
 Tỉ lệ display:body = 3,1×. Cột chữ đọc dài tối đa **68 ký tự** (≈ 720 px ở 17 px).
@@ -361,7 +363,8 @@ JSON-LD, mọi trang một h1, `title` ≤ 60, `description` 120–160, vùng ch
 
 **Ngân sách:** không tệp JS ngoài; JS inline toàn trang chủ < 15 KB thô (bài e2e hiện có giữ nguyên
 ngưỡng); iframe bản đồ không tính vào ngân sách site nhưng **không được nạp trước khi cuộn tới**.
-Font tải thêm tối đa 60 KB (Be Vietnam Pro 800 hai subset + JetBrains Mono latin hai nét). LCP là
+Font tải thêm tối đa 60 KB. Đo thật 22/09: Be Vietnam Pro 800 latin 21,8 + vietnamese 12,1 +
+JetBrains Mono latin 400 20,7 = **54,6 KB**. LCP là
 h1; CLS = 0 ở khối bản đồ và khối dẫn bài viết.
 
 **Kiểm đơn vị (vitest, `apps/site/src/lib`):**
