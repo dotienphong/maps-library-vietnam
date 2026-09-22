@@ -34,6 +34,15 @@ describe('theme', () => {
     expect(readStoredTheme('app-b')).toBe('system');
   });
 
+  it('chưa chọn gì mà app đặt mặc định "dark" → trả "dark"', () => {
+    expect(readStoredTheme(KEY, 'dark')).toBe('dark');
+  });
+
+  it('đã chọn "light" thì lựa chọn thắng mặc định của app', () => {
+    localStorage.setItem(KEY, 'light');
+    expect(readStoredTheme(KEY, 'dark')).toBe('light');
+  });
+
   it('resolveTheme("system") theo prefersDark', () => {
     expect(resolveTheme('system', true)).toBe('dark');
     expect(resolveTheme('system', false)).toBe('light');
