@@ -46,13 +46,22 @@ export function doiDauGoogle(): HangDoiDau[] {
       ho: 'Có, kèm thời gian tới nơi theo tình hình thật',
       thang: 'ho',
     },
+    // Hai hàng chứ không một: bên mình hơn về CÁCH TÍNH TIỀN, thua về CỠ VÀ NHỊP. Gộp lại thành một
+    // hàng hoà thì cả hai cột bị vẽ mờ như nhau, người đọc lướt tưởng bên mình chưa có (PHONG nêu
+    // 22/09/2026). Tách ra thì mỗi hàng nói đúng một chuyện và tô đúng một bên.
     {
-      tieuChi: 'Ma trận khoảng cách và tối ưu thứ tự điểm dừng',
-      // Số trần chép tay từ MATRIX_MAX_PAIRS / OPTIMIZED_MAX_STOPS của apps/api (site không import
-      // Worker). Đổi trần bên API phải đổi dòng này cùng commit (spec 22/09/2026 mục 6.3).
-      ta: 'Có; tối đa 50 cặp hoặc 8 điểm dừng mỗi lượt, tính một lượt Chỉ đường',
-      ho: 'Có; cỡ lớn hơn, tính tiền theo từng cặp',
-      thang: 'hoa',
+      tieuChi: 'Có ma trận khoảng cách và tối ưu thứ tự điểm dừng',
+      ta: 'Có; một request tính một lượt Chỉ đường, bất kể bao nhiêu cặp',
+      ho: 'Có; tính tiền theo từng cặp trong ma trận',
+      thang: 'ta',
+    },
+    {
+      tieuChi: 'Cỡ và nhịp ma trận cho phép',
+      // Số trần chép tay từ MATRIX_MAX_PAIRS / OPTIMIZED_MAX_STOPS và MATRIX_RATE_LIMITER của
+      // apps/api (site không import Worker). Đổi bên API phải đổi dòng này cùng commit.
+      ta: 'Tối đa 50 cặp hoặc 8 điểm dừng mỗi lượt, 6 lượt mỗi phút',
+      ho: 'Cỡ lớn hơn và nhịp cao hơn hẳn',
+      thang: 'ho',
     },
     {
       tieuChi: 'Tối ưu đội xe nhiều xe',

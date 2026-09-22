@@ -50,14 +50,21 @@ describe('bảng đối đầu', () => {
     ]);
   });
 
-  it('Google: một hàng HOÀ về ma trận/tối ưu thứ tự nêu đúng trần, một hàng ĐỐI THỦ thắng về đội xe', () => {
-    const hoa = doiDauGoogle().find(
-      (h) => h.tieuChi === 'Ma trận khoảng cách và tối ưu thứ tự điểm dừng',
-    );
-    expect(hoa?.thang).toBe('hoa');
-    expect(hoa?.ta).toMatch(/50 cặp/);
-    expect(hoa?.ta).toMatch(/8 điểm dừng/);
-    const doiXe = doiDauGoogle().find((h) => h.tieuChi === 'Tối ưu đội xe nhiều xe');
+  it('Google: ma trận tách hai hàng — CÓ tính năng thì ta thắng, CỠ VÀ NHỊP thì họ thắng', () => {
+    const bang = doiDauGoogle();
+    const co = bang.find((h) => h.tieuChi === 'Có ma trận khoảng cách và tối ưu thứ tự điểm dừng');
+    expect(co?.thang).toBe('ta');
+    expect(co?.ta).toMatch(/một lượt/);
+    // Không được nhận thắng mà giấu giới hạn: hàng ngay sau phải nói cỡ và nhịp, và tô cho đối thủ.
+    const co_i = bang.findIndex((h) => h === co);
+    const gioiHan = bang[co_i + 1];
+    expect(gioiHan?.tieuChi).toBe('Cỡ và nhịp ma trận cho phép');
+    expect(gioiHan?.thang).toBe('ho');
+    expect(gioiHan?.ta).toMatch(/50 cặp/);
+    expect(gioiHan?.ta).toMatch(/8 điểm dừng/);
+    expect(gioiHan?.ta).toMatch(/6 lượt mỗi phút/);
+
+    const doiXe = bang.find((h) => h.tieuChi === 'Tối ưu đội xe nhiều xe');
     expect(doiXe?.thang).toBe('ho');
     expect(doiXe?.ta).toBe('Chưa có');
   });
