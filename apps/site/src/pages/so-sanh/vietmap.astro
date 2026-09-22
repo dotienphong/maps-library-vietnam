@@ -1,43 +1,18 @@
 ---
 import { COMPARISON } from '@mapslibvn/catalog';
 import { CONSOLE_URL, DOCS_URL } from '../../../site.config.mjs';
+import BangDoiDau from '../../components/BangDoiDau.astro';
 import ComparisonTable from '../../components/ComparisonTable.astro';
 import Faq from '../../components/Faq.astro';
+import Nhan from '../../components/Nhan.astro';
+import Nut from '../../components/Nut.astro';
+import The from '../../components/The.astro';
 import Base from '../../layouts/Base.astro';
+import { doiDauVietmap } from '../../lib/doi-dau';
 import { breadcrumbJsonLd, faqJsonLd } from '../../lib/seo';
 import { TRANG } from '../../lib/trang';
 
 const ngayVn = COMPARISON.checkedAt.split('-').reverse().join('/');
-
-const KHAC_BIET = [
-  {
-    tieuDe: 'Cách tính tiền',
-    mapslibvn:
-      'Gói cố định theo kỳ. Bạn biết trước hoá đơn tháng này là bao nhiêu, hết hạn mức thì API báo lỗi có cấu trúc chứ không âm thầm phát sinh thêm tiền.',
-    vietmap:
-      'Tính theo transaction. Linh hoạt khi lưu lượng thất thường, nhưng hoá đơn phụ thuộc mức dùng thật nên khó dự toán trước.',
-  },
-  {
-    tieuDe: 'Nguồn dữ liệu',
-    mapslibvn:
-      'Dữ liệu mở OpenStreetMap và Foursquare OS. Bạn dựng lại được toàn bộ hệ thống trên hạ tầng của mình, và biết chính xác dữ liệu đến từ đâu.',
-    vietmap:
-      'Dữ liệu bản đồ riêng do doanh nghiệp tự khảo sát và duy trì nhiều năm, gồm cả những lớp mà dữ liệu mở chưa có.',
-  },
-  {
-    tieuDe: 'Phạm vi sản phẩm',
-    mapslibvn:
-      'Bản đồ nền, địa điểm, tìm kiếm, geocode và dẫn đường cơ bản, kèm bốn SDK. Chưa có ma trận khoảng cách và tối ưu đội xe.',
-    vietmap:
-      'Hệ sản phẩm rộng hơn, có các bài toán vận tải và theo dõi phương tiện mà MapsLibVN chưa làm.',
-  },
-  {
-    tieuDe: 'Khả năng tự host',
-    mapslibvn:
-      'Toàn bộ pipeline và SDK là mã mở, tự dựng được. Đây là lối thoát nếu một ngày bạn muốn rời khỏi dịch vụ.',
-    vietmap: 'Dịch vụ đám mây theo hợp đồng; tự host không phải mô hình của họ.',
-  },
-] as const;
 
 const KHI_NAO = [
   {
@@ -86,78 +61,60 @@ const CAU_HOI = [
     ]),
   ]}
 >
-  <section class="mx-auto max-w-3xl px-4 pt-12">
-    <h1 class="text-3xl font-bold sm:text-4xl">{TRANG.soSanhVietmap.h1}</h1>
-    <p class="mt-4 text-lg text-[var(--text-muted)]">
+  <section class="mx-auto max-w-[1200px] px-4 pt-14 sm:px-6">
+    <p class="mb-3"><Nhan chu="So sánh" noiBat /></p>
+    <h1 class="t-h1 max-w-3xl">{TRANG.soSanhVietmap.h1}</h1>
+    <p class="t-lead mt-5 max-w-2xl text-muted">
       Cả hai đều là nhà cung cấp bản đồ cho thị trường Việt Nam, nhưng khác nhau ở nguồn dữ liệu và
       cách tính tiền. Trang này so đúng phần chồng lấn, và nói rõ chỗ VIETMAP làm được mà
       MapsLibVN thì chưa.
     </p>
   </section>
 
-  <section aria-labelledby="tt-chi-phi" class="py-12">
-    <h2 id="tt-chi-phi" class="mx-auto mb-6 max-w-6xl px-4 text-2xl font-bold">Chi phí</h2>
-    <ComparisonTable />
-  </section>
-
-  <section aria-labelledby="tt-khac-biet" class="bg-[var(--surface)] py-16">
-    <div class="mx-auto max-w-4xl px-4">
-      <h2 id="tt-khac-biet" class="mb-6 text-2xl font-bold">Bốn khác biệt đáng kể</h2>
-      <div class="space-y-6">
-        {
-          KHAC_BIET.map((kb) => (
-            <article class="rounded-[var(--radius-card)] border border-[var(--border)] bg-[var(--bg)] p-5">
-              <h3 class="mb-3 font-bold">{kb.tieuDe}</h3>
-              <dl class="grid gap-4 sm:grid-cols-2">
-                <div>
-                  <dt class="text-sm font-semibold text-accent-text">
-                    MapsLibVN
-                  </dt>
-                  <dd class="mt-1 text-[var(--text-muted)]">{kb.mapslibvn}</dd>
-                </div>
-                <div>
-                  <dt class="text-sm font-semibold">VIETMAP</dt>
-                  <dd class="mt-1 text-[var(--text-muted)]">{kb.vietmap}</dd>
-                </div>
-              </dl>
-            </article>
-          ))
-        }
-      </div>
+  <section aria-labelledby="tt-doi-dau" class="mx-auto max-w-[1200px] px-4 py-12 sm:px-6">
+    <h2 id="tt-doi-dau" class="t-h2">Đối đầu từng tiêu chí</h2>
+    <p class="t-body mt-3 max-w-2xl text-muted">
+      Ô nào thắng thì tô màu nhấn, kể cả khi bên thắng là VIETMAP. Ba hàng chi phí đầu lấy thẳng từ
+      bảng đối chiếu bên dưới, nơi có đủ giả định và nguồn.
+    </p>
+    <div class="mt-6">
+      <BangDoiDau hang={doiDauVietmap()} tenHo="VIETMAP" />
     </div>
   </section>
 
-  <section aria-labelledby="tt-khi-nao" class="mx-auto max-w-4xl px-4 py-16">
-    <h2 id="tt-khi-nao" class="mb-6 text-2xl font-bold">Khi nào nên chọn cái nào</h2>
+  <section aria-labelledby="tt-chi-phi" class="border-y border-border bg-surface py-16">
+    <h2 id="tt-chi-phi" class="t-h2 mx-auto mb-6 max-w-[1200px] px-4 sm:px-6">
+      Chi phí: giả định và nguồn
+    </h2>
+    <ComparisonTable />
+  </section>
+
+  <section aria-labelledby="tt-khi-nao" class="mx-auto max-w-[1200px] px-4 py-16 sm:px-6">
+    <h2 id="tt-khi-nao" class="t-h2 mb-6">Khi nào nên chọn cái nào</h2>
     <div class="grid gap-4 sm:grid-cols-2">
       {
         KHI_NAO.map((cot) => (
-          <article class="rounded-[var(--radius-card)] border border-[var(--border)] bg-[var(--surface)] p-5">
-            <h3 class="mb-3 font-bold">{cot.chon}</h3>
-            <ul class="list-disc space-y-2 pl-5 text-[var(--text-muted)]">
+          <The as="article" nen="surface-2">
+            <h3 class="t-h3 mb-3">{cot.chon}</h3>
+            <ul class="t-small list-disc space-y-2 pl-5 text-muted">
               {cot.y.map((y) => (
                 <li>{y}</li>
               ))}
             </ul>
-          </article>
+          </The>
         ))
       }
     </div>
-    <p class="mt-6 text-[var(--text-muted)]">
+    <p class="t-body mt-6 text-muted">
       Cách quyết định đáng tin nhất là lấy một bộ địa chỉ và tuyến đường thật của bạn rồi chạy thử
       trên cả hai.
-      <a class="underline" href={`${DOCS_URL}/do-chinh-xac/`}>Cách đo độ chính xác geocode →</a>
+      <a class="text-accent-text underline" href={`${DOCS_URL}/do-chinh-xac/`}>Cách đo độ chính xác geocode →</a>
     </p>
   </section>
 
   <Faq items={CAU_HOI} tieuDe="Câu hỏi thường gặp khi so sánh" />
 
   <section class="mx-auto max-w-3xl px-4 pb-20 text-center">
-    <a
-      href={CONSOLE_URL}
-      class="inline-flex min-h-11 items-center rounded-[var(--radius-btn)] bg-accent px-6 font-semibold text-accent-ink hover:brightness-95"
-    >
-      Thử bằng bản miễn phí
-    </a>
+    <Nut href={CONSOLE_URL} co="lon">Thử bằng bản miễn phí</Nut>
   </section>
 </Base>

@@ -302,3 +302,20 @@ test('bảng giá: bảng đối chiếu hạn mức có cột tiêu chí và b�
   const bang = page.getByRole('table', { name: /hạn mức/i });
   await expect(bang.getByRole('columnheader')).toHaveCount(5);
 });
+
+test('so sánh Google: bảng đối đầu tô đúng bên thắng, không giấu chỗ thua', async ({ page }) => {
+  await page.goto('/so-sanh/google-maps-api/');
+  const bang = page.getByRole('table', { name: /đối đầu/i });
+  const hang = bang.getByRole('row').filter({ hasText: 'Street View' });
+  // Hai ô dữ liệu: [0] MapsLibVN, [1] đối thủ. Ô tiêu chí là rowheader nên không nằm trong đây.
+  await expect(hang.getByRole('cell').nth(1)).toContainText('✓');
+  await expect(hang.getByRole('cell').nth(0)).not.toContainText('✓');
+});
+
+test('so sánh VIETMAP: bảng đối đầu có cả hàng đối thủ thắng', async ({ page }) => {
+  await page.goto('/so-sanh/vietmap/');
+  const bang = page.getByRole('table', { name: /đối đầu/i });
+  await expect(bang.getByRole('row').filter({ hasText: '✓' })).not.toHaveCount(0);
+  const khaoSat = bang.getByRole('row').filter({ hasText: 'Nguồn dữ liệu' });
+  await expect(khaoSat.getByRole('cell').nth(1)).toContainText('✓');
+});
