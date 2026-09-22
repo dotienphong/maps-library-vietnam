@@ -1,3 +1,34 @@
+/* Màu nhấn đồng bộ với website và cổng khách hàng (spec 2026-09-22 mục 8.3).
+   Starlight lấy ba biến này cho link, viền hoạt động và nút chính.
+
+   Bản TỐI dùng xanh chanh #a3e635 (13,1:1 trên #0a0a0a). Bản SÁNG KHÔNG được dùng nó làm chữ —
+   #a3e635 trên nền trắng chỉ đạt 1,4:1 — nên chuyển sang xanh ô liu đậm #3f6212 (6,8:1). Cùng
+   nguyên tắc tách vai trò như `packages/ui/src/tokens.css`. */
+:root {
+  --sl-color-accent-low: #1a2e08;
+  --sl-color-accent: #a3e635;
+  --sl-color-accent-high: #d9f99d;
+}
+
+:root[data-theme='light'] {
+  --sl-color-accent-low: #ecfccb;
+  --sl-color-accent: #3f6212;
+  --sl-color-accent-high: #1a2e08;
+}
+
+/* Nút chính: nền xanh chanh ở CẢ HAI theme (nó là màu nền, không phải màu chữ), chữ luôn là mực
+   đen. Để Starlight tự chọn thì bản sáng ra nút ô liu đậm chữ trắng, lệch hẳn với website. */
+.sl-link-button.primary {
+  background: #a3e635;
+  border-color: #a3e635;
+  color: #0a0a0a;
+}
+
+.sl-link-button.primary:hover {
+  filter: brightness(0.95);
+  color: #0a0a0a;
+}
+
 /* Khối bản đồ sống trên trang chủ (index.mdx).
    Dùng hai lớp lồng nhau để thắng quy tắc `.sl-markdown-content :is(…iframe…) { height: auto }`
    của Starlight. */
