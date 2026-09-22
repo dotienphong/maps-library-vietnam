@@ -1,5 +1,6 @@
 ---
 import { CONSOLE_URL, DOCS_URL } from '../../site.config.mjs';
+import BanDoSong from '../components/BanDoSong.astro';
 import CodeTabs from '../components/CodeTabs.astro';
 import Faq from '../components/Faq.astro';
 import Feature from '../components/Feature.astro';
@@ -86,6 +87,15 @@ const GIA = tomTatGia();
 
 <Base trang={TRANG.trangChu} jsonLd={[softwareApplicationJsonLd(), faqJsonLd(CAU_HOI)]}>
   <Hero />
+
+  <BanDoSong
+    truyVan="cho ben thanh"
+    goiY={[
+      { ten: 'Chợ Bến Thành', phu: 'Phường Sài Gòn, Thành phố Hồ Chí Minh' },
+      { ten: 'Bến Thành Tower', phu: 'Phường Sài Gòn, Thành phố Hồ Chí Minh' },
+      { ten: 'Ga Bến Thành', phu: 'Phường Sài Gòn, Thành phố Hồ Chí Minh' },
+    ]}
+  />
 
   <section aria-labelledby="tt-tinh-nang" class="mx-auto max-w-6xl px-4 py-16">
     <h2 id="tt-tinh-nang" class="mb-2 text-2xl font-bold">Có sẵn những gì</h2>

@@ -18,7 +18,7 @@ export const TRANG = {
     title: 'MapsLibVN — API bản đồ và địa điểm Việt Nam',
     description:
       'API bản đồ, tìm kiếm địa điểm và dẫn đường cho Việt Nam trên dữ liệu mở. Nhúng bằng một dòng, gói trả phí từ 650.000đ mỗi tháng, có bản dùng thử.',
-    h1: 'Bản đồ và địa điểm Việt Nam cho ứng dụng của bạn',
+    h1: 'Bản đồ Việt Nam cho ứng dụng của bạn',
     nhan: 'Trang chủ',
     og: '/og/trang-chu.png',
   },

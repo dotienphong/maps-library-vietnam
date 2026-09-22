@@ -1,103 +1,28 @@
 ---
-import { Picture } from 'astro:assets';
-import { CONSOLE_URL, DOCS_URL } from '../../site.config.mjs';
-import banDo from '../assets/ban-do-hero.jpg';
-import { soSanh } from '../lib/gia';
+import { CONSOLE_URL } from '../../site.config.mjs';
 import { TRANG } from '../lib/trang';
+import Nut from './Nut.astro';
 
-// Khoảng phần trăm TÍNH TỪ COMPARISON, không gõ tay: đổi bảng giá đối thủ là câu này tự đúng theo.
-const phanTram = soSanh().map((row) => row.reHonGoogle);
-const thap = Math.round(Math.min(...phanTram));
-const cao = Math.round(Math.max(...phanTram));
+/**
+ * Hero căn giữa (spec 5.2). KHÔNG có ảnh: LCP là chính chữ h1, và bản đồ thật nằm ngay khối dưới
+ * (BanDoSong). Chip lệnh npm nói với dev "đây là SDK" trước cả khi đọc câu đầu.
+ */
 ---
 
-<section class="mx-auto max-w-6xl px-4 py-12 lg:py-20">
-  <div class="grid items-center gap-10 lg:grid-cols-2">
-    <div>
-      <h1 class="text-3xl font-bold leading-tight sm:text-4xl lg:text-5xl">
-        {TRANG.trangChu.h1}
-      </h1>
-      <p class="mt-5 text-lg text-[var(--text-muted)]">
-        API bản đồ, tìm kiếm địa điểm và dẫn đường dựng trên dữ liệu mở. Nhúng vào web hoặc
-        ứng dụng di động bằng một dòng, trả tiền bằng VND, dữ liệu và mã nguồn dựng lại được.
-      </p>
-      <p class="mt-3 text-[var(--text-muted)]">
-        Chi phí thấp hơn Google từ {thap}% đến {cao}% ở ba mức dùng đã đối chiếu.{' '}
-        <a class="underline" href="/bang-gia/#so-sanh">Xem bảng và giả định →</a>
-      </p>
-
-      <div class="mt-8 flex flex-wrap gap-3">
-        <a
-          href={CONSOLE_URL}
-          class="inline-flex min-h-11 items-center rounded-[var(--radius-btn)] bg-accent px-6 font-semibold text-accent-ink hover:brightness-95"
-        >
-          Bắt đầu miễn phí
-        </a>
-        <a
-          href={TRANG.bangGia.path}
-          class="inline-flex min-h-11 items-center rounded-[var(--radius-btn)] border border-[var(--border)] px-6 font-semibold hover:bg-accent-soft"
-        >
-          Xem bảng giá
-        </a>
-      </div>
-      <p class="mt-3 text-sm text-[var(--text-muted)]">
-        Bản dùng thử 2.000 lượt Places trong 30 ngày, không cần thẻ.
-      </p>
-    </div>
-
-    <!-- Chiều cao CỐ ĐỊNH từ đầu (aspect-video) nên không có dịch chuyển bố cục khi iframe xuất
-         hiện, và iframe không bao giờ nằm trong đường LCP vì nó chỉ nạp sau khi người dùng bấm. -->
-    <figure class="m-0">
-      <div
-        id="khoi-ban-do"
-        class="relative aspect-video overflow-hidden rounded-[var(--radius-card)] border border-[var(--border)] bg-surface-2"
-      >
-        {/* Picture chứ không Image: prop `formats` (nhiều định dạng) chỉ có ở Picture; đặt nó trên
-            Image thì Astro bỏ qua lặng lẽ và chỉ sinh WebP. */}
-        <Picture
-          src={banDo}
-          alt="Bản đồ khu vực trung tâm Thành phố Hồ Chí Minh do MapsLibVN dựng, nhãn đường và địa điểm bằng tiếng Việt"
-          widths={[640, 960, 1280]}
-          sizes="(max-width: 1024px) 100vw, 560px"
-          formats={['avif', 'webp']}
-          loading="eager"
-          fetchpriority="high"
-          class="absolute inset-0 h-full w-full object-cover"
-        />
-        <button
-          type="button"
-          id="nut-ban-do"
-          class="absolute inset-0 flex items-center justify-center bg-black/25"
-          data-src={`${DOCS_URL}/playground?embed=1`}
-        >
-          <span
-            class="inline-flex min-h-11 items-center rounded-[var(--radius-btn)] bg-accent px-5 font-semibold text-accent-ink shadow-lg"
-          >
-            Bấm để mở bản đồ tương tác
-          </span>
-        </button>
-      </div>
-      <figcaption class="mt-2 text-center text-sm text-[var(--text-muted)]">
-        Bản đồ thật do MapsLibVN phục vụ.
-        <a class="underline" href={`${DOCS_URL}/playground`}>Mở trang thử đầy đủ →</a>
-      </figcaption>
-    </figure>
+<section class="mx-auto max-w-[1200px] px-4 pb-8 pt-14 text-center sm:px-6 lg:pt-24">
+  <p class="mb-6 inline-flex items-center rounded-full border border-border bg-surface-2 px-4 py-2">
+    <span class="t-code text-accent-text">$ npm i @mapslibvn/web</span>
+  </p>
+  <h1 class="t-display mx-auto max-w-4xl">{TRANG.trangChu.h1}</h1>
+  <p class="t-lead mx-auto mt-6 max-w-2xl text-muted">
+    API bản đồ, tìm kiếm địa điểm và dẫn đường dựng trên dữ liệu mở. Trả tiền bằng VND, dữ liệu và
+    mã nguồn dựng lại được.
+  </p>
+  <div class="mt-8 flex flex-wrap justify-center gap-3">
+    <Nut href={CONSOLE_URL} co="lon">Bắt đầu miễn phí</Nut>
+    <Nut href={TRANG.bangGia.path} kieu="phu" co="lon">Xem bảng giá</Nut>
   </div>
+  <p class="t-small mt-4 text-muted">
+    Bản dùng thử 2.000 lượt Places trong 30 ngày, không cần thẻ.
+  </p>
 </section>
-
-<script>
-  // Chỉ nạp iframe khi người dùng thực sự muốn xem. Trước lúc bấm, trang không tải một byte nào
-  // của playground, nên số đo tải trang không bị một trang khác kéo xuống.
-  const nut = document.getElementById('nut-ban-do');
-  nut?.addEventListener('click', () => {
-    const src = nut.dataset.src;
-    const khoi = document.getElementById('khoi-ban-do');
-    if (!src || !khoi) return;
-    const khung = document.createElement('iframe');
-    khung.src = src;
-    khung.title = 'Bản đồ MapsLibVN tương tác';
-    khung.loading = 'lazy';
-    khung.className = 'absolute inset-0 h-full w-full border-0';
-    khoi.replaceChildren(khung);
-  });
-</script>

@@ -40,14 +40,31 @@ test('đường dẫn lạ trả 404 và trang 404 vẫn dùng được', async 
   await expect(page.getByRole('link', { name: 'Trang chủ' }).first()).toBeVisible();
 });
 
-test('bản đồ hero chỉ nạp iframe sau khi bấm', async ({ page }) => {
+test('bản đồ trải ngang: không iframe khi mở, nạp bản tối sau lần cuộn đầu', async ({ page }) => {
   await page.goto('/');
-  // Trước khi bấm: KHÔNG có iframe nào. Đây là lời hứa về tốc độ tải, nên phải có bài khoá lại.
+  // Lời hứa về tốc độ tải: mở trang không kéo một byte nào của playground.
   await expect(page.locator('iframe')).toHaveCount(0);
+  await expect(page.locator('#khoi-ban-do img').first()).toBeVisible();
 
-  await page.getByRole('button', { name: /Bấm để mở bản đồ/ }).click();
+  await page.mouse.wheel(0, 400);
   await expect(page.locator('iframe')).toHaveCount(1);
-  await expect(page.locator('iframe')).toHaveAttribute('title', /Bản đồ MapsLibVN/);
+  const khung = page.locator('iframe');
+  await expect(khung).toHaveAttribute('src', /\/playground\?embed=1&style=dark$/);
+  await expect(khung).toHaveAttribute('title', /Bản đồ MapsLibVN/);
+});
+
+test('bản sáng nạp bản đồ sáng', async ({ page }) => {
+  await page.goto('/');
+  await page.evaluate(() => localStorage.setItem('mapslibvn-site-theme', 'light'));
+  await page.reload();
+  await page.mouse.wheel(0, 400);
+  await expect(page.locator('iframe')).toHaveAttribute('src', /style=light$/);
+});
+
+test('nút "Mở bản đồ tương tác" nạp ngay không cần cuộn', async ({ page }) => {
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Mở bản đồ tương tác' }).click();
+  await expect(page.locator('iframe')).toHaveCount(1);
 });
 
 test('điện thoại: ngăn kéo mở, đi được tới trang, và mọi mục đều bấm tới nơi', async ({ page }) => {
