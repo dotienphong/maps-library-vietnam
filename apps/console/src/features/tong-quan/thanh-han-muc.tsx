@@ -16,12 +16,7 @@ export interface ThanhHanMucProps {
  */
 export function ThanhHanMuc({ nhan, used, limit, credits }: ThanhHanMucProps) {
   const phanTram = limit > 0 ? Math.min(100, Math.round((used / limit) * 100)) : 0;
-  const mau =
-    phanTram >= 100
-      ? 'bg-red-600'
-      : phanTram >= 80
-        ? 'bg-amber-500'
-        : 'bg-accent';
+  const mau = phanTram >= 100 ? 'bg-red-600' : phanTram >= 80 ? 'bg-amber-500' : 'bg-accent';
 
   return (
     <div>

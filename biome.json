@@ -41,7 +41,8 @@
       "!examples/*/ios",
       "!examples/*/.expo",
       "!examples/*/vendor",
-      "!.superpowers"
+      "!.superpowers",
+      "!**/work"
     ]
   },
   "overrides": [

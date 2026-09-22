@@ -36,9 +36,7 @@ export function AppShell() {
 
   const lop = (dangXem: boolean) =>
     `flex min-h-11 items-center rounded-[var(--radius-btn)] px-3 text-sm font-semibold ${
-      dangXem
-        ? 'bg-accent-soft text-accent-text'
-        : 'text-muted hover:bg-accent-soft'
+      dangXem ? 'bg-accent-soft text-accent-text' : 'text-muted hover:bg-accent-soft'
     }`;
 
   return (

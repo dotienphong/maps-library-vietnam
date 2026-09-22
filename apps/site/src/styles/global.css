@@ -39,12 +39,17 @@ html {
     scroll-behavior: auto;
   }
 
+  /* `!important` là BẮT BUỘC ở đây, không phải lười: bộ chọn `*` có độ đặc hiệu 0, còn utility
+     của Tailwind (`transition-colors`, `duration-150`) là 0-1-0 nên luôn thắng. Không có nó thì
+     tấm lưới an toàn này im lặng vô tác dụng với đúng những chỗ cần chặn nhất. */
+  /* biome-ignore-start lint/complexity/noImportantStyles: xem lý do độ đặc hiệu ngay trên */
   *,
   *::before,
   *::after {
     transition: none !important;
     animation: none !important;
   }
+  /* biome-ignore-end lint/complexity/noImportantStyles: hết khối chặn chuyển động */
 }
 
 body {
