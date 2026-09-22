@@ -42,7 +42,7 @@
       "!examples/*/.expo",
       "!examples/*/vendor",
       "!.superpowers",
-      "!**/work"
+      "!work"
     ]
   },
   "overrides": [
