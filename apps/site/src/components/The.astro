@@ -1,0 +1,29 @@
+---
+/**
+ * Thẻ có viền. `nen="surface-2"` cho ô bento và khối mã (nổi trên nền surface), `noiBat` viền màu
+ * nhấn cho gói được chọn nhiều nhất. Viền nhấn dùng `--accent-text` chứ KHÔNG phải `--accent`:
+ * trên nền sáng `--accent` chỉ đạt 1,4:1 nên viền gần như vô hình (spec 4.1). Không bóng đổ ở bản
+ * tối (spec 4.3): viền là cách tách khối.
+ */
+interface Props {
+  as?: 'article' | 'div' | 'li' | 'section' | undefined;
+  nen?: 'surface' | 'surface-2' | undefined;
+  noiBat?: boolean | undefined;
+  class?: string | undefined;
+  id?: string | undefined;
+}
+
+const { as: Tag = 'div', nen = 'surface', noiBat = false, class: lop = '', id } = Astro.props;
+---
+
+<Tag
+  id={id}
+  class:list={[
+    'rounded-[var(--radius-card)] border p-5 transition-colors duration-150 sm:p-6',
+    nen === 'surface' ? 'bg-surface' : 'bg-surface-2',
+    noiBat ? 'border-accent-text' : 'border-border hover:border-border-strong',
+    lop,
+  ]}
+>
+  <slot />
+</Tag>

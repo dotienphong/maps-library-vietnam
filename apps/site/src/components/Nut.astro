@@ -1,0 +1,43 @@
+---
+/**
+ * Nút hoặc link dạng nút. Đây là NƠI DUY NHẤT trong site viết lớp màu của nút; trang và component
+ * khác chỉ chọn `kieu`. `chinh` là màu nhấn — mỗi màn hình chỉ nên có một nút `chinh` (spec 4.1).
+ */
+interface Props {
+  href?: string | undefined;
+  kieu?: 'chinh' | 'phu' | 'mo' | undefined;
+  co?: 'nho' | 'vua' | 'lon' | undefined;
+  id?: string | undefined;
+  target?: '_blank' | undefined;
+  rel?: string | undefined;
+  class?: string | undefined;
+}
+
+const { href, kieu = 'chinh', co = 'vua', id, target, rel, class: lop = '' } = Astro.props;
+
+const CHUNG =
+  'inline-flex min-h-11 items-center justify-center gap-2 whitespace-nowrap rounded-[var(--radius-btn)] font-semibold transition-colors duration-150 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus';
+const KIEU = {
+  chinh: 'bg-accent text-accent-ink hover:brightness-95',
+  phu: 'border border-border bg-transparent text-text hover:border-border-strong hover:bg-accent-soft',
+  mo: 'text-muted hover:bg-accent-soft hover:text-text',
+} as const;
+const CO = {
+  nho: 'px-3 text-sm sm:px-4',
+  vua: 'px-5 text-[15px]',
+  lon: 'min-h-12 px-6 text-base',
+} as const;
+const lopDu = [CHUNG, KIEU[kieu], CO[co], lop];
+---
+
+{
+  href ? (
+    <a href={href} id={id} target={target} rel={rel} class:list={lopDu}>
+      <slot />
+    </a>
+  ) : (
+    <button type="button" id={id} class:list={lopDu}>
+      <slot />
+    </button>
+  )
+}

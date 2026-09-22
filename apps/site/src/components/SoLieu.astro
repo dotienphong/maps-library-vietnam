@@ -1,0 +1,18 @@
+---
+import Nhan from './Nhan.astro';
+
+/** Con số nổi bật (thang stat, màu nhấn) kèm nhãn và một dòng phụ. */
+interface Props {
+  so: string;
+  nhan: string;
+  phu?: string | undefined;
+}
+
+const { so, nhan, phu } = Astro.props;
+---
+
+<div>
+  <p class="t-stat text-accent-text">{so}</p>
+  <p class="mt-2"><Nhan chu={nhan} /></p>
+  {phu && <p class="t-small mt-1 text-muted">{phu}</p>}
+</div>

@@ -1,0 +1,19 @@
+---
+import { laAscii } from '../lib/chu';
+
+/**
+ * Nhãn viết hoa nhỏ đặt trên tiêu đề hoặc trong ô bento. ASCII → chữ máy (t-mono-label), có dấu →
+ * Be Vietnam Pro (t-nhan). `noiBat` tô màu nhấn: chỉ dùng cho nhãn mở đầu trang (spec mục 6).
+ */
+interface Props {
+  chu: string;
+  noiBat?: boolean | undefined;
+  class?: string | undefined;
+}
+
+const { chu, noiBat = false, class: lop = '' } = Astro.props;
+---
+
+<span class:list={[laAscii(chu) ? 't-mono-label' : 't-nhan', noiBat && 'text-accent-text', lop]}>
+  {chu}
+</span>
