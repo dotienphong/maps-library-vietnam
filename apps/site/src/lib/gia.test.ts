@@ -6,6 +6,7 @@ import {
   dinhDangUsd,
   dinhDangVnd,
   GOI_NOI_BAT,
+  goiPhuHop,
   soSanh,
   tomTatGia,
 } from './gia';
@@ -115,5 +116,28 @@ describe('soSanh', () => {
     expect(rows[0]?.workload).toMatch(/30\.000/);
     expect(COMPARISON.checkedAt).toBe('2026-09-14');
     expect(COMPARISON.sources).toHaveLength(3);
+  });
+});
+
+describe('goiPhuHop', () => {
+  it('không dùng gì → gói dùng thử', () => {
+    expect(goiPhuHop(0, 0)?.tier).toBe('trial');
+  });
+
+  it('vừa đúng hạn mức Starter → Starter', () => {
+    expect(goiPhuHop(30_000, 3_000)?.tier).toBe('starter');
+  });
+
+  it('vượt MỘT nhóm là phải lên gói, kể cả nhóm kia còn thừa', () => {
+    expect(goiPhuHop(30_001, 0)?.tier).toBe('professional');
+    expect(goiPhuHop(0, 3_001)?.tier).toBe('professional');
+  });
+
+  it('đúng trần Business → Business', () => {
+    expect(goiPhuHop(400_000, 40_000)?.tier).toBe('business');
+  });
+
+  it('vượt Business → null, giao diện phải mời liên hệ', () => {
+    expect(goiPhuHop(400_001, 0)).toBeNull();
   });
 });

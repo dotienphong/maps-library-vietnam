@@ -155,3 +155,12 @@ export function soSanh(): DongSoSanh[] {
     reHonVietmap: savingsPercent(row.mapslibvnUsd, row.vietmapUsd),
   }));
 }
+
+/**
+ * Gói NHỎ NHẤT có cả hai nhóm hạn mức ≥ mức dùng ước tính. Hai nhóm độc lập nên vượt một nhóm là
+ * phải lên gói dù nhóm kia còn thừa — đúng luật quota của máy chủ. Vượt cả Business trả `null`;
+ * giao diện khi đó mời liên hệ chứ không bịa ra một gói.
+ */
+export function goiPhuHop(places: number, directions: number): GoiHienThi | null {
+  return bangGia().find((g) => g.places >= places && g.directions >= directions) ?? null;
+}
