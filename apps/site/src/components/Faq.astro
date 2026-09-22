@@ -1,4 +1,6 @@
 ---
+import Nhan from './Nhan.astro';
+
 /**
  * Câu hỏi thường gặp, không một dòng JavaScript: <details> đóng mở sẵn trong trình duyệt.
  * Trang gọi component này PHẢI truyền cùng mảng đó vào faqJsonLd() — Google phạt khi đánh dấu
@@ -13,21 +15,29 @@ const { items, tieuDe = 'Câu hỏi thường gặp' } = Astro.props;
 const id = 'faq-tieu-de';
 ---
 
-<section aria-labelledby={id} class="mx-auto max-w-3xl px-4 py-16">
-  <h2 id={id} class="mb-6 text-2xl font-bold">{tieuDe}</h2>
-  <div class="divide-y divide-[var(--border)] rounded-[var(--radius-card)] border border-[var(--border)] bg-[var(--surface)]">
-    {
-      items.map((item) => (
-        <details class="group">
-          <summary class="flex min-h-11 cursor-pointer items-center justify-between gap-4 p-4 font-semibold">
-            {item.hoi}
-            <span aria-hidden="true" class="text-[var(--text-muted)] group-open:rotate-180">
-              ⌄
-            </span>
-          </summary>
-          <p class="px-4 pb-4 text-[var(--text-muted)]">{item.dap}</p>
-        </details>
-      ))
-    }
+<section aria-labelledby={id} class="mx-auto max-w-[1200px] px-4 py-16 sm:px-6 lg:py-24">
+  <div class="grid gap-8 lg:grid-cols-[1fr_2fr]">
+    <div>
+      <p class="mb-3"><Nhan chu="FAQ" noiBat /></p>
+      <h2 id={id} class="t-h2">{tieuDe}</h2>
+    </div>
+    <div class="divide-y divide-border border-y border-border">
+      {
+        items.map((item) => (
+          <details class="group">
+            <summary class="flex min-h-14 cursor-pointer items-center justify-between gap-4 py-4 text-left font-semibold text-text">
+              {item.hoi}
+              <span
+                aria-hidden="true"
+                class="t-h3 shrink-0 text-muted transition-transform duration-150 group-open:rotate-45"
+              >
+                +
+              </span>
+            </summary>
+            <p class="t-body pb-5 text-muted">{item.dap}</p>
+          </details>
+        ))
+      }
+    </div>
   </div>
 </section>
