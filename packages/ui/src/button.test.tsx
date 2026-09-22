@@ -17,6 +17,15 @@ describe('Button', () => {
     expect(screen.getByRole('button').className).toContain('min-h-11');
   });
 
+  it('nút chính dùng token nhấn: nền accent, chữ accent-ink, không còn lớp brand-', () => {
+    render(<Button>Duyệt</Button>);
+    const lop = screen.getByRole('button').className;
+    expect(lop).toContain('bg-accent');
+    expect(lop).toContain('text-accent-ink');
+    expect(lop).not.toMatch(/brand-/);
+    expect(lop).not.toContain('text-white');
+  });
+
   it('disabled thì không gọi onClick', async () => {
     const onClick = vi.fn();
     render(

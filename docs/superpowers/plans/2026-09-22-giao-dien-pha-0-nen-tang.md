@@ -350,7 +350,8 @@ Trong `packages/ui/src/card.tsx`, thay hai dòng có `border-brand-500`:
 - [ ] **Step 6: Kiểm không còn brand trong gói, test xanh**
 
 ```bash
-grep -rn "brand-" packages/ui/src ; echo "exit=$?"
+# Loại tệp test: chúng CHỨA chuỗi "brand-" như dữ liệu khẳng định, không phải lớp CSS.
+grep -rn "brand-" packages/ui/src --include='*.tsx' --include='*.ts' --include='*.css' | grep -v "\.test\." ; echo "exit=$?"
 pnpm exec vitest run packages/ui
 ```
 
@@ -486,7 +487,7 @@ git commit -m "feat(ui): readStoredTheme nhận mặc định theo app"
 - [ ] **Step 2: Kiểm sạch, build, test**
 
 ```bash
-grep -rn "brand-" apps/admin/src apps/admin/index.html ; echo "exit=$?"
+grep -rn "brand-" apps/admin/src apps/admin/index.html | grep -v "\.test\." ; echo "exit=$?"
 pnpm --filter @mapslibvn/admin build
 pnpm exec vitest run apps/admin
 ```
@@ -573,7 +574,7 @@ hover:bg-accent-soft
 - [ ] **Step 2: Kiểm sạch, build, test**
 
 ```bash
-grep -rn "brand-" apps/console/src apps/console/index.html ; echo "exit=$?"
+grep -rn "brand-" apps/console/src apps/console/index.html | grep -v "\.test\." ; echo "exit=$?"
 pnpm --filter @mapslibvn/console build
 pnpm exec vitest run apps/console
 ```
@@ -1026,7 +1027,7 @@ pnpm --filter @mapslibvn/admin typecheck --force && pnpm --filter @mapslibvn/adm
 pnpm --filter @mapslibvn/console typecheck --force && pnpm --filter @mapslibvn/console build
 pnpm --filter @mapslibvn/site typecheck && pnpm --filter @mapslibvn/site build
 pnpm --filter @mapslibvn/site e2e
-grep -rn "brand-" apps packages/ui --include='*.tsx' --include='*.ts' --include='*.astro' --include='*.css' --include='*.html' | grep -v node_modules | grep -v dist ; echo "brand exit=$?"
+grep -rn "brand-" apps packages/ui --include='*.tsx' --include='*.ts' --include='*.astro' --include='*.css' --include='*.html' | grep -v node_modules | grep -v dist | grep -v "\.test\." | grep -v "\.spec\." ; echo "brand exit=$?"
 grep -rn "1b3a6b" apps packages scripts --include='*.tsx' --include='*.ts' --include='*.astro' --include='*.css' --include='*.html' --include='*.svg' --include='*.mjs' | grep -v node_modules | grep -v dist
 ```
 
