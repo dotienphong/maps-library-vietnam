@@ -1,0 +1,55 @@
+---
+/**
+ * Mục lục dính theo cuộn. Không có JavaScript thì vẫn là danh sách link neo chạy được — script chỉ
+ * thêm việc tô mục đang xem.
+ */
+interface Props {
+  muc: readonly { id: string; nhan: string }[];
+  nhanNav: string;
+  class?: string | undefined;
+}
+
+const { muc, nhanNav, class: lop = '' } = Astro.props;
+---
+
+<nav aria-label={nhanNav} class:list={['lg:sticky lg:top-24', lop]} data-muc-luc>
+  <ul class="space-y-1 border-l border-border">
+    {
+      muc.map((m) => (
+        <li>
+          <a
+            href={`#${m.id}`}
+            class="t-small -ml-px flex min-h-11 items-center border-l-2 border-transparent pl-4 text-muted transition-colors duration-150 hover:text-text aria-[current=true]:border-accent-text aria-[current=true]:text-text"
+          >
+            {m.nhan}
+          </a>
+        </li>
+      ))
+    }
+  </ul>
+</nav>
+
+<script>
+  const nav = document.querySelector('[data-muc-luc]');
+  if (nav && 'IntersectionObserver' in window) {
+    const link = new Map<string, HTMLAnchorElement>();
+    for (const a of nav.querySelectorAll<HTMLAnchorElement>('a[href^="#"]')) {
+      link.set(a.getAttribute('href')?.slice(1) ?? '', a);
+    }
+    const muc = [...link.keys()]
+      .map((id) => document.getElementById(id))
+      .filter((el): el is HTMLElement => el !== null);
+    // `rootMargin` âm ở đáy: mục được coi là "đang xem" khi nó chiếm phần TRÊN của màn hình, chứ
+    // không phải khi vừa ló ra ở mép dưới — nếu không, cuộn tới đâu mục lục cũng nhảy một bậc.
+    const io = new IntersectionObserver(
+      (vao) => {
+        for (const m of vao) {
+          const a = link.get(m.target.id);
+          if (a) a.setAttribute('aria-current', String(m.isIntersecting));
+        }
+      },
+      { rootMargin: '-88px 0px -65% 0px' },
+    );
+    for (const m of muc) io.observe(m);
+  }
+</script>

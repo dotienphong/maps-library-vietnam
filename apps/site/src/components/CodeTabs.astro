@@ -95,10 +95,27 @@ export default function ManBanDo() {
       'Dùng khoá loại mobile. Cần New Architecture và không chạy trên Expo Go, phải build native.',
   },
 ] as const;
+
+/**
+ * Thoát HTML rồi tô `--accent-text` cho tên hàm/component chính. Không tô cú pháp đầy đủ để khỏi
+ * kéo thêm CSS/JS (spec 5.5). Thoát TRƯỚC khi chèn thẻ, nếu không `<MapsLibVNMap>` trong mẫu mã
+ * React sẽ được trình duyệt đọc thành thẻ thật.
+ */
+const thoat = (chu: string) =>
+  chu.replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;');
+const toSang = (ma: string) =>
+  thoat(ma).replace(
+    /\b(createMap|MapsLibVNMap)\b/g,
+    '<b class="font-normal text-accent-text">$1</b>',
+  );
 ---
 
-<div class="mx-auto max-w-4xl px-4">
-  <div role="tablist" aria-label="Bốn cách nhúng bản đồ" class="flex flex-wrap gap-1">
+<div>
+  <div
+    role="tablist"
+    aria-label="Bốn cách nhúng bản đồ"
+    class="flex flex-wrap gap-1 border-b border-border"
+  >
     {
       TABS.map((tab, i) => (
         <button
@@ -108,7 +125,7 @@ export default function ManBanDo() {
           aria-controls={`panel-${tab.id}`}
           aria-selected={i === 0 ? 'true' : 'false'}
           tabindex={i === 0 ? 0 : -1}
-          class="inline-flex min-h-11 items-center rounded-[var(--radius-btn)] px-4 text-sm font-semibold text-[var(--text-muted)] aria-selected:bg-brand-50 aria-selected:text-brand-700 dark:aria-selected:bg-brand-900 dark:aria-selected:text-brand-100"
+          class="-mb-px inline-flex min-h-11 items-center border-b-2 border-transparent px-4 text-[15px] font-semibold text-muted transition-colors duration-150 hover:text-text aria-selected:border-accent-text aria-selected:text-text"
         >
           {tab.nhan}
         </button>
@@ -124,17 +141,17 @@ export default function ManBanDo() {
         aria-labelledby={`tab-${tab.id}`}
         hidden={i !== 0}
         tabindex="0"
-        class="mt-3 overflow-x-auto rounded-[var(--radius-card)] border border-[var(--border)] bg-[var(--surface)] p-4"
+        class="mt-4 overflow-x-auto rounded-[10px] border border-border bg-surface-2 p-4 sm:p-5"
       >
-        <pre class="text-sm"><code>{tab.ma}</code></pre>
-        <p class="mt-3 text-sm text-[var(--text-muted)]">{tab.ghiChu}</p>
+        <pre class="t-code text-text"><code set:html={toSang(tab.ma)} /></pre>
+        <p class="t-small mt-3 text-muted">{tab.ghiChu}</p>
       </div>
     ))
   }
 
-  <p class="mt-4 text-sm text-[var(--text-muted)]">
+  <p class="t-small mt-4 text-muted">
     Yêu cầu từng môi trường, bước worker của MapLibre cho bundler và bảng lỗi hay gặp nằm ở
-    <a class="underline" href={`${DOCS_URL}/cai-dat/`}>trang Cài đặt</a>.
+    <a class="text-accent-text underline" href={`${DOCS_URL}/cai-dat/`}>trang Cài đặt</a>.
   </p>
 </div>
 

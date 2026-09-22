@@ -16,7 +16,7 @@ export function SapMo() {
       {cauHinh?.supportEmail && (
         <p className="mt-6">
           <a
-            className="inline-flex min-h-11 items-center rounded-[var(--radius-btn)] bg-brand-700 px-5 font-semibold text-white"
+            className="inline-flex min-h-11 items-center rounded-[var(--radius-btn)] bg-accent px-5 font-semibold text-accent-ink"
             href={`mailto:${cauHinh.supportEmail}`}
           >
             Gửi thư cho chúng tôi

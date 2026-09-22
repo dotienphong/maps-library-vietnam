@@ -11,7 +11,7 @@
 export const KHUNG_HTML = (noiDung: string): string =>
   `<!doctype html><html lang="vi"><body style="margin:0;padding:24px;background:#f7f8fa;font-family:system-ui,-apple-system,'Segoe UI',sans-serif;color:#101828;line-height:1.6">
 <div style="max-width:520px;margin:0 auto;background:#fff;border:1px solid #e3e6ec;border-radius:12px;padding:28px">
-<p style="margin:0 0 20px;font-size:18px;font-weight:700;color:#1b3a6b">MapsLibVN</p>
+<p style="margin:0 0 20px;font-size:18px;font-weight:700;color:#3f6212">MapsLibVN</p>
 ${noiDung}
 </div></body></html>`;
 
@@ -34,7 +34,7 @@ export function mauMaDangNhap(ma: string, phutConLai: number): MauThu {
 
   const html = KHUNG_HTML(
     `<p style="margin:0 0 12px">Mã đăng nhập của bạn:</p>
-<p style="margin:0 0 20px;font-size:32px;font-weight:700;letter-spacing:6px;color:#1b3a6b">${ma}</p>
+<p style="margin:0 0 20px;font-size:32px;font-weight:700;letter-spacing:6px;color:#3f6212">${ma}</p>
 <p style="margin:0 0 12px;color:#667085">Mã có hiệu lực trong ${phutConLai} phút và chỉ dùng được một lần.</p>
 <p style="margin:0;color:#667085">Nếu không phải bạn yêu cầu đăng nhập, hãy bỏ qua thư này — không ai vào được tài khoản nếu không có mã ở trên.</p>`,
   );
@@ -61,8 +61,8 @@ export function mauChaoMung(tenTenant: string, consoleUrl: string, docsUrl: stri
   const html = KHUNG_HTML(
     `<p style="margin:0 0 12px">Chào <strong>${tenTenant}</strong>,</p>
 <p style="margin:0 0 16px;color:#667085">Tài khoản MapsLibVN của bạn đã sẵn sàng. Bản dùng thử gồm 2.000 lượt Places và 200 lượt tính tuyến trong 30 ngày, không cần thẻ thanh toán.</p>
-<p style="margin:0 0 20px"><a href="${consoleUrl}" style="display:inline-block;background:#1b3a6b;color:#fff;text-decoration:none;padding:12px 20px;border-radius:9px;font-weight:600">Mở cổng khách hàng</a></p>
-<p style="margin:0 0 12px;color:#667085">Chưa biết bắt đầu từ đâu? Xem <a href="${docsUrl}/bat-dau/" style="color:#1b3a6b">hướng dẫn năm phút</a>.</p>
+<p style="margin:0 0 20px"><a href="${consoleUrl}" style="display:inline-block;background:#a3e635;color:#0a0a0a;text-decoration:none;padding:12px 20px;border-radius:8px;font-weight:600">Mở cổng khách hàng</a></p>
+<p style="margin:0 0 12px;color:#667085">Chưa biết bắt đầu từ đâu? Xem <a href="${docsUrl}/bat-dau/" style="color:#3f6212">hướng dẫn năm phút</a>.</p>
 <p style="margin:0;color:#667085">Khoá API chỉ hiện một lần trên màn hình lúc cấp; thư này không chứa khoá. Mất khoá thì vào cổng khách hàng cấp khoá mới.</p>`,
   );
 

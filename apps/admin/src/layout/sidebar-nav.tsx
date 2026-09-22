@@ -72,7 +72,7 @@ export function SidebarNav({ me, pendingCount }: SidebarNavProps) {
                     cn(
                       'flex min-h-11 items-center justify-between gap-2 rounded-[var(--radius-btn)] px-3 text-[15px]',
                       isActive
-                        ? 'bg-brand-100 font-semibold text-brand-700 dark:bg-brand-900 dark:text-brand-100'
+                        ? 'bg-accent-soft font-semibold text-accent-text'
                         : 'font-normal text-[var(--text-muted)] hover:bg-black/5 hover:text-[var(--text)] dark:hover:bg-white/5',
                     )
                   }

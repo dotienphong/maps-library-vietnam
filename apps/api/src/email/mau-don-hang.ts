@@ -72,7 +72,7 @@ export function mauBienNhan(d: {
 <p style="margin:0 0 12px">MapsLibVN đã nhận <strong>${dinhDangVnd(d.amountVnd)}</strong> cho đơn <strong>${d.orderCode}</strong>: ${d.moTa}.</p>
 ${hieuLuc ? `<p style="margin:0 0 12px;color:#667085">${hieuLuc}</p>` : ''}
 <p style="margin:0 0 20px">Gói đã được cấp vào tài khoản của bạn.</p>
-${d.consoleUrl ? `<p style="margin:0 0 20px"><a href="${d.consoleUrl}" style="display:inline-block;background:#1b3a6b;color:#fff;text-decoration:none;padding:12px 20px;border-radius:9px;font-weight:600">Xem đơn</a></p>` : ''}
+${d.consoleUrl ? `<p style="margin:0 0 20px"><a href="${d.consoleUrl}" style="display:inline-block;background:#a3e635;color:#0a0a0a;text-decoration:none;padding:12px 20px;border-radius:8px;font-weight:600">Xem đơn</a></p>` : ''}
 <p style="margin:0;color:#667085">Đây là biên nhận thanh toán, không phải chứng từ thuế.</p>`,
   );
   return { subject: `Biên nhận đơn ${d.orderCode} — MapsLibVN`, html, text };
@@ -99,7 +99,7 @@ export function mauThieuTien(d: {
   ]);
   const html = KHUNG_HTML(
     `<p style="margin:0 0 12px">Đơn <strong>${d.orderCode}</strong> cần <strong>${dinhDangVnd(d.amountVnd)}</strong>, MapsLibVN mới nhận <strong>${dinhDangVnd(d.daNhan)}</strong>. Còn thiếu <strong>${dinhDangVnd(thieu)}</strong>.</p>
-<p style="margin:0 0 12px;color:#667085">Bạn có thể chuyển thêm đúng số còn thiếu với nội dung <strong>${d.noiDungChuyenKhoan}</strong>, hoặc trả lời thư này tới <a href="mailto:${d.supportEmail}" style="color:#1b3a6b">${d.supportEmail}</a> để được xử lý tay.</p>
+<p style="margin:0 0 12px;color:#667085">Bạn có thể chuyển thêm đúng số còn thiếu với nội dung <strong>${d.noiDungChuyenKhoan}</strong>, hoặc trả lời thư này tới <a href="mailto:${d.supportEmail}" style="color:#3f6212">${d.supportEmail}</a> để được xử lý tay.</p>
 <p style="margin:0;color:#667085">Gói chưa được cấp cho tới khi nhận đủ tiền.</p>`,
   );
   return { subject: `Đơn ${d.orderCode} còn thiếu tiền — MapsLibVN`, html, text };
@@ -120,7 +120,7 @@ export function mauBaoAdminThieuTien(d: {
   ]);
   const html = KHUNG_HTML(
     `<p style="margin:0 0 12px">Đơn <strong>${d.orderCode}</strong> của <strong>${d.tenTenant}</strong> chuyển thiếu: cần ${dinhDangVnd(d.amountVnd)}, đã nhận ${dinhDangVnd(d.daNhan)}.</p>
-<p style="margin:0"><a href="${d.adminUrl}" style="color:#1b3a6b">Mở màn đơn hàng</a></p>`,
+<p style="margin:0"><a href="${d.adminUrl}" style="color:#3f6212">Mở màn đơn hàng</a></p>`,
   );
   return { subject: `[Admin] Đơn ${d.orderCode} chuyển thiếu`, html, text };
 }
@@ -153,7 +153,7 @@ export function mauNhacHan(d: {
   ]);
   const html = KHUNG_HTML(
     `<p style="margin:0 0 20px">${cau}</p>
-${d.consoleUrl ? `<p style="margin:0"><a href="${d.consoleUrl}" style="display:inline-block;background:#1b3a6b;color:#fff;text-decoration:none;padding:12px 20px;border-radius:9px;font-weight:600">Gia hạn</a></p>` : ''}`,
+${d.consoleUrl ? `<p style="margin:0"><a href="${d.consoleUrl}" style="display:inline-block;background:#a3e635;color:#0a0a0a;text-decoration:none;padding:12px 20px;border-radius:8px;font-weight:600">Gia hạn</a></p>` : ''}`,
   );
   return { subject: tieuDe, html, text };
 }

@@ -23,12 +23,13 @@ export function Card({ className, interactive, ...props }: CardProps) {
           // gần nhất phía trên.
           'relative transition duration-150 ease-out',
           // Nổi khối: dịch lên nửa bậc + bóng đổ. Bóng đen gần như vô hình trên nền tối, nên viền
-          // đổi màu thương hiệu là tín hiệu chính ở bản tối, bóng chỉ là phần thêm.
-          'hover:-translate-y-0.5 hover:border-brand-500 hover:shadow-lg',
+          // đổi màu thương hiệu là tín hiệu chính ở bản tối, bóng chỉ là phần thêm. Dùng
+          // --accent-text chứ không --accent: viền là NÉT, mà --accent trên nền sáng chỉ đạt 1,4:1.
+          'hover:-translate-y-0.5 hover:border-accent-text hover:shadow-lg',
           // Bấm xuống thì lún lại: cử chỉ có phản hồi hai chiều mới giống một khối thật.
           'active:translate-y-0 active:shadow-sm active:duration-75',
           // Bàn phím thấy đúng thứ chuột thấy, vì tiêu điểm rơi vào nút bên trong chứ không vào thẻ.
-          'has-[:focus-visible]:-translate-y-0.5 has-[:focus-visible]:border-brand-500 has-[:focus-visible]:shadow-lg',
+          'has-[:focus-visible]:-translate-y-0.5 has-[:focus-visible]:border-accent-text has-[:focus-visible]:shadow-lg',
           // Ai tắt hiệu ứng chuyển động thì chỉ còn đổi màu viền và bóng, thẻ đứng yên.
           'motion-reduce:transition-none motion-reduce:hover:translate-y-0 motion-reduce:has-[:focus-visible]:translate-y-0',
         ],

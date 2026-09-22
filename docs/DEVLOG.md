@@ -3704,3 +3704,171 @@ endpoint ma trận; bảng so sánh Google/VIETMAP khớp `COMPARISON` 14/09; m�
 Kiểm: vitest `apps/site` 39/39, `astro check` 0 lỗi, biome sạch, `astro build` 11 trang, Playwright
 26/26 (thêm hai bài: bốn tab có đủ nội dung peer, và trang chủ có bốn thẻ giá kèm gói dùng thử). Chưa
 commit — chờ PHONG duyệt.
+
+## 29. Giao diện mới — pha 0: token, chữ, sáng/tối — 22/09/2026
+
+Spec `2026-09-22-thiet-ke-lai-giao-dien-design.md`, plan `2026-09-22-giao-dien-pha-0-nen-tang.md`,
+nhánh `feat/giao-dien-moi`. Bố cục **chưa đổi** — đó là pha 1; pha này chỉ thay nền tảng.
+
+**`@theme inline` là bắt buộc, và đã đo chứ không đoán.** Với `@theme` thường, `--color-bg: var(--bg)`
+được tính MỘT lần tại `:root` rồi kế thừa giá trị đã giải xuống, nên `.dark` không đổi được màu
+utility mà không có lỗi nào. Cách phân biệt rẻ: build rồi soi CSS — `inline` thì `--color-accent`
+KHÔNG được phát ra `:root`, trong khi `--radius-btn` của `@theme` thường vẫn phát. Kiểm tiếp ở bản
+build của console: `.bg-accent{background-color:var(--accent)}` trỏ thẳng token thô.
+
+**Bài kiểm tương phản đọc thẳng `tokens.css` và nó bắt ngay hai lỗi thật ở bản sáng.** Cả hai được
+sửa chứ không nới ngưỡng: `--accent` (#a3e635) chỉ đạt 1,4:1 trên nền sáng nên tách vai trò —
+`--accent` chỉ làm NỀN kèm chữ `--accent-ink`, còn mọi chữ, viền nhấn và nét vẽ dùng `--accent-text`
+(#3f6212 ở bản sáng, trùng `--accent` ở bản tối); `--border-strong` bản sáng #d4d4d8 cũng chỉ 1,4:1
+nên hover gần như không thấy, đổi sang #a1a1aa (2,5:1).
+
+**Ngân sách font đo thật.** Nét 800 (33,9 KB) cộng HAI nét JetBrains Mono (42,0 KB) là 75,9 KB, vượt
+trần 60 KB của spec. Nên chỉ lấy mono nét 400 và cho nhãn mono dùng luôn nét đó: 54,6 KB, đồng thời
+tránh chữ đậm GIẢ mà trình duyệt bịa khi thiếu nét — thứ nhoè rõ ở cỡ 12 px.
+
+**Site tối mặc định, bỏ đọc `prefers-color-scheme`.** Phần lớn khách đặt máy sáng nên sẽ không bao
+giờ thấy bản tối, tức không bao giờ thấy thiết kế thật. Chỉ ai tự chọn 'light' mới ra bản sáng.
+`theme-color` đổi theo class ở cả script khởi tạo lẫn công tắc. Preload hai tệp woff2 nét 800; kiểm
+bản dựng thấy href trùng đúng tệp mà CSS @fontsource tham chiếu nên không nhân đôi asset.
+
+**Ba cái bẫy đã vấp, ghi lại để lần sau khỏi mất thời gian:**
+- `apps/console` build với `emptyOutDir: false` nên CSS CŨ tích lại trong `apps/admin/dist/console`.
+  Soi `find ... | head -1` là gặp bản của hôm trước và kết luận sai. Phải `ls -t ... | head -1`.
+- `--force` là cờ của **turbo**, không phải của tsc: `pnpm --filter X typecheck --force` nổ TS5093.
+- grep `"brand-"` CÓ gạch bỏ sót lớp `bg-brand` mà một bài test console đang khẳng định.
+
+**Ngoài lề nhưng chặn cổng:** `work/` đã nằm trong `.gitignore` nhưng biome vẫn quét, nên 151 lỗi từ
+các tệp HTML tải về của việc POI làm `pnpm lint` đỏ sẵn từ trước. Đã loại `**/work` khỏi
+`files.includes`. Lint giờ xanh toàn repo.
+
+**Còn nợ, ngoài phạm vi spec:** màu navy #1b3a6b vẫn nằm ở mẫu email (`apps/api/src/email/*`), màu
+nhãn của style bản đồ (`packages/style/src/transform.mjs`), chấm vị trí trên bản đồ sửa POI của
+Admin, và ba favicon. Favicon và ảnh OG đã có trong pha 3; ba chỗ còn lại spec chưa tính đến, cần
+PHONG quyết có đổi hay không.
+
+Cổng: lint xanh toàn repo; vitest 354/354 (59 tệp); typecheck ui/admin/console/site đều 0 lỗi; build
+admin, console, site (11 trang); Playwright site 28/28. Ảnh hai theme ở
+`docs/evidence/site-redesign/pha-0/`. Chưa push.
+
+## 30. Giao diện mới — pha 1: trang chủ — 22/09/2026
+
+Plan `2026-09-22-giao-dien-pha-1-trang-chu.md`, cùng nhánh `feat/giao-dien-moi`. Trang chủ theo
+spec mục 5: hero căn giữa không ảnh (LCP là h1), bản đồ trải ngang, bento sáu ô, bốn cách nhúng,
+giá bốn thẻ, FAQ hai cột, CTA. Component mới: `Nhan`, `Nut`, `The`, `SoLieu`, `Bento`/`BentoO`,
+`BanDoSong`; `Feature.astro` bị xoá. **Năm trang con vẫn bố cục cũ** — đó là pha 2.
+
+**Bản đồ nạp sau LẦN CUỘN ĐẦU, không chỉ theo giao cắt.** Ở 1280×720 khối bản đồ đã nằm trong
+viewport ngay lúc mở trang, nên `IntersectionObserver` thuần sẽ nạp luôn 1,1 MB SDK và mất đúng lời
+hứa "mở trang không kéo một byte nào của playground". Điều kiện thật là *đã lộ ≥ 25 %* **và** *người
+dùng đã cuộn ít nhất một lần*; vẫn có nút cho ai không cuộn. e2e khoá cả ba đường.
+
+**Task 7 phải làm trước Task 5.** Hero cũ mang đúng hai id `khoi-ban-do` và `nut-ban-do` mà
+`BanDoSong` dùng. Để hai khối cùng tồn tại thì `getElementById` trả về khối của Hero, script mới
+điều khiển nhầm phần tử, còn Playwright báo "strict mode violation". Plan đã ghi lại thứ tự đúng.
+
+**`set:html` để tô tên hàm là chỗ dễ tự bắn vào chân.** Mẫu mã của tab "Thẻ script" chứa
+`<script src=…>`; không thoát HTML TRƯỚC khi chèn thẻ `<b>` thì trang tự chèn một thẻ script thật.
+Kiểm bản dựng: 0 thẻ thật lọt, `&lt;script src=` được thoát đúng.
+
+**Ba gợi ý trong ô tìm kiếm minh hoạ là kết quả THẬT.** Truy vấn không dấu `nha tho duc ba`, đọc từ
+autocomplete production qua playground **bằng trình duyệt** để SDK tự ACK receipt. Dòng phụ là đơn
+vị hành chính hiện hành sau sắp xếp 2025 — đúng thứ trang đang muốn khoe.
+
+**Sự cố tự gây, đã đóng:** trước đó tôi gọi REST trần bằng `curl` với khoá demo nhiều lần mà không
+ACK receipt, làm tenant nội bộ bị khoá `ack_required` (429) — tìm kiếm và chỉ đường trên playground
+của trang tài liệu hỏng với mọi khách, còn bản đồ/style/ghi nguồn vẫn 200. PHONG mở khoá bằng Admin
+→ /billing → "Mở khoá receipt". Quy tắc từ nay: lấy dữ liệu ví dụ qua trình duyệt điều khiển bằng
+Playwright, không `curl` endpoint có kiểm khoá.
+
+Cổng: lint xanh toàn repo, vitest 98/98 (site + ui), `astro check` 0 lỗi, build 11 trang, Playwright
+site 31/31, không mã màu cứng nào trong `apps/site/src` ngoài hai giá trị theme-color. Bốn ảnh
+nghiệm thu (tối/sáng × 1280/390) ở `docs/evidence/site-redesign/pha-1/`. Chưa push — chờ PHONG
+duyệt bằng mắt trước khi sang pha 2.
+
+## 31. Giao diện mới — pha 2: năm trang con — 22/09/2026
+
+Plan `2026-09-22-giao-dien-pha-2-trang-con.md`, cùng nhánh. Mỗi trang giờ có một **dạng nội dung
+chủ đạo riêng** (spec mục 6), hết cảnh trang nào cũng là một cột chữ:
+
+- **Tính năng**: mục lục dính + sáu hàng xen kẽ, mỗi hàng kèm bằng chứng nhìn được (ảnh bản đồ theo
+  theme, bảng 13 nhóm, ô gợi ý, JSON geocode, SVG tuyến + ba chặng tiếng Việt, danh sách gói npm).
+- **Bảng giá**: thanh ước tính nhập số lượt → gói nhỏ nhất đủ dùng, cộng bảng đối chiếu tám hàng.
+- **Hai trang so sánh**: một bảng đối đầu thay hai danh sách dài; ô thắng tô màu nhấn kể cả khi bên
+  thắng là đối thủ (Google thắng 6 hàng, VIETMAP thắng 4).
+- **Bài viết**: bài mới nhất thành khối dẫn, còn lại là hàng gọn; trang bài có mục lục riêng sinh từ
+  h2 của chính bài.
+- **Liên hệ**: hai cột, số điện thoại là thứ duy nhất được viền nhấn.
+
+**Hai bài kiểm bắt lỗi thật, và cả hai đều là lỗi của tôi chứ không phải của mã:**
+
+- `The.astro` **không chuyển tiếp thuộc tính lạ**. `<The data-… hidden>` im lặng mất cả `data-*` lẫn
+  `hidden`, nên script của thanh ước tính không bao giờ tìm thấy khối: trang vẫn hiện, ô nhập vẫn
+  gõ được, chỉ là không phản hồi. Không có e2e thì lỗi này lọt thẳng ra production.
+- Bài e2e đầu tiên tôi viết cho thanh ước tính **sai chính luật mình vừa cài**: nhập 20.000 Places
+  mà quên hạ lượt tuyến nên vẫn ra Professional. Mã đúng, test sai. Đã sửa test và khoá luôn luật
+  "hai nhóm hạn mức độc lập" thành một khẳng định riêng.
+- Bài e2e **cũ** bắt được một lỗi trợ năng: bản viết lại biến hai tiêu đề thẻ liên hệ thành `<span>`,
+  mất cấu trúc tiêu đề mà trình đọc màn hình dùng để nhảy khối. Đã trả lại `<h2>`.
+
+**Hai chỗ sửa sau khi nhìn ảnh:** trang Tính năng dùng ảnh bản đồ SÁNG trên nền tối (một mảng trắng
+chói, nói sai về sản phẩm) — đổi sang hai ảnh theo theme; và thẻ giá ghi "0đ / 1 tháng" cho gói dùng
+thử, trong khi nó là tổng 30 ngày chứ không phải thuê bao tháng — nhãn của gói này giờ cố định và
+script đổi kỳ bỏ qua nó.
+
+`doi-dau.ts` có `CHUA_CO` làm **nguồn duy nhất** cho cả mục "Những thứ chưa có" lẫn bài kiểm chống
+tự nhận thắng, nên hai chỗ không thể lệch nhau; cộng một bài đòi mỗi bảng có ít nhất hai hàng đối
+thủ thắng, để trang so sánh do chính người bán viết không lặng lẽ biến thành quảng cáo.
+
+Cổng: lint xanh toàn repo, vitest 111/111, `astro check` 0 lỗi, build 11 trang, Playwright site
+39/39, không mã màu cứng, **không trang nào cuộn ngang ở 390 px**. 21 ảnh nghiệm thu (7 trang × 2
+theme ở 1280 + 7 trang ở 390) ở `docs/evidence/site-redesign/pha-2/`. Chưa push.
+
+## 32. Giao diện mới — pha 3: lan thương hiệu, và toàn bộ việc kết thúc — 22/09/2026
+
+Plan `2026-09-22-giao-dien-pha-3-lan-thuong-hieu.md`. Khách đi từ website sang cổng khách hàng,
+sang trang tài liệu và nhận email đều thấy cùng một thương hiệu.
+
+**Console tối mặc định.** `readStoredTheme` truyền `'dark'`. Trang Admin KHÔNG đổi: đó là công cụ
+nội bộ nhiều bảng dữ liệu, dùng lâu, nên để theo cài đặt máy (quyết định 7 của spec).
+
+**Tài liệu Starlight: phải ghi vào `localStorage`, không chỉ đặt `data-theme`.** Script `head` chạy
+TRƯỚC `StarlightThemeProvider`, mà provider đó đọc localStorage rồi rơi về `prefers-color-scheme` và
+ghi đè `data-theme` ngay sau đó — đặt `data-theme` thôi thì bị xoá trong cùng một khung hình mà
+không có lỗi nào. Đo trên bản dựng: máy đặt sáng chưa chọn gì → `theme=dark`, `accent=#a3e635`; đã
+chọn sáng → `theme=light`, `accent=#3f6212`.
+
+**Ảnh OG đổi tên thành `-v2`.** Mạng xã hội cache ảnh OG theo URL; giữ tên cũ thì bản navy còn sống
+trong bộ nhớ đệm của Facebook và Zalo rất lâu sau khi đã đổi. Hai bài kiểm SEO còn ghi tên cũ đã
+được cập nhật theo.
+
+**Email và một chấm trên bản đồ Admin — ngoài spec nhưng làm luôn.** Email là thứ khách nhận trực
+tiếp; để navy trong khi mọi mặt tiền khác đã đổi là thương hiệu lệch rõ. Nút email nền xanh chanh
+chữ mực đen, còn link và chữ nhấn dùng ô liu đậm `#3f6212` vì email đọc trên nền TRẮNG của hộp thư.
+Cùng lý do cho chấm vị trí mới trên bản đồ sửa POI (`#4d7c0f`).
+
+**Cố ý KHÔNG đụng `packages/style/src/transform.mjs`.** Đó là màu nhãn trên bản đồ — một bài toán
+đọc được của bản đồ, không phải màu thương hiệu — và đổi nó buộc phải dựng lại style rồi nghiệm thu
+riêng. Đây là chỗ duy nhất còn `#1b3a6b` trong repo.
+
+### Nghiệm thu toàn bộ ba pha
+
+| Cổng | Kết quả |
+|---|---|
+| `pnpm lint` | xanh toàn repo |
+| `pnpm exec vitest run` | 2.066 đạt, 5 bỏ qua, 220 tệp |
+| typecheck site / console / admin / ui | 0 lỗi |
+| build site / console / admin / docs | xong |
+| Playwright site | 39/39 |
+| `pnpm --filter @mapslibvn/api test` | 773/773 |
+| `#1b3a6b` còn lại | chỉ `packages/style/src/transform.mjs`, cố ý |
+
+Ảnh nghiệm thu: pha 0 hai ảnh, pha 1 bốn ảnh, pha 2 hai mươi mốt ảnh, pha 3 bốn ảnh, ở
+`docs/evidence/site-redesign/`. **Chưa push** — chờ PHONG duyệt rồi merge.
+
+### Còn nợ sau khi merge
+
+- Deploy: workflow `deploy-site.yml` tự chạy khi `apps/site/**` đổi; **console và docs phải deploy
+  tay hoặc qua workflow riêng của chúng**, và nhớ bài học cũ: CI Deploy Docs xoá khoá demo nên phải
+  deploy tay đè lại, nếu không playground production trả 401.
+- Ảnh OG mới chỉ lên khi site deploy; muốn Facebook/Zalo nhả cache sớm thì quét lại URL bằng công cụ
+  gỡ lỗi của họ.

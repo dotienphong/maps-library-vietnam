@@ -42,6 +42,25 @@ export default defineConfig({
       defaultLocale: 'root',
       locales: { root: { label: 'Tiếng Việt', lang: 'vi' } },
       customCss: ['./src/styles/custom.css'],
+      /**
+       * TỐI là mặc định, đồng bộ với website và cổng khách hàng (spec 22/09 mục 4.5). Starlight
+       * vốn theo `prefers-color-scheme`, nên phần lớn khách đặt máy sáng sẽ không bao giờ thấy
+       * bản tối.
+       *
+       * Phải GHI VÀO `localStorage['starlight-theme']` chứ không chỉ đặt `data-theme`: script này
+       * nằm trước `StarlightThemeProvider` trong <head>, mà provider đó đọc localStorage rồi rơi
+       * về `prefers-color-scheme` và ghi đè `data-theme` ngay sau đó. Đặt data-theme thôi thì bị
+       * xoá trong cùng một khung hình mà không có lỗi nào — đã đo trên bản dựng.
+       *
+       * Chỉ ghi khi người dùng CHƯA chọn gì, nên công tắc của Starlight vẫn thắng về sau.
+       */
+      head: [
+        {
+          tag: 'script',
+          content:
+            "(function(){try{if(!localStorage.getItem('starlight-theme'))localStorage.setItem('starlight-theme','dark')}catch(e){document.documentElement.dataset.theme='dark'}})()",
+        },
+      ],
       sidebar: [
         {
           label: 'Giới thiệu',

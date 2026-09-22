@@ -14,7 +14,12 @@ const THU_MUC_OG = resolve(GOC, 'apps/site/public/og');
 // JPEG chứ không PNG: đây là ảnh raster nhiều màu như một tấm ảnh chụp, PNG cho ra tệp nặng gấp
 // gần mười lần mà mắt không thấy khác. Astro vẫn chuyển sang AVIF/WebP lúc build, tệp này chỉ là
 // bản gốc nằm trong repo.
-const ANH_HERO = resolve(GOC, 'apps/site/src/assets/ban-do-hero.jpg');
+// HAI ảnh chỗ giữ cho khối bản đồ trải ngang: bản tối là mặc định của site, bản sáng cho ai chọn
+// sáng. Playground nhận `style=dark|light` qua URL (playground-lib.js `fromSearchParams`).
+const ANH_HERO = [
+  { tep: resolve(GOC, 'apps/site/src/assets/ban-do-hero.jpg'), style: 'light' },
+  { tep: resolve(GOC, 'apps/site/src/assets/ban-do-hero-dark.jpg'), style: 'dark' },
+];
 // pnpm không nâng dependency lên node_modules gốc, nên font nằm trong node_modules của chính
 // apps/site. Nhúng vào HTML dạng base64 để ảnh OG có dấu tiếng Việt vẽ đúng.
 // Phải nhúng CẢ hai nét và CẢ hai dải:
@@ -22,7 +27,7 @@ const ANH_HERO = resolve(GOC, 'apps/site/src/assets/ban-do-hero.jpg');
 //   - thiếu dải `latin` thì mọi ký tự ASCII ("MapsLibVN", chữ số) rơi về font hệ thống, vì tệp
 //     `vietnamese-*` chỉ chứa ký tự riêng của tiếng Việt. Cùng cái bẫy đã gặp ở global.css.
 const THU_MUC_FONT = resolve(GOC, 'apps/site/node_modules/@fontsource/be-vietnam-pro/files');
-const FONT_NET = [400, 700];
+const FONT_NET = [400, 800];
 const FONT_DAI = ['latin', 'vietnamese'];
 
 /**
@@ -43,7 +48,7 @@ const FONT_DAI = ['latin', 'vietnamese'];
  * @typedef {{ net: number, b64: string }} NetFont
  */
 
-/** Bốn ảnh OG. `ten` phải KHỚP trường `og` trong apps/site/src/lib/trang.ts. */
+/** Bốn ảnh OG. `ten` + `-v2` phải KHỚP trường `og` trong apps/site/src/lib/trang.ts. */
 const ANH_OG = [
   { ten: 'mac-dinh', tieuDe: 'MapsLibVN', phu: 'API bản đồ và địa điểm Việt Nam' },
   {
@@ -86,13 +91,18 @@ function trangOg({ tieuDe, phu }, fontBase64) {
     justify-content: space-between; padding: 72px;
     /* Nền PHẲNG chứ không chuyển màu: PNG nén dải chuyển màu rất kém, một tấm gradient nặng gấp
        gần mười lần cùng nội dung trên nền phẳng. */
-    background: #1b3a6b;
-    color: #fff; font-family: 'Be Vietnam Pro', sans-serif; font-weight: 400;
+    background: #0a0a0a;
+    color: #fafafa; font-family: 'Be Vietnam Pro', sans-serif; font-weight: 400;
   }
-  .nhan { font-size: 28px; letter-spacing: .04em; opacity: .85; font-weight: 700; }
-  .gach { width: 120px; height: 8px; background: #fff; opacity: .9; border-radius: 4px; }
-  h1 { margin-top: 28px; font-size: 62px; line-height: 1.16; max-width: 17ch; font-weight: 700; }
-  .phu { font-size: 29px; opacity: .85; }
+  .nhan { font-size: 28px; letter-spacing: .04em; color: #a1a1aa; font-weight: 800; }
+  /* Gạch nhấn là chỗ DUY NHẤT dùng xanh chanh trên ảnh này — cùng quy tắc một màu nhấn cho một
+     việc như trên website. */
+  .gach { width: 120px; height: 8px; background: #a3e635; border-radius: 4px; }
+  h1 {
+    margin-top: 28px; font-size: 62px; line-height: 1.06; max-width: 17ch;
+    font-weight: 800; letter-spacing: -.03em;
+  }
+  .phu { font-size: 29px; color: #a1a1aa; }
 </style></head>
 <body>
   <div class="nhan">MapsLibVN</div>
@@ -121,10 +131,12 @@ async function sinhAnhOg(chromium) {
       await trang.setContent(trangOg(anh, fontBase64), { waitUntil: 'load' });
       // Chờ font nạp xong, nếu không chữ có dấu bị vẽ bằng font dự phòng rồi mới đổi.
       await trang.evaluate(() => document.fonts.ready);
-      const duong = resolve(THU_MUC_OG, `${anh.ten}.png`);
+      // Tên có hậu tố phiên bản: mạng xã hội cache ảnh OG theo URL, giữ tên cũ thì bản navy còn
+      // sống trong bộ nhớ đệm của Facebook/Zalo rất lâu sau khi đã đổi.
+      const duong = resolve(THU_MUC_OG, `${anh.ten}-v2.png`);
       await trang.screenshot({ path: duong });
       const { size } = await stat(duong);
-      console.log(`  og/${anh.ten}.png — ${Math.round(size / 1024)} KB`);
+      console.log(`  og/${anh.ten}-v2.png — ${Math.round(size / 1024)} KB`);
     }
   } finally {
     await trinhDuyet.close();
@@ -134,22 +146,25 @@ async function sinhAnhOg(chromium) {
 /** @param {Chromium} chromium */
 async function chupHero(chromium) {
   const { DOCS_URL } = await import('../apps/site/site.config.mjs');
-  const url = `${DOCS_URL}/playground.html?embed=1`;
-  await mkdir(dirname(ANH_HERO), { recursive: true });
   const trinhDuyet = await chromium.launch();
   try {
-    // 1,5 lần là đủ cho màn hình mật độ cao ở bề ngang tối đa 960 px mà Hero khai trong `sizes`;
-    // gấp đôi chỉ làm tệp gốc nặng thêm mà không ai thấy khác.
-    const trang = await trinhDuyet.newPage({
-      viewport: { width: 1280, height: 720 },
-      deviceScaleFactor: 1.5,
-    });
-    await trang.goto(url, { waitUntil: 'networkidle', timeout: 60_000 });
-    // Tile vẽ xong sau khi mạng im: chờ thêm để bản đồ không bị chụp lúc còn loang lổ.
-    await trang.waitForTimeout(4_000);
-    await trang.screenshot({ path: ANH_HERO, type: 'jpeg', quality: 82 });
-    const { size } = await stat(ANH_HERO);
-    console.log(`  ${basename(ANH_HERO)} — ${Math.round(size / 1024)} KB`);
+    for (const { tep, style } of ANH_HERO) {
+      await mkdir(dirname(tep), { recursive: true });
+      // 1600×700: khối bản đồ trải ngang cao 520 px trong khung 1200, ảnh gốc rộng hơn một bậc là
+      // đủ cho màn hình mật độ cao mà không phình tệp.
+      const trang = await trinhDuyet.newPage({ viewport: { width: 1600, height: 700 } });
+      // `load` + chờ cố định chứ KHÔNG `networkidle`: playground có nhịp hỏi lại nhẹ nên networkidle
+      // có thể không bao giờ tới. Dùng `/playground` chứ không `/playground.html` (đích 308).
+      await trang.goto(`${DOCS_URL}/playground?embed=1&style=${style}`, {
+        waitUntil: 'load',
+        timeout: 60_000,
+      });
+      // Tile vẽ xong sau khi tải: chờ thêm để bản đồ không bị chụp lúc còn loang lổ.
+      await trang.waitForTimeout(6_000);
+      await trang.screenshot({ path: tep, type: 'jpeg', quality: 82 });
+      const { size } = await stat(tep);
+      console.log(`  ${basename(tep)} (${style}) — ${Math.round(size / 1024)} KB`);
+    }
   } finally {
     await trinhDuyet.close();
   }

@@ -1,0 +1,109 @@
+---
+import { Picture } from 'astro:assets';
+import { DOCS_URL } from '../../site.config.mjs';
+import sang from '../assets/ban-do-hero.jpg';
+import toi from '../assets/ban-do-hero-dark.jpg';
+import Nut from './Nut.astro';
+import OGoiY from './OGoiY.astro';
+
+/**
+ * Khối bản đồ trải ngang dưới hero (spec 5.3). Lúc mở trang chỉ có ảnh tĩnh + ô tìm kiếm vẽ bằng
+ * HTML. iframe playground (1,1 MB SDK + tiles) chỉ được tạo khi người dùng cuộn lần đầu và khối đã
+ * lộ ≥ 25 %, hoặc khi bấm nút. Kích thước khối cố định nên CLS = 0.
+ */
+const srcToi = `${DOCS_URL}/playground?embed=1&style=dark`;
+const srcSang = `${DOCS_URL}/playground?embed=1&style=light`;
+const ALT =
+  'Bản đồ khu vực trung tâm Thành phố Hồ Chí Minh do MapsLibVN dựng, nhãn đường và địa điểm bằng tiếng Việt';
+---
+
+<section aria-labelledby="tt-ban-do" class="py-4">
+  <h2 id="tt-ban-do" class="sr-only">Bản đồ tương tác</h2>
+  <div class="mx-auto max-w-[1200px] sm:px-6">
+    <div
+      id="khoi-ban-do"
+      data-src-toi={srcToi}
+      data-src-sang={srcSang}
+      class="relative h-[360px] overflow-hidden border-y border-border bg-surface-2 sm:h-[520px] sm:rounded-[var(--radius-card)] sm:border"
+    >
+      {/* Hai ảnh; ảnh không thuộc theme hiện tại bị display:none nên trình duyệt không tải nó. */}
+      <Picture
+        src={toi}
+        alt={ALT}
+        widths={[640, 960, 1280, 1600]}
+        sizes="(max-width: 1200px) 100vw, 1200px"
+        formats={['avif', 'webp']}
+        loading="lazy"
+        decoding="async"
+        class="absolute inset-0 hidden h-full w-full object-cover dark:block"
+      />
+      <Picture
+        src={sang}
+        alt={ALT}
+        widths={[640, 960, 1280, 1600]}
+        sizes="(max-width: 1200px) 100vw, 1200px"
+        formats={['avif', 'webp']}
+        loading="lazy"
+        decoding="async"
+        class="absolute inset-0 h-full w-full object-cover dark:hidden"
+      />
+
+      <OGoiY class="absolute left-4 top-4 w-[min(360px,calc(100%-2rem))]" />
+
+      <div class="absolute bottom-4 right-4">
+        <Nut id="nut-ban-do" kieu="phu" class="bg-surface">Mở bản đồ tương tác</Nut>
+      </div>
+    </div>
+    <p class="t-small mt-3 px-4 text-center text-muted sm:px-0">
+      Bản đồ thật do MapsLibVN phục vụ.
+      <a class="text-accent-text underline" href={`${DOCS_URL}/playground`}>Mở trang thử đầy đủ →</a>
+    </p>
+  </div>
+</section>
+
+<script>
+  const khoi = document.getElementById('khoi-ban-do');
+  const nut = document.getElementById('nut-ban-do');
+
+  const nap = () => {
+    if (!khoi || khoi.dataset.daNap) return;
+    khoi.dataset.daNap = '1';
+    const toi = document.documentElement.classList.contains('dark');
+    const src = toi ? khoi.dataset.srcToi : khoi.dataset.srcSang;
+    if (!src) return;
+    const khung = document.createElement('iframe');
+    khung.src = src;
+    khung.title = 'Bản đồ MapsLibVN tương tác';
+    khung.loading = 'lazy';
+    khung.className = 'absolute inset-0 h-full w-full border-0';
+    khoi.replaceChildren(khung);
+  };
+
+  nut?.addEventListener('click', nap);
+
+  // Điều kiện nạp: khối đã lộ ≥ 25 % VÀ người dùng đã cuộn ít nhất một lần. Chỉ giao cắt thì
+  // KHÔNG đủ — ở 1280×720 khối đã nằm trong viewport ngay lúc mở trang, sẽ nạp luôn và mất đúng
+  // lời hứa "mở trang không kéo một byte nào của playground".
+  if (khoi && 'IntersectionObserver' in window) {
+    let daLo = false;
+    let daCuon = false;
+    const thu = () => {
+      if (daLo && daCuon) nap();
+    };
+    const io = new IntersectionObserver(
+      (muc) => {
+        daLo = muc.some((m) => m.isIntersecting);
+        thu();
+      },
+      { threshold: 0.25 },
+    );
+    io.observe(khoi);
+    const cuon = () => {
+      daCuon = true;
+      thu();
+    };
+    window.addEventListener('scroll', cuon, { passive: true, once: true });
+    window.addEventListener('wheel', cuon, { passive: true, once: true });
+    window.addEventListener('touchmove', cuon, { passive: true, once: true });
+  }
+</script>

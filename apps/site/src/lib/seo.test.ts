@@ -29,14 +29,14 @@ describe('seoMeta', () => {
     expect(meta.og.title).toBe(TRANG.bangGia.title);
     expect(meta.og.type).toBe('website');
     expect(meta.og.url).toBe(meta.canonical);
-    expect(meta.og.image).toBe('https://mapslibvn-site.pages.dev/og/bang-gia.png');
+    expect(meta.og.image).toBe('https://mapslibvn-site.pages.dev/og/bang-gia-v2.png');
     expect(meta.og.locale).toBe('vi_VN');
     expect(meta.twitter.card).toBe('summary_large_image');
   });
 
   it('trang không khai ảnh OG thì dùng ảnh mặc định', () => {
     expect(seoMeta(TRANG.tinhNang).og.image).toBe(
-      'https://mapslibvn-site.pages.dev/og/mac-dinh.png',
+      'https://mapslibvn-site.pages.dev/og/mac-dinh-v2.png',
     );
   });
 

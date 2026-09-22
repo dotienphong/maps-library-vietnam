@@ -3,15 +3,18 @@ export type ThemeChoice = 'light' | 'dark' | 'system';
 /**
  * `storageKey` do app truyền — admin và console chạy cùng origin nên chia sẻ một localStorage; dùng
  * chung khoá thì đổi theme bên này kéo bên kia theo.
+ *
+ * `macDinh` là lựa chọn khi người dùng CHƯA chọn gì: console truyền 'dark' (spec 22/09 mục 4.5),
+ * admin để mặc định 'system'. Lựa chọn đã lưu luôn thắng.
  */
-export function readStoredTheme(storageKey: string): ThemeChoice {
+export function readStoredTheme(storageKey: string, macDinh: ThemeChoice = 'system'): ThemeChoice {
   try {
     const value = localStorage.getItem(storageKey);
     if (value === 'light' || value === 'dark') return value;
   } catch {
     // Trình duyệt chặn localStorage (chế độ riêng tư) — coi như chưa chọn.
   }
-  return 'system';
+  return macDinh;
 }
 
 export function resolveTheme(choice: ThemeChoice, prefersDark: boolean): 'light' | 'dark' {

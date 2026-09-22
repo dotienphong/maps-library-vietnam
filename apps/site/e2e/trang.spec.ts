@@ -40,14 +40,31 @@ test('đường dẫn lạ trả 404 và trang 404 vẫn dùng được', async 
   await expect(page.getByRole('link', { name: 'Trang chủ' }).first()).toBeVisible();
 });
 
-test('bản đồ hero chỉ nạp iframe sau khi bấm', async ({ page }) => {
+test('bản đồ trải ngang: không iframe khi mở, nạp bản tối sau lần cuộn đầu', async ({ page }) => {
   await page.goto('/');
-  // Trước khi bấm: KHÔNG có iframe nào. Đây là lời hứa về tốc độ tải, nên phải có bài khoá lại.
+  // Lời hứa về tốc độ tải: mở trang không kéo một byte nào của playground.
   await expect(page.locator('iframe')).toHaveCount(0);
+  await expect(page.locator('#khoi-ban-do img').first()).toBeVisible();
 
-  await page.getByRole('button', { name: /Bấm để mở bản đồ/ }).click();
+  await page.mouse.wheel(0, 400);
   await expect(page.locator('iframe')).toHaveCount(1);
-  await expect(page.locator('iframe')).toHaveAttribute('title', /Bản đồ MapsLibVN/);
+  const khung = page.locator('iframe');
+  await expect(khung).toHaveAttribute('src', /\/playground\?embed=1&style=dark$/);
+  await expect(khung).toHaveAttribute('title', /Bản đồ MapsLibVN/);
+});
+
+test('bản sáng nạp bản đồ sáng', async ({ page }) => {
+  await page.goto('/');
+  await page.evaluate(() => localStorage.setItem('mapslibvn-site-theme', 'light'));
+  await page.reload();
+  await page.mouse.wheel(0, 400);
+  await expect(page.locator('iframe')).toHaveAttribute('src', /style=light$/);
+});
+
+test('nút "Mở bản đồ tương tác" nạp ngay không cần cuộn', async ({ page }) => {
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Mở bản đồ tương tác' }).click();
+  await expect(page.locator('iframe')).toHaveCount(1);
 });
 
 test('điện thoại: ngăn kéo mở, đi được tới trang, và mọi mục đều bấm tới nơi', async ({ page }) => {
@@ -142,7 +159,25 @@ test('bốn tab mã nhúng đổi được bằng chuột và bàn phím', async
   );
 });
 
-test('trang chủ in đủ bốn thẻ giá, có gói dùng thử 0đ', async ({ page }) => {
+test('bento sáu ô đúng thứ tự và mỗi ô có link tài liệu', async ({ page }) => {
+  await page.goto('/');
+  const khoi = page.locator('section[aria-labelledby="tt-tinh-nang"]');
+  await expect(khoi.getByRole('heading', { level: 3 })).toHaveText([
+    'Tìm kiếm hiểu tiếng Việt',
+    'Rẻ hơn Google',
+    '164 loại địa điểm',
+    'Geocode nói thật',
+    'Dẫn đường',
+    'Bốn SDK, một API',
+  ]);
+  await expect(khoi.getByRole('link', { name: /→$/ })).toHaveCount(6);
+  // Con số rẻ hơn Google tính từ catalog, không gõ tay.
+  await expect(khoi.getByText(/^\d+–\d+%$/)).toBeVisible();
+});
+
+test('khối giá: bốn thẻ, Professional nổi bật là nút nhấn duy nhất trong khối', async ({
+  page,
+}) => {
   await page.goto('/');
   const khoi = page.locator('section[aria-labelledby="tt-gia"]');
   await expect(khoi.getByRole('heading', { level: 3 })).toHaveText([
@@ -151,20 +186,36 @@ test('trang chủ in đủ bốn thẻ giá, có gói dùng thử 0đ', async ({
     'Professional',
     'Business',
   ]);
-  await expect(khoi).toContainText('0đ');
+  await expect(khoi.getByText('Được chọn nhiều nhất')).toBeVisible();
   await expect(khoi).toContainText('2.000 lượt Places trong 30 ngày');
+  const nutNhan = khoi.locator('a.bg-accent');
+  await expect(nutNhan).toHaveCount(1);
+  await expect(nutNhan).toHaveText('Chọn Professional');
 });
 
-test('công tắc sáng tối đổi giao diện và nhớ lựa chọn', async ({ page }) => {
+test('mặc định tối bất kể cài đặt máy; chọn sáng thì nhớ', async ({ browser }) => {
+  // Mô phỏng máy đặt SÁNG để chứng minh site không còn đi theo prefers-color-scheme.
+  const ctx = await browser.newContext({ colorScheme: 'light' });
+  const page = await ctx.newPage();
   await page.goto('/');
   const html = page.locator('html');
-  const toiLucDau = await html.evaluate((el) => el.classList.contains('dark'));
+  expect(await html.evaluate((el) => el.classList.contains('dark'))).toBe(true);
+  await expect(page.locator('meta[name="theme-color"]')).toHaveAttribute('content', '#0a0a0a');
 
   await page.getByRole('button', { name: 'Đổi giao diện sáng tối' }).click();
-  await expect.poll(() => html.evaluate((el) => el.classList.contains('dark'))).toBe(!toiLucDau);
+  await expect.poll(() => html.evaluate((el) => el.classList.contains('dark'))).toBe(false);
+  await expect(page.locator('meta[name="theme-color"]')).toHaveAttribute('content', '#fafafa');
 
   await page.reload();
-  await expect.poll(() => html.evaluate((el) => el.classList.contains('dark'))).toBe(!toiLucDau);
+  expect(await html.evaluate((el) => el.classList.contains('dark'))).toBe(false);
+  await ctx.close();
+});
+
+test('đã chọn tối thì reload vẫn tối', async ({ page }) => {
+  await page.goto('/');
+  await page.evaluate(() => localStorage.setItem('mapslibvn-site-theme', 'dark'));
+  await page.reload();
+  expect(await page.locator('html').evaluate((el) => el.classList.contains('dark'))).toBe(true);
 });
 
 test('ghi nguồn dữ liệu mở có mặt ở mọi trang — đây là nghĩa vụ giấy phép', async ({ page }) => {
@@ -200,4 +251,92 @@ test('trang liên hệ có khối gọi điện riêng', async ({ page }) => {
   await expect(
     page.getByRole('main').getByRole('link', { name: '+84 983 450 456' }),
   ).toHaveAttribute('href', 'tel:+84983450456');
+});
+
+test('không còn lớp brand- nào trên bảy trang', async ({ page }) => {
+  for (const path of TRANG) {
+    await page.goto(path);
+    const con = await page.evaluate(() =>
+      [...document.querySelectorAll('[class*="brand-"]')].map((el) => el.className),
+    );
+    expect(con, `còn brand- ở ${path}`).toEqual([]);
+  }
+});
+
+test('trang Tính năng: mục lục dính và sáu hàng, mỗi hàng có bằng chứng nhìn được', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await page.goto('/tinh-nang/');
+  const mucLuc = page.getByRole('navigation', { name: 'Mục lục tính năng' });
+  await expect(mucLuc.getByRole('link')).toHaveCount(6);
+  // Mỗi hàng phải có thứ NHÌN được, không chỉ chữ — đó là điều tách trang này khỏi bản cũ.
+  await expect(page.locator('[data-bang-chung]')).toHaveCount(6);
+});
+
+test('bảng giá: thanh ước tính chỉ đúng gói theo số nhập', async ({ page }) => {
+  await page.goto('/bang-gia/');
+  const places = page.getByLabel('Lượt Places mỗi tháng');
+  const tuyen = page.getByLabel('Lượt tính tuyến mỗi tháng');
+  const ketQua = page.getByTestId('goi-goi-y');
+
+  await places.fill('120000');
+  await tuyen.fill('5000');
+  await expect(ketQua).toContainText('Business');
+
+  await places.fill('20000');
+  await tuyen.fill('2000');
+  await expect(ketQua).toContainText('Starter');
+
+  // Hai nhóm hạn mức ĐỘC LẬP: vượt tuyến là phải lên gói dù Places còn thừa rất nhiều. Đây là
+  // luật của máy chủ, không phải chi tiết giao diện, nên khoá lại.
+  await tuyen.fill('5000');
+  await expect(ketQua).toContainText('Professional');
+
+  await places.fill('500000');
+  await expect(ketQua).toContainText('liên hệ');
+});
+
+test('bảng giá: bảng đối chiếu hạn mức có cột tiêu chí và bốn cột gói', async ({ page }) => {
+  await page.goto('/bang-gia/');
+  const bang = page.getByRole('table', { name: /hạn mức/i });
+  await expect(bang.getByRole('columnheader')).toHaveCount(5);
+});
+
+test('so sánh Google: bảng đối đầu tô đúng bên thắng, không giấu chỗ thua', async ({ page }) => {
+  await page.goto('/so-sanh/google-maps-api/');
+  const bang = page.getByRole('table', { name: /đối đầu/i });
+  const hang = bang.getByRole('row').filter({ hasText: 'Street View' });
+  // Hai ô dữ liệu: [0] MapsLibVN, [1] đối thủ. Ô tiêu chí là rowheader nên không nằm trong đây.
+  await expect(hang.getByRole('cell').nth(1)).toContainText('✓');
+  await expect(hang.getByRole('cell').nth(0)).not.toContainText('✓');
+});
+
+test('so sánh VIETMAP: bảng đối đầu có cả hàng đối thủ thắng', async ({ page }) => {
+  await page.goto('/so-sanh/vietmap/');
+  const bang = page.getByRole('table', { name: /đối đầu/i });
+  await expect(bang.getByRole('row').filter({ hasText: '✓' })).not.toHaveCount(0);
+  const khaoSat = bang.getByRole('row').filter({ hasText: 'Nguồn dữ liệu' });
+  await expect(khaoSat.getByRole('cell').nth(1)).toContainText('✓');
+});
+
+test('bài viết: một bài dẫn lớn, các bài còn lại là hàng gọn', async ({ page }) => {
+  await page.goto('/bai-viet/');
+  await expect(page.getByTestId('bai-dan')).toHaveCount(1);
+  await expect(page.getByTestId('bai-hang')).toHaveCount(2);
+});
+
+test('trang bài dài có mục lục riêng ở màn rộng', async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto('/bai-viet/chi-phi-google-maps-api-cho-doanh-nghiep-viet-nam-2026/');
+  const mucLuc = page.getByRole('navigation', { name: 'Mục lục bài' });
+  await expect(mucLuc).toBeVisible();
+  await expect(mucLuc.getByRole('link').first()).toHaveAttribute('href', /^#/);
+});
+
+test('liên hệ: thẻ gọi điện được làm nổi bật hơn thẻ thư', async ({ page }) => {
+  await page.goto('/lien-he/');
+  const goi = page.getByTestId('the-goi');
+  await expect(goi).toHaveClass(/border-accent-text/);
+  await expect(page.getByTestId('the-thu')).not.toHaveClass(/border-accent-text/);
 });

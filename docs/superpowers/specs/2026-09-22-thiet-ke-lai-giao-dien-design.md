@@ -57,7 +57,7 @@ PHONG xem `mapslibvn-site.pages.dev` ngày 22/09 và nêu ba điểm, đo lại 
 
 ### 4.1. Màu
 
-Một màu nhấn duy nhất. Quy tắc cứng: **xanh chanh chỉ dùng cho một việc trên mỗi màn hình**, là thứ
+Một màu nhấn duy nhất, tách làm hai token theo vai trò: `--accent` là **màu nền** (nút, chip), `--accent-text` là **màu mực** cho mọi thứ phải đọc được hoặc nhìn thấy đường nét (chữ, link, viền nhấn, nét SVG). Bản tối hai token trùng nhau; bản sáng `--accent` chỉ đạt 1,4:1 nên không bao giờ được làm nét. Quy tắc cứng: **xanh chanh chỉ dùng cho một việc trên mỗi màn hình**, là thứ
 muốn khách nhìn thấy trước (nút chính, con số đắt giá, ô thắng trong bảng đối đầu, gói nổi bật). Link
 trong đoạn văn dùng `--accent-text`, không dùng `--accent`.
 
@@ -69,13 +69,13 @@ Token mới trong `packages/ui/src/tokens.css`, thay toàn bộ `--color-brand-*
 | `--surface` | `#111113` | `#ffffff` | thẻ, header, footer |
 | `--surface-2` | `#18181b` | `#f4f4f5` | ô bento, khối mã, hàng bảng xen kẽ |
 | `--border` | `#27272a` | `#e4e4e7` | viền mặc định |
-| `--border-strong` | `#3f3f46` | `#d4d4d8` | viền khi hover, tab đang chọn |
+| `--border-strong` | `#3f3f46` | `#a1a1aa` | viền khi hover, tab đang chọn |
 | `--text` | `#fafafa` | `#0a0a0a` | chữ chính |
 | `--text-muted` | `#a1a1aa` | `#52525b` | chữ phụ, lead |
 | `--text-faint` | `#71717a` | `#71717a` | chỉ cho chữ lớn hoặc phần trang trí (viền, dấu chấm); không dùng cho chữ < 19 px |
-| `--accent` | `#a3e635` | `#a3e635` | nền nút chính, viền ô nổi bật, số liệu |
+| `--accent` | `#a3e635` | `#a3e635` | **chỉ làm nền** (nút chính, chip), luôn đi kèm chữ `--accent-ink` |
 | `--accent-ink` | `#0a0a0a` | `#0a0a0a` | chữ đặt trên `--accent` |
-| `--accent-text` | `#a3e635` | `#3f6212` | link, chữ nhấn trên nền thường |
+| `--accent-text` | `#a3e635` | `#3f6212` | link, chữ nhấn, **viền nhấn và nét vẽ** trên nền thường |
 | `--accent-soft` | `rgba(163,230,53,.10)` | `rgba(163,230,53,.18)` | nền hover nút phụ, nền chip |
 | `--focus` | `#a3e635` | `#3f6212` | vòng focus 2 px, offset 2 px |
 
@@ -92,7 +92,8 @@ thành phần giao diện):
 | `#0a0a0a` trên `#fafafa` | 19,0:1 |
 | `#52525b` trên `#fafafa` | 7,4:1 |
 | `#3f6212` trên `#fafafa` | 6,8:1 |
-| `#a3e635` trên `#fafafa` | 1,4:1 → **cấm** dùng làm chữ ở bản sáng; chỉ làm nền nút với chữ `--accent-ink` |
+| `#a3e635` trên `#fafafa` | 1,4:1 → **cấm** làm chữ, viền hay nét vẽ ở bản sáng; chỉ làm nền với chữ `--accent-ink` |
+| `#a1a1aa` trên `#fafafa` | 2,5:1 (viền hover, không phải chữ) |
 
 Bài kiểm đơn vị đọc `tokens.css`, tính tỉ lệ cho đúng các cặp trên và đỏ nếu bất kỳ cặp nào rơi dưới
 ngưỡng (mục 10). Đổi màu về sau là phải qua bài kiểm này.
@@ -106,8 +107,10 @@ bốn app; grep `brand-` trên `apps/` và `packages/ui` phải trả 0 (trừ t
 ### 4.2. Chữ
 
 Font: **Be Vietnam Pro** 400 / 600 / 700 / **800** (thêm nét 800 từ `@fontsource/be-vietnam-pro`,
-bản đủ dải như hiện nay) và **JetBrains Mono** 400 / 600 (`@fontsource/jetbrains-mono`, chỉ cần
-subset `latin`). Mọi font tự host, `font-display: swap`, preload đúng hai tệp woff2 dùng trên màn
+bản đủ dải như hiện nay) và **JetBrains Mono** chỉ nét **400**, chỉ subset `latin`
+(`@fontsource/jetbrains-mono`). Đo 22/09: nét 800 là 33,9 KB, mỗi nét mono ~21 KB — lấy cả hai nét
+mono thì thành 75,9 KB, vượt ngân sách 60 KB ở mục 10. Nhãn mono do đó dùng nét 400, chất "nhãn"
+đến từ viết hoa, giãn chữ và màu; ép 600 khi không có nét sẽ ra chữ đậm giả, nhoè ở 12 px. Mọi font tự host, `font-display: swap`, preload đúng hai tệp woff2 dùng trên màn
 đầu (Be Vietnam Pro 800 latin + vietnamese).
 
 Quy tắc chữ máy: JetBrains Mono **chỉ cho chuỗi ASCII**: số tiền, phần trăm, mã lệnh, đường dẫn API,
@@ -127,7 +130,7 @@ Thang cỡ (desktop ≥ 1024 px / mobile < 640 px):
 | body | 17 / 16 | 400 | 0 | 1,7 | thân |
 | small | 15 / 14 | 400 | 0 | 1,5 | ghi chú, footer |
 | stat | 34 / 28 | 800 | −0,03em | 1 | con số nổi bật, màu `--accent` |
-| mono-label | 12 | 600 | +0,06em | 1 | nhãn ASCII viết hoa, màu `--text-muted` (không dùng `--text-faint`, xem 4.1) |
+| mono-label | 12 | 400 | +0,06em | 1 | nhãn ASCII viết hoa, màu `--text-muted` (không dùng `--text-faint`, xem 4.1) |
 | code | 14 / 13 | 400 | 0 | 1,6 | khối mã |
 
 Tỉ lệ display:body = 3,1×. Cột chữ đọc dài tối đa **68 ký tự** (≈ 720 px ở 17 px).
@@ -360,7 +363,8 @@ JSON-LD, mọi trang một h1, `title` ≤ 60, `description` 120–160, vùng ch
 
 **Ngân sách:** không tệp JS ngoài; JS inline toàn trang chủ < 15 KB thô (bài e2e hiện có giữ nguyên
 ngưỡng); iframe bản đồ không tính vào ngân sách site nhưng **không được nạp trước khi cuộn tới**.
-Font tải thêm tối đa 60 KB (Be Vietnam Pro 800 hai subset + JetBrains Mono latin hai nét). LCP là
+Font tải thêm tối đa 60 KB. Đo thật 22/09: Be Vietnam Pro 800 latin 21,8 + vietnamese 12,1 +
+JetBrains Mono latin 400 20,7 = **54,6 KB**. LCP là
 h1; CLS = 0 ở khối bản đồ và khối dẫn bài viết.
 
 **Kiểm đơn vị (vitest, `apps/site/src/lib`):**

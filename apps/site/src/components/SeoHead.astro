@@ -1,4 +1,8 @@
 ---
+// `?url` cho ra đường dẫn đã băm lúc build. Vite phân giải cùng một tệp nguồn với CSS của
+// @fontsource nên ra ĐÚNG một asset, không nhân đôi tệp font.
+import font800Latin from '@fontsource/be-vietnam-pro/files/be-vietnam-pro-latin-800-normal.woff2?url';
+import font800Viet from '@fontsource/be-vietnam-pro/files/be-vietnam-pro-vietnamese-800-normal.woff2?url';
 import { organizationJsonLd, type SeoTuyChon, seoMeta } from '../lib/seo';
 import type { TrangMeta } from '../lib/trang';
 
@@ -19,6 +23,12 @@ const khoi = [organizationJsonLd(), ...jsonLd];
 
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
+{/* Giá trị này là bản TỐI mặc định; script trong Base.astro đổi sang #fafafa khi đã chọn sáng,
+    và công tắc ở Header đổi theo mỗi lần bấm. */}
+<meta name="theme-color" content="#0a0a0a" />
+{/* Tiêu đề lớn dùng nét 800 ngay ở màn đầu: preload để chữ không nháy từ font dự phòng. */}
+<link rel="preload" as="font" type="font/woff2" crossorigin href={font800Latin} />
+<link rel="preload" as="font" type="font/woff2" crossorigin href={font800Viet} />
 <title>{meta.title}</title>
 <meta name="description" content={meta.description} />
 <link rel="canonical" href={meta.canonical} />

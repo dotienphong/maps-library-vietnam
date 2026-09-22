@@ -10,7 +10,11 @@
 
 **Nhánh:** `feat/giao-dien-moi` tách từ `main` (HEAD `89c9fb7` hoặc mới hơn). Mọi task commit lên nhánh này; không push cho tới cuối pha.
 
-**Lệnh chạy từ gốc repo** (`/Users/dtphong/Desktop/software_business/mapsLibVN`) trừ khi ghi khác. macOS không có `timeout`. Typecheck luôn kèm `--force` vì Turbo cache từng trả xanh giả.
+**Lệnh chạy từ gốc repo** (`/Users/dtphong/Desktop/software_business/mapsLibVN`) trừ khi ghi khác.
+macOS không có `timeout`. Cảnh giác Turbo cache trả typecheck xanh giả: `--force` là cờ của
+**turbo**, không phải của tsc — `pnpm --filter X typecheck --force` sẽ nổ `TS5093`. Muốn bỏ qua
+cache thì chạy `pnpm exec turbo run typecheck --force`, còn `pnpm --filter X typecheck` gọi tsc
+thẳng nên vốn không qua cache.
 
 **Khác spec, có lý do:**
 - Bài kiểm tương phản đặt ở `packages/ui/src/tokens.test.ts` (cạnh tệp nó kiểm) thay vì `apps/site/src/lib`.
@@ -66,14 +70,15 @@ Tạo `packages/ui/src/tokens.test.ts`:
 
 ```ts
 import { readFileSync } from 'node:fs';
-import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
 /**
  * Đọc CHÍNH tệp tokens.css thay vì chép mã màu vào test: đổi màu là phải qua bài này.
  * Chỉ tính token dạng #rrggbb; token rgba (accent-soft) là nền mờ, không dùng làm chữ.
+ *
+ * Gói này là ESM (`"type": "module"`) nên KHÔNG có `__dirname`; dùng `import.meta.url`.
  */
-const CSS = readFileSync(resolve(__dirname, 'tokens.css'), 'utf8');
+const CSS = readFileSync(new URL('./tokens.css', import.meta.url), 'utf8');
 
 function khoi(selector: string): Record<string, string> {
   const bat = new RegExp(`${selector.replace('.', '\\.')}\\s*\\{([^}]*)\\}`);
@@ -94,7 +99,7 @@ function doSang(hex: string): number {
 }
 
 /** Tỉ lệ tương phản WCAG 2.1, làm tròn một chữ số. */
-export function tuongPhan(a: string, b: string): number {
+function tuongPhan(a: string, b: string): number {
   const [s = 0, t = 0] = [doSang(a), doSang(b)].sort((x, y) => y - x);
   return Math.round(((s + 0.05) / (t + 0.05)) * 10) / 10;
 }
@@ -107,7 +112,8 @@ const CAP: readonly [string, string, number][] = [
   ['text-muted', 'bg', 4.5],
   ['text-muted', 'surface-2', 4.5],
   ['text-faint', 'bg', 3],
-  ['accent', 'bg', 3],
+  // KHÔNG kiểm `accent` trên `bg`: accent là màu NỀN, không bao giờ làm chữ hay nét. Thứ đặt
+  // trên nó là accent-ink (cặp ngay dưới); còn viền và nét nhấn dùng accent-text.
   ['accent-ink', 'accent', 4.5],
   ['accent-text', 'bg', 4.5],
   ['accent-text', 'surface', 4.5],
@@ -183,15 +189,20 @@ Ghi đè `packages/ui/src/tokens.css`:
   --surface: #ffffff;
   --surface-2: #f4f4f5;
   --border: #e4e4e7;
-  --border-strong: #d4d4d8;
+  /* Viền khi hover: phải thấy rõ hơn --border, nếu không hover là vô nghĩa.
+     #d4d4d8 chỉ đạt 1,4:1 trên nền sáng — mắt gần như không phân biệt được. */
+  --border-strong: #a1a1aa;
   --text: #0a0a0a;
   --text-muted: #52525b;
   /* Chỉ cho chữ ≥ 24 px, ≥ 19 px in đậm, hoặc phần trang trí. 4,1:1 trên nền tối. */
   --text-faint: #71717a;
+  /* CHỈ dùng làm NỀN (nút chính, chip), luôn đi kèm chữ --accent-ink. Trên nền sáng nó chỉ đạt
+     1,4:1 nên không được dùng cho chữ, viền hay nét vẽ — những thứ đó dùng --accent-text. */
   --accent: #a3e635;
   /* Chữ đặt TRÊN nền --accent. */
   --accent-ink: #0a0a0a;
-  /* Link và chữ nhấn trên nền thường. Ở bản sáng KHÔNG được là xanh chanh (1,4:1 trên trắng). */
+  /* Link, chữ nhấn, VIỀN nhấn và nét vẽ trên nền thường. Bản tối trùng --accent; bản sáng phải
+     đậm hơn hẳn để đạt ngưỡng đọc được. */
   --accent-text: #3f6212;
   --accent-soft: rgba(163, 230, 53, 0.18);
   --focus: #3f6212;
@@ -245,7 +256,17 @@ Ghi đè `packages/ui/src/tokens.css`:
 pnpm exec vitest run packages/ui/src/tokens.test.ts
 ```
 
-Expected: PASS 29 test: mỗi theme 1 bài đủ token + 12 cặp tương phản (26), cộng 3 bài chung.
+Expected: PASS 27 test: mỗi theme 1 bài đủ token + 11 cặp tương phản (24), cộng 3 bài chung.
+
+Thêm một bước xác nhận `@theme inline` thật sự có tác dụng (nếu không, `.dark` sẽ không đổi được
+màu utility mà không có lỗi nào):
+
+```bash
+pnpm --filter @mapslibvn/site build >/dev/null
+CSS=$(ls apps/site/dist/_astro/*.css | head -1)
+grep -c -- "--color-accent:" "$CSS"      # PHẢI là 0 — inline nghĩa là không phát biến ra :root
+grep -c -- "--radius-btn:8px" "$CSS"      # PHẢI ≥ 1 — @theme thường vẫn phát, chứng tỏ tệp được đọc
+```
 
 - [ ] **Step 5: Commit**
 
@@ -333,7 +354,8 @@ Trong `packages/ui/src/card.tsx`, thay hai dòng có `border-brand-500`:
 - [ ] **Step 6: Kiểm không còn brand trong gói, test xanh**
 
 ```bash
-grep -rn "brand-" packages/ui/src ; echo "exit=$?"
+# Loại tệp test: chúng CHỨA chuỗi "brand-" như dữ liệu khẳng định, không phải lớp CSS.
+grep -rn "brand-" packages/ui/src --include='*.tsx' --include='*.ts' --include='*.css' | grep -v "\.test\." ; echo "exit=$?"
 pnpm exec vitest run packages/ui
 ```
 
@@ -469,7 +491,7 @@ git commit -m "feat(ui): readStoredTheme nhận mặc định theo app"
 - [ ] **Step 2: Kiểm sạch, build, test**
 
 ```bash
-grep -rn "brand-" apps/admin/src apps/admin/index.html ; echo "exit=$?"
+grep -rn "brand-" apps/admin/src apps/admin/index.html | grep -v "\.test\." ; echo "exit=$?"
 pnpm --filter @mapslibvn/admin build
 pnpm exec vitest run apps/admin
 ```
@@ -556,12 +578,31 @@ hover:bg-accent-soft
 - [ ] **Step 2: Kiểm sạch, build, test**
 
 ```bash
-grep -rn "brand-" apps/console/src apps/console/index.html ; echo "exit=$?"
+# `brand` KHÔNG kèm gạch cũng phải tìm: có bài test khẳng định lớp `bg-brand`.
+grep -rn "brand" apps/console/src apps/console/index.html | grep -v 'tone="brand"' | grep -v "'brand'" ; echo "exit=$?"
 pnpm --filter @mapslibvn/console build
 pnpm exec vitest run apps/console
 ```
 
-Expected: grep `exit=1`; build không lỗi; vitest PASS.
+Expected: grep `exit=1` (chỉ còn `tone="brand"` là tên biến thể ngữ nghĩa của Badge, đã lọc);
+build không lỗi; vitest PASS 28.
+
+Nếu có bài test khẳng định lớp màu cũ (`toContain('bg-brand')` trong
+`features/tong-quan/thanh-han-muc.test.tsx`), sửa thành `bg-accent`.
+
+- [ ] **Step 2b: Xác nhận utility trỏ đúng token (không phải hằng màu)**
+
+```bash
+# `emptyOutDir: false` nên CSS CŨ tích lại trong thư mục này — phải lấy tệp MỚI NHẤT, nếu không
+# bạn sẽ soi nhầm bản build từ hôm trước và kết luận sai.
+CSS=$(ls -t apps/admin/dist/console/assets/index-*.css | head -1)
+grep -o "\.bg-accent{[^}]*}" "$CSS"
+grep -o "\.text-accent-text{[^}]*}" "$CSS"
+```
+
+Expected: `.bg-accent{background-color:var(--accent)}` và `.text-accent-text{color:var(--accent-text)}`
+— trỏ thẳng vào token thô, nên `.dark` ghi đè được. Nếu ra mã màu cứng thì `@theme inline` không có
+tác dụng và phải dừng lại.
 
 - [ ] **Step 3: Commit**
 
@@ -689,7 +730,7 @@ git commit -m "refactor(site): thay brand-* bằng token nhấn; e2e khoá khôn
 
 ```bash
 pnpm --filter @mapslibvn/site add @fontsource/jetbrains-mono
-ls apps/site/node_modules/@fontsource/jetbrains-mono/ | grep -E "^latin-(400|600)\.css$"
+ls apps/site/node_modules/@fontsource/jetbrains-mono/ | grep -E "^latin-400\.css$"
 ```
 
 Expected: hai tệp `latin-400.css`, `latin-600.css` có mặt. Nếu gói chỉ có `400.css`/`600.css` thì import hai tệp đó (chúng khai nhiều @font-face theo `unicode-range`, trình duyệt vẫn chỉ tải subset latin khi trang chỉ có ASCII trong font mono).
@@ -1004,12 +1045,12 @@ git commit -m "feat(site): tối mặc định bất kể cài đặt máy, them
 ```bash
 pnpm lint
 pnpm exec vitest run packages/ui apps/site apps/console apps/admin
-pnpm --filter @mapslibvn/ui typecheck --force
-pnpm --filter @mapslibvn/admin typecheck --force && pnpm --filter @mapslibvn/admin build
-pnpm --filter @mapslibvn/console typecheck --force && pnpm --filter @mapslibvn/console build
+pnpm --filter @mapslibvn/ui typecheck
+pnpm --filter @mapslibvn/admin typecheck && pnpm --filter @mapslibvn/admin build
+pnpm --filter @mapslibvn/console typecheck && pnpm --filter @mapslibvn/console build
 pnpm --filter @mapslibvn/site typecheck && pnpm --filter @mapslibvn/site build
 pnpm --filter @mapslibvn/site e2e
-grep -rn "brand-" apps packages/ui --include='*.tsx' --include='*.ts' --include='*.astro' --include='*.css' --include='*.html' | grep -v node_modules | grep -v dist ; echo "brand exit=$?"
+grep -rn "brand-" apps packages/ui --include='*.tsx' --include='*.ts' --include='*.astro' --include='*.css' --include='*.html' | grep -v node_modules | grep -v dist | grep -v "\.test\." | grep -v "\.spec\." ; echo "brand exit=$?"
 grep -rn "1b3a6b" apps packages scripts --include='*.tsx' --include='*.ts' --include='*.astro' --include='*.css' --include='*.html' --include='*.svg' --include='*.mjs' | grep -v node_modules | grep -v dist
 ```
 

@@ -1,58 +1,27 @@
 ---
 import { CONSOLE_URL, DOCS_URL } from '../../site.config.mjs';
+import BanDoSong from '../components/BanDoSong.astro';
+import Bento from '../components/Bento.astro';
+import BentoO from '../components/BentoO.astro';
 import CodeTabs from '../components/CodeTabs.astro';
 import Faq from '../components/Faq.astro';
-import Feature from '../components/Feature.astro';
 import Hero from '../components/Hero.astro';
+import Nhan from '../components/Nhan.astro';
+import Nut from '../components/Nut.astro';
+import OGoiY from '../components/OGoiY.astro';
+import SoLieu from '../components/SoLieu.astro';
+import The from '../components/The.astro';
 import Base from '../layouts/Base.astro';
-import { tomTatGia } from '../lib/gia';
+import { GOI_NOI_BAT, soSanh, tomTatGia } from '../lib/gia';
 import { faqJsonLd, softwareApplicationJsonLd } from '../lib/seo';
 import { TRANG } from '../lib/trang';
 
-const TINH_NANG = [
-  {
-    dau: '🗺',
-    tieuDe: 'Bản đồ nền Việt Nam',
-    mo: 'Tiles PMTiles đọc thẳng từ CDN, hai theme sáng tối, nhãn tiếng Việt hoặc tiếng Anh. Nhãn chủ quyền Hoàng Sa và Trường Sa luôn giữ tiếng Việt.',
-    href: `${DOCS_URL}/ban-do-web/`,
-    nhanLink: 'Bản đồ web',
-  },
-  {
-    dau: '📍',
-    tieuDe: '164 loại địa điểm',
-    mo: '164 mã loại gom trong 13 nhóm, gộp từ OpenStreetMap và Foursquare OS. Mỗi địa điểm ghi rõ nguồn chính và các nguồn phụ.',
-    href: `${DOCS_URL}/tinh-nang/`,
-    nhanLink: 'Danh mục địa điểm',
-  },
-  {
-    dau: '🔎',
-    tieuDe: 'Tìm kiếm hiểu tiếng Việt',
-    mo: 'Gõ tới đâu gợi ý tới đó, chịu được viết không dấu, viết tắt, cách viết địa phương và tên đơn vị hành chính cũ lẫn mới.',
-    href: `${DOCS_URL}/tim-kiem/`,
-    nhanLink: 'Tìm kiếm và autocomplete',
-  },
-  {
-    dau: '🎯',
-    tieuDe: 'Geocode nói thật',
-    mo: 'Mỗi kết quả kèm precision và confidence, nói rõ đang ở mức mái nhà, hẻm hay phường, thay vì trả một toạ độ trần rồi để ứng dụng tự đoán.',
-    href: `${DOCS_URL}/do-chinh-xac/`,
-    nhanLink: 'Độ chính xác geocode',
-  },
-  {
-    dau: '🧭',
-    tieuDe: 'Dẫn đường',
-    mo: 'Tính tuyến cho xe máy, ô tô và đi bộ, trả hướng dẫn từng chặng bằng tiếng Việt, dùng được cả trên web lẫn React Native.',
-    href: `${DOCS_URL}/dan-duong/`,
-    nhanLink: 'Dẫn đường',
-  },
-  {
-    dau: '📦',
-    tieuDe: 'Bốn SDK, một API',
-    mo: 'core, web, react và react-native dùng chung một hợp đồng và một nguồn tiles, chạy được trên trình duyệt, iOS và Android.',
-    href: `${DOCS_URL}/cai-dat/`,
-    nhanLink: 'Cài đặt',
-  },
-] as const;
+/* Khoảng phần trăm TÍNH TỪ COMPARISON, không gõ tay: đổi bảng giá đối thủ là con số tự đúng theo. */
+const phanTram = soSanh().map((row) => row.reHonGoogle);
+const thap = Math.round(Math.min(...phanTram));
+const cao = Math.round(Math.max(...phanTram));
+
+const SDK = ['@mapslibvn/core', '@mapslibvn/web', '@mapslibvn/react', '@mapslibvn/react-native'];
 
 const CAU_HOI = [
   {
@@ -82,110 +51,195 @@ const CAU_HOI = [
 ] as const;
 
 const GIA = tomTatGia();
+
+/* Ba lý do rẻ hơn, một hàng dưới khối giá (spec 5.6) thay cho mục "Vì sao rẻ hơn" dạng danh sách. */
+const VI_SAO = [
+  ['Dữ liệu mở', 'không có phí bản quyền dữ liệu chuyển vào giá bán'],
+  ['PMTiles trên CDN', 'trình duyệt đọc thẳng, không cụm máy chủ tile phải nuôi'],
+  ['Tính theo lượt gọi', 'không theo số người dùng cuối hay số lần mở ứng dụng'],
+] as const;
 ---
 
 <Base trang={TRANG.trangChu} jsonLd={[softwareApplicationJsonLd(), faqJsonLd(CAU_HOI)]}>
   <Hero />
 
-  <section aria-labelledby="tt-tinh-nang" class="mx-auto max-w-6xl px-4 py-16">
-    <h2 id="tt-tinh-nang" class="mb-2 text-2xl font-bold">Có sẵn những gì</h2>
-    <p class="mb-8 text-[var(--text-muted)]">
-      Sáu mảng dưới đây đang chạy thật, không phải lộ trình.
-    </p>
-    <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-      {TINH_NANG.map((tn) => <Feature {...tn} />)}
+  <BanDoSong />
+
+  <section aria-labelledby="tt-tinh-nang" class="mx-auto max-w-[1200px] px-4 py-16 sm:px-6 lg:py-24">
+    <p class="mb-3"><Nhan chu="Có sẵn những gì" noiBat /></p>
+    <h2 id="tt-tinh-nang" class="t-h2 max-w-2xl">Sáu mảng đang chạy thật, không phải lộ trình</h2>
+    <Bento class="mt-10">
+      <BentoO
+        span={8}
+        tieuDe="Tìm kiếm hiểu tiếng Việt"
+        href={`${DOCS_URL}/tim-kiem/`}
+        nhanLink="Tìm kiếm và autocomplete"
+        nhan="AUTOCOMPLETE"
+      >
+        Gõ tới đâu gợi ý tới đó, chịu được viết không dấu, viết tắt, cách viết địa phương và tên đơn
+        vị hành chính cũ lẫn mới.
+        <OGoiY slot="minh-hoa" />
+      </BentoO>
+
+      <BentoO
+        span={4}
+        spanNho={6}
+        tieuDe="Rẻ hơn Google"
+        href={TRANG.soSanhGoogle.path}
+        nhanLink="Chỗ Google hơn"
+      >
+        Ở ba mức dùng đã đối chiếu, cùng khối lượng gọi API.
+        <SoLieu slot="minh-hoa" so={`${thap}–${cao}%`} nhan="GOOGLE MAPS PLATFORM" />
+      </BentoO>
+
+      <BentoO
+        span={4}
+        spanNho={6}
+        tieuDe="164 loại địa điểm"
+        href={`${DOCS_URL}/tinh-nang/`}
+        nhanLink="Danh mục địa điểm"
+      >
+        Gộp từ OpenStreetMap và Foursquare OS, mỗi địa điểm ghi rõ nguồn chính.
+        <SoLieu slot="minh-hoa" so="164" nhan="13 nhóm · 2 nguồn mở" />
+      </BentoO>
+
+      <BentoO
+        span={4}
+        tieuDe="Geocode nói thật"
+        href={`${DOCS_URL}/do-chinh-xac/`}
+        nhanLink="Độ chính xác geocode"
+        nhan="PRECISION"
+      >
+        Mỗi kết quả kèm mức chính xác và độ tin cậy, thay vì một toạ độ trần để ứng dụng tự đoán.
+        <pre
+          slot="minh-hoa"
+          class="t-code overflow-x-auto rounded-[10px] border border-border bg-surface p-3 text-muted"
+        ><code>{`{ "precision": "rooftop",
+  "confidence": 0.94,
+  "lat": 10.7797, "lng": 106.699 }`}</code></pre>
+      </BentoO>
+
+      <BentoO
+        span={8}
+        tieuDe="Dẫn đường"
+        href={`${DOCS_URL}/dan-duong/`}
+        nhanLink="Hướng dẫn dẫn đường"
+        nhan="DIRECTIONS"
+      >
+        Tính tuyến cho xe máy, ô tô và đi bộ, trả hướng dẫn từng chặng bằng tiếng Việt, dùng được cả
+        trên web lẫn React Native.
+        <div slot="minh-hoa" class="flex flex-wrap items-center gap-4">
+          <ul class="flex gap-2">
+            {
+              ['Xe máy', 'Ô tô', 'Đi bộ'].map((c) => (
+                <li class="t-small rounded-full border border-border px-3 py-1 text-text">{c}</li>
+              ))
+            }
+          </ul>
+          <svg viewBox="0 0 240 60" class="h-12 w-60" aria-hidden="true">
+            <path
+              d="M6 48 C 60 10, 110 62, 160 30 S 220 8, 234 14"
+              fill="none"
+              stroke="var(--border-strong)"
+              stroke-width="6"
+              stroke-linecap="round"></path>
+            <path
+              d="M6 48 C 60 10, 110 62, 160 30"
+              fill="none"
+              stroke="var(--accent-text)"
+              stroke-width="6"
+              stroke-linecap="round"></path>
+            <circle cx="6" cy="48" r="5" fill="var(--accent-text)"></circle>
+            <circle cx="234" cy="14" r="5" fill="var(--text)"></circle>
+          </svg>
+        </div>
+      </BentoO>
+
+      <BentoO
+        span={4}
+        tieuDe="Bốn SDK, một API"
+        href={`${DOCS_URL}/cai-dat/`}
+        nhanLink="Cài đặt"
+        nhan="SDK"
+      >
+        Cùng một hợp đồng và một nguồn tiles trên trình duyệt, iOS và Android.
+        <ul slot="minh-hoa" class="t-code space-y-1 text-muted">
+          {SDK.map((goi) => <li>{goi}</li>)}
+        </ul>
+      </BentoO>
+    </Bento>
+  </section>
+
+  <section aria-labelledby="tt-nhung" class="border-y border-border bg-surface py-16 lg:py-24">
+    <div class="mx-auto max-w-[1200px] px-4 sm:px-6">
+      <p class="mb-3"><Nhan chu="Bốn cách nhúng" noiBat /></p>
+      <h2 id="tt-nhung" class="t-h2 max-w-2xl">
+        Chọn cách hợp với dự án của bạn. Cả bốn dùng chung một khoá API và một hợp đồng dữ liệu.
+      </h2>
+      <div class="mt-10">
+        <CodeTabs />
+      </div>
     </div>
   </section>
 
-  <section aria-labelledby="tt-nhung" class="bg-[var(--surface)] py-16">
-    <h2 id="tt-nhung" class="mx-auto mb-2 max-w-4xl px-4 text-2xl font-bold">Bốn cách nhúng</h2>
-    <p class="mx-auto mb-8 max-w-4xl px-4 text-[var(--text-muted)]">
-      Chọn cách hợp với dự án của bạn. Cả bốn dùng chung một khoá API và một hợp đồng dữ liệu.
-    </p>
-    <CodeTabs />
-  </section>
-
-  <section aria-labelledby="tt-gia" class="mx-auto max-w-6xl px-4 py-16">
-    <h2 id="tt-gia" class="mb-2 text-2xl font-bold">Giá theo lượt gọi, không theo đầu người</h2>
-    <p class="mb-8 text-[var(--text-muted)]">
+  <section aria-labelledby="tt-gia" class="mx-auto max-w-[1200px] px-4 py-16 sm:px-6 lg:py-24">
+    <p class="mb-3"><Nhan chu="Bảng giá" noiBat /></p>
+    <h2 id="tt-gia" class="t-h2 max-w-2xl">Giá theo lượt gọi, không theo đầu người</h2>
+    <p class="t-lead mt-4 max-w-2xl text-muted">
       Bắt đầu bằng bản dùng thử 2.000 lượt Places trong 30 ngày, không cần thẻ thanh toán.
     </p>
-    <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+    <div class="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
       {
-        GIA.map((goi) => (
-          <article class="rounded-[var(--radius-card)] border border-[var(--border)] bg-[var(--surface)] p-5">
-            <h3 class="text-base font-bold">{goi.ten}</h3>
-            <p class="mt-2 text-2xl font-bold">
-              {goi.giaHienThi}
-              <span class="text-sm font-normal text-[var(--text-muted)]"> {goi.donVi}</span>
-            </p>
-            <p class="text-sm text-[var(--text-muted)]">{goi.dongPhu}</p>
-            <p class="mt-3 text-sm">{goi.hanMuc}</p>
-          </article>
-        ))
+        GIA.map((goi) => {
+          const noiBat = goi.tier === GOI_NOI_BAT;
+          return (
+            <The as="article" noiBat={noiBat} class="flex flex-col">
+              {noiBat && (
+                <p class="mb-3 inline-flex w-fit rounded-full bg-accent px-2.5 py-0.5 text-xs font-semibold text-accent-ink">
+                  Được chọn nhiều nhất
+                </p>
+              )}
+              <h3 class="t-h3">{goi.ten}</h3>
+              <p class="mt-3">
+                <span class="t-stat">{goi.giaHienThi}</span>
+                <span class="t-small text-muted"> {goi.donVi}</span>
+              </p>
+              <p class="t-small text-muted">{goi.dongPhu}</p>
+              <p class="t-body mt-4 flex-1">{goi.hanMuc}</p>
+              <Nut href={CONSOLE_URL} kieu={noiBat ? 'chinh' : 'phu'} class="mt-5">
+                {goi.tier === 'trial' ? 'Dùng thử miễn phí' : `Chọn ${goi.ten}`}
+              </Nut>
+            </The>
+          );
+        })
       }
     </div>
-    <a
-      href={TRANG.bangGia.path}
-      class="mt-6 inline-flex min-h-11 items-center rounded-[var(--radius-btn)] border border-[var(--border)] px-5 font-semibold hover:bg-brand-50 dark:hover:bg-brand-900"
-    >
-      Xem đủ bốn gói và bảng so sánh →
-    </a>
-  </section>
-
-  <section aria-labelledby="tt-vi-sao" class="bg-[var(--surface)] py-16">
-    <div class="mx-auto max-w-4xl px-4">
-      <h2 id="tt-vi-sao" class="mb-6 text-2xl font-bold">Vì sao rẻ hơn</h2>
-      <ul class="space-y-4">
-        <li>
-          <strong>Dữ liệu mở.</strong>
-          <span class="text-[var(--text-muted)]">
-            Nền bản đồ và địa điểm đến từ OpenStreetMap và Foursquare OS, không có phí bản quyền
-            dữ liệu phải chuyển vào giá bán.
-          </span>
-        </li>
-        <li>
-          <strong>Hạ tầng nhẹ.</strong>
-          <span class="text-[var(--text-muted)]">
-            Tiles ở định dạng PMTiles nằm trên CDN, trình duyệt đọc thẳng bằng HTTP Range nên
-            không có cụm máy chủ tile nào phải nuôi.
-          </span>
-        </li>
-        <li>
-          <strong>Không bán thứ bạn không dùng.</strong>
-          <span class="text-[var(--text-muted)]">
-            Gói tính theo lượt gọi API, không tính theo số người dùng cuối hay số lần mở ứng dụng.
-          </span>
-        </li>
-      </ul>
-      <p class="mt-6 text-[var(--text-muted)]">
-        Có những việc Google làm được mà MapsLibVN thì không: phủ toàn cầu, Street View, ảnh vệ
-        tinh và dữ liệu giao thông thời gian thực.
-        <a class="underline" href={TRANG.soSanhGoogle.path}>Đọc bản so sánh đầy đủ →</a>
-      </p>
+    <ul class="mt-8 grid gap-4 sm:grid-cols-3">
+      {
+        VI_SAO.map(([tieuDe, mo]) => (
+          <li class="t-small border-t border-border pt-3 text-muted">
+            <strong class="text-text">{tieuDe}.</strong> {mo}.
+          </li>
+        ))
+      }
+    </ul>
+    <div class="mt-8">
+      <Nut href={TRANG.bangGia.path} kieu="phu">Xem đủ bốn gói và bảng so sánh →</Nut>
     </div>
   </section>
 
   <Faq items={CAU_HOI} />
 
-  <section aria-labelledby="tt-cta" class="mx-auto max-w-4xl px-4 pb-20 text-center">
-    <h2 id="tt-cta" class="text-2xl font-bold">Thử trong năm phút</h2>
-    <p class="mt-3 text-[var(--text-muted)]">
-      Đăng ký, tự lấy khoá API và gọi request đầu tiên mà không cần chờ ai duyệt.
-    </p>
-    <div class="mt-6 flex flex-wrap justify-center gap-3">
-      <a
-        href={CONSOLE_URL}
-        class="inline-flex min-h-11 items-center rounded-[var(--radius-btn)] bg-brand-700 px-6 font-semibold text-white hover:bg-brand-800"
-      >
-        Bắt đầu miễn phí
-      </a>
-      <a
-        href={`${DOCS_URL}/bat-dau/`}
-        class="inline-flex min-h-11 items-center rounded-[var(--radius-btn)] border border-[var(--border)] px-6 font-semibold hover:bg-brand-50 dark:hover:bg-brand-900"
-      >
-        Đọc hướng dẫn 5 phút
-      </a>
-    </div>
+  <section aria-labelledby="tt-cta" class="mx-auto max-w-[1200px] px-4 pb-24 sm:px-6">
+    <The nen="surface-2" class="text-center sm:p-12">
+      <h2 id="tt-cta" class="t-h2">Thử trong năm phút</h2>
+      <p class="t-lead mx-auto mt-4 max-w-xl text-muted">
+        Đăng ký, tự lấy khoá API và gọi request đầu tiên mà không cần chờ ai duyệt.
+      </p>
+      <div class="mt-8 flex flex-wrap justify-center gap-3">
+        <Nut href={CONSOLE_URL} co="lon">Bắt đầu miễn phí</Nut>
+        <Nut href={`${DOCS_URL}/bat-dau/`} kieu="phu" co="lon">Đọc hướng dẫn 5 phút</Nut>
+      </div>
+    </The>
   </section>
 </Base>

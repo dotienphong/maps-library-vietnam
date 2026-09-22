@@ -73,7 +73,7 @@ export function DangNhap() {
           <p className="my-5 text-center text-sm text-[var(--text-muted)]">hoặc</p>
           <a
             href="/v1/console/auth/google/start"
-            className="flex min-h-11 items-center justify-center rounded-[var(--radius-btn)] border border-[var(--border)] px-4 font-semibold hover:bg-brand-50 dark:hover:bg-brand-900"
+            className="flex min-h-11 items-center justify-center rounded-[var(--radius-btn)] border border-[var(--border)] px-4 font-semibold hover:bg-accent-soft"
           >
             Đăng nhập bằng Google
           </a>

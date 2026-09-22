@@ -15,7 +15,7 @@ describe('ThanhHanMuc', () => {
 
   it('dưới 80% dùng màu thương hiệu, không cảnh báo gì', () => {
     const { container } = ve({ used: 1000 });
-    expect(container.querySelector('[data-thanh]')?.className).toContain('bg-brand');
+    expect(container.querySelector('[data-thanh]')?.className).toContain('bg-accent');
     expect(screen.queryByText(/Sắp hết lượt/)).not.toBeInTheDocument();
   });
 

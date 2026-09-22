@@ -3,9 +3,12 @@ import { PLAN_CATALOG } from '@mapslibvn/catalog';
 import { DOCS_URL } from '../../site.config.mjs';
 import ComparisonTable from '../components/ComparisonTable.astro';
 import Faq from '../components/Faq.astro';
+import Nhan from '../components/Nhan.astro';
 import PricingCards from '../components/PricingCards.astro';
+import ThanhUocTinh from '../components/ThanhUocTinh.astro';
+import The from '../components/The.astro';
 import Base from '../layouts/Base.astro';
-import { dinhDangSo, dinhDangVnd } from '../lib/gia';
+import { bangGia, dinhDangSo, dinhDangVnd } from '../lib/gia';
 import { breadcrumbJsonLd, faqJsonLd, softwareApplicationJsonLd } from '../lib/seo';
 import { TRANG } from '../lib/trang';
 
@@ -21,6 +24,22 @@ const MUA_THEM = [
     gia: dinhDangVnd(PLAN_CATALOG.addOns.directions.priceVnd),
   },
 ];
+
+/** Bảng đối chiếu hạn mức: mỗi hàng một tiêu chí, mỗi cột một gói. Dữ liệu từ bangGia(). */
+const GOI = bangGia();
+const HANG_HAN_MUC = [
+  [
+    'Giá mỗi tháng',
+    ...GOI.map((g) => `${g.theoKy[1].vndHienThi}${g.tier === 'trial' ? ' / 30 ngày' : ''}`),
+  ],
+  ['Lượt Places mỗi kỳ', ...GOI.map((g) => g.placesHienThi)],
+  ['Lượt tính tuyến mỗi kỳ', ...GOI.map((g) => g.directionsHienThi)],
+  ['Trần theo ngày', ...GOI.map((g) => g.tranNgay ?? 'Không có')],
+  ['Hạn mức làm mới', ...GOI.map((g) => g.ghiChuHan)],
+  ['Hỗ trợ trực tuyến', ...GOI.map((g) => (g.hoTroOnline ? 'Có' : 'Qua tài liệu'))],
+  ['Mua thêm lượt', ...GOI.map((g) => (g.tier === 'trial' ? 'Không' : 'Theo khối 1.000'))],
+  ['Kỳ mua được', ...GOI.map((g) => (g.tier === 'trial' ? '30 ngày' : '1, 3, 6, 12 tháng'))],
+] as const;
 
 const CAU_HOI = [
   {
@@ -61,48 +80,97 @@ const CAU_HOI = [
     ]),
   ]}
 >
-  <section class="mx-auto max-w-6xl px-4 pt-12">
-    <h1 class="text-3xl font-bold sm:text-4xl">{TRANG.bangGia.h1}</h1>
-    <p class="mt-4 max-w-2xl text-lg text-[var(--text-muted)]">
+  <section class="mx-auto max-w-[1200px] px-4 pt-14 sm:px-6">
+    <p class="mb-3"><Nhan chu="Bảng giá" noiBat /></p>
+    <h1 class="t-h1">{TRANG.bangGia.h1}</h1>
+    <p class="t-lead mt-5 max-w-2xl text-muted">
       Giá tính theo số lượt gọi API mỗi kỳ, không theo số người dùng cuối và không theo số lần mở
       ứng dụng. Thu bằng VND qua PayOS, chuyển khoản hoặc quét mã VietQR bằng ứng dụng ngân hàng; số
       USD chỉ là con số tham chiếu.
     </p>
+    <div class="mt-8">
+      <ThanhUocTinh />
+    </div>
   </section>
 
-  <div class="py-10">
+  <div class="mx-auto max-w-[1200px] px-4 py-12 sm:px-6">
     <PricingCards />
   </div>
 
-  <section aria-labelledby="tt-mua-them" class="mx-auto max-w-6xl px-4 py-10">
-    <h2 id="tt-mua-them" class="mb-2 text-2xl font-bold">Mua thêm lượt</h2>
-    <p class="mb-6 text-[var(--text-muted)]">
+  <section aria-labelledby="tt-han-muc" class="mx-auto max-w-[1200px] px-4 pb-4 sm:px-6">
+    <h2 id="tt-han-muc" class="t-h2">Đối chiếu hạn mức</h2>
+    <div class="mt-6 overflow-x-auto rounded-[var(--radius-card)] border border-border">
+      <table class="w-full border-collapse text-left">
+        <caption class="sr-only">Bảng đối chiếu hạn mức bốn gói</caption>
+        <thead>
+          <tr class="bg-surface-2">
+            <th scope="col" class="t-small px-4 py-3 font-semibold">Tiêu chí</th>
+            {
+              GOI.map((g) => (
+                <th
+                  scope="col"
+                  class:list={[
+                    't-small px-4 py-3 font-semibold',
+                    g.noiBat && 'text-accent-text',
+                  ]}
+                >
+                  {g.ten}
+                </th>
+              ))
+            }
+          </tr>
+        </thead>
+        <tbody>
+          {
+            HANG_HAN_MUC.map(([tieuChi, ...o]) => (
+              <tr class="border-t border-border align-top">
+                <th scope="row" class="t-small px-4 py-3 font-normal text-muted">
+                  {tieuChi}
+                </th>
+                {o.map((v, i) => (
+                  <td class:list={['t-small px-4 py-3', GOI[i]?.noiBat && 'bg-accent-soft']}>{v}</td>
+                ))}
+              </tr>
+            ))
+          }
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section aria-labelledby="tt-mua-them" class="mx-auto max-w-[1200px] px-4 py-12 sm:px-6">
+    <h2 id="tt-mua-them" class="t-h2 mb-2">Mua thêm lượt</h2>
+    <p class="t-body mb-6 text-muted">
       Dùng hết hạn mức giữa kỳ thì mua thêm theo khối, không phải nâng cả gói.
     </p>
     <div class="grid gap-4 sm:grid-cols-2">
       {
         MUA_THEM.map((m) => (
-          <article class="rounded-[var(--radius-card)] border border-[var(--border)] bg-[var(--surface)] p-5">
-            <h3 class="text-base font-bold">{m.ten}</h3>
-            <p class="mt-2 text-2xl font-bold">
-              {m.gia}
-              <span class="text-sm font-normal text-[var(--text-muted)]"> / {m.khoi} lượt</span>
+          <The as="article">
+            <h3 class="t-h3">{m.ten}</h3>
+            <p class="mt-2">
+              <span class="t-stat">{m.gia}</span>
+              <span class="t-small text-muted"> / {m.khoi} lượt</span>
             </p>
-          </article>
+          </The>
         ))
       }
     </div>
-    <p class="mt-4 text-sm text-[var(--text-muted)]">
+    <p class="t-small mt-4 text-muted">
       Lượt mua thêm hết hạn cùng kỳ thuê bao đang chạy và chỉ mua được khi gói trả phí đang hoạt
       động.
     </p>
   </section>
 
-  <section aria-labelledby="tt-so-sanh" id="so-sanh" class="scroll-mt-20 bg-[var(--surface)] py-16">
-    <h2 id="tt-so-sanh" class="mx-auto mb-2 max-w-6xl px-4 text-2xl font-bold">
+  <section
+    aria-labelledby="tt-so-sanh"
+    id="so-sanh"
+    class="scroll-mt-24 border-y border-border bg-surface py-16"
+  >
+    <h2 id="tt-so-sanh" class="t-h2 mx-auto mb-2 max-w-[1200px] px-4 sm:px-6">
       So với Google và VIETMAP
     </h2>
-    <p class="mx-auto mb-8 max-w-6xl px-4 text-[var(--text-muted)]">
+    <p class="t-body mx-auto mb-8 max-w-[1200px] px-4 text-muted sm:px-6">
       Ba mức dùng thật, cùng một khối lượng gọi API, quy đổi về VND. Giả định và nguồn nằm ngay
       dưới bảng để bạn tự kiểm lại.
     </p>
@@ -111,10 +179,10 @@ const CAU_HOI = [
 
   <Faq items={CAU_HOI} tieuDe="Câu hỏi về giá" />
 
-  <section class="mx-auto max-w-3xl px-4 pb-20 text-center text-sm text-[var(--text-muted)]">
+  <section class="t-small mx-auto max-w-3xl px-4 pb-20 text-center text-muted">
     <p>
       Mua gói tức là bạn đồng ý với
-      <a class="underline" href={`${DOCS_URL}/dieu-khoan/`}>điều khoản tenant</a>, trong đó có nghĩa
+      <a class="text-accent-text underline" href={`${DOCS_URL}/dieu-khoan/`}>điều khoản tenant</a>, trong đó có nghĩa
       vụ giữ phần ghi nguồn dữ liệu mở.
     </p>
   </section>

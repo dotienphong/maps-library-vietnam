@@ -1,0 +1,86 @@
+---
+import { bangGia } from '../lib/gia';
+import The from './The.astro';
+
+/**
+ * Nhập mức dùng ước tính, trang chỉ ra gói nhỏ nhất đủ dùng. Ngưỡng của CẢ BỐN gói được render sẵn
+ * vào `data-goi` từ `bangGia()`, nên trình duyệt chỉ so số chứ không có bản chép thứ hai của luật
+ * chọn gói. Không có JavaScript thì khối này ẩn hẳn (script tự bỏ `hidden`), vì một ô nhập không
+ * phản hồi còn tệ hơn là không có.
+ */
+const GOI = bangGia().map((g) => ({
+  tier: g.tier,
+  ten: g.ten,
+  places: g.places,
+  directions: g.directions,
+  gia: g.theoKy[1].vndHienThi,
+  donVi: g.tier === 'trial' ? '/ 30 ngày' : '/ tháng',
+}));
+---
+
+<The nen="surface-2" id="uoc-tinh" hidden data-uoc-tinh data-goi={JSON.stringify(GOI)}>
+  <div class="grid gap-4 sm:grid-cols-[1fr_1fr_auto] sm:items-end">
+    <div>
+      <label class="t-small block font-semibold" for="ut-places">Lượt Places mỗi tháng</label>
+      <input
+        id="ut-places"
+        type="number"
+        min="0"
+        step="1000"
+        value="50000"
+        inputmode="numeric"
+        class="mt-2 min-h-11 w-full rounded-[var(--radius-btn)] border border-border bg-surface px-3 text-text"
+      />
+    </div>
+    <div>
+      <label class="t-small block font-semibold" for="ut-directions">Lượt tính tuyến mỗi tháng</label
+      >
+      <input
+        id="ut-directions"
+        type="number"
+        min="0"
+        step="100"
+        value="5000"
+        inputmode="numeric"
+        class="mt-2 min-h-11 w-full rounded-[var(--radius-btn)] border border-border bg-surface px-3 text-text"
+      />
+    </div>
+    <p class="t-h3" data-testid="goi-goi-y" aria-live="polite">—</p>
+  </div>
+  <p class="t-small mt-3 text-muted">
+    Ước tính này chỉ gợi ý gói nhỏ nhất đủ dùng. Hai nhóm hạn mức độc lập: vượt một nhóm là phải lên
+    gói dù nhóm kia còn thừa.
+  </p>
+</The>
+
+<script>
+  const khoi = document.querySelector<HTMLElement>('[data-uoc-tinh]');
+  const oPlaces = document.getElementById('ut-places') as HTMLInputElement | null;
+  const oTuyen = document.getElementById('ut-directions') as HTMLInputElement | null;
+  const ketQua = khoi?.querySelector<HTMLElement>('[data-testid="goi-goi-y"]');
+
+  if (khoi && oPlaces && oTuyen && ketQua) {
+    type Goi = {
+      tier: string;
+      ten: string;
+      places: number;
+      directions: number;
+      gia: string;
+      donVi: string;
+    };
+    const goi: Goi[] = JSON.parse(khoi.dataset.goi ?? '[]');
+    khoi.hidden = false;
+
+    const tinh = () => {
+      const p = Number(oPlaces.value) || 0;
+      const d = Number(oTuyen.value) || 0;
+      const hop = goi.find((g) => g.places >= p && g.directions >= d);
+      ketQua.textContent = hop
+        ? `${hop.ten} · ${hop.gia} ${hop.donVi}`
+        : 'Trên mức Business — hãy liên hệ để có gói riêng';
+    };
+
+    for (const o of [oPlaces, oTuyen]) o.addEventListener('input', tinh);
+    tinh();
+  }
+</script>

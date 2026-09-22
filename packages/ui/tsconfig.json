@@ -3,7 +3,9 @@
   "compilerOptions": {
     "jsx": "react-jsx",
     "lib": ["ES2022", "DOM", "DOM.Iterable"],
-    "types": ["react", "react-dom"],
+    // "node" cho tokens.test.ts: nó đọc CHÍNH tokens.css bằng node:fs để tính tương phản, thay vì
+    // chép mã màu vào test. @types/node nằm ở node_modules gốc của workspace.
+    "types": ["react", "react-dom", "node"],
     "noEmit": true
   },
   "include": ["src"]

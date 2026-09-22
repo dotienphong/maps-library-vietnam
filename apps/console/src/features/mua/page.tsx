@@ -26,7 +26,7 @@ const laTier = (v: string | null): v is PaidTier =>
 const laKy = (v: number): v is PeriodMonths => (PERIOD_MONTHS as readonly number[]).includes(v);
 const lopTab = (dang: boolean) =>
   `min-h-11 rounded-[var(--radius-btn)] px-4 font-semibold ${
-    dang ? 'bg-brand-700 text-white' : 'border border-[var(--border)]'
+    dang ? 'bg-accent text-accent-ink' : 'border border-[var(--border)]'
   }`;
 
 export function Mua() {
