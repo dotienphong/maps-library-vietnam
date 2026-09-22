@@ -2307,7 +2307,7 @@ describe('planBai', () => {
     expect(bai.B.targets).toHaveLength(4);
     expect(bai.C.stops).toHaveLength(10);
     expect(bai.D).toHaveLength(5);
-    expect(bai.D[0].sources).not.toEqual(bai.D[1].sources);
+    expect(bai.D[0]?.sources).not.toEqual(bai.D[1]?.sources);
     // Không có điểm nào vừa là source vừa là target trong cùng bài (ô 0 giây làm hỏng phép kiểm dương).
     for (const m of [bai.A, bai.B, ...bai.D]) {
       const s = new Set(m.sources.map((p) => p.join(',')));
