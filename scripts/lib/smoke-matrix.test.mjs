@@ -44,6 +44,29 @@ describe('planBai', () => {
   });
 });
 
+describe('cỡ bài và cỡ kiểm phải khớp nhau', () => {
+  it('response đúng cỡ của từng bài thì matrixIssues/optimizedIssues không báo lỗi', () => {
+    const bai = planBai();
+    for (const m of [bai.A, bai.B, ...bai.D]) {
+      const rows = m.sources.length;
+      const cols = m.targets.length;
+      const bang = Array.from({ length: rows }, () => Array.from({ length: cols }, () => 60));
+      expect(matrixIssues({ durations_s: bang, distances_m: bang }, rows, cols)).toEqual([]);
+    }
+    const stops = bai.C.stops.length;
+    expect(
+      optimizedIssues(
+        {
+          order: Array.from({ length: stops }, (_, i) => i),
+          routes: [{ legs: Array.from({ length: stops + 1 }, () => ({})) }],
+          waypoints: Array.from({ length: stops + 2 }, () => ({})),
+        },
+        stops,
+      ),
+    ).toEqual([]);
+  });
+});
+
 describe('URL', () => {
   it('matrixUrl/optimizedUrl ghép lat,lng nối ";" và mode; jitter dịch vĩ độ điểm đầu 0,0001° × k', () => {
     const root = 'https://api.test';

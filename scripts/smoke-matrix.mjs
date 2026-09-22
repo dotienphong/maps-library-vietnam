@@ -152,22 +152,24 @@ async function main() {
     `A–C: ${3 * args.requests} lượt cách ${args.intervalMs} ms; D: ${args.rounds} vòng × ~60 s`,
   );
   const rows = [
+    // Cỡ kiểm lấy THẲNG từ bài, không gõ tay lần hai: đổi `planBai()` mà quên đổi hằng số ở đây làm
+    // mọi lượt đỏ với "durations_s[0] có 5 ô, cần 10" — đã vấp đúng thế 22/09/2026.
     await runBai(
-      'A ma tran 10x10 motorbike',
+      `A ma tran ${bai.A.sources.length}x${bai.A.targets.length} ${bai.A.mode}`,
       (k) => matrixUrl(root, { ...bai.A, sources: jitter(bai.A.sources, k) }),
-      (b) => matrixIssues(b, 10, 10),
+      (b) => matrixIssues(b, bai.A.sources.length, bai.A.targets.length),
       ctx,
     ),
     await runBai(
-      'B ma tran 25x4 car',
+      `B ma tran ${bai.B.sources.length}x${bai.B.targets.length} ${bai.B.mode}`,
       (k) => matrixUrl(root, { ...bai.B, sources: jitter(bai.B.sources, k) }),
-      (b) => matrixIssues(b, 25, 4),
+      (b) => matrixIssues(b, bai.B.sources.length, bai.B.targets.length),
       ctx,
     ),
     await runBai(
-      'C TSP 12 diem motorbike',
+      `C TSP ${bai.C.stops.length + 2} diem ${bai.C.mode}`,
       (k) => optimizedUrl(root, { ...bai.C, from: jitter([bai.C.from], k)[0] ?? bai.C.from }),
-      (b) => optimizedIssues(b, 10),
+      (b) => optimizedIssues(b, bai.C.stops.length),
       ctx,
     ),
   ];
