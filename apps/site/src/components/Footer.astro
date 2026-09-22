@@ -7,6 +7,8 @@ import {
   SUPPORT_PHONE_HIEN_THI,
 } from '../../site.config.mjs';
 import { TRANG } from '../lib/trang';
+import Nhan from './Nhan.astro';
+import Nut from './Nut.astro';
 
 const COT = [
   {
@@ -39,19 +41,19 @@ const COT = [
 const nam = new Date().getFullYear();
 ---
 
-<footer class="mt-20 border-t border-[var(--border)] bg-[var(--surface)]">
+<footer class="mt-24 border-t border-border bg-surface">
   <div class="mx-auto max-w-6xl px-4 py-12">
     <div class="grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
       {
         COT.map((cot) => (
           <nav aria-label={cot.ten}>
-            <h2 class="mb-3 text-sm font-bold">{cot.ten}</h2>
+            <h2 class="mb-4"><Nhan chu={cot.ten} /></h2>
             <ul class="space-y-2">
               {cot.muc.map((muc) => (
                 <li>
                   <a
                     href={muc.href}
-                    class="inline-flex min-h-11 items-center text-sm text-[var(--text-muted)] hover:text-accent-text"
+                    class="inline-flex min-h-11 items-center text-[15px] text-muted transition-colors duration-150 hover:text-text"
                   >
                     {muc.nhan}
                   </a>
@@ -63,8 +65,8 @@ const nam = new Date().getFullYear();
       }
 
       <div>
-        <h2 class="mb-3 text-sm font-bold">Liên hệ</h2>
-        <p class="text-sm text-[var(--text-muted)]">
+        <h2 class="mb-4"><Nhan chu="Liên hệ" /></h2>
+        <p class="t-small text-muted">
           <a
             href={`mailto:${SUPPORT_EMAIL}`}
             class="inline-flex min-h-11 items-center hover:text-accent-text"
@@ -72,7 +74,7 @@ const nam = new Date().getFullYear();
             {SUPPORT_EMAIL}
           </a>
         </p>
-        <p class="text-sm text-[var(--text-muted)]">
+        <p class="t-small text-muted">
           {/* href dùng dạng E.164 không khoảng trắng để máy gọi đúng số; phần hiển thị tách nhóm
               cho người đọc. Trên điện thoại, chạm vào là gọi ngay. */}
           <a
@@ -82,20 +84,15 @@ const nam = new Date().getFullYear();
             {SUPPORT_PHONE_HIEN_THI}
           </a>
         </p>
-        <p class="text-sm text-[var(--text-muted)]">
+        <p class="t-small text-muted">
           Hỗ trợ trực tuyến cho gói Professional và Business: thứ Hai đến thứ Sáu 08:00–20:00, thứ
           Bảy và Chủ nhật 08:00–17:00, giờ Việt Nam.
         </p>
-        <a
-          href={CONSOLE_URL}
-          class="mt-3 inline-flex min-h-11 items-center rounded-[var(--radius-btn)] border border-[var(--border)] px-4 text-sm font-semibold hover:bg-accent-soft"
-        >
-          Cổng khách hàng
-        </a>
+        <Nut href={CONSOLE_URL} kieu="phu" co="nho" class="mt-3">Cổng khách hàng</Nut>
       </div>
     </div>
 
-    <div class="mt-10 border-t border-[var(--border)] pt-6 text-sm text-[var(--text-muted)]">
+    <div class="mt-10 border-t border-border pt-6 t-small text-muted">
       <!-- Ghi nguồn là NGHĨA VỤ giấy phép của ODbL và Apache-2.0, không phải trang trí, nên nó
            nằm ở mọi trang chứ không riêng trang giấy phép. -->
       <p>

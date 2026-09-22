@@ -1,14 +1,15 @@
 ---
 import { CONSOLE_URL, SUPPORT_PHONE, SUPPORT_PHONE_HIEN_THI } from '../../site.config.mjs';
 import { NAV, TRANG } from '../lib/trang';
+import Nut from './Nut.astro';
 
 const { pathname } = Astro.url;
 const mucNav = NAV.map((key) => ({ ...TRANG[key], dangXem: pathname === TRANG[key].path }));
 ---
 
-<header class="sticky top-0 z-40 border-b border-[var(--border)] bg-[var(--surface)]/90 backdrop-blur">
+<header class="sticky top-0 z-40 border-b border-border bg-surface/90 backdrop-blur">
   <div class="mx-auto flex h-16 max-w-6xl items-center gap-2 px-4 sm:gap-3">
-    <a href="/" class="text-lg font-bold text-accent-text">MapsLibVN</a>
+    <a href="/" class="t-h3 text-text">MapsLibVN</a>
 
     <nav aria-label="Điều hướng chính" class="ml-auto hidden md:block">
       <ul class="flex items-center gap-1">
@@ -18,7 +19,7 @@ const mucNav = NAV.map((key) => ({ ...TRANG[key], dangXem: pathname === TRANG[ke
               <a
                 href={muc.path}
                 aria-current={muc.dangXem ? 'page' : undefined}
-                class="inline-flex min-h-11 items-center rounded-[var(--radius-btn)] px-3 text-sm font-semibold text-[var(--text-muted)] hover:bg-accent-soft hover:text-accent-text aria-[current=page]:text-accent-text"
+                class="inline-flex min-h-11 items-center rounded-[var(--radius-btn)] px-3 text-[15px] font-semibold text-muted transition-colors duration-150 hover:bg-accent-soft hover:text-text aria-[current=page]:text-text"
               >
                 {muc.nhan}
               </a>
@@ -32,20 +33,17 @@ const mucNav = NAV.map((key) => ({ ...TRANG[key], dangXem: pathname === TRANG[ke
       type="button"
       id="nut-theme"
       aria-label="Đổi giao diện sáng tối"
-      class="ml-auto inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-[var(--radius-btn)] border border-[var(--border)] md:ml-0"
+      class="ml-auto inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-[var(--radius-btn)] border border-border text-muted transition-colors duration-150 hover:border-border-strong hover:text-text md:ml-0"
     >
       <span aria-hidden="true">◐</span>
     </button>
 
-    <a
-      href={CONSOLE_URL}
-      class="inline-flex min-h-11 shrink-0 items-center whitespace-nowrap rounded-[var(--radius-btn)] bg-accent px-3 text-sm font-semibold text-accent-ink hover:brightness-95 sm:px-4"
-    >
+    <Nut href={CONSOLE_URL} co="nho" class="shrink-0">
       {/* Nhãn ngắn ở màn rất hẹp để thanh trên không tràn ở 320px, vẫn giữ đường đăng ký luôn
           nhìn thấy thay vì giấu sau nút ☰. */}
       <span class="sm:hidden">Bắt đầu</span>
       <span class="hidden sm:inline">Bắt đầu miễn phí</span>
-    </a>
+    </Nut>
 
     <button
       type="button"
@@ -54,7 +52,7 @@ const mucNav = NAV.map((key) => ({ ...TRANG[key], dangXem: pathname === TRANG[ke
       aria-haspopup="dialog"
       aria-expanded="false"
       aria-controls="ngan-keo"
-      class="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-[var(--radius-btn)] border border-[var(--border)] md:hidden"
+      class="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-[var(--radius-btn)] border border-border md:hidden"
     >
       <span aria-hidden="true" class="flex flex-col gap-1">
         <span class="block h-0.5 w-4 rounded bg-current"></span>
@@ -73,15 +71,15 @@ const mucNav = NAV.map((key) => ({ ...TRANG[key], dangXem: pathname === TRANG[ke
   <dialog
     id="ngan-keo"
     aria-label="Điều hướng chính"
-    class="ngan-keo m-0 ml-auto h-full max-h-none w-72 max-w-[82vw] border-l border-[var(--border)] bg-[var(--surface)] p-0 text-[var(--text)] shadow-xl backdrop:bg-black/45"
+    class="ngan-keo m-0 ml-auto h-full max-h-none w-72 max-w-[82vw] border-l border-border bg-surface p-0 text-text shadow-xl backdrop:bg-black/45"
   >
-    <div class="flex h-16 items-center justify-between border-b border-[var(--border)] px-4">
+    <div class="flex h-16 items-center justify-between border-b border-border px-4">
       <p class="text-base font-bold">Điều hướng</p>
       <button
         type="button"
         id="nut-dong-menu"
         aria-label="Đóng menu điều hướng"
-        class="inline-flex h-11 w-11 items-center justify-center rounded-[var(--radius-btn)] border border-[var(--border)]"
+        class="inline-flex h-11 w-11 items-center justify-center rounded-[var(--radius-btn)] border border-border"
       >
         <span aria-hidden="true">✕</span>
       </button>
@@ -95,7 +93,7 @@ const mucNav = NAV.map((key) => ({ ...TRANG[key], dangXem: pathname === TRANG[ke
               <a
                 href={muc.path}
                 aria-current={muc.dangXem ? 'page' : undefined}
-                class="flex min-h-11 items-center rounded-[var(--radius-btn)] px-3 font-semibold text-[var(--text-muted)] hover:bg-accent-soft hover:text-accent-text aria-[current=page]:bg-accent-soft aria-[current=page]:text-accent-text"
+                class="flex min-h-11 items-center rounded-[var(--radius-btn)] px-3 font-semibold text-muted transition-colors duration-150 hover:bg-accent-soft hover:text-text aria-[current=page]:bg-accent-soft aria-[current=page]:text-text"
               >
                 {muc.nhan}
               </a>
@@ -104,20 +102,12 @@ const mucNav = NAV.map((key) => ({ ...TRANG[key], dangXem: pathname === TRANG[ke
         }
       </ul>
 
-      <hr class="my-3 border-[var(--border)]" />
+      <hr class="my-3 border-border" />
 
-      <a
-        href={CONSOLE_URL}
-        class="flex min-h-11 items-center justify-center rounded-[var(--radius-btn)] bg-accent px-4 font-semibold text-accent-ink hover:brightness-95"
-      >
-        Bắt đầu miễn phí
-      </a>
-      <a
-        href={`tel:${SUPPORT_PHONE}`}
-        class="mt-2 flex min-h-11 items-center justify-center rounded-[var(--radius-btn)] border border-[var(--border)] px-4 font-semibold hover:bg-accent-soft"
-      >
+      <Nut href={CONSOLE_URL} class="w-full">Bắt đầu miễn phí</Nut>
+      <Nut href={`tel:${SUPPORT_PHONE}`} kieu="phu" class="mt-2 w-full">
         Gọi {SUPPORT_PHONE_HIEN_THI}
-      </a>
+      </Nut>
     </nav>
   </dialog>
 </header>
