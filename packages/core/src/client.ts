@@ -11,6 +11,8 @@ import type {
   DirectionsLang,
   DirectionsResponse,
   GeocodeItem,
+  MatrixResponse,
+  OptimizedRouteResponse,
   Place,
   PlaceDetails,
   ReverseResponse,
@@ -76,6 +78,24 @@ export interface DirectionsOptions {
   lang?: DirectionsLang;
   /** Xin thêm một tuyến thay thế (bị bỏ qua khi có `via`). */
   alternatives?: boolean;
+}
+
+export interface MatrixOptions {
+  /** Mỗi điểm [lat, lng]; 1–25 điểm mỗi bên, tối đa 100 cặp (máy chủ kiểm). */
+  sources: [number, number][];
+  targets: [number, number][];
+  /** Mặc định máy chủ: `motorbike`. */
+  mode?: TravelMode;
+}
+
+export interface OptimizedRouteOptions {
+  from: [number, number];
+  /** 1–10 điểm [lat, lng], thứ tự tuỳ ý — máy chủ trả thứ tự nên đi trong `order`. */
+  stops: [number, number][];
+  /** Điểm kết thúc cố định; bỏ trống = quay về `from`. */
+  to?: [number, number];
+  mode?: TravelMode;
+  lang?: DirectionsLang;
 }
 
 const latLng = ([lat, lng]: readonly [number, number]): string => `${lat},${lng}`;
@@ -386,6 +406,22 @@ export function createClient(options: ClientOptions) {
         mode: opts.mode,
         lang: opts.lang,
         alternatives: opts.alternatives === undefined ? undefined : opts.alternatives ? 1 : 0,
+      }),
+    /** Ma trận thời gian/quãng đường N×M, tính MỘT lượt Chỉ đường bất kể cỡ (spec 22/09/2026). */
+    matrix: (opts: MatrixOptions) =>
+      get<MatrixResponse>('/v1/matrix', {
+        sources: opts.sources.map(latLng).join(';'),
+        targets: opts.targets.map(latLng).join(';'),
+        mode: opts.mode,
+      }),
+    /** Thứ tự ghé tối ưu cho một chuyến; response là DirectionsResponse + `order`, đưa thẳng vào routes.show(). */
+    optimizedRoute: (opts: OptimizedRouteOptions) =>
+      get<OptimizedRouteResponse>('/v1/optimized-route', {
+        from: latLng(opts.from),
+        stops: opts.stops.map(latLng).join(';'),
+        to: opts.to ? latLng(opts.to) : undefined,
+        mode: opts.mode,
+        lang: opts.lang,
       }),
     /** Gửi đóng góp/sửa POI (spec 6.1). Khoá phải có scope edits:write. */
     suggestEdit: (edit: SuggestEditRequest) => post<SuggestEditResponse>('/v1/edits', edit),

@@ -1,0 +1,17 @@
+{
+  "sources_to_targets": [
+    [
+      { "from_index": 0, "to_index": 0, "time": 167, "distance": 0.878, "begin_heading": 133.3, "end_heading": 274.7 },
+      { "from_index": 0, "to_index": 1, "time": 255.4, "distance": 1.351, "begin_heading": 133.3, "end_heading": 152.8 }
+    ],
+    [
+      { "from_index": 1, "to_index": 1, "time": null, "distance": null },
+      { "from_index": 1, "to_index": 0, "time": 292, "distance": 1.504, "begin_heading": 149.9, "end_heading": 274.7 }
+    ]
+  ],
+  "sources": [{ "lat": 10.779615, "lon": 106.698822 }, { "lat": 10.772233, "lon": 106.697532 }],
+  "targets": [{ "lat": 10.777023, "lon": 106.703204 }, { "lat": 10.771501, "lon": 106.704101 }],
+  "units": "kilometers",
+  "algorithm": "costmatrix",
+  "id": "fixture-2x2"
+}

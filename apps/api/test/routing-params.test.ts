@@ -1,10 +1,14 @@
 import { describe, expect, it } from 'vitest';
 import { ApiError } from '../src/errors';
 import {
+  assertInVietnam,
+  cacheKeyPoints,
   directionsCacheUrl,
   haversineM,
+  MATRIX_MAX_CROW_DISTANCE_M,
   MAX_CROW_DISTANCE_M,
   parseDirectionsParams,
+  parseLatLngList,
 } from '../src/routing/params';
 
 const HCM = { lat: 10.7769, lng: 106.7009 };
@@ -105,5 +109,49 @@ describe('routing params', () => {
     expect(directionsCacheUrl(p)).toBe(
       'https://cache.mapslibvn/directions?v=1&p=10.77981%2C106.69901%3B10.77250%2C106.69800&m=car&l=vi&a=0',
     );
+  });
+});
+
+describe('hàm dùng chung cho ma trận và tối ưu thứ tự (spec 22/09 mục 4.7)', () => {
+  it('parseLatLngList đếm TRƯỚC khi parse: 26 phần tử hỏng vẫn báo "tối đa 25 điểm"', () => {
+    const many = Array.from({ length: 26 }, () => 'not-a-coordinate').join(';');
+    expectInvalidRequest(
+      () => parseLatLngList(many, 'sources', { min: 1, max: 25 }),
+      /sources tối đa 25 điểm/,
+    );
+  });
+
+  it('parseLatLngList: rỗng với min 1 → bắt buộc; min 0 → []; phần tử sai nêu chỉ số', () => {
+    expectInvalidRequest(
+      () => parseLatLngList(undefined, 'targets', { min: 1, max: 25 }),
+      /targets bắt buộc/,
+    );
+    expectInvalidRequest(() => parseLatLngList('   ', 'targets', { min: 1, max: 25 }), /bắt buộc/);
+    expect(parseLatLngList('', 'via', { min: 0, max: 5 })).toEqual([]);
+    expectInvalidRequest(
+      () => parseLatLngList('10.7,106.7;abc', 'stops', { min: 1, max: 10 }),
+      /stops\[1\]/,
+    );
+    expect(parseLatLngList('10.7,106.7;10.8,106.8', 'stops', { min: 1, max: 10 })).toEqual([
+      { lat: 10.7, lng: 106.7 },
+      { lat: 10.8, lng: 106.8 },
+    ]);
+  });
+
+  it('assertInVietnam: Bangkok → 400 có chữ "Việt Nam"; HCM và HN qua', () => {
+    expectInvalidRequest(() => assertInVietnam([HCM, { lat: 13.75, lng: 100.5 }]), /Việt Nam/);
+    expect(() => assertInVietnam([HCM, HN])).not.toThrow();
+  });
+
+  it('cacheKeyPoints làm tròn 4 chữ số (~11 m) và nối bằng ";"', () => {
+    expect(cacheKeyPoints([{ lat: 10.77981, lng: 106.69904 }, HCM])).toBe(
+      '10.7798,106.6990;10.7769,106.7009',
+    );
+  });
+
+  it('trần chim bay ma trận: xe máy 200 km, ô tô 400 km, đi bộ 50 km', () => {
+    expect(MATRIX_MAX_CROW_DISTANCE_M).toEqual({ motorbike: 200_000, car: 400_000, walk: 50_000 });
+    // Directions giữ trần riêng, không bị kéo theo.
+    expect(MAX_CROW_DISTANCE_M.motorbike).toBe(500_000);
   });
 });

@@ -65,7 +65,7 @@ async function doThu<T extends object>(fn: () => Promise<T>): Promise<KetQua<T>>
  * khi graph rỗng — đã có tiền lệ, một lần nghiệm thu xanh giả. Tuyến không ra mét nào thì coi là hỏng.
  */
 async function doDinhTuyen(env: Env): Promise<SoLieu['routing']> {
-  const json = await callValhalla(env, valhallaBody(TUYEN_THU, crypto.randomUUID()), {
+  const json = await callValhalla(env, '/route', valhallaBody(TUYEN_THU, crypto.randomUUID()), {
     timeoutMs: PROBE_TIMEOUT_MS,
   });
   const km = json.trip?.summary?.length ?? 0;
