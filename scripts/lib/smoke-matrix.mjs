@@ -2,9 +2,13 @@
 export const DEFAULT_BASE = 'https://api.ai-solutions.io.vn';
 
 /**
- * 29 điểm nội thành TP.HCM trên đường công cộng ([lat, lng]). KHÔNG dùng toạ độ sân bay
- * 10.8188,106.6520: nó bám vào "VĐ. bảo vệ sân bay" trong khu bay (bài học 11/09/2026) — điểm sân bay
- * ở đây là Trường Sơn trước nhà ga. Nếu một điểm cho ô null trong bài A/B, thay điểm đó, không nới trần.
+ * 29 điểm nội thành TP.HCM ([lat, lng]). Mỗi điểm phải nối được bằng CẢ BA mode — đã kiểm trên
+ * production 22/09/2026 bằng hai ma trận 1×25 và 1×4 cho từng mode. Ba cái bẫy đã gặp, đều là điểm
+ * "nổi tiếng" nhưng bám vào lối nội bộ không thuộc mạng đường công cộng:
+ *   - sân bay 10.8188,106.6520 → "VĐ. bảo vệ sân bay" trong khu bay (11/09), dùng Trường Sơn thay;
+ *   - Landmark 81 10.795,106.7218 → trong khu Vinhomes, null với MỌI mode;
+ *   - điểm giữa chợ Hoà Hưng null riêng với `car`, điểm giữa Thảo Cầm Viên null riêng với `walk`.
+ * Ô null trong bài A/B nghĩa là một điểm hỏng: thay điểm đó rồi kiểm lại ba mode, KHÔNG nới trần.
  * @type {readonly (readonly [number, number])[]}
  */
 export const HCM_POINTS = [
@@ -16,7 +20,7 @@ export const HCM_POINTS = [
   [10.7826, 106.6958], // Hồ Con Rùa
   [10.7889, 106.6906], // Chợ Tân Định
   [10.7877, 106.6947], // Công viên Lê Văn Tám
-  [10.7877, 106.7052], // Thảo Cầm Viên
+  [10.788, 106.7047], // Cổng Thảo Cầm Viên trên Nguyễn Bỉnh Khiêm (điểm giữa vườn thú không đi bộ tới được)
   [10.7686, 106.7069], // Bến Nhà Rồng
   [10.8039, 106.6963], // Chợ Bà Chiểu
   [10.8153, 106.6633], // Trường Sơn, trước ga Tân Sơn Nhất
@@ -29,7 +33,7 @@ export const HCM_POINTS = [
   [10.812, 106.678], // Công viên Gia Định
   [10.792, 106.704], // Chợ Thị Nghè
   [10.799, 106.728], // Cầu Sài Gòn
-  [10.781, 106.672], // Chợ Hoà Hưng
+  [10.7838, 106.6739], // Cách Mạng Tháng 8 gần chợ Hoà Hưng (điểm trong chợ ô tô không vào được)
   [10.793, 106.653], // Ngã tư Bảy Hiền
   [10.762, 106.669], // Chợ Nguyễn Tri Phương
   [10.7497, 106.6511], // Chợ Bình Tây
