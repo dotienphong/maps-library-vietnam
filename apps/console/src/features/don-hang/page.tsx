@@ -22,7 +22,7 @@ export function DonHangPage() {
         <h1 className="text-2xl font-bold">Đơn hàng</h1>
         <Link
           to="/mua"
-          className="inline-flex min-h-11 items-center rounded-[var(--radius-btn)] bg-brand-700 px-4 font-semibold text-white"
+          className="inline-flex min-h-11 items-center rounded-[var(--radius-btn)] bg-accent px-4 font-semibold text-accent-ink"
         >
           Mua gói
         </Link>
@@ -41,7 +41,7 @@ export function DonHangPage() {
           <li key={don.id}>
             <Link
               to={`/don-hang/${don.id}`}
-              className="block rounded-[var(--radius-card)] border border-[var(--border)] bg-[var(--surface)] p-4 hover:border-brand-700"
+              className="block rounded-[var(--radius-card)] border border-[var(--border)] bg-[var(--surface)] p-4 hover:border-accent-text"
             >
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <span className="font-semibold">

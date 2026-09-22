@@ -574,12 +574,31 @@ hover:bg-accent-soft
 - [ ] **Step 2: Kiểm sạch, build, test**
 
 ```bash
-grep -rn "brand-" apps/console/src apps/console/index.html | grep -v "\.test\." ; echo "exit=$?"
+# `brand` KHÔNG kèm gạch cũng phải tìm: có bài test khẳng định lớp `bg-brand`.
+grep -rn "brand" apps/console/src apps/console/index.html | grep -v 'tone="brand"' | grep -v "'brand'" ; echo "exit=$?"
 pnpm --filter @mapslibvn/console build
 pnpm exec vitest run apps/console
 ```
 
-Expected: grep `exit=1`; build không lỗi; vitest PASS.
+Expected: grep `exit=1` (chỉ còn `tone="brand"` là tên biến thể ngữ nghĩa của Badge, đã lọc);
+build không lỗi; vitest PASS 28.
+
+Nếu có bài test khẳng định lớp màu cũ (`toContain('bg-brand')` trong
+`features/tong-quan/thanh-han-muc.test.tsx`), sửa thành `bg-accent`.
+
+- [ ] **Step 2b: Xác nhận utility trỏ đúng token (không phải hằng màu)**
+
+```bash
+# `emptyOutDir: false` nên CSS CŨ tích lại trong thư mục này — phải lấy tệp MỚI NHẤT, nếu không
+# bạn sẽ soi nhầm bản build từ hôm trước và kết luận sai.
+CSS=$(ls -t apps/admin/dist/console/assets/index-*.css | head -1)
+grep -o "\.bg-accent{[^}]*}" "$CSS"
+grep -o "\.text-accent-text{[^}]*}" "$CSS"
+```
+
+Expected: `.bg-accent{background-color:var(--accent)}` và `.text-accent-text{color:var(--accent-text)}`
+— trỏ thẳng vào token thô, nên `.dark` ghi đè được. Nếu ra mã màu cứng thì `@theme inline` không có
+tác dụng và phải dừng lại.
 
 - [ ] **Step 3: Commit**
 

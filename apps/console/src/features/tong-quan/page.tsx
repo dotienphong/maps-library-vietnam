@@ -57,7 +57,7 @@ export function TongQuan() {
         </p>
         <Link
           to="/bat-dau"
-          className="mt-4 inline-flex min-h-11 items-center rounded-[var(--radius-btn)] bg-brand-700 px-5 font-semibold text-white"
+          className="mt-4 inline-flex min-h-11 items-center rounded-[var(--radius-btn)] bg-accent px-5 font-semibold text-accent-ink"
         >
           Tạo tổ chức
         </Link>

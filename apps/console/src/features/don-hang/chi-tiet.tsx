@@ -89,7 +89,7 @@ export function ChiTietDon() {
       {d.status === 'pending' && (
         <section className="space-y-4 rounded-[var(--radius-card)] border border-[var(--border)] bg-[var(--surface)] p-5">
           {q.get('ket-qua') === 'thanh-cong' && (
-            <p className="rounded-[var(--radius-btn)] bg-brand-50 p-3 text-sm dark:bg-brand-900">
+            <p className="rounded-[var(--radius-btn)] bg-accent-soft p-3 text-sm">
               PayOS báo đã thanh toán; đang chờ ngân hàng xác nhận, thường dưới một phút.
             </p>
           )}
@@ -108,7 +108,7 @@ export function ChiTietDon() {
               href={d.checkoutUrl}
               target="_blank"
               rel="noreferrer"
-              className="inline-flex min-h-11 items-center rounded-[var(--radius-btn)] bg-brand-700 px-4 font-semibold text-white"
+              className="inline-flex min-h-11 items-center rounded-[var(--radius-btn)] bg-accent px-4 font-semibold text-accent-ink"
             >
               Mở trang thanh toán PayOS
             </a>
@@ -179,7 +179,7 @@ export function ChiTietDon() {
           </p>
           <Link
             to="/"
-            className="inline-flex min-h-11 items-center rounded-[var(--radius-btn)] bg-brand-700 px-4 font-semibold text-white"
+            className="inline-flex min-h-11 items-center rounded-[var(--radius-btn)] bg-accent px-4 font-semibold text-accent-ink"
           >
             Về Tổng quan
           </Link>

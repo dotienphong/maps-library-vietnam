@@ -28,7 +28,7 @@ export function TheGoi({ tier, months, dangDung, daChon, chon }: TheGoiProps) {
       aria-label={`Gói ${TEN_GOI[tier]}`}
       className={cn(
         'rounded-[var(--radius-card)] border bg-[var(--surface)] p-5',
-        daChon ? 'border-brand-700 ring-2 ring-brand-700/30' : 'border-[var(--border)]',
+        daChon ? 'border-accent-text ring-2 ring-accent-text/30' : 'border-[var(--border)]',
       )}
     >
       <div className="flex items-start justify-between gap-2">

@@ -35,7 +35,7 @@ export function KhoaMotLan({ khoa, apiBase }: { khoa: string; apiBase: string })
   return (
     <section
       aria-labelledby="tt-khoa"
-      className="rounded-[var(--radius-card)] border border-brand-700 bg-[var(--surface)] p-5"
+      className="rounded-[var(--radius-card)] border border-accent-text bg-[var(--surface)] p-5"
     >
       <h2 id="tt-khoa" className="text-base font-bold">
         Khoá API của bạn

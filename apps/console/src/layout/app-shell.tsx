@@ -37,15 +37,15 @@ export function AppShell() {
   const lop = (dangXem: boolean) =>
     `flex min-h-11 items-center rounded-[var(--radius-btn)] px-3 text-sm font-semibold ${
       dangXem
-        ? 'bg-brand-50 text-brand-700 dark:bg-brand-900 dark:text-brand-100'
-        : 'text-[var(--text-muted)] hover:bg-brand-50 dark:hover:bg-brand-900'
+        ? 'bg-accent-soft text-accent-text'
+        : 'text-muted hover:bg-accent-soft'
     }`;
 
   return (
     <>
       <header className="sticky top-0 z-40 border-b border-[var(--border)] bg-[var(--surface)]">
         <div className="mx-auto flex h-16 max-w-5xl items-center gap-2 px-4">
-          <Link to="/" className="text-base font-bold text-brand-700 dark:text-brand-100">
+          <Link to="/" className="text-base font-bold text-accent-text">
             MapsLibVN
           </Link>
           {toi?.tenant?.name && (

@@ -21,7 +21,7 @@ export function ThanhHanMuc({ nhan, used, limit, credits }: ThanhHanMucProps) {
       ? 'bg-red-600'
       : phanTram >= 80
         ? 'bg-amber-500'
-        : 'bg-brand-700 dark:bg-brand-500';
+        : 'bg-accent';
 
   return (
     <div>
