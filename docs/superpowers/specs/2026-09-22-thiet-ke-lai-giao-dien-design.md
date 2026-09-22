@@ -176,16 +176,19 @@ Thứ tự khối, từ trên xuống. Mọi con số lấy từ `@mapslibvn/cat
    `<dialog>` hiện có.
 2. **Hero căn giữa**, chiều cao tự nhiên (không ép 100vh): chip mono `$ npm i @mapslibvn/web`
    (viền `--border`, chữ `--accent-text`); h1 display 2 dòng: "Bản đồ Việt Nam / cho ứng dụng của
-   bạn"; lead 1 câu (giữ câu hiện có, rút còn ≤ 140 ký tự); hai nút: chính "Bắt đầu miễn phí" →
-   console, phụ "Xem bảng giá"; dòng small "Bản dùng thử 2.000 lượt Places trong 30 ngày, không cần
+   bạn"; lead 1 câu (giữ câu hiện có, rút còn ≤ 140 ký tự); ba nút, chỉ nút đầu mang màu nhấn: chính
+   "Bắt đầu miễn phí" → console, phụ "Hướng dẫn setup" → `${DOCS_URL}/cai-dat/`, phụ "Xem bảng
+   giá"; dòng small "Bản dùng thử 2.000 lượt Places trong 30 ngày, không cần
    thẻ." LCP là chính chữ h1, không có ảnh trong hero.
 3. **Bản đồ trải ngang**: khối tràn viewport, cao 520 px desktop / 360 px mobile, bo 12 px trong khung
-   1200 (mobile bo 0). Trạng thái đầu: ảnh tĩnh `ban-do-hero-dark` (bản tối) hoặc `ban-do-hero`
-   (bản sáng) qua `<picture>` AVIF/WebP, kèm góc trái trên một ô tìm kiếm **tĩnh** vẽ bằng HTML
+   1200 (mobile bo 0). **Bản đồ LUÔN dùng theme sáng**, kể cả khi trang đang tối (PHONG chốt
+   22/09/2026): đây là ảnh sản phẩm chứ không phải một mảng giao diện, nên nó giữ một diện mạo duy
+   nhất thay vì đổi theo trang. Trạng thái đầu: ảnh tĩnh `ban-do-hero` qua `<picture>` AVIF/WebP,
+   kèm góc trái trên một ô tìm kiếm **tĩnh** vẽ bằng HTML
    ("chợ bến th…" và ba gợi ý thật: Chợ Bến Thành · Phường Sài Gòn; Bến Thành Tower; Ga Metro Bến
    Thành) để người xem hiểu đây là bản đồ có tìm kiếm. Khi khối vào viewport (IntersectionObserver,
    `rootMargin: 200px 0px`, chỉ một lần), thay bằng `<iframe loading="lazy">` tới
-   `${DOCS_URL}/playground?embed=1&style=dark` (bản sáng: `style=light`), `title="Bản đồ MapsLibVN
+   `${DOCS_URL}/playground?embed=1&style=light` ở cả hai theme, `title="Bản đồ MapsLibVN
    tương tác"`. Không có IntersectionObserver (trình duyệt cũ) thì hiện nút "Mở bản đồ" như hiện
    nay. Dưới khối: dòng small "Bản đồ thật do MapsLibVN phục vụ · Mở trang thử đầy đủ →". Kích
    thước cố định nên CLS = 0.

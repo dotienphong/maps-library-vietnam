@@ -1,8 +1,7 @@
 ---
 import { Picture } from 'astro:assets';
 import { DOCS_URL } from '../../site.config.mjs';
-import sang from '../assets/ban-do-hero.jpg';
-import toi from '../assets/ban-do-hero-dark.jpg';
+import banDo from '../assets/ban-do-hero.jpg';
 import Nut from './Nut.astro';
 import OGoiY from './OGoiY.astro';
 
@@ -10,9 +9,11 @@ import OGoiY from './OGoiY.astro';
  * Khối bản đồ trải ngang dưới hero (spec 5.3). Lúc mở trang chỉ có ảnh tĩnh + ô tìm kiếm vẽ bằng
  * HTML. iframe playground (1,1 MB SDK + tiles) chỉ được tạo khi người dùng cuộn lần đầu và khối đã
  * lộ ≥ 25 %, hoặc khi bấm nút. Kích thước khối cố định nên CLS = 0.
+ *
+ * Bản đồ LUÔN dùng theme sáng, kể cả khi trang đang tối (PHONG chốt 22/09/2026): đây là ảnh sản
+ * phẩm chứ không phải một mảng giao diện, nên nó giữ một diện mạo duy nhất thay vì đổi theo trang.
  */
-const srcToi = `${DOCS_URL}/playground?embed=1&style=dark`;
-const srcSang = `${DOCS_URL}/playground?embed=1&style=light`;
+const src = `${DOCS_URL}/playground?embed=1&style=light`;
 const ALT =
   'Bản đồ khu vực trung tâm Thành phố Hồ Chí Minh do MapsLibVN dựng, nhãn đường và địa điểm bằng tiếng Việt';
 ---
@@ -22,30 +23,18 @@ const ALT =
   <div class="mx-auto max-w-[1200px] sm:px-6">
     <div
       id="khoi-ban-do"
-      data-src-toi={srcToi}
-      data-src-sang={srcSang}
+      data-src={src}
       class="relative h-[360px] overflow-hidden border-y border-border bg-surface-2 sm:h-[520px] sm:rounded-[var(--radius-card)] sm:border"
     >
-      {/* Hai ảnh; ảnh không thuộc theme hiện tại bị display:none nên trình duyệt không tải nó. */}
       <Picture
-        src={toi}
+        src={banDo}
         alt={ALT}
         widths={[640, 960, 1280, 1600]}
         sizes="(max-width: 1200px) 100vw, 1200px"
         formats={['avif', 'webp']}
         loading="lazy"
         decoding="async"
-        class="absolute inset-0 hidden h-full w-full object-cover dark:block"
-      />
-      <Picture
-        src={sang}
-        alt={ALT}
-        widths={[640, 960, 1280, 1600]}
-        sizes="(max-width: 1200px) 100vw, 1200px"
-        formats={['avif', 'webp']}
-        loading="lazy"
-        decoding="async"
-        class="absolute inset-0 h-full w-full object-cover dark:hidden"
+        class="absolute inset-0 h-full w-full object-cover"
       />
 
       <OGoiY class="absolute left-4 top-4 w-[min(360px,calc(100%-2rem))]" />
@@ -68,8 +57,7 @@ const ALT =
   const nap = () => {
     if (!khoi || khoi.dataset.daNap) return;
     khoi.dataset.daNap = '1';
-    const toi = document.documentElement.classList.contains('dark');
-    const src = toi ? khoi.dataset.srcToi : khoi.dataset.srcSang;
+    const src = khoi.dataset.src;
     if (!src) return;
     const khung = document.createElement('iframe');
     khung.src = src;

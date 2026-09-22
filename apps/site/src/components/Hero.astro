@@ -1,5 +1,5 @@
 ---
-import { CONSOLE_URL } from '../../site.config.mjs';
+import { CONSOLE_URL, DOCS_URL } from '../../site.config.mjs';
 import { TRANG } from '../lib/trang';
 import Nut from './Nut.astro';
 
@@ -20,6 +20,9 @@ import Nut from './Nut.astro';
   </p>
   <div class="mt-8 flex flex-wrap justify-center gap-3">
     <Nut href={CONSOLE_URL} co="lon">Bắt đầu miễn phí</Nut>
+    {/* Chỉ nút ĐẦU mang màu nhấn: quy tắc một màu nhấn cho một việc trên mỗi màn (spec 4.1). Hai
+        nút sau là lối rẽ cho người chưa sẵn sàng đăng ký, không phải hành động chính. */}
+    <Nut href={`${DOCS_URL}/cai-dat/`} kieu="phu" co="lon">Hướng dẫn setup</Nut>
     <Nut href={TRANG.bangGia.path} kieu="phu" co="lon">Xem bảng giá</Nut>
   </div>
   <p class="t-small mt-4 text-muted">

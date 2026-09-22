@@ -40,25 +40,32 @@ test('đường dẫn lạ trả 404 và trang 404 vẫn dùng được', async 
   await expect(page.getByRole('link', { name: 'Trang chủ' }).first()).toBeVisible();
 });
 
-test('bản đồ trải ngang: không iframe khi mở, nạp bản tối sau lần cuộn đầu', async ({ page }) => {
+test('bản đồ trải ngang: không iframe khi mở, nạp sau lần cuộn đầu', async ({ page }) => {
   await page.goto('/');
   // Lời hứa về tốc độ tải: mở trang không kéo một byte nào của playground.
   await expect(page.locator('iframe')).toHaveCount(0);
   await expect(page.locator('#khoi-ban-do img').first()).toBeVisible();
 
   await page.mouse.wheel(0, 400);
-  await expect(page.locator('iframe')).toHaveCount(1);
   const khung = page.locator('iframe');
-  await expect(khung).toHaveAttribute('src', /\/playground\?embed=1&style=dark$/);
+  await expect(khung).toHaveCount(1);
   await expect(khung).toHaveAttribute('title', /Bản đồ MapsLibVN/);
 });
 
-test('bản sáng nạp bản đồ sáng', async ({ page }) => {
-  await page.goto('/');
-  await page.evaluate(() => localStorage.setItem('mapslibvn-site-theme', 'light'));
-  await page.reload();
-  await page.mouse.wheel(0, 400);
-  await expect(page.locator('iframe')).toHaveAttribute('src', /style=light$/);
+test('bản đồ LUÔN sáng, kể cả khi trang đang ở theme tối', async ({ page }) => {
+  // Quyết định của PHONG 22/09: bản đồ là ảnh sản phẩm, không phải một mảng giao diện, nên nó
+  // giữ nguyên bản sáng ở cả hai theme thay vì đổi theo trang.
+  for (const chon of ['dark', 'light']) {
+    await page.goto('/');
+    await page.evaluate((v) => localStorage.setItem('mapslibvn-site-theme', v), chon);
+    await page.reload();
+    await expect(page.locator('#khoi-ban-do img')).toHaveCount(1);
+    await page.mouse.wheel(0, 400);
+    await expect(page.locator('iframe'), `theme ${chon}`).toHaveAttribute(
+      'src',
+      /\/playground\?embed=1&style=light$/,
+    );
+  }
 });
 
 test('nút "Mở bản đồ tương tác" nạp ngay không cần cuộn', async ({ page }) => {
@@ -339,4 +346,19 @@ test('liên hệ: thẻ gọi điện được làm nổi bật hơn thẻ thư'
   const goi = page.getByTestId('the-goi');
   await expect(goi).toHaveClass(/border-accent-text/);
   await expect(page.getByTestId('the-thu')).not.toHaveClass(/border-accent-text/);
+});
+
+test('hero có ba nút đúng thứ tự và chỉ một nút mang màu nhấn', async ({ page }) => {
+  await page.goto('/');
+  const hero = page.locator('section').first();
+  await expect(hero.getByRole('link')).toHaveText([
+    'Bắt đầu miễn phí',
+    'Hướng dẫn setup',
+    'Xem bảng giá',
+  ]);
+  await expect(hero.locator('a.bg-accent')).toHaveCount(1);
+  await expect(hero.getByRole('link', { name: 'Hướng dẫn setup' })).toHaveAttribute(
+    'href',
+    /\/cai-dat\/$/,
+  );
 });
