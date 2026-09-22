@@ -2,6 +2,7 @@
 import { Picture } from 'astro:assets';
 import { CONSOLE_URL, DOCS_URL } from '../../site.config.mjs';
 import banDo from '../assets/ban-do-hero.jpg';
+import banDoToi from '../assets/ban-do-hero-dark.jpg';
 import MucLucDinh from '../components/MucLucDinh.astro';
 import Nhan from '../components/Nhan.astro';
 import Nut from '../components/Nut.astro';
@@ -149,16 +150,30 @@ const MUC = [
 
               <div data-bang-chung>
                 {muc.id === 'ban-do' && (
-                  <Picture
-                    src={banDo}
-                    alt="Bản đồ trung tâm Thành phố Hồ Chí Minh do MapsLibVN dựng"
-                    widths={[480, 720, 960]}
-                    sizes="(max-width: 1024px) 100vw, 520px"
-                    formats={['avif', 'webp']}
-                    loading="lazy"
-                    decoding="async"
-                    class="w-full rounded-[var(--radius-card)] border border-border"
-                  />
+                  <>
+                    {/* Hai ảnh theo theme: ảnh sáng trên nền tối trông như một mảng trắng chói và
+                        nói sai về sản phẩm — bản tối của bản đồ mới là thứ khách sẽ thấy. */}
+                    <Picture
+                      src={banDoToi}
+                      alt="Bản đồ trung tâm Thành phố Hồ Chí Minh do MapsLibVN dựng, bản tối"
+                      widths={[480, 720, 960]}
+                      sizes="(max-width: 1024px) 100vw, 520px"
+                      formats={['avif', 'webp']}
+                      loading="lazy"
+                      decoding="async"
+                      class="hidden w-full rounded-[var(--radius-card)] border border-border dark:block"
+                    />
+                    <Picture
+                      src={banDo}
+                      alt="Bản đồ trung tâm Thành phố Hồ Chí Minh do MapsLibVN dựng, bản sáng"
+                      widths={[480, 720, 960]}
+                      sizes="(max-width: 1024px) 100vw, 520px"
+                      formats={['avif', 'webp']}
+                      loading="lazy"
+                      decoding="async"
+                      class="w-full rounded-[var(--radius-card)] border border-border dark:hidden"
+                    />
+                  </>
                 )}
 
                 {muc.id === 'poi' && (

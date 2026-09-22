@@ -43,7 +43,7 @@ const goi = bangGia();
           <h3 class="t-h3">{g.ten}</h3>
           <p class="mt-3">
             <span
-              class="t-stat"
+              class="t-stat block"
               data-gia1={g.theoKy[1].vndHienThi}
               data-gia3={g.theoKy[3].vndHienThi}
               data-gia6={g.theoKy[6].vndHienThi}
@@ -51,9 +51,19 @@ const goi = bangGia();
             >
               {g.theoKy[1].vndHienThi}
             </span>
-            <span class="t-small text-muted" data-ky-nhan>
-              / 1 tháng
-            </span>
+            {/* Đơn vị xuống DÒNG RIÊNG: ở lưới bốn cột, "10.400.000đ" cỡ 34px đã chiếm gần hết
+                bề ngang thẻ, để cùng dòng thì "/ 12 tháng" bị ngắt giữa chừng.
+                Gói dùng thử KHÔNG có kỳ thuê bao — nó là tổng 30 ngày — nên nhãn của nó cố định
+                và script đổi kỳ phải bỏ qua, vì vậy không gắn `data-ky-nhan`. */}
+            {
+              g.tier === 'trial' ? (
+                <span class="t-small mt-1 block text-muted">/ 30 ngày</span>
+              ) : (
+                <span class="t-small mt-1 block text-muted" data-ky-nhan>
+                  / 1 tháng
+                </span>
+              )
+            }
           </p>
           <p class="t-small mt-1 text-muted">
             tham chiếu{' '}

@@ -3784,3 +3784,41 @@ Cổng: lint xanh toàn repo, vitest 98/98 (site + ui), `astro check` 0 lỗi, b
 site 31/31, không mã màu cứng nào trong `apps/site/src` ngoài hai giá trị theme-color. Bốn ảnh
 nghiệm thu (tối/sáng × 1280/390) ở `docs/evidence/site-redesign/pha-1/`. Chưa push — chờ PHONG
 duyệt bằng mắt trước khi sang pha 2.
+
+## 31. Giao diện mới — pha 2: năm trang con — 22/09/2026
+
+Plan `2026-09-22-giao-dien-pha-2-trang-con.md`, cùng nhánh. Mỗi trang giờ có một **dạng nội dung
+chủ đạo riêng** (spec mục 6), hết cảnh trang nào cũng là một cột chữ:
+
+- **Tính năng**: mục lục dính + sáu hàng xen kẽ, mỗi hàng kèm bằng chứng nhìn được (ảnh bản đồ theo
+  theme, bảng 13 nhóm, ô gợi ý, JSON geocode, SVG tuyến + ba chặng tiếng Việt, danh sách gói npm).
+- **Bảng giá**: thanh ước tính nhập số lượt → gói nhỏ nhất đủ dùng, cộng bảng đối chiếu tám hàng.
+- **Hai trang so sánh**: một bảng đối đầu thay hai danh sách dài; ô thắng tô màu nhấn kể cả khi bên
+  thắng là đối thủ (Google thắng 6 hàng, VIETMAP thắng 4).
+- **Bài viết**: bài mới nhất thành khối dẫn, còn lại là hàng gọn; trang bài có mục lục riêng sinh từ
+  h2 của chính bài.
+- **Liên hệ**: hai cột, số điện thoại là thứ duy nhất được viền nhấn.
+
+**Hai bài kiểm bắt lỗi thật, và cả hai đều là lỗi của tôi chứ không phải của mã:**
+
+- `The.astro` **không chuyển tiếp thuộc tính lạ**. `<The data-… hidden>` im lặng mất cả `data-*` lẫn
+  `hidden`, nên script của thanh ước tính không bao giờ tìm thấy khối: trang vẫn hiện, ô nhập vẫn
+  gõ được, chỉ là không phản hồi. Không có e2e thì lỗi này lọt thẳng ra production.
+- Bài e2e đầu tiên tôi viết cho thanh ước tính **sai chính luật mình vừa cài**: nhập 20.000 Places
+  mà quên hạ lượt tuyến nên vẫn ra Professional. Mã đúng, test sai. Đã sửa test và khoá luôn luật
+  "hai nhóm hạn mức độc lập" thành một khẳng định riêng.
+- Bài e2e **cũ** bắt được một lỗi trợ năng: bản viết lại biến hai tiêu đề thẻ liên hệ thành `<span>`,
+  mất cấu trúc tiêu đề mà trình đọc màn hình dùng để nhảy khối. Đã trả lại `<h2>`.
+
+**Hai chỗ sửa sau khi nhìn ảnh:** trang Tính năng dùng ảnh bản đồ SÁNG trên nền tối (một mảng trắng
+chói, nói sai về sản phẩm) — đổi sang hai ảnh theo theme; và thẻ giá ghi "0đ / 1 tháng" cho gói dùng
+thử, trong khi nó là tổng 30 ngày chứ không phải thuê bao tháng — nhãn của gói này giờ cố định và
+script đổi kỳ bỏ qua nó.
+
+`doi-dau.ts` có `CHUA_CO` làm **nguồn duy nhất** cho cả mục "Những thứ chưa có" lẫn bài kiểm chống
+tự nhận thắng, nên hai chỗ không thể lệch nhau; cộng một bài đòi mỗi bảng có ít nhất hai hàng đối
+thủ thắng, để trang so sánh do chính người bán viết không lặng lẽ biến thành quảng cáo.
+
+Cổng: lint xanh toàn repo, vitest 111/111, `astro check` 0 lỗi, build 11 trang, Playwright site
+39/39, không mã màu cứng, **không trang nào cuộn ngang ở 390 px**. 21 ảnh nghiệm thu (7 trang × 2
+theme ở 1280 + 7 trang ở 390) ở `docs/evidence/site-redesign/pha-2/`. Chưa push.
