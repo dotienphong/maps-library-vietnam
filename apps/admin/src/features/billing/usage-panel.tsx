@@ -87,7 +87,7 @@ function MissingAcksPanel({ missingAcks }: { missingAcks: MissingAcks }) {
 
 const MAU: Record<Muc, string> = {
   'khong-co': 'bg-black/20 dark:bg-white/20',
-  ok: 'bg-brand-600',
+  ok: 'bg-accent',
   'sap-het': 'bg-amber-500',
   het: 'bg-red-600',
 };

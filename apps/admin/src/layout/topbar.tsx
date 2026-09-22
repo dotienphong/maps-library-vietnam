@@ -15,7 +15,7 @@ export function Topbar({ title, email, drawer }: TopbarProps) {
   };
 
   return (
-    <header className="sticky top-0 z-30 flex items-center gap-3 bg-brand-700 px-3 py-2 text-white">
+    <header className="sticky top-0 z-30 flex items-center gap-3 border-b border-border bg-surface-2 px-3 py-2 text-text">
       {drawer}
       <h1 className="flex-1 truncate text-base font-semibold">{title}</h1>
       <Button

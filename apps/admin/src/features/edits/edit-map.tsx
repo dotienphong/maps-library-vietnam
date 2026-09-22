@@ -122,7 +122,7 @@ export function EditMap({ detail, loadMap = defaultLoadMap }: EditMapProps) {
               <span className="inline-block h-2.5 w-2.5 rounded-full bg-[#98a2b3]" /> vị trí cũ
             </span>
             <span className="inline-flex items-center gap-1">
-              <span className="inline-block h-2.5 w-2.5 rounded-full bg-brand-700" /> vị trí mới
+              <span className="inline-block h-2.5 w-2.5 rounded-full bg-accent" /> vị trí mới
             </span>
             {plan.distanceM !== null && (
               <strong className="text-[var(--text)]">Lệch {plan.distanceM} m</strong>

@@ -68,7 +68,7 @@ export function EditsPage() {
             onClick={() => setStatus(tab.value)}
             className={
               tab.value === status
-                ? 'min-h-11 rounded-full bg-brand-700 px-4 text-sm font-semibold text-white'
+                ? 'min-h-11 rounded-full bg-accent px-4 text-sm font-semibold text-accent-ink'
                 : 'min-h-11 rounded-full border border-[var(--border)] px-4 text-sm'
             }
           >

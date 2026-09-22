@@ -25,7 +25,7 @@ export function NotFound() {
       </p>
       <Link
         to="/edits"
-        className="mt-4 inline-flex min-h-11 items-center rounded-[var(--radius-btn)] bg-brand-600 px-4 text-[15px] font-semibold text-white"
+        className="mt-4 inline-flex min-h-11 items-center rounded-[var(--radius-btn)] bg-accent px-4 text-[15px] font-semibold text-accent-ink"
       >
         Về Duyệt đóng góp
       </Link>
