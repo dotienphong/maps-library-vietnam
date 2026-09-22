@@ -146,6 +146,10 @@ const mucNav = NAV.map((key) => ({ ...TRANG[key], dangXem: pathname === TRANG[ke
   document.getElementById('nut-theme')?.addEventListener('click', () => {
     const toi = !document.documentElement.classList.contains('dark');
     document.documentElement.classList.toggle('dark', toi);
+    // Thanh trạng thái của trình duyệt di động phải đổi theo, nếu không nó vẫn đen trên nền sáng.
+    document
+      .querySelector('meta[name="theme-color"]')
+      ?.setAttribute('content', toi ? '#0a0a0a' : '#fafafa');
     try {
       localStorage.setItem(KHOA, toi ? 'dark' : 'light');
     } catch {

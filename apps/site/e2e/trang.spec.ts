@@ -155,16 +155,29 @@ test('trang chủ in đủ bốn thẻ giá, có gói dùng thử 0đ', async ({
   await expect(khoi).toContainText('2.000 lượt Places trong 30 ngày');
 });
 
-test('công tắc sáng tối đổi giao diện và nhớ lựa chọn', async ({ page }) => {
+test('mặc định tối bất kể cài đặt máy; chọn sáng thì nhớ', async ({ browser }) => {
+  // Mô phỏng máy đặt SÁNG để chứng minh site không còn đi theo prefers-color-scheme.
+  const ctx = await browser.newContext({ colorScheme: 'light' });
+  const page = await ctx.newPage();
   await page.goto('/');
   const html = page.locator('html');
-  const toiLucDau = await html.evaluate((el) => el.classList.contains('dark'));
+  expect(await html.evaluate((el) => el.classList.contains('dark'))).toBe(true);
+  await expect(page.locator('meta[name="theme-color"]')).toHaveAttribute('content', '#0a0a0a');
 
   await page.getByRole('button', { name: 'Đổi giao diện sáng tối' }).click();
-  await expect.poll(() => html.evaluate((el) => el.classList.contains('dark'))).toBe(!toiLucDau);
+  await expect.poll(() => html.evaluate((el) => el.classList.contains('dark'))).toBe(false);
+  await expect(page.locator('meta[name="theme-color"]')).toHaveAttribute('content', '#fafafa');
 
   await page.reload();
-  await expect.poll(() => html.evaluate((el) => el.classList.contains('dark'))).toBe(!toiLucDau);
+  expect(await html.evaluate((el) => el.classList.contains('dark'))).toBe(false);
+  await ctx.close();
+});
+
+test('đã chọn tối thì reload vẫn tối', async ({ page }) => {
+  await page.goto('/');
+  await page.evaluate(() => localStorage.setItem('mapslibvn-site-theme', 'dark'));
+  await page.reload();
+  expect(await page.locator('html').evaluate((el) => el.classList.contains('dark'))).toBe(true);
 });
 
 test('ghi nguồn dữ liệu mở có mặt ở mọi trang — đây là nghĩa vụ giấy phép', async ({ page }) => {

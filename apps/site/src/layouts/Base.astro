@@ -22,12 +22,20 @@ const { trang, tuyChon, jsonLd } = Astro.props;
     <script is:inline>
       // Chạy đồng bộ trong <head>: đặt class trước lần vẽ đầu tiên, nếu không trang nháy sáng
       // rồi mới chuyển tối. Không dùng module vì module bị hoãn tới sau khi parse xong.
-      try {
-        const luu = localStorage.getItem('mapslibvn-site-theme');
-        const toi =
-          luu === 'dark' || (luu === null && matchMedia('(prefers-color-scheme: dark)').matches);
-        if (toi) document.documentElement.classList.add('dark');
-      } catch {}
+      // TỐI là mặc định (spec 22/09 mục 4.5): chỉ khi người dùng đã chọn 'light' mới để sáng.
+      // KHÔNG đọc prefers-color-scheme nữa — phần lớn khách đặt máy sáng và sẽ không bao giờ
+      // thấy bản tối, tức là không bao giờ thấy thiết kế thật của trang.
+      (function () {
+        var sang = false;
+        try {
+          sang = localStorage.getItem('mapslibvn-site-theme') === 'light';
+        } catch (e) {
+          // Chế độ riêng tư chặn localStorage — coi như chưa chọn, tức là tối.
+        }
+        if (!sang) document.documentElement.classList.add('dark');
+        var meta = document.querySelector('meta[name="theme-color"]');
+        if (meta) meta.setAttribute('content', sang ? '#fafafa' : '#0a0a0a');
+      })();
     </script>
   </head>
   <body>
