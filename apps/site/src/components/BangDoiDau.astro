@@ -1,0 +1,61 @@
+---
+import { COMPARISON } from '@mapslibvn/catalog';
+import type { HangDoiDau } from '../lib/doi-dau';
+
+/**
+ * Bảng đối đầu hai cột. Ô thắng tô màu nhấn và có dấu ✓; ô thua để màu mờ. Chỗ đối thủ hơn VẪN tô
+ * cho đối thủ — đó là điều làm bảng này đáng tin, và có bài kiểm đòi mỗi bảng ít nhất hai hàng như
+ * vậy (`doi-dau.test.ts`).
+ */
+interface Props {
+  hang: readonly HangDoiDau[];
+  tenHo: string;
+}
+
+const { hang, tenHo } = Astro.props;
+const ngayVn = COMPARISON.checkedAt.split('-').reverse().join('/');
+---
+
+<div class="overflow-x-auto rounded-[var(--radius-card)] border border-border">
+  <table class="w-full border-collapse text-left">
+    <caption class="t-small px-4 py-3 text-left font-semibold text-muted">
+      Bảng đối đầu MapsLibVN và {tenHo}, ba hàng chi phí đối chiếu ngày {ngayVn}
+    </caption>
+    <thead>
+      <tr class="bg-surface-2">
+        <th scope="col" class="t-small px-4 py-3 font-semibold">Tiêu chí</th>
+        <th scope="col" class="t-small px-4 py-3 font-semibold text-accent-text">MapsLibVN</th>
+        <th scope="col" class="t-small px-4 py-3 font-semibold">{tenHo}</th>
+      </tr>
+    </thead>
+    <tbody>
+      {
+        hang.map((h) => (
+          <tr class="border-t border-border align-top">
+            <th scope="row" class="t-small px-4 py-3 font-normal text-muted">
+              {h.tieuChi}
+            </th>
+            <td
+              class:list={[
+                't-small px-4 py-3',
+                h.thang === 'ta' ? 'font-semibold text-accent-text' : 'text-faint',
+              ]}
+            >
+              {h.thang === 'ta' && <span aria-hidden="true">✓ </span>}
+              {h.ta}
+            </td>
+            <td
+              class:list={[
+                't-small px-4 py-3',
+                h.thang === 'ho' ? 'font-semibold text-accent-text' : 'text-faint',
+              ]}
+            >
+              {h.thang === 'ho' && <span aria-hidden="true">✓ </span>}
+              {h.ho}
+            </td>
+          </tr>
+        ))
+      }
+    </tbody>
+  </table>
+</div>
