@@ -17,6 +17,38 @@ export function sharedBuffersFor(totalMemBytes) {
 }
 
 /**
+ * Cảnh báo khi `PG_SHARED_BUFFERS` trong `.env` quá lớn so với RAM của MÁY ĐANG CHẠY.
+ *
+ * Vì sao cần: `sharedBuffersFor()` tính theo RAM của máy chạy `pnpm server:setup`, nhưng `.env` sinh
+ * ra thường được mang sang máy chủ khác. Ngày 22/09/2026 phát hiện production chạy
+ * `PG_SHARED_BUFFERS=4096MB` (25 % của MacBook 16 GB) trên máy chủ Ubuntu **3,7 GB** — Postgres xin
+ * 4 GB trên máy 3,7 GB nên hệ thống swap 81 %, và mọi thứ chậm đi: p95 `/v1/directions` gấp 3–5 lần
+ * mốc cũ, ma trận 50 cặp mất 3,6–4,5 s. Mất nhiều giờ mới truy ra vì triệu chứng nằm ở Valhalla.
+ *
+ * Trả `null` khi an toàn hoặc khi không đọc được số — cảnh báo là để người vận hành thấy, không
+ * được chặn khởi động vì một chuỗi lạ.
+ *
+ * @param {string} sharedBuffers giá trị dạng "4096MB"
+ * @param {number} totalMemBytes RAM của máy hiện tại
+ * @returns {string | null}
+ */
+export function canhBaoSharedBuffers(sharedBuffers, totalMemBytes) {
+  const match = /^(\d+)MB$/.exec((sharedBuffers ?? '').trim());
+  if (!match || !(totalMemBytes > 0)) return null;
+  const mb = Number(match[1]);
+  const totalMb = totalMemBytes / 2 ** 20;
+  if (mb <= totalMb * 0.3) return null;
+  const gb = (totalMb / 1024).toFixed(1).replace('.', ',');
+  return (
+    `PG_SHARED_BUFFERS=${sharedBuffers} nhưng máy này chỉ có ${gb} GB RAM ` +
+    `(${Math.round(totalMb)} MB). Postgres sẽ xin nhiều bộ nhớ hơn mức máy chịu được và hệ thống ` +
+    'rơi vào swap — mọi dịch vụ chậm đi, kể cả Valhalla vì mất page cache cho graph. ' +
+    'File .env nhiều khả năng được sinh trên máy khác. Sửa xuống ≤ 30 % RAM rồi ' +
+    'khởi động lại postgres.'
+  );
+}
+
+/**
  * @param {{ superPassword: string, apiPassword: string, pipelinePassword: string, sharedBuffers: string,
  *   tunnelToken: string, pipelineImage: string, backupPassphrase: string }} v
  */

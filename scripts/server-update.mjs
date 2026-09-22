@@ -1,13 +1,19 @@
 #!/usr/bin/env node
 // Cập nhật máy chủ: mã mới, image mới, compose up, migration (spec 11.1 pnpm server:update)
 import { readFileSync } from 'node:fs';
+import { totalmem } from 'node:os';
 import { resolve } from 'node:path';
 import { run } from './lib/run.mjs';
-import { parseEnv, pullPlan } from './lib/server-env.mjs';
+import { canhBaoSharedBuffers, parseEnv, pullPlan } from './lib/server-env.mjs';
 
 const dir = resolve('infra/server');
 const env = parseEnv(readFileSync(resolve(dir, '.env'), 'utf8'));
 const compose = ['compose', '--env-file', resolve(dir, '.env'), '-f', resolve(dir, 'compose.yml')];
+
+// `.env` hay được sinh ở máy khác rồi mang sang máy chủ; kiểm mỗi lần cập nhật để một cấu hình quá
+// cỡ không âm thầm làm cả máy swap (sự cố 22/09/2026 — xem canhBaoSharedBuffers).
+const canhBao = canhBaoSharedBuffers(env.PG_SHARED_BUFFERS ?? '', totalmem());
+if (canhBao) console.warn(`[server:update] CẢNH BÁO: ${canhBao}`);
 
 run('git', ['pull', '--ff-only']);
 const { services, skipPipeline } = pullPlan(env.PIPELINE_IMAGE);

@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  canhBaoSharedBuffers,
   generatePassword,
   parseEnv,
   pullPlan,
@@ -12,6 +13,28 @@ describe('generatePassword', () => {
     const a = generatePassword(32);
     expect(a).toMatch(/^[A-Za-z0-9]{32}$/);
     expect(generatePassword(32)).not.toBe(a);
+  });
+});
+
+describe('canhBaoSharedBuffers', () => {
+  it('vượt 30 % RAM máy hiện tại → trả cảnh báo nêu cả hai số', () => {
+    // Sự cố 22/09/2026: .env sinh trên MacBook 16 GB cho PG_SHARED_BUFFERS=4096MB rồi mang sang máy
+    // chủ 3,7 GB. Postgres xin 4 GB trên máy 3,7 GB → swap 81 %, mọi dịch vụ chậm, khó truy nguyên.
+    const canhBao = canhBaoSharedBuffers('4096MB', 3.7 * 2 ** 30);
+    expect(canhBao).toMatch(/4096MB/);
+    expect(canhBao).toMatch(/3[.,]7 GB|3788|3789|3790/);
+    expect(canhBao).toMatch(/swap/i);
+  });
+
+  it('trong mức an toàn → null', () => {
+    expect(canhBaoSharedBuffers('512MB', 3.7 * 2 ** 30)).toBeNull();
+    expect(canhBaoSharedBuffers('4096MB', 16 * 2 ** 30)).toBeNull();
+  });
+
+  it('giá trị không đọc được → null, không chặn khởi động vì một chuỗi lạ', () => {
+    expect(canhBaoSharedBuffers('', 3.7 * 2 ** 30)).toBeNull();
+    expect(canhBaoSharedBuffers('nhieu', 3.7 * 2 ** 30)).toBeNull();
+    expect(canhBaoSharedBuffers('512MB', 0)).toBeNull();
   });
 });
 
