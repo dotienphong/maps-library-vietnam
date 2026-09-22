@@ -3704,3 +3704,48 @@ endpoint ma trận; bảng so sánh Google/VIETMAP khớp `COMPARISON` 14/09; m�
 Kiểm: vitest `apps/site` 39/39, `astro check` 0 lỗi, biome sạch, `astro build` 11 trang, Playwright
 26/26 (thêm hai bài: bốn tab có đủ nội dung peer, và trang chủ có bốn thẻ giá kèm gói dùng thử). Chưa
 commit — chờ PHONG duyệt.
+
+## 29. Giao diện mới — pha 0: token, chữ, sáng/tối — 22/09/2026
+
+Spec `2026-09-22-thiet-ke-lai-giao-dien-design.md`, plan `2026-09-22-giao-dien-pha-0-nen-tang.md`,
+nhánh `feat/giao-dien-moi`. Bố cục **chưa đổi** — đó là pha 1; pha này chỉ thay nền tảng.
+
+**`@theme inline` là bắt buộc, và đã đo chứ không đoán.** Với `@theme` thường, `--color-bg: var(--bg)`
+được tính MỘT lần tại `:root` rồi kế thừa giá trị đã giải xuống, nên `.dark` không đổi được màu
+utility mà không có lỗi nào. Cách phân biệt rẻ: build rồi soi CSS — `inline` thì `--color-accent`
+KHÔNG được phát ra `:root`, trong khi `--radius-btn` của `@theme` thường vẫn phát. Kiểm tiếp ở bản
+build của console: `.bg-accent{background-color:var(--accent)}` trỏ thẳng token thô.
+
+**Bài kiểm tương phản đọc thẳng `tokens.css` và nó bắt ngay hai lỗi thật ở bản sáng.** Cả hai được
+sửa chứ không nới ngưỡng: `--accent` (#a3e635) chỉ đạt 1,4:1 trên nền sáng nên tách vai trò —
+`--accent` chỉ làm NỀN kèm chữ `--accent-ink`, còn mọi chữ, viền nhấn và nét vẽ dùng `--accent-text`
+(#3f6212 ở bản sáng, trùng `--accent` ở bản tối); `--border-strong` bản sáng #d4d4d8 cũng chỉ 1,4:1
+nên hover gần như không thấy, đổi sang #a1a1aa (2,5:1).
+
+**Ngân sách font đo thật.** Nét 800 (33,9 KB) cộng HAI nét JetBrains Mono (42,0 KB) là 75,9 KB, vượt
+trần 60 KB của spec. Nên chỉ lấy mono nét 400 và cho nhãn mono dùng luôn nét đó: 54,6 KB, đồng thời
+tránh chữ đậm GIẢ mà trình duyệt bịa khi thiếu nét — thứ nhoè rõ ở cỡ 12 px.
+
+**Site tối mặc định, bỏ đọc `prefers-color-scheme`.** Phần lớn khách đặt máy sáng nên sẽ không bao
+giờ thấy bản tối, tức không bao giờ thấy thiết kế thật. Chỉ ai tự chọn 'light' mới ra bản sáng.
+`theme-color` đổi theo class ở cả script khởi tạo lẫn công tắc. Preload hai tệp woff2 nét 800; kiểm
+bản dựng thấy href trùng đúng tệp mà CSS @fontsource tham chiếu nên không nhân đôi asset.
+
+**Ba cái bẫy đã vấp, ghi lại để lần sau khỏi mất thời gian:**
+- `apps/console` build với `emptyOutDir: false` nên CSS CŨ tích lại trong `apps/admin/dist/console`.
+  Soi `find ... | head -1` là gặp bản của hôm trước và kết luận sai. Phải `ls -t ... | head -1`.
+- `--force` là cờ của **turbo**, không phải của tsc: `pnpm --filter X typecheck --force` nổ TS5093.
+- grep `"brand-"` CÓ gạch bỏ sót lớp `bg-brand` mà một bài test console đang khẳng định.
+
+**Ngoài lề nhưng chặn cổng:** `work/` đã nằm trong `.gitignore` nhưng biome vẫn quét, nên 151 lỗi từ
+các tệp HTML tải về của việc POI làm `pnpm lint` đỏ sẵn từ trước. Đã loại `**/work` khỏi
+`files.includes`. Lint giờ xanh toàn repo.
+
+**Còn nợ, ngoài phạm vi spec:** màu navy #1b3a6b vẫn nằm ở mẫu email (`apps/api/src/email/*`), màu
+nhãn của style bản đồ (`packages/style/src/transform.mjs`), chấm vị trí trên bản đồ sửa POI của
+Admin, và ba favicon. Favicon và ảnh OG đã có trong pha 3; ba chỗ còn lại spec chưa tính đến, cần
+PHONG quyết có đổi hay không.
+
+Cổng: lint xanh toàn repo; vitest 354/354 (59 tệp); typecheck ui/admin/console/site đều 0 lỗi; build
+admin, console, site (11 trang); Playwright site 28/28. Ảnh hai theme ở
+`docs/evidence/site-redesign/pha-0/`. Chưa push.

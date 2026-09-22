@@ -10,7 +10,11 @@
 
 **Nhánh:** `feat/giao-dien-moi` tách từ `main` (HEAD `89c9fb7` hoặc mới hơn). Mọi task commit lên nhánh này; không push cho tới cuối pha.
 
-**Lệnh chạy từ gốc repo** (`/Users/dtphong/Desktop/software_business/mapsLibVN`) trừ khi ghi khác. macOS không có `timeout`. Typecheck luôn kèm `--force` vì Turbo cache từng trả xanh giả.
+**Lệnh chạy từ gốc repo** (`/Users/dtphong/Desktop/software_business/mapsLibVN`) trừ khi ghi khác.
+macOS không có `timeout`. Cảnh giác Turbo cache trả typecheck xanh giả: `--force` là cờ của
+**turbo**, không phải của tsc — `pnpm --filter X typecheck --force` sẽ nổ `TS5093`. Muốn bỏ qua
+cache thì chạy `pnpm exec turbo run typecheck --force`, còn `pnpm --filter X typecheck` gọi tsc
+thẳng nên vốn không qua cache.
 
 **Khác spec, có lý do:**
 - Bài kiểm tương phản đặt ở `packages/ui/src/tokens.test.ts` (cạnh tệp nó kiểm) thay vì `apps/site/src/lib`.
@@ -1041,9 +1045,9 @@ git commit -m "feat(site): tối mặc định bất kể cài đặt máy, them
 ```bash
 pnpm lint
 pnpm exec vitest run packages/ui apps/site apps/console apps/admin
-pnpm --filter @mapslibvn/ui typecheck --force
-pnpm --filter @mapslibvn/admin typecheck --force && pnpm --filter @mapslibvn/admin build
-pnpm --filter @mapslibvn/console typecheck --force && pnpm --filter @mapslibvn/console build
+pnpm --filter @mapslibvn/ui typecheck
+pnpm --filter @mapslibvn/admin typecheck && pnpm --filter @mapslibvn/admin build
+pnpm --filter @mapslibvn/console typecheck && pnpm --filter @mapslibvn/console build
 pnpm --filter @mapslibvn/site typecheck && pnpm --filter @mapslibvn/site build
 pnpm --filter @mapslibvn/site e2e
 grep -rn "brand-" apps packages/ui --include='*.tsx' --include='*.ts' --include='*.astro' --include='*.css' --include='*.html' | grep -v node_modules | grep -v dist | grep -v "\.test\." | grep -v "\.spec\." ; echo "brand exit=$?"
