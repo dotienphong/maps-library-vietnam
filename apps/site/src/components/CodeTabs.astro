@@ -2,8 +2,12 @@
 import { DOCS_URL } from '../../site.config.mjs';
 
 /**
- * Ba cách nhúng. Tab chạy bằng script vanilla theo đúng khuôn ARIA tablist, không React.
- * Khi JavaScript tắt, tab ĐẦU vẫn hiện vì chỉ panel sau mới mang thuộc tính hidden.
+ * Bốn cách nhúng, khớp từng dòng với trang Cài đặt của tài liệu. Tab chạy bằng script vanilla theo
+ * đúng khuôn ARIA tablist, không React. Khi JavaScript tắt, tab ĐẦU vẫn hiện vì chỉ panel sau mới
+ * mang thuộc tính hidden.
+ *
+ * Bản ESM và React KHÔNG gộp maplibre-gl: đoạn mã phải cài peer và (với ESM) truyền `maplibre` vào,
+ * nếu không `createMap` ném lỗi ngay. Bản đầu của trang chép thiếu hai dòng đó và chạy là vỡ.
  */
 const TABS = [
   {
@@ -21,27 +25,59 @@ const TABS = [
     zoom: 13,
   });
 </script>`,
+    ghiChu: 'Không cần build hay npm. Bản UMD đã gộp sẵn maplibre-gl và pmtiles.',
   },
   {
     id: 'npm',
     nhan: 'npm',
-    ma: `npm install @mapslibvn/web
+    ma: `npm install @mapslibvn/web maplibre-gl
 
+import 'maplibre-gl/dist/maplibre-gl.css';
+import * as maplibregl from 'maplibre-gl';
 import { createMap } from '@mapslibvn/web';
-import '@mapslibvn/web/style.css';
 
-const map = createMap({
-  container: 'map',
-  apiKey: 'mlv_live_…',
-  apiBase: 'https://api.ai-solutions.io.vn',
-  center: [106.7, 10.776],
-  zoom: 13,
-});`,
+const map = createMap(
+  {
+    container: 'map',
+    apiKey: 'mlv_live_…',
+    apiBase: 'https://api.ai-solutions.io.vn',
+    center: [106.7, 10.776],
+    zoom: 13,
+  },
+  { maplibre: maplibregl },
+);`,
+    ghiChu:
+      'maplibre-gl là peer dependency, bạn tự cài và truyền vào. Khi build còn phải trỏ worker của MapLibre về thư mục tĩnh của bạn.',
+  },
+  {
+    id: 'react',
+    nhan: 'React',
+    ma: `npm install @mapslibvn/react maplibre-gl
+
+import 'maplibre-gl/dist/maplibre-gl.css';
+import { MapsLibVNMap, Marker } from '@mapslibvn/react';
+
+export default function BanDo() {
+  return (
+    <MapsLibVNMap
+      apiKey="mlv_live_…"
+      apiBase="https://api.ai-solutions.io.vn"
+      center={[106.7, 10.776]}
+      zoom={13}
+      containerStyle={{ height: 400 }}
+    >
+      <Marker lng={106.6981} lat={10.7725} popupHtml="<b>Chợ Bến Thành</b>" />
+    </MapsLibVNMap>
+  );
+}`,
+    ghiChu:
+      'Gói tự import maplibre-gl nên không cần truyền deps, nhưng vẫn cần bước worker của MapLibre khi build.',
   },
   {
     id: 'rn',
     nhan: 'React Native',
-    ma: `npm install @mapslibvn/react-native
+    ma: `npx expo install @maplibre/maplibre-react-native expo-application
+npm install @mapslibvn/react-native
 
 import { MapsLibVNMap } from '@mapslibvn/react-native';
 
@@ -55,12 +91,14 @@ export default function ManBanDo() {
     />
   );
 }`,
+    ghiChu:
+      'Dùng khoá loại mobile. Cần New Architecture và không chạy trên Expo Go, phải build native.',
   },
 ] as const;
 ---
 
 <div class="mx-auto max-w-4xl px-4">
-  <div role="tablist" aria-label="Ba cách nhúng bản đồ" class="flex flex-wrap gap-1">
+  <div role="tablist" aria-label="Bốn cách nhúng bản đồ" class="flex flex-wrap gap-1">
     {
       TABS.map((tab, i) => (
         <button
@@ -89,9 +127,15 @@ export default function ManBanDo() {
         class="mt-3 overflow-x-auto rounded-[var(--radius-card)] border border-[var(--border)] bg-[var(--surface)] p-4"
       >
         <pre class="text-sm"><code>{tab.ma}</code></pre>
+        <p class="mt-3 text-sm text-[var(--text-muted)]">{tab.ghiChu}</p>
       </div>
     ))
   }
+
+  <p class="mt-4 text-sm text-[var(--text-muted)]">
+    Yêu cầu từng môi trường, bước worker của MapLibre cho bundler và bảng lỗi hay gặp nằm ở
+    <a class="underline" href={`${DOCS_URL}/cai-dat/`}>trang Cài đặt</a>.
+  </p>
 </div>
 
 <script>

@@ -70,11 +70,25 @@ describe('bangGia', () => {
 });
 
 describe('tomTatGia', () => {
-  it('cho trang chủ: ba gói trả phí, giá tháng, không có dùng thử', () => {
+  it('cho trang chủ: đủ bốn gói theo thứ tự, gói dùng thử đứng đầu', () => {
     const tom = tomTatGia();
-    expect(tom.map((t) => t.tier)).toEqual(['starter', 'professional', 'business']);
-    expect(tom[0]?.giaThang).toBe('650.000đ');
-    expect(tom[0]?.usdThang).toBe('$25');
+    expect(tom.map((t) => t.tier)).toEqual(['trial', 'starter', 'professional', 'business']);
+  });
+
+  it('gói dùng thử: 0đ cho 30 ngày, nói rõ không cần thẻ và hạn mức tổng', () => {
+    const trial = tomTatGia()[0];
+    expect(trial?.giaHienThi).toBe('0đ');
+    expect(trial?.donVi).toBe('/ 30 ngày');
+    expect(trial?.dongPhu).toMatch(/không cần thẻ/);
+    expect(trial?.hanMuc).toBe('2.000 lượt Places trong 30 ngày');
+  });
+
+  it('gói trả phí: giá một tháng, USD tham chiếu và hạn mức theo tháng', () => {
+    const starter = tomTatGia()[1];
+    expect(starter?.giaHienThi).toBe('650.000đ');
+    expect(starter?.donVi).toBe('/ tháng');
+    expect(starter?.dongPhu).toBe('tham chiếu $25');
+    expect(starter?.hanMuc).toBe('30.000 lượt Places mỗi tháng');
   });
 });
 

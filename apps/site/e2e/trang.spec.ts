@@ -115,19 +115,44 @@ test('máy tính: không có nút hamburger, năm mục nằm thẳng trên than
   await expect(nav.getByRole('link')).toHaveCount(5);
 });
 
-test('ba tab mã nhúng đổi được bằng chuột và bàn phím', async ({ page }) => {
+test('bốn tab mã nhúng đổi được bằng chuột và bàn phím', async ({ page }) => {
   await page.goto('/');
+  // Đủ bốn cách như trang Cài đặt của tài liệu: thẻ script, npm, React, React Native.
+  await expect(page.getByRole('tab')).toHaveCount(4);
+
   const tabNpm = page.getByRole('tab', { name: 'npm' });
   await tabNpm.click();
   await expect(tabNpm).toHaveAttribute('aria-selected', 'true');
-  await expect(page.getByRole('tabpanel')).toContainText('@mapslibvn/web');
+  // Bản ESM phải nhắc cài peer maplibre-gl và truyền vào, nếu không createMap ném lỗi.
+  await expect(page.getByRole('tabpanel')).toContainText('@mapslibvn/web maplibre-gl');
+  await expect(page.getByRole('tabpanel')).toContainText('{ maplibre: maplibregl }');
 
   // Mũi tên phải là điều người dùng bàn phím mong đợi ở một tablist.
+  await page.keyboard.press('ArrowRight');
+  await expect(page.getByRole('tab', { name: 'React', exact: true })).toHaveAttribute(
+    'aria-selected',
+    'true',
+  );
+  await expect(page.getByRole('tabpanel')).toContainText('@mapslibvn/react maplibre-gl');
+
   await page.keyboard.press('ArrowRight');
   await expect(page.getByRole('tab', { name: 'React Native' })).toHaveAttribute(
     'aria-selected',
     'true',
   );
+});
+
+test('trang chủ in đủ bốn thẻ giá, có gói dùng thử 0đ', async ({ page }) => {
+  await page.goto('/');
+  const khoi = page.locator('section[aria-labelledby="tt-gia"]');
+  await expect(khoi.getByRole('heading', { level: 3 })).toHaveText([
+    'Dùng thử',
+    'Starter',
+    'Professional',
+    'Business',
+  ]);
+  await expect(khoi).toContainText('0đ');
+  await expect(khoi).toContainText('2.000 lượt Places trong 30 ngày');
 });
 
 test('công tắc sáng tối đổi giao diện và nhớ lựa chọn', async ({ page }) => {

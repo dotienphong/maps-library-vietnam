@@ -3669,3 +3669,38 @@ nó đo lúc :45 và :50, sự cố nằm trọn giữa hai lượt, KV không �
 của nhịp 5 phút: lớp B chỉ bảo đảm cho sự cố dài hơn nhịp đo. Câu hỏi để PHONG chốt là có đáng thêm một
 lịch `* * * * *` riêng cho việc sức khoẻ hay không — chi phí là 1.440 lượt đo/ngày, gần như miễn phí, đổi
 lấy phát hiện trong ~1,5 phút.
+
+## 28. Rà nội dung website `apps/site` với hệ thống đang chạy — 22/09/2026
+
+PHONG yêu cầu soát lại toàn bộ `mapslibvn-site.pages.dev` và các trang con vì thấy "Ba cách nhúng"
+trong khi tài liệu có bốn, và khối giá trang chủ không có gói miễn phí dù nút hứa "đủ bốn gói".
+Đối chiếu từng trang với `@mapslibvn/catalog`, `GET /v1/catalog` production, `wrangler.toml`,
+mã SDK, trang tài liệu và điều khoản tenant. Sáu chỗ sai, đã sửa hết trong `apps/site`:
+
+- **Bốn cách nhúng**, không phải ba: thêm tab React; đổi tiêu đề, aria-label và bài e2e.
+- **Tab npm chạy là vỡ**: bản ESM không gộp `maplibre-gl`, đoạn mã cũ không cài peer, không import
+  CSS MapLibre và không truyền `{ maplibre }` nên `createMap` ném lỗi ngay. Chép đúng theo
+  `cai-dat.mdx`; tab React Native thêm lệnh cài `@maplibre/maplibre-react-native` và ghi chú khoá
+  `mobile`/không chạy Expo Go. Mỗi tab có một dòng ghi chú và một link tới trang Cài đặt.
+- **Khối giá trang chủ in đủ bốn gói**: `tomTatGia()` trả cả gói dùng thử (0đ / 30 ngày, 2.000 lượt,
+  không cần thẻ) thay vì chỉ ba gói trả phí; lưới đổi `sm:2 lg:4` cột.
+- **Tính năng hứa "chịu được kiểu gõ Telex"** trong khi cờ `AUTOCOMPLETE_TELEX` không có trong
+  `[env.production]` và mã chỉ chạy bậc 3b khi cờ `=== '1'`; thử thẳng production bằng khoá demo:
+  `ddaij hocj kinh tees`, `chowj beens thanhf`, `hoof hoafn kieems` đều 0 kết quả. Bỏ lời hứa Telex,
+  giữ "không dấu, viết tắt, cách viết địa phương" (không nêu ví dụ Plei Ku vì `plei ku` chỉ khớp tên
+  chứa "Plei", không ra Pleiku).
+- **Ba link `playground.html`** (Hero, Footer, Liên hệ) bị docs chuyển hướng 308 sang `/playground`;
+  sửa thẳng đích, cả iframe `?embed=1`.
+- **Bảng giá** nói "chuyển khoản ngân hàng" — sửa thành PayOS, chuyển khoản hoặc quét VietQR, đúng
+  với cổng khách hàng và điều khoản mục 6.
+
+Những thứ đã đối chiếu và **đúng**, không sửa: bốn gói/giá/hạn mức/trần ngày khớp `GET /v1/catalog`;
+khối mua thêm 1.000 lượt 26.000đ/78.000đ; quy tắc "chỉ 2xx đã ACK mới trừ lượt", "mua thêm chỉ khi gói
+trả phí đang chạy, hết cùng kỳ", "đổi gói thì kỳ mới nối sau kỳ hiện tại", "hoàn tiền ngoài hệ thống",
+"biên nhận, chưa có hoá đơn VAT" (spec 9.5, console); giờ hỗ trợ T2–T6 08:00–20:00, T7/CN 08:00–17:00
+(chốt 15/09); 164 mã loại/13 nhóm cộng đúng 164; ba chế độ tuyến `motorbike/car/walk`; không có
+endpoint ma trận; bảng so sánh Google/VIETMAP khớp `COMPARISON` 14/09; mọi link docs, OG, sitemap trả 200.
+
+Kiểm: vitest `apps/site` 39/39, `astro check` 0 lỗi, biome sạch, `astro build` 11 trang, Playwright
+26/26 (thêm hai bài: bốn tab có đủ nội dung peer, và trang chủ có bốn thẻ giá kèm gói dùng thử). Chưa
+commit — chờ PHONG duyệt.

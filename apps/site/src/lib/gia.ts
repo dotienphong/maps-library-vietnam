@@ -1,6 +1,5 @@
 import {
   COMPARISON,
-  PAID_TIERS,
   PERIOD_MONTHS,
   type PeriodMonths,
   PLAN_CATALOG,
@@ -102,20 +101,35 @@ export function bangGia(): GoiHienThi[] {
 export interface TomTatGoi {
   tier: Tier;
   ten: string;
-  giaThang: string;
-  usdThang: string;
-  placesHienThi: string;
+  /** Giá trên thẻ: gói trả phí là giá một tháng, dùng thử là 0đ. */
+  giaHienThi: string;
+  /** Chữ đứng sau giá: "/ tháng" cho gói trả phí, "/ 30 ngày" cho dùng thử. */
+  donVi: string;
+  /** Dòng phụ dưới giá: USD tham chiếu, hoặc lời nhắc không cần thẻ với dùng thử. */
+  dongPhu: string;
+  /** Hạn mức Places kèm chu kỳ của nó. */
+  hanMuc: string;
 }
 
-/** Bản rút gọn cho trang chủ: chỉ ba gói trả phí, chỉ giá tháng. */
+/**
+ * Bản rút gọn cho trang chủ: đủ BỐN gói (kể cả dùng thử), chỉ giá tháng. Bản đầu chỉ in ba gói trả
+ * phí trong khi nút bên dưới hứa "đủ bốn gói" — khách nhìn không thấy gói miễn phí ở đâu.
+ */
 export function tomTatGia(): TomTatGoi[] {
-  return PAID_TIERS.map((tier) => ({
-    tier,
-    ten: TEN_GOI[tier],
-    giaThang: dinhDangVnd(PLAN_CATALOG[tier].priceVnd),
-    usdThang: dinhDangUsd(PLAN_CATALOG[tier].priceCents),
-    placesHienThi: dinhDangSo(PLAN_CATALOG[tier].places),
-  }));
+  return TIERS.map((tier) => {
+    const goc = PLAN_CATALOG[tier];
+    const dungThu = tier === 'trial';
+    return {
+      tier,
+      ten: TEN_GOI[tier],
+      giaHienThi: dinhDangVnd(goc.priceVnd),
+      donVi: dungThu ? '/ 30 ngày' : '/ tháng',
+      dongPhu: dungThu ? 'không cần thẻ thanh toán' : `tham chiếu ${dinhDangUsd(goc.priceCents)}`,
+      hanMuc: dungThu
+        ? `${dinhDangSo(goc.places)} lượt Places trong 30 ngày`
+        : `${dinhDangSo(goc.places)} lượt Places mỗi tháng`,
+    };
+  });
 }
 
 export interface DongSoSanh {

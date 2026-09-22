@@ -98,9 +98,9 @@ const GIA = tomTatGia();
   </section>
 
   <section aria-labelledby="tt-nhung" class="bg-[var(--surface)] py-16">
-    <h2 id="tt-nhung" class="mx-auto mb-2 max-w-4xl px-4 text-2xl font-bold">Ba cách nhúng</h2>
+    <h2 id="tt-nhung" class="mx-auto mb-2 max-w-4xl px-4 text-2xl font-bold">Bốn cách nhúng</h2>
     <p class="mx-auto mb-8 max-w-4xl px-4 text-[var(--text-muted)]">
-      Chọn cách hợp với dự án của bạn. Cả ba dùng chung một khoá API và một hợp đồng dữ liệu.
+      Chọn cách hợp với dự án của bạn. Cả bốn dùng chung một khoá API và một hợp đồng dữ liệu.
     </p>
     <CodeTabs />
   </section>
@@ -110,17 +110,17 @@ const GIA = tomTatGia();
     <p class="mb-8 text-[var(--text-muted)]">
       Bắt đầu bằng bản dùng thử 2.000 lượt Places trong 30 ngày, không cần thẻ thanh toán.
     </p>
-    <div class="grid gap-4 sm:grid-cols-3">
+    <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
       {
         GIA.map((goi) => (
           <article class="rounded-[var(--radius-card)] border border-[var(--border)] bg-[var(--surface)] p-5">
             <h3 class="text-base font-bold">{goi.ten}</h3>
             <p class="mt-2 text-2xl font-bold">
-              {goi.giaThang}
-              <span class="text-sm font-normal text-[var(--text-muted)]"> / tháng</span>
+              {goi.giaHienThi}
+              <span class="text-sm font-normal text-[var(--text-muted)]"> {goi.donVi}</span>
             </p>
-            <p class="text-sm text-[var(--text-muted)]">tham chiếu {goi.usdThang}</p>
-            <p class="mt-3 text-sm">{goi.placesHienThi} lượt Places mỗi tháng</p>
+            <p class="text-sm text-[var(--text-muted)]">{goi.dongPhu}</p>
+            <p class="mt-3 text-sm">{goi.hanMuc}</p>
           </article>
         ))
       }
