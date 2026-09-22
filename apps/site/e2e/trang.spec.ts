@@ -159,7 +159,23 @@ test('bốn tab mã nhúng đổi được bằng chuột và bàn phím', async
   );
 });
 
-test('trang chủ in đủ bốn thẻ giá, có gói dùng thử 0đ', async ({ page }) => {
+test('bento sáu ô đúng thứ tự và mỗi ô có link tài liệu', async ({ page }) => {
+  await page.goto('/');
+  const khoi = page.locator('section[aria-labelledby="tt-tinh-nang"]');
+  await expect(khoi.getByRole('heading', { level: 3 })).toHaveText([
+    'Tìm kiếm hiểu tiếng Việt',
+    'Rẻ hơn Google',
+    '164 loại địa điểm',
+    'Geocode nói thật',
+    'Dẫn đường',
+    'Bốn SDK, một API',
+  ]);
+  await expect(khoi.getByRole('link', { name: /→$/ })).toHaveCount(6);
+  // Con số rẻ hơn Google tính từ catalog, không gõ tay.
+  await expect(khoi.getByText(/^\d+–\d+%$/)).toBeVisible();
+});
+
+test('khối giá: bốn thẻ, Professional nổi bật là nút nhấn duy nhất trong khối', async ({ page }) => {
   await page.goto('/');
   const khoi = page.locator('section[aria-labelledby="tt-gia"]');
   await expect(khoi.getByRole('heading', { level: 3 })).toHaveText([
@@ -168,8 +184,11 @@ test('trang chủ in đủ bốn thẻ giá, có gói dùng thử 0đ', async ({
     'Professional',
     'Business',
   ]);
-  await expect(khoi).toContainText('0đ');
+  await expect(khoi.getByText('Được chọn nhiều nhất')).toBeVisible();
   await expect(khoi).toContainText('2.000 lượt Places trong 30 ngày');
+  const nutNhan = khoi.locator('a.bg-accent');
+  await expect(nutNhan).toHaveCount(1);
+  await expect(nutNhan).toHaveText('Chọn Professional');
 });
 
 test('mặc định tối bất kể cài đặt máy; chọn sáng thì nhớ', async ({ browser }) => {
