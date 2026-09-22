@@ -1,9 +1,10 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" role="img" aria-label="MapsLibVN Admin">
   <title>MapsLibVN Admin</title>
-  <!-- Chốt bản đồ, cùng màu #1b3a6b với style bản đồ và thanh trên của trang. -->
+  <!-- Chốt bản đồ, màu nhấn xanh chanh như website và cổng khách hàng. Giữ HÌNH chốt để phân biệt
+       với favicon chữ M của hai mặt tiền kia — mở nhiều tab cùng lúc là chuyện hằng ngày ở đây. -->
   <path
-    fill="#1b3a6b"
+    fill="#a3e635"
     d="M16 2c-5.5 0-10 4.4-10 9.9 0 7.2 8.9 17.3 9.3 17.7a1 1 0 0 0 1.5 0c.4-.4 9.3-10.5 9.3-17.7C26 6.4 21.5 2 16 2z"
   />
-  <circle cx="16" cy="12" r="4" fill="#ffffff" />
+  <circle cx="16" cy="12" r="4" fill="#0a0a0a" />
 </svg>
