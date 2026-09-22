@@ -9,6 +9,7 @@ import {
 } from '../src/routing/optimized';
 import type { ValhallaRouteResponse } from '../src/routing/valhalla';
 import fixture from './fixtures/valhalla/optimized-two-stops.json';
+import real from './fixtures/valhalla/q1-optimized.json';
 
 const NTDB = '10.7798,106.6990';
 const BT = '10.7725,106.6980';
@@ -193,6 +194,19 @@ describe('translateOptimized', () => {
         expect((error as ApiError).status).toBe(503);
         expect((error as ApiError).code).toBe('upstream_unavailable');
       }
+    }
+  });
+});
+
+describe('fixture thật Quận 1 (q1-optimized.json, capture 22/09/2026)', () => {
+  const p = parseOptimizedParams(base);
+
+  it('order là hoán vị của [0, 1], 3 leg, mọi bước có instruction', () => {
+    const out = translateOptimized(real as unknown as ValhallaRouteResponse, p, null);
+    expect([...out.order].sort()).toEqual([0, 1]);
+    expect(out.routes[0]?.legs).toHaveLength(3);
+    for (const leg of out.routes[0]?.legs ?? []) {
+      for (const step of leg.steps) expect(step.instruction.length).toBeGreaterThan(0);
     }
   });
 });

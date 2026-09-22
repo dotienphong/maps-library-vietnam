@@ -11,6 +11,7 @@ import {
 } from '../src/routing/matrix';
 import type { ValhallaMatrixResponse } from '../src/routing/valhalla';
 import fixture from './fixtures/valhalla/matrix-2x2.json';
+import real from './fixtures/valhalla/q1-matrix.json';
 
 const NTDB = '10.7798,106.6990';
 const BT = '10.7725,106.6980';
@@ -223,5 +224,19 @@ describe('translateMatrix', () => {
         expect((error as ApiError).code).toBe('upstream_unavailable');
       }
     }
+  });
+});
+
+describe('fixture thật Quận 1 (q1-matrix.json, capture 22/09/2026)', () => {
+  it('2×2 số dương, đối xứng gần: chiều đi và về cùng cặp lệch dưới 2 lần', () => {
+    const out = translateMatrix(
+      real as unknown as ValhallaMatrixResponse,
+      parseMatrixParams(base),
+      null,
+    );
+    for (const row of out.durations_s) for (const s of row) expect(s).toBeGreaterThan(0);
+    const a = out.distances_m[0]?.[1] ?? 0;
+    const b = out.distances_m[1]?.[0] ?? 0;
+    expect(Math.max(a, b) / Math.min(a, b)).toBeLessThan(2);
   });
 });

@@ -4,7 +4,7 @@
 //   pnpm test:routing              máy dev: tự dựng container (compose dev, profile routing); giữ container
 //                                  sau khi chạy để lần sau nhanh; thêm --down để dừng.
 //   node scripts/routing-test.mjs --no-compose     CI: VALHALLA_BASE trỏ container đã chạy.
-//   node scripts/routing-test.mjs --capture        ghi JSON Valhalla thô → apps/api/test/fixtures/valhalla/q1-motorbike.json
+//   node scripts/routing-test.mjs --capture        ghi ba fixture q1-motorbike.json, q1-matrix.json, q1-optimized.json
 import 'dotenv/config';
 import { createHash, randomUUID } from 'node:crypto';
 import { copyFileSync, existsSync, mkdirSync, rmSync, writeFileSync } from 'node:fs';
@@ -83,24 +83,63 @@ try {
   log(`Valhalla sẵn sàng tại ${opts.valhallaBase}`);
 
   if (opts.capture) {
-    const body = {
-      locations: [
-        { lat: 10.7798, lon: 106.699, type: 'break' },
-        { lat: 10.7725, lon: 106.698, type: 'break' },
-      ],
-      costing: 'motor_scooter',
-      directions_options: { language: 'vi-VN', units: 'kilometers' },
-      id: 'capture-q1-motorbike',
-    };
-    const response = await fetch(`${opts.valhallaBase}/route`, {
-      method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify(body),
+    const point = (/** @type {number} */ lat, /** @type {number} */ lon) => ({ lat, lon });
+    const stop = (/** @type {number} */ lat, /** @type {number} */ lon) => ({
+      lat,
+      lon,
+      type: 'break',
     });
-    if (!response.ok) throw new Error(`capture: Valhalla trả ${response.status}`);
-    const target = resolve('apps/api/test/fixtures/valhalla/q1-motorbike.json');
-    writeFileSync(target, `${JSON.stringify(await response.json(), null, 2)}\n`);
-    log(`đã ghi ${target}`);
+    const options = { language: 'vi-VN', units: 'kilometers' };
+    // Bốn điểm Quận 1: Nhà thờ Đức Bà, Bến Thành, Nhà hát TP, Bitexco.
+    const captures = [
+      {
+        path: '/route',
+        file: 'q1-motorbike.json',
+        body: {
+          locations: [stop(10.7798, 106.699), stop(10.7725, 106.698)],
+          costing: 'motor_scooter',
+          directions_options: options,
+          id: 'capture-q1-motorbike',
+        },
+      },
+      {
+        path: '/sources_to_targets',
+        file: 'q1-matrix.json',
+        body: {
+          sources: [point(10.7798, 106.699), point(10.7725, 106.698)],
+          targets: [point(10.7769, 106.7032), point(10.7716, 106.7043)],
+          costing: 'motor_scooter',
+          units: 'kilometers',
+          id: 'capture-q1-matrix',
+        },
+      },
+      {
+        path: '/optimized_route',
+        file: 'q1-optimized.json',
+        body: {
+          locations: [
+            stop(10.7798, 106.699),
+            stop(10.7716, 106.7043),
+            stop(10.7769, 106.7032),
+            stop(10.7725, 106.698),
+          ],
+          costing: 'motor_scooter',
+          directions_options: options,
+          id: 'capture-q1-optimized',
+        },
+      },
+    ];
+    for (const { path, file, body } of captures) {
+      const response = await fetch(`${opts.valhallaBase}${path}`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+      if (!response.ok) throw new Error(`capture ${path}: Valhalla trả ${response.status}`);
+      const target = resolve(`apps/api/test/fixtures/valhalla/${file}`);
+      writeFileSync(target, `${JSON.stringify(await response.json(), null, 2)}\n`);
+      log(`đã ghi ${target}`);
+    }
   }
 
   // wrangler.toml khai báo [assets] trỏ apps/admin/dist — thiếu thì wrangler dev không lên.

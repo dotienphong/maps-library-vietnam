@@ -1,0 +1,496 @@
+{
+  "trip": {
+    "locations": [
+      {
+        "type": "break",
+        "lat": 10.7798,
+        "lon": 106.699,
+        "side_of_street": "left",
+        "original_index": 0
+      },
+      {
+        "type": "break",
+        "lat": 10.7769,
+        "lon": 106.7032,
+        "side_of_street": "left",
+        "original_index": 2
+      },
+      {
+        "type": "break",
+        "lat": 10.7716,
+        "lon": 106.7043,
+        "side_of_street": "left",
+        "original_index": 1
+      },
+      {
+        "type": "break",
+        "lat": 10.7725,
+        "lon": 106.698,
+        "side_of_street": "right",
+        "original_index": 3
+      }
+    ],
+    "legs": [
+      {
+        "maneuvers": [
+          {
+            "type": 3,
+            "instruction": "Lái về phía đông nam trên Công trường Công xã Paris.",
+            "verbal_succinct_transition_instruction": "Lái về phía đông nam. Rồi Rẽ trái vào Nguyễn Du.",
+            "verbal_pre_transition_instruction": "Lái về phía đông nam trên Công trường Công xã Paris. Rồi Rẽ trái vào Nguyễn Du.",
+            "verbal_post_transition_instruction": "Tiếp tục đi thêm 100 mét.",
+            "street_names": [
+              "Công trường Công xã Paris"
+            ],
+            "bearing_after": 133,
+            "time": 21.992,
+            "length": 0.14,
+            "cost": 35.367,
+            "begin_shape_index": 0,
+            "end_shape_index": 5,
+            "verbal_multi_cue": true,
+            "travel_mode": "drive",
+            "travel_type": "motor_scooter"
+          },
+          {
+            "type": 15,
+            "instruction": "Rẽ trái vào Nguyễn Du.",
+            "verbal_transition_alert_instruction": "Rẽ trái vào Nguyễn Du.",
+            "verbal_succinct_transition_instruction": "Rẽ trái. Rồi Rẽ phải vào Ðồng Khởi.",
+            "verbal_pre_transition_instruction": "Rẽ trái vào Nguyễn Du. Rồi Rẽ phải vào Ðồng Khởi.",
+            "verbal_post_transition_instruction": "Tiếp tục đi thêm 30 mét.",
+            "street_names": [
+              "Nguyễn Du"
+            ],
+            "bearing_before": 132,
+            "bearing_after": 41,
+            "time": 6.853,
+            "length": 0.029,
+            "cost": 18.581,
+            "begin_shape_index": 5,
+            "end_shape_index": 6,
+            "verbal_multi_cue": true,
+            "travel_mode": "drive",
+            "travel_type": "motor_scooter"
+          },
+          {
+            "type": 10,
+            "instruction": "Rẽ phải vào Ðồng Khởi.",
+            "verbal_transition_alert_instruction": "Rẽ phải vào Ðồng Khởi.",
+            "verbal_succinct_transition_instruction": "Rẽ phải.",
+            "verbal_pre_transition_instruction": "Rẽ phải vào Ðồng Khởi.",
+            "verbal_post_transition_instruction": "Tiếp tục đi thêm 200 mét.",
+            "street_names": [
+              "Ðồng Khởi"
+            ],
+            "bearing_before": 41,
+            "bearing_after": 133,
+            "time": 31.045,
+            "length": 0.163,
+            "cost": 75.243,
+            "begin_shape_index": 6,
+            "end_shape_index": 10,
+            "travel_mode": "drive",
+            "travel_type": "motor_scooter"
+          },
+          {
+            "type": 15,
+            "instruction": "Rẽ trái vào Lý Tự Trọng.",
+            "verbal_transition_alert_instruction": "Rẽ trái vào Lý Tự Trọng.",
+            "verbal_succinct_transition_instruction": "Rẽ trái.",
+            "verbal_pre_transition_instruction": "Rẽ trái vào Lý Tự Trọng.",
+            "verbal_post_transition_instruction": "Tiếp tục đi thêm 200 mét.",
+            "street_names": [
+              "Lý Tự Trọng"
+            ],
+            "bearing_before": 133,
+            "bearing_after": 43,
+            "time": 33.171,
+            "length": 0.186,
+            "cost": 64.713,
+            "begin_shape_index": 10,
+            "end_shape_index": 15,
+            "travel_mode": "drive",
+            "travel_type": "motor_scooter"
+          },
+          {
+            "type": 10,
+            "instruction": "Rẽ phải vào Hai Bà Trưng.",
+            "verbal_transition_alert_instruction": "Rẽ phải vào Hai Bà Trưng.",
+            "verbal_succinct_transition_instruction": "Rẽ phải.",
+            "verbal_pre_transition_instruction": "Rẽ phải vào Hai Bà Trưng.",
+            "verbal_post_transition_instruction": "Tiếp tục đi thêm 300 mét.",
+            "street_names": [
+              "Hai Bà Trưng"
+            ],
+            "bearing_before": 42,
+            "bearing_after": 132,
+            "time": 41.723,
+            "length": 0.256,
+            "cost": 128.076,
+            "begin_shape_index": 15,
+            "end_shape_index": 23,
+            "has_time_restrictions": true,
+            "travel_mode": "drive",
+            "travel_type": "motor_scooter"
+          },
+          {
+            "type": 10,
+            "instruction": "Rẽ phải vào Công trường Lam Sơn.",
+            "verbal_transition_alert_instruction": "Rẽ phải vào Công trường Lam Sơn.",
+            "verbal_succinct_transition_instruction": "Rẽ phải.",
+            "verbal_pre_transition_instruction": "Rẽ phải vào Công trường Lam Sơn.",
+            "verbal_post_transition_instruction": "Tiếp tục đi thêm 100 mét.",
+            "street_names": [
+              "Công trường Lam Sơn"
+            ],
+            "bearing_before": 137,
+            "bearing_after": 225,
+            "time": 32.959,
+            "length": 0.103,
+            "cost": 109.702,
+            "begin_shape_index": 23,
+            "end_shape_index": 31,
+            "travel_mode": "drive",
+            "travel_type": "motor_scooter"
+          },
+          {
+            "type": 6,
+            "instruction": "Điểm đến của bạn nằm ở trái.",
+            "verbal_transition_alert_instruction": "Địa điểm của bạn sẽ nằm ở trái.",
+            "verbal_pre_transition_instruction": "Điểm đến của bạn nằm ở trái.",
+            "bearing_before": 269,
+            "time": 0,
+            "length": 0,
+            "cost": 0,
+            "begin_shape_index": 31,
+            "end_shape_index": 31,
+            "travel_mode": "drive",
+            "travel_type": "motor_scooter"
+          }
+        ],
+        "summary": {
+          "has_time_restrictions": true,
+          "has_toll": false,
+          "has_highway": false,
+          "has_ferry": false,
+          "min_lat": 10.777023,
+          "min_lon": 106.698822,
+          "max_lat": 10.779615,
+          "max_lon": 106.703886,
+          "time": 167.745,
+          "length": 0.878,
+          "cost": 431.686
+        },
+        "shape": "}||pSmckojEDEnPgRlB{BzLwN~PkS_KwI|DmEpGgHlj@}m@~CmDcB}A{MoLa]oZ_@]w[kYfSqUvQ{S~AkBvR}TbKqLtCyCpIyInH_HxBzBvAxAxAxAbMjM|B~BrHzGBzD??"
+      },
+      {
+        "maneuvers": [
+          {
+            "type": 3,
+            "instruction": "Lái về phía tây trên Công trường Lam Sơn.",
+            "verbal_succinct_transition_instruction": "Lái về phía tây. Rồi Rẽ trái vào Ðồng Khởi.",
+            "verbal_pre_transition_instruction": "Lái về phía tây trên Công trường Lam Sơn. Rồi Rẽ trái vào Ðồng Khởi.",
+            "verbal_post_transition_instruction": "Tiếp tục đi thêm 100 mét.",
+            "street_names": [
+              "Công trường Lam Sơn"
+            ],
+            "bearing_after": 283,
+            "time": 23.212,
+            "length": 0.096,
+            "cost": 32.497,
+            "begin_shape_index": 0,
+            "end_shape_index": 4,
+            "verbal_multi_cue": true,
+            "travel_mode": "drive",
+            "travel_type": "motor_scooter"
+          },
+          {
+            "type": 15,
+            "instruction": "Rẽ trái vào Ðồng Khởi.",
+            "verbal_transition_alert_instruction": "Rẽ trái vào Ðồng Khởi.",
+            "verbal_succinct_transition_instruction": "Rẽ trái. Rồi Rẽ phải vào Lê Lợi.",
+            "verbal_pre_transition_instruction": "Rẽ trái vào Ðồng Khởi. Rồi Rẽ phải vào Lê Lợi.",
+            "verbal_post_transition_instruction": "Tiếp tục đi thêm 30 mét.",
+            "street_names": [
+              "Ðồng Khởi"
+            ],
+            "bearing_before": 221,
+            "bearing_after": 133,
+            "time": 5.918,
+            "length": 0.025,
+            "cost": 24.673,
+            "begin_shape_index": 4,
+            "end_shape_index": 6,
+            "verbal_multi_cue": true,
+            "travel_mode": "drive",
+            "travel_type": "motor_scooter"
+          },
+          {
+            "type": 10,
+            "instruction": "Rẽ phải vào Lê Lợi.",
+            "verbal_transition_alert_instruction": "Rẽ phải vào Lê Lợi.",
+            "verbal_succinct_transition_instruction": "Rẽ phải.",
+            "verbal_pre_transition_instruction": "Rẽ phải vào Lê Lợi.",
+            "verbal_post_transition_instruction": "Tiếp tục đi thêm 100 mét.",
+            "street_names": [
+              "Lê Lợi"
+            ],
+            "bearing_before": 133,
+            "bearing_after": 223,
+            "time": 28.94,
+            "length": 0.137,
+            "cost": 78.319,
+            "begin_shape_index": 6,
+            "end_shape_index": 14,
+            "has_time_restrictions": true,
+            "travel_mode": "drive",
+            "travel_type": "motor_scooter"
+          },
+          {
+            "type": 15,
+            "instruction": "Rẽ trái vào Nguyễn Huệ.",
+            "verbal_transition_alert_instruction": "Rẽ trái vào Nguyễn Huệ.",
+            "verbal_succinct_transition_instruction": "Rẽ trái.",
+            "verbal_pre_transition_instruction": "Rẽ trái vào Nguyễn Huệ.",
+            "verbal_post_transition_instruction": "Tiếp tục đi thêm 400 mét.",
+            "street_names": [
+              "Nguyễn Huệ"
+            ],
+            "bearing_before": 223,
+            "bearing_after": 131,
+            "time": 71.358,
+            "length": 0.44,
+            "cost": 142.715,
+            "begin_shape_index": 14,
+            "end_shape_index": 25,
+            "has_time_restrictions": true,
+            "travel_mode": "drive",
+            "travel_type": "motor_scooter"
+          },
+          {
+            "type": 10,
+            "instruction": "Rẽ phải vào Ngô Ðức Kế.",
+            "verbal_transition_alert_instruction": "Rẽ phải vào Ngô Ðức Kế.",
+            "verbal_succinct_transition_instruction": "Rẽ phải.",
+            "verbal_pre_transition_instruction": "Rẽ phải vào Ngô Ðức Kế.",
+            "verbal_post_transition_instruction": "Tiếp tục đi thêm 100 mét.",
+            "street_names": [
+              "Ngô Ðức Kế"
+            ],
+            "bearing_before": 133,
+            "bearing_after": 224,
+            "time": 39.59,
+            "length": 0.142,
+            "cost": 75.109,
+            "begin_shape_index": 25,
+            "end_shape_index": 26,
+            "travel_mode": "drive",
+            "travel_type": "motor_scooter"
+          },
+          {
+            "type": 15,
+            "instruction": "Rẽ trái vào Hồ Tùng Mậu.",
+            "verbal_transition_alert_instruction": "Rẽ trái vào Hồ Tùng Mậu.",
+            "verbal_succinct_transition_instruction": "Rẽ trái. Rồi Địa điểm của bạn sẽ nằm ở trái.",
+            "verbal_pre_transition_instruction": "Rẽ trái vào Hồ Tùng Mậu. Rồi Địa điểm của bạn sẽ nằm ở trái.",
+            "verbal_post_transition_instruction": "Tiếp tục đi thêm 50 mét.",
+            "street_names": [
+              "Hồ Tùng Mậu"
+            ],
+            "bearing_before": 224,
+            "bearing_after": 153,
+            "time": 11.635,
+            "length": 0.045,
+            "cost": 29.013,
+            "begin_shape_index": 26,
+            "end_shape_index": 28,
+            "verbal_multi_cue": true,
+            "travel_mode": "drive",
+            "travel_type": "motor_scooter"
+          },
+          {
+            "type": 6,
+            "instruction": "Điểm đến của bạn nằm ở trái.",
+            "verbal_transition_alert_instruction": "Địa điểm của bạn sẽ nằm ở trái.",
+            "verbal_pre_transition_instruction": "Điểm đến của bạn nằm ở trái.",
+            "bearing_before": 153,
+            "time": 0,
+            "length": 0,
+            "cost": 0,
+            "begin_shape_index": 28,
+            "end_shape_index": 28,
+            "travel_mode": "drive",
+            "travel_type": "motor_scooter"
+          }
+        ],
+        "summary": {
+          "has_time_restrictions": true,
+          "has_toll": false,
+          "has_highway": false,
+          "has_ferry": false,
+          "min_lat": 10.771501,
+          "min_lon": 106.701871,
+          "max_lat": 10.777057,
+          "max_lon": 106.704819,
+          "time": 180.654,
+          "length": 0.887,
+          "cost": 382.33
+        },
+        "shape": "_{wpSgusojEy@vDGzC`SjQfK|IzDkEpB{B~CtC~GlGvK~JpDfD~@x@dEzDdGtFlGzFvBiCnH}IxAmBnJkKpScUv^_b@zAcBpRcTxAaBrn@mr@~NiP|w@tw@fUsJLG"
+      },
+      {
+        "maneuvers": [
+          {
+            "type": 3,
+            "instruction": "Lái về phía đông nam trên Hồ Tùng Mậu.",
+            "verbal_succinct_transition_instruction": "Lái về phía đông nam. Rồi Rẽ phải để tiếp tục đi trên Hồ Tùng Mậu.",
+            "verbal_pre_transition_instruction": "Lái về phía đông nam trên Hồ Tùng Mậu. Rồi Rẽ phải để tiếp tục đi trên Hồ Tùng Mậu.",
+            "verbal_post_transition_instruction": "Tiếp tục đi thêm 40 mét.",
+            "street_names": [
+              "Hồ Tùng Mậu"
+            ],
+            "bearing_after": 153,
+            "time": 10.47,
+            "length": 0.043,
+            "cost": 14.122,
+            "begin_shape_index": 0,
+            "end_shape_index": 4,
+            "verbal_multi_cue": true,
+            "travel_mode": "drive",
+            "travel_type": "motor_scooter"
+          },
+          {
+            "type": 10,
+            "instruction": "Rẽ phải để tiếp tục đi trên Hồ Tùng Mậu.",
+            "verbal_transition_alert_instruction": "Rẽ phải để tiếp tục đi trên Hồ Tùng Mậu.",
+            "verbal_succinct_transition_instruction": "Rẽ phải. Rồi Rẽ phải vào Hàm Nghi.",
+            "verbal_pre_transition_instruction": "Rẽ phải để tiếp tục đi trên Hồ Tùng Mậu. Rồi Rẽ phải vào Hàm Nghi.",
+            "verbal_post_transition_instruction": "Tiếp tục đi thêm 20 mét.",
+            "street_names": [
+              "Hồ Tùng Mậu"
+            ],
+            "bearing_before": 142,
+            "bearing_after": 209,
+            "time": 6.06,
+            "length": 0.023,
+            "cost": 20.051,
+            "begin_shape_index": 4,
+            "end_shape_index": 7,
+            "verbal_multi_cue": true,
+            "travel_mode": "drive",
+            "travel_type": "motor_scooter"
+          },
+          {
+            "type": 10,
+            "instruction": "Rẽ phải vào Hàm Nghi/Đường Hàm Nghi.",
+            "verbal_transition_alert_instruction": "Rẽ phải vào Hàm Nghi.",
+            "verbal_succinct_transition_instruction": "Rẽ phải.",
+            "verbal_pre_transition_instruction": "Rẽ phải vào Hàm Nghi, Đường Hàm Nghi.",
+            "verbal_post_transition_instruction": "Tiếp tục đi thêm 600 mét.",
+            "street_names": [
+              "Hàm Nghi",
+              "Đường Hàm Nghi"
+            ],
+            "bearing_before": 209,
+            "bearing_after": 273,
+            "time": 81.437,
+            "length": 0.565,
+            "cost": 225.519,
+            "begin_shape_index": 7,
+            "end_shape_index": 21,
+            "travel_mode": "drive",
+            "travel_type": "motor_scooter"
+          },
+          {
+            "type": 9,
+            "instruction": "Giữ bên phải vào Công trường Quách Thị Trang.",
+            "verbal_transition_alert_instruction": "Giữ bên phải vào Công trường Quách Thị Trang.",
+            "verbal_succinct_transition_instruction": "Giữ bên phải.",
+            "verbal_pre_transition_instruction": "Giữ bên phải vào Công trường Quách Thị Trang.",
+            "verbal_post_transition_instruction": "Tiếp tục đi thêm 100 mét.",
+            "street_names": [
+              "Công trường Quách Thị Trang"
+            ],
+            "bearing_before": 245,
+            "bearing_after": 286,
+            "time": 19.389,
+            "length": 0.144,
+            "cost": 63.933,
+            "begin_shape_index": 21,
+            "end_shape_index": 33,
+            "has_time_restrictions": true,
+            "travel_mode": "drive",
+            "travel_type": "motor_scooter"
+          },
+          {
+            "type": 9,
+            "instruction": "Giữ bên phải vào Phan Chu Trinh.",
+            "verbal_transition_alert_instruction": "Giữ bên phải vào Phan Chu Trinh.",
+            "verbal_succinct_transition_instruction": "Giữ bên phải.",
+            "verbal_pre_transition_instruction": "Giữ bên phải vào Phan Chu Trinh.",
+            "verbal_post_transition_instruction": "Tiếp tục đi thêm 70 mét.",
+            "street_names": [
+              "Phan Chu Trinh"
+            ],
+            "bearing_before": 290,
+            "bearing_after": 327,
+            "time": 17.415,
+            "length": 0.071,
+            "cost": 34.184,
+            "begin_shape_index": 33,
+            "end_shape_index": 36,
+            "travel_mode": "drive",
+            "travel_type": "motor_scooter"
+          },
+          {
+            "type": 5,
+            "instruction": "Điểm đến của bạn nằm ở phải.",
+            "verbal_transition_alert_instruction": "Địa điểm của bạn sẽ nằm ở phải.",
+            "verbal_pre_transition_instruction": "Điểm đến của bạn nằm ở phải.",
+            "bearing_before": 330,
+            "time": 0,
+            "length": 0,
+            "cost": 0,
+            "begin_shape_index": 36,
+            "end_shape_index": 36,
+            "travel_mode": "drive",
+            "travel_type": "motor_scooter"
+          }
+        ],
+        "summary": {
+          "has_time_restrictions": true,
+          "has_toll": false,
+          "has_highway": false,
+          "has_ferry": false,
+          "min_lat": 10.770983,
+          "min_lon": 106.697532,
+          "max_lat": 10.772233,
+          "max_lon": 106.704309,
+          "time": 134.773,
+          "length": 0.848,
+          "cost": 357.812
+        },
+        "shape": "yampSkmuojEzGqCpB}@hDqBdB{AjBHbChA|BdAu@xa@e@|QQvFo@bc@Ax@[tLKjFw@zb@e@nYQ~LIhFMxGsCz`B~C|IaBzIqBdG{CbHi@dAkAtCWl@{A~CoBrEuA|C}@tBs@xBgD|MkDtBiYfOqAn@"
+      }
+    ],
+    "summary": {
+      "has_time_restrictions": true,
+      "has_toll": false,
+      "has_highway": false,
+      "has_ferry": false,
+      "min_lat": 10.770983,
+      "min_lon": 106.697532,
+      "max_lat": 10.779615,
+      "max_lon": 106.704819,
+      "time": 483.173,
+      "length": 2.614,
+      "cost": 1171.829
+    },
+    "status_message": "Found route between points",
+    "status": 0,
+    "units": "kilometers",
+    "language": "vi-VN"
+  },
+  "id": "capture-q1-optimized"
+}
