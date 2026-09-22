@@ -1,4 +1,7 @@
 #!/usr/bin/env node
+// Phát hành bốn SDK npm bằng một lệnh. Tài khoản bật 2FA thì truyền mã qua biến môi trường
+// `NPM_CONFIG_OTP=123456 pnpm sdk:publish` — pnpm đọc nó như config `otp`. KHÔNG thêm cờ `--otp` vào
+// script: cờ nằm trong argv nên mã sẽ lọt vào log lệnh và lịch sử shell.
 import {
   createSdkReleaseCommands,
   discoverPublicPackageDirs,

@@ -72,6 +72,17 @@ một lệnh:
 pnpm sdk:publish
 ```
 
+Tài khoản npm bật 2FA thì lệnh trên dừng với `npm error code EOTP`. Truyền mã qua
+**biến môi trường** (không dùng cờ `--otp`, để mã không lọt vào log lệnh); một mã
+đủ cho cả bốn gói vì chúng publish liên tiếp trong vài giây:
+
+```bash
+NPM_CONFIG_OTP=123456 pnpm sdk:publish
+```
+
+Lệnh dừng giữa chừng thì kiểm `npm view @mapslibvn/<gói> version` cho cả bốn trước
+khi chạy lại — publish lại một version đã tồn tại sẽ lỗi `EPUBLISHCONFLICT`.
+
 Lệnh chạy lint, typecheck, test, build và dry-run toàn bộ package trước khi
 publish tuần tự core → web → react → react-native với public access.
 
