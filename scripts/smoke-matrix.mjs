@@ -3,8 +3,9 @@
 // 12 điểm, mỗi bài N lượt cách 3,5 s, in p95; --rounds=K chạy thêm bài D: K vòng, mỗi vòng đo 5 lượt
 // directions lúc rảnh → bắn 5 ma trận 10×10 SONG SONG + 5 directions xen kẽ → nghỉ hết phút.
 //   pnpm smoke:matrix -- --confirm-production [--requests=20] [--rounds=3] [--p95-max=3000] [--ratio-max=2] [--busy-max=2000]
-// Ba endpoint dùng CHUNG burst 20 request/phút/khoá+IP: A–C cách 3,5 s (~17/phút); mỗi vòng D đúng 15
-// request rồi nghỉ tới đủ 60 s; giữa C và D nghỉ 60 s. Gặp 429 là smoke sai nhịp — sửa smoke, không sửa trần.
+// Nhịp: `/v1/matrix` và `/v1/optimized-route` có MATRIX_RATE_LIMITER 6 request/phút/khoá, nên A–C
+// cách 10 s (~6/phút). Mỗi vòng D bắn đúng 5 ma trận (≤ 6) rồi nghỉ tới đủ 60 s; giữa C và D nghỉ 60 s.
+// Gặp 429 là smoke sai nhịp — sửa smoke, không sửa trần.
 // Mỗi lượt A–C dịch điểm đầu 0,0001° × k để không trúng cache (khoá cache làm tròn 4 chữ số).
 // Mỗi phản hồi 2xx được ACK receipt NGAY (scripts/lib/receipt-ack.mjs): gọi REST trần làm sổ quota
 // khoá cả tenant 24 giờ, kể cả playground của trang tài liệu. Khoá đọc từ MAPSLIBVN_API_KEY (khoá `server`). Lần đầu chạy --requests=20 --rounds=3 để lấy số ghi

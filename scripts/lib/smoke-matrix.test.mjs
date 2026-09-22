@@ -99,12 +99,12 @@ describe('matrixIssues / optimizedIssues', () => {
 });
 
 describe('parseMatrixSmokeArgs', () => {
-  it('mặc định: base production, 5 lượt, 3500 ms, không p95-max, 0 vòng D', () => {
+  it('mặc định: base production, 5 lượt, 10 s/lượt (nhịp 6/phút), không p95-max, 0 vòng D', () => {
     expect(parseMatrixSmokeArgs([])).toEqual({
       base: 'https://api.ai-solutions.io.vn',
       confirmProduction: false,
       requests: 5,
-      intervalMs: 3500,
+      intervalMs: 10000,
       p95Max: null,
       rounds: 0,
       ratioMax: 2,

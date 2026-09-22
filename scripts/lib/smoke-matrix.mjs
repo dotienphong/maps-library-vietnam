@@ -195,7 +195,9 @@ export function parseMatrixSmokeArgs(argv) {
     base: values.base ?? DEFAULT_BASE,
     confirmProduction,
     requests: boundedNumber(values.requests ?? '5', '--requests', 1, 50, true),
-    intervalMs: boundedNumber(values['interval-ms'] ?? '3500', '--interval-ms', 0, 60_000, true),
+    // 10 s/lượt: `MATRIX_RATE_LIMITER` cho 6 request/phút/khoá (spec mục 6.3). Nhịp 3,5 s của
+    // smoke:directions sẽ tự gây 429 ở đây — chính phép đo phải sống trong luật mình đặt ra.
+    intervalMs: boundedNumber(values['interval-ms'] ?? '10000', '--interval-ms', 0, 60_000, true),
     p95Max:
       values['p95-max'] === undefined
         ? null
