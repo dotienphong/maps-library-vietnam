@@ -11,6 +11,16 @@ export const MAX_CROW_DISTANCE_M: Readonly<Record<TravelMode, number>> = {
   car: 2_000_000,
   walk: 50_000,
 };
+/**
+ * Trần đường chim bay cho ma trận và tối ưu thứ tự (spec 22/09/2026 mục 4.6): xe máy và ô tô đúng
+ * bằng `max_matrix_distance` của Valhalla (motor_scooter 200 km, auto 400 km) để Worker chặn trước
+ * thay vì để engine trả 400/154 cho cả request; đi bộ giữ 50 km cho khớp directions.
+ */
+export const MATRIX_MAX_CROW_DISTANCE_M: Readonly<Record<TravelMode, number>> = {
+  motorbike: 200_000,
+  car: 400_000,
+  walk: 50_000,
+};
 /** Hộp bao Việt Nam mở rộng. */
 const VN = { minLat: 8, maxLat: 24, minLng: 102, maxLng: 110 };
 
@@ -35,13 +45,44 @@ export function haversineM(a: LatLng, b: LatLng): number {
 const inVietnam = (p: LatLng) =>
   p.lat >= VN.minLat && p.lat <= VN.maxLat && p.lng >= VN.minLng && p.lng <= VN.maxLng;
 
-function requirePair(raw: string | undefined, name: string): LatLng {
+/** Mọi điểm phải trong hộp Việt Nam; message dùng chung ba endpoint dẫn đường. */
+export function assertInVietnam(points: readonly LatLng[]): void {
+  if (!points.every(inVietnam)) {
+    throw new ApiError(400, 'invalid_request', 'Chỉ hỗ trợ chỉ đường trong Việt Nam');
+  }
+}
+
+export function requirePair(raw: string | undefined, name: string): LatLng {
   const pair = parseLatLngPair(raw, name);
   if (!pair) throw new ApiError(400, 'invalid_request', `${name} bắt buộc, dạng "lat,lng"`);
   return pair;
 }
 
-function oneOf<T extends string>(
+/**
+ * Tách "lat,lng;lat,lng…" thành danh sách điểm. Đếm TRƯỚC khi parse: chuỗi hàng nghìn điểm bị từ
+ * chối ở bước đếm dấu ";" mà không tốn CPU parse toạ độ (khuôn `via` của directions).
+ */
+export function parseLatLngList(
+  raw: string | undefined,
+  name: string,
+  { min, max }: { min: number; max: number },
+): LatLng[] {
+  const trimmed = (raw ?? '').trim();
+  const parts = trimmed ? trimmed.split(';') : [];
+  if (parts.length < min) {
+    throw new ApiError(
+      400,
+      'invalid_request',
+      min === 1 ? `${name} bắt buộc, dạng "lat,lng;lat,lng"` : `${name} cần ít nhất ${min} điểm`,
+    );
+  }
+  if (parts.length > max) {
+    throw new ApiError(400, 'invalid_request', `${name} tối đa ${max} điểm`);
+  }
+  return parts.map((part, i) => requirePair(part, `${name}[${i}]`));
+}
+
+export function oneOf<T extends string>(
   raw: string | undefined,
   allowed: readonly T[],
   dflt: T,
@@ -54,17 +95,20 @@ function oneOf<T extends string>(
   return value;
 }
 
+/**
+ * Toạ độ trong KHOÁ CACHE làm tròn 4 chữ số (~11 m). Bài học đo 20/09/2026 với cache directions:
+ * 5 chữ số (1,1 m) nên không bao giờ trúng; gom 11 m lệch quãng đường 0,19 %, từ 56 m mới ra tuyến
+ * khác hẳn. Chỉ khoá cache làm tròn — toạ độ gửi Valhalla giữ nguyên.
+ */
+export function cacheKeyPoints(points: readonly LatLng[]): string {
+  return points.map(({ lat, lng }) => `${lat.toFixed(4)},${lng.toFixed(4)}`).join(';');
+}
+
 /** Kiểm tra hết ở Worker trước khi gọi Valhalla — request sai không được tốn máy chủ nhà. */
 export function parseDirectionsParams(q: Record<string, string | undefined>): DirectionsParams {
   const from = requirePair(q.from, 'from');
   const to = requirePair(q.to, 'to');
-  const viaRaw = (q.via ?? '').trim();
-  const viaParts = viaRaw ? viaRaw.split(';') : [];
-  // Đếm TRƯỚC khi parse: chuỗi via hàng nghìn điểm không được tốn CPU parse rồi mới bị từ chối.
-  if (viaParts.length > MAX_VIA) {
-    throw new ApiError(400, 'invalid_request', `via tối đa ${MAX_VIA} điểm`);
-  }
-  const via = viaParts.map((part, i) => requirePair(part, `via[${i}]`));
+  const via = parseLatLngList(q.via, 'via', { min: 0, max: MAX_VIA });
   const mode = oneOf(q.mode, TRAVEL_MODES, 'motorbike', 'mode');
   const lang = oneOf(q.lang, DIRECTIONS_LANGS, 'vi', 'lang');
   const alternativesRaw = q.alternatives?.trim() || '0';
@@ -73,9 +117,7 @@ export function parseDirectionsParams(q: Record<string, string | undefined>): Di
   }
 
   const locations = [from, ...via, to];
-  if (!locations.every(inVietnam)) {
-    throw new ApiError(400, 'invalid_request', 'Chỉ hỗ trợ chỉ đường trong Việt Nam');
-  }
+  assertInVietnam(locations);
   let total = 0;
   for (let i = 1; i < locations.length; i++) {
     const prev = locations[i - 1];
