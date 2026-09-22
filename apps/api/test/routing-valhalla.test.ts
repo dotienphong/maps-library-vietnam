@@ -3,9 +3,11 @@ import { ApiError } from '../src/errors';
 import {
   callValhalla,
   fetchValhallaStatus,
+  MATRIX_TIMEOUT_MS,
   mapValhallaError,
   routingBase,
   routingHeaders,
+  VALHALLA_LANGUAGE,
   valhallaBody,
 } from '../src/routing/valhalla';
 import { fetchMock } from './helpers/fetch-mock';
@@ -107,25 +109,42 @@ describe('callValhalla / fetchValhallaStatus (fetchMock)', () => {
   it('200 → trả JSON; 400+442 → no_route; 500 → 503; lỗi mạng → 503', async () => {
     const origin = fetchMock.get('https://routing.test');
     origin.intercept({ path: '/route', method: 'POST' }).reply(200, { trip: { legs: [] } });
-    expect(await callValhalla(env, {})).toEqual({ trip: { legs: [] } });
+    expect(await callValhalla(env, '/route', {})).toEqual({ trip: { legs: [] } });
 
     origin.intercept({ path: '/route', method: 'POST' }).reply(400, { error_code: 442 });
-    await expect(callValhalla(env, {})).rejects.toMatchObject({ status: 404, code: 'no_route' });
+    await expect(callValhalla(env, '/route', {})).rejects.toMatchObject({
+      status: 404,
+      code: 'no_route',
+    });
 
     origin.intercept({ path: '/route', method: 'POST' }).reply(400, '<html>bad request</html>');
-    await expect(callValhalla(env, {})).rejects.toMatchObject({
+    await expect(callValhalla(env, '/route', {})).rejects.toMatchObject({
       status: 503,
       code: 'upstream_unavailable',
     });
 
     origin.intercept({ path: '/route', method: 'POST' }).reply(500, 'boom');
-    await expect(callValhalla(env, {})).rejects.toMatchObject({ status: 503 });
+    await expect(callValhalla(env, '/route', {})).rejects.toMatchObject({ status: 503 });
 
     origin.intercept({ path: '/route', method: 'POST' }).replyWithError(new Error('ECONNREFUSED'));
-    await expect(callValhalla(env, {})).rejects.toMatchObject({ status: 503 });
+    await expect(callValhalla(env, '/route', {})).rejects.toMatchObject({ status: 503 });
 
     origin.intercept({ path: '/route', method: 'POST' }).reply(200, '<html>login</html>');
-    await expect(callValhalla(env, {})).rejects.toMatchObject({ status: 503 });
+    await expect(callValhalla(env, '/route', {})).rejects.toMatchObject({ status: 503 });
+  });
+
+  it('gọi đúng đường dẫn cho ma trận và tối ưu thứ tự; MATRIX_TIMEOUT_MS = 20 s', async () => {
+    const origin = fetchMock.get('https://routing.test');
+    origin
+      .intercept({ path: '/sources_to_targets', method: 'POST' })
+      .reply(200, { sources_to_targets: [] });
+    expect(await callValhalla(env, '/sources_to_targets', {})).toEqual({ sources_to_targets: [] });
+    origin
+      .intercept({ path: '/optimized_route', method: 'POST' })
+      .reply(200, { trip: { legs: [] } });
+    expect(await callValhalla(env, '/optimized_route', {})).toEqual({ trip: { legs: [] } });
+    expect(MATRIX_TIMEOUT_MS).toBe(20_000);
+    expect(VALHALLA_LANGUAGE).toEqual({ vi: 'vi-VN', en: 'en-US' });
   });
 
   it('timeout → 503', async () => {
@@ -133,7 +152,9 @@ describe('callValhalla / fetchValhallaStatus (fetchMock)', () => {
       new Promise<Response>((_, reject) => {
         init?.signal?.addEventListener('abort', () => reject(init?.signal?.reason));
       });
-    await expect(callValhalla(env, {}, { fetchImpl: hang, timeoutMs: 20 })).rejects.toMatchObject({
+    await expect(
+      callValhalla(env, '/route', {}, { fetchImpl: hang, timeoutMs: 20 }),
+    ).rejects.toMatchObject({
       status: 503,
       code: 'upstream_unavailable',
     });

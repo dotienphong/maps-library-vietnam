@@ -20,7 +20,7 @@ directions.get(
     const params = parseDirectionsParams(c.req.query());
     return cachedJson(c.executionCtx, directionsCacheUrl(params), 60, 300, async () => {
       const [json, graph] = await Promise.all([
-        callValhalla(c.env, valhallaBody(params, crypto.randomUUID())),
+        callValhalla(c.env, '/route', valhallaBody(params, crypto.randomUUID())),
         graphBuiltAt(c),
       ]);
       return translateDirections(json, params.mode, graph, params.lang);

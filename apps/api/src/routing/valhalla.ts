@@ -8,9 +8,15 @@ export const VALHALLA_COSTING: Readonly<Record<TravelMode, string>> = {
   car: 'auto',
   walk: 'pedestrian',
 };
-const VALHALLA_LANGUAGE: Readonly<Record<DirectionsLang, string>> = { vi: 'vi-VN', en: 'en-US' };
+export const VALHALLA_LANGUAGE: Readonly<Record<DirectionsLang, string>> = {
+  vi: 'vi-VN',
+  en: 'en-US',
+};
 export const ROUTE_TIMEOUT_MS = 10_000;
 export const STATUS_TIMEOUT_MS = 5_000;
+/** Ma trận 100 cặp và TSP 12 điểm là nhiều lần tính đường; dưới trần 30 s của handler thương mại. */
+export const MATRIX_TIMEOUT_MS = 20_000;
+export type ValhallaPath = '/route' | '/status' | '/sources_to_targets' | '/optimized_route';
 
 /** Phần JSON Valhalla mà Worker đọc (docs/docs/api/route/api-reference.md của Valhalla 3.8). */
 export interface ValhallaManeuver {
@@ -47,11 +53,30 @@ export interface ValhallaLeg {
 export interface ValhallaTrip {
   summary: ValhallaSummary;
   legs: ValhallaLeg[];
-  locations: { lat: number; lon: number; street?: string }[];
+  /** `original_index` chỉ có ở /optimized_route: chỉ số của điểm trong request. */
+  locations: { lat: number; lon: number; street?: string; original_index?: number }[];
 }
 export interface ValhallaRouteResponse {
   trip: ValhallaTrip;
   alternates?: { trip: ValhallaTrip }[];
+  id?: string;
+}
+/** Một ô của /sources_to_targets (Valhalla 3.8, đã xác minh 22/09/2026): null khi không nối được. */
+export interface ValhallaMatrixCell {
+  from_index: number;
+  to_index: number;
+  /** giây */
+  time: number | null;
+  /** km (request gửi units=kilometers) */
+  distance: number | null;
+}
+export interface ValhallaMatrixResponse {
+  sources_to_targets: ValhallaMatrixCell[][];
+  /** Toạ độ ĐÃ BÁM vào đường — Worker không dùng, echo lại toạ độ người gọi gửi. */
+  sources: { lat: number; lon: number }[];
+  targets: { lat: number; lon: number }[];
+  units?: string;
+  algorithm?: string;
   id?: string;
 }
 export interface ValhallaStatus {
@@ -140,7 +165,7 @@ interface CallOptions {
 
 async function routingFetch(
   env: RoutingEnv,
-  path: '/route' | '/status',
+  path: ValhallaPath,
   init: RequestInit,
   timeoutMs: number,
   fetchImpl: typeof fetch,
@@ -159,14 +184,19 @@ async function routingFetch(
   }
 }
 
-export async function callValhalla(
+/**
+ * Gọi một action POST của Valhalla và trả JSON theo kiểu người gọi khai. Đổi chữ ký 22/09/2026
+ * (thêm `path`) — ba chỗ gọi: routes/directions.ts, health/phep-do.ts, và hai route mới.
+ */
+export async function callValhalla<T = ValhallaRouteResponse>(
   env: RoutingEnv,
+  path: Exclude<ValhallaPath, '/status'>,
   body: unknown,
   options: CallOptions = {},
-): Promise<ValhallaRouteResponse> {
+): Promise<T> {
   const response = await routingFetch(
     env,
-    '/route',
+    path,
     { method: 'POST', body: JSON.stringify(body) },
     options.timeoutMs ?? ROUTE_TIMEOUT_MS,
     options.fetchImpl ?? fetch,
@@ -181,7 +211,7 @@ export async function callValhalla(
     throw mapValhallaError(response.status, parsed);
   }
   try {
-    return (await response.json()) as ValhallaRouteResponse;
+    return (await response.json()) as T;
   } catch {
     throw new ApiError(503, 'upstream_unavailable', 'Dịch vụ chỉ đường trả dữ liệu không hợp lệ');
   }
