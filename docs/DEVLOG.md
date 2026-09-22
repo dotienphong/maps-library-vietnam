@@ -3822,3 +3822,53 @@ thủ thắng, để trang so sánh do chính người bán viết không lặng
 Cổng: lint xanh toàn repo, vitest 111/111, `astro check` 0 lỗi, build 11 trang, Playwright site
 39/39, không mã màu cứng, **không trang nào cuộn ngang ở 390 px**. 21 ảnh nghiệm thu (7 trang × 2
 theme ở 1280 + 7 trang ở 390) ở `docs/evidence/site-redesign/pha-2/`. Chưa push.
+
+## 32. Giao diện mới — pha 3: lan thương hiệu, và toàn bộ việc kết thúc — 22/09/2026
+
+Plan `2026-09-22-giao-dien-pha-3-lan-thuong-hieu.md`. Khách đi từ website sang cổng khách hàng,
+sang trang tài liệu và nhận email đều thấy cùng một thương hiệu.
+
+**Console tối mặc định.** `readStoredTheme` truyền `'dark'`. Trang Admin KHÔNG đổi: đó là công cụ
+nội bộ nhiều bảng dữ liệu, dùng lâu, nên để theo cài đặt máy (quyết định 7 của spec).
+
+**Tài liệu Starlight: phải ghi vào `localStorage`, không chỉ đặt `data-theme`.** Script `head` chạy
+TRƯỚC `StarlightThemeProvider`, mà provider đó đọc localStorage rồi rơi về `prefers-color-scheme` và
+ghi đè `data-theme` ngay sau đó — đặt `data-theme` thôi thì bị xoá trong cùng một khung hình mà
+không có lỗi nào. Đo trên bản dựng: máy đặt sáng chưa chọn gì → `theme=dark`, `accent=#a3e635`; đã
+chọn sáng → `theme=light`, `accent=#3f6212`.
+
+**Ảnh OG đổi tên thành `-v2`.** Mạng xã hội cache ảnh OG theo URL; giữ tên cũ thì bản navy còn sống
+trong bộ nhớ đệm của Facebook và Zalo rất lâu sau khi đã đổi. Hai bài kiểm SEO còn ghi tên cũ đã
+được cập nhật theo.
+
+**Email và một chấm trên bản đồ Admin — ngoài spec nhưng làm luôn.** Email là thứ khách nhận trực
+tiếp; để navy trong khi mọi mặt tiền khác đã đổi là thương hiệu lệch rõ. Nút email nền xanh chanh
+chữ mực đen, còn link và chữ nhấn dùng ô liu đậm `#3f6212` vì email đọc trên nền TRẮNG của hộp thư.
+Cùng lý do cho chấm vị trí mới trên bản đồ sửa POI (`#4d7c0f`).
+
+**Cố ý KHÔNG đụng `packages/style/src/transform.mjs`.** Đó là màu nhãn trên bản đồ — một bài toán
+đọc được của bản đồ, không phải màu thương hiệu — và đổi nó buộc phải dựng lại style rồi nghiệm thu
+riêng. Đây là chỗ duy nhất còn `#1b3a6b` trong repo.
+
+### Nghiệm thu toàn bộ ba pha
+
+| Cổng | Kết quả |
+|---|---|
+| `pnpm lint` | xanh toàn repo |
+| `pnpm exec vitest run` | 2.066 đạt, 5 bỏ qua, 220 tệp |
+| typecheck site / console / admin / ui | 0 lỗi |
+| build site / console / admin / docs | xong |
+| Playwright site | 39/39 |
+| `pnpm --filter @mapslibvn/api test` | 773/773 |
+| `#1b3a6b` còn lại | chỉ `packages/style/src/transform.mjs`, cố ý |
+
+Ảnh nghiệm thu: pha 0 hai ảnh, pha 1 bốn ảnh, pha 2 hai mươi mốt ảnh, pha 3 bốn ảnh, ở
+`docs/evidence/site-redesign/`. **Chưa push** — chờ PHONG duyệt rồi merge.
+
+### Còn nợ sau khi merge
+
+- Deploy: workflow `deploy-site.yml` tự chạy khi `apps/site/**` đổi; **console và docs phải deploy
+  tay hoặc qua workflow riêng của chúng**, và nhớ bài học cũ: CI Deploy Docs xoá khoá demo nên phải
+  deploy tay đè lại, nếu không playground production trả 401.
+- Ảnh OG mới chỉ lên khi site deploy; muốn Facebook/Zalo nhả cache sớm thì quét lại URL bằng công cụ
+  gỡ lỗi của họ.
