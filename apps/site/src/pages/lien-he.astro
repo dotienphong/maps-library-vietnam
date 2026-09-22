@@ -53,7 +53,9 @@ const NHANH = [
     <div class="space-y-4">
       {/* Gọi điện là đường nhanh nhất nên nó là thứ duy nhất được viền nhấn trên trang này. */}
       <The noiBat data-testid="the-goi">
-        <p><Nhan chu="Gọi" /></p>
+        {/* Thẻ tiêu đề THẬT chứ không phải span: trình đọc màn hình đi theo danh sách tiêu đề
+            để nhảy giữa các khối, và bài e2e cũ đã bắt được đúng chỗ này. */}
+        <h2><Nhan chu="Điện thoại" /></h2>
         <p class="mt-2">
           {/* href dạng E.164 không khoảng trắng; chạm trên điện thoại là gọi ngay. */}
           <a
@@ -70,7 +72,7 @@ const NHANH = [
       </The>
 
       <The data-testid="the-thu">
-        <p><Nhan chu="Thư" /></p>
+        <h2><Nhan chu="Thư điện tử" /></h2>
         <p class="mt-2">
           <a
             href={`mailto:${SUPPORT_EMAIL}`}
