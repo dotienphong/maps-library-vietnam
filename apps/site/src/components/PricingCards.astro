@@ -11,7 +11,7 @@ const goi = bangGia();
     <legend class="mb-2 text-sm font-semibold text-[var(--text-muted)]">Kỳ thanh toán</legend>
     {
       PERIOD_MONTHS.map((months) => (
-        <label class="inline-flex min-h-11 cursor-pointer items-center rounded-[var(--radius-btn)] border border-[var(--border)] px-4 text-sm font-semibold has-[:checked]:border-brand-700 has-[:checked]:bg-brand-50 has-[:checked]:text-brand-700 dark:has-[:checked]:bg-brand-900 dark:has-[:checked]:text-brand-100">
+        <label class="inline-flex min-h-11 cursor-pointer items-center rounded-[var(--radius-btn)] border border-[var(--border)] px-4 text-sm font-semibold has-[:checked]:border-accent-text has-[:checked]:bg-accent-soft has-[:checked]:text-accent-text">
           <input
             type="radio"
             name="ky"
@@ -35,11 +35,11 @@ const goi = bangGia();
         <article
           class:list={[
             'flex flex-col rounded-[var(--radius-card)] border bg-[var(--surface)] p-5',
-            g.noiBat ? 'border-brand-700 shadow-lg' : 'border-[var(--border)]',
+            g.noiBat ? 'border-accent-text' : 'border-[var(--border)]',
           ]}
         >
           {g.noiBat && (
-            <p class="mb-2 inline-flex w-fit rounded-full bg-brand-700 px-2.5 py-0.5 text-xs font-semibold text-white">
+            <p class="mb-2 inline-flex w-fit rounded-full bg-accent px-2.5 py-0.5 text-xs font-semibold text-accent-ink">
               Được chọn nhiều nhất
             </p>
           )}
@@ -87,8 +87,8 @@ const goi = bangGia();
             class:list={[
               'mt-5 inline-flex min-h-11 items-center justify-center rounded-[var(--radius-btn)] px-4 text-sm font-semibold',
               g.noiBat
-                ? 'bg-brand-700 text-white hover:bg-brand-800'
-                : 'border border-[var(--border)] hover:bg-brand-50 dark:hover:bg-brand-900',
+                ? 'bg-accent text-accent-ink hover:brightness-95'
+                : 'border border-[var(--border)] hover:bg-accent-soft',
             ]}
           >
             {g.tier === 'trial' ? 'Dùng thử miễn phí' : `Chọn ${g.ten}`}

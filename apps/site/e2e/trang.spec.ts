@@ -201,3 +201,13 @@ test('trang liên hệ có khối gọi điện riêng', async ({ page }) => {
     page.getByRole('main').getByRole('link', { name: '+84 983 450 456' }),
   ).toHaveAttribute('href', 'tel:+84983450456');
 });
+
+test('không còn lớp brand- nào trên bảy trang', async ({ page }) => {
+  for (const path of TRANG) {
+    await page.goto(path);
+    const con = await page.evaluate(() =>
+      [...document.querySelectorAll('[class*="brand-"]')].map((el) => el.className),
+    );
+    expect(con, `còn brand- ở ${path}`).toEqual([]);
+  }
+});

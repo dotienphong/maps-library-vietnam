@@ -5,7 +5,7 @@ import { NAV, TRANG } from '../lib/trang';
 
 <Base trang={TRANG.khong404}>
   <section class="mx-auto max-w-3xl px-4 py-20 text-center">
-    <p class="text-6xl font-bold text-brand-700 dark:text-brand-100">404</p>
+    <p class="text-6xl font-bold text-accent-text">404</p>
     <h1 class="mt-4 text-3xl font-bold">{TRANG.khong404.h1}</h1>
     <p class="mt-4 text-[var(--text-muted)]">
       Đường dẫn này không có trên website. Có thể trang đã đổi tên, hoặc địa chỉ bị gõ nhầm một ký
@@ -16,7 +16,7 @@ import { NAV, TRANG } from '../lib/trang';
       <li>
         <a
           href={TRANG.trangChu.path}
-          class="inline-flex min-h-11 items-center rounded-[var(--radius-btn)] bg-brand-700 px-5 font-semibold text-white hover:bg-brand-800"
+          class="inline-flex min-h-11 items-center rounded-[var(--radius-btn)] bg-accent px-5 font-semibold text-accent-ink hover:brightness-95"
         >
           Trang chủ
         </a>
@@ -26,7 +26,7 @@ import { NAV, TRANG } from '../lib/trang';
           <li>
             <a
               href={TRANG[key].path}
-              class="inline-flex min-h-11 items-center rounded-[var(--radius-btn)] border border-[var(--border)] px-5 font-semibold hover:bg-brand-50 dark:hover:bg-brand-900"
+              class="inline-flex min-h-11 items-center rounded-[var(--radius-btn)] border border-[var(--border)] px-5 font-semibold hover:bg-accent-soft"
             >
               {TRANG[key].nhan}
             </a>

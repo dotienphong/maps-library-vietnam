@@ -52,7 +52,7 @@ const NHANH = [
           {/* href dạng E.164 không khoảng trắng; chạm trên điện thoại là gọi ngay. */}
           <a
             href={`tel:${SUPPORT_PHONE}`}
-            class="inline-flex min-h-11 items-center text-lg font-semibold text-brand-700 hover:underline dark:text-brand-100"
+            class="inline-flex min-h-11 items-center text-lg font-semibold text-accent-text hover:underline"
           >
             {SUPPORT_PHONE_HIEN_THI}
           </a>
@@ -68,7 +68,7 @@ const NHANH = [
       <p class="mt-2">
         <a
           href={`mailto:${SUPPORT_EMAIL}`}
-          class="inline-flex min-h-11 items-center text-lg font-semibold text-brand-700 hover:underline dark:text-brand-100"
+          class="inline-flex min-h-11 items-center text-lg font-semibold text-accent-text hover:underline"
         >
           {SUPPORT_EMAIL}
         </a>
@@ -110,7 +110,7 @@ const NHANH = [
             <li class="rounded-[var(--radius-card)] border border-[var(--border)] bg-[var(--surface)] p-4">
               <a
                 href={n.href}
-                class="font-semibold text-brand-700 hover:underline dark:text-brand-100"
+                class="font-semibold text-accent-text hover:underline"
               >
                 {n.nhan} →
               </a>

@@ -29,13 +29,13 @@ const cao = Math.round(Math.max(...phanTram));
       <div class="mt-8 flex flex-wrap gap-3">
         <a
           href={CONSOLE_URL}
-          class="inline-flex min-h-11 items-center rounded-[var(--radius-btn)] bg-brand-700 px-6 font-semibold text-white hover:bg-brand-800"
+          class="inline-flex min-h-11 items-center rounded-[var(--radius-btn)] bg-accent px-6 font-semibold text-accent-ink hover:brightness-95"
         >
           Bắt đầu miễn phí
         </a>
         <a
           href={TRANG.bangGia.path}
-          class="inline-flex min-h-11 items-center rounded-[var(--radius-btn)] border border-[var(--border)] px-6 font-semibold hover:bg-brand-50 dark:hover:bg-brand-900"
+          class="inline-flex min-h-11 items-center rounded-[var(--radius-btn)] border border-[var(--border)] px-6 font-semibold hover:bg-accent-soft"
         >
           Xem bảng giá
         </a>
@@ -50,7 +50,7 @@ const cao = Math.round(Math.max(...phanTram));
     <figure class="m-0">
       <div
         id="khoi-ban-do"
-        class="relative aspect-video overflow-hidden rounded-[var(--radius-card)] border border-[var(--border)] bg-brand-50 dark:bg-brand-900"
+        class="relative aspect-video overflow-hidden rounded-[var(--radius-card)] border border-[var(--border)] bg-surface-2"
       >
         {/* Picture chứ không Image: prop `formats` (nhiều định dạng) chỉ có ở Picture; đặt nó trên
             Image thì Astro bỏ qua lặng lẽ và chỉ sinh WebP. */}
@@ -71,7 +71,7 @@ const cao = Math.round(Math.max(...phanTram));
           data-src={`${DOCS_URL}/playground?embed=1`}
         >
           <span
-            class="inline-flex min-h-11 items-center rounded-[var(--radius-btn)] bg-brand-700 px-5 font-semibold text-white shadow-lg"
+            class="inline-flex min-h-11 items-center rounded-[var(--radius-btn)] bg-accent px-5 font-semibold text-accent-ink shadow-lg"
           >
             Bấm để mở bản đồ tương tác
           </span>
