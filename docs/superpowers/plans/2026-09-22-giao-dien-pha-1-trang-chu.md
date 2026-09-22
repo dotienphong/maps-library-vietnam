@@ -182,7 +182,9 @@ const lopDu = [CHUNG, KIEU[kieu], CO[co], lop];
 ---
 /**
  * Thẻ có viền. `nen="surface-2"` cho ô bento và khối mã (nổi trên nền surface), `noiBat` viền màu
- * nhấn cho gói được chọn nhiều nhất. Không bóng đổ ở bản tối (spec 4.3): viền là cách tách khối.
+ * nhấn cho gói được chọn nhiều nhất. Viền nhấn dùng `--accent-text` chứ KHÔNG phải `--accent`:
+ * trên nền sáng `--accent` chỉ đạt 1,4:1 nên viền gần như vô hình (spec 4.1). Không bóng đổ ở bản
+ * tối (spec 4.3): viền là cách tách khối.
  */
 interface Props {
   as?: 'article' | 'div' | 'li' | 'section' | undefined;
@@ -200,7 +202,7 @@ const { as: Tag = 'div', nen = 'surface', noiBat = false, class: lop = '', id } 
   class:list={[
     'rounded-[var(--radius-card)] border p-5 transition-colors duration-150 sm:p-6',
     nen === 'surface' ? 'bg-surface' : 'bg-surface-2',
-    noiBat ? 'border-accent' : 'border-border hover:border-border-strong',
+    noiBat ? 'border-accent-text' : 'border-border hover:border-border-strong',
     lop,
   ]}
 >
@@ -225,7 +227,7 @@ const { so, nhan, phu } = Astro.props;
 ---
 
 <div>
-  <p class="t-stat text-accent">{so}</p>
+  <p class="t-stat text-accent-text">{so}</p>
   <p class="mt-2"><Nhan chu={nhan} /></p>
   {phu && <p class="t-small mt-1 text-muted">{phu}</p>}
 </div>
@@ -940,8 +942,8 @@ const VI_SAO = [
           </ul>
           <svg viewBox="0 0 240 60" class="h-12 w-60" aria-hidden="true">
             <path d="M6 48 C 60 10, 110 62, 160 30 S 220 8, 234 14" fill="none" stroke="var(--border-strong)" stroke-width="6" stroke-linecap="round" />
-            <path d="M6 48 C 60 10, 110 62, 160 30" fill="none" stroke="var(--accent)" stroke-width="6" stroke-linecap="round" />
-            <circle cx="6" cy="48" r="5" fill="var(--accent)" />
+            <path d="M6 48 C 60 10, 110 62, 160 30" fill="none" stroke="var(--accent-text)" stroke-width="6" stroke-linecap="round" />
+            <circle cx="6" cy="48" r="5" fill="var(--accent-text)" />
             <circle cx="234" cy="14" r="5" fill="var(--text)" />
           </svg>
         </div>

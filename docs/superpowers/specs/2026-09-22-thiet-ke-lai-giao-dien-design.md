@@ -57,7 +57,7 @@ PHONG xem `mapslibvn-site.pages.dev` ngày 22/09 và nêu ba điểm, đo lại 
 
 ### 4.1. Màu
 
-Một màu nhấn duy nhất. Quy tắc cứng: **xanh chanh chỉ dùng cho một việc trên mỗi màn hình**, là thứ
+Một màu nhấn duy nhất, tách làm hai token theo vai trò: `--accent` là **màu nền** (nút, chip), `--accent-text` là **màu mực** cho mọi thứ phải đọc được hoặc nhìn thấy đường nét (chữ, link, viền nhấn, nét SVG). Bản tối hai token trùng nhau; bản sáng `--accent` chỉ đạt 1,4:1 nên không bao giờ được làm nét. Quy tắc cứng: **xanh chanh chỉ dùng cho một việc trên mỗi màn hình**, là thứ
 muốn khách nhìn thấy trước (nút chính, con số đắt giá, ô thắng trong bảng đối đầu, gói nổi bật). Link
 trong đoạn văn dùng `--accent-text`, không dùng `--accent`.
 
@@ -69,13 +69,13 @@ Token mới trong `packages/ui/src/tokens.css`, thay toàn bộ `--color-brand-*
 | `--surface` | `#111113` | `#ffffff` | thẻ, header, footer |
 | `--surface-2` | `#18181b` | `#f4f4f5` | ô bento, khối mã, hàng bảng xen kẽ |
 | `--border` | `#27272a` | `#e4e4e7` | viền mặc định |
-| `--border-strong` | `#3f3f46` | `#d4d4d8` | viền khi hover, tab đang chọn |
+| `--border-strong` | `#3f3f46` | `#a1a1aa` | viền khi hover, tab đang chọn |
 | `--text` | `#fafafa` | `#0a0a0a` | chữ chính |
 | `--text-muted` | `#a1a1aa` | `#52525b` | chữ phụ, lead |
 | `--text-faint` | `#71717a` | `#71717a` | chỉ cho chữ lớn hoặc phần trang trí (viền, dấu chấm); không dùng cho chữ < 19 px |
-| `--accent` | `#a3e635` | `#a3e635` | nền nút chính, viền ô nổi bật, số liệu |
+| `--accent` | `#a3e635` | `#a3e635` | **chỉ làm nền** (nút chính, chip), luôn đi kèm chữ `--accent-ink` |
 | `--accent-ink` | `#0a0a0a` | `#0a0a0a` | chữ đặt trên `--accent` |
-| `--accent-text` | `#a3e635` | `#3f6212` | link, chữ nhấn trên nền thường |
+| `--accent-text` | `#a3e635` | `#3f6212` | link, chữ nhấn, **viền nhấn và nét vẽ** trên nền thường |
 | `--accent-soft` | `rgba(163,230,53,.10)` | `rgba(163,230,53,.18)` | nền hover nút phụ, nền chip |
 | `--focus` | `#a3e635` | `#3f6212` | vòng focus 2 px, offset 2 px |
 
@@ -92,7 +92,8 @@ thành phần giao diện):
 | `#0a0a0a` trên `#fafafa` | 19,0:1 |
 | `#52525b` trên `#fafafa` | 7,4:1 |
 | `#3f6212` trên `#fafafa` | 6,8:1 |
-| `#a3e635` trên `#fafafa` | 1,4:1 → **cấm** dùng làm chữ ở bản sáng; chỉ làm nền nút với chữ `--accent-ink` |
+| `#a3e635` trên `#fafafa` | 1,4:1 → **cấm** làm chữ, viền hay nét vẽ ở bản sáng; chỉ làm nền với chữ `--accent-ink` |
+| `#a1a1aa` trên `#fafafa` | 2,5:1 (viền hover, không phải chữ) |
 
 Bài kiểm đơn vị đọc `tokens.css`, tính tỉ lệ cho đúng các cặp trên và đỏ nếu bất kỳ cặp nào rơi dưới
 ngưỡng (mục 10). Đổi màu về sau là phải qua bài kiểm này.

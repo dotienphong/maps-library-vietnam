@@ -1,35 +1,74 @@
-/* Token dùng chung cho Admin, console và website: một bộ màu, một bộ bo góc.
+/* Token dùng chung cho Admin, console và website: một bảng màu, một bộ bo góc.
    Import SAU `@import "tailwindcss"` trong CSS gốc của từng app, bằng đường dẫn tương đối
-   (../../../packages/ui/src/tokens.css). Tailwind v4 gộp file này vào trước khi xử lý nên `@theme`
-   ở đây có hiệu lực như viết tại chỗ. */
+   (../../../packages/ui/src/tokens.css). Tailwind v4 gộp file này vào trước khi xử lý.
 
-@theme {
-  /* Xanh bản đồ — cùng màu style bản đồ đang dùng, xem packages/style */
-  --color-brand-50: #eef3fb;
-  --color-brand-100: #e8effa;
-  --color-brand-500: #2f5da3;
-  --color-brand-600: #24497f;
-  --color-brand-700: #1b3a6b;
-  --color-brand-800: #152c52;
-  --color-brand-900: #0f1f3a;
+   Bảng màu theo spec 2026-09-22 mục 4.1: một màu nhấn xanh chanh, thang xám trung tính. Tỉ lệ
+   tương phản của từng cặp được khoá bằng tokens.test.ts — đổi màu là phải qua bài đó.
 
-  --radius-card: 12px;
-  --radius-btn: 9px;
-  --radius-sheet: 16px;
-}
+   `:root` là bản SÁNG, `.dark` là bản TỐI. App nào tối mặc định thì tự gắn class `dark` sớm
+   (site: script inline trong <head>; console: theme.ts với mặc định 'dark'). */
 
 :root {
-  --bg: #f7f8fa;
+  --bg: #fafafa;
   --surface: #ffffff;
-  --border: #e3e6ec;
-  --text: #101828;
-  --text-muted: #667085;
+  --surface-2: #f4f4f5;
+  --border: #e4e4e7;
+  /* Viền khi hover: phải thấy rõ hơn --border, nếu không hover là vô nghĩa.
+     #d4d4d8 chỉ đạt 1,4:1 trên nền sáng — mắt gần như không phân biệt được. */
+  --border-strong: #a1a1aa;
+  --text: #0a0a0a;
+  --text-muted: #52525b;
+  /* Chỉ cho chữ ≥ 24 px, ≥ 19 px in đậm, hoặc phần trang trí. 4,1:1 trên nền tối. */
+  --text-faint: #71717a;
+  /* CHỈ dùng làm NỀN (nút chính, chip), luôn đi kèm chữ --accent-ink. Trên nền sáng nó chỉ đạt
+     1,4:1 nên không được dùng cho chữ, viền hay nét vẽ — những thứ đó dùng --accent-text. */
+  --accent: #a3e635;
+  /* Chữ đặt TRÊN nền --accent. */
+  --accent-ink: #0a0a0a;
+  /* Link, chữ nhấn, VIỀN nhấn và nét vẽ trên nền thường. Bản tối trùng --accent; bản sáng phải
+     đậm hơn hẳn để đạt ngưỡng đọc được. */
+  --accent-text: #3f6212;
+  --accent-soft: rgba(163, 230, 53, 0.18);
+  --focus: #3f6212;
 }
 
 .dark {
-  --bg: #0d1117;
-  --surface: #161b22;
-  --border: #2a313c;
-  --text: #e6edf3;
-  --text-muted: #9198a1;
+  --bg: #0a0a0a;
+  --surface: #111113;
+  --surface-2: #18181b;
+  --border: #27272a;
+  --border-strong: #3f3f46;
+  --text: #fafafa;
+  --text-muted: #a1a1aa;
+  --text-faint: #71717a;
+  --accent: #a3e635;
+  --accent-ink: #0a0a0a;
+  --accent-text: #a3e635;
+  --accent-soft: rgba(163, 230, 53, 0.1);
+  --focus: #a3e635;
+}
+
+/* `inline` là bắt buộc: với @theme thường, `--color-bg: var(--bg)` được tính MỘT lần tại :root
+   (giá trị sáng) rồi kế thừa xuống, nên `.dark` không đổi được utility. `inline` làm utility ghi
+   thẳng `var(--bg)` và giải tại phần tử, nơi `.dark` đã ghi đè. */
+@theme inline {
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-border: var(--border);
+  --color-border-strong: var(--border-strong);
+  --color-text: var(--text);
+  --color-muted: var(--text-muted);
+  --color-faint: var(--text-faint);
+  --color-accent: var(--accent);
+  --color-accent-ink: var(--accent-ink);
+  --color-accent-text: var(--accent-text);
+  --color-accent-soft: var(--accent-soft);
+  --color-focus: var(--focus);
+}
+
+@theme {
+  --radius-card: 12px;
+  --radius-btn: 8px;
+  --radius-sheet: 16px;
 }
