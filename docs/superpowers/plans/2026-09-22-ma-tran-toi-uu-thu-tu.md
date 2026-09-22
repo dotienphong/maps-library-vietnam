@@ -8,6 +8,12 @@
 
 **Tech Stack:** TypeScript (Hono trên Cloudflare Workers; vitest + `@cloudflare/vitest-pool-workers` với `fetchMock` tự viết ở `apps/api/test/helpers/fetch-mock.ts`), `@mapslibvn/core` (tsup + size-limit), Node 22 ESM `.mjs` với `checkJs` cho scripts, Astro (site), Starlight (docs), Docker Compose (Valhalla dev Quận 1).
 
+> **ĐÃ THỰC THI XONG 22/09/2026** — trừ `pnpm sdk:publish` đang chờ mã 2FA. Thực tế khác plan ở ba
+> chỗ, đều do phép đo production buộc phải đổi: (1) trần hạ 100 → **50 cặp** và 10 → **8 điểm dừng**;
+> (2) thêm `MATRIX_RATE_LIMITER` 6 request/phút mà bản plan không có; (3) nguyên nhân chậm hoá ra là
+> `PG_SHARED_BUFFERS=4096MB` trên máy chủ 3,7 GB chứ không phải tính năng. Xem DEVLOG mục 33 và
+> `docs/evidence/routing/2026-09-22-matrix.md`.
+
 **Spec:** `docs/superpowers/specs/2026-09-22-ma-tran-toi-uu-thu-tu-design.md` — đọc mục 2 (tiền đề đã xác minh) và mục 4 (hợp đồng API) trước khi bắt đầu.
 
 ---
@@ -54,7 +60,7 @@
 - Modify: `apps/api/src/routing/params.ts`
 - Test: `apps/api/test/routing-params.test.ts`
 
-- [ ] **Step 1: Viết test đỏ (thêm vào cuối `apps/api/test/routing-params.test.ts`)**
+- [x] **Step 1: Viết test đỏ (thêm vào cuối `apps/api/test/routing-params.test.ts`)**
 
 Sửa dòng import đầu file thành:
 
@@ -119,12 +125,12 @@ describe('hàm dùng chung cho ma trận và tối ưu thứ tự (spec 22/09 m�
 });
 ```
 
-- [ ] **Step 2: Chạy test, phải đỏ**
+- [x] **Step 2: Chạy test, phải đỏ**
 
 Run: `pnpm --filter @mapslibvn/api exec vitest run test/routing-params.test.ts`
 Expected: FAIL — `parseLatLngList`, `assertInVietnam`, `cacheKeyPoints`, `MATRIX_MAX_CROW_DISTANCE_M` không tồn tại.
 
-- [ ] **Step 3: Sửa `apps/api/src/routing/params.ts`**
+- [x] **Step 3: Sửa `apps/api/src/routing/params.ts`**
 
 Thay khối từ `const VN = …` tới hết hàm `oneOf` và hàm `parseDirectionsParams` bằng bản dưới (giữ nguyên `TRAVEL_MODES`, `DIRECTIONS_LANGS`, `MAX_VIA`, `MAX_CROW_DISTANCE_M`, `DirectionsParams`, `haversineM`, `directionsCacheUrl`):
 
@@ -239,12 +245,12 @@ export function parseDirectionsParams(q: Record<string, string | undefined>): Di
 
 Lưu ý: hành vi `parseDirectionsParams` không đổi — message `via tối đa 5 điểm`, tên phần tử `via[i]`, message hộp VN vẫn như cũ (test cũ trong file phải vẫn xanh).
 
-- [ ] **Step 4: Chạy test, phải xanh cả cũ lẫn mới**
+- [x] **Step 4: Chạy test, phải xanh cả cũ lẫn mới**
 
 Run: `pnpm --filter @mapslibvn/api exec vitest run test/routing-params.test.ts test/directions-route.test.ts`
 Expected: PASS toàn bộ.
 
-- [ ] **Step 5: Lint, typecheck, commit**
+- [x] **Step 5: Lint, typecheck, commit**
 
 ```bash
 pnpm lint:fix && pnpm lint && pnpm --filter @mapslibvn/api exec tsc --noEmit
@@ -263,7 +269,7 @@ Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>"
 - Modify: `apps/api/src/routes/directions.ts`
 - Test: `apps/api/test/directions-route.test.ts` (sẵn có, không đổi — phải vẫn xanh)
 
-- [ ] **Step 1: Tạo `apps/api/src/routing/graph.ts`**
+- [x] **Step 1: Tạo `apps/api/src/routing/graph.ts`**
 
 ```ts
 import type { Context } from 'hono';
@@ -297,7 +303,7 @@ export async function graphBuiltAt(c: Context<AppEnv>): Promise<string | null> {
 }
 ```
 
-- [ ] **Step 2: Sửa `apps/api/src/routes/directions.ts`**
+- [x] **Step 2: Sửa `apps/api/src/routes/directions.ts`**
 
 Xoá `STATUS_CACHE_URL`, `builtAtIso`, `graphBuiltAt` và import `Context`, `cachedJson` không còn dùng (giữ `cachedJson` vì handler vẫn dùng). Đầu file thành:
 
@@ -317,12 +323,12 @@ export const directions = new Hono<AppEnv>();
 
 Phần `directions.get('/v1/directions', …)` và `directions.get('/healthz/routing', …)` giữ nguyên (chúng gọi `graphBuiltAt(c)` và `builtAtIso(...)` — giờ là import).
 
-- [ ] **Step 3: Chạy test route directions và lint**
+- [x] **Step 3: Chạy test route directions và lint**
 
 Run: `pnpm --filter @mapslibvn/api exec vitest run test/directions-route.test.ts && pnpm lint`
 Expected: PASS; lint xanh (biome báo import thừa nếu còn `Context`).
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add apps/api/src/routing/graph.ts apps/api/src/routes/directions.ts
@@ -339,7 +345,7 @@ Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>"
 - Modify: `apps/api/src/routing/valhalla.ts`, `apps/api/src/routes/directions.ts:43`, `apps/api/src/health/phep-do.ts:68`
 - Test: `apps/api/test/routing-valhalla.test.ts`
 
-- [ ] **Step 1: Sửa test cũ theo chữ ký mới và thêm test đỏ**
+- [x] **Step 1: Sửa test cũ theo chữ ký mới và thêm test đỏ**
 
 Trong `apps/api/test/routing-valhalla.test.ts`, khối `describe('callValhalla / fetchValhallaStatus (fetchMock)')`: mọi `callValhalla(env, {})` → `callValhalla(env, '/route', {})`, và `callValhalla(env, {}, { fetchImpl: hang, timeoutMs: 20 })` → `callValhalla(env, '/route', {}, { fetchImpl: hang, timeoutMs: 20 })`. Thêm vào cuối khối đó:
 
@@ -359,12 +365,12 @@ Trong `apps/api/test/routing-valhalla.test.ts`, khối `describe('callValhalla /
 
 Thêm `MATRIX_TIMEOUT_MS`, `VALHALLA_LANGUAGE` vào import từ `'../src/routing/valhalla'`.
 
-- [ ] **Step 2: Chạy test, phải đỏ**
+- [x] **Step 2: Chạy test, phải đỏ**
 
 Run: `pnpm --filter @mapslibvn/api exec vitest run test/routing-valhalla.test.ts`
 Expected: FAIL — `MATRIX_TIMEOUT_MS`/`VALHALLA_LANGUAGE` không export; các ca cũ đỏ vì `callValhalla(env, '/route', {})` gửi `'/route'` làm body.
 
-- [ ] **Step 3: Sửa `apps/api/src/routing/valhalla.ts`**
+- [x] **Step 3: Sửa `apps/api/src/routing/valhalla.ts`**
 
 Đổi `const VALHALLA_LANGUAGE` thành `export const VALHALLA_LANGUAGE`. Sau `STATUS_TIMEOUT_MS` thêm:
 
@@ -441,7 +447,7 @@ export async function callValhalla<T = ValhallaRouteResponse>(
 }
 ```
 
-- [ ] **Step 4: Cập nhật hai chỗ gọi**
+- [x] **Step 4: Cập nhật hai chỗ gọi**
 
 `apps/api/src/routes/directions.ts` dòng `callValhalla(c.env, valhallaBody(params, crypto.randomUUID())),` → `callValhalla(c.env, '/route', valhallaBody(params, crypto.randomUUID())),`.
 
@@ -453,12 +459,12 @@ export async function callValhalla<T = ValhallaRouteResponse>(
   });
 ```
 
-- [ ] **Step 5: Chạy test và typecheck**
+- [x] **Step 5: Chạy test và typecheck**
 
 Run: `pnpm --filter @mapslibvn/api exec vitest run test/routing-valhalla.test.ts test/directions-route.test.ts && pnpm --filter @mapslibvn/api exec tsc --noEmit`
 Expected: PASS; tsc 0 lỗi (nếu còn chỗ gọi `callValhalla` hai tham số, tsc chỉ ra — sửa theo mẫu trên).
 
-- [ ] **Step 6: Lint, commit**
+- [x] **Step 6: Lint, commit**
 
 ```bash
 pnpm lint:fix && pnpm lint
@@ -476,7 +482,7 @@ Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>"
 - Modify: `packages/core/src/types.ts`, `packages/core/src/client.ts`, `packages/web/src/index.ts`, `packages/react-native/src/index.ts`
 - Create: `packages/core/src/client.matrix.test.ts`, `packages/core/src/client.optimized-route.test.ts`
 
-- [ ] **Step 1: Viết test đỏ `packages/core/src/client.matrix.test.ts`**
+- [x] **Step 1: Viết test đỏ `packages/core/src/client.matrix.test.ts`**
 
 ```ts
 import { describe, expect, it, vi } from 'vitest';
@@ -533,7 +539,7 @@ describe('client.matrix', () => {
 });
 ```
 
-- [ ] **Step 2: Viết test đỏ `packages/core/src/client.optimized-route.test.ts`**
+- [x] **Step 2: Viết test đỏ `packages/core/src/client.optimized-route.test.ts`**
 
 ```ts
 import { describe, expect, it, vi } from 'vitest';
@@ -603,12 +609,12 @@ describe('client.optimizedRoute', () => {
 });
 ```
 
-- [ ] **Step 3: Chạy test, phải đỏ**
+- [x] **Step 3: Chạy test, phải đỏ**
 
 Run: `pnpm exec vitest run packages/core/src/client.matrix.test.ts packages/core/src/client.optimized-route.test.ts`
 Expected: FAIL — `client.matrix`/`client.optimizedRoute` không phải hàm.
 
-- [ ] **Step 4: Thêm kiểu vào `packages/core/src/types.ts`** (ngay sau `interface DirectionsResponse`)
+- [x] **Step 4: Thêm kiểu vào `packages/core/src/types.ts`** (ngay sau `interface DirectionsResponse`)
 
 ```ts
 /** `GET /v1/matrix` (spec 22/09/2026 mục 4.1). Toạ độ `[lng, lat]`; ô `null` là không nối được. */
@@ -633,7 +639,7 @@ export interface OptimizedRouteResponse extends DirectionsResponse {
 }
 ```
 
-- [ ] **Step 5: Sửa `packages/core/src/client.ts`**
+- [x] **Step 5: Sửa `packages/core/src/client.ts`**
 
 Thêm `MatrixResponse`, `OptimizedRouteResponse` vào `import type { … } from './types'`. Ngay sau `interface DirectionsOptions` thêm:
 
@@ -678,18 +684,18 @@ Trong object trả về của `createClient`, ngay sau phương thức `directio
       }),
 ```
 
-- [ ] **Step 6: Re-export kiểu ở web và RN**
+- [x] **Step 6: Re-export kiểu ở web và RN**
 
 `packages/web/src/index.ts`, khối `export type { … } from '@mapslibvn/core'` đầu file: thêm `MatrixOptions,`, `MatrixResponse,` sau `MapsLibVNClient,` và `OptimizedRouteOptions,`, `OptimizedRouteResponse,` sau `Navigator,`. Làm y như vậy trong `packages/react-native/src/index.ts` (khối export type đầu file; `MapsLibVNClient` và `NavigationThresholds` đã có ở đó). `pnpm lint:fix` sẽ sắp lại thứ tự nếu lệch.
 
-- [ ] **Step 7: Build core (kèm size-limit), chạy test**
+- [x] **Step 7: Build core (kèm size-limit), chạy test**
 
 Run: `pnpm --filter @mapslibvn/core build && pnpm exec vitest run packages/core/src/client.matrix.test.ts packages/core/src/client.optimized-route.test.ts packages/core/src/client.directions.test.ts`
 Expected: build xanh, `size-limit` in kích cỡ ≤ 16 kB; test PASS.
 
 Nếu `size-limit` đỏ (vượt 16 kB): mở `packages/core/.size-limit.json`, đổi `"limit": "16 kB"` → `"17 kB"`, ghi lại số cũ/mới để đưa vào DEVLOG (Task 17), chạy lại build.
 
-- [ ] **Step 8: Typecheck toàn repo, lint, commit**
+- [x] **Step 8: Typecheck toàn repo, lint, commit**
 
 Run: `pnpm lint:fix && pnpm lint && pnpm typecheck`
 Expected: xanh (typecheck build lại core rồi chạy turbo typecheck cho web/RN — thấy kiểu mới).
@@ -711,7 +717,7 @@ Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>"
 - Create: `apps/api/src/routing/matrix.ts`
 - Test: `apps/api/test/routing-matrix.test.ts`
 
-- [ ] **Step 1: Viết test đỏ `apps/api/test/routing-matrix.test.ts`**
+- [x] **Step 1: Viết test đỏ `apps/api/test/routing-matrix.test.ts`**
 
 ```ts
 import { describe, expect, it } from 'vitest';
@@ -854,12 +860,12 @@ describe('matrixCacheUrl', () => {
 });
 ```
 
-- [ ] **Step 2: Chạy test, phải đỏ**
+- [x] **Step 2: Chạy test, phải đỏ**
 
 Run: `pnpm --filter @mapslibvn/api exec vitest run test/routing-matrix.test.ts`
 Expected: FAIL — module `../src/routing/matrix` không tồn tại.
 
-- [ ] **Step 3: Tạo `apps/api/src/routing/matrix.ts`**
+- [x] **Step 3: Tạo `apps/api/src/routing/matrix.ts`**
 
 ```ts
 import type { MatrixResponse, TravelMode } from '@mapslibvn/core';
@@ -951,12 +957,12 @@ export function matrixCacheUrl(p: MatrixParams): string {
 
 (`MatrixResponse`, `ROUTING_ATTRIBUTION`, `ValhallaMatrixResponse` dùng ở Task 6 — biome sẽ báo import chưa dùng; tạm giữ bằng cách làm Task 6 trước khi lint, hoặc thêm import ở Task 6.)
 
-- [ ] **Step 4: Chạy test, phải xanh**
+- [x] **Step 4: Chạy test, phải xanh**
 
 Run: `pnpm --filter @mapslibvn/api exec vitest run test/routing-matrix.test.ts`
 Expected: PASS.
 
-- [ ] **Step 5: Commit (chưa lint vì import chờ Task 6)**
+- [x] **Step 5: Commit (chưa lint vì import chờ Task 6)**
 
 ```bash
 git add apps/api/src/routing/matrix.ts apps/api/test/routing-matrix.test.ts
@@ -974,7 +980,7 @@ Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>"
 - Create: `apps/api/test/fixtures/valhalla/matrix-2x2.json`
 - Test: `apps/api/test/routing-matrix.test.ts`
 
-- [ ] **Step 1: Tạo fixture tay `apps/api/test/fixtures/valhalla/matrix-2x2.json`** (hình dạng đúng như Valhalla 3.8 trả 22/09, ô [1][1] không nối; hàng 2 cố ý đảo thứ tự ô để test đặt theo `from_index`/`to_index`)
+- [x] **Step 1: Tạo fixture tay `apps/api/test/fixtures/valhalla/matrix-2x2.json`** (hình dạng đúng như Valhalla 3.8 trả 22/09, ô [1][1] không nối; hàng 2 cố ý đảo thứ tự ô để test đặt theo `from_index`/`to_index`)
 
 ```json
 {
@@ -996,7 +1002,7 @@ Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>"
 }
 ```
 
-- [ ] **Step 2: Thêm test đỏ vào `apps/api/test/routing-matrix.test.ts`**
+- [x] **Step 2: Thêm test đỏ vào `apps/api/test/routing-matrix.test.ts`**
 
 Thêm import: `import fixture from './fixtures/valhalla/matrix-2x2.json';`, thêm `translateMatrix` vào import từ `'../src/routing/matrix'`, và `import type { ValhallaMatrixResponse } from '../src/routing/valhalla';`. Thêm cuối file:
 
@@ -1077,12 +1083,12 @@ describe('translateMatrix', () => {
 });
 ```
 
-- [ ] **Step 3: Chạy test, phải đỏ**
+- [x] **Step 3: Chạy test, phải đỏ**
 
 Run: `pnpm --filter @mapslibvn/api exec vitest run test/routing-matrix.test.ts`
 Expected: FAIL — `translateMatrix` không export.
 
-- [ ] **Step 4: Thêm `translateMatrix` vào cuối `apps/api/src/routing/matrix.ts`**
+- [x] **Step 4: Thêm `translateMatrix` vào cuối `apps/api/src/routing/matrix.ts`**
 
 ```ts
 const invalidUpstream = () =>
@@ -1148,7 +1154,7 @@ export function translateMatrix(
 
 Nếu biome phàn nàn `as number` sau khi đã kiểm `typeof`, đổi thành hai biến `const time = cell.time; const distance = cell.distance;` rồi kiểm `typeof time === 'number' && time >= 0 && typeof distance === 'number' && distance >= 0` và dùng `time`/`distance` trực tiếp (TypeScript thu hẹp kiểu qua biến cục bộ).
 
-- [ ] **Step 5: Chạy test, lint, typecheck, commit**
+- [x] **Step 5: Chạy test, lint, typecheck, commit**
 
 Run: `pnpm --filter @mapslibvn/api exec vitest run test/routing-matrix.test.ts && pnpm lint:fix && pnpm lint && pnpm --filter @mapslibvn/api exec tsc --noEmit`
 Expected: PASS, lint xanh (không còn import thừa), tsc 0 lỗi.
@@ -1169,7 +1175,7 @@ Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>"
 - Modify: `apps/api/src/index.ts`
 - Test: `apps/api/test/matrix-route.test.ts`
 
-- [ ] **Step 1: Viết test đỏ `apps/api/test/matrix-route.test.ts`**
+- [x] **Step 1: Viết test đỏ `apps/api/test/matrix-route.test.ts`**
 
 ```ts
 import { env, SELF } from 'cloudflare:test';
@@ -1328,12 +1334,12 @@ describe('GET /v1/matrix', () => {
 });
 ```
 
-- [ ] **Step 2: Chạy test, phải đỏ**
+- [x] **Step 2: Chạy test, phải đỏ**
 
 Run: `pnpm --filter @mapslibvn/api exec vitest run test/matrix-route.test.ts`
 Expected: FAIL — `/v1/matrix` trả 404 `not_found` (route chưa có).
 
-- [ ] **Step 3: Tạo `apps/api/src/routes/matrix.ts`**
+- [x] **Step 3: Tạo `apps/api/src/routes/matrix.ts`**
 
 ```ts
 import { Hono } from 'hono';
@@ -1376,18 +1382,18 @@ matrix.get(
 );
 ```
 
-- [ ] **Step 4: Nối route trong `apps/api/src/index.ts`**
+- [x] **Step 4: Nối route trong `apps/api/src/index.ts`**
 
 Thêm import (theo thứ tự alphabet cạnh `import { geocodeRoute } …`): `import { matrix } from './routes/matrix';`. Sau dòng `app.route('/', directions);` thêm `app.route('/', matrix);`.
 
-- [ ] **Step 5: Chạy test, phải xanh**
+- [x] **Step 5: Chạy test, phải xanh**
 
 Run: `pnpm --filter @mapslibvn/api exec vitest run test/matrix-route.test.ts`
 Expected: PASS 7 ca.
 
 Nếu ca quota đỏ ở `expect(count).toBe('1')` vì tenant `free` legacy không cộng KV trong môi trường test: kiểm `QUOTA_ENABLED` trong `apps/api/vitest.config.ts` (đang `'1'`) và `plan: 'free'` trong seed — cùng cơ chế test directions đang dùng ở `directions-route.test.ts`.
 
-- [ ] **Step 6: Lint, typecheck, chạy cả bộ API, commit**
+- [x] **Step 6: Lint, typecheck, chạy cả bộ API, commit**
 
 Run: `pnpm lint:fix && pnpm lint && pnpm --filter @mapslibvn/api exec tsc --noEmit && pnpm --filter @mapslibvn/api test`
 Expected: xanh toàn bộ.
@@ -1407,7 +1413,7 @@ Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>"
 - Create: `apps/api/src/routing/optimized.ts`
 - Test: `apps/api/test/routing-optimized.test.ts`
 
-- [ ] **Step 1: Viết test đỏ `apps/api/test/routing-optimized.test.ts`**
+- [x] **Step 1: Viết test đỏ `apps/api/test/routing-optimized.test.ts`**
 
 ```ts
 import { describe, expect, it } from 'vitest';
@@ -1531,12 +1537,12 @@ describe('optimizedCacheUrl', () => {
 });
 ```
 
-- [ ] **Step 2: Chạy test, phải đỏ**
+- [x] **Step 2: Chạy test, phải đỏ**
 
 Run: `pnpm --filter @mapslibvn/api exec vitest run test/routing-optimized.test.ts`
 Expected: FAIL — module không tồn tại.
 
-- [ ] **Step 3: Tạo `apps/api/src/routing/optimized.ts`**
+- [x] **Step 3: Tạo `apps/api/src/routing/optimized.ts`**
 
 ```ts
 import type { DirectionsLang, OptimizedRouteResponse, TravelMode } from '@mapslibvn/core';
@@ -1623,7 +1629,7 @@ export function optimizedCacheUrl(p: OptimizedParams): string {
 
 (`OptimizedRouteResponse`, `translateDirections`, `ValhallaRouteResponse` dùng ở Task 9.)
 
-- [ ] **Step 4: Chạy test, phải xanh; commit**
+- [x] **Step 4: Chạy test, phải xanh; commit**
 
 Run: `pnpm --filter @mapslibvn/api exec vitest run test/routing-optimized.test.ts`
 Expected: PASS.
@@ -1644,7 +1650,7 @@ Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>"
 - Create: `apps/api/test/fixtures/valhalla/optimized-two-stops.json` (sinh bằng script từ `two-legs.json`)
 - Test: `apps/api/test/routing-optimized.test.ts`
 
-- [ ] **Step 1: Sinh fixture tay từ `two-legs.json`** — 4 điểm (from, 2 stops, to) mà Valhalla xếp `original_index` `[0, 2, 1, 3]`, 3 leg (leg thứ ba tái dùng leg đầu; hình học không quan trọng cho test thứ tự)
+- [x] **Step 1: Sinh fixture tay từ `two-legs.json`** — 4 điểm (from, 2 stops, to) mà Valhalla xếp `original_index` `[0, 2, 1, 3]`, 3 leg (leg thứ ba tái dùng leg đầu; hình học không quan trọng cho test thứ tự)
 
 ```bash
 node -e '
@@ -1669,7 +1675,7 @@ fs.writeFileSync("apps/api/test/fixtures/valhalla/optimized-two-stops.json", JSO
 '
 ```
 
-- [ ] **Step 2: Thêm test đỏ vào `apps/api/test/routing-optimized.test.ts`**
+- [x] **Step 2: Thêm test đỏ vào `apps/api/test/routing-optimized.test.ts`**
 
 Thêm import: `import fixture from './fixtures/valhalla/optimized-two-stops.json';`, `import type { ValhallaRouteResponse } from '../src/routing/valhalla';`, và `translateOptimized` vào import từ `'../src/routing/optimized'`. Cuối file:
 
@@ -1739,12 +1745,12 @@ describe('translateOptimized', () => {
 });
 ```
 
-- [ ] **Step 3: Chạy test, phải đỏ**
+- [x] **Step 3: Chạy test, phải đỏ**
 
 Run: `pnpm --filter @mapslibvn/api exec vitest run test/routing-optimized.test.ts`
 Expected: FAIL — `translateOptimized` không export.
 
-- [ ] **Step 4: Thêm vào cuối `apps/api/src/routing/optimized.ts`**
+- [x] **Step 4: Thêm vào cuối `apps/api/src/routing/optimized.ts`**
 
 ```ts
 const invalidUpstream = () =>
@@ -1784,7 +1790,7 @@ export function translateOptimized(
 }
 ```
 
-- [ ] **Step 5: Chạy test, lint, typecheck, commit**
+- [x] **Step 5: Chạy test, lint, typecheck, commit**
 
 Run: `pnpm --filter @mapslibvn/api exec vitest run test/routing-optimized.test.ts && pnpm lint:fix && pnpm lint && pnpm --filter @mapslibvn/api exec tsc --noEmit`
 Expected: PASS; lint xanh; tsc 0 lỗi.
@@ -1805,7 +1811,7 @@ Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>"
 - Modify: `apps/api/src/index.ts`
 - Test: `apps/api/test/optimized-route.test.ts`
 
-- [ ] **Step 1: Viết test đỏ `apps/api/test/optimized-route.test.ts`**
+- [x] **Step 1: Viết test đỏ `apps/api/test/optimized-route.test.ts`**
 
 ```ts
 import { env, SELF } from 'cloudflare:test';
@@ -1959,12 +1965,12 @@ describe('GET /v1/optimized-route', () => {
 });
 ```
 
-- [ ] **Step 2: Chạy test, phải đỏ**
+- [x] **Step 2: Chạy test, phải đỏ**
 
 Run: `pnpm --filter @mapslibvn/api exec vitest run test/optimized-route.test.ts`
 Expected: FAIL — route trả 404 `not_found`.
 
-- [ ] **Step 3: Tạo `apps/api/src/routes/optimized.ts`**
+- [x] **Step 3: Tạo `apps/api/src/routes/optimized.ts`**
 
 ```ts
 import { Hono } from 'hono';
@@ -2012,11 +2018,11 @@ optimized.get(
 );
 ```
 
-- [ ] **Step 4: Nối route trong `apps/api/src/index.ts`**
+- [x] **Step 4: Nối route trong `apps/api/src/index.ts`**
 
 Import: `import { optimized } from './routes/optimized';` (alphabet, sau `nearby`). Sau `app.route('/', matrix);` thêm `app.route('/', optimized);`.
 
-- [ ] **Step 5: Chạy test, cả bộ API, lint, typecheck, commit**
+- [x] **Step 5: Chạy test, cả bộ API, lint, typecheck, commit**
 
 Run: `pnpm --filter @mapslibvn/api exec vitest run test/optimized-route.test.ts && pnpm lint:fix && pnpm lint && pnpm --filter @mapslibvn/api exec tsc --noEmit && pnpm --filter @mapslibvn/api test`
 Expected: xanh toàn bộ.
@@ -2038,7 +2044,7 @@ Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>"
 - Create (capture): `apps/api/test/fixtures/valhalla/q1-matrix.json`, `q1-optimized.json`
 - Modify: `apps/api/test/routing-matrix.test.ts`, `apps/api/test/routing-optimized.test.ts` (thêm ca fixture thật)
 
-- [ ] **Step 1: Mở rộng khối capture trong `scripts/routing-test.mjs`**
+- [x] **Step 1: Mở rộng khối capture trong `scripts/routing-test.mjs`**
 
 Thay khối `if (opts.capture) { … }` bằng:
 
@@ -2102,7 +2108,7 @@ Thay khối `if (opts.capture) { … }` bằng:
 
 Cập nhật dòng chú thích đầu file (`--capture ghi JSON Valhalla thô → …q1-motorbike.json`) thành `--capture ghi ba fixture q1-motorbike.json, q1-matrix.json, q1-optimized.json`.
 
-- [ ] **Step 2: Viết `apps/api/test-routing/matrix.rtest.mjs`**
+- [x] **Step 2: Viết `apps/api/test-routing/matrix.rtest.mjs`**
 
 ```js
 import { describe, expect, it } from 'vitest';
@@ -2159,7 +2165,7 @@ describe('/v1/matrix trên Valhalla fixture Quận 1', () => {
 });
 ```
 
-- [ ] **Step 3: Viết `apps/api/test-routing/optimized-route.rtest.mjs`**
+- [x] **Step 3: Viết `apps/api/test-routing/optimized-route.rtest.mjs`**
 
 ```js
 import { describe, expect, it } from 'vitest';
@@ -2206,14 +2212,14 @@ describe('/v1/optimized-route trên Valhalla fixture Quận 1', () => {
 });
 ```
 
-- [ ] **Step 4: Chạy capture + test tích hợp** (container `mapslibvn-dev-valhalla-1` đang chạy sẵn; lần đầu script tự dựng nếu chưa)
+- [x] **Step 4: Chạy capture + test tích hợp** (container `mapslibvn-dev-valhalla-1` đang chạy sẵn; lần đầu script tự dựng nếu chưa)
 
 Run: `node scripts/routing-test.mjs --capture`
 Expected: log `đã ghi …q1-motorbike.json`, `…q1-matrix.json`, `…q1-optimized.json`; wrangler dev lên; vitest routing chạy `directions.rtest.mjs`, `matrix.rtest.mjs`, `optimized-route.rtest.mjs` → PASS.
 
 Kiểm `git diff --stat apps/api/test/fixtures/valhalla/q1-motorbike.json`: graph dev không đổi từ 11/09 nên file **không nên đổi**. Nếu đổi (graph đã build lại), chạy `pnpm --filter @mapslibvn/api exec vitest run test/routing-fixture-sync.test.ts -u` và commit cả `packages/core/tests/fixtures/directions-q1.json`.
 
-- [ ] **Step 5: Thêm ca fixture thật vào unit test**
+- [x] **Step 5: Thêm ca fixture thật vào unit test**
 
 Cuối `apps/api/test/routing-matrix.test.ts` (import `real from './fixtures/valhalla/q1-matrix.json'`):
 
@@ -2246,7 +2252,7 @@ describe('fixture thật Quận 1 (q1-optimized.json, capture 22/09/2026)', () =
 
 (`p` và `base` đã khai báo ở đầu file/khối `translateOptimized`; nếu `p` nằm trong khối `describe` khác, khai lại `const p = parseOptimizedParams(base);` trong khối mới.)
 
-- [ ] **Step 6: Chạy unit test, typecheck scripts, lint, commit**
+- [x] **Step 6: Chạy unit test, typecheck scripts, lint, commit**
 
 Run: `pnpm --filter @mapslibvn/api exec vitest run test/routing-matrix.test.ts test/routing-optimized.test.ts && pnpm exec tsc -p tsconfig.scripts.json && pnpm lint:fix && pnpm lint`
 Expected: xanh.
@@ -2270,7 +2276,7 @@ Workflow `.github/workflows/routing-test.yml` đã có path `apps/api/src/**` v�
 
 Vì sao phải phá cache trong smoke: khoá cache làm tròn 4 chữ số và tươi 60 s, nên 20 lượt cùng URL sẽ đo cache chứ không đo Valhalla. Mỗi lượt dịch điểm đầu 0,0001° × k (~11 m) → khoá khác, request vẫn hợp lệ.
 
-- [ ] **Step 1: Viết test đỏ `scripts/lib/smoke-matrix.test.mjs`**
+- [x] **Step 1: Viết test đỏ `scripts/lib/smoke-matrix.test.mjs`**
 
 ```js
 import { describe, expect, it } from 'vitest';
@@ -2386,12 +2392,12 @@ describe('parseMatrixSmokeArgs', () => {
 });
 ```
 
-- [ ] **Step 2: Chạy test, phải đỏ**
+- [x] **Step 2: Chạy test, phải đỏ**
 
 Run: `pnpm exec vitest run scripts/lib/smoke-matrix.test.mjs`
 Expected: FAIL — module không tồn tại.
 
-- [ ] **Step 3: Tạo `scripts/lib/smoke-matrix.mjs`**
+- [x] **Step 3: Tạo `scripts/lib/smoke-matrix.mjs`**
 
 ```js
 // Phần thuần (test được) của scripts/smoke-matrix.mjs — spec 22/09/2026 mục 6.1.
@@ -2579,12 +2585,12 @@ export function parseMatrixSmokeArgs(argv) {
 }
 ```
 
-- [ ] **Step 4: Chạy test lib, phải xanh**
+- [x] **Step 4: Chạy test lib, phải xanh**
 
 Run: `pnpm exec vitest run scripts/lib/smoke-matrix.test.mjs`
 Expected: PASS.
 
-- [ ] **Step 5: Tạo `scripts/smoke-matrix.mjs`**
+- [x] **Step 5: Tạo `scripts/smoke-matrix.mjs`**
 
 ```js
 #!/usr/bin/env node
@@ -2764,20 +2770,20 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
 }
 ```
 
-- [ ] **Step 6: Thêm script vào `package.json`** — sau dòng `"smoke:directions"`:
+- [x] **Step 6: Thêm script vào `package.json`** — sau dòng `"smoke:directions"`:
 
 ```json
     "smoke:matrix": "node scripts/smoke-matrix.mjs",
 ```
 
-- [ ] **Step 7: Typecheck scripts (checkJs), lint, thử chạy cạn với base local không có Worker (phải lỗi rõ ràng, không crash)**
+- [x] **Step 7: Typecheck scripts (checkJs), lint, thử chạy cạn với base local không có Worker (phải lỗi rõ ràng, không crash)**
 
 Run: `pnpm exec tsc -p tsconfig.scripts.json && pnpm lint:fix && pnpm lint && node scripts/smoke-matrix.mjs --base=http://127.0.0.1:1 --requests=1`
 Expected: tsc 0 lỗi; lint xanh; script in bảng với `failed 1` và thoát mã 1 kèm thông điệp `A ma tran 10x10 motorbike: 1 lượt lỗi (…)` — chứng tỏ đường lỗi hoạt động.
 
 Nếu tsc báo `percentile` trả `number | null` không gán được: đã bọc `?? 0`/kiểm null ở trên; sửa theo thông điệp.
 
-- [ ] **Step 8: Commit**
+- [x] **Step 8: Commit**
 
 ```bash
 git add scripts/lib/smoke-matrix.mjs scripts/lib/smoke-matrix.test.mjs scripts/smoke-matrix.mjs package.json
@@ -2792,19 +2798,19 @@ Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>"
 
 **Files:** không sửa mã. Nhánh `feat/ma-tran-toi-uu-thu-tu` → `main`.
 
-- [ ] **Step 1: Cổng toàn repo**
+- [x] **Step 1: Cổng toàn repo**
 
 Run: `pnpm lint && pnpm typecheck && pnpm test`
 Expected: xanh toàn bộ (root vitest kể cả `scripts/lib/smoke-matrix.test.mjs`, core client tests; build site/admin/console/web/style; `pnpm --filter @mapslibvn/api test` kể cả bốn file test mới).
 
-- [ ] **Step 2: Test tích hợp routing lần cuối trên nhánh**
+- [x] **Step 2: Test tích hợp routing lần cuối trên nhánh**
 
 Run: `pnpm test:routing`
 Expected: PASS ba file `.rtest.mjs`.
 
-- [ ] **Step 3: Xin PHONG duyệt merge + push** — nêu rõ: sau push, CI chạy Deploy API (endpoint mới sống), Routing tests, CI; Deploy Docs cũng chạy vì `packages/core/**` đổi → phải deploy docs đè ngay sau đó. Chờ PHONG nói "merge đi"/"push đi".
+- [x] **Step 3: Xin PHONG duyệt merge + push** — nêu rõ: sau push, CI chạy Deploy API (endpoint mới sống), Routing tests, CI; Deploy Docs cũng chạy vì `packages/core/**` đổi → phải deploy docs đè ngay sau đó. Chờ PHONG nói "merge đi"/"push đi".
 
-- [ ] **Step 4: Merge và push (sau khi PHONG duyệt)**
+- [x] **Step 4: Merge và push (sau khi PHONG duyệt)**
 
 ```bash
 git checkout main && git pull --ff-only origin main
@@ -2814,17 +2820,17 @@ Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>"
 git push origin main
 ```
 
-- [ ] **Step 5: Theo dõi CI**
+- [x] **Step 5: Theo dõi CI**
 
 Run: `gh run list --limit 6` rồi `gh run watch <id>` cho `Deploy API`, `Routing tests`, `CI`, `Deploy Docs`.
 Expected: cả bốn xanh. DB tests (~20 phút) xanh không bắt buộc cho bước sau nhưng phải xem xong trước Task 17.
 
-- [ ] **Step 6: Deploy docs tay đè** (bài học: workflow Deploy Docs xoá khoá demo, playground trả 401)
+- [x] **Step 6: Deploy docs tay đè** (bài học: workflow Deploy Docs xoá khoá demo, playground trả 401)
 
 Run: `pnpm deploy:docs`
 Expected: wrangler in URL deployment. Kiểm: mở `https://docs.ai-solutions.io.vn/playground` (hoặc URL docs production đang dùng) — playground tìm được địa điểm, không 401. Nếu lệnh thiếu quyền (không có OAuth wrangler), nhờ PHONG chạy `! pnpm deploy:docs`.
 
-- [ ] **Step 7: Kiểm production bằng khoá `server` — PHONG gõ với `!`** (auto mode chặn Fable)
+- [x] **Step 7: Kiểm production bằng khoá `server` — PHONG gõ với `!`** (auto mode chặn Fable)
 
 ```bash
 ! source .env && curl -s -H "X-Api-Key: $MAPSLIBVN_API_KEY" "https://api.ai-solutions.io.vn/v1/matrix?sources=10.7798,106.6990;10.7725,106.6980&targets=10.7769,106.7032;10.7716,106.7043" | head -c 600
@@ -2844,7 +2850,7 @@ Ghi bốn kết quả (rút gọn) vào phần đầu file evidence ở Task 14.
 **Files:**
 - Create: `docs/evidence/routing/2026-09-<ngày>-matrix.md` (ngày = ngày chạy đo)
 
-- [ ] **Step 1: PHONG chạy smoke đầy đủ (~4 phút A–C + 1 phút nghỉ + 3 phút D)** — bằng `!`, khoá `server` trong `.env`:
+- [x] **Step 1: PHONG chạy smoke đầy đủ (~4 phút A–C + 1 phút nghỉ + 3 phút D)** — bằng `!`, khoá `server` trong `.env`:
 
 ```bash
 ! source .env && pnpm smoke:matrix -- --confirm-production --requests=20 --rounds=3
@@ -2852,7 +2858,7 @@ Ghi bốn kết quả (rút gọn) vào phần đầu file evidence ở Task 14.
 
 Expected: hai bảng `console.table` (A/B/C với `ok 20 failed 0 p95_ms …`; D ba vòng với `idle_p95_ms`, `busy_p95_ms`, `ratio`, `matrix_p95_ms`) và dòng `✓ smoke matrix https://api.ai-solutions.io.vn`. Nếu bài A/B có `invalid_body` với `durations_s[i][j] = null`: một điểm trong `HCM_POINTS` bám vào chỗ không nối được — thay điểm đó (Task 12 Step 3), chạy lại; **không** nới trần hay bỏ phép kiểm.
 
-- [ ] **Step 2: Viết evidence `docs/evidence/routing/2026-09-<ngày>-matrix.md`** theo khuôn `2026-09-11-nghiem-thu-production.md`:
+- [x] **Step 2: Viết evidence `docs/evidence/routing/2026-09-<ngày>-matrix.md`** theo khuôn `2026-09-11-nghiem-thu-production.md`:
 
 ```markdown
 # Đo production ma trận và tối ưu thứ tự (spec 22/09/2026 mục 6)
@@ -2890,7 +2896,7 @@ Hụt: quyết định của PHONG theo spec mục 6.3 — hạ trần (commit n
 
 Thay mọi `<…>` bằng số thật trước khi commit — file evidence không có chỗ trống.
 
-- [ ] **Step 3: Chốt `--p95-max`** — sửa dòng chú thích trong `scripts/smoke-matrix.mjs` thành số đo (ví dụ `Ngưỡng p95 production đo 2026-09-<ngày>: --p95-max=<số> (p95 lớn nhất <số> ms × 1,5, làm tròn lên trăm)`), rồi PHONG chạy lại kiểm ngưỡng:
+- [x] **Step 3: Chốt `--p95-max`** — sửa dòng chú thích trong `scripts/smoke-matrix.mjs` thành số đo (ví dụ `Ngưỡng p95 production đo 2026-09-<ngày>: --p95-max=<số> (p95 lớn nhất <số> ms × 1,5, làm tròn lên trăm)`), rồi PHONG chạy lại kiểm ngưỡng:
 
 ```bash
 ! source .env && pnpm smoke:matrix -- --confirm-production --requests=20 --p95-max=<số>
@@ -2898,12 +2904,12 @@ Thay mọi `<…>` bằng số thật trước khi commit — file evidence khô
 
 Expected: `✓ smoke matrix …`.
 
-- [ ] **Step 4: Nếu hụt ngưỡng — nhánh 6.3** (bỏ qua nếu đạt)
+- [x] **Step 4: Nếu hụt ngưỡng — nhánh 6.3** (bỏ qua nếu đạt)
 
   - Hạ trần: trong `apps/api/src/routing/matrix.ts` đổi `MATRIX_MAX_PAIRS = 50`; trong `apps/api/src/routing/optimized.ts` đổi `OPTIMIZED_MAX_STOPS = 8`; cập nhật các test đang khoá số 100/10 (`routing-matrix.test.ts` ca "25 × 4 = 100 qua" → dùng 25 × 2; `matrix-route.test.ts` ca 11×10 → 6×10 với message `/50 cặp/`; `routing-optimized.test.ts` ca 11 phần tử → 9; `optimized-route.test.ts` eleven → nine; `scripts/lib/smoke-matrix.mjs` bài A → 5×10, C → 8 stops và test tương ứng), commit `fix(api): hạ trần ma trận 50 cặp / 8 điểm dừng theo số đo production <ngày>`, merge/push (PHONG duyệt), đo lại, ghi lần 2 vào evidence.
   - Hoặc PHONG trên máy chủ: sửa `VALHALLA_THREADS=2` trong `infra/server/.env`, chạy `docker compose -f infra/server/compose.yml --env-file infra/server/.env up -d valhalla` (nạp lại tar, không build; `/v1/directions` 503 khoảng một phút), chờ `/healthz/routing` 200, đo lại, ghi lần 2.
 
-- [ ] **Step 5: Commit evidence (trên nhánh feature, đã rebase lên main sau merge lần 1)**
+- [x] **Step 5: Commit evidence (trên nhánh feature, đã rebase lên main sau merge lần 1)**
 
 ```bash
 git checkout feat/ma-tran-toi-uu-thu-tu && git merge --ff-only main
@@ -2925,7 +2931,7 @@ Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>"
 
 Số trần trong docs (100 cặp, 25/25, 10 điểm dừng, 200/400/50 km) **phải bằng** hằng số đang chạy sau Task 14. Nếu Task 14 đã hạ trần, thay số tương ứng ở mọi chỗ dưới đây.
 
-- [ ] **Step 1: `api.md` — bảng lỗi (mục 2)**: dòng `no_route` đổi thành:
+- [x] **Step 1: `api.md` — bảng lỗi (mục 2)**: dòng `no_route` đổi thành:
 
 ```markdown
 | `no_route` | 404 | `GET /v1/directions` và `/v1/optimized-route`: không có đường giữa các điểm, hoặc điểm quá xa mạng đường / vùng không kết nối. `/v1/matrix`: chỉ khi một điểm không bám được vào đường nào — cặp không nối được trả `null` trong bảng, không lỗi |
@@ -2933,7 +2939,7 @@ Số trần trong docs (100 cặp, 25/25, 10 điểm dừng, 200/400/50 km) **ph
 
 Khối `:::caution[Thay đổi hành vi: HEAD trên bảy API dữ liệu trả 405]` → tiêu đề `…trên chín API dữ liệu trả 405`, câu đầu: `Chín endpoint dữ liệu (sáu API Places, \`/v1/directions\`, \`/v1/matrix\` và \`/v1/optimized-route\`) nay trả **\`405\` kèm \`Allow: GET\`** cho \`HEAD\`, …` (phần còn lại giữ).
 
-- [ ] **Step 2: `api.md` — mục 3 quota**: sau đoạn `**Quota Chỉ đường.** …retry-after: 60\`.` thêm đoạn:
+- [x] **Step 2: `api.md` — mục 3 quota**: sau đoạn `**Quota Chỉ đường.** …retry-after: 60\`.` thêm đoạn:
 
 ```markdown
 `GET /v1/matrix` và `GET /v1/optimized-route` tính vào **cùng quota Chỉ đường** và tính **một lượt mỗi request bất kể cỡ**: một ma trận 10 × 10 (100 cặp) hay một lần tối ưu 10 điểm dừng đều là một lượt. Bù lại cỡ mỗi request có trần (tối đa 100 cặp, tối đa 10 điểm dừng — xem từng endpoint ở mục 4). Ba endpoint dùng chung burst 20 request/phút/khoá + IP và trần 100 request/phút cho khoá `web`/`mobile`.
@@ -2948,7 +2954,7 @@ Bảng `**Cache.**` thêm hai dòng sau `/v1/directions`:
 
 Câu `Với \`/v1/autocomplete\`, \`/v1/places/{id}\` và \`/v1/directions\`, phản hồi lấy từ cache có header \`x-mlv-cache\`` → `Với \`/v1/autocomplete\`, \`/v1/places/{id}\`, \`/v1/directions\`, \`/v1/matrix\` và \`/v1/optimized-route\`, …`. Thêm câu cuối đoạn: `Khoá cache của ba endpoint dẫn đường làm tròn toạ độ 4 chữ số (~11 m) với ma trận và tối ưu thứ tự, 5 chữ số với directions.`
 
-- [ ] **Step 3: `api.md` — hai mục endpoint mới**, chèn ngay trước `## 5. Endpoint ghi`:
+- [x] **Step 3: `api.md` — hai mục endpoint mới**, chèn ngay trước `## 5. Endpoint ghi`:
 
 ````markdown
 ### GET /v1/matrix
@@ -3033,7 +3039,7 @@ curl -H "X-Api-Key: mlv_live_…" \
 - `stops` một điểm vẫn hợp lệ (`order: [0]`) để ứng dụng không phải rẽ nhánh theo số đơn.
 ````
 
-- [ ] **Step 4: `api.md` — mục 7 kiểu dữ liệu**: sau `interface DirectionsResponse { … }` trong khối mã, thêm:
+- [x] **Step 4: `api.md` — mục 7 kiểu dữ liệu**: sau `interface DirectionsResponse { … }` trong khối mã, thêm:
 
 ```ts
 interface MatrixResponse {
@@ -3053,7 +3059,7 @@ interface OptimizedRouteResponse extends DirectionsResponse {
 
 Trong danh sách "Vài điểm dễ sai" thêm: `- \`MatrixResponse.durations_s\` và \`distances_m\` là mảng hai chiều \`[source][target]\`; \`null\` là không nối được, không phải lỗi.`
 
-- [ ] **Step 5: `tinh-nang.md`**: câu `Chín endpoint: tám đọc, một ghi.` → `Mười một endpoint: mười đọc, một ghi.`; bảng thêm hai dòng sau `/v1/directions`:
+- [x] **Step 5: `tinh-nang.md`**: câu `Chín endpoint: tám đọc, một ghi.` → `Mười một endpoint: mười đọc, một ghi.`; bảng thêm hai dòng sau `/v1/directions`:
 
 ```markdown
 | `GET /v1/matrix` | bảng thời gian/quãng đường N×M | `sources`, `targets` "lat,lng;…" 1–25 điểm mỗi bên, tối đa 100 cặp; `mode`; **một lượt** quota Chỉ đường |
@@ -3069,7 +3075,7 @@ ghé tối ưu cho một chuyến tối đa 10 điểm dừng và trả luôn tu
 Chỉ đường mỗi request bất kể cỡ. Chưa có tối ưu đội xe nhiều xe (sức chứa, khung giờ, chia đơn cho xe).
 ```
 
-- [ ] **Step 6: `sdk.md`**: bảng "Kiểu dữ liệu API" thêm `MatrixResponse`, `OptimizedRouteResponse` sau `DirectionsResponse`; dòng "Chỉ đường" thêm `, MatrixOptions, OptimizedRouteOptions` sau `kiểu DirectionsOptions`. Bảng "Phương thức client ứng với endpoint nào" thêm sau `directions(opts)`:
+- [x] **Step 6: `sdk.md`**: bảng "Kiểu dữ liệu API" thêm `MatrixResponse`, `OptimizedRouteResponse` sau `DirectionsResponse`; dòng "Chỉ đường" thêm `, MatrixOptions, OptimizedRouteOptions` sau `kiểu DirectionsOptions`. Bảng "Phương thức client ứng với endpoint nào" thêm sau `directions(opts)`:
 
 ```markdown
 | `matrix(opts)` | `GET /v1/matrix` | `MatrixResponse` |
@@ -3085,7 +3091,7 @@ Bảng `opts` thêm:
 
 Câu `Với \`directions\`, tham số vào là \`[lat, lng]\` nhưng mọi toạ độ trong \`DirectionsResponse\` là \`[lng, lat]\`…` → `Với \`directions\`, \`matrix\` và \`optimizedRoute\`, tham số vào là \`[lat, lng]\` nhưng mọi toạ độ trong response là \`[lng, lat]\`; giải mã \`Route.geometry\` bằng \`decodePolyline6\`.` Dòng "Re-export từ core" của React Native (dòng ~399) thêm `MatrixOptions`, `MatrixResponse`, `OptimizedRouteOptions`, `OptimizedRouteResponse` sau `DirectionsResponse`.
 
-- [ ] **Step 7: `dan-duong.md`**: chèn mục mới trước `## 7. Giới hạn trình duyệt cần biết` và đánh lại số mục 7 → 8:
+- [x] **Step 7: `dan-duong.md`**: chèn mục mới trước `## 7. Giới hạn trình duyệt cần biết` và đánh lại số mục 7 → 8:
 
 ````markdown
 ## 7. Tối ưu thứ tự điểm dừng
@@ -3122,13 +3128,13 @@ Tối đa 10 điểm dừng, tính một lượt Chỉ đường. Điểm kết 
 
 `map.addMarker(o: MarkerOptions)` với `MarkerOptions { lng, lat, popupHtml?, color? }` là API thật của `packages/web/src/map.ts:42-66` (đã kiểm 22/09/2026) — ví dụ trên gọi đúng chữ ký đó.
 
-- [ ] **Step 8: `khoa-api.md`**: dòng bảng `| Burst Chỉ đường | 20 lượt / phút / điểm Cloudflare | mỗi cặp khoá + IP, riêng \`GET /v1/directions\` |` → `…| mỗi cặp khoá + IP, gộp \`/v1/directions\`, \`/v1/matrix\`, \`/v1/optimized-route\` |`. Dòng "Trần theo khoá Chỉ đường" thêm cuối cột áp cho: `; gộp cả ba endpoint`.
+- [x] **Step 8: `khoa-api.md`**: dòng bảng `| Burst Chỉ đường | 20 lượt / phút / điểm Cloudflare | mỗi cặp khoá + IP, riêng \`GET /v1/directions\` |` → `…| mỗi cặp khoá + IP, gộp \`/v1/directions\`, \`/v1/matrix\`, \`/v1/optimized-route\` |`. Dòng "Trần theo khoá Chỉ đường" thêm cuối cột áp cho: `; gộp cả ba endpoint`.
 
-- [ ] **Step 9: `tu-host.md`**: sau câu `\`valhalla\` phục vụ chỉ đường ở cổng nội bộ 8002…` (dòng ~46) thêm câu: `Cùng tiến trình đó phục vụ ma trận (\`sources_to_targets\`) và tối ưu thứ tự (\`optimized_route\`) cho \`/v1/matrix\` và \`/v1/optimized-route\` — image đã bật sẵn, không cần cấu hình thêm.`
+- [x] **Step 9: `tu-host.md`**: sau câu `\`valhalla\` phục vụ chỉ đường ở cổng nội bộ 8002…` (dòng ~46) thêm câu: `Cùng tiến trình đó phục vụ ma trận (\`sources_to_targets\`) và tối ưu thứ tự (\`optimized_route\`) cho \`/v1/matrix\` và \`/v1/optimized-route\` — image đã bật sẵn, không cần cấu hình thêm.`
 
-- [ ] **Step 10: Spec A mục 1.3**: dòng `- Map-matching (bám chuỗi GPS vào đường trên máy chủ), ma trận ETA nhiều điểm, isochrone.` thêm sau: `Ma trận và tối ưu thứ tự điểm dừng đã có spec riêng 22/09/2026: \`2026-09-22-ma-tran-toi-uu-thu-tu-design.md\`.`
+- [x] **Step 10: Spec A mục 1.3**: dòng `- Map-matching (bám chuỗi GPS vào đường trên máy chủ), ma trận ETA nhiều điểm, isochrone.` thêm sau: `Ma trận và tối ưu thứ tự điểm dừng đã có spec riêng 22/09/2026: \`2026-09-22-ma-tran-toi-uu-thu-tu-design.md\`.`
 
-- [ ] **Step 11: Build docs, kiểm anchor, commit**
+- [x] **Step 11: Build docs, kiểm anchor, commit**
 
 Run: `pnpm --filter @mapslibvn/docs build && grep -c 'get-v1matrix\|get-v1optimized-route' apps/docs/dist/api/index.html`
 Expected: build xanh; grep ≥ 2 (hai anchor tồn tại — `dan-duong.md` và site trỏ tới `#get-v1matrix`, `#get-v1optimized-route`).
@@ -3148,7 +3154,7 @@ Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>"
 - Modify: `apps/site/src/lib/doi-dau.ts`, `apps/site/src/lib/trang.ts`, `apps/site/src/pages/tinh-nang.astro`, `apps/site/src/pages/index.astro`, `apps/site/src/pages/so-sanh/vietmap.astro`, `apps/site/e2e/trang.spec.ts`
 - Test: `apps/site/src/lib/doi-dau.test.ts`, `trang.test.ts` (sẵn có, tự bắt)
 
-- [ ] **Step 1: Viết test đỏ — thêm vào `apps/site/src/lib/doi-dau.test.ts`** (trong `describe('bảng đối đầu')`, sau vòng `for`):
+- [x] **Step 1: Viết test đỏ — thêm vào `apps/site/src/lib/doi-dau.test.ts`** (trong `describe('bảng đối đầu')`, sau vòng `for`):
 
 ```ts
   it('CHUA_CO không còn ma trận và tối ưu một xe, nhưng vẫn giữ đội xe nhiều xe (spec 22/09/2026)', () => {
@@ -3178,12 +3184,12 @@ Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>"
   });
 ```
 
-- [ ] **Step 2: Chạy test, phải đỏ**
+- [x] **Step 2: Chạy test, phải đỏ**
 
 Run: `pnpm exec vitest run apps/site/src/lib/doi-dau.test.ts`
 Expected: FAIL ba ca mới.
 
-- [ ] **Step 3: Sửa `apps/site/src/lib/doi-dau.ts`**
+- [x] **Step 3: Sửa `apps/site/src/lib/doi-dau.ts`**
 
 `CHUA_CO`:
 
@@ -3221,12 +3227,12 @@ Trong `doiDauVietmap()`, hàng `'Bài toán vận tải và theo dõi phương t
       ta: 'Có ma trận khoảng cách và tối ưu thứ tự cho một xe; chưa có đội xe nhiều xe, chưa theo dõi phương tiện',
 ```
 
-- [ ] **Step 4: Chạy test doi-dau, phải xanh (kể cả "≥ 2 hàng đối thủ thắng" và "không tự nhận thắng")**
+- [x] **Step 4: Chạy test doi-dau, phải xanh (kể cả "≥ 2 hàng đối thủ thắng" và "không tự nhận thắng")**
 
 Run: `pnpm exec vitest run apps/site/src/lib/doi-dau.test.ts`
 Expected: PASS.
 
-- [ ] **Step 5: `apps/site/src/lib/trang.ts`** — `tinhNang.description` đổi thành (150 ký tự, trong 120–160):
+- [x] **Step 5: `apps/site/src/lib/trang.ts`** — `tinhNang.description` đổi thành (150 ký tự, trong 120–160):
 
 ```ts
     description:
@@ -3235,7 +3241,7 @@ Expected: PASS.
 
 Run: `pnpm exec vitest run apps/site/src/lib/trang.test.ts` → PASS (test đếm 120–160 ký tự). Nếu đỏ vì độ dài, bỏ/thêm một từ cho vừa.
 
-- [ ] **Step 6: `apps/site/src/pages/tinh-nang.astro`** — thêm mục thứ 6 vào `MUC`, ngay sau mục `dan-duong` và trước `sdk`:
+- [x] **Step 6: `apps/site/src/pages/tinh-nang.astro`** — thêm mục thứ 6 vào `MUC`, ngay sau mục `dan-duong` và trước `sdk`:
 
 ```ts
   {
@@ -3305,7 +3311,7 @@ Thêm minh hoạ tĩnh vào khối `data-bang-chung`, sau khối `{muc.id === 'd
 
 Mục "Những thứ chưa có" tự đọc `CHUA_CO`, không sửa. Đoạn dẫn đầu trang (`Những gì liệt kê dưới đây đang chạy thật…`) giữ nguyên.
 
-- [ ] **Step 7: `apps/site/src/pages/index.astro`** — tiêu đề `Sáu mảng đang chạy thật, không phải lộ trình` → `Bảy mảng đang chạy thật, không phải lộ trình`. Thẻ `Dẫn đường` đổi `span={8}` → `span={4}` và bỏ phần `<svg>` (giữ `<ul>` ba nhãn, để vừa ô 4 cột); ngay sau thẻ Dẫn đường (trước thẻ `Bốn SDK, một API`) thêm:
+- [x] **Step 7: `apps/site/src/pages/index.astro`** — tiêu đề `Sáu mảng đang chạy thật, không phải lộ trình` → `Bảy mảng đang chạy thật, không phải lộ trình`. Thẻ `Dẫn đường` đổi `span={8}` → `span={4}` và bỏ phần `<svg>` (giữ `<ul>` ba nhãn, để vừa ô 4 cột); ngay sau thẻ Dẫn đường (trước thẻ `Bốn SDK, một API`) thêm:
 
 ```astro
       <BentoO
@@ -3328,13 +3334,13 @@ Mục "Những thứ chưa có" tự đọc `CHUA_CO`, không sửa. Đoạn d�
 
 Bố cục lưới 12 cột: hàng 1 `Tìm kiếm (8) + Rẻ hơn Google (4)`, hàng 2 `164 loại (4) + Geocode (4) + Dẫn đường (4)`, hàng 3 `Giao hàng (4) + Bốn SDK (4)` — hàng 3 còn trống 4 cột; đổi thẻ `Bốn SDK, một API` thành `span={8}` để hàng đủ 12.
 
-- [ ] **Step 8: `apps/site/src/pages/so-sanh/vietmap.astro`** — trong `KHI_NAO`, câu `'Bài toán của bạn là vận tải, theo dõi phương tiện hoặc tối ưu lộ trình đội xe.'` → `'Bài toán của bạn là theo dõi phương tiện hoặc tối ưu đội xe nhiều xe.'`. FAQ giữ nguyên.
+- [x] **Step 8: `apps/site/src/pages/so-sanh/vietmap.astro`** — trong `KHI_NAO`, câu `'Bài toán của bạn là vận tải, theo dõi phương tiện hoặc tối ưu lộ trình đội xe.'` → `'Bài toán của bạn là theo dõi phương tiện hoặc tối ưu đội xe nhiều xe.'`. FAQ giữ nguyên.
 
-- [ ] **Step 9: Cập nhật e2e `apps/site/e2e/trang.spec.ts`**
+- [x] **Step 9: Cập nhật e2e `apps/site/e2e/trang.spec.ts`**
 
 Test `'bento sáu ô đúng thứ tự và mỗi ô có link tài liệu'` → đổi tên `'bento bảy ô đúng thứ tự…'`, mảng tiêu đề thêm `'Giao hàng & vận tải'` sau `'Dẫn đường'`, `toHaveCount(6)` → `toHaveCount(7)`. Test `'trang Tính năng: mục lục dính và sáu hàng…'` → `'…bảy hàng…'`, hai `toHaveCount(6)` → `toHaveCount(7)` (mục lục và `[data-bang-chung]`); `img` vẫn `toHaveCount(1)`.
 
-- [ ] **Step 10: Build site, test, e2e, lint, commit**
+- [x] **Step 10: Build site, test, e2e, lint, commit**
 
 Run: `pnpm --filter @mapslibvn/site build && pnpm exec vitest run apps/site/src && pnpm lint:fix && pnpm lint`
 Expected: build xanh; test site xanh (doi-dau, trang, seo, lien-ket-docs…); lint xanh.
@@ -3357,7 +3363,7 @@ Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>"
 - Modify: `docs/DEVLOG.md` (mục 33 mới), `docs/superpowers/specs/2026-09-22-ma-tran-toi-uu-thu-tu-design.md` (dòng Trạng thái), `packages/{core,web,react,react-native}/package.json` (version)
 - Create: `docs/evidence/site-redesign/production/tinh-nang-giao-hang.png`, `docs/evidence/site-redesign/production/trang-chu-bay-the.png`
 
-- [ ] **Step 1: DEVLOG mục 33** — thêm cuối `docs/DEVLOG.md`, khuôn như mục 32:
+- [x] **Step 1: DEVLOG mục 33** — thêm cuối `docs/DEVLOG.md`, khuôn như mục 32:
 
 ```markdown
 ## 33. Ma trận khoảng cách và tối ưu thứ tự điểm dừng — <ngày>/09/2026
@@ -3399,9 +3405,9 @@ bảy thẻ. <Nếu nâng size-limit core: số cũ → mới.>
 
 Thay mọi `<…>` bằng số thật trước khi commit.
 
-- [ ] **Step 2: Đổi trạng thái spec** — dòng `- Trạng thái: **Thiết kế đã duyệt…**` trong spec → `- Trạng thái: **Đã phát hành <ngày>/09/2026** — nghiệm thu mục 13 xem DEVLOG mục 33 và `docs/evidence/routing/2026-09-<ngày>-matrix.md``.
+- [x] **Step 2: Đổi trạng thái spec** — dòng `- Trạng thái: **Thiết kế đã duyệt…**` trong spec → `- Trạng thái: **Đã phát hành <ngày>/09/2026** — nghiệm thu mục 13 xem DEVLOG mục 33 và `docs/evidence/routing/2026-09-<ngày>-matrix.md``.
 
-- [ ] **Step 3: Bump version bốn SDK (minor)** — đọc version hiện tại: `grep '"version"' packages/core/package.json` (đang `0.12.1` lúc viết plan → `0.13.0`; nếu đã khác, lấy minor kế tiếp của số đang có):
+- [x] **Step 3: Bump version bốn SDK (minor)** — đọc version hiện tại: `grep '"version"' packages/core/package.json` (đang `0.12.1` lúc viết plan → `0.13.0`; nếu đã khác, lấy minor kế tiếp của số đang có):
 
 ```bash
 for p in core web react react-native; do
@@ -3414,7 +3420,7 @@ Expected: bốn dòng cùng `"version": "0.13.0"`. Kiểm các gói web/react/RN
 
 Không ghi số phiên bản vào docs (bài học `feedback-khong-ghi-version-cung-docs`).
 
-- [ ] **Step 4: Cổng lần cuối trên nhánh**
+- [x] **Step 4: Cổng lần cuối trên nhánh**
 
 Run: `pnpm lint && pnpm typecheck && pnpm test && pnpm sdk:publish --dry-run`
 Expected: xanh; dry-run in `[npm-sdk] Kiểm tra release 0.13.0: @mapslibvn/core, @mapslibvn/web, @mapslibvn/react, @mapslibvn/react-native` và `Dry-run hoàn tất`.
@@ -3426,9 +3432,9 @@ git commit -m "docs: DEVLOG mục 33 ma trận và tối ưu thứ tự; spec đ
 Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>"
 ```
 
-- [ ] **Step 5: Xin PHONG duyệt merge lần 2 + push + publish SDK.** Nêu rõ ba việc sẽ xảy ra: Deploy Docs và Deploy Site chạy trên CI; phải deploy docs đè ngay sau; `pnpm sdk:publish` đẩy 0.13.0 lên npm (không hoàn tác được).
+- [x] **Step 5: Xin PHONG duyệt merge lần 2 + push + publish SDK.** Nêu rõ ba việc sẽ xảy ra: Deploy Docs và Deploy Site chạy trên CI; phải deploy docs đè ngay sau; `pnpm sdk:publish` đẩy 0.13.0 lên npm (không hoàn tác được).
 
-- [ ] **Step 6: Merge, push, theo dõi CI, deploy docs đè**
+- [x] **Step 6: Merge, push, theo dõi CI, deploy docs đè**
 
 ```bash
 git checkout main && git pull --ff-only origin main
@@ -3441,7 +3447,7 @@ gh run list --limit 6
 
 Chờ `Deploy Docs`, `Deploy Site`, `CI` xanh (`gh run watch <id>`), rồi: `pnpm deploy:docs` (hoặc PHONG `! pnpm deploy:docs`). Kiểm playground docs còn khoá (không 401).
 
-- [ ] **Step 7: Kiểm production site + docs**
+- [x] **Step 7: Kiểm production site + docs**
 
 ```bash
 curl -s https://mapslibvn-site.pages.dev/tinh-nang/ | grep -o 'Giao hàng &amp; vận tải\|Giao hàng & vận tải' | head -1
@@ -3452,7 +3458,7 @@ curl -s https://mapslibvn-site.pages.dev/ | grep -o 'Bảy mảng đang chạy t
 
 Expected: dòng 1 in tiêu đề mục; dòng 2 in `4` (bốn mục chưa có gạch ngang); dòng 3 và 4 in đúng chuỗi. Docs: mở `/api/#get-v1matrix` và `/api/#get-v1optimized-route` thấy hai mục.
 
-- [ ] **Step 8: Ảnh nghiệm thu production** — chụp bằng Playwright của site (đã cài ở Task 16):
+- [x] **Step 8: Ảnh nghiệm thu production** — chụp bằng Playwright của site (đã cài ở Task 16):
 
 ```bash
 node -e '
@@ -3473,12 +3479,12 @@ const { chromium } = require("./apps/site/node_modules/@playwright/test");
 
 Expected: hai file PNG; mở xem bằng Read để xác nhận mục Giao hàng & vận tải và bảy thẻ hiện đúng.
 
-- [ ] **Step 9: Publish SDK (PHONG đã duyệt ở Step 5; cần đăng nhập npm)**
+- [x] **Step 9: Publish SDK (PHONG đã duyệt ở Step 5; cần đăng nhập npm)**
 
 Run: `pnpm sdk:publish`
 Expected: `[npm-sdk] Đã publish toàn bộ SDK version 0.13.0.` Kiểm: `npm view @mapslibvn/core version` → `0.13.0`; `npm view @mapslibvn/core dist.tarball` rồi `curl -sL <tarball> | tar -xzO package/dist/index.d.ts | grep -c 'optimizedRoute\|matrix'` ≥ 2.
 
-- [ ] **Step 10: Commit ảnh nghiệm thu, cập nhật DEVLOG bảng nghiệm thu với kết quả CI/production/npm thật, push**
+- [x] **Step 10: Commit ảnh nghiệm thu, cập nhật DEVLOG bảng nghiệm thu với kết quả CI/production/npm thật, push**
 
 ```bash
 git add docs/evidence/site-redesign/production/tinh-nang-giao-hang.png docs/evidence/site-redesign/production/trang-chu-bay-the.png docs/DEVLOG.md
@@ -3490,7 +3496,7 @@ git push origin main
 
 Đợt push này lại kích Deploy Docs? Không: chỉ `docs/**` gốc và ảnh đổi, không khớp path filter của `deploy-docs.yml`/`deploy-site.yml`. Nếu có nhầm, deploy docs đè lần nữa.
 
-- [ ] **Step 11: Dọn nhánh**
+- [x] **Step 11: Dọn nhánh**
 
 ```bash
 git branch -d feat/ma-tran-toi-uu-thu-tu
