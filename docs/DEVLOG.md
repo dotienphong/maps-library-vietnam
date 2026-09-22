@@ -3872,3 +3872,31 @@ riêng. Đây là chỗ duy nhất còn `#1b3a6b` trong repo.
   deploy tay đè lại, nếu không playground production trả 401.
 - Ảnh OG mới chỉ lên khi site deploy; muốn Facebook/Zalo nhả cache sớm thì quét lại URL bằng công cụ
   gỡ lỗi của họ.
+
+### Merge, push và deploy — 22/09/2026
+
+Gộp `feat/giao-dien-moi` (37 commit) vào `main` bằng merge no-ff, push. Sáu workflow chạy: Deploy
+Site, Deploy API, Deploy Docs, DB tests, Routing tests xanh; **CI đỏ vì đúng thay đổi của chính
+mình**.
+
+**Bẫy đáng nhớ:** loại `work/` khỏi biome bằng `"!**/work"` chạy tốt trên máy dev nhưng làm CI đỏ
+với `Checked 0 files · No files were processed in the specified paths`. Lý do: GitHub Actions
+checkout vào `/home/runner/**work**/<repo>/<repo>`, nên `**/work` khớp một thư mục **tổ tiên** và
+biome loại trừ toàn bộ repo. Máy dev không có tổ tiên tên `work` nên không thấy. Sửa bằng cách neo
+mẫu vào gốc: `"!work"`. Tái hiện và xác nhận trong đúng điều kiện đó trước khi push lại — dựng một
+repo nhỏ tại `<scratch>/work/repo-test`: `**/work` cho 0 tệp, `!work` cho đủ tệp và vẫn bỏ qua
+`work/`. Bài học chung: **mẫu loại trừ dạng `**/<tên>` có thể khớp thư mục tổ tiên nằm ngoài repo.**
+
+**Deploy Docs của CI lại xoá khoá demo, đúng như ghi nhớ.** Ngay sau khi CI báo xanh,
+`playground-lib.js` trên production còn nguyên chuỗi mốc `__MAPSLIBVN_DEMO_KEY__`. Đã deploy tay đè
+từ máy có `.env` và kiểm lại: khoá `mlv_live_HrlZ…` đã lên.
+
+Nghiệm thu production bằng trình duyệt đặt máy SÁNG, để chứng minh mặc định tối thật sự có tác dụng:
+
+| Mặt tiền | Nền đo được | Theme |
+|---|---|---|
+| `mapslibvn-site.pages.dev` | `rgb(10, 10, 10)` | dark |
+| `mapslibvn-docs.pages.dev` | `rgb(23, 24, 28)` | dark |
+| `api.ai-solutions.io.vn/console/` | `rgb(10, 10, 10)` | dark |
+
+Ảnh ở `docs/evidence/site-redesign/production/`.
