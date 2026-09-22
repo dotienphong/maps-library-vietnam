@@ -22,7 +22,8 @@ export const HCM_POINTS = [
   [10.8153, 106.6633], // Trường Sơn, trước ga Tân Sơn Nhất
   [10.757, 106.671], // Chợ An Đông
   [10.7724, 106.658], // ĐH Bách Khoa
-  [10.795, 106.7218], // Landmark 81
+  [10.801, 106.7118], // Ngã tư Hàng Xanh (thay Landmark 81: điểm đó nằm trong khu Vinhomes,
+  // không nối mạng đường công cộng nên mọi ô ma trận tới nó là null — đo production 22/09/2026)
   [10.796, 106.662], // Chợ Phạm Văn Hai
   [10.8148, 106.7111], // Bến xe Miền Đông cũ
   [10.812, 106.678], // Công viên Gia Định

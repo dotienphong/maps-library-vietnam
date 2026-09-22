@@ -3,12 +3,14 @@
 //   pnpm smoke:directions -- --confirm-production [--requests=5] [--p95-max=1500] [--interval-ms=3500] [--base=https://…]
 // /v1/directions có burst 20 request/phút/khoá+IP nên smoke tự cách 3,5 s giữa các lượt (~17/phút):
 // 20 lượt × 4 tuyến ≈ 4,7 phút. Không hạ interval khi chạy production, nếu không sẽ tự gây 429.
-// Khoá đọc từ MAPSLIBVN_API_KEY hoặc KEY_EXAMPLE_EMBED (.env). Lần đầu chạy --requests=20 để lấy p95 ghi
+// Mỗi phản hồi 2xx được ACK receipt ngay (scripts/lib/receipt-ack.mjs) — gọi REST trần làm sổ quota
+// khoá cả tenant 24 giờ. Khoá đọc từ MAPSLIBVN_API_KEY hoặc KEY_EXAMPLE_EMBED (.env). Lần đầu chạy --requests=20 để lấy p95 ghi
 // evidence, sau đó chốt --p95-max theo số đo (không đoán).
 // Ngưỡng p95 production đo 2026-09-11: --p95-max=800 (p95 lớn nhất 483 ms của lien-tinh-o-to × 1,5,
 // làm tròn lên trăm; bốn tuyến đo được 400/375/483/347 ms với 20 lượt mỗi tuyến).
 import 'dotenv/config';
 import { pathToFileURL } from 'node:url';
+import { ackReceipt, receiptFrom } from './lib/receipt-ack.mjs';
 
 const DEFAULT_BASE = 'https://api.ai-solutions.io.vn';
 const VI = /[àáảãạăằắẳẵặâầấẩẫậèéẻẽẹêềếểễệìíỉĩịòóỏõọôồốổỗộơờớởỡợùúủũụưừứửữựỳýỷỹỵđ]/i;
@@ -87,6 +89,13 @@ export async function runDirectionsSmoke(base, key, requests, options = {}) {
         row.failed += 1;
         row.codes.push(requestErrorCode(error, signal));
         continue;
+      }
+      // ACK NGAY, trước cả khi đọc body: tenant thương mại phát một receipt cho mỗi 2xx, và ba receipt
+      // treo trong 24 giờ là khoá CẢ tenant với `ack_required` — playground trên trang tài liệu chết
+      // theo (sự cố 22/09/2026). Đo `ms` đã xong ở trên nên vòng ACK không lọt vào p95.
+      if (!(await ackReceipt(root, key, receiptFrom(response)))) {
+        row.failed += 1;
+        row.codes.push('ack_failed');
       }
       if (response.status !== 200) {
         row.failed += 1;

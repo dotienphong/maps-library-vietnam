@@ -6,10 +6,12 @@
 // Ba endpoint dùng CHUNG burst 20 request/phút/khoá+IP: A–C cách 3,5 s (~17/phút); mỗi vòng D đúng 15
 // request rồi nghỉ tới đủ 60 s; giữa C và D nghỉ 60 s. Gặp 429 là smoke sai nhịp — sửa smoke, không sửa trần.
 // Mỗi lượt A–C dịch điểm đầu 0,0001° × k để không trúng cache (khoá cache làm tròn 4 chữ số).
-// Khoá đọc từ MAPSLIBVN_API_KEY (khoá `server`). Lần đầu chạy --requests=20 --rounds=3 để lấy số ghi
+// Mỗi phản hồi 2xx được ACK receipt NGAY (scripts/lib/receipt-ack.mjs): gọi REST trần làm sổ quota
+// khoá cả tenant 24 giờ, kể cả playground của trang tài liệu. Khoá đọc từ MAPSLIBVN_API_KEY (khoá `server`). Lần đầu chạy --requests=20 --rounds=3 để lấy số ghi
 // evidence docs/evidence/routing/, rồi chốt --p95-max theo số đo (không đoán).
 import 'dotenv/config';
 import { pathToFileURL } from 'node:url';
+import { getAndAck } from './lib/receipt-ack.mjs';
 import {
   directionsUrl,
   jitter,
@@ -25,40 +27,17 @@ import { assertDirectionsTarget, percentile } from './smoke-directions.mjs';
 const sleep = (/** @type {number} */ ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 /**
- * @param {string} url @param {string} key
- * @returns {Promise<{ ms: number, status: number, body: unknown, code: string | null }>}
+ * Gọi endpoint rồi ACK receipt ngay. KHÔNG được gọi REST trần: tenant thương mại phát receipt cho mỗi
+ * 2xx và ba receipt treo là khoá cả tenant 24 giờ (sự cố 22/09/2026 — playground tài liệu chết theo).
+ * @param {string} url @param {string} key @param {string} root
+ * @returns {Promise<{ ms: number, status: number, body: unknown, code: string | null, ackFailed: boolean }>}
  */
-async function timedGet(url, key) {
-  const t0 = performance.now();
-  const signal = AbortSignal.timeout(30_000);
-  try {
-    const response = await fetch(url, { headers: { 'X-Api-Key': key }, redirect: 'error', signal });
-    /** @type {unknown} */
-    let body = null;
-    try {
-      body = await response.json();
-    } catch {
-      body = null;
-    }
-    const error =
-      body && typeof body === 'object' && 'error' in body
-        ? /** @type {{ error?: { code?: string } }} */ (body).error
-        : undefined;
-    return { ms: performance.now() - t0, status: response.status, body, code: error?.code ?? null };
-  } catch (error) {
-    return {
-      ms: performance.now() - t0,
-      status: 0,
-      body: null,
-      code: signal.aborted ? 'timeout' : String(error),
-    };
-  }
-}
+const timedGet = (url, key, root) => getAndAck(url, root, key);
 
 /**
- * @typedef {{ name: string, ok: number, failed: number, p95_ms: number | null, codes: string, violations: string }} Row
+ * @typedef {{ name: string, ok: number, failed: number, p95_ms: number | null, ack_loi: number, codes: string, violations: string }} Row
  * @param {string} name @param {(k: number) => string} urlAt @param {(body: unknown) => string[]} check
- * @param {{ key: string, requests: number, intervalMs: number, sent: { n: number } }} ctx
+ * @param {{ key: string, root: string, requests: number, intervalMs: number, sent: { n: number } }} ctx
  * @returns {Promise<Row>}
  */
 async function runBai(name, urlAt, check, ctx) {
@@ -70,11 +49,13 @@ async function runBai(name, urlAt, check, ctx) {
   const violations = [];
   let ok = 0;
   let failed = 0;
+  let ackFailed = 0;
   for (let k = 0; k < ctx.requests; k++) {
     if (ctx.sent.n > 0 && ctx.intervalMs > 0) await sleep(ctx.intervalMs);
     ctx.sent.n += 1;
-    const r = await timedGet(urlAt(k), ctx.key);
+    const r = await timedGet(urlAt(k), ctx.key, ctx.root);
     durations.push(r.ms);
+    if (r.ackFailed) ackFailed += 1;
     if (r.status !== 200) {
       failed += 1;
       codes.add(r.code ?? String(r.status));
@@ -93,6 +74,7 @@ async function runBai(name, urlAt, check, ctx) {
     ok,
     failed,
     p95_ms: p95 === null ? null : Math.round(p95),
+    ack_loi: ackFailed,
     codes: [...codes].join(','),
     violations: [...new Set(violations)].join('; '),
   };
@@ -115,7 +97,7 @@ async function runRound(root, key, matrices, round) {
     for (let i = 0; i < 5; i++) {
       // Mỗi lượt một điểm đến khác để không trúng cache; xen kẽ cách 1 s.
       const target = bai.C.stops[(i + offset) % bai.C.stops.length] ?? to;
-      const r = await timedGet(directionsUrl(root, from, target), key);
+      const r = await timedGet(directionsUrl(root, from, target), key, root);
       if (r.status !== 200) {
         throw new Error(
           `vòng ${round}: directions ${r.status} ${r.code ?? ''} — dừng, không đo tiếp`,
@@ -128,7 +110,7 @@ async function runRound(root, key, matrices, round) {
   };
   const idle = await sampleDirections(0);
   const matrixRuns = matrices.map((m) =>
-    timedGet(matrixUrl(root, { ...m, sources: jitter(m.sources, round + 1) }), key),
+    timedGet(matrixUrl(root, { ...m, sources: jitter(m.sources, round + 1) }), key, root),
   );
   const busy = await sampleDirections(5);
   const matrixResults = await Promise.all(matrixRuns);
@@ -164,7 +146,7 @@ async function main() {
   if (!key) throw new Error('Thiếu MAPSLIBVN_API_KEY (khoá server) trong môi trường');
   const root = args.base.replace(/\/+$/, '');
   const bai = planBai();
-  const ctx = { key, requests: args.requests, intervalMs: args.intervalMs, sent: { n: 0 } };
+  const ctx = { key, root, requests: args.requests, intervalMs: args.intervalMs, sent: { n: 0 } };
   console.log(
     `A–C: ${3 * args.requests} lượt cách ${args.intervalMs} ms; D: ${args.rounds} vòng × ~60 s`,
   );
@@ -192,6 +174,11 @@ async function main() {
   for (const row of rows) {
     if (row.failed > 0) {
       throw new Error(`${row.name}: ${row.failed} lượt lỗi (${row.codes}) ${row.violations}`);
+    }
+    if (row.ack_loi > 0) {
+      throw new Error(
+        `${row.name}: ${row.ack_loi} receipt KHÔNG xác nhận được — dừng ngay, ba receipt treo là khoá cả tenant 24 giờ`,
+      );
     }
     if (args.p95Max !== null && row.p95_ms !== null && row.p95_ms > args.p95Max) {
       throw new Error(`${row.name}: p95 ${row.p95_ms} ms vượt ${args.p95Max} ms`);
