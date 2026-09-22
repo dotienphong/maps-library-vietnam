@@ -17,7 +17,8 @@ export interface MapDeps {
 }
 
 const COLOR_CU = '#98a2b3';
-const COLOR_MOI = '#1b3a6b';
+/** Chấm vị trí mới trên bản đồ SÁNG: #a3e635 chỉ đạt 1,4:1 trên nền sáng nên dùng ô liu đậm. */
+const COLOR_MOI = '#4d7c0f';
 
 /**
  * Bộ tiles dừng ở mức phóng 14 (đo trên archive production 16/09: z14 có ô, z15 trở lên không).

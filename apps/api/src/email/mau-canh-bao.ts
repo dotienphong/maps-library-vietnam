@@ -76,7 +76,7 @@ export function mauCanhBaoSucKhoe(d: {
   const html = KHUNG_HTML(
     `<p style="margin:0 0 12px">Trạng thái hệ thống đổi lúc <strong>${luc}</strong> (giờ Việt Nam):</p>
 <ul style="margin:0 0 16px;padding-left:20px">${dongHtml}</ul>
-${d.adminUrl ? `<p style="margin:0 0 16px"><a href="${escapeHtml(d.adminUrl)}" style="color:#1b3a6b">Mở trang Sức khoẻ</a></p>` : ''}
+${d.adminUrl ? `<p style="margin:0 0 16px"><a href="${escapeHtml(d.adminUrl)}" style="color:#3f6212">Mở trang Sức khoẻ</a></p>` : ''}
 <p style="margin:0;color:#667085;font-size:13px">Thư tự động từ cron 5 phút của MapsLibVN. Thư kế tiếp chỉ đến khi trạng thái đổi lần nữa.</p>`,
   );
 
