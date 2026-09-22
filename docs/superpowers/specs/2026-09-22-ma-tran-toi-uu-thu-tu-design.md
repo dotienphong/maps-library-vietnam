@@ -1,7 +1,7 @@
 # MapsLibVN — Thiết kế ma trận khoảng cách và tối ưu thứ tự điểm dừng: `GET /v1/matrix`, `GET /v1/optimized-route`
 
 - Ngày: 2026-09-22
-- Trạng thái: **Thiết kế đã duyệt từng phần qua trao đổi 22/09/2026; văn bản này chờ PHONG duyệt trước khi viết plan**
+- Trạng thái: **Đã phát hành 22/09/2026.** Nghiệm thu mục 13 đạt trừ bài đo đồng thời ở vòng nguội — xem `docs/evidence/routing/2026-09-22-matrix.md` và DEVLOG mục 33. Trần chốt ở 50 cặp / 8 điểm dừng cộng nhịp 6 request/phút, khác bản thiết kế ban đầu (100 / 10, không có nhịp riêng)
 - Chủ dự án: PHONG
 - Tài liệu do Fable 5.1 viết
 - Spec gốc: spec dẫn đường A `docs/superpowers/specs/2026-09-10-dan-duong-engine-api-design.md` mục 1.3 ghi "ma trận ETA nhiều điểm" là ngoài phạm vi; spec này mở phạm vi đó. **Không** mở phạm vi tối ưu đội xe nhiều xe (VRP) — mục 12.

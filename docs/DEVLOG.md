@@ -3900,3 +3900,67 @@ Nghiệm thu production bằng trình duyệt đặt máy SÁNG, để chứng m
 | `api.ai-solutions.io.vn/console/` | `rgb(10, 10, 10)` | dark |
 
 Ảnh ở `docs/evidence/site-redesign/production/`.
+
+## 33. Ma trận khoảng cách và tối ưu thứ tự điểm dừng — 22/09/2026
+
+Spec `2026-09-22-ma-tran-toi-uu-thu-tu-design.md`, plan `2026-09-22-ma-tran-toi-uu-thu-tu.md`. Hai
+endpoint `GET /v1/matrix` và `GET /v1/optimized-route` dựng trên hai action Valhalla vốn đã bật sẵn
+(`sources_to_targets`, `optimized_route`) — không thêm dịch vụ, không đổi sổ quota, catalog hay DB.
+
+**Một request = một lượt nhóm `directions`, bù bằng hai lớp chặn.** Trần cỡ ≤ 50 cặp / ≤ 8 điểm dừng
+giới hạn MỘT request; `MATRIX_RATE_LIMITER` 6 request/phút theo khoá thuần giới hạn TẢI TỔNG. Ban đầu
+chỉ định làm lớp đầu với trần 100/10, nhưng phép đo buộc thêm lớp thứ hai (xem dưới).
+
+**Hình dạng response Valhalla xác minh trước khi viết mã**, trên graph Quận 1 tại máy: ma trận trả
+`time`/`distance` null cho cặp không nối được và 400/154 khi vượt `max_matrix_distance`;
+`optimized_route` trả `original_index`, chấp nhận round trip. Worker không đoán khi dữ liệu lệch —
+bảng sai cỡ hay `order` không phải hoán vị đều thành 503.
+
+### Phép đo lộ ra một sự cố hạ tầng có từ trước
+
+Tám lần đo production. Kết quả quan trọng nhất **không phải về ma trận**: máy chủ chạy
+`PG_SHARED_BUFFERS=4096MB` trên máy **3,7 GB RAM / 2 nhân**, gây swap 81 %. `scripts/lib/server-env.mjs`
+tính giá trị này bằng 25 % RAM của **máy chạy `server:setup`** — 4 GB đúng là 25 % của MacBook 16 GB,
+tức `.env` sinh ở máy dev rồi mang sang máy chủ.
+
+Hạ xuống 512MB và dọn swap, **không đổi dòng mã ứng dụng nào**:
+
+| Bài | Trước | Sau |
+|---|---|---|
+| Ma trận 10×5 | 3.630 ms | 2.375 ms |
+| Ma trận 25×2 | 4.487 ms | 2.310 ms |
+| Tối ưu 8 điểm dừng | 20.393 ms, có lượt timeout | **2.058 ms** |
+| `/v1/directions` lúc rảnh | 1.724–3.853 ms | 570–1.176 ms |
+
+`pnpm server:update` từ nay cảnh báo khi `PG_SHARED_BUFFERS` vượt 30 % RAM máy hiện tại.
+
+**Hai giả thuyết sai đã đi qua trước khi tìm ra:** hạ trần cỡ (100 → 50 cặp *làm chậm hơn*) và tăng
+`VALHALLA_THREADS` 1 → 2 (*làm tệ hơn*, vì máy chỉ 2 nhân nên hai luồng Valhalla lấy hết CPU của
+cloudflared và Postgres — đã hoàn nguyên). Dấu hiệu lẽ ra phải đọc sớm: cỡ giảm một nửa mà chậm gấp
+đôi thì nút thắt không nằm ở khối lượng tính toán.
+
+### Ba lỗi của chính phép đo
+
+1. **Script gọi REST trần không ACK receipt** → sổ quota khoá cả tenant 24 giờ, playground trang tài
+   liệu trả 429 cho mọi khách. `scripts/lib/receipt-ack.mjs` vá cho cả `smoke:matrix` lẫn
+   `smoke:directions` (script cũ mang sẵn lỗi này từ khi tenant chuyển sang quota thương mại).
+2. **Ngưỡng "busy ≤ 2 × idle" bị qua mặt** bằng cách làm idle tệ đi. Đã thêm mức tuyệt đối
+   `busy_p95 < 2.000 ms`. Ngưỡng tương đối tự nó vô nghĩa.
+3. **Ba toạ độ trong bộ đo không nối được mạng đường** — Landmark 81 (cả ba mode), giữa chợ Hoà Hưng
+   (chỉ `car`), giữa Thảo Cầm Viên (chỉ `walk`). Điểm hỏng theo từng mode nên kiểm một mode là không đủ.
+
+### Nghiệm thu
+
+| Cổng | Kết quả |
+|---|---|
+| `pnpm lint`, `pnpm typecheck` | xanh, 18/18 task |
+| `pnpm test` | 2.085 root + 822 API, 0 đỏ |
+| `pnpm test:routing` | 15 test trên Valhalla thật (fixture Quận 1) |
+| Smoke production A/B/C | 2.375 / 2.310 / 2.058 ms — đạt ngưỡng 3.000 ms |
+| Smoke production bài D | đạt ở trạng thái ấm (ratio 2,02 và 2,08), **trượt ở vòng nguội** (5.857 ms) |
+| CI | Deploy API, Deploy Site, Deploy Docs, Routing tests, API tests, DB tests đều xanh |
+
+**Còn nợ:** cold start — khách đầu tiên sau giai đoạn vắng có thể thấy `/v1/directions` mất ~5,9 s nếu
+trùng lúc có ma trận chạy song song. Đây là tính chất của engine 1 luồng trên máy 2 nhân, không riêng
+ma trận. Máy chủ nên được nâng RAM: 3,7 GB cho Postgres cộng graph 1,16 GB đủ để đạt ngưỡng nhưng
+không còn dư địa.
