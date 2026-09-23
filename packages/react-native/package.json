@@ -1,6 +1,6 @@
 {
   "name": "@mapslibvn/react-native",
-  "version": "0.14.0",
+  "version": "0.14.1",
   "description": "React Native bindings MapsLibVN: <MapsLibVNMap>, <Marker>, useMap, usePlaces, dẫn đường (createNavigationSession, useNavigation; entry /expo cho định vị nền + TTS), la bàn + con quay hồi chuyển (useHeading, userLocation) — bọc @maplibre/maplibre-react-native",
   "license": "MIT",
   "type": "module",

@@ -7,7 +7,7 @@ export interface AttributionLink {
 export const ATTRIBUTION_LINKS: readonly AttributionLink[] = [
   {
     text: '© MapsLibVN',
-    href: 'https://github.com/dotienphong/maps-library-vietnam',
+    href: 'https://mapslibvn-site.pages.dev/',
   },
   {
     text: '© OpenStreetMap contributors',

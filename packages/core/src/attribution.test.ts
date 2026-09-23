@@ -23,6 +23,14 @@ describe('attribution', () => {
     expect(html).toMatch(/Foursquare OS Places<\/a> \(Apache-2\.0\)$/);
   });
 
+  it('"© MapsLibVN" trỏ về website sản phẩm, không trỏ về repo mã nguồn', () => {
+    // Bấm ghi nguồn trên bản đồ của khách phải dẫn tới trang giới thiệu và bảng giá, không dẫn tới
+    // hướng dẫn dựng máy chủ trong repo (PHONG chốt 23/09/2026).
+    const mapsLibVN = ATTRIBUTION_LINKS.find((l) => l.text === '© MapsLibVN');
+    expect(mapsLibVN?.href).toBe('https://mapslibvn-site.pages.dev/');
+    expect(attributionHtml()).not.toMatch(/github\.com/);
+  });
+
   it('danh sách liên kết có 4 mục với href https', () => {
     expect(ATTRIBUTION_LINKS).toHaveLength(4);
     for (const link of ATTRIBUTION_LINKS) expect(link.href).toMatch(/^https:\/\//);
