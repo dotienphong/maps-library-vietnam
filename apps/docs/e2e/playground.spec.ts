@@ -478,6 +478,9 @@ test.describe('tab Đội xe', () => {
     await page.route('**/v1/matrix?*', (route) =>
       route.fulfill({ contentType: 'application/json', body: fixture('matrix-q1.json') }),
     );
+    await page.route('**/v1/fleet-plan', (route) =>
+      route.fulfill({ contentType: 'application/json', body: fixture('fleet-plan-q1.json') }),
+    );
     await page.goto('/playground.html?api=http://localhost:8787#doi-xe');
     await expect(page.locator('#status')).toHaveAttribute('data-state', 'loaded', {
       timeout: 30_000,
@@ -552,5 +555,69 @@ test.describe('tab Đội xe', () => {
     await expect(page.locator('#fl-mx-msg')).toContainText('8 × 8 = 64');
     await expect(page.locator('#fl-mx-msg')).toHaveAttribute('data-state', 'error');
     expect(calls).toBe(1);
+  });
+
+  test('chia đơn cho 2 xe: body 2 xe 5 đơn, hai khối xe hai màu, layer đội xe trên bản đồ, marker đơn đổi màu', async ({
+    page,
+  }) => {
+    const jsErrors: string[] = [];
+    page.on('pageerror', (error) => jsErrors.push(error.message));
+    await page.locator('#fl-sample').click();
+    await page.locator('#fl-veh').selectOption('2');
+    const request = page.waitForRequest(
+      (r) => r.url().includes('/v1/fleet-plan') && r.method() === 'POST',
+    );
+    await page.locator('#fl-plan').click();
+    const body = (await request).postDataJSON() as {
+      vehicles: unknown[];
+      jobs: { service_s?: number }[];
+      mode: string;
+    };
+    expect(body.vehicles).toHaveLength(2);
+    expect(body.jobs).toHaveLength(5);
+    expect(body.jobs[0]?.service_s).toBe(300);
+    expect(body.mode).toBe('motorbike');
+    await expect(page.locator('#fl-plan-msg')).toContainText('2/2 xe dùng');
+    const khoi = page.locator('#fl-plan-list .fl-veh');
+    await expect(khoi).toHaveCount(2);
+    const mau = await khoi
+      .locator('.fl-swatch')
+      .evaluateAll((els) => els.map((e) => (e as HTMLElement).style.background));
+    expect(new Set(mau).size).toBe(2);
+    await expect(page.locator('#fl-plan-list li')).toHaveCount(5);
+    await expect(page.locator('#fl-unassigned')).toBeHidden();
+    const drawn = await page.evaluate(() =>
+      Boolean(
+        (
+          window as unknown as { __map: { gl: { getSource(id: string): unknown } } }
+        ).__map.gl.getSource('mapslibvn-fleet'),
+      ),
+    );
+    expect(drawn).toBe(true);
+    await expect(page.locator('#fl-plan-req')).toContainText(
+      'POST http://localhost:8787/v1/fleet-plan',
+    );
+    // Marker đơn (không phải kho) đã đổi màu theo xe được giao.
+    const mauMarker = await page
+      .locator('.fl-marker:not(.fl-marker-depot)')
+      .evaluateAll((els) => els.map((e) => (e as HTMLElement).style.background));
+    expect(mauMarker).toHaveLength(5);
+    expect(mauMarker.every((m) => m !== '')).toBe(true);
+    expect(jsErrors).toEqual([]);
+  });
+
+  test('khung giờ mà chưa có giờ xuất phát → chặn trước khi gọi API', async ({ page }) => {
+    let calls = 0;
+    page.on('request', (r) => {
+      if (r.url().includes('/v1/fleet-plan')) calls += 1;
+    });
+    await page.locator('#fl-sample').click();
+    const tw = page.locator('#fl-points li').nth(1).locator('.fl-tw');
+    await tw.fill('09:00-10:00');
+    await tw.press('Tab');
+    await page.locator('#fl-plan').click();
+    await expect(page.locator('#fl-plan-msg')).toContainText('giờ xuất phát');
+    await expect(page.locator('#fl-plan-msg')).toHaveAttribute('data-state', 'error');
+    expect(calls).toBe(0);
   });
 });

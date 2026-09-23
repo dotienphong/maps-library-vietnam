@@ -5,7 +5,10 @@ import {
   DEFAULT_KEY,
   directionsRequest,
   etaLabel,
+  FLEET_MAX_JOBS,
+  FLEET_MAX_VEHICLES,
   FLEET_SAMPLE,
+  fleetPlanRequest,
   fleetSnippet,
   MATRIX_MAX_PAIRS,
   maskKey,
@@ -15,6 +18,7 @@ import {
   optimizedPlan,
   PRECISION_ZOOM,
   parseState,
+  plusHoursIso,
   pointFromAutocomplete,
   pointFromLngLat,
   pointFromPoi,
@@ -532,5 +536,96 @@ describe('đội xe', () => {
     const oneWay = fleetSnippet(state, { points: pts(3), roundTrip: false, mode: 'car' });
     expect(oneWay).toContain('  to: [10.772, 106.7], // P2');
     expect(oneWay).toContain("mode: 'car'");
+    expect(code).toContain('client.fleetPlan(');
+    expect(code).toContain('map.routes.showFleet(plan)');
+  });
+});
+
+describe('fleetPlanRequest', () => {
+  const base = {
+    points: FLEET_SAMPLE.map((p) => ({ ...p })),
+    vehicles: 2,
+    capacity: /** @type {number | null} */ (null),
+    demand: 1,
+    serviceMin: 5,
+    departure: '',
+    shiftHours: 8,
+    endMode: /** @type {'depot' | 'open'} */ ('depot'),
+    mode: 'motorbike',
+    lang: 'vi',
+    today: '2026-09-24',
+  };
+
+  it('kho = điểm 1, đơn = điểm còn lại; xe cùng kho; service_s từ phút; không capacity/demand/time_window khi không nhập', () => {
+    const r = fleetPlanRequest(base);
+    if (!r.ok) throw new Error(r.error);
+    expect(r.jobs).toHaveLength(5);
+    expect(r.body.mode).toBe('motorbike');
+    expect(r.body.vehicles).toEqual([
+      { id: 'xe-1', start: [10.7725, 106.698] },
+      { id: 'xe-2', start: [10.7725, 106.698] },
+    ]);
+    expect(r.body.jobs[0]).toEqual({ id: 'don-1', location: [10.7826, 106.6958], service_s: 300 });
+  });
+
+  it('sức chứa → capacity mỗi xe + demand mỗi đơn; open-end → end "open"; ca làm → time_window +07:00; khung giờ từng đơn', () => {
+    const points = base.points.map((p, i) => (i === 2 ? { ...p, tw: '09:00-10:00' } : p));
+    const r = fleetPlanRequest({
+      ...base,
+      points,
+      capacity: 5,
+      demand: 2,
+      departure: '08:00',
+      shiftHours: 4,
+      endMode: 'open',
+    });
+    if (!r.ok) throw new Error(r.error);
+    expect(r.body.vehicles[0]).toEqual({
+      id: 'xe-1',
+      start: [10.7725, 106.698],
+      end: 'open',
+      capacity: 5,
+      time_window: ['2026-09-24T08:00:00+07:00', '2026-09-24T12:00:00+07:00'],
+    });
+    expect(r.body.jobs[1]).toEqual({
+      id: 'don-2',
+      location: [10.7686, 106.7069],
+      demand: 2,
+      service_s: 300,
+      time_windows: [['2026-09-24T09:00:00+07:00', '2026-09-24T10:00:00+07:00']],
+    });
+    expect(r.body.jobs[0]).not.toHaveProperty('time_windows');
+  });
+
+  it('chặn trước khi gọi: thiếu đơn, quá 30 đơn, thiếu xe cho số đơn, khung giờ mà không có giờ xuất phát, khung giờ sai dạng', () => {
+    const loi = (/** @type {RegExp} */ re) => ({ ok: false, error: expect.stringMatching(re) });
+    expect(fleetPlanRequest({ ...base, points: base.points.slice(0, 1) })).toMatchObject(
+      loi(/ít nhất 1 đơn/),
+    );
+    const nhieu = Array.from({ length: 32 }, (_, i) => ({
+      lat: 10.7 + i * 0.001,
+      lng: 106.7,
+      label: `p${i}`,
+    }));
+    expect(fleetPlanRequest({ ...base, points: nhieu })).toMatchObject(
+      loi(new RegExp(`Tối đa ${FLEET_MAX_JOBS} đơn`)),
+    );
+    expect(fleetPlanRequest({ ...base, points: nhieu.slice(0, 12), vehicles: 1 })).toMatchObject(
+      loi(/cần ít nhất 2 xe/),
+    );
+    const coKhung = base.points.map((p, i) => (i === 1 ? { ...p, tw: '09:00-10:00' } : p));
+    expect(fleetPlanRequest({ ...base, points: coKhung })).toMatchObject(loi(/giờ xuất phát/));
+    const khungNguoc = base.points.map((p, i) => (i === 1 ? { ...p, tw: '10:00-09:00' } : p));
+    expect(fleetPlanRequest({ ...base, departure: '08:00', points: khungNguoc })).toMatchObject(
+      loi(/điểm 2/),
+    );
+    expect(FLEET_MAX_VEHICLES).toBe(5);
+  });
+});
+
+describe('plusHoursIso', () => {
+  it('cộng giờ và in lại theo +07:00, kể cả tràn qua ngày', () => {
+    expect(plusHoursIso('2026-09-24T08:00:00+07:00', 4)).toBe('2026-09-24T12:00:00+07:00');
+    expect(plusHoursIso('2026-09-24T22:30:00+07:00', 3)).toBe('2026-09-25T01:30:00+07:00');
   });
 });

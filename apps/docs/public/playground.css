@@ -559,3 +559,68 @@ body[data-embed="1"] #status[data-state="loaded"] {
 .fl-table .fl-diag {
   color: var(--pg-muted);
 }
+
+.fl-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px 10px;
+}
+
+.pg-body .fl-tw {
+  flex: none;
+  width: 92px;
+  padding: 2px 4px;
+  font-size: 11px;
+}
+
+.fl-plan-list {
+  margin: 8px 0;
+}
+
+.fl-veh {
+  margin-bottom: 8px;
+  padding: 6px 8px;
+  border: 1px solid var(--pg-border);
+  border-radius: 6px;
+}
+
+.pg-body .fl-veh > button {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  gap: 6px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+}
+
+.fl-swatch {
+  display: inline-block;
+  flex: none;
+  width: 12px;
+  height: 12px;
+  border-radius: 3px;
+}
+
+.fl-veh ol {
+  margin: 6px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.fl-veh li {
+  padding: 3px 0;
+  border-top: 1px solid var(--pg-border);
+  font-size: 13px;
+}
+
+.fl-veh small {
+  display: block;
+  color: var(--pg-muted);
+  font-size: 11px;
+}

@@ -1,10 +1,12 @@
 /**
- * Tab "Đội xe" của Playground: `GET /v1/matrix` và `GET /v1/optimized-route` (spec 22/09/2026).
+ * Tab "Đội xe" của Playground: `GET /v1/matrix`, `GET /v1/optimized-route` (spec 22/09/2026) và
+ * `POST /v1/fleet-plan` (spec 23/09/2026).
  * Sở hữu mọi phần tử `#fl-*` và marker đánh số của mình; tuyến vẽ qua `map.routes` dùng chung với
  * chế độ dẫn đường, nên playground gọi `clearRoute()` trước khi vào dẫn đường.
  */
 import {
   FLEET_SAMPLE,
+  fleetPlanRequest,
   fleetSnippet,
   matrixPlan,
   optimizedPlan,
@@ -44,6 +46,18 @@ export function initFleet(deps) {
   /** @type {{ sources: number[], targets: number[] } | null} */
   let lastMatrixIdx = null;
   let busy = false;
+  /** Chỉ số điểm → màu xe được giao, để tô marker đơn sau khi chia đơn. */
+  /** @type {Map<number, string>} */
+  let assignment = new Map();
+  const FLEET_COLORS_FALLBACK = ['#0072b2', '#d55e00', '#009e73', '#cc79a7', '#e69f00'];
+  /** @param {number} k */
+  const colorOf = (k) => {
+    /** @type {string[]} */
+    const colors = deps.sdk?.FLEET_COLORS ?? FLEET_COLORS_FALLBACK;
+    return colors[k % colors.length] ?? FLEET_COLORS_FALLBACK[0];
+  };
+  /** Ngày hôm nay theo giờ Việt Nam, YYYY-MM-DD — mốc cho giờ xuất phát và khung giờ. */
+  const todayVn = () => new Date(Date.now() + 7 * 3_600_000).toISOString().slice(0, 10);
 
   const lang = () => deps.getState().lang;
   const mode = () => /** @type {HTMLSelectElement} */ (el('fl-mode')).value;
@@ -65,7 +79,7 @@ export function initFleet(deps) {
   function errorText(err) {
     const e = /** @type {any} */ (err);
     if (e?.status === 429) {
-      return 'Quá 6 lần/phút cho khoá này (khoá demo dùng chung) — đợi một phút rồi thử lại, hoặc dùng khoá riêng ở tab Bản đồ.';
+      return 'Quá nhịp cho khoá này (ma trận/tối ưu 6 lần, chia đơn 2 lần mỗi phút; khoá demo dùng chung) — đợi một phút rồi thử lại, hoặc dùng khoá riêng ở tab Bản đồ.';
     }
     return deps.describeError(err);
   }
@@ -109,6 +123,8 @@ export function initFleet(deps) {
       dot.className = index === 0 ? 'fl-marker fl-marker-depot' : 'fl-marker';
       dot.textContent = String(index + 1);
       dot.title = point.label;
+      const mauXe = assignment.get(index);
+      if (mauXe && index > 0) dot.style.background = mauXe;
       const marker = new deps.sdk.maplibregl.Marker({ element: dot, draggable: true })
         .setLngLat([point.lng, point.lat])
         .addTo(map.gl);
@@ -161,9 +177,23 @@ export function initFleet(deps) {
         name.className = 'fl-name';
         name.textContent = point.label;
         name.title = index === 0 ? 'Điểm xuất phát' : `${point.lat}, ${point.lng}`;
+        const tw = document.createElement('input');
+        tw.className = 'fl-tw';
+        tw.placeholder = '08:30-09:30';
+        tw.title = 'Khung giờ khách hẹn (chỉ dùng khi có giờ xuất phát)';
+        tw.setAttribute('aria-label', `Khung giờ của ${point.label}`);
+        tw.value = point.tw ?? '';
+        tw.hidden = index === 0;
+        tw.addEventListener('change', () => {
+          const value = tw.value.trim();
+          const { tw: _cu, ...rest } = points[index] ?? point;
+          points[index] = value ? { ...rest, tw: value } : rest;
+          resetResults();
+        });
         li.append(
           num,
           name,
+          tw,
           iconButton('↑', `Đưa ${point.label} lên`, () => move(index, index - 1), index === 0),
           iconButton(
             '↓',
@@ -207,6 +237,13 @@ export function initFleet(deps) {
     el('fl-table').replaceChildren();
     say('fl-opt-msg', 'Chưa gọi API.');
     say('fl-mx-msg', 'Chưa gọi API.');
+    const hadAssignment = assignment.size > 0;
+    assignment = new Map();
+    el('fl-plan-list').replaceChildren();
+    el('fl-unassigned').hidden = true;
+    say('fl-plan-msg', 'Chưa gọi API.');
+    // Marker đơn đang tô màu theo kế hoạch cũ: vẽ lại về màu thường.
+    if (hadAssignment) renderMarkers();
   }
 
   function changed() {
@@ -276,6 +313,14 @@ export function initFleet(deps) {
       return;
     }
     const { request } = plan;
+    // Tuyến một xe thay cho kế hoạch đội xe: bỏ màu xe khỏi marker đơn để khỏi hiểu nhầm.
+    if (assignment.size > 0) {
+      assignment = new Map();
+      el('fl-plan-list').replaceChildren();
+      el('fl-unassigned').hidden = true;
+      say('fl-plan-msg', 'Chưa gọi API.');
+      renderMarkers();
+    }
     showReq('fl-opt-req', '/v1/optimized-route', {
       from: `${request.from[0]},${request.from[1]}`,
       stops: joinLatLng(request.stops),
@@ -357,6 +402,132 @@ export function initFleet(deps) {
     });
     apply.append(button);
     el('fl-legs').replaceChildren(start, ...items, apply);
+  }
+
+  /* ---------- Chia đơn cho nhiều xe ---------- */
+
+  /** @param {string} id */
+  const inputValue = (id) => /** @type {HTMLInputElement} */ (el(id)).value;
+  /** "don-3" → chỉ số 3 trong `points` (đơn thứ i là points[i], vì points[0] là kho). */
+  /** @param {string} jobId */
+  const pointIndexOf = (jobId) => Number(jobId.replace('don-', ''));
+
+  async function runFleetPlan() {
+    const client = deps.getClient();
+    if (!client || busy) return;
+    const capRaw = inputValue('fl-cap').trim();
+    const plan = fleetPlanRequest({
+      points,
+      vehicles: Number(inputValue('fl-veh')),
+      capacity: capRaw === '' ? null : Math.max(0, Math.round(Number(capRaw)) || 0),
+      demand: Math.max(0, Math.round(Number(inputValue('fl-dem'))) || 0),
+      serviceMin: Math.max(0, Number(inputValue('fl-svc')) || 0),
+      departure: inputValue('fl-dep'),
+      shiftHours: Number(inputValue('fl-shift')) || 8,
+      endMode: inputValue('fl-end') === 'open' ? 'open' : 'depot',
+      mode: mode(),
+      lang: lang(),
+      today: todayVn(),
+    });
+    if (!plan.ok) {
+      say('fl-plan-msg', plan.error, 'error');
+      return;
+    }
+    const api = deps.getState().api.replace(/\/+$/, '');
+    el('fl-plan-req').textContent =
+      `POST ${api}/v1/fleet-plan\n${JSON.stringify(plan.body, null, 2)}`;
+    busy = true;
+    say('fl-plan-msg', 'Đang chia đơn…');
+    const t0 = performance.now();
+    try {
+      const res = await client.fleetPlan(plan.body);
+      const ms = Math.round(performance.now() - t0);
+      el('fl-json').textContent = JSON.stringify(res, null, 2);
+      deps.getMap()?.routes.showFleet(res, { markers: false });
+      assignment = new Map();
+      for (const [k, v] of res.vehicles.entries()) {
+        for (const id of v.jobs) assignment.set(pointIndexOf(id), colorOf(k));
+      }
+      renderMarkers();
+      /** @type {number[][]} */
+      const boxes = [];
+      for (const v of res.vehicles) {
+        const bbox = v.routes[0]?.bbox;
+        if (bbox) boxes.push(bbox);
+      }
+      if (boxes.length > 0) {
+        fitBox([
+          Math.min(...boxes.map((b) => b[0])),
+          Math.min(...boxes.map((b) => b[1])),
+          Math.max(...boxes.map((b) => b[2])),
+          Math.max(...boxes.map((b) => b[3])),
+        ]);
+      }
+      renderPlan(res);
+      say(
+        'fl-plan-msg',
+        `${res.summary.vehicles_used}/${res.vehicles.length} xe dùng · ${res.summary.jobs_assigned} đơn xếp được · ` +
+          `${shortDistance(res.summary.distance_m)} · ${shortDuration(res.summary.duration_s)} · ${ms} ms. ` +
+          'Bấm một xe để làm nổi tuyến của xe đó.',
+      );
+    } catch (err) {
+      el('fl-plan-list').replaceChildren();
+      deps.getMap()?.routes.clear();
+      say('fl-plan-msg', errorText(err), 'error');
+    } finally {
+      busy = false;
+    }
+  }
+
+  /** @param {import('@mapslibvn/core').FleetPlanResponse} res */
+  function renderPlan(res) {
+    const blocks = res.vehicles.map((v, k) => {
+      const block = document.createElement('div');
+      block.className = 'fl-veh';
+      const head = document.createElement('button');
+      head.type = 'button';
+      const swatch = document.createElement('span');
+      swatch.className = 'fl-swatch';
+      swatch.style.background = colorOf(k);
+      const title = document.createElement('span');
+      const route = v.routes[0];
+      title.textContent =
+        v.jobs.length === 0
+          ? `Xe ${k + 1} · nghỉ`
+          : `Xe ${k + 1} · ${v.jobs.length} đơn · ${shortDistance(route?.distance_m ?? 0)} · ${shortDuration(route?.duration_s ?? 0)}` +
+            (v.departure_at ? ` · xuất phát ${v.departure_at.slice(11, 16)}` : '');
+      head.append(swatch, title);
+      head.addEventListener('click', () => deps.getMap()?.routes.setActive(k));
+      const list = document.createElement('ol');
+      for (const stop of v.stops) {
+        const li = document.createElement('li');
+        const i = pointIndexOf(stop.job);
+        li.textContent = `→ ${i + 1} · ${points[i]?.label ?? stop.job}`;
+        const meta = document.createElement('small');
+        meta.textContent =
+          (stop.arrival_at
+            ? `đến ${stop.arrival_at.slice(11, 16)}`
+            : `đến sau ${shortDuration(stop.arrival_s)}`) +
+          (stop.waiting_s > 0 ? ` · chờ ${shortDuration(stop.waiting_s)}` : '') +
+          (stop.service_s > 0 ? ` · dừng ${shortDuration(stop.service_s)}` : '');
+        li.append(meta);
+        list.append(li);
+      }
+      block.append(head, list);
+      return block;
+    });
+    el('fl-plan-list').replaceChildren(...blocks);
+    const chua = el('fl-unassigned');
+    if (res.unassigned.length > 0) {
+      chua.hidden = false;
+      const ten = res.unassigned.map((u) => {
+        const i = pointIndexOf(u.id);
+        return `điểm ${i + 1} (${points[i]?.label ?? u.id})`;
+      });
+      chua.textContent = `Chưa xếp được: ${ten.join(', ')} — thêm xe, nới sức chứa hoặc khung giờ.`;
+    } else {
+      chua.hidden = true;
+    }
   }
 
   /* ---------- Ma trận ---------- */
@@ -482,6 +653,13 @@ export function initFleet(deps) {
   });
   el('fl-opt').addEventListener('click', () => void runOptimized());
   el('fl-mx').addEventListener('click', () => void runMatrix());
+  el('fl-plan').addEventListener('click', () => void runFleetPlan());
+  for (const id of ['fl-veh', 'fl-cap', 'fl-dem', 'fl-svc', 'fl-dep', 'fl-shift', 'fl-end']) {
+    el(id).addEventListener('change', () => {
+      resetResults();
+      renderSnippet();
+    });
+  }
   el('fl-metric').addEventListener('change', renderMatrix);
   el('fl-mode').addEventListener('change', () => {
     resetResults();

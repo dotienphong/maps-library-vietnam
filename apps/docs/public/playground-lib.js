@@ -311,7 +311,8 @@ export function radiusForPrecision(precision) {
 
 /**
  * Một điểm đi/đến của chế độ dẫn đường.
- * @typedef {{ lng: number, lat: number, label: string }} NavPoint
+ * @typedef {{ lng: number, lat: number, label: string, tw?: string }} NavPoint
+ * `tw` là khung giờ khách hẹn "HH:MM-HH:MM", chỉ tab Đội xe dùng.
  */
 
 /** Phương tiện hợp lệ của `GET /v1/directions`. */
@@ -462,6 +463,107 @@ export const MATRIX_MAX_PAIRS = 50;
 export const MATRIX_MAX_SIDE = 25;
 export const OPTIMIZED_MAX_STOPS = 10;
 
+/** Trần chia đơn đội xe (`apps/api/src/routing/fleet.ts`, spec 23/09/2026). Đổi bên API phải đổi đây. */
+export const FLEET_MAX_VEHICLES = 5;
+export const FLEET_MAX_JOBS = 30;
+export const FLEET_MAX_JOBS_PER_VEHICLE = OPTIMIZED_MAX_STOPS;
+
+const HHMM = /^([01]\d|2[0-3]):([0-5]\d)$/;
+/** @param {string} today YYYY-MM-DD (giờ VN) @param {string} hhmm */
+const isoVn = (today, hhmm) => `${today}T${hhmm}:00+07:00`;
+
+/**
+ * Cộng giờ vào mốc ISO +07:00 và in lại theo +07:00 (ca làm tràn qua nửa đêm vẫn ra đúng ngày).
+ * @param {string} iso @param {number} hours
+ */
+export function plusHoursIso(iso, hours) {
+  const d = new Date(Date.parse(iso) + hours * 3_600_000 + 7 * 3_600_000);
+  const p = (/** @type {number} */ n) => String(n).padStart(2, '0');
+  return `${d.getUTCFullYear()}-${p(d.getUTCMonth() + 1)}-${p(d.getUTCDate())}T${p(d.getUTCHours())}:${p(d.getUTCMinutes())}:00+07:00`;
+}
+
+/**
+ * @typedef {{ points: NavPoint[], vehicles: number, capacity: number | null, demand: number,
+ *   serviceMin: number, departure: string, shiftHours: number, endMode: 'depot' | 'open',
+ *   mode: string, lang: string, today: string }} FleetPlanInput
+ */
+
+/**
+ * Body `POST /v1/fleet-plan` từ danh sách điểm của tab: điểm 1 là kho chung, điểm còn lại là đơn.
+ * Khung giờ từng đơn đọc từ `point.tw`, chỉ gửi khi có giờ xuất phát (chế độ tuyệt đối đòi mọi xe
+ * có time_window). Chặn ở đây những lỗi API sẽ trả 400, để khỏi tốn một lượt trong nhịp 2/phút.
+ * @param {FleetPlanInput} input
+ * @returns {{ ok: true, body: { mode: string, lang: string, vehicles: Record<string, unknown>[], jobs: Record<string, unknown>[] }, jobs: NavPoint[] } | { ok: false, error: string }}
+ */
+export function fleetPlanRequest(input) {
+  const { points, today } = input;
+  const depot = points[0];
+  if (!depot || points.length < 2) {
+    return { ok: false, error: 'Cần điểm kho (số 1) và ít nhất 1 đơn.' };
+  }
+  const jobs = points.slice(1);
+  if (jobs.length > FLEET_MAX_JOBS) {
+    return {
+      ok: false,
+      error: `Tối đa ${FLEET_MAX_JOBS} đơn — đang ${jobs.length}. Bớt điểm trong danh sách.`,
+    };
+  }
+  const vehicles = Math.min(FLEET_MAX_VEHICLES, Math.max(1, Math.round(input.vehicles)));
+  const canXe = Math.ceil(jobs.length / FLEET_MAX_JOBS_PER_VEHICLE);
+  if (vehicles < canXe) {
+    return {
+      ok: false,
+      error: `${jobs.length} đơn cần ít nhất ${canXe} xe (mỗi xe tối đa ${FLEET_MAX_JOBS_PER_VEHICLE} đơn).`,
+    };
+  }
+  if (jobs.some((p) => p.tw) && !input.departure) {
+    return { ok: false, error: 'Nhập giờ xuất phát để dùng khung giờ.' };
+  }
+  if (input.departure && !HHMM.test(input.departure)) {
+    return { ok: false, error: 'Giờ xuất phát phải dạng HH:MM.' };
+  }
+  /** @type {[string, string] | null} */
+  let timeWindow = null;
+  if (input.departure) {
+    const start = isoVn(today, input.departure);
+    timeWindow = [start, plusHoursIso(start, Math.max(0.5, input.shiftHours || 8))];
+  }
+  /** @type {Record<string, unknown>[]} */
+  const jobsBody = [];
+  for (const [i, p] of jobs.entries()) {
+    /** @type {Record<string, unknown>} */
+    const job = { id: `don-${i + 1}`, location: [p.lat, p.lng] };
+    if (input.capacity !== null) job.demand = input.demand;
+    if (input.serviceMin > 0) job.service_s = Math.round(input.serviceMin * 60);
+    if (p.tw) {
+      const m = /^(\d{2}:\d{2})\s*-\s*(\d{2}:\d{2})$/.exec(p.tw.trim());
+      const a = m?.[1] ?? '';
+      const b = m?.[2] ?? '';
+      if (!m || !HHMM.test(a) || !HHMM.test(b) || a >= b) {
+        return {
+          ok: false,
+          error: `Khung giờ của điểm ${i + 2} phải dạng 08:30-09:30 (bắt đầu trước kết thúc).`,
+        };
+      }
+      job.time_windows = [[isoVn(today, a), isoVn(today, b)]];
+    }
+    jobsBody.push(job);
+  }
+  const vehiclesBody = Array.from({ length: vehicles }, (_, i) => {
+    /** @type {Record<string, unknown>} */
+    const v = { id: `xe-${i + 1}`, start: [depot.lat, depot.lng] };
+    if (input.endMode === 'open') v.end = 'open';
+    if (input.capacity !== null) v.capacity = input.capacity;
+    if (timeWindow) v.time_window = timeWindow;
+    return v;
+  });
+  return {
+    ok: true,
+    jobs,
+    body: { mode: input.mode, lang: input.lang, vehicles: vehiclesBody, jobs: jobsBody },
+  };
+}
+
 /**
  * Bộ điểm mẫu Quận 1: đều nằm trong graph Valhalla dev (Quận 1) và nối được bằng cả ba mode trên
  * production (lấy từ `scripts/lib/smoke-matrix.mjs`). Thứ tự cố ý lộn xộn để tối ưu có việc làm.
@@ -606,5 +708,14 @@ export function fleetSnippet(state, { points, roundTrip, mode }) {
     '});',
     'console.log(trip.order); // chỉ số vào `stops` theo thứ tự nên ghé',
     'map.routes.show(trip); // web: createMap(); React Native: useMap().routes.show(trip)',
+    '',
+    '// Chia đơn cho cả đội: mỗi xe trong plan.vehicles là một DirectionsResponse + jobs/stops',
+    'const plan = await client.fleetPlan({',
+    `  mode: '${mode}',`,
+    `  vehicles: [{ id: 'xe-1', start: ${ll(from)} }, { id: 'xe-2', start: ${ll(from)} }],`,
+    `  jobs: [${rest.map((p, i) => `{ id: 'don-${i + 1}', location: ${ll(p)} }`).join(', ')}],`,
+    '});',
+    'console.log(plan.vehicles.map((v) => [v.vehicle, v.jobs])); // đơn nào giao xe nào, theo thứ tự ghé',
+    'map.routes.showFleet(plan); // web và React Native: K xe K màu; bấm tuyến → routeClick(index xe)',
   ].join('\n');
 }

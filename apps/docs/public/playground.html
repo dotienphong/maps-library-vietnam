@@ -343,7 +343,8 @@
         <p class="pg-hint">
           Điểm số 1 là điểm xuất phát. Thêm điểm bằng ô tìm kiếm, bấm lên bản đồ, hoặc nạp bộ mẫu.
           Mỗi lần bấm “Tính” là <strong>một lượt</strong> Chỉ đường; API giới hạn
-          <strong>6 lần/phút/khoá</strong> (khoá demo dùng chung với mọi khách).
+          <strong>6 lần/phút/khoá</strong> cho ma trận và tối ưu, <strong>2 lần/phút/khoá</strong>
+          cho chia đơn (khoá demo dùng chung với mọi khách).
         </p>
 
         <p class="pg-label">Thêm điểm</p>
@@ -377,6 +378,60 @@
         <p class="pg-out" id="fl-opt-msg">Chưa gọi API.</p>
         <ol id="fl-legs" class="fl-legs" aria-label="Thứ tự ghé"></ol>
         <p class="pg-req" id="fl-opt-req"></p>
+
+        <h2>Chia đơn cho nhiều xe</h2>
+        <p class="pg-hint">
+          Điểm 1 là kho chung, các điểm còn lại là đơn. API chia đơn cho từng xe, sắp thứ tự ghé và
+          trả tuyến đầy đủ mỗi xe. Tối đa 5 xe, 30 đơn, 10 đơn mỗi xe.
+        </p>
+        <div class="fl-grid">
+          <div class="pg-field">
+            <label for="fl-veh">Số xe</label>
+            <select id="fl-veh">
+              <option value="1">1</option>
+              <option value="2" selected>2</option>
+              <option value="3">3</option>
+              <option value="4">4</option>
+              <option value="5">5</option>
+            </select>
+          </div>
+          <div class="pg-field">
+            <label for="fl-end">Kết thúc</label>
+            <select id="fl-end">
+              <option value="depot">Về kho</option>
+              <option value="open">Ở đơn cuối</option>
+            </select>
+          </div>
+          <div class="pg-field">
+            <label for="fl-cap">Sức chứa mỗi xe</label>
+            <input id="fl-cap" type="number" min="0" step="1" placeholder="trống = không giới hạn" />
+          </div>
+          <div class="pg-field">
+            <label for="fl-dem">Khối lượng mỗi đơn</label>
+            <input id="fl-dem" type="number" min="0" step="1" value="1" />
+          </div>
+          <div class="pg-field">
+            <label for="fl-svc">Dừng mỗi điểm (phút)</label>
+            <input id="fl-svc" type="number" min="0" step="1" value="5" />
+          </div>
+          <div class="pg-field">
+            <label for="fl-dep">Giờ xuất phát</label>
+            <input id="fl-dep" type="time" />
+          </div>
+          <div class="pg-field">
+            <label for="fl-shift">Ca làm (giờ)</label>
+            <input id="fl-shift" type="number" min="1" max="24" step="1" value="8" />
+          </div>
+        </div>
+        <p class="pg-hint">
+          Khung giờ khách hẹn nhập ở ô cạnh từng điểm (ví dụ <code>08:30-09:30</code>); chỉ gửi khi có
+          giờ xuất phát. Giờ đến là ước tính theo ma trận, có thể lệch vài phần trăm so với tuyến vẽ.
+        </p>
+        <button id="fl-plan" type="button" class="pg-primary">Chia đơn — /v1/fleet-plan</button>
+        <p class="pg-out" id="fl-plan-msg">Chưa gọi API.</p>
+        <div id="fl-plan-list" class="fl-plan-list"></div>
+        <p class="pg-out" id="fl-unassigned" hidden></p>
+        <p class="pg-req" id="fl-plan-req"></p>
 
         <h2>Ma trận khoảng cách</h2>
         <div class="pg-field">
