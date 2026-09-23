@@ -203,7 +203,7 @@ Tham số của `opts` khớp một-một với query string của endpoint tư�
 | `geocode` | `near`, `limit` |
 | `directions` | `from`, `to` (bắt buộc, `[lat, lng]`), `via`, `mode`, `lang`, `alternatives` |
 | `matrix` | `sources`, `targets` (bắt buộc, mảng `[lat, lng]`, tối đa 50 cặp), `mode` |
-| `optimizedRoute` | `from`, `stops` (bắt buộc, `[lat, lng]`, 1–8 điểm), `to` (bỏ = quay về `from`), `mode`, `lang` |
+| `optimizedRoute` | `from`, `stops` (bắt buộc, `[lat, lng]`, 1–10 điểm), `to` (bỏ = quay về `from`), `mode`, `lang` |
 
 `signal` là `AbortSignal` phía client; không giống các trường còn lại trong bảng, nó không phải tham số gửi lên server và không xuất hiện trong query string. **Từ 0.11.0 nó không huỷ request ở lớp mạng**: lời gọi của bạn reject ngay khi abort, nhưng request vẫn chạy tới cùng để nhận và xác nhận receipt — nên abort **không** tiết kiệm lượt. Abort *trước* khi gọi thì không có request nào được gửi. `usePlaces()` và `<mapslibvn-autocomplete>` tự quản lý `AbortController` bên trong nên không cần tự truyền; chỉ cần đến nó khi gọi thẳng `client.autocomplete()`.
 

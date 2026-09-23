@@ -70,9 +70,9 @@ Mười một endpoint: mười đọc, một ghi. Xác thực bằng header `X-
 | `GET /v1/places/{id}` | chi tiết một POI | trả thêm `sources` và `attribution` |
 | `GET /v1/geocode` | địa chỉ chữ → toạ độ | `q` từ 2 ký tự; `near`; `limit` 1–5 (5) |
 | `GET /v1/reverse` | toạ độ → địa chỉ | `lat`, `lng` |
-| `GET /v1/directions` | tuyến đường, bước rẽ tiếng Việt | `from`, `to` "lat,lng" bắt buộc; `via` tối đa 5 điểm; `mode` `motorbike`/`car`/`walk`; tính vào quota **Chỉ đường** riêng |
+| `GET /v1/directions` | tuyến đường, bước rẽ tiếng Việt | `from`, `to` "lat,lng" bắt buộc; `via` tối đa 10 điểm; `mode` `motorbike`/`car`/`walk`; tính vào quota **Chỉ đường** riêng |
 | `GET /v1/matrix` | bảng thời gian/quãng đường N×M | `sources`, `targets` "lat,lng;…" 1–25 điểm mỗi bên, tối đa 50 cặp; `mode`; **một lượt** quota Chỉ đường, nhịp riêng 6/phút/khoá |
-| `GET /v1/optimized-route` | thứ tự ghé tối ưu cho một chuyến + tuyến đầy đủ | `from`, `stops` 1–8 điểm bắt buộc; `to` tuỳ chọn (bỏ = quay về `from`); `mode`, `lang`; **một lượt** quota Chỉ đường |
+| `GET /v1/optimized-route` | thứ tự ghé tối ưu cho một chuyến + tuyến đầy đủ | `from`, `stops` 1–10 điểm bắt buộc; `to` tuỳ chọn (bỏ = quay về `from`); `mode`, `lang`; **một lượt** quota Chỉ đường |
 | `GET /v1/attribution` | chuỗi ghi nguồn chuẩn | không cần khoá |
 | `POST /v1/edits` | gửi đóng góp, sửa POI | cần scope `edits:write` |
 
@@ -93,7 +93,7 @@ trong 100 m; số nhà trả về dạng ước lượng ("≈ 86–90"). Xem
 ## 5. Chỉ đường
 
 `GET /v1/directions` trả tuyến cho **xe máy** (không lên cao tốc), **ô tô** và **đi bộ** giữa hai điểm
-trong Việt Nam, tối đa 5 điểm dừng, kèm bước rẽ tiếng Việt (hoặc tiếng Anh) có câu đọc bằng giọng nói.
+trong Việt Nam, tối đa 10 điểm dừng, kèm bước rẽ tiếng Việt (hoặc tiếng Anh) có câu đọc bằng giọng nói.
 Engine là Valhalla tự host trên dữ liệu đường OpenStreetMap, cập nhật cùng kỳ với tiles nền. Kết quả
 theo schema riêng của MapsLibVN (`Route`, `RouteStep`), không lộ định dạng engine. Chưa có giao thông
 trực tiếp, chưa tránh phí/cao tốc theo yêu cầu; SDK web dẫn đường từng bước trên thiết bị: bám GPS vào
@@ -105,7 +105,7 @@ Chi tiết REST API ở [REST API](/api/) mục 4.
 
 **Giao hàng và vận tải.** `GET /v1/matrix` trả bảng thời gian và quãng đường giữa N điểm đi và M điểm
 đến (tối đa 50 cặp mỗi lượt) để chọn tài xế hay kho gần nhất; `GET /v1/optimized-route` sắp thứ tự
-ghé tối ưu cho một chuyến tối đa 8 điểm dừng và trả luôn tuyến đầy đủ để vẽ. Cả hai tính **một lượt**
+ghé tối ưu cho một chuyến tối đa 10 điểm dừng và trả luôn tuyến đầy đủ để vẽ. Cả hai tính **một lượt**
 Chỉ đường mỗi request bất kể cỡ, và có nhịp riêng 6 request/phút cho mỗi khoá. Chưa có tối ưu đội xe nhiều xe (sức chứa, khung giờ, chia đơn cho xe). Ví dụ đầy đủ cho web và React Native ở [Giao hàng & đội xe](/doi-xe/); thử không cần code ở [Playground → Đội xe](/playground#doi-xe).
 
 ## 6. Đóng góp và duyệt

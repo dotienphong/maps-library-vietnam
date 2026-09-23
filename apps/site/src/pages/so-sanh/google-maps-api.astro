@@ -50,7 +50,7 @@ const CAU_HOI = [
   },
   {
     hoi: 'Có tính được khoảng cách và thứ tự giao hàng cho đội xe không?',
-    dap: 'Có, cho từng xe. Ma trận khoảng cách trả thời gian và quãng đường tới 50 cặp điểm mỗi lượt để chọn tài xế hay kho gần nhất; tối ưu thứ tự sắp lại tối đa 8 điểm dừng cho một chuyến và trả luôn tuyến để dẫn đường. Mỗi lượt gọi tính một lượt Chỉ đường bất kể bao nhiêu cặp. Chưa có bộ giải chia đơn cho nhiều xe cùng lúc như Route Optimization API của Google.',
+    dap: 'Có, cho từng xe. Ma trận khoảng cách trả thời gian và quãng đường tới 50 cặp điểm mỗi lượt để chọn tài xế hay kho gần nhất; tối ưu thứ tự sắp lại tối đa 10 điểm dừng cho một chuyến và trả luôn tuyến để dẫn đường. Mỗi lượt gọi tính một lượt Chỉ đường bất kể bao nhiêu cặp. Chưa có bộ giải chia đơn cho nhiều xe cùng lúc như Route Optimization API của Google.',
   },
   {
     hoi: 'Số trong bảng này có được kiểm chứng độc lập không?',
@@ -106,7 +106,7 @@ const CAU_HOI = [
       đường bằng câu tiếng Việt.
     </p>
     <p class="t-body mb-3 text-muted">
-      Đổi lại, cỡ mỗi lượt nhỏ hơn: tối đa 50 cặp (mỗi bên 25 điểm) hoặc 8 điểm dừng, 6 lượt mỗi
+      Đổi lại, cỡ mỗi lượt nhỏ hơn: tối đa 50 cặp (mỗi bên 25 điểm) hoặc 10 điểm dừng, 6 lượt mỗi
       phút. Bảng lớn hơn thì chia lô; chia đơn cho nhiều xe có sức chứa và khung giờ thì Google vẫn
       là lựa chọn đúng.
     </p>

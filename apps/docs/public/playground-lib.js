@@ -456,11 +456,11 @@ export function navSnippet(state) {
 
 /* ---------- Đội xe: ma trận khoảng cách + tối ưu thứ tự ---------- */
 
-/** Trần của API (`apps/api/src/routing/matrix.ts`, `optimized.ts`) — đo production 22/09/2026. */
+/** Trần của API (`apps/api/src/routing/matrix.ts`, `optimized.ts`) — đo production 22–23/09/2026. */
 export const MATRIX_MAX_PAIRS = 50;
 /** Mỗi bên `sources`/`targets` tối đa 25 điểm (`MATRIX_MAX_SOURCES`/`MATRIX_MAX_TARGETS`). */
 export const MATRIX_MAX_SIDE = 25;
-export const OPTIMIZED_MAX_STOPS = 8;
+export const OPTIMIZED_MAX_STOPS = 10;
 
 /**
  * Bộ điểm mẫu Quận 1: đều nằm trong graph Valhalla dev (Quận 1) và nối được bằng cả ba mode trên

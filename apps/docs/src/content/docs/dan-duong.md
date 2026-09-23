@@ -184,7 +184,7 @@ response.order.forEach((stopIndex, k) => {
 startButton.onclick = () => map.navigation.start({ response });
 ```
 
-Tối đa 8 điểm dừng, tính một lượt Chỉ đường, nhịp riêng 6 request/phút cho mỗi khoá. Điểm kết thúc phải cố định (`to`, hoặc quay về
+Tối đa 10 điểm dừng, tính một lượt Chỉ đường, nhịp riêng 6 request/phút cho mỗi khoá. Điểm kết thúc phải cố định (`to`, hoặc quay về
 `from`); chưa có "kết thúc ở đâu cũng được". Chi tiết ở
 [REST API — optimized-route](/api/#get-v1optimized-route).
 

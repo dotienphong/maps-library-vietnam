@@ -113,7 +113,7 @@ Sáu endpoint đọc dữ liệu địa điểm (`/v1/autocomplete`, `/v1/search
 
 **Quota Chỉ đường.** `GET /v1/directions` có quota **riêng**, cũng theo ngày Việt Nam và cũng chặn ở 2× hạn mức: plan `free` mặc định **2.000** lượt/ngày, khoá có thể được đặt hạn riêng (`quota_directions_per_day`). Tenant `internal` không bị đếm theo ngày. Burst **20 request/phút** cho mỗi cặp khoá + IP (riêng, không dùng chung 60 của Places). Ngoài ra khoá `web` và `mobile` — kể cả của tenant `internal`, vì khoá loại này nằm công khai trong trang/app — chịu **trần 100 request/phút cho cả khoá** (mọi IP cộng lại); khoá `server` không chịu trần này. Vượt trả `429 rate_limit_exceeded` với `retry-after: 60`.
 
-`GET /v1/matrix` và `GET /v1/optimized-route` tính vào **cùng quota Chỉ đường** và tính **một lượt mỗi request bất kể cỡ**: một ma trận 10 × 5 (50 cặp) hay một lần tối ưu 8 điểm dừng đều là một lượt. Bù lại cỡ mỗi request có trần (tối đa 50 cặp, tối đa 8 điểm dừng — xem từng endpoint ở mục 4), **và hai endpoint này có nhịp riêng 6 request/phút cho mỗi khoá** (mọi IP cộng lại, áp cho cả khoá `server`) vì chúng nặng hơn hẳn một lượt chỉ đường trên engine. Ngoài ra vẫn chịu burst 20 request/phút/khoá + IP và trần 100 request/phút của khoá `web`/`mobile` dùng chung với `/v1/directions`. Vượt nhịp riêng trả `429 rate_limit_exceeded` với `retry-after: 60`.
+`GET /v1/matrix` và `GET /v1/optimized-route` tính vào **cùng quota Chỉ đường** và tính **một lượt mỗi request bất kể cỡ**: một ma trận 10 × 5 (50 cặp) hay một lần tối ưu 10 điểm dừng đều là một lượt. Bù lại cỡ mỗi request có trần (tối đa 50 cặp, tối đa 10 điểm dừng — xem từng endpoint ở mục 4), **và hai endpoint này có nhịp riêng 6 request/phút cho mỗi khoá** (mọi IP cộng lại, áp cho cả khoá `server`) vì chúng nặng hơn hẳn một lượt chỉ đường trên engine. Ngoài ra vẫn chịu burst 20 request/phút/khoá + IP và trần 100 request/phút của khoá `web`/`mobile` dùng chung với `/v1/directions`. Vượt nhịp riêng trả `429 rate_limit_exceeded` với `retry-after: 60`.
 
 ### Hai lớp giới hạn khác nhau
 
@@ -572,7 +572,7 @@ Tuyến đường giữa hai điểm (có thể qua điểm dừng) cho xe máy,
 |---|---|---|---|---|
 | `from` | `lat,lng` | có | — | vĩ độ trước |
 | `to` | `lat,lng` | có | — | |
-| `via` | `lat,lng;lat,lng…` | không | — | tối đa 5 điểm dừng, theo thứ tự |
+| `via` | `lat,lng;lat,lng…` | không | — | tối đa 10 điểm dừng, theo thứ tự |
 | `mode` | `motorbike` \| `car` \| `walk` | không | `motorbike` | xe máy không đi cao tốc |
 | `lang` | `vi` \| `en` | không | `vi` | ngôn ngữ câu chỉ dẫn |
 | `alternatives` | `0` \| `1` | không | `0` | `1` xin thêm tối đa một tuyến thay thế; **bị bỏ qua khi có `via`** |
@@ -689,7 +689,7 @@ Sắp thứ tự ghé tối ưu cho **một** chuyến nhiều điểm dừng �
 | Tham số | Kiểu | Bắt buộc | Mặc định | Ghi chú |
 |---|---|---|---|---|
 | `from` | `lat,lng` | có | — | điểm xuất phát, luôn đứng đầu |
-| `stops` | `lat,lng;lat,lng…` | có | — | 1–8 điểm cần ghé, thứ tự tuỳ ý |
+| `stops` | `lat,lng;lat,lng…` | có | — | 1–10 điểm cần ghé, thứ tự tuỳ ý |
 | `to` | `lat,lng` | không | — | điểm kết thúc, luôn đứng cuối; **bỏ trống = quay về `from`** |
 | `mode` | `motorbike` \| `car` \| `walk` | không | `motorbike` | |
 | `lang` | `vi` \| `en` | không | `vi` | ngôn ngữ câu chỉ dẫn |
@@ -723,7 +723,7 @@ curl -H "X-Api-Key: mlv_live_…" \
 - Không hỗ trợ kết thúc ở điểm bất kỳ (open-end), sức chứa, khung giờ khách hẹn hay nhiều xe — xem "Những thứ chưa có" trên website.
 - Một điểm dừng không tới được → `404 no_route` cho cả chuyến.
 - `stops` một điểm vẫn hợp lệ (`order: [0]`) để ứng dụng không phải rẽ nhánh theo số đơn.
-- Cần nhiều hơn 50 cặp hay 8 điểm dừng thì chia thành nhiều request, nhớ nhịp 6 request/phút.
+- Cần nhiều hơn 50 cặp hay 10 điểm dừng thì chia thành nhiều request, nhớ nhịp 6 request/phút.
 
 ## 5. Endpoint ghi
 

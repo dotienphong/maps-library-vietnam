@@ -91,9 +91,8 @@ startButton.onclick = () => map.navigation.start({ response: trip });
 ```
 
 Khi dẫn đường, SDK đọc câu "Đến nơi" ở từng điểm dừng rồi đi tiếp chặng sau. Nếu tài xế đi lệch,
-SDK tự gọi lại `directions` qua các điểm còn lại **theo thứ tự đã tối ưu**, không sắp lại.
-`/v1/directions` nhận tối đa 5 điểm via, nên với chuyến 6–8 điểm dừng, lệch tuyến khi còn hơn 5
-điểm chưa ghé thì lần tính lại sẽ báo lỗi: SDK phát `rerouteFailed` và giữ tuyến cũ.
+SDK tự gọi lại `directions` qua các điểm còn lại **theo thứ tự đã tối ưu**, không sắp lại —
+`/v1/directions` nhận tới 10 điểm via, bằng trần điểm dừng, nên chuyến cỡ nào cũng tính lại được.
 
 ## 3. React Native
 
@@ -137,7 +136,7 @@ SDK không có sẵn giao diện danh sách đơn hay bảng ma trận vì mỗi
 | | Trần mỗi request | Ghi chú |
 |---|---|---|
 | Ma trận | `sources × targets ≤ 50` cặp, **mỗi bên ≤ 25 điểm** | Ví dụ 7 × 7, 10 × 5, 25 × 2, 1 × 25 |
-| Tối ưu thứ tự | **1–8 điểm dừng**, cộng `from` và `to` tuỳ chọn | Tối đa 10 điểm một chuyến (9 nếu quay về kho) |
+| Tối ưu thứ tự | **1–10 điểm dừng**, cộng `from` và `to` tuỳ chọn | Tối đa 12 điểm một chuyến (11 nếu quay về kho) |
 | Nhịp | **6 request/phút/khoá**, gộp chung cả hai endpoint | Vượt → `429 rate_limit_exceeded`, header `retry-after` |
 | Khoảng cách | Xe máy 200 km, ô tô 400 km, đi bộ 50 km (đường chim bay) | Mọi điểm trong Việt Nam |
 | Hạn mức | **1 lượt** nhóm Chỉ đường mỗi request | Request sai tham số trả `400`, **không tính lượt** |
@@ -176,8 +175,8 @@ async function bigMatrix(sources, targets, mode) {
 }
 ```
 
-**Chuyến có hơn 8 điểm dừng:** tách thành nhiều chuyến nhỏ theo khu vực (quận, phường, hoặc
-nhóm theo hướng từ kho), mỗi chuyến tối đa 8 điểm, rồi tối ưu từng chuyến. Cách này cho kết quả
+**Chuyến có hơn 10 điểm dừng:** tách thành nhiều chuyến nhỏ theo khu vực (quận, phường, hoặc
+nhóm theo hướng từ kho), mỗi chuyến tối đa 10 điểm, rồi tối ưu từng chuyến. Cách này cho kết quả
 tốt trên thực tế nhưng **không đảm bảo** ngắn nhất toàn cục như một bộ giải chia đơn cho nhiều xe.
 
 ## 6. Chưa có

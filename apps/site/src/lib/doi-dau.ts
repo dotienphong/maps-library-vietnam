@@ -59,7 +59,7 @@ export function doiDauGoogle(): HangDoiDau[] {
       tieuChi: 'Cỡ và nhịp ma trận cho phép',
       // Số trần chép tay từ MATRIX_MAX_PAIRS / OPTIMIZED_MAX_STOPS và MATRIX_RATE_LIMITER của
       // apps/api (site không import Worker). Đổi bên API phải đổi dòng này cùng commit.
-      ta: 'Tối đa 50 cặp hoặc 8 điểm dừng mỗi lượt, 6 lượt mỗi phút',
+      ta: 'Tối đa 50 cặp hoặc 10 điểm dừng mỗi lượt, 6 lượt mỗi phút',
       ho: 'Cỡ lớn hơn và nhịp cao hơn hẳn',
       thang: 'ho',
     },

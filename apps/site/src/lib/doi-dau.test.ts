@@ -61,7 +61,7 @@ describe('bảng đối đầu', () => {
     expect(gioiHan?.tieuChi).toBe('Cỡ và nhịp ma trận cho phép');
     expect(gioiHan?.thang).toBe('ho');
     expect(gioiHan?.ta).toMatch(/50 cặp/);
-    expect(gioiHan?.ta).toMatch(/8 điểm dừng/);
+    expect(gioiHan?.ta).toMatch(/10 điểm dừng/);
     expect(gioiHan?.ta).toMatch(/6 lượt mỗi phút/);
 
     const doiXe = bang.find((h) => h.tieuChi === 'Tối ưu đội xe nhiều xe');

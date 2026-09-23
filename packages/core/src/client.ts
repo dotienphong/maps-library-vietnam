@@ -70,7 +70,7 @@ export interface DirectionsOptions {
   /** [lat, lng] — vĩ độ trước, cùng quy ước với `near`. */
   from: [number, number];
   to: [number, number];
-  /** Tối đa 5 điểm dừng, mỗi điểm [lat, lng]. */
+  /** Tối đa 10 điểm dừng, mỗi điểm [lat, lng]. */
   via?: [number, number][];
   /** Mặc định máy chủ: `motorbike`. */
   mode?: TravelMode;
