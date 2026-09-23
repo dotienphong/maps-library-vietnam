@@ -20,12 +20,16 @@ export const ROUTE_SOURCE_ID = 'mapslibvn-route';
  * phải đẩy cả tuyến thay thế qua cầu native rồi bắt MapLibre dựng lại tile của chúng.
  */
 export const ROUTE_ALT_SOURCE_ID = 'mapslibvn-route-alt-source';
+/** Source riêng cho kế hoạch đội xe (spec 2026-09-23): cùng id với SDK web. */
+export const FLEET_SOURCE_ID = 'mapslibvn-fleet';
 export const ROUTE_LAYER_IDS = {
   alt: 'mapslibvn-route-alt',
   casing: 'mapslibvn-route-casing',
   line: 'mapslibvn-route-line',
   traveled: 'mapslibvn-route-traveled',
   puck: 'mapslibvn-route-puck',
+  fleetCasing: 'mapslibvn-fleet-casing',
+  fleetLine: 'mapslibvn-fleet-line',
 } as const;
 export const ROUTE_COLOR = '#2458a6';
 export const ALT_ROUTE_COLOR = '#9ca8ba';
@@ -68,12 +72,72 @@ const PUCK_LAYOUT: NonNullable<SymbolLayerSpecification['layout']> = {
 /** Source + layer tuyến và puck đọc từ RoutesStore. Render bên trong <Map> và trong MapContext. */
 export function RouteLayers({ store, routeStyle, beforeId, onRouteClick }: RouteLayersProps) {
   const snap = useSyncExternalStore(store.subscribe, store.getSnapshot, store.getSnapshot);
+  const casingColor = routeStyle?.casingColor ?? '#ffffff';
+  const before = beforeId ? { beforeId } : {};
+  if (snap.fleet) {
+    const fleet = snap.fleet;
+    const onPressFleet = (e: NativeSyntheticEvent<PressEventWithFeatures>): void => {
+      const hit = e.nativeEvent.features.find((f) => f.properties?.kind === 'fleet');
+      const index: unknown = hit?.properties?.index;
+      if (typeof index === 'number') onRouteClick?.(index);
+    };
+    return (
+      <>
+        <GeoJSONSource
+          id={FLEET_SOURCE_ID}
+          data={snap.fleetFeatures as GeoJSON.FeatureCollection}
+          onPress={onPressFleet}
+        >
+          <Layer
+            type="line"
+            id={ROUTE_LAYER_IDS.fleetCasing}
+            source={FLEET_SOURCE_ID}
+            layout={ROUND}
+            paint={{
+              'line-color': casingColor,
+              'line-width': 9,
+              'line-opacity': ['get', 'opacity'],
+            }}
+            {...before}
+          />
+          <Layer
+            type="line"
+            id={ROUTE_LAYER_IDS.fleetLine}
+            source={FLEET_SOURCE_ID}
+            layout={ROUND}
+            paint={{
+              'line-color': ['get', 'color'],
+              'line-width': 6,
+              'line-opacity': ['get', 'opacity'],
+            }}
+            {...before}
+          />
+        </GeoJSONSource>
+        {fleet.markers
+          ? fleet.plan.vehicles.flatMap((v, i) => {
+              const markerColor = fleet.colors[i % fleet.colors.length] ?? '#0072b2';
+              // waypoints = start, các đơn theo thứ tự ghé, end (nếu có): đơn nằm ở 1…jobs.length.
+              return v.jobs.map((job, j) => {
+                const w = v.waypoints[j + 1];
+                return w ? (
+                  <Marker
+                    key={`${v.vehicle}-${job}`}
+                    lng={w.snapped[0]}
+                    lat={w.snapped[1]}
+                    color={markerColor}
+                    testID="mapslibvn-fleet-marker"
+                  />
+                ) : null;
+              });
+            })
+          : null}
+      </>
+    );
+  }
   if (!snap.response) return null;
   const color = routeStyle?.color ?? ROUTE_COLOR;
   const altColor = routeStyle?.altColor ?? ALT_ROUTE_COLOR;
-  const casingColor = routeStyle?.casingColor ?? '#ffffff';
   const traveledOpacity = routeStyle?.traveledOpacity ?? 0.35;
-  const before = beforeId ? { beforeId } : {};
   const onPress = (e: NativeSyntheticEvent<PressEventWithFeatures>): void => {
     const alt = e.nativeEvent.features.find((f) => f.properties?.kind === 'alt');
     const index: unknown = alt?.properties?.index;

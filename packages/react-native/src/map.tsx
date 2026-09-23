@@ -274,6 +274,7 @@ export function MapsLibVNMap({
       },
       routes: {
         show: (response, opts) => store.show(response, opts ?? {}),
+        showFleet: (plan, opts) => store.showFleet(plan, opts ?? {}),
         setActive: (index) => store.setActive(index),
         clear: () => store.clear(),
       },

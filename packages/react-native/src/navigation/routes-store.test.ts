@@ -1,6 +1,7 @@
-import type { DirectionsResponse } from '@mapslibvn/core';
+import type { DirectionsResponse, FleetPlanResponse } from '@mapslibvn/core';
 import { describe, expect, it, vi } from 'vitest';
 import fixture from '../../../core/tests/fixtures/directions-q1.json';
+import fleetFixture from '../../../core/tests/fixtures/fleet-plan-q1.json';
 import { createRoutesStore } from './routes-store';
 
 const response = fixture as unknown as DirectionsResponse;
@@ -69,5 +70,39 @@ describe('createRoutesStore', () => {
     off();
     store.show(response);
     expect(onChange).toHaveBeenCalledTimes(2);
+  });
+});
+
+const plan = fleetFixture as unknown as FleetPlanResponse;
+const opacities = (store: ReturnType<typeof createRoutesStore>) =>
+  store
+    .getSnapshot()
+    .fleetFeatures.features.map((f) => (f.properties as { opacity: number }).opacity);
+
+describe('createRoutesStore — đội xe', () => {
+  it('showFleet: fleetFeatures mỗi xe một feature, response null; setActive đổi opacity; show() xoá fleet; clear xoá hết', () => {
+    const store = createRoutesStore();
+    store.show(response);
+    store.showFleet(plan, { colors: ['#111111', '#222222'] });
+    let snap = store.getSnapshot();
+    expect(snap.response).toBeNull();
+    expect(snap.fleet?.plan).toBe(plan);
+    expect(snap.liveFeatures.features).toEqual([]);
+    expect(snap.altFeatures.features).toEqual([]);
+    expect(snap.fleetFeatures.features.map((f) => f.properties.kind)).toEqual(['fleet', 'fleet']);
+    const truoc = snap.fleetFeatures;
+    store.setActive(1);
+    snap = store.getSnapshot();
+    expect(snap.fleetFeatures).not.toBe(truoc);
+    expect(opacities(store)).toEqual([0.35, 1]);
+    store.setProgress({ shapeIndex: 5, snapped: [106.6985, 10.7791] });
+    expect(store.getSnapshot().fleetFeatures).toBe(snap.fleetFeatures); // định vị không đụng đội xe
+    store.show(response);
+    expect(store.getSnapshot().fleet).toBeNull();
+    expect(store.getSnapshot().fleetFeatures.features).toEqual([]);
+    store.showFleet(plan);
+    store.clear();
+    expect(store.getSnapshot().fleet).toBeNull();
+    expect(store.getSnapshot().fleetFeatures.features).toEqual([]);
   });
 });

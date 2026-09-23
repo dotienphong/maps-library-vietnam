@@ -1,11 +1,18 @@
 // @vitest-environment jsdom
-import type { DirectionsResponse, MapsLibVNClient } from '@mapslibvn/core';
+import type { DirectionsResponse, FleetPlanResponse, MapsLibVNClient } from '@mapslibvn/core';
 import { act, cleanup, render, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import fixture from '../../../core/tests/fixtures/directions-q1.json';
+import fleetFixture from '../../../core/tests/fixtures/fleet-plan-q1.json';
 import { MapContext, type MapHandle } from '../context';
 import { getSourceProps, resetMocks } from '../test/mlrn-mock';
-import { ROUTE_ALT_SOURCE_ID, ROUTE_LAYER_IDS, ROUTE_SOURCE_ID, RouteLayers } from './route-layers';
+import {
+  FLEET_SOURCE_ID,
+  ROUTE_ALT_SOURCE_ID,
+  ROUTE_LAYER_IDS,
+  ROUTE_SOURCE_ID,
+  RouteLayers,
+} from './route-layers';
 import { createRoutesStore } from './routes-store';
 
 vi.mock('react-native', () => import('../test/react-native-mock'));
@@ -141,5 +148,58 @@ describe('RouteLayers', () => {
     // Cùng tham chiếu → MLRN không gửi lại GeoJSON tuyến thay thế qua cầu native mỗi giây.
     expect(getSourceProps(ROUTE_ALT_SOURCE_ID)?.data).toBe(altData);
     expect(getSourceProps(ROUTE_SOURCE_ID)?.data).not.toBe(liveData);
+  });
+});
+
+const plan = fleetFixture as unknown as FleetPlanResponse;
+
+describe('RouteLayers — đội xe', () => {
+  it('showFleet → source đội xe với 2 layer line data-driven, marker màu xe tại từng đơn, bấm tuyến → onRouteClick(index)', () => {
+    const store = createRoutesStore();
+    store.showFleet(plan);
+    const onRouteClick = vi.fn();
+    render(
+      <MapContext.Provider value={handle}>
+        <RouteLayers store={store} beforeId="road_one_way_arrow" onRouteClick={onRouteClick} />
+      </MapContext.Provider>,
+    );
+    expect(screen.queryByTestId(`mlrn-source-${ROUTE_SOURCE_ID}`)).toBeNull();
+    const geo = JSON.parse(
+      screen.getByTestId(`mlrn-source-${FLEET_SOURCE_ID}`).dataset.geojson ?? '{}',
+    ) as { features: { properties: { kind: string; index: number; color: string } }[] };
+    expect(geo.features.map((f) => f.properties.kind)).toEqual(['fleet', 'fleet']);
+    expect(geo.features.map((f) => f.properties.color)).toEqual(['#0072b2', '#d55e00']);
+    expect(layer(ROUTE_LAYER_IDS.fleetLine).paint).toEqual({
+      'line-color': ['get', 'color'],
+      'line-width': 6,
+      'line-opacity': ['get', 'opacity'],
+    });
+    expect(layer(ROUTE_LAYER_IDS.fleetCasing).beforeId).toBe('road_one_way_arrow');
+    const soDon = plan.vehicles.reduce((sum, v) => sum + v.jobs.length, 0);
+    const markers = screen.getAllByTestId('mapslibvn-fleet-marker');
+    expect(markers).toHaveLength(soDon);
+    expect(markers[0]?.dataset.lnglat).toBe(plan.vehicles[0]?.waypoints[1]?.snapped.join(','));
+    getSourceProps(FLEET_SOURCE_ID)?.onPress?.({
+      nativeEvent: { features: [{ properties: { kind: 'fleet', index: 1 } }] },
+    });
+    expect(onRouteClick).toHaveBeenCalledWith(1);
+  });
+
+  it('markers:false → không marker; clear → không render gì', () => {
+    const store = createRoutesStore();
+    store.showFleet(plan, { markers: false });
+    const { rerender } = render(
+      <MapContext.Provider value={handle}>
+        <RouteLayers store={store} beforeId={null} />
+      </MapContext.Provider>,
+    );
+    expect(screen.queryAllByTestId('mapslibvn-fleet-marker')).toHaveLength(0);
+    act(() => store.clear());
+    rerender(
+      <MapContext.Provider value={handle}>
+        <RouteLayers store={store} beforeId={null} />
+      </MapContext.Provider>,
+    );
+    expect(screen.queryByTestId(`mlrn-source-${FLEET_SOURCE_ID}`)).toBeNull();
   });
 });

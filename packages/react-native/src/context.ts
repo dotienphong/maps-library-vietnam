@@ -1,5 +1,5 @@
 import type { CameraRef, MapRef } from '@maplibre/maplibre-react-native';
-import type { DirectionsResponse, MapsLibVNClient } from '@mapslibvn/core';
+import type { DirectionsResponse, FleetPlanResponse, MapsLibVNClient } from '@mapslibvn/core';
 import { createContext, type RefObject } from 'react';
 import type { MapNavigationBinding } from './navigation/map-binding';
 import type { UserLocationHandle } from './user-location/binding';
@@ -18,6 +18,11 @@ export interface MapHandle {
   /** Vẽ tuyến không cần phiên (xem trước, app khách). Phiên gắn vào sẽ ghi đè. */
   routes: {
     show(response: DirectionsResponse, opts?: { active?: number }): void;
+    /** Vẽ cả đội xe: mỗi xe một màu, bấm tuyến → onRouteClick(index xe). Loại trừ với show(). */
+    showFleet(
+      plan: FleetPlanResponse,
+      opts?: { active?: number | null; colors?: readonly string[]; markers?: boolean },
+    ): void;
     setActive(index: number): void;
     clear(): void;
   };
