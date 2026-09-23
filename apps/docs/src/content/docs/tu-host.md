@@ -13,6 +13,7 @@ MapsLibVN được thiết kế để dựng lại **bằng một lệnh** trên
 | Places API, styles, trang duyệt đóng góp | Cloudflare Worker chạy Hono | gói Workers Free đủ cho nội bộ |
 | Postgres 16 kèm PostGIS | máy nội bộ chạy 24/7 trong Docker, nối ra qua Cloudflare Tunnel rồi Access rồi Hyperdrive | tiền điện và máy |
 | Engine chỉ đường Valhalla | container `valhalla` trên cùng máy chủ, không mở cổng; Worker gọi qua Cloudflare Tunnel | tiền điện và máy |
+| Bộ giải đội xe VROOM | container `vroom` trên cùng máy chủ, lấy ma trận từ Valhalla trong mạng compose; Worker gọi qua luật đường dẫn `/fleet/` của hostname Tunnel chỉ đường | tiền điện và máy |
 | Pipeline dữ liệu OSM, Foursquare | container `pipeline` trên máy chủ, cron thứ Hai 02:00 | — |
 | Tài liệu | Cloudflare Pages | 0 đồng |
 
@@ -38,14 +39,16 @@ Yêu cầu máy: RAM từ 8 GB, SSD từ 50 GB, có Docker. Không dùng laptop 
 pnpm server:setup   # sinh .env máy chủ, cert TLS, compose up, migration, in checklist việc tay
 ```
 
-Việc tay một lần trên Cloudflare, theo đúng checklist mà script in ra: tạo **Tunnel** với hostname kiểu TCP trỏ vào `postgres:5432`, tạo **service token** và **Access application** bảo vệ hostname đó, tạo **Hyperdrive** trỏ tới hostname qua Access với user chỉ đọc. Dán Hyperdrive ID vào cấu hình Worker.
+Việc tay một lần trên Cloudflare, theo đúng checklist mà script in ra: tạo **Tunnel** với hostname kiểu TCP trỏ vào `postgres:5432`, tạo **service token** và **Access application** bảo vệ hostname đó, tạo **Hyperdrive** trỏ tới hostname qua Access với user chỉ đọc. Dán Hyperdrive ID vào cấu hình Worker. Với đội xe, thêm một luật Public Hostname trên cùng hostname chỉ đường với **Path `^/fleet/`** trỏ `vroom:3000`, đặt trên luật không có đường dẫn.
 
-Compose có năm dịch vụ, **không dịch vụ nào mở cổng ra ngoài** — chỉ `cloudflared` nối ra Internet:
+Compose có sáu dịch vụ, **không dịch vụ nào mở cổng ra ngoài** — chỉ `cloudflared` nối ra Internet:
 `postgres` bắt buộc TLS, `cloudflared`, `backup` chạy `pg_dump` hằng ngày lúc 03:00 rồi mã hoá
 AES-256 và đẩy lên bucket R2 riêng (giữ 7 bản ngày và 4 bản tuần), `pipeline` chạy cron, và
 `valhalla` phục vụ chỉ đường ở cổng nội bộ 8002. Cùng tiến trình đó phục vụ ma trận (`sources_to_targets`) và tối ưu thứ tự
 (`optimized_route`) cho `/v1/matrix` và `/v1/optimized-route` — image đã bật sẵn, không cần cấu hình thêm. Lần đầu dựng, `valhalla` phải build graph từ PBF
-nên `healthcheck` có `start_period` 1 giờ — trong lúc đó `/v1/directions` trả `503`.
+nên `healthcheck` có `start_period` 1 giờ — trong lúc đó `/v1/directions` trả `503`. Dịch vụ thứ sáu,
+`vroom` (vroom-express, cổng nội bộ 3000, đường dẫn gốc `/fleet/`), giải bài chia đơn đội xe cho
+`/v1/fleet-plan`; cấu hình ở `infra/server/vroom/config.yml`, không mở cổng, không cần graph riêng.
 
 Chuyển sang máy khác: chạy `pnpm server:setup` trên máy mới, rồi `pnpm db:restore --latest`, rồi trỏ lại Tunnel. Dưới một giờ.
 

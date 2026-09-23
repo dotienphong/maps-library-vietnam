@@ -73,7 +73,7 @@ Mọi lỗi trả JSON cùng một hình dạng:
 | `scope` | 403 | khoá không có scope mà endpoint yêu cầu |
 | `origin_not_allowed` | 403 | khoá `web` và `Origin`/`Referer` không nằm trong `allowed_origins` |
 | `not_found` | 404 | không có route, không có POI, không có theme hoặc bộ tiles |
-| `no_route` | 404 | `GET /v1/directions` và `/v1/optimized-route`: không có đường giữa các điểm, hoặc điểm quá xa mạng đường / vùng không kết nối. `/v1/matrix`: chỉ khi một điểm không bám được vào đường nào — cặp không nối được trả `null` trong bảng, không lỗi |
+| `no_route` | 404 | `GET /v1/directions` và `/v1/optimized-route`: không có đường giữa các điểm, hoặc điểm quá xa mạng đường / vùng không kết nối. `/v1/matrix`: chỉ khi một điểm không bám được vào đường nào — cặp không nối được trả `null` trong bảng, không lỗi. `POST /v1/fleet-plan`: một điểm không tới được hoặc nằm ở vùng đường không nối với các điểm còn lại — lỗi cho cả request, thông điệp gọi tên đơn hoặc xe khi xác định được |
 | `rate_limit_exceeded` | 429 | vượt burst/phút của Places hoặc Chỉ đường |
 | `quota_exceeded` | 429 | hết hạn mức Places/Chỉ đường; `details` có `group`, `reason` (`daily`/`period`/`trial_total`), `resetAt` khi thật sự có mốc cấp lại, và `actions` |
 | `subscription_expired` | 403 | hết **quyền** dùng chứ không phải hết lượt: trial hết hạn, thuê bao hết hạn, bị tạm dừng, hoặc chưa được cấp quyền. Không gợi ý mua thêm lượt |
@@ -114,6 +114,8 @@ Sáu endpoint đọc dữ liệu địa điểm (`/v1/autocomplete`, `/v1/search
 **Quota Chỉ đường.** `GET /v1/directions` có quota **riêng**, cũng theo ngày Việt Nam và cũng chặn ở 2× hạn mức: plan `free` mặc định **2.000** lượt/ngày, khoá có thể được đặt hạn riêng (`quota_directions_per_day`). Tenant `internal` không bị đếm theo ngày. Burst **20 request/phút** cho mỗi cặp khoá + IP (riêng, không dùng chung 60 của Places). Ngoài ra khoá `web` và `mobile` — kể cả của tenant `internal`, vì khoá loại này nằm công khai trong trang/app — chịu **trần 100 request/phút cho cả khoá** (mọi IP cộng lại); khoá `server` không chịu trần này. Vượt trả `429 rate_limit_exceeded` với `retry-after: 60`.
 
 `GET /v1/matrix` và `GET /v1/optimized-route` tính vào **cùng quota Chỉ đường** và tính **một lượt mỗi request bất kể cỡ**: một ma trận 10 × 5 (50 cặp) hay một lần tối ưu 10 điểm dừng đều là một lượt. Bù lại cỡ mỗi request có trần (tối đa 50 cặp, tối đa 10 điểm dừng — xem từng endpoint ở mục 4), **và hai endpoint này có nhịp riêng 6 request/phút cho mỗi khoá** (mọi IP cộng lại, áp cho cả khoá `server`) vì chúng nặng hơn hẳn một lượt chỉ đường trên engine. Ngoài ra vẫn chịu burst 20 request/phút/khoá + IP và trần 100 request/phút của khoá `web`/`mobile` dùng chung với `/v1/directions`. Vượt nhịp riêng trả `429 rate_limit_exceeded` với `retry-after: 60`.
+
+`POST /v1/fleet-plan` (chia đơn cho đội xe) cũng tính vào **cùng quota Chỉ đường**, **một lượt mỗi request** bất kể số xe và số đơn, và có **nhịp riêng 2 request/phút cho mỗi khoá** (mọi IP cộng lại, áp cho cả khoá `server`): một request cỡ tối đa là một ma trận tới 1.600 cặp cộng năm tuyến trên cùng engine. Body sai (400) không tốn lượt.
 
 ### Hai lớp giới hạn khác nhau
 
@@ -253,14 +255,15 @@ hiện quy trình này.
 | `/v1/directions` | 60 giây | 5 phút |
 | `/v1/matrix` | 60 giây | 5 phút |
 | `/v1/optimized-route` | 60 giây | 5 phút |
+| `/v1/fleet-plan` | 60 giây | 5 phút |
 | `/v1/attribution` | 24 giờ | — |
 | `/v1/styles/{theme}.json` | 1 giờ | — |
 | `/v1/tiles/{set}.json` | 1 giờ | — |
 | tile `.pbf` | 1 ngày | thêm 7 ngày `stale-while-revalidate` |
 
-Với `/v1/autocomplete`, `/v1/places/{id}`, `/v1/directions`, `/v1/matrix` và `/v1/optimized-route`, phản hồi lấy từ cache có header `x-mlv-cache`: `hit` là bản còn tươi, `stale` là bản cũ được trả vì truy vấn mới thất bại. Lỗi 4xx không bao giờ được cache. Các endpoint còn lại truy vấn trực tiếp, không cache.
+Với `/v1/autocomplete`, `/v1/places/{id}`, `/v1/directions`, `/v1/matrix`, `/v1/optimized-route` và `/v1/fleet-plan`, phản hồi lấy từ cache có header `x-mlv-cache`: `hit` là bản còn tươi, `stale` là bản cũ được trả vì truy vấn mới thất bại. Lỗi 4xx không bao giờ được cache. Các endpoint còn lại truy vấn trực tiếp, không cache.
 
-Khoá cache của `/v1/autocomplete` gồm truy vấn đã chuẩn hoá (bỏ dấu, viết tắt đã bung), ô lưới của `near`, danh sách `types` và `limit` — nên hai truy vấn khác nhau về cách viết dấu vẫn dùng chung một bản cache. Khoá cache của ba endpoint dẫn đường làm tròn toạ độ 4 chữ số (~11 m) với ma trận và tối ưu thứ tự, 5 chữ số với directions.
+Khoá cache của `/v1/autocomplete` gồm truy vấn đã chuẩn hoá (bỏ dấu, viết tắt đã bung), ô lưới của `near`, danh sách `types` và `limit` — nên hai truy vấn khác nhau về cách viết dấu vẫn dùng chung một bản cache. Khoá cache của bốn endpoint dẫn đường làm tròn toạ độ 4 chữ số (~11 m) với ma trận, tối ưu thứ tự và đội xe, 5 chữ số với directions. Khoá của đội xe là mã băm của cả body đã chuẩn hoá (mốc giờ đổi sang giây), nên chỉ đổi thứ tự trường JSON vẫn trúng cache.
 
 ## 4. Endpoint dữ liệu địa điểm
 
@@ -723,7 +726,74 @@ curl -H "X-Api-Key: mlv_live_…" \
 - Không hỗ trợ kết thúc ở điểm bất kỳ (open-end), sức chứa, khung giờ khách hẹn hay nhiều xe — xem "Những thứ chưa có" trên website.
 - Một điểm dừng không tới được → `404 no_route` cho cả chuyến.
 - `stops` một điểm vẫn hợp lệ (`order: [0]`) để ứng dụng không phải rẽ nhánh theo số đơn.
-- Cần nhiều hơn 50 cặp hay 10 điểm dừng thì chia thành nhiều request, nhớ nhịp 6 request/phút.
+- Cần nhiều hơn 50 cặp hay 10 điểm dừng thì chia thành nhiều request, nhớ nhịp 6 request/phút. Nhiều xe hay hơn 10 đơn thì dùng `POST /v1/fleet-plan` ngay dưới.
+
+### POST /v1/fleet-plan
+
+Chia đơn cho **đội xe**: gửi K xe và N đơn, nhận đơn nào giao xe nào, thứ tự ghé, giờ đến ước tính, đơn không xếp được, và **tuyến đầy đủ của từng xe** dạng `DirectionsResponse`. Bộ giải nhận sức chứa, khối lượng, thời gian dừng, khung giờ khách hẹn, giờ làm của xe và kết thúc mở. Cần scope `places:read`, body JSON, tính **một lượt quota Chỉ đường**, nhịp **2 request/phút/khoá**. Hướng dẫn kèm ví dụ ở [Giao hàng & đội xe](/doi-xe/) mục 3; thử không cần code ở [Playground → Đội xe](/playground#doi-xe).
+
+| Trường | Kiểu | Bắt buộc | Mặc định | Ghi chú |
+|---|---|---|---|---|
+| `mode` | `motorbike` \| `car` \| `walk` | không | `motorbike` | một phương tiện cho cả đội |
+| `lang` | `vi` \| `en` | không | `vi` | ngôn ngữ câu chỉ dẫn |
+| `vehicles[]` | 1–5 phần tử | có | — | |
+| `vehicles[].id` | chuỗi 1–64 ký tự | có | — | duy nhất trong `vehicles` |
+| `vehicles[].start` | `[lat, lng]` | có | — | |
+| `vehicles[].end` | `[lat, lng]` \| `"open"` | không | = `start` | `"open"` = kết thúc ở đơn cuối |
+| `vehicles[].capacity` | số nguyên 0–1.000.000 | không | — | tất cả xe có hoặc không xe nào |
+| `vehicles[].max_jobs` | số nguyên 1–10 | không | 10 | |
+| `vehicles[].time_window` | `[ISO, ISO]` | không | — | giờ làm, ISO 8601 kèm múi giờ; có khung giờ ở bất kỳ đâu thì mọi xe phải có |
+| `jobs[]` | 1–30 phần tử | có | — | không quá tổng `max_jobs` của các xe |
+| `jobs[].id` | chuỗi 1–64 ký tự | có | — | duy nhất trong `jobs` |
+| `jobs[].location` | `[lat, lng]` | có | — | |
+| `jobs[].demand` | số nguyên 0–1.000.000 | không | 0 | `> 0` chỉ khi các xe có `capacity` |
+| `jobs[].service_s` | số nguyên 0–7.200 | không | 0 | giây dừng tại điểm |
+| `jobs[].priority` | số nguyên 0–100 | không | 0 | đơn ưu tiên được xếp trước khi không đủ chỗ |
+| `jobs[].time_windows` | 1–3 `[ISO, ISO]` | không | — | mỗi khung tối đa 24 giờ; mọi mốc trong request nằm trong 48 giờ |
+
+Mọi điểm trong Việt Nam; cặp điểm xa nhất không quá 200 km xe máy, 400 km ô tô, 50 km đi bộ (đường chim bay). Body tối đa 64 KB. Trường lạ bị bỏ qua.
+
+```bash
+curl -X POST -H "X-Api-Key: mlv_live_…" -H "content-type: application/json" \
+  https://api.ai-solutions.io.vn/v1/fleet-plan \
+  -d '{"vehicles":[{"id":"xe-1","start":[10.7725,106.698]},{"id":"xe-2","start":[10.7725,106.698],"end":"open"}],
+       "jobs":[{"id":"don-1","location":[10.7826,106.6958],"service_s":120},{"id":"don-2","location":[10.7686,106.7069]}]}'
+```
+
+```json
+{
+  "mode": "motorbike",
+  "vehicles": [
+    {
+      "vehicle": "xe-1",
+      "jobs": ["don-2", "don-1"],
+      "stops": [
+        { "job": "don-2", "arrival_s": 300, "waiting_s": 0, "service_s": 0 },
+        { "job": "don-1", "arrival_s": 700, "waiting_s": 0, "service_s": 120 }
+      ],
+      "load": 0,
+      "finish_s": 1000,
+      "routes": [{ "mode": "motorbike", "distance_m": 6120, "duration_s": 1380, "legs": ["…3 leg…"], "…": "…" }],
+      "waypoints": ["…4 waypoint…"],
+      "attribution": "© OpenStreetMap contributors"
+    },
+    { "vehicle": "xe-2", "jobs": [], "stops": [], "load": 0, "finish_s": 0, "routes": [], "waypoints": [], "attribution": "© OpenStreetMap contributors" }
+  ],
+  "unassigned": [],
+  "summary": { "vehicles_used": 1, "jobs_assigned": 2, "jobs_unassigned": 0, "distance_m": 6120, "duration_s": 1380, "service_s": 120, "waiting_s": 0 },
+  "attribution": "© OpenStreetMap contributors",
+  "engine": { "name": "vroom+valhalla", "graph": "2026-09-17" }
+}
+```
+
+Điểm cần chú ý:
+
+- `vehicles` theo đúng thứ tự bạn gửi, kể cả xe không được giao đơn (`jobs: []`, `routes: []`). Mỗi xe có đơn là một `DirectionsResponse` đầy đủ: `routes[0].legs.length` bằng số đơn, cộng 1 nếu xe về `end`; `waypoints` là start, các đơn theo thứ tự ghé, rồi end.
+- **Chế độ thời gian.** Không có khung giờ thì chỉ có `arrival_s` và `finish_s` (giây kể từ lúc rời start). Mọi xe có `time_window` thì thêm `departure_at`, `stops[].arrival_at`, `finish_at` ISO 8601 theo múi giờ của `time_window[0]` của xe đó. Có khung giờ mà một xe thiếu `time_window` thì trả 400.
+- `stops` lấy từ lịch của bộ giải (tính trên ma trận); `routes[0]` lấy từ chỉ đường. Lệch vài phần trăm là bình thường.
+- `unassigned` là đơn không xếp được: hết `max_jobs`, quá `capacity` hoặc khung giờ không thoả. Không kèm lý do.
+- Một điểm không tới được trả `404 no_route` cho cả request. Quá nhịp trả `429` với `retry-after: 60`. Bộ giải không phản hồi trả `503 upstream_unavailable`.
+- Chưa có: pickup & delivery ghép đôi, kỹ năng tài xế, nghỉ giữa ca, nhiều loại xe trong một request.
 
 ## 5. Endpoint ghi
 

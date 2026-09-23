@@ -190,6 +190,7 @@ const client = createClient({
 | `directions(opts)` | `GET /v1/directions` | `DirectionsResponse` |
 | `matrix(opts)` | `GET /v1/matrix` | `MatrixResponse` |
 | `optimizedRoute(opts)` | `GET /v1/optimized-route` | `OptimizedRouteResponse` (= `DirectionsResponse` + `order`) |
+| `fleetPlan(opts)` | `POST /v1/fleet-plan` | `FleetPlanResponse` (mỗi `vehicles[k]` = `DirectionsResponse` + `vehicle`/`jobs`/`stops`) |
 | `suggestEdit(edit)` | `POST /v1/edits` | `SuggestEditResponse` |
 | `flushReceipts()` | `POST /v1/quota/receipts/{id}/ack` cho mọi receipt còn chờ | `Promise<boolean>` — `true` khi hàng đợi đã sạch |
 
@@ -204,12 +205,15 @@ Tham số của `opts` khớp một-một với query string của endpoint tư�
 | `directions` | `from`, `to` (bắt buộc, `[lat, lng]`), `via`, `mode`, `lang`, `alternatives` |
 | `matrix` | `sources`, `targets` (bắt buộc, mảng `[lat, lng]`, tối đa 50 cặp), `mode` |
 | `optimizedRoute` | `from`, `stops` (bắt buộc, `[lat, lng]`, 1–10 điểm), `to` (bỏ = quay về `from`), `mode`, `lang` |
+| `fleetPlan` | `vehicles` (1–5: `id`, `start` `[lat, lng]`, `end`, `capacity`, `max_jobs`, `time_window`), `jobs` (1–30: `id`, `location`, `demand`, `service_s`, `priority`, `time_windows`), `mode`, `lang` — gửi dạng body JSON, xem [REST API](/api/#post-v1fleet-plan) |
 
 `signal` là `AbortSignal` phía client; không giống các trường còn lại trong bảng, nó không phải tham số gửi lên server và không xuất hiện trong query string. **Từ 0.11.0 nó không huỷ request ở lớp mạng**: lời gọi của bạn reject ngay khi abort, nhưng request vẫn chạy tới cùng để nhận và xác nhận receipt — nên abort **không** tiết kiệm lượt. Abort *trước* khi gọi thì không có request nào được gửi. `usePlaces()` và `<mapslibvn-autocomplete>` tự quản lý `AbortController` bên trong nên không cần tự truyền; chỉ cần đến nó khi gọi thẳng `client.autocomplete()`.
 
 Lưu ý về thứ tự toạ độ: `near` là `[lat, lng]` (**vĩ độ trước**, đúng như tham số `near` của API), còn `bbox` là `[minLng, minLat, maxLng, maxLat]` và `center` của bản đồ là `[lng, lat]`. Tham số `undefined` bị bỏ khỏi URL, nên client không tự áp mặc định nào — mặc định do máy chủ quyết định, xem [REST API](/api/) mục 4.
 
-Với `directions`, `matrix` và `optimizedRoute`, tham số vào là `[lat, lng]` nhưng mọi toạ độ trong response là `[lng, lat]`; giải mã `Route.geometry` bằng `decodePolyline6`.
+Với `directions`, `matrix`, `optimizedRoute` và `fleetPlan`, tham số vào là `[lat, lng]` nhưng mọi toạ độ trong response là `[lng, lat]`; giải mã `Route.geometry` bằng `decodePolyline6`.
+
+Kế hoạch đội xe vẽ bằng `map.routes.showFleet(plan)` trên cả web lẫn React Native: mỗi xe một màu theo bảng `FLEET_COLORS` (5 màu phân biệt được với người mù màu), marker màu xe tại từng đơn, bấm tuyến phát `routeClick` với chỉ số xe, `map.routes.setActive(k)` làm mờ các xe khác. `showFleet` và `show` loại trừ nhau: gọi cái này là xoá cái kia.
 
 ### MapsLibVNError
 

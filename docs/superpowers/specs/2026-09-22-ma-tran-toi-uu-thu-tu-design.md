@@ -444,7 +444,7 @@ Bước 4→5→6 là "cờ tính năng" tự nhiên: không cần biến môi t
 
 ## 12. Ngoài phạm vi và đường nâng cấp đã dự trù
 
-- **Tầng 3 — tối ưu đội xe (VRP)**: khi có khách thật đòi và máy chủ mạnh hơn. Đường đi dự kiến: container VROOM (dùng Valhalla làm nền ma trận) trong `infra/server/compose.yml`, endpoint `POST /v1/fleet-plan` (đây là ca đáng dùng POST vì body có xe/đơn/khung giờ), spec riêng, nhóm quota riêng. `CHUA_CO` giữ mục "tối ưu đội xe nhiều xe" tới lúc đó.
+- **Tầng 3 — tối ưu đội xe (VRP)**: khi có khách thật đòi và máy chủ mạnh hơn. Đường đi dự kiến: container VROOM (dùng Valhalla làm nền ma trận) trong `infra/server/compose.yml`, endpoint `POST /v1/fleet-plan` (đây là ca đáng dùng POST vì body có xe/đơn/khung giờ), spec riêng, nhóm quota riêng. `CHUA_CO` giữ mục "tối ưu đội xe nhiều xe" tới lúc đó. → **Đã làm 23/09/2026**: spec `2026-09-23-toi-uu-doi-xe-design.md`, endpoint `POST /v1/fleet-plan`, container VROOM.
 - **Tính lượt theo cặp**: thêm tham số `units` cho `QuotaObject.reserve()` hoặc nhóm quota `matrix` riêng — làm khi số liệu Analytics cho thấy ma trận chiếm phần đáng kể chi phí máy chủ.
 - **Open-end TSP**: không có trong Valhalla; nếu cần, tính bằng ma trận N×N rồi giải TSP nhỏ ngay trong Worker (N ≤ 12 đủ rẻ) — để sau.
 - **`snapped` cho ma trận**: Valhalla đã trả toạ độ bám; thêm trường khi có người dùng cần phát hiện điểm bám xa.

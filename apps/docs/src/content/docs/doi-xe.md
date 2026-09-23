@@ -1,20 +1,21 @@
 ---
 title: Giao hàng & đội xe
-description: Chọn tài xế gần nhất bằng ma trận khoảng cách, sắp thứ tự giao cho một chuyến, vẽ tuyến và dẫn đường — trên web và React Native.
+description: Chọn tài xế gần nhất bằng ma trận khoảng cách, sắp thứ tự giao cho một chuyến, chia đơn cho cả đội xe, vẽ tuyến và dẫn đường — trên web và React Native.
 ---
 
-Hai endpoint cho bài toán giao hàng, gọi xe, kỹ thuật viên đi hiện trường:
+Ba endpoint cho bài toán giao hàng, gọi xe, kỹ thuật viên đi hiện trường:
 
 | Bạn cần | Dùng | Trả về |
 |---|---|---|
 | Ai gần nhất? Kho nào gần đơn nhất? Xếp hạng theo thời gian đi thật | [`client.matrix()`](/api/#get-v1matrix) | Bảng thời gian và quãng đường N điểm đi × M điểm đến, **không có tuyến** |
 | Một xe ghé nhiều điểm, đi theo thứ tự nào cho nhanh nhất? | [`client.optimizedRoute()`](/api/#get-v1optimized-route) | Thứ tự ghé tối ưu **kèm tuyến đầy đủ** để vẽ và dẫn đường |
+| Nhiều xe: đơn nào giao xe nào, ghé theo thứ tự nào, mấy giờ tới? | [`client.fleetPlan()`](/api/#post-v1fleet-plan) | Đơn chia cho từng xe, thứ tự ghé, giờ đến ước tính, đơn không xếp được, **kèm tuyến đầy đủ của từng xe** |
 
 Cả hai tính theo mạng đường OpenStreetMap thật cho xe máy, ô tô, đi bộ, **không** phải đường chim
-bay. Mỗi request tính **một lượt** Chỉ đường, dù ma trận có 4 hay 50 cặp.
+bay. Mỗi request tính **một lượt** Chỉ đường, dù ma trận có 4 hay 50 cặp, hay đội xe có 1 hay 5 xe.
 
 Muốn thử ngay không cần code: mở [Playground → Đội xe](/playground#doi-xe), bấm "Nạp mẫu Quận 1"
-rồi bấm "Tối ưu" hoặc "Tính ma trận".
+rồi bấm "Tối ưu", "Chia đơn" hoặc "Tính ma trận".
 
 ## 1. Chọn tài xế gần nhất
 
@@ -94,7 +95,61 @@ Khi dẫn đường, SDK đọc câu "Đến nơi" ở từng điểm dừng r�
 SDK tự gọi lại `directions` qua các điểm còn lại **theo thứ tự đã tối ưu**, không sắp lại —
 `/v1/directions` nhận tới 10 điểm via, bằng trần điểm dừng, nên chuyến cỡ nào cũng tính lại được.
 
-## 3. React Native
+## 3. Chia đơn cho cả đội
+
+Sáng có 12 đơn và 2 shipper cùng xuất phát từ kho. Gửi cả đội và cả lô đơn trong **một request**;
+máy chủ tự chia đơn, sắp thứ tự ghé cho từng xe và trả **tuyến đầy đủ của từng xe**:
+
+```ts
+const depot: [number, number] = [10.7725, 106.698];
+const shift: [string, string] = ['2026-09-24T08:00:00+07:00', '2026-09-24T12:00:00+07:00'];
+
+const plan = await client.fleetPlan({
+  mode: 'motorbike',
+  vehicles: [
+    { id: 'xe-1', start: depot, capacity: 20, time_window: shift },
+    { id: 'xe-2', start: depot, capacity: 20, time_window: shift },
+  ],
+  jobs: orders.map((o) => ({
+    id: o.code,
+    location: o.latLng, // [lat, lng]
+    demand: o.parcels, // khối lượng, cùng đơn vị với capacity
+    service_s: 300, // dừng 5 phút mỗi điểm
+    ...(o.slot ? { time_windows: [o.slot] } : {}), // ['2026-09-24T09:00:00+07:00', '2026-09-24T10:00:00+07:00']
+  })),
+});
+
+for (const v of plan.vehicles) {
+  console.log(v.vehicle, v.jobs); // ['don-7', 'don-2', …] theo thứ tự ghé; [] = xe nghỉ
+  for (const s of v.stops) console.log(s.job, s.arrival_at, s.waiting_s); // giờ đến ước tính, giây chờ
+}
+console.log(plan.unassigned); // [{ id: 'don-9' }] — hết chỗ, quá sức chứa hoặc khung giờ không thoả
+
+map.routes.showFleet(plan); // K xe K màu (FLEET_COLORS)
+map.on('routeClick', ({ index }) => map.routes.setActive(index)); // bấm tuyến → làm mờ xe khác
+```
+
+Mỗi `plan.vehicles[k]` **là** một `DirectionsResponse` cộng `vehicle`, `jobs`, `stops`, `load`,
+`finish_s`, nên app tài xế dùng đúng mã của [Dẫn đường](/dan-duong/):
+`map.routes.show(plan.vehicles[k])` và `map.navigation.start({ response: plan.vehicles[k] })`.
+
+Ba điều cần biết trước khi tin con số:
+
+- **Hai chế độ thời gian.** Không có khung giờ nào thì `stops[].arrival_s` là giây kể từ lúc xe rời
+  `start`. Có khung giờ thì **mọi xe** phải có `time_window` (giờ làm), mốc giờ viết ISO 8601 **kèm múi
+  giờ** (`+07:00`), và response có thêm `departure_at`, `arrival_at`, `finish_at` cùng múi.
+  `departure_at` là giờ xuất phát bộ giải chọn, có thể muộn hơn đầu ca để khỏi phải chờ khách.
+- **Giờ đến tính trên ma trận, tuyến vẽ tính bằng chỉ đường.** Hai con số có thể lệch vài phần trăm;
+  `stops` là lịch, `routes[0].legs` là tuyến.
+- **`end` bỏ trống là về lại `start`, `end: 'open'` là kết thúc ở đơn cuối.** Sức chứa là tất cả hoặc
+  không: một xe có `capacity` thì mọi xe phải có; `demand` mặc định 0. `max_jobs` (mặc định 10) giới hạn
+  số đơn mỗi xe; `priority` 0–100 quyết định đơn nào được xếp trước khi không đủ chỗ.
+
+Một điểm không tới được bằng mạng đường thì cả request trả `404 no_route`, thông điệp gọi tên đơn.
+Soát hết điểm hỏng trước bằng `client.matrix({ sources: [depot], targets: jobs })`: ô `null` là điểm
+cần sửa.
+
+## 4. React Native
 
 Không cần cài thêm gì: `@mapslibvn/react-native` đã có sẵn cả hai hàm qua `useMap().places`, và
 `routes`/`navigation` nhận thẳng kết quả tối ưu.
@@ -127,25 +182,31 @@ export default function Screen() {
 }
 ```
 
+Chia đơn cho cả đội cũng chỉ là hai dòng: `const plan = await map.places.fleetPlan({ … })` rồi
+`map.routes.showFleet(plan)`. Thêm `onRouteClick={(index) => map.routes.setActive(index)}` vào
+`<MapsLibVNMap>` để bấm tuyến chọn xe; tài xế dẫn đường một xe bằng
+`map.navigation.start({ response: plan.vehicles[k] })`.
+
 Ngoài `<MapsLibVNMap>` (ví dụ trong màn danh sách đơn), tạo client riêng bằng `createClient` như mục 1.
 SDK không có sẵn giao diện danh sách đơn hay bảng ma trận vì mỗi app một kiểu: bạn tự vẽ từ
 `order`, `legs`, `durations_s`.
 
-## 4. Giới hạn
+## 5. Giới hạn
 
 | | Trần mỗi request | Ghi chú |
 |---|---|---|
 | Ma trận | `sources × targets ≤ 50` cặp, **mỗi bên ≤ 25 điểm** | Ví dụ 7 × 7, 10 × 5, 25 × 2, 1 × 25 |
 | Tối ưu thứ tự | **1–10 điểm dừng**, cộng `from` và `to` tuỳ chọn | Tối đa 12 điểm một chuyến (11 nếu quay về kho) |
-| Nhịp | **6 request/phút/khoá**, gộp chung cả hai endpoint | Vượt → `429 rate_limit_exceeded`, header `retry-after` |
-| Khoảng cách | Xe máy 200 km, ô tô 400 km, đi bộ 50 km (đường chim bay) | Mọi điểm trong Việt Nam |
+| Đội xe | **1–5 xe, 1–30 đơn, tối đa 10 đơn mỗi xe**; 1–3 khung giờ mỗi đơn, dừng tối đa 2 giờ | Sức chứa tất cả hoặc không; có khung giờ thì mọi xe cần `time_window`; body tối đa 64 KB |
+| Nhịp | **6 request/phút/khoá** cho ma trận và tối ưu cộng chung; **2 request/phút/khoá** cho đội xe | Vượt → `429 rate_limit_exceeded`, header `retry-after` |
+| Khoảng cách | Xe máy 200 km, ô tô 400 km, đi bộ 50 km (đường chim bay) | Mọi điểm trong Việt Nam; với đội xe là cặp điểm xa nhất |
 | Hạn mức | **1 lượt** nhóm Chỉ đường mỗi request | Request sai tham số trả `400`, **không tính lượt** |
 
 Kết quả được cache 60 giây theo đúng bộ toạ độ và phương tiện, nên gọi lại y hệt trong một phút sẽ
 nhanh hơn. Hai con số trần là kết quả đo tải trên máy chủ hiện tại, không phải giới hạn của thuật
 toán; cần cỡ lớn hơn thì [liên hệ](https://mapslibvn-site.pages.dev/lien-he/).
 
-## 5. Khi cần vượt trần
+## 6. Khi cần vượt trần
 
 **Ma trận lớn hơn 50 cặp:** chia `sources` thành lô rồi gọi tuần tự, cách nhau ít nhất 10 giây
 để không chạm nhịp 6 request/phút:
@@ -175,17 +236,17 @@ async function bigMatrix(sources, targets, mode) {
 }
 ```
 
-**Chuyến có hơn 10 điểm dừng:** tách thành nhiều chuyến nhỏ theo khu vực (quận, phường, hoặc
-nhóm theo hướng từ kho), mỗi chuyến tối đa 10 điểm, rồi tối ưu từng chuyến. Cách này cho kết quả
-tốt trên thực tế nhưng **không đảm bảo** ngắn nhất toàn cục như một bộ giải chia đơn cho nhiều xe.
+**Hơn 10 đơn, hoặc nhiều xe:** dùng chia đơn ở mục 3. Tối đa 30 đơn và 5 xe một lượt; bộ giải nhìn
+toàn cục nên tốt hơn tự chia theo khu vực. Hơn 30 đơn thì chia lô theo khu vực (quận, hoặc nhóm theo
+hướng từ kho) rồi gọi nhiều lượt cách nhau 30 giây, đúng nhịp 2 request/phút.
 
-## 6. Chưa có
+## 7. Chưa có
 
 Nói thẳng để bạn quyết định sớm:
 
-- **Tối ưu nhiều xe cùng lúc** (chia đơn cho cả đội) — chưa có; mỗi request là một xe.
-- Sức chứa xe, khung giờ khách hẹn, thời gian dừng mỗi điểm — chưa có.
-- Kết thúc ở một điểm bất kỳ do thuật toán chọn (open-end) — phải chỉ định `to` hoặc quay về `from`.
+- Lấy hàng ở A giao ở B trong cùng chuyến (pickup & delivery ghép đôi) — mỗi đơn hiện là một điểm giao.
+- Kỹ năng tài xế (đơn chỉ xe X mới chở được), nghỉ giữa ca, nhiều loại xe trong một request — một `mode` cho cả đội.
+- Kết thúc mở cho **tối ưu thứ tự một xe** — dùng chia đơn với một xe và `end: 'open'`.
 - Giao thông thời gian thực — thời gian tính trên hình học mạng đường và tốc độ theo loại đường.
 - Theo dõi vị trí đội xe trên máy chủ — app của bạn tự gửi và lưu vị trí tài xế.
 
