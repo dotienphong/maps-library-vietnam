@@ -1,0 +1,4 @@
+# Trang đã gỡ 23/09/2026 — PHONG không công bố hướng dẫn tự host. Redirect để Cloudflare không
+# tiếp tục phục vụ bản cũ còn trong cache edge (s-maxage 7 ngày) và để link cũ không rơi vào 404.
+/tu-host/ / 301
+/tu-host / 301
