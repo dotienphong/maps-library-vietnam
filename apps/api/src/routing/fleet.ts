@@ -1,7 +1,14 @@
-import type { DirectionsLang, TravelMode } from '@mapslibvn/core';
+import type {
+  DirectionsLang,
+  DirectionsResponse,
+  FleetPlanResponse,
+  FleetStop,
+  FleetVehiclePlan,
+  TravelMode,
+} from '@mapslibvn/core';
 import { ApiError } from '../errors';
 import type { LatLng } from '../params';
-import { type ParsedTime, parseIsoWithOffset } from './fleet-time';
+import { formatIsoAt, type ParsedTime, parseIsoWithOffset } from './fleet-time';
 import { OPTIMIZED_MAX_STOPS } from './optimized';
 import {
   assertInVietnam,
@@ -11,8 +18,9 @@ import {
   oneOf,
   TRAVEL_MODES,
 } from './params';
-import { VALHALLA_COSTING } from './valhalla';
-import type { VroomJob, VroomRequest, VroomVehicle } from './vroom';
+import { ROUTING_ATTRIBUTION, translateDirections } from './translate';
+import { VALHALLA_COSTING, VALHALLA_LANGUAGE, type ValhallaRouteResponse } from './valhalla';
+import type { VroomJob, VroomRequest, VroomResponse, VroomRoute, VroomVehicle } from './vroom';
 
 /**
  * Trần cỡ (spec 2026-09-23 mục 4.9): 5 xe + 30 đơn ≤ 40 điểm → ma trận Valhalla ≤ 1.600 cặp, dưới
@@ -320,4 +328,235 @@ export async function fleetCacheUrl(p: FleetParams): Promise<string> {
   const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(canonical));
   const hex = [...new Uint8Array(digest)].map((b) => b.toString(16).padStart(2, '0')).join('');
   return `https://cache.mapslibvn/fleet-plan?v=1&h=${hex}`;
+}
+
+const ENGINE_NAME = 'vroom+valhalla';
+const invalidUpstream = () =>
+  new ApiError(503, 'upstream_unavailable', 'Bộ giải đội xe trả dữ liệu không hợp lệ');
+const isIndex = (v: unknown, n: number): v is number =>
+  typeof v === 'number' && Number.isInteger(v) && v >= 0 && v < n;
+
+/** Khung kế hoạch từ VROOM, trước khi có tuyến Valhalla. */
+export interface FleetVehicleSkeleton {
+  index: number;
+  /** Chỉ số đơn theo thứ tự ghé. */
+  jobIndexes: number[];
+  stops: FleetStop[];
+  /** Giây: 0 ở chế độ tương đối, UNIX ở chế độ tuyệt đối (start.arrival do VROOM chọn). */
+  departureUnix: number;
+  finishS: number;
+  load: number;
+}
+export interface FleetSkeleton {
+  vehicles: FleetVehicleSkeleton[];
+  unassigned: number[];
+  serviceS: number;
+  waitingS: number;
+}
+
+/**
+ * VROOM → khung kế hoạch. Không đoán khi dữ liệu lệch: vehicle/id ngoài khoảng, đơn gán hai lần,
+ * tổng đơn không khớp, kiểu step ta không gửi (pickup/delivery/break) → 503, không trả kế hoạch sai.
+ */
+export function translateFleet(json: VroomResponse, p: FleetParams): FleetSkeleton {
+  const routes = json.routes;
+  if (!Array.isArray(routes)) throw invalidUpstream();
+  const nXe = p.vehicles.length;
+  const nDon = p.jobs.length;
+  const assigned = new Set<number>();
+  const byVehicle = new Map<number, VroomRoute>();
+  for (const route of routes) {
+    if (
+      !isIndex(route?.vehicle, nXe) ||
+      byVehicle.has(route.vehicle) ||
+      !Array.isArray(route.steps)
+    ) {
+      throw invalidUpstream();
+    }
+    byVehicle.set(route.vehicle, route);
+  }
+  const vehicles: FleetVehicleSkeleton[] = p.vehicles.map((v, index) => {
+    const route = byVehicle.get(index);
+    const offsetMin = v.timeWindow ? v.timeWindow[0].offsetMin : 0;
+    if (!route) {
+      return {
+        index,
+        jobIndexes: [],
+        stops: [],
+        departureUnix: v.timeWindow ? v.timeWindow[0].unix : 0,
+        finishS: 0,
+        load: 0,
+      };
+    }
+    const first = route.steps[0];
+    if (!first || first.type !== 'start' || typeof first.arrival !== 'number') {
+      throw invalidUpstream();
+    }
+    const departure = first.arrival;
+    const jobIndexes: number[] = [];
+    const stops: FleetStop[] = [];
+    let load = 0;
+    let finish = 0;
+    for (const step of route.steps) {
+      if (typeof step.arrival !== 'number') throw invalidUpstream();
+      const waiting = step.waiting_time ?? 0;
+      const service = step.service ?? 0;
+      if (step.type === 'job') {
+        if (!isIndex(step.id, nDon) || assigned.has(step.id)) throw invalidUpstream();
+        const job = p.jobs[step.id];
+        if (!job) throw invalidUpstream();
+        assigned.add(step.id);
+        jobIndexes.push(step.id);
+        load += job.demand;
+        stops.push({
+          job: job.id,
+          arrival_s: step.arrival - departure,
+          ...(p.absoluteTime ? { arrival_at: formatIsoAt(step.arrival, offsetMin) } : {}),
+          waiting_s: waiting,
+          service_s: service,
+        });
+        finish = step.arrival + waiting + service - departure;
+      } else if (step.type === 'end') {
+        finish = step.arrival - departure;
+      } else if (step.type !== 'start') {
+        throw invalidUpstream();
+      }
+    }
+    if (jobIndexes.length > v.maxJobs) throw invalidUpstream();
+    return { index, jobIndexes, stops, departureUnix: departure, finishS: finish, load };
+  });
+  const unassigned: number[] = [];
+  for (const u of json.unassigned ?? []) {
+    if (!isIndex(u?.id, nDon) || assigned.has(u.id) || unassigned.includes(u.id)) {
+      throw invalidUpstream();
+    }
+    unassigned.push(u.id);
+  }
+  if (assigned.size + unassigned.length !== nDon) throw invalidUpstream();
+  return {
+    vehicles,
+    unassigned,
+    serviceS: json.summary?.service ?? 0,
+    waitingS: json.summary?.waiting_time ?? 0,
+  };
+}
+
+/** Body `POST /route` cho một xe: start, đơn theo thứ tự VROOM, end (bỏ khi open-end). */
+export function fleetRouteBody(p: FleetParams, v: FleetVehicleSkeleton, requestId: string) {
+  const xe = p.vehicles[v.index];
+  if (!xe) throw invalidUpstream();
+  const points: LatLng[] = [xe.start];
+  for (const i of v.jobIndexes) {
+    const job = p.jobs[i];
+    if (!job) throw invalidUpstream();
+    points.push(job.location);
+  }
+  if (xe.end) points.push(xe.end);
+  return {
+    locations: points.map(({ lat, lng }) => ({ lat, lon: lng, type: 'break' })),
+    costing: VALHALLA_COSTING[p.mode],
+    directions_options: { language: VALHALLA_LANGUAGE[p.lang], units: 'kilometers' },
+    id: requestId,
+  };
+}
+
+/**
+ * Ghép khung VROOM với tuyến Valhalla từng xe thành FleetPlanResponse. `routes[k]` là tuyến của xe k
+ * (null khi xe rỗi). Số leg phải bằng số đơn (+1 nếu có end) — lệch là dữ liệu hỏng → 503.
+ */
+export function assembleFleetPlan(
+  p: FleetParams,
+  skel: FleetSkeleton,
+  routes: readonly (ValhallaRouteResponse | null)[],
+  graph: string | null,
+): FleetPlanResponse {
+  let distance = 0;
+  let duration = 0;
+  let used = 0;
+  let assigned = 0;
+  const vehicles: FleetVehiclePlan[] = skel.vehicles.map((v) => {
+    const xe = p.vehicles[v.index];
+    if (!xe) throw invalidUpstream();
+    const offsetMin = xe.timeWindow ? xe.timeWindow[0].offsetMin : 0;
+    const jobs = v.jobIndexes.map((i) => {
+      const job = p.jobs[i];
+      if (!job) throw invalidUpstream();
+      return job.id;
+    });
+    let base: DirectionsResponse = {
+      routes: [],
+      waypoints: [],
+      attribution: ROUTING_ATTRIBUTION,
+      engine: { name: 'valhalla', graph },
+    };
+    if (jobs.length > 0) {
+      const json = routes[v.index];
+      if (!json) throw invalidUpstream();
+      base = translateDirections(json, p.mode, graph, p.lang);
+      const route = base.routes[0];
+      if (!route || route.legs.length !== jobs.length + (xe.end ? 1 : 0)) throw invalidUpstream();
+      distance += route.distance_m;
+      duration += route.duration_s;
+      used += 1;
+      assigned += jobs.length;
+    }
+    return {
+      ...base,
+      vehicle: xe.id,
+      jobs,
+      stops: v.stops,
+      load: v.load,
+      finish_s: v.finishS,
+      ...(p.absoluteTime && xe.timeWindow
+        ? {
+            departure_at: formatIsoAt(v.departureUnix, offsetMin),
+            finish_at: formatIsoAt(v.departureUnix + v.finishS, offsetMin),
+          }
+        : {}),
+    };
+  });
+  return {
+    mode: p.mode,
+    vehicles,
+    unassigned: skel.unassigned.map((i) => ({ id: p.jobs[i]?.id ?? String(i) })),
+    summary: {
+      vehicles_used: used,
+      jobs_assigned: assigned,
+      jobs_unassigned: skel.unassigned.length,
+      distance_m: distance,
+      duration_s: duration,
+      service_s: skel.serviceS,
+      waiting_s: skel.waitingS,
+    },
+    attribution: ROUTING_ATTRIBUTION,
+    engine: { name: ENGINE_NAME, graph },
+  };
+}
+
+/**
+ * VROOM báo "Unfound route(s) from location [lon,lat]" (VROOM 1.15 in 6 chữ số thập phân) — đối
+ * chiếu toạ độ với điểm đã gửi (đơn trước, xe sau) để gọi đúng tên; không khớp thì câu chung. Người
+ * gọi soát hết điểm hỏng bằng /v1/matrix 1×N (docs).
+ */
+export function noRouteMessage(p: FleetParams): (error: string) => string {
+  const named: { name: string; lng: number; lat: number }[] = [];
+  for (const j of p.jobs) {
+    named.push({ name: `đơn ${j.id}`, lng: j.location.lng, lat: j.location.lat });
+  }
+  for (const v of p.vehicles) {
+    named.push({ name: `xe ${v.id} (điểm xuất phát)`, lng: v.start.lng, lat: v.start.lat });
+    if (v.end) named.push({ name: `xe ${v.id} (điểm kết thúc)`, lng: v.end.lng, lat: v.end.lat });
+  }
+  return (error) => {
+    const names: string[] = [];
+    for (const m of error.matchAll(/\[\s*(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)\s*\]/g)) {
+      const lng = Number(m[1]);
+      const lat = Number(m[2]);
+      const hit = named.find((n) => Math.abs(n.lng - lng) < 1e-5 && Math.abs(n.lat - lat) < 1e-5);
+      if (hit && !names.includes(hit.name)) names.push(hit.name);
+    }
+    return names.length > 0
+      ? `Không tới được bằng mạng đường: ${names.join(', ')}`
+      : 'Có điểm không tới được bằng mạng đường';
+  };
 }

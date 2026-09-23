@@ -1,14 +1,22 @@
 import { describe, expect, it } from 'vitest';
 import { ApiError } from '../src/errors';
 import {
+  assembleFleetPlan,
   FLEET_MAX_JOBS,
   FLEET_MAX_JOBS_PER_VEHICLE,
   FLEET_MAX_VEHICLES,
   fleetCacheUrl,
+  fleetRouteBody,
   fleetVroomBody,
+  noRouteMessage,
   parseFleetBody,
+  translateFleet,
 } from '../src/routing/fleet';
 import { OPTIMIZED_MAX_STOPS } from '../src/routing/optimized';
+import type { ValhallaRouteResponse } from '../src/routing/valhalla';
+import type { VroomResponse } from '../src/routing/vroom';
+import routeFixture from './fixtures/valhalla/optimized-two-stops.json';
+import vroomFixture from './fixtures/vroom/two-vehicles.json';
 
 const DEPOT: [number, number] = [10.7725, 106.698]; // Chợ Bến Thành
 const HO_CON_RUA: [number, number] = [10.7826, 106.6958];
@@ -373,5 +381,288 @@ describe('fleetCacheUrl', () => {
     expect(b).toBe(a);
     expect(c).not.toBe(a);
     expect(d).not.toBe(a);
+  });
+});
+
+const route4 = routeFixture as unknown as ValhallaRouteResponse;
+/** Tuyến 3 điểm / 2 leg cho xe open-end 2 đơn: cắt leg và điểm cuối khỏi fixture 4 điểm. */
+const route3: ValhallaRouteResponse = {
+  trip: {
+    ...route4.trip,
+    legs: route4.trip.legs.slice(0, 2),
+    locations: route4.trip.locations.slice(0, 3),
+  },
+};
+const vroom = vroomFixture as unknown as VroomResponse;
+
+describe('translateFleet — chế độ tương đối', () => {
+  it('xe-1: đơn theo thứ tự ghé, arrival_s từ lúc xuất phát, finish_s tới end; xe-2 rỗi; đơn 3 unassigned', () => {
+    const p = parseFleetBody(BODY);
+    const skel = translateFleet(vroom, p);
+    expect(skel.vehicles).toHaveLength(2);
+    expect(skel.vehicles[0]).toEqual({
+      index: 0,
+      jobIndexes: [1, 0],
+      stops: [
+        { job: 'don-2', arrival_s: 300, waiting_s: 0, service_s: 120 },
+        { job: 'don-1', arrival_s: 700, waiting_s: 0, service_s: 120 },
+      ],
+      departureUnix: 0,
+      finishS: 1000,
+      load: 0,
+    });
+    expect(skel.vehicles[1]).toEqual({
+      index: 1,
+      jobIndexes: [],
+      stops: [],
+      departureUnix: 0,
+      finishS: 0,
+      load: 0,
+    });
+    expect(skel.unassigned).toEqual([2]);
+    expect(skel.serviceS).toBe(240);
+    expect(skel.waitingS).toBe(0);
+  });
+
+  it('không đoán khi dữ liệu lệch: vehicle lạ, đơn lạ, đơn gán hai lần, tổng đơn không khớp, step lạ → 503', () => {
+    const p = parseFleetBody(BODY);
+    const loi503 = (json: VroomResponse) => {
+      try {
+        translateFleet(json, p);
+        throw new Error('phải ném');
+      } catch (error) {
+        expect((error as ApiError).status).toBe(503);
+      }
+    };
+    const route = vroom.routes?.[0];
+    if (!route) throw new Error('fixture thiếu route');
+    loi503({ ...vroom, routes: [{ ...route, vehicle: 5 }] });
+    loi503({
+      ...vroom,
+      routes: [
+        { ...route, steps: route.steps.map((s) => (s.type === 'job' ? { ...s, id: 9 } : s)) },
+      ],
+    });
+    loi503({
+      ...vroom,
+      routes: [
+        { ...route, steps: route.steps.map((s) => (s.type === 'job' ? { ...s, id: 0 } : s)) },
+      ],
+    });
+    loi503({ ...vroom, unassigned: [] }); // 2 đơn gán + 0 unassigned ≠ 3
+    loi503({ ...vroom, unassigned: [{ id: 0 }, { id: 2 }] }); // đơn 0 vừa gán vừa unassigned
+    loi503({
+      ...vroom,
+      routes: [{ ...route, steps: [{ type: 'pickup', arrival: 0, duration: 0 }] }],
+    });
+    loi503({ code: 0, unassigned: [] }); // thiếu routes
+  });
+});
+
+describe('translateFleet — chế độ tuyệt đối', () => {
+  const T_DEP = Date.parse('2026-09-24T08:12:00+07:00') / 1000;
+  const absVroom: VroomResponse = {
+    code: 0,
+    summary: { cost: 1, routes: 1, unassigned: 0, service: 300, duration: 1380, waiting_time: 240 },
+    unassigned: [],
+    routes: [
+      {
+        vehicle: 0,
+        cost: 1,
+        service: 300,
+        duration: 1380,
+        waiting_time: 240,
+        steps: [
+          { type: 'start', arrival: T_DEP, duration: 0 },
+          { type: 'job', id: 1, arrival: T_DEP + 540, duration: 540, service: 0, waiting_time: 0 },
+          {
+            type: 'job',
+            id: 0,
+            arrival: T_DEP + 1620,
+            duration: 1380,
+            service: 300,
+            waiting_time: 240,
+          },
+          { type: 'end', arrival: T_DEP + 2700, duration: 1380 },
+        ],
+      },
+    ],
+  };
+
+  it('departure do VROOM chọn; arrival_at theo múi +07:00; load = tổng demand; xe-2 rỗi departure = đầu ca', () => {
+    const p = parseFleetBody(BODY_ABS);
+    const skel = translateFleet(absVroom, p);
+    expect(skel.vehicles[0]?.departureUnix).toBe(T_DEP);
+    expect(skel.vehicles[0]?.stops).toEqual([
+      {
+        job: 'don-2',
+        arrival_s: 540,
+        arrival_at: '2026-09-24T08:21:00+07:00',
+        waiting_s: 0,
+        service_s: 0,
+      },
+      {
+        job: 'don-1',
+        arrival_s: 1620,
+        arrival_at: '2026-09-24T08:39:00+07:00',
+        waiting_s: 240,
+        service_s: 300,
+      },
+    ]);
+    expect(skel.vehicles[0]?.finishS).toBe(2700);
+    expect(skel.vehicles[0]?.load).toBe(5);
+    expect(skel.vehicles[1]?.departureUnix).toBe(Date.parse('2026-09-24T08:00:00+07:00') / 1000);
+  });
+
+  it('open-end không có step end: finish = đơn cuối + chờ + dừng', () => {
+    const p = parseFleetBody(BODY_ABS);
+    const route = absVroom.routes?.[0];
+    if (!route) throw new Error('thiếu route');
+    const openVroom: VroomResponse = {
+      ...absVroom,
+      routes: [{ ...route, vehicle: 1, steps: route.steps.slice(0, 3) }],
+    };
+    const skel = translateFleet(openVroom, p);
+    expect(skel.vehicles[1]?.finishS).toBe(1620 + 240 + 300);
+    expect(skel.vehicles[0]?.jobIndexes).toEqual([]);
+  });
+});
+
+describe('fleetRouteBody', () => {
+  it('start, đơn theo thứ tự ghé, end (bỏ khi open-end); costing và ngôn ngữ theo params', () => {
+    const p = parseFleetBody({ ...BODY, lang: 'en' });
+    const skel = translateFleet(vroom, p);
+    const xe1 = skel.vehicles[0];
+    if (!xe1) throw new Error('thiếu xe');
+    expect(fleetRouteBody(p, xe1, 'req-1')).toEqual({
+      locations: [
+        { lat: 10.7725, lon: 106.698, type: 'break' },
+        { lat: 10.7686, lon: 106.7069, type: 'break' },
+        { lat: 10.7826, lon: 106.6958, type: 'break' },
+        { lat: 10.7725, lon: 106.698, type: 'break' },
+      ],
+      costing: 'motor_scooter',
+      directions_options: { language: 'en-US', units: 'kilometers' },
+      id: 'req-1',
+    });
+    const open = fleetRouteBody(p, { ...xe1, index: 1 }, 'req-2');
+    expect(open.locations).toHaveLength(3);
+  });
+});
+
+describe('assembleFleetPlan', () => {
+  it('xe có đơn = DirectionsResponse + vehicle/jobs/stops; xe rỗi có mặt với routes rỗng; summary; unassigned theo id', () => {
+    const p = parseFleetBody(BODY);
+    const skel = translateFleet(vroom, p);
+    const plan = assembleFleetPlan(p, skel, [route4, null], '2026-09-17');
+    expect(plan.mode).toBe('motorbike');
+    expect(plan.vehicles).toHaveLength(2);
+    const xe1 = plan.vehicles[0];
+    expect(xe1?.vehicle).toBe('xe-1');
+    expect(xe1?.jobs).toEqual(['don-2', 'don-1']);
+    expect(xe1?.routes).toHaveLength(1);
+    expect(xe1?.routes[0]?.legs).toHaveLength(3);
+    expect(xe1?.waypoints).toHaveLength(4);
+    expect(xe1?.stops).toHaveLength(2);
+    expect(xe1?.finish_s).toBe(1000);
+    expect(xe1?.load).toBe(0);
+    expect(xe1).not.toHaveProperty('departure_at');
+    expect(xe1?.attribution).toBe('© OpenStreetMap contributors');
+    expect(plan.vehicles[1]).toMatchObject({
+      vehicle: 'xe-2',
+      jobs: [],
+      stops: [],
+      routes: [],
+      waypoints: [],
+      load: 0,
+      finish_s: 0,
+    });
+    expect(plan.unassigned).toEqual([{ id: 'don-3' }]);
+    expect(plan.summary).toEqual({
+      vehicles_used: 1,
+      jobs_assigned: 2,
+      jobs_unassigned: 1,
+      distance_m: xe1?.routes[0]?.distance_m,
+      duration_s: xe1?.routes[0]?.duration_s,
+      service_s: 240,
+      waiting_s: 0,
+    });
+    expect(plan.engine).toEqual({ name: 'vroom+valhalla', graph: '2026-09-17' });
+  });
+
+  it('chế độ tuyệt đối: departure_at/finish_at theo múi giờ của xe; open-end dùng tuyến 2 leg', () => {
+    const p = parseFleetBody(BODY_ABS);
+    const T_DEP = Date.parse('2026-09-24T08:12:00+07:00') / 1000;
+    const skel = translateFleet(
+      {
+        code: 0,
+        summary: {
+          cost: 1,
+          routes: 1,
+          unassigned: 0,
+          service: 300,
+          duration: 900,
+          waiting_time: 0,
+        },
+        unassigned: [],
+        routes: [
+          {
+            vehicle: 1,
+            cost: 1,
+            service: 300,
+            duration: 900,
+            waiting_time: 0,
+            steps: [
+              { type: 'start', arrival: T_DEP, duration: 0 },
+              { type: 'job', id: 1, arrival: T_DEP + 400, duration: 400, service: 0 },
+              { type: 'job', id: 0, arrival: T_DEP + 900, duration: 900, service: 300 },
+            ],
+          },
+        ],
+      },
+      p,
+    );
+    const plan = assembleFleetPlan(p, skel, [null, route3], null);
+    const xe2 = plan.vehicles[1];
+    expect(xe2?.departure_at).toBe('2026-09-24T08:12:00+07:00');
+    expect(xe2?.finish_at).toBe('2026-09-24T08:32:00+07:00');
+    expect(xe2?.routes[0]?.legs).toHaveLength(2);
+    expect(xe2?.waypoints).toHaveLength(3);
+    expect(plan.summary.vehicles_used).toBe(1);
+    expect(plan.vehicles[0]?.departure_at).toBe('2026-09-24T08:00:00+07:00');
+  });
+
+  it('thiếu tuyến cho xe có đơn hoặc số leg lệch số đơn → 503', () => {
+    const p = parseFleetBody(BODY);
+    const skel = translateFleet(vroom, p);
+    const cases: (ValhallaRouteResponse | null)[][] = [
+      [null, null],
+      [route3, null],
+    ];
+    for (const routes of cases) {
+      try {
+        assembleFleetPlan(p, skel, routes, null);
+        throw new Error('phải ném');
+      } catch (error) {
+        expect((error as ApiError).status).toBe(503);
+      }
+    }
+  });
+});
+
+describe('noRouteMessage', () => {
+  it('đối chiếu [lon, lat] trong thông điệp VROOM với đơn/xe đã gửi; không khớp → câu chung', () => {
+    const ten = noRouteMessage(parseFleetBody(BODY));
+    // Định dạng thật của VROOM 1.15: 6 chữ số thập phân (đo 23/09/2026).
+    expect(ten('Unfound route(s) from location [106.706900,10.768600]')).toBe(
+      'Không tới được bằng mạng đường: đơn don-2',
+    );
+    expect(
+      ten('Unfound route(s) from location [106.7069,10.7686] to location [106.6958, 10.7826]'),
+    ).toBe('Không tới được bằng mạng đường: đơn don-2, đơn don-1');
+    expect(ten('Unfound route(s) from location [106.698,10.7725] to location [1,2]')).toBe(
+      'Không tới được bằng mạng đường: xe xe-1 (điểm xuất phát)',
+    );
+    expect(ten('Unfound route(s)')).toBe('Có điểm không tới được bằng mạng đường');
   });
 });
