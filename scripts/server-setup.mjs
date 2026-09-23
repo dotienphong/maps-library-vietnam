@@ -240,6 +240,11 @@ for (const graphStep of serverRoutingSetupSteps(routingStatus).slice(1)) {
   }
 }
 
+// Bộ giải đội xe (spec 2026-09-23): không phụ thuộc graph nên dựng luôn; Worker chỉ tới được sau khi
+// có luật đường dẫn /fleet/ trên hostname maps-route (bước 9 checklist).
+run('docker', [...compose, 'up', '-d', 'vroom']);
+services.push('vroom');
+
 console.log(`
 ✔ Máy chủ đã dựng (${services.join(', ')}).
 
@@ -254,4 +259,7 @@ Việc tay trên Cloudflare — chi tiết từng màn hình trong infra/server/
      Access → Applications → Self-hosted "mapslibvn-route" domain maps-route.<domain>, Policy Service Auth = token "routing".
   7. Rồi mới: Tunnel "mapslibvn-db" → Public Hostname thêm maps-route.<domain> → Service HTTP → URL valhalla:8002.
   8. Máy dev: wrangler secret put ROUTING_ACCESS_CLIENT_ID --env production (và …_SECRET); ROUTING_BASE production đã có trong wrangler.toml.
+  9. Đội xe (spec 2026-09-23): Tunnel "mapslibvn-db" → Public Hostname → Add: subdomain maps-route, domain <domain>,
+     Path ^/fleet/, Service HTTP → URL vroom:3000 → kéo luật này LÊN TRÊN luật maps-route cũ. Cùng Access application
+     "mapslibvn-route", không cần token mới. Kiểm: curl kèm header Access …/fleet/health → 200; FLEET_BASE production đã có trong wrangler.toml.
 `);

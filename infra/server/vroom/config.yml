@@ -1,0 +1,30 @@
+# vroom-express production (spec 2026-09-23 mục 5.1). Bản dev ở infra/dev/vroom/config.yml (threads 1).
+# Entrypoint image chép file này vào /vroom-express/config.yml và touch access.log cạnh nó — mount THƯ MỤC.
+# access.log nằm trong thư mục repo trên máy chủ nhưng đã bị .gitignore (*.log) bỏ qua.
+cliArgs:
+  geometry: false   # Worker tự lấy tuyến từng xe bằng /route (có câu chỉ dẫn); VROOM chỉ giải
+  planmode: false
+  threads: 2        # đo lại theo mục 8.3 của spec nếu chèn directions của khách khác
+  explore: 5
+  limit: '256kb'
+  logdir: '/conf'
+  logsize: '20M'
+  maxlocations: 40  # lớp chặn thứ hai sau Worker: 5 xe + 30 đơn ≤ 40 điểm
+  maxvehicles: 5
+  override: []      # request không đổi được cờ nào (không -g, không -c)
+  path: ''
+  port: 3000
+  router: 'valhalla'
+  timeout: 25000
+  baseurl: '/fleet/'
+routingServers:
+  valhalla:
+    auto:
+      host: 'valhalla'
+      port: '8002'
+    motor_scooter:
+      host: 'valhalla'
+      port: '8002'
+    pedestrian:
+      host: 'valhalla'
+      port: '8002'

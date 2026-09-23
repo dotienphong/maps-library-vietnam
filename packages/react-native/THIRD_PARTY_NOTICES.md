@@ -419,5 +419,5 @@ Các gói này là peer dependency **tuỳ chọn**: chỉ app import `@mapslibv
 
 Planetiler (Apache-2.0), tippecanoe (BSD-2-Clause), osmium-tool (GPL-3.0 — dùng như công cụ
 dòng lệnh, không liên kết mã), pyosmium (BSD-2-Clause), DuckDB (MIT), PostgreSQL
-(PostgreSQL License), PostGIS (GPL-2.0 — chạy như dịch vụ), Valhalla (MIT — engine chỉ đường, chạy như dịch vụ riêng trên máy chủ, không liên kết mã), Hono (MIT), cloudflared
+(PostgreSQL License), PostGIS (GPL-2.0 — chạy như dịch vụ), Valhalla (MIT — engine chỉ đường, chạy như dịch vụ riêng trên máy chủ, không liên kết mã), VROOM và vroom-express (BSD-2-Clause — bộ giải đội xe, chạy như dịch vụ riêng trên máy chủ, không liên kết mã), Hono (MIT), cloudflared
 (Apache-2.0), Astro Starlight (MIT), Vitest (MIT), Playwright (Apache-2.0).

@@ -112,6 +112,26 @@ services:
       start_period: 3600s
     # KHÔNG có `ports:` — chỉ cloudflared nối tới valhalla:8002 trong mạng compose (spec A mục 4.1).
 
+  vroom:
+    # Bộ giải đội xe (spec 2026-09-23). Ghim digest manifest list v1.15.0 — amd64 (Ubuntu, Windows/WSL2)
+    # và arm64 (MacBook), `docker buildx imagetools inspect` 23/09/2026. Lấy ma trận từ valhalla:8002
+    # trong mạng compose; KHÔNG depends_on có điều kiện vì healthcheck Valhalla có start_period một giờ
+    # và VROOM chỉ nối Valhalla khi có request.
+    image: ghcr.io/vroom-project/vroom-docker:v1.15.0@sha256:247d5683d6745c755d718a156d16b16aac80baccc276a003a68b986c13883b08
+    restart: unless-stopped
+    environment:
+      VROOM_ROUTER: valhalla
+    volumes:
+      # Mount THƯ MỤC: entrypoint chép config.yml vào /vroom-express và touch access.log trong /conf.
+      - ./vroom:/conf
+    healthcheck:
+      # baseurl là /fleet/ nên HEALTHCHECK mặc định của image (/health) sẽ 404 — ghi đè ở đây.
+      test: ["CMD-SHELL", "curl -fsS http://localhost:3000/fleet/health >/dev/null"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    # KHÔNG có `ports:` — chỉ cloudflared nối tới vroom:3000 qua luật đường dẫn /fleet/ của hostname maps-route.
+
 volumes:
   pgdata:
   pgcerts:
