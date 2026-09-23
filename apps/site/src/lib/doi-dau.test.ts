@@ -41,13 +41,8 @@ describe('bảng đối đầu', () => {
     });
   }
 
-  it('CHUA_CO không còn ma trận và tối ưu một xe, nhưng vẫn giữ đội xe nhiều xe (spec 22/09/2026)', () => {
-    expect(CHUA_CO).toEqual([
-      'tối ưu đội xe nhiều xe',
-      'giao thông thời gian thực',
-      'Street View',
-      'ảnh vệ tinh',
-    ]);
+  it('CHUA_CO không còn tối ưu đội xe nhiều xe (spec 23/09/2026); còn ba mục thật sự chưa có', () => {
+    expect(CHUA_CO).toEqual(['giao thông thời gian thực', 'Street View', 'ảnh vệ tinh']);
   });
 
   it('Google: ma trận tách hai hàng — CÓ tính năng thì ta thắng, CỠ VÀ NHỊP thì họ thắng', () => {
@@ -63,18 +58,23 @@ describe('bảng đối đầu', () => {
     expect(gioiHan?.ta).toMatch(/50 cặp/);
     expect(gioiHan?.ta).toMatch(/10 điểm dừng/);
     expect(gioiHan?.ta).toMatch(/6 lượt mỗi phút/);
+    expect(gioiHan?.ta).toMatch(/2 lượt mỗi phút/);
 
-    const doiXe = bang.find((h) => h.tieuChi === 'Tối ưu đội xe nhiều xe');
-    expect(doiXe?.thang).toBe('ho');
-    expect(doiXe?.ta).toBe('Chưa có');
+    // Hoà, không nhận thắng: Google nhận cỡ và ràng buộc rộng hơn hẳn.
+    const doiXe = bang.find((h) => h.tieuChi === 'Chia đơn cho đội xe nhiều xe');
+    expect(doiXe?.thang).toBe('hoa');
+    expect(doiXe?.ta).toMatch(/5 xe/);
+    expect(doiXe?.ta).toMatch(/30 đơn/);
+    expect(doiXe?.ta).toMatch(/khung giờ/);
   });
 
-  it('VIETMAP: hàng vận tải vẫn đối thủ thắng nhưng nói rõ đã có ma trận và tối ưu một xe', () => {
+  it('VIETMAP: hàng vận tải vẫn đối thủ thắng nhưng nói rõ đã có ma trận, tối ưu và chia đơn đội xe', () => {
     const hang = doiDauVietmap().find(
       (h) => h.tieuChi === 'Bài toán vận tải và theo dõi phương tiện',
     );
     expect(hang?.thang).toBe('ho');
     expect(hang?.ta).toMatch(/ma trận khoảng cách/i);
-    expect(hang?.ta).toMatch(/chưa có đội xe nhiều xe/);
+    expect(hang?.ta).toMatch(/chia đơn cho đội xe tới 5 xe/);
+    expect(hang?.ta).toMatch(/chưa theo dõi phương tiện/);
   });
 });

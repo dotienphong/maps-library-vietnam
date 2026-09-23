@@ -14,14 +14,10 @@ export interface HangDoiDau {
 /**
  * Những thứ MapsLibVN CHƯA làm. Một nguồn duy nhất cho cả mục "Những thứ chưa có" ở trang Tính
  * năng lẫn bài kiểm chống tự nhận thắng ở bảng đối đầu. Thêm tính năng thì xoá khỏi đây, và bài
- * kiểm sẽ tự cho phép hàng tương ứng đổi bên.
+ * kiểm sẽ tự cho phép hàng tương ứng đổi bên. 23/09/2026 xoá "tối ưu đội xe nhiều xe" khi phát
+ * hành `/v1/fleet-plan`.
  */
-export const CHUA_CO = [
-  'tối ưu đội xe nhiều xe',
-  'giao thông thời gian thực',
-  'Street View',
-  'ảnh vệ tinh',
-] as const;
+export const CHUA_CO = ['giao thông thời gian thực', 'Street View', 'ảnh vệ tinh'] as const;
 
 /** Ba hàng chi phí dựng từ COMPARISON qua `soSanh()` — không có bản chép tay thứ hai. */
 function hangChiPhi(cot: 'google' | 'vietmap'): HangDoiDau[] {
@@ -57,17 +53,19 @@ export function doiDauGoogle(): HangDoiDau[] {
     },
     {
       tieuChi: 'Cỡ và nhịp ma trận cho phép',
-      // Số trần chép tay từ MATRIX_MAX_PAIRS / OPTIMIZED_MAX_STOPS và MATRIX_RATE_LIMITER của
-      // apps/api (site không import Worker). Đổi bên API phải đổi dòng này cùng commit.
-      ta: 'Tối đa 50 cặp hoặc 10 điểm dừng mỗi lượt, 6 lượt mỗi phút',
+      // Số trần chép tay từ MATRIX_MAX_PAIRS / OPTIMIZED_MAX_STOPS / FLEET_MAX_* và MATRIX_RATE_LIMITER /
+      // FLEET_RATE_LIMITER của apps/api (site không import Worker). Đổi bên API phải đổi dòng này cùng commit.
+      ta: 'Tối đa 50 cặp hoặc 10 điểm dừng mỗi lượt, 6 lượt mỗi phút; đội xe tối đa 5 xe / 30 đơn mỗi lượt, 2 lượt mỗi phút',
       ho: 'Cỡ lớn hơn và nhịp cao hơn hẳn',
       thang: 'ho',
     },
     {
-      tieuChi: 'Tối ưu đội xe nhiều xe',
-      ta: 'Chưa có',
-      ho: 'Có (Route Optimization API)',
-      thang: 'ho',
+      tieuChi: 'Chia đơn cho đội xe nhiều xe',
+      // Số trần chép tay từ FLEET_MAX_VEHICLES / FLEET_MAX_JOBS (apps/api/src/routing/fleet.ts). Hoà,
+      // không nhận thắng: Google nhận cỡ và ràng buộc rộng hơn hẳn (pickup-delivery, kỹ năng, nhiều loại xe).
+      ta: 'Có: tối đa 5 xe và 30 đơn mỗi lượt, sức chứa, khung giờ khách hẹn, thời gian dừng, kết thúc mở; một lượt Chỉ đường',
+      ho: 'Có (Route Optimization API), cỡ và ràng buộc rộng hơn',
+      thang: 'hoa',
     },
     {
       tieuChi: 'Chi tiết hàng quán: đánh giá, ảnh, giờ mở cửa',
@@ -131,7 +129,7 @@ export function doiDauVietmap(): HangDoiDau[] {
     },
     {
       tieuChi: 'Bài toán vận tải và theo dõi phương tiện',
-      ta: 'Có ma trận khoảng cách và tối ưu thứ tự cho một xe; chưa có đội xe nhiều xe, chưa theo dõi phương tiện',
+      ta: 'Có ma trận khoảng cách, tối ưu thứ tự và chia đơn cho đội xe tới 5 xe / 30 đơn mỗi lượt; chưa theo dõi phương tiện',
       ho: 'Có hệ sản phẩm riêng',
       thang: 'ho',
     },

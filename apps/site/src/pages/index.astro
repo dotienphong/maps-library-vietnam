@@ -144,10 +144,10 @@ const VI_SAO = [
         nhanLink="Hướng dẫn đội xe"
         nhan="MATRIX"
       >
-        Ma trận khoảng cách N×M và thứ tự ghé tối ưu cho một chuyến, mỗi request tính một lượt.
+        Ma trận khoảng cách N×M, thứ tự ghé tối ưu cho một chuyến và chia đơn cho cả đội xe, mỗi request tính một lượt.
         <div slot="minh-hoa" class="flex flex-wrap gap-2">
           {
-            ['≤ 50 cặp / lượt', '≤ 10 điểm dừng', '1 lượt Chỉ đường'].map((c) => (
+            ['Ma trận ≤ 50 cặp', 'Đội xe ≤ 5 xe · 30 đơn', '1 lượt Chỉ đường'].map((c) => (
               <span class="t-small rounded-full border border-border px-3 py-1 text-text">{c}</span>
             ))
           }

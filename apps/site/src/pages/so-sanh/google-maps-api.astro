@@ -32,7 +32,7 @@ const KHI_NAO = [
       'Bạn phục vụ người dùng nhiều quốc gia.',
       'Sản phẩm dựa vào Street View, ảnh vệ tinh hoặc giao thông thời gian thực.',
       'Bạn cần đánh giá và giờ mở cửa của hàng quán ở mức chi tiết cao.',
-      'Bạn cần chia đơn cho cả đội xe cùng lúc, có sức chứa và khung giờ giao.',
+      'Đội xe của bạn lớn hơn 5 xe hay 30 đơn mỗi lượt, hoặc cần lấy hàng và giao hàng ghép đôi, kỹ năng tài xế.',
       'Bạn cần cam kết mức dịch vụ bằng hợp đồng.',
       'Chi phí hiện tại còn nằm trong hạn mức miễn phí của Google.',
     ],
@@ -50,7 +50,7 @@ const CAU_HOI = [
   },
   {
     hoi: 'Có tính được khoảng cách và thứ tự giao hàng cho đội xe không?',
-    dap: 'Có, cho từng xe. Ma trận khoảng cách trả thời gian và quãng đường tới 50 cặp điểm mỗi lượt để chọn tài xế hay kho gần nhất; tối ưu thứ tự sắp lại tối đa 10 điểm dừng cho một chuyến và trả luôn tuyến để dẫn đường. Mỗi lượt gọi tính một lượt Chỉ đường bất kể bao nhiêu cặp. Chưa có bộ giải chia đơn cho nhiều xe cùng lúc như Route Optimization API của Google.',
+    dap: 'Có. Ma trận khoảng cách trả thời gian và quãng đường tới 50 cặp điểm mỗi lượt để chọn tài xế hay kho gần nhất; tối ưu thứ tự sắp lại tối đa 10 điểm dừng cho một chuyến; chia đơn cho đội xe nhận tối đa 5 xe và 30 đơn mỗi lượt, kèm sức chứa, khung giờ khách hẹn và thời gian dừng, rồi trả tuyến của từng xe để dẫn đường. Mỗi lượt gọi tính một lượt Chỉ đường bất kể cỡ. Route Optimization API của Google nhận cỡ lớn hơn và nhiều loại ràng buộc hơn.',
   },
   {
     hoi: 'Số trong bảng này có được kiểm chứng độc lập không?',
@@ -102,13 +102,13 @@ const CAU_HOI = [
     <p class="t-body mb-3 text-muted">
       Google tính tiền ma trận khoảng cách theo từng phần tử: một bảng 7 tài xế × 7 đơn là 49 phần
       tử trên hoá đơn. MapsLibVN tính cả bảng đó là <strong class="text-text">một lượt</strong>
-      Chỉ đường, và tối ưu thứ tự cho một chuyến cũng một lượt, kèm luôn tuyến đầy đủ để vẽ và dẫn
-      đường bằng câu tiếng Việt.
+      Chỉ đường. Tối ưu thứ tự cho một chuyến và chia đơn cho cả đội xe cũng chỉ một lượt mỗi request,
+      kèm luôn tuyến đầy đủ của từng xe để vẽ và dẫn đường bằng câu tiếng Việt.
     </p>
     <p class="t-body mb-3 text-muted">
       Đổi lại, cỡ mỗi lượt nhỏ hơn: tối đa 50 cặp (mỗi bên 25 điểm) hoặc 10 điểm dừng, 6 lượt mỗi
-      phút. Bảng lớn hơn thì chia lô; chia đơn cho nhiều xe có sức chứa và khung giờ thì Google vẫn
-      là lựa chọn đúng.
+      phút; đội xe tối đa 5 xe và 30 đơn, 2 lượt mỗi phút. Bảng lớn hơn thì chia lô; đội xe lớn hơn,
+      hay cần lấy hàng và giao hàng ghép đôi, thì Google vẫn là lựa chọn đúng.
     </p>
     <p class="t-body text-muted">
       <a class="text-accent-text underline" href={`${DOCS_URL}/doi-xe/`}>Hướng dẫn giao hàng &amp; đội xe →</a>
