@@ -5592,7 +5592,7 @@ sau phát hành app dời sang Windows i5-1340P 16 GB.
 
 Dòng 4 spec: `- Trạng thái: **Đã phát hành <ngày>/09/2026.** Trần chốt <…>; evidence \`docs/evidence/routing/2026-09-<ngày>-fleet.md\`; DEVLOG mục 34.` Tick mọi hộp trong plan đã làm; thêm mục "## Chỗ thực tế khác thiết kế" cuối plan nếu có.
 
-- [ ] **Step 3: Commit, PHONG duyệt push, deploy docs tay đè**
+- [x] **Step 3: Commit, PHONG duyệt push, deploy docs tay đè**
 
 ```bash
 git add docs/DEVLOG.md docs/superpowers/specs/2026-09-23-toi-uu-doi-xe-design.md docs/superpowers/plans/2026-09-23-toi-uu-doi-xe.md
