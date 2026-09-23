@@ -79,6 +79,7 @@ export {
   createNavigator,
   createSpeech,
   FLEET_COLORS,
+  FLEET_SOURCE_ID,
   FOLLOW_ZOOM,
   formatDistance,
   formatDistanceShort,

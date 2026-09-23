@@ -59,6 +59,6 @@ export { FOLLOW_ZOOM } from './navigation';
 export type { GeolocationSourceOptions } from './position-source';
 export { geolocationSource, playbackSource, toGeoFix } from './position-source';
 export type { RoutesLayer } from './routes-layer';
-export { ROUTE_LAYER_IDS, ROUTE_SOURCE_ID } from './routes-layer';
+export { FLEET_SOURCE_ID, ROUTE_LAYER_IDS, ROUTE_SOURCE_ID } from './routes-layer';
 export type { Speech, SpeechOptions } from './speech';
 export { createSpeech } from './speech';

@@ -1,7 +1,13 @@
-import type { DirectionsResponse } from '@mapslibvn/core';
+import type { DirectionsResponse, FleetPlanResponse } from '@mapslibvn/core';
 import { describe, expect, it, vi } from 'vitest';
 import fixture from '../../core/tests/fixtures/directions-q1.json';
-import { createRoutesLayer, ROUTE_LAYER_IDS, ROUTE_SOURCE_ID } from './routes-layer';
+import fleetFixture from '../../core/tests/fixtures/fleet-plan-q1.json';
+import {
+  createRoutesLayer,
+  FLEET_SOURCE_ID,
+  ROUTE_LAYER_IDS,
+  ROUTE_SOURCE_ID,
+} from './routes-layer';
 
 const response = fixture as unknown as DirectionsResponse;
 const withAlt: DirectionsResponse = {
@@ -243,5 +249,83 @@ describe('không im lặng khi không có chỗ vẽ', () => {
 
     expect(warn).not.toHaveBeenCalled();
     warn.mockRestore();
+  });
+});
+
+const plan = fleetFixture as unknown as FleetPlanResponse;
+type FleetProps = { kind: string; index: number; color: string; opacity: number };
+const fleetData = (setData: ReturnType<typeof vi.fn>) =>
+  setData.mock.calls.at(-1)?.[0] as { features: { properties: FleetProps }[] };
+
+describe('showFleet', () => {
+  it('source riêng + hai layer data-driven trước symbol; mỗi xe một feature fleet; marker màu xe tại từng đơn', () => {
+    const f = fakeGl();
+    const routes = createRoutesLayer(f.gl as never, f.ml as never, vi.fn());
+    routes.showFleet(plan);
+    expect(f.gl.addSource).toHaveBeenCalledWith(
+      FLEET_SOURCE_ID,
+      expect.objectContaining({ type: 'geojson' }),
+    );
+    expect(f.layers.map((l) => l.id)).toEqual([
+      ROUTE_LAYER_IDS.fleetCasing,
+      ROUTE_LAYER_IDS.fleetLine,
+    ]);
+    expect(f.layers.every((l) => l.before === 'road-label')).toBe(true);
+    const data = fleetData(f.setData);
+    expect(
+      data.features.map((x) => [x.properties.kind, x.properties.index, x.properties.opacity]),
+    ).toEqual([
+      ['fleet', 0, 1],
+      ['fleet', 1, 1],
+    ]);
+    expect(data.features[0]?.properties.color).toBe('#0072b2');
+    expect(data.features[1]?.properties.color).toBe('#d55e00');
+    const soDon = plan.vehicles.reduce((sum, v) => sum + v.jobs.length, 0);
+    expect(f.markers).toHaveLength(soDon);
+    expect(f.markers[0]?.options.color).toBe('#0072b2');
+    expect(f.markers[0]?.lngLat).toEqual(plan.vehicles[0]?.waypoints[1]?.snapped);
+  });
+
+  it('setActive mờ xe khác; bấm tuyến → onRouteClick(index xe); markers:false; show() xoá đội xe và ngược lại; clear xoá cả hai', () => {
+    const f = fakeGl();
+    const onRouteClick = vi.fn();
+    const routes = createRoutesLayer(f.gl as never, f.ml as never, onRouteClick);
+    routes.showFleet(plan, { markers: false, colors: ['#111111', '#222222'] });
+    expect(f.markers).toHaveLength(0);
+    routes.setActive(1);
+    let data = fleetData(f.setData);
+    expect(data.features.map((x) => x.properties.opacity)).toEqual([0.35, 1]);
+    expect(data.features[1]?.properties.color).toBe('#222222');
+    f.fire(`click:${ROUTE_LAYER_IDS.fleetLine}`, {
+      features: [{ properties: { kind: 'fleet', index: 1 } }],
+    });
+    expect(onRouteClick).toHaveBeenCalledWith(1);
+    // setProgress không có nghĩa ở chế độ đội xe: không đổi dữ liệu.
+    const truoc = f.setData.mock.calls.length;
+    routes.setProgress(3, [106.7, 10.77]);
+    expect(f.setData.mock.calls.length).toBe(truoc);
+    // Chuyển sang tuyến thường: source đội xe được xoá rỗng trước khi vẽ tuyến.
+    const lanGoi = f.setData.mock.calls.length;
+    routes.show(response);
+    const sauShow = f.setData.mock.calls.slice(lanGoi).map((c) => c[0] as { features: unknown[] });
+    expect(sauShow[0]?.features).toEqual([]);
+    routes.showFleet(plan);
+    routes.clear();
+    data = fleetData(f.setData);
+    expect(data.features).toEqual([]);
+    expect(f.markers.every((m) => m.removed)).toBe(true);
+  });
+
+  it('style chưa phân giải → hoãn tới style.load rồi dựng lại source đội xe', () => {
+    const f = fakeGl();
+    const routes = createRoutesLayer(f.gl as never, f.ml as never, vi.fn());
+    f.gl.addSource.mockImplementationOnce(() => {
+      throw new Error('Style is not done loading.');
+    });
+    routes.showFleet(plan);
+    expect(f.gl.getSource(FLEET_SOURCE_ID)).toBeUndefined();
+    f.fire('style.load');
+    expect(f.gl.getSource(FLEET_SOURCE_ID)).toBeDefined();
+    expect(fleetData(f.setData).features).toHaveLength(2);
   });
 });

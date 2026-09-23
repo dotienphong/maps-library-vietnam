@@ -1,18 +1,26 @@
 import {
   type DirectionsResponse,
+  decodeFleet,
   decodeRoutes,
   EMPTY_ROUTE_FEATURES,
+  FLEET_COLORS,
+  type FleetPlanResponse,
+  fleetRouteFeatures,
   type RouteProgressCut,
   routeFeatures,
 } from '@mapslibvn/core';
 import type * as maplibregl from 'maplibre-gl';
 
 export const ROUTE_SOURCE_ID = 'mapslibvn-route';
+/** Source riêng cho kế hoạch đội xe: dữ liệu chỉ đổi khi showFleet/setActive, không theo định vị. */
+export const FLEET_SOURCE_ID = 'mapslibvn-fleet';
 export const ROUTE_LAYER_IDS = {
   alt: 'mapslibvn-route-alt',
   casing: 'mapslibvn-route-casing',
   line: 'mapslibvn-route-line',
   traveled: 'mapslibvn-route-traveled',
+  fleetCasing: 'mapslibvn-fleet-casing',
+  fleetLine: 'mapslibvn-fleet-line',
 } as const;
 export const ROUTE_COLOR = '#2458a6';
 const ALT_COLOR = '#9ca8ba';
@@ -20,6 +28,15 @@ const DESTINATION_COLOR = '#d92d20';
 
 export interface RoutesLayer {
   show(response: DirectionsResponse, opts?: { active?: number; markers?: boolean }): void;
+  /**
+   * Vẽ cả đội: mỗi xe một màu (mặc định FLEET_COLORS), marker màu xe tại từng đơn. Bấm tuyến phát
+   * `routeClick` với `index` = chỉ số xe; `setActive(i)` làm mờ xe khác. Loại trừ với `show()`.
+   */
+  showFleet(
+    plan: FleetPlanResponse,
+    opts?: { active?: number | null; colors?: readonly string[]; markers?: boolean },
+  ): void;
+  /** Tuyến thường: đổi tuyến chính. Đội xe: làm mờ mọi xe trừ xe `index`. */
   setActive(index: number): void;
   /** Chia tuyến chính tại (`shapeIndex`, `snapped`): trước là đã đi, sau là còn lại. */
   setProgress(shapeIndex: number, snapped: [number, number]): void;
@@ -143,16 +160,107 @@ export function createRoutesLayer(
     });
   };
 
+  interface FleetState {
+    plan: FleetPlanResponse;
+    coords: [number, number][][];
+    colors: readonly string[];
+    active: number | null;
+    markers: boolean;
+  }
+  let fleet: FleetState | null = null;
+  let fleetClickBound = false;
+  const ROUND: NonNullable<maplibregl.LineLayerSpecification['layout']> = {
+    'line-join': 'round',
+    'line-cap': 'round',
+  };
+
+  const ensureFleetLayers = (): void => {
+    if (gl.getSource(FLEET_SOURCE_ID)) return;
+    gl.addSource(FLEET_SOURCE_ID, { type: 'geojson', data: EMPTY_ROUTE_FEATURES as GeoJsonData });
+    const before = firstSymbolLayerId();
+    gl.addLayer(
+      {
+        id: ROUTE_LAYER_IDS.fleetCasing,
+        type: 'line',
+        source: FLEET_SOURCE_ID,
+        layout: ROUND,
+        paint: { 'line-color': '#ffffff', 'line-width': 9, 'line-opacity': ['get', 'opacity'] },
+      },
+      before,
+    );
+    gl.addLayer(
+      {
+        id: ROUTE_LAYER_IDS.fleetLine,
+        type: 'line',
+        source: FLEET_SOURCE_ID,
+        layout: ROUND,
+        paint: {
+          'line-color': ['get', 'color'],
+          'line-width': 6,
+          'line-opacity': ['get', 'opacity'],
+        },
+      },
+      before,
+    );
+    if (!fleetClickBound) {
+      fleetClickBound = true;
+      gl.on('click', ROUTE_LAYER_IDS.fleetLine, (e) => {
+        const index = e.features?.[0]?.properties?.index;
+        if (typeof index === 'number') onRouteClick(index);
+      });
+    }
+  };
+
+  const setFleetData = (): void => {
+    const source = gl.getSource(FLEET_SOURCE_ID) as maplibregl.GeoJSONSource | undefined;
+    if (!source) return;
+    const data = fleet
+      ? fleetRouteFeatures(fleet.coords, { colors: fleet.colors, active: fleet.active })
+      : EMPTY_ROUTE_FEATURES;
+    source.setData(data as GeoJsonData);
+  };
+
+  /** Cùng cách với `apply()`: thử thật, chỉ hoãn khi maplibre nói style chưa phân giải. */
+  const applyFleet = (): void => {
+    if (!fleet) return;
+    try {
+      ensureFleetLayers();
+    } catch (error) {
+      if (!(error instanceof Error) || !/not done loading/i.test(error.message)) throw error;
+      return;
+    }
+    setFleetData();
+  };
+
+  const placeFleetMarkers = (): void => {
+    clearMarkers();
+    if (!fleet?.markers) return;
+    for (const [i, v] of fleet.plan.vehicles.entries()) {
+      const color = fleet.colors[i % fleet.colors.length] ?? '#0072b2';
+      // waypoints = start, các đơn theo thứ tự ghé, end (nếu có): đơn nằm ở 1…jobs.length.
+      for (let j = 1; j <= v.jobs.length; j++) {
+        const w = v.waypoints[j];
+        if (w) markers.push(new ml.Marker({ color }).setLngLat(w.snapped).addTo(gl));
+      }
+    }
+  };
+
   // App đổi style → source/layer mất; thêm lại khi style mới load xong.
   gl.on('style.load', () => {
     if (response && !gl.getSource(ROUTE_SOURCE_ID)) {
       ensureLayers();
       setData();
     }
+    if (fleet && !gl.getSource(FLEET_SOURCE_ID)) {
+      ensureFleetLayers();
+      setFleetData();
+    }
   });
 
   return {
     show(next, opts = {}) {
+      fleet = null;
+      setFleetData();
       response = next;
       coords = decodeRoutes(next);
       active = opts.active ?? 0;
@@ -161,12 +269,34 @@ export function createRoutesLayer(
       apply();
       placeMarkers();
     },
+    showFleet(plan, opts = {}) {
+      response = null;
+      coords = [];
+      progress = null;
+      setData();
+      fleet = {
+        plan,
+        coords: decodeFleet(plan),
+        colors: opts.colors && opts.colors.length > 0 ? opts.colors : FLEET_COLORS,
+        active: opts.active ?? null,
+        markers: opts.markers ?? true,
+      };
+      applyFleet();
+      placeFleetMarkers();
+    },
     setActive(index) {
+      if (fleet) {
+        fleet.active = index;
+        setFleetData();
+        return;
+      }
       active = index;
       progress = null;
       setData();
     },
     setProgress(shapeIndex, snapped) {
+      // Tiến độ dẫn đường chỉ có nghĩa với một tuyến; ở chế độ đội xe thì bỏ qua.
+      if (fleet) return;
       progress = { shapeIndex, snapped };
       setData();
     },
@@ -174,11 +304,13 @@ export function createRoutesLayer(
       response = null;
       coords = [];
       progress = null;
+      fleet = null;
       clearMarkers();
       // Không đi qua `setData()`: `clear()` lúc chưa từng vẽ là chuyện bình thường, không phải
       // chuyện đáng cảnh báo.
       const source = gl.getSource(ROUTE_SOURCE_ID) as maplibregl.GeoJSONSource | undefined;
       source?.setData(EMPTY_ROUTE_FEATURES as GeoJsonData);
+      setFleetData();
     },
   };
 }

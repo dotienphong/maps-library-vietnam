@@ -43,7 +43,13 @@ function fakeDeps() {
       this.options = options;
     }
   }
-  const routes = { show: vi.fn(), setActive: vi.fn(), setProgress: vi.fn(), clear: vi.fn() };
+  const routes = {
+    show: vi.fn(),
+    showFleet: vi.fn(),
+    setActive: vi.fn(),
+    setProgress: vi.fn(),
+    clear: vi.fn(),
+  };
   const places = { directions: vi.fn(async () => response) };
   const synth = {
     speaking: false,
