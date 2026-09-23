@@ -106,7 +106,7 @@ Chi tiết REST API ở [REST API](/api/) mục 4.
 **Giao hàng và vận tải.** `GET /v1/matrix` trả bảng thời gian và quãng đường giữa N điểm đi và M điểm
 đến (tối đa 50 cặp mỗi lượt) để chọn tài xế hay kho gần nhất; `GET /v1/optimized-route` sắp thứ tự
 ghé tối ưu cho một chuyến tối đa 8 điểm dừng và trả luôn tuyến đầy đủ để vẽ. Cả hai tính **một lượt**
-Chỉ đường mỗi request bất kể cỡ, và có nhịp riêng 6 request/phút cho mỗi khoá. Chưa có tối ưu đội xe nhiều xe (sức chứa, khung giờ, chia đơn cho xe).
+Chỉ đường mỗi request bất kể cỡ, và có nhịp riêng 6 request/phút cho mỗi khoá. Chưa có tối ưu đội xe nhiều xe (sức chứa, khung giờ, chia đơn cho xe). Ví dụ đầy đủ cho web và React Native ở [Giao hàng & đội xe](/doi-xe/); thử không cần code ở [Playground → Đội xe](/playground#doi-xe).
 
 ## 6. Đóng góp và duyệt
 

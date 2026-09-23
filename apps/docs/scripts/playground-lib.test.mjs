@@ -466,6 +466,10 @@ describe('đội xe', () => {
     expect(over.ok).toBe(false);
     expect(!over.ok && over.error).toContain('8 × 8 = 64');
     expect(matrixPlan(pts(1), 'all').ok).toBe(false);
+    // 1 × 25 được; 1 × 26 vẫn dưới 50 cặp nhưng vượt trần mỗi bên 25 điểm của API.
+    expect(matrixPlan(pts(26), 'depot').ok).toBe(true);
+    const side = matrixPlan(pts(27), 'depot');
+    expect(!side.ok && side.error).toContain('tối đa 25 điểm');
   });
   it('optimizedPlan: vòng tròn bỏ `to`, một chiều lấy điểm cuối làm `to`; toạ độ [lat, lng]', () => {
     const round = optimizedPlan({ points: pts(3), roundTrip: true, mode: 'car', lang: 'vi' });

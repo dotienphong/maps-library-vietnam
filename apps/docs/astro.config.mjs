@@ -82,6 +82,7 @@ export default defineConfig({
             { label: 'Tìm kiếm & autocomplete', slug: 'tim-kiem' },
             { label: 'Dẫn đường', slug: 'dan-duong' },
             { label: 'Dẫn đường React Native', slug: 'dan-duong-react-native' },
+            { label: 'Giao hàng & đội xe', slug: 'doi-xe' },
             { label: 'React', slug: 'react' },
             { label: 'Độ chính xác geocode', slug: 'do-chinh-xac' },
             { label: 'Đóng góp & sửa POI', slug: 'dong-gop' },

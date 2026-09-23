@@ -458,6 +458,8 @@ export function navSnippet(state) {
 
 /** Trần của API (`apps/api/src/routing/matrix.ts`, `optimized.ts`) — đo production 22/09/2026. */
 export const MATRIX_MAX_PAIRS = 50;
+/** Mỗi bên `sources`/`targets` tối đa 25 điểm (`MATRIX_MAX_SOURCES`/`MATRIX_MAX_TARGETS`). */
+export const MATRIX_MAX_SIDE = 25;
 export const OPTIMIZED_MAX_STOPS = 8;
 
 /**
@@ -485,6 +487,12 @@ export function matrixPlan(points, kind) {
   const sources = kind === 'depot' ? points.slice(0, 1) : points;
   const targets = kind === 'depot' ? points.slice(1) : points;
   const pairs = sources.length * targets.length;
+  if (targets.length > MATRIX_MAX_SIDE) {
+    return {
+      ok: false,
+      error: `Mỗi bên ma trận tối đa ${MATRIX_MAX_SIDE} điểm — đang ${targets.length} điểm đến. Bớt điểm hoặc chia thành nhiều lượt.`,
+    };
+  }
   if (pairs > MATRIX_MAX_PAIRS) {
     return {
       ok: false,

@@ -22,6 +22,7 @@ const KHI_NAO = [
       'Chi phí Google đang là khoản đáng kể trong hoá đơn hạ tầng.',
       'Bạn cần tìm kiếm và geocode hiểu cách người Việt gõ địa chỉ.',
       'Bạn muốn giữ khả năng tự host về sau.',
+      'Bạn cần ma trận khoảng cách hoặc sắp thứ tự giao cho từng chuyến mà không muốn trả tiền theo từng cặp điểm.',
       'Bạn cần thanh toán bằng VND trong nước.',
     ],
   },
@@ -31,6 +32,7 @@ const KHI_NAO = [
       'Bạn phục vụ người dùng nhiều quốc gia.',
       'Sản phẩm dựa vào Street View, ảnh vệ tinh hoặc giao thông thời gian thực.',
       'Bạn cần đánh giá và giờ mở cửa của hàng quán ở mức chi tiết cao.',
+      'Bạn cần chia đơn cho cả đội xe cùng lúc, có sức chứa và khung giờ giao.',
       'Bạn cần cam kết mức dịch vụ bằng hợp đồng.',
       'Chi phí hiện tại còn nằm trong hạn mức miễn phí của Google.',
     ],
@@ -45,6 +47,10 @@ const CAU_HOI = [
   {
     hoi: 'Dùng song song hai nhà cung cấp được không?',
     dap: 'Được, và nhiều đội làm vậy thật: dùng MapsLibVN cho phần lớn lưu lượng trong nước, giữ Google cho các tính năng chỉ Google có. Điều khoản của MapsLibVN không cấm điều này.',
+  },
+  {
+    hoi: 'Có tính được khoảng cách và thứ tự giao hàng cho đội xe không?',
+    dap: 'Có, cho từng xe. Ma trận khoảng cách trả thời gian và quãng đường tới 50 cặp điểm mỗi lượt để chọn tài xế hay kho gần nhất; tối ưu thứ tự sắp lại tối đa 8 điểm dừng cho một chuyến và trả luôn tuyến để dẫn đường. Mỗi lượt gọi tính một lượt Chỉ đường bất kể bao nhiêu cặp. Chưa có bộ giải chia đơn cho nhiều xe cùng lúc như Route Optimization API của Google.',
   },
   {
     hoi: 'Số trong bảng này có được kiểm chứng độc lập không?',
@@ -89,6 +95,26 @@ const CAU_HOI = [
       Chi phí: giả định và nguồn
     </h2>
     <ComparisonTable />
+  </section>
+
+  <section aria-labelledby="tt-doi-xe" class="mx-auto max-w-3xl px-4 py-16 sm:px-6">
+    <h2 id="tt-doi-xe" class="t-h2 mb-4">Giao hàng và đội xe</h2>
+    <p class="t-body mb-3 text-muted">
+      Google tính tiền ma trận khoảng cách theo từng phần tử: một bảng 7 tài xế × 7 đơn là 49 phần
+      tử trên hoá đơn. MapsLibVN tính cả bảng đó là <strong class="text-text">một lượt</strong>
+      Chỉ đường, và tối ưu thứ tự cho một chuyến cũng một lượt, kèm luôn tuyến đầy đủ để vẽ và dẫn
+      đường bằng câu tiếng Việt.
+    </p>
+    <p class="t-body mb-3 text-muted">
+      Đổi lại, cỡ mỗi lượt nhỏ hơn: tối đa 50 cặp (mỗi bên 25 điểm) hoặc 8 điểm dừng, 6 lượt mỗi
+      phút. Bảng lớn hơn thì chia lô; chia đơn cho nhiều xe có sức chứa và khung giờ thì Google vẫn
+      là lựa chọn đúng.
+    </p>
+    <p class="t-body text-muted">
+      <a class="text-accent-text underline" href={`${DOCS_URL}/doi-xe/`}>Hướng dẫn giao hàng &amp; đội xe →</a>
+      <span class="mx-2" aria-hidden="true">·</span>
+      <a class="text-accent-text underline" href={`${DOCS_URL}/playground#doi-xe`}>Thử trên Playground →</a>
+    </p>
   </section>
 
   <section aria-labelledby="tt-khi-nao" class="border-y border-border bg-surface py-16">
