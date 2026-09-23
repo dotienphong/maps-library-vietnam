@@ -77,12 +77,22 @@ describe('createMap', () => {
     );
     expect(opts.attributionControl).toBe(false);
     const ctl = (m1.gl.addControl as ReturnType<typeof vi.fn>).mock.calls[0]?.[0] as {
-      options: { customAttribution: string };
+      options: Record<string, unknown>;
     };
-    // Luôn là chuỗi ĐẦY ĐỦ, kể cả với theme của MapsLibVN: style cũng khai đúng chuỗi này ở
-    // từng source nên MapLibre gộp làm một. Nhờ vậy ẩn lớp POI hay thiếu bản POI cũng không
-    // làm mất bên nào (spec 7.2).
-    expect(ctl.options.customAttribution).toBe(attributionHtml());
+    // Control luôn có (không tắt được), nhưng theme của MapsLibVN KHÔNG nhận chuỗi riêng của SDK:
+    // style do API phục vụ đã mang chuỗi đầy đủ ở source `openmaptiles`. Thêm chuỗi của SDK thì chỉ
+    // cần SDK khác phiên bản với API (0.14.0 trỏ repo, API 0.14.1 trỏ website) là MapLibre hiện hai
+    // lần, vì nó chỉ gộp chuỗi trùng khít (sự cố 23/09/2026).
+    expect('customAttribution' in ctl.options).toBe(false);
+  });
+
+  it('theme tối cũng để style tự khai ghi nguồn', () => {
+    const { ml } = fakeMaplibre();
+    const m = createMap({ ...base, style: 'dark' }, { maplibre: ml as never });
+    const ctl = (m.gl.addControl as ReturnType<typeof vi.fn>).mock.calls[0]?.[0] as {
+      options: Record<string, unknown>;
+    };
+    expect('customAttribution' in ctl.options).toBe(false);
   });
 
   it('style URL tuỳ biến cũng nhận chuỗi ghi nguồn đầy đủ', () => {

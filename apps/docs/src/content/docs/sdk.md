@@ -280,7 +280,7 @@ const map = createMap(
 
 Tham số thứ hai là `deps`. Bản ESM cần `{ maplibre: maplibregl }`; nếu không truyền, `createMap` lấy `globalThis.maplibregl`, và không có thì ném `Error` thường (không phải `MapsLibVNError`) với thông điệp "Cần maplibre-gl…". Bản UMD đã đóng gói MapLibre nên `deps` không cần thiết. Giao thức `pmtiles://` được đăng ký đúng một lần cho cả trang.
 
-`createMap` **luôn** tự thêm `AttributionControl` với chuỗi ghi nguồn đầy đủ và tắt attribution mặc định của MapLibre. File style cũng khai đúng chuỗi đó ở từng nguồn tiles, và MapLibre gộp các chuỗi trùng khít nhau nên trên màn hình chỉ hiện một lần. Nhờ hai phía đều tự đủ, ghi nguồn không mất khi bạn đặt `poiLayer: false` hay khi dùng style URL riêng.
+`createMap` **luôn** tự thêm `AttributionControl` và tắt attribution mặc định của MapLibre. Với theme `light`/`dark`, chuỗi ghi nguồn đầy đủ nằm sẵn trong file style ở từng nguồn tiles, nên vẫn đủ khi bạn đặt `poiLayer: false`. Khi dùng style URL riêng, SDK tự thêm chuỗi đầy đủ vì không biết style đó khai gì.
 
 ### Bản đồ trả về
 

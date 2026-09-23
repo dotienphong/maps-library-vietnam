@@ -1,5 +1,5 @@
 import { env, SELF } from 'cloudflare:test';
-import { attributionText } from '@mapslibvn/core';
+import { attributionHtml, attributionText } from '@mapslibvn/core';
 import { beforeEach, describe, expect, it } from 'vitest';
 
 beforeEach(async () => {
@@ -39,6 +39,17 @@ describe('GET /v1/styles/:theme.json', () => {
     };
     expect(style.sources.poi).toBeUndefined();
     expect(style.layers.some((layer) => layer.source === 'poi')).toBe(false);
+  });
+
+  it('source openmaptiles luôn mang chuỗi ghi nguồn đầy đủ, kể cả khi chưa có bản POI', async () => {
+    // SDK web không tự thêm chuỗi riêng cho theme của MapsLibVN (tránh hiện hai lần khi SDK và API
+    // khác phiên bản), nên ghi nguồn trên bản đồ theme hoàn toàn dựa vào chuỗi này.
+    for (const theme of ['light', 'dark']) {
+      const res = await SELF.fetch(`https://api/v1/styles/${theme}.json`);
+      const style = (await res.json()) as { sources: Record<string, { attribution?: string }> };
+      expect(style.sources.poi).toBeUndefined();
+      expect(style.sources.openmaptiles?.attribution).toBe(attributionHtml());
+    }
   });
 
   it('manifest có poi → nguồn đúng file và đủ ba tầng POI', async () => {

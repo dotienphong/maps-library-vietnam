@@ -100,10 +100,14 @@ export function createMap(opts: CreateMapOptions, deps?: Deps): MapsLibVNMap {
     zoom: opts.zoom ?? 12,
     attributionControl: false,
   });
+  // Theme của MapsLibVN: style do API phục vụ đã mang chuỗi ghi nguồn đầy đủ ở source
+  // `openmaptiles`, nên chỉ lấy chuỗi đó. Thêm cả chuỗi của SDK thì hễ SDK khác phiên bản với API
+  // (hoặc trình duyệt còn giữ style cũ trong cache) là MapLibre hiện hai lần, vì nó chỉ gộp chuỗi
+  // trùng khít. Style lạ thì không biết có khai gì không, nên SDK tự thêm đủ.
   gl.addControl(
     new ml.AttributionControl({
       compact: opts.compactAttribution ?? false,
-      customAttribution: attributionHtml(),
+      ...(isTheme(styleOpt) ? {} : { customAttribution: attributionHtml() }),
     }),
   );
 

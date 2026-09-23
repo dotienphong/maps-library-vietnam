@@ -27,7 +27,7 @@ SDK luôn hiển thị điều khiển attribution. Có tuỳ chọn `compact` n
 © MapsLibVN · © OpenStreetMap contributors (ODbL) · © OpenMapTiles · Foursquare OS Places (Apache-2.0)
 ```
 
-Chuỗi này được khai ở hai nơi: SDK thêm vào điều khiển attribution, và file style cũng mang đúng nó ở từng nguồn tiles. MapLibre gộp hai chuỗi trùng nhau nên bạn chỉ thấy một lần. Làm vậy để bản đồ vẫn có ghi nguồn cả khi ai đó nạp thẳng file style vào MapLibre mà không qua SDK, lẫn khi bạn ẩn lớp POI.
+File style của MapsLibVN mang chuỗi này ở từng nguồn tiles, nên bản đồ có ghi nguồn cả khi ai đó nạp thẳng file style vào MapLibre mà không qua SDK, lẫn khi bạn ẩn lớp POI. Nếu bạn dùng style riêng, SDK tự thêm chuỗi này vào điều khiển attribution.
 
 Nếu bạn hiển thị kết quả API ngoài bản đồ (danh sách, trang chi tiết địa điểm), hãy lấy chuỗi này từ API và kèm ở cùng màn hình:
 
