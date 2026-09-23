@@ -646,6 +646,8 @@ curl -H "X-Api-Key: mlv_live_…" \
 
 Bảng thời gian và quãng đường từ N điểm đi tới M điểm đến — để chọn tài xế gần nhất, kho gần nhất, cửa hàng gần nhất. Không có hình tuyến, không có bước rẽ. Tính bởi Valhalla trên dữ liệu đường OpenStreetMap, cùng graph với `/v1/directions`. Cần scope `places:read`, tính **một lượt quota Chỉ đường** bất kể cỡ (mục 3).
 
+Thử không cần code: [Playground → Đội xe](/playground#doi-xe) có cả ma trận lẫn tối ưu thứ tự trên cùng một danh sách điểm.
+
 | Tham số | Kiểu | Bắt buộc | Mặc định | Ghi chú |
 |---|---|---|---|---|
 | `sources` | `lat,lng;lat,lng…` | có | — | 1–25 điểm đi, vĩ độ trước |

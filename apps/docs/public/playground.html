@@ -132,6 +132,15 @@
       <button
         type="button"
         role="tab"
+        id="tab-doi-xe"
+        data-tab="doi-xe"
+        aria-controls="panel-doi-xe"
+        aria-selected="false"
+        tabindex="-1"
+      >Đội xe</button>
+      <button
+        type="button"
+        role="tab"
         id="tab-ma-nhung"
         data-tab="ma-nhung"
         aria-controls="panel-ma-nhung"
@@ -322,7 +331,88 @@
         </p>
       </section>
 
-      <!-- Tab 4: Mã nhúng -->
+      <!-- Tab 4: Đội xe — ma trận khoảng cách + tối ưu thứ tự điểm dừng -->
+      <section
+        class="pg-tabpanel"
+        role="tabpanel"
+        id="panel-doi-xe"
+        aria-labelledby="tab-doi-xe"
+        tabindex="0"
+        hidden
+      >
+        <p class="pg-hint">
+          Điểm số 1 là điểm xuất phát. Thêm điểm bằng ô tìm kiếm, bấm lên bản đồ, hoặc nạp bộ mẫu.
+          Mỗi lần bấm “Tính” là <strong>một lượt</strong> Chỉ đường; API giới hạn
+          <strong>6 lần/phút/khoá</strong> (khoá demo dùng chung với mọi khách).
+        </p>
+
+        <p class="pg-label">Thêm điểm</p>
+        <mapslibvn-autocomplete id="fl-add" placeholder="Tìm địa điểm để thêm…"></mapslibvn-autocomplete>
+        <div class="pg-row">
+          <button id="fl-pick" type="button" aria-pressed="false">Bấm bản đồ để thêm</button>
+          <button id="fl-sample" type="button">Nạp mẫu Quận 1</button>
+          <button id="fl-clear" type="button">Xoá hết</button>
+        </div>
+
+        <ol id="fl-points" class="fl-points" aria-label="Danh sách điểm"></ol>
+        <p class="pg-out" id="fl-count">Chưa có điểm nào.</p>
+
+        <div class="pg-field">
+          <label for="fl-mode">Phương tiện</label>
+          <select id="fl-mode">
+            <option value="motorbike">Xe máy — motorbike</option>
+            <option value="car">Ô tô — car</option>
+            <option value="walk">Đi bộ — walk</option>
+          </select>
+        </div>
+
+        <h2>Tối ưu thứ tự điểm dừng</h2>
+        <label class="pg-check">
+          <input type="checkbox" id="fl-round" checked /> Quay về điểm xuất phát
+        </label>
+        <p class="pg-hint">
+          Bỏ chọn thì điểm cuối danh sách là điểm kết thúc cố định. Tối đa 8 điểm dừng ở giữa.
+        </p>
+        <button id="fl-opt" type="button" class="pg-primary">Tối ưu — /v1/optimized-route</button>
+        <p class="pg-out" id="fl-opt-msg">Chưa gọi API.</p>
+        <ol id="fl-legs" class="fl-legs" aria-label="Thứ tự ghé"></ol>
+        <p class="pg-req" id="fl-opt-req"></p>
+
+        <h2>Ma trận khoảng cách</h2>
+        <div class="pg-field">
+          <label for="fl-kind">Cặp cần tính</label>
+          <select id="fl-kind">
+            <option value="all">Mọi cặp N × N (tối đa 7 điểm)</option>
+            <option value="depot">Từ điểm xuất phát tới các điểm còn lại</option>
+          </select>
+        </div>
+        <div class="pg-field">
+          <label for="fl-metric">Hiển thị</label>
+          <select id="fl-metric">
+            <option value="duration">Thời gian</option>
+            <option value="distance">Quãng đường</option>
+          </select>
+        </div>
+        <button id="fl-mx" type="button" class="pg-primary">Tính ma trận — /v1/matrix</button>
+        <p class="pg-out" id="fl-mx-msg">Chưa gọi API.</p>
+        <div class="fl-table-wrap"><table id="fl-table" class="fl-table" hidden></table></div>
+        <p class="pg-req" id="fl-mx-req"></p>
+
+        <details class="pg-json">
+          <summary>Phản hồi JSON gần nhất</summary>
+          <pre id="fl-json">—</pre>
+        </details>
+
+        <h2>Mã mẫu — npm ESM</h2>
+        <pre id="snippet-fleet">—</pre>
+        <button id="copy-fleet" type="button">Sao chép mã đội xe</button>
+        <p class="pg-out" id="fl-copy-msg" role="status" aria-live="polite"></p>
+        <p class="pg-hint">
+          Xem tham số đầy đủ ở <a href="/api/">REST API</a> và <a href="/sdk/">SDK</a>.
+        </p>
+      </section>
+
+      <!-- Tab 5: Mã nhúng -->
       <section
         class="pg-tabpanel"
         role="tabpanel"

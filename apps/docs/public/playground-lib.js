@@ -453,3 +453,150 @@ export function navSnippet(state) {
     ...wrapped,
   ].join('\n');
 }
+
+/* ---------- Đội xe: ma trận khoảng cách + tối ưu thứ tự ---------- */
+
+/** Trần của API (`apps/api/src/routing/matrix.ts`, `optimized.ts`) — đo production 22/09/2026. */
+export const MATRIX_MAX_PAIRS = 50;
+export const OPTIMIZED_MAX_STOPS = 8;
+
+/**
+ * Bộ điểm mẫu Quận 1: đều nằm trong graph Valhalla dev (Quận 1) và nối được bằng cả ba mode trên
+ * production (lấy từ `scripts/lib/smoke-matrix.mjs`). Thứ tự cố ý lộn xộn để tối ưu có việc làm.
+ * @type {NavPoint[]}
+ */
+export const FLEET_SAMPLE = [
+  { lat: 10.7725, lng: 106.698, label: 'Chợ Bến Thành' },
+  { lat: 10.7826, lng: 106.6958, label: 'Hồ Con Rùa' },
+  { lat: 10.7686, lng: 106.7069, label: 'Bến Nhà Rồng' },
+  { lat: 10.777, lng: 106.6953, label: 'Dinh Độc Lập' },
+  { lat: 10.7716, lng: 106.7043, label: 'Bitexco' },
+  { lat: 10.7798, lng: 106.699, label: 'Nhà thờ Đức Bà' },
+];
+
+/**
+ * Chọn nguồn/đích cho ma trận. `all` = mọi cặp N×N, `depot` = từ điểm đầu tới các điểm còn lại.
+ * @param {NavPoint[]} points
+ * @param {'all' | 'depot'} kind
+ * @returns {{ ok: true, sources: NavPoint[], targets: NavPoint[] } | { ok: false, error: string }}
+ */
+export function matrixPlan(points, kind) {
+  if (points.length < 2) return { ok: false, error: 'Cần ít nhất 2 điểm.' };
+  const sources = kind === 'depot' ? points.slice(0, 1) : points;
+  const targets = kind === 'depot' ? points.slice(1) : points;
+  const pairs = sources.length * targets.length;
+  if (pairs > MATRIX_MAX_PAIRS) {
+    return {
+      ok: false,
+      error: `Ma trận tối đa ${MATRIX_MAX_PAIRS} cặp — đang ${sources.length} × ${targets.length} = ${pairs}. Bớt điểm hoặc chọn "Từ điểm xuất phát".`,
+    };
+  }
+  return { ok: true, sources, targets };
+}
+
+/**
+ * Tham số `client.optimizedRoute()` — điểm đầu là xuất phát; `roundTrip` bỏ `to` để API quay về
+ * điểm đầu, không thì điểm cuối danh sách là điểm kết thúc cố định.
+ * @param {{ points: NavPoint[], roundTrip: boolean, mode: string, lang: string }} input
+ * @returns {{ ok: true, request: { from: [number, number], stops: [number, number][], to?: [number, number], mode: string, lang: string }, stops: NavPoint[] }
+ *   | { ok: false, error: string }}
+ */
+export function optimizedPlan({ points, roundTrip, mode, lang }) {
+  const min = roundTrip ? 2 : 3;
+  if (points.length < min) {
+    return {
+      ok: false,
+      error: roundTrip
+        ? 'Cần điểm xuất phát và ít nhất 1 điểm dừng.'
+        : 'Cần điểm xuất phát, ít nhất 1 điểm dừng và điểm kết thúc.',
+    };
+  }
+  const [from, ...rest] = points;
+  const stops = roundTrip ? rest : rest.slice(0, -1);
+  const to = roundTrip ? null : rest[rest.length - 1];
+  if (stops.length > OPTIMIZED_MAX_STOPS) {
+    return {
+      ok: false,
+      error: `Tối đa ${OPTIMIZED_MAX_STOPS} điểm dừng — đang ${stops.length}. Bớt điểm trong danh sách.`,
+    };
+  }
+  /** @param {NavPoint} p @returns {[number, number]} */
+  const latLng = (p) => [p.lat, p.lng];
+  return {
+    ok: true,
+    stops,
+    request: {
+      from: latLng(from),
+      stops: stops.map(latLng),
+      ...(to ? { to: latLng(to) } : {}),
+      mode,
+      lang,
+    },
+  };
+}
+
+/**
+ * "45 giây", "12 phút", "1 giờ 5 phút".
+ * @param {number} s
+ */
+export function shortDuration(s) {
+  if (s < 60) return `${Math.max(0, Math.round(s))} giây`;
+  const minutes = Math.round(s / 60);
+  if (minutes < 60) return `${minutes} phút`;
+  const h = Math.floor(minutes / 60);
+  const m = minutes % 60;
+  return m === 0 ? `${h} giờ` : `${h} giờ ${m} phút`;
+}
+
+/**
+ * Lịch trình theo thứ tự tối ưu: mỗi chặng là (điểm đến, quãng, thời gian) của leg tương ứng.
+ * `order` là chỉ số vào `stops` đã gửi; leg i đi tới điểm thứ i+1 của chuyến.
+ * @param {{ from: NavPoint, stops: NavPoint[], to: NavPoint | null,
+ *   order: number[], legs: { distance_m: number, duration_s: number }[] }} input
+ * @returns {{ label: string, stopIndex: number | null, distance_m: number, duration_s: number }[]}
+ */
+export function visitLegs({ from, stops, to, order, legs }) {
+  const end = to ?? from;
+  const seq = [
+    ...order.map((i) => ({ label: stops[i]?.label ?? `Điểm ${i + 1}`, stopIndex: i })),
+    { label: to ? end.label : `${end.label} (về lại)`, stopIndex: null },
+  ];
+  return seq.map((item, i) => ({
+    ...item,
+    distance_m: legs[i]?.distance_m ?? 0,
+    duration_s: legs[i]?.duration_s ?? 0,
+  }));
+}
+
+/**
+ * Mã mẫu ESM cho hai API đội xe theo danh sách điểm đang có.
+ * @param {PlaygroundState} state
+ * @param {{ points: NavPoint[], roundTrip: boolean, mode: string }} fleet
+ */
+export function fleetSnippet(state, { points, roundTrip, mode }) {
+  const pts = points.length >= 2 ? points : FLEET_SAMPLE;
+  /** @param {NavPoint} p */
+  const ll = (p) => `[${round6(p.lat)}, ${round6(p.lng)}]`;
+  const [from, ...rest] = pts;
+  const stops = roundTrip ? rest : rest.slice(0, -1);
+  const to = roundTrip ? null : rest[rest.length - 1];
+  return [
+    "import { createClient } from '@mapslibvn/core';",
+    '',
+    `const client = createClient({ apiKey: '${state.key}', baseUrl: '${state.api}' });`,
+    '',
+    '// Tham số vào là [lat, lng]; response trả [lng, lat].',
+    `const points = [${pts.map(ll).join(', ')}];`,
+    `const matrix = await client.matrix({ sources: points, targets: points, mode: '${mode}' });`,
+    'console.log(matrix.durations_s, matrix.distances_m); // ô null = không nối được',
+    '',
+    'const trip = await client.optimizedRoute({',
+    `  from: ${ll(from)}, // ${from.label}`,
+    `  stops: [${stops.map(ll).join(', ')}],`,
+    ...(to ? [`  to: ${ll(to)}, // ${to.label}`] : ['  // bỏ `to` = quay về `from`']),
+    `  mode: '${mode}',`,
+    '});',
+    'console.log(trip.order); // chỉ số vào `stops` theo thứ tự nên ghé',
+    'map.routes.show(trip); // web: createMap(); React Native: useMap().routes.show(trip)',
+  ].join('\n');
+}

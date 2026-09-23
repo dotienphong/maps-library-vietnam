@@ -4,6 +4,7 @@
  * Playground không bao giờ gọi `POST /v1/edits`.
  */
 import { resolveApiBase } from '/playground-config.js';
+import { initFleet } from '/playground-fleet.js';
 import {
   buildSnippet,
   circleGeoJson,
@@ -21,7 +22,7 @@ import { initNavigation } from '/playground-nav.js';
 
 const SDK = globalThis.MapsLibVN;
 const apiBase = resolveApiBase();
-const TABS = ['ban-do', 'tim-kiem', 'geocode', 'ma-nhung'];
+const TABS = ['ban-do', 'tim-kiem', 'geocode', 'doi-xe', 'ma-nhung'];
 
 let state = parseState(location.search, apiBase);
 let activeTab = TABS.includes(location.hash.slice(1)) ? location.hash.slice(1) : TABS[0];
@@ -37,6 +38,8 @@ let myLocationMarker = null;
 let myLocation = null;
 /** @type {ReturnType<typeof import('/playground-nav.js').initNavigation> | null} */
 let nav = null;
+/** @type {ReturnType<typeof initFleet> | null} */
+let fleet = null;
 /** @type {import('/playground-lib.js').NavPoint | null} Địa điểm vừa tìm/chọn — điền sẵn khi bấm "Dẫn đường". */
 let lastSearchPoint = null;
 const fixtureMode = new URLSearchParams(location.search).get('fixture') === '1';
@@ -145,6 +148,7 @@ function renderSnippets() {
   if (esm) esm.textContent = buildSnippet(state, 'esm');
   const navPre = el('snippet-nav');
   if (navPre) navPre.textContent = navSnippet(state);
+  fleet?.renderSnippet();
 }
 
 function renderView() {
@@ -412,6 +416,7 @@ function buildMap() {
   }
   renderView();
   attachNavigation();
+  fleet?.attach();
 }
 
 /* ---------- Tìm kiếm ---------- */
@@ -606,6 +611,7 @@ async function onMapClick(event) {
     nav.onMapClick([event.lngLat.lng, event.lngLat.lat]);
     return;
   }
+  if (fleet?.onMapClick([event.lngLat.lng, event.lngLat.lat])) return;
   if (!reverseMode || !client) return;
   setReverseMode(false);
   const lat = Number(event.lngLat.lat.toFixed(6));
@@ -654,14 +660,15 @@ function selectNode(node) {
 /**
  * @param {string} buttonId
  * @param {string} preId
+ * @param {string} [msgId]
  */
-function wireCopy(buttonId, preId) {
+function wireCopy(buttonId, preId, msgId = 'copy-msg') {
   el(buttonId).addEventListener('click', async () => {
     const pre = el(preId);
     const ok = await copyText(pre.textContent ?? '');
     if (!ok) selectNode(pre);
     showOut(
-      'copy-msg',
+      msgId,
       ok
         ? 'Đã sao chép vào bộ nhớ tạm.'
         : 'Trình duyệt không cho sao chép tự động — đoạn mã đã được chọn, hãy nhấn Ctrl/Cmd + C.',
@@ -769,8 +776,21 @@ function wirePanel() {
   wireCopy('copy-script', 'snippet-script');
   wireCopy('copy-esm', 'snippet-esm');
   wireCopy('copy-nav', 'snippet-nav');
+  wireCopy('copy-fleet', 'snippet-fleet', 'fl-copy-msg');
 
-  el('enter-nav').addEventListener('click', () => nav?.enter(lastSearchPoint));
+  el('enter-nav').addEventListener('click', () => {
+    fleet?.clearRoute();
+    nav?.enter(lastSearchPoint);
+  });
+
+  fleet = initFleet({
+    sdk: SDK,
+    getMap: () => map,
+    getClient: () => client,
+    getState: () => state,
+    describeError,
+    setStatus,
+  });
 
   fillForm();
   renderTabs();

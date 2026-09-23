@@ -5,8 +5,14 @@ import {
   DEFAULT_KEY,
   directionsRequest,
   etaLabel,
+  FLEET_SAMPLE,
+  fleetSnippet,
+  MATRIX_MAX_PAIRS,
   maskKey,
+  matrixPlan,
   navSnippet,
+  OPTIMIZED_MAX_STOPS,
+  optimizedPlan,
   PRECISION_ZOOM,
   parseState,
   pointFromAutocomplete,
@@ -15,7 +21,9 @@ import {
   radiusForPrecision,
   routeSummary,
   shortDistance,
+  shortDuration,
   toSearchParams,
+  visitLegs,
 } from '../public/playground-lib.js';
 
 const API = 'http://localhost:8787';
@@ -432,5 +440,93 @@ describe('DEFAULT_KEY', () => {
     // nó vẫn là chuỗi mốc, và hàm phải quy nó về rỗng thay vì trả ra "__MAPSLIBVN_DEMO_KEY__"
     // rồi gửi chuỗi đó lên API như một khoá.
     expect(DEFAULT_KEY).toBe('');
+  });
+});
+
+describe('đội xe', () => {
+  /** @param {number} n */
+  const pts = (n) =>
+    Array.from({ length: n }, (_, i) => ({
+      lat: Number((10.77 + i / 1000).toFixed(6)),
+      lng: 106.7,
+      label: `P${i}`,
+    }));
+
+  it('matrixPlan: N×N cho "all", 1×(N-1) cho "depot"', () => {
+    const all = matrixPlan(pts(3), 'all');
+    expect(all.ok && [all.sources.length, all.targets.length]).toEqual([3, 3]);
+    const depot = matrixPlan(pts(3), 'depot');
+    expect(depot.ok && depot.sources.map((p) => p.label)).toEqual(['P0']);
+    expect(depot.ok && depot.targets.map((p) => p.label)).toEqual(['P1', 'P2']);
+  });
+  it('matrixPlan: chặn trước khi gọi API khi vượt trần cặp hoặc thiếu điểm', () => {
+    expect(MATRIX_MAX_PAIRS).toBe(50);
+    expect(matrixPlan(pts(7), 'all').ok).toBe(true); // 49 cặp
+    const over = matrixPlan(pts(8), 'all');
+    expect(over.ok).toBe(false);
+    expect(!over.ok && over.error).toContain('8 × 8 = 64');
+    expect(matrixPlan(pts(1), 'all').ok).toBe(false);
+  });
+  it('optimizedPlan: vòng tròn bỏ `to`, một chiều lấy điểm cuối làm `to`; toạ độ [lat, lng]', () => {
+    const round = optimizedPlan({ points: pts(3), roundTrip: true, mode: 'car', lang: 'vi' });
+    expect(round.ok && round.request).toEqual({
+      from: [10.77, 106.7],
+      stops: [
+        [10.771, 106.7],
+        [10.772, 106.7],
+      ],
+      mode: 'car',
+      lang: 'vi',
+    });
+    const oneWay = optimizedPlan({ points: pts(3), roundTrip: false, mode: 'walk', lang: 'en' });
+    expect(oneWay.ok && oneWay.request.to).toEqual([10.772, 106.7]);
+    expect(oneWay.ok && oneWay.stops.map((p) => p.label)).toEqual(['P1']);
+  });
+  it('optimizedPlan: thiếu điểm hoặc quá trần điểm dừng thì báo lỗi', () => {
+    expect(optimizedPlan({ points: pts(1), roundTrip: true, mode: 'car', lang: 'vi' }).ok).toBe(
+      false,
+    );
+    expect(optimizedPlan({ points: pts(2), roundTrip: false, mode: 'car', lang: 'vi' }).ok).toBe(
+      false,
+    );
+    const n = OPTIMIZED_MAX_STOPS;
+    expect(optimizedPlan({ points: pts(n + 1), roundTrip: true, mode: 'car', lang: 'vi' }).ok).toBe(
+      true,
+    );
+    expect(optimizedPlan({ points: pts(n + 2), roundTrip: true, mode: 'car', lang: 'vi' }).ok).toBe(
+      false,
+    );
+    expect(
+      optimizedPlan({ points: pts(n + 2), roundTrip: false, mode: 'car', lang: 'vi' }).ok,
+    ).toBe(true);
+  });
+  it('shortDuration', () => {
+    expect(shortDuration(42)).toBe('42 giây');
+    expect(shortDuration(720)).toBe('12 phút');
+    expect(shortDuration(3600)).toBe('1 giờ');
+    expect(shortDuration(3900)).toBe('1 giờ 5 phút');
+  });
+  it('visitLegs: xếp theo `order`, chặng cuối về lại điểm xuất phát khi không có `to`', () => {
+    const [from, a, b] = pts(3);
+    const legs = [
+      { distance_m: 100, duration_s: 10 },
+      { distance_m: 200, duration_s: 20 },
+      { distance_m: 300, duration_s: 30 },
+    ];
+    expect(visitLegs({ from, stops: [a, b], to: null, order: [1, 0], legs })).toEqual([
+      { label: 'P2', stopIndex: 1, distance_m: 100, duration_s: 10 },
+      { label: 'P1', stopIndex: 0, distance_m: 200, duration_s: 20 },
+      { label: 'P0 (về lại)', stopIndex: null, distance_m: 300, duration_s: 30 },
+    ]);
+  });
+  it('fleetSnippet: dùng điểm mẫu khi danh sách chưa đủ, bỏ `to` khi vòng tròn', () => {
+    const state = parseState('', API);
+    const code = fleetSnippet(state, { points: [], roundTrip: true, mode: 'motorbike' });
+    expect(code).toContain(`from: [${FLEET_SAMPLE[0].lat}, ${FLEET_SAMPLE[0].lng}]`);
+    expect(code).toContain('bỏ `to`');
+    expect(code).not.toMatch(/^ {2}to:/m);
+    const oneWay = fleetSnippet(state, { points: pts(3), roundTrip: false, mode: 'car' });
+    expect(oneWay).toContain('  to: [10.772, 106.7], // P2');
+    expect(oneWay).toContain("mode: 'car'");
   });
 });

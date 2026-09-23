@@ -1,3 +1,5 @@
+import { readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
 import { expect, test } from '@playwright/test';
 
 test('playground tải bản đồ từ fixture, tiles 206/200, attribution hiện', async ({ page }) => {
@@ -102,10 +104,10 @@ test('gõ cách viết địa phương "qui nhon" vẫn ra Quy Nhơn', async ({ 
   expect(jsErrors, `lỗi JS trên trang: ${jsErrors.join(' | ')}`).toEqual([]);
 });
 
-test('bốn tab chuyển được bằng chuột và bàn phím', async ({ page }) => {
+test('năm tab chuyển được bằng chuột và bàn phím', async ({ page }) => {
   await page.goto('/playground.html');
 
-  await expect(page.getByRole('tab')).toHaveCount(4);
+  await expect(page.getByRole('tab')).toHaveCount(5);
   await expect(page.locator('#tab-ban-do')).toHaveAttribute('aria-selected', 'true');
   await expect(page.locator('#panel-ban-do')).toBeVisible();
   await expect(page.locator('#panel-tim-kiem')).toBeHidden();
@@ -116,10 +118,10 @@ test('bốn tab chuyển được bằng chuột và bàn phím', async ({ page 
   await expect(page.locator('#panel-ma-nhung')).toBeVisible();
   expect(new URL(page.url()).hash).toBe('#ma-nhung');
 
-  // Mũi tên trái trong tablist lùi về tab Geocode.
+  // Mũi tên trái trong tablist lùi về tab Đội xe.
   await page.locator('#tab-ma-nhung').press('ArrowLeft');
-  await expect(page.locator('#tab-geocode')).toHaveAttribute('aria-selected', 'true');
-  await expect(page.locator('#panel-geocode')).toBeVisible();
+  await expect(page.locator('#tab-doi-xe')).toHaveAttribute('aria-selected', 'true');
+  await expect(page.locator('#panel-doi-xe')).toBeVisible();
 });
 
 test('?embed=1 chỉ còn bản đồ và thanh trạng thái', async ({ page }) => {
@@ -461,4 +463,94 @@ test('tab Mã nhúng có đoạn dẫn đường theo điểm/phương tiện đ
   await expect(pre).toContainText("mode: 'walk'");
   await expect(pre).toContainText('to: [10.7725, 106.698], // Chợ Bến Thành');
   await expect(pre).toContainText('map.navigation.start');
+});
+
+// Tab Đội xe: API được giả bằng phản hồi thật chụp từ Valhalla dev Quận 1 (23/09/2026), để e2e
+// không phụ thuộc engine định tuyến và không tốn lượt `directions`.
+test.describe('tab Đội xe', () => {
+  const fixture = (name: string) =>
+    readFileSync(fileURLToPath(new URL(`./fixtures/${name}`, import.meta.url)), 'utf8');
+
+  test.beforeEach(async ({ page }) => {
+    await page.route('**/v1/optimized-route?*', (route) =>
+      route.fulfill({ contentType: 'application/json', body: fixture('optimized-q1.json') }),
+    );
+    await page.route('**/v1/matrix?*', (route) =>
+      route.fulfill({ contentType: 'application/json', body: fixture('matrix-q1.json') }),
+    );
+    await page.goto('/playground.html?api=http://localhost:8787#doi-xe');
+    await expect(page.locator('#status')).toHaveAttribute('data-state', 'loaded', {
+      timeout: 30_000,
+    });
+  });
+
+  test('nạp mẫu → tối ưu: vẽ tuyến, liệt kê thứ tự ghé, xếp lại danh sách', async ({ page }) => {
+    const jsErrors: string[] = [];
+    page.on('pageerror', (error) => jsErrors.push(error.message));
+    await page.locator('#fl-sample').click();
+    await expect(page.locator('#fl-points li')).toHaveCount(6);
+    await expect(page.locator('.fl-marker')).toHaveCount(6);
+
+    const request = page.waitForRequest('**/v1/optimized-route?*');
+    await page.locator('#fl-opt').click();
+    const url = new URL((await request).url());
+    expect(url.searchParams.get('from')).toBe('10.7725,106.698');
+    expect(url.searchParams.get('stops')?.split(';')).toHaveLength(5);
+    expect(url.searchParams.has('to')).toBe(false);
+
+    await expect(page.locator('#fl-opt-msg')).toContainText('Tổng 8,8 km');
+    // order [3,1,4,0,2] của fixture → điểm 5, 3, 6, 2, 4 rồi về 1.
+    const legs = page.locator('#fl-legs li');
+    await expect(legs.nth(1)).toContainText('→ 5 · Bitexco');
+    await expect(legs.nth(6)).toContainText('→ 1 · Chợ Bến Thành (về lại)');
+    const drawn = await page.evaluate(() =>
+      Boolean(
+        (
+          window as unknown as { __map: { gl: { getSource(id: string): unknown } } }
+        ).__map.gl.getSource('mapslibvn-route'),
+      ),
+    );
+    expect(drawn).toBe(true);
+
+    await page.locator('#fl-apply-order').click();
+    await expect(page.locator('#fl-points li .fl-name')).toHaveText([
+      'Chợ Bến Thành',
+      'Bitexco',
+      'Bến Nhà Rồng',
+      'Nhà thờ Đức Bà',
+      'Hồ Con Rùa',
+      'Dinh Độc Lập',
+    ]);
+    expect(jsErrors).toEqual([]);
+  });
+
+  test('ma trận 6×6: bảng có đường chéo và đổi được sang km; 8 điểm thì chặn trước khi gọi', async ({
+    page,
+  }) => {
+    let calls = 0;
+    page.on('request', (r) => {
+      if (r.url().includes('/v1/matrix?')) calls += 1;
+    });
+    await page.locator('#fl-sample').click();
+    await page.locator('#fl-mx').click();
+    await expect(page.locator('#fl-mx-msg')).toContainText('6 × 6 = 36 cặp');
+    await expect(page.locator('#fl-table tr')).toHaveCount(7);
+    await expect(page.locator('#fl-table .fl-diag')).toHaveCount(6);
+    // durations_s[0][1] = 340 giây → 6 phút.
+    await expect(page.locator('#fl-table tr').nth(1).locator('td').nth(1)).toHaveText('6');
+    await page.locator('#fl-metric').selectOption('distance');
+    await expect(page.locator('#fl-table th').first()).toHaveText('km');
+    expect(calls).toBe(1);
+
+    await page.locator('#fl-pick').click();
+    const box = await page.locator('#map').boundingBox();
+    if (!box) throw new Error('không thấy #map');
+    await page.mouse.click(box.x + box.width - 120, box.y + 120);
+    await page.mouse.click(box.x + box.width - 160, box.y + 200);
+    await expect(page.locator('#fl-points li')).toHaveCount(8);
+    await page.locator('#fl-mx').click();
+    await expect(page.locator('#fl-mx-msg')).toContainText('8 × 8 = 64');
+    await expect(page.locator('#fl-mx-msg')).toHaveAttribute('data-state', 'error');
+    expect(calls).toBe(1);
+  });
 });
