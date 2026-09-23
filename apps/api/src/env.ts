@@ -162,6 +162,17 @@ export interface Env {
    * khách khác. Với 20/phút, một khoá duy nhất đủ làm việc đó.
    */
   MATRIX_RATE_LIMITER?: RateLimit;
+  /**
+   * Gốc vroom-express (spec 2026-09-23 mục 5.3): dev `http://127.0.0.1:3000/fleet`; production
+   * `https://maps-route.<domain>/fleet` — cùng hostname Tunnel với Valhalla, luật đường dẫn `/fleet/`
+   * trỏ `vroom:3000`, nên dùng lại service token Access của routing. Vắng → 503.
+   */
+  FLEET_BASE?: string;
+  /**
+   * Nhịp riêng cho `/v1/fleet-plan`: 2 request/phút/colo theo KHOÁ thuần, áp cả khoá `server`. Một
+   * request cỡ tối đa là ma trận ≤ 1.600 cặp cộng 5 lượt `/route` — gấp nhiều lần một ma trận 50 cặp.
+   */
+  FLEET_RATE_LIMITER?: RateLimit;
 }
 
 /** Kiểu Hono chung cho app: Variables.auth do requireAuth() gán, reviewer do requireAccess(). */

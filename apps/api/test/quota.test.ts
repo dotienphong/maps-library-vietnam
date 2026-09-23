@@ -1,5 +1,8 @@
 import { env, SELF } from 'cloudflare:test';
+import { Hono } from 'hono';
 import { describe, expect, it } from 'vitest';
+import type { AppEnv } from '../src/env';
+import { ApiError, errorResponse } from '../src/errors';
 import {
   burstLimiterFor,
   dailyLimit,
@@ -7,6 +10,7 @@ import {
   FREE_DIRECTIONS_PER_DAY,
   FREE_PLACES_PER_DAY,
   keyCapLimiterFor,
+  quotaMiddleware,
   rateLimitActor,
   vnDay,
 } from '../src/quota';
@@ -145,5 +149,45 @@ describe('quota (QUOTA_ENABLED=1 trong vitest.config)', () => {
       keyCapLimiterFor(env, { ...base, kind: 'server', plan: 'internal' }, 'directions'),
     ).toBeUndefined();
     expect(keyCapLimiterFor(env, { ...base, kind: 'web' }, 'places')).toBeUndefined();
+  });
+});
+
+describe('quotaMiddleware preflight bất đồng bộ (fleet-plan)', () => {
+  it('await preflight: 400 từ preflight async trả về TRƯỚC handler, handler không chạy', async () => {
+    const app = new Hono<AppEnv>();
+    let handlerChay = false;
+    app.post(
+      '/x',
+      async (c, next) => {
+        c.set('auth', {
+          keyHash: 'h',
+          keyPrefix: 'mlv_live_x',
+          tenantId: '00000000-0000-4000-8000-0000000000aa',
+          plan: 'internal',
+          kind: 'server',
+          scopes: ['places:read'],
+          allowedOrigins: [],
+          quotaPlacesPerDay: null,
+          quotaDirectionsPerDay: null,
+        });
+        await next();
+      },
+      quotaMiddleware('directions', async (c) => {
+        const body = (await c.req.json()) as { ok?: boolean };
+        if (!body.ok) throw new ApiError(400, 'invalid_request', 'body sai');
+        c.set('params', body);
+      }),
+      (c) => {
+        handlerChay = true;
+        return c.json(c.get('params') as object);
+      },
+    );
+    app.onError((err, c) => errorResponse(c, err));
+    const sai = await app.request('/x', { method: 'POST', body: '{}' }, env);
+    expect(sai.status).toBe(400);
+    expect(handlerChay).toBe(false);
+    const dung = await app.request('/x', { method: 'POST', body: '{"ok":true}' }, env);
+    expect(dung.status).toBe(200);
+    expect(await dung.json()).toEqual({ ok: true });
   });
 });

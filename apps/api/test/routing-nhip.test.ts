@@ -1,34 +1,19 @@
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import { ApiError } from '../src/errors';
-import { apDungNhipMaTran } from '../src/routing/nhip';
+import { apDungNhip, apDungNhipMaTran } from '../src/routing/nhip';
 
-/** RateLimit giả: ghi lại key được hỏi và trả kết quả đặt trước. */
-function limiterGia(success: boolean) {
-  const keys: string[] = [];
-  return {
-    limiter: {
-      limit: vi.fn(async ({ key }: { key: string }) => {
-        keys.push(key);
-        return { success };
-      }),
-    } as unknown as RateLimit,
-    keys,
-  };
-}
+const limiter = (success: boolean): RateLimit =>
+  ({ limit: () => Promise.resolve({ success }) }) as unknown as RateLimit;
 
-const HASH = 'a'.repeat(64);
-
-describe('apDungNhipMaTran', () => {
-  it('đếm theo KHOÁ THUẦN, không kèm IP — mục tiêu là bảo vệ engine, không phải chống spam một IP', async () => {
-    const { limiter, keys } = limiterGia(true);
-    await apDungNhipMaTran(limiter, HASH);
-    expect(keys).toEqual([HASH]);
+describe('apDungNhip', () => {
+  it('thiếu binding → bỏ qua; qua nhịp → không ném', async () => {
+    await expect(apDungNhip(undefined, 'k', 'x')).resolves.toBeUndefined();
+    await expect(apDungNhip(limiter(true), 'k', 'x')).resolves.toBeUndefined();
   });
 
-  it('vượt nhịp → 429 rate_limit_exceeded, retry-after 60, message nói rõ là ma trận', async () => {
-    const { limiter } = limiterGia(false);
+  it('quá nhịp → 429 rate_limit_exceeded, retry-after 60, đúng thông điệp truyền vào', async () => {
     try {
-      await apDungNhipMaTran(limiter, HASH);
+      await apDungNhip(limiter(false), 'k', 'Gửi quá nhiều request chia đơn đội xe trong một phút');
       throw new Error('phải ném');
     } catch (error) {
       expect(error).toBeInstanceOf(ApiError);
@@ -36,11 +21,11 @@ describe('apDungNhipMaTran', () => {
       expect(e.status).toBe(429);
       expect(e.code).toBe('rate_limit_exceeded');
       expect(e.retryAfter).toBe(60);
-      expect(e.message).toMatch(/ma trận|tối ưu thứ tự/i);
+      expect(e.message).toMatch(/chia đơn đội xe/);
     }
   });
 
-  it('không có binding (dev, test không cấu hình) → bỏ qua, không ném', async () => {
-    await expect(apDungNhipMaTran(undefined, HASH)).resolves.toBeUndefined();
+  it('apDungNhipMaTran giữ thông điệp cũ của ma trận', async () => {
+    await expect(apDungNhipMaTran(limiter(false), 'k')).rejects.toThrow(/ma trận/);
   });
 });

@@ -34,6 +34,8 @@ TURNSTILE_SITE_KEY = ""
 # MAX_INFLIGHT_PLACES = "50"
 # MAX_INFLIGHT_DIRECTIONS = "32"
 ROUTING_BASE = "http://127.0.0.1:8002"
+# Bộ giải đội xe (spec 2026-09-23). Dev: vroom-express của compose dev, baseurl /fleet/.
+FLEET_BASE = "http://127.0.0.1:3000/fleet"
 # Tài khoản Cloudflare cho Analytics Engine SQL API (pha 5). Dev không có CF_ANALYTICS_TOKEN nên
 # /v1/admin/metrics ở máy trả 503 analytics_not_configured — đúng như thiết kế.
 CF_ACCOUNT_ID = "90de8c1aef96991cdf2a49008f9a0122"
@@ -97,7 +99,7 @@ enabled = true
 crons = ["*/5 * * * *", "0 2 * * *"]
 
 [env.production]
-vars = { TILES_BASE = "https://tiles.ai-solutions.io.vn", ENVIRONMENT = "production", QUOTA_ENABLED = "1", COMMERCIAL_ADMISSION = "1", SELF_SERVE = "1", EMAIL_FROM = "no-reply@ai-solutions.io.vn", SUPPORT_EMAIL = "dotienphong1993@gmail.com", ALERT_EMAIL = "dotienphong1993@gmail.com", CONSOLE_ORIGIN = "https://api.ai-solutions.io.vn", TURNSTILE_SITE_KEY = "0x4AAAAAAE8hg4LHjXPOrZF8", ROUTING_BASE = "https://maps-route.ai-solutions.io.vn", ACCESS_TEAM_DOMAIN = "snowy-credit-f444.cloudflareaccess.com", ACCESS_AUD = "26088029373e358f9a24e68f66fe85ccc0c771e53cde538638a54151969cc6f5", AUTOCOMPLETE_FAST = "1", CF_ACCOUNT_ID = "90de8c1aef96991cdf2a49008f9a0122" }
+vars = { TILES_BASE = "https://tiles.ai-solutions.io.vn", ENVIRONMENT = "production", QUOTA_ENABLED = "1", COMMERCIAL_ADMISSION = "1", SELF_SERVE = "1", EMAIL_FROM = "no-reply@ai-solutions.io.vn", SUPPORT_EMAIL = "dotienphong1993@gmail.com", ALERT_EMAIL = "dotienphong1993@gmail.com", CONSOLE_ORIGIN = "https://api.ai-solutions.io.vn", TURNSTILE_SITE_KEY = "0x4AAAAAAE8hg4LHjXPOrZF8", ROUTING_BASE = "https://maps-route.ai-solutions.io.vn", FLEET_BASE = "https://maps-route.ai-solutions.io.vn/fleet", ACCESS_TEAM_DOMAIN = "snowy-credit-f444.cloudflareaccess.com", ACCESS_AUD = "26088029373e358f9a24e68f66fe85ccc0c771e53cde538638a54151969cc6f5", AUTOCOMPLETE_FAST = "1", CF_ACCOUNT_ID = "90de8c1aef96991cdf2a49008f9a0122" }
 kv_namespaces = [{ binding = "META", id = "a50e778ff63a4ad7956f783eba456ed5" }]
 durable_objects = { bindings = [{ name = "QUOTA", class_name = "QuotaObject" }] }
 r2_buckets = [{ binding = "TILES", bucket_name = "mapslibvn-tiles" }]
@@ -111,6 +113,9 @@ ratelimits = [
   # lượt chỉ đường trên engine 1 luồng của máy 2 nhân (số đo 22/09/2026), nên nhịp phải thấp hơn hẳn
   # burst 20/phút của directions — trần cỡ ≤ 50 cặp chỉ giới hạn được một request.
   { name = "MATRIX_RATE_LIMITER", namespace_id = "20260923", simple = { limit = 6, period = 60 } },
+  # Chia đơn đội xe: 2 request/phút theo khoá thuần (spec 2026-09-23 mục 4.7). Một request cỡ tối đa
+  # là ma trận ≤ 1.600 cặp + 5 tuyến trên cùng Valhalla, nên nhịp thấp hơn hẳn ma trận (6/phút).
+  { name = "FLEET_RATE_LIMITER", namespace_id = "20260924", simple = { limit = 2, period = 60 } },
   # Mã đăng nhập của cổng khách hàng. Binding Rate Limiting chỉ nhận chu kỳ 10 hoặc 60 giây, nên
   # hành vi thật là "mỗi email một mã mỗi phút" — giao diện phải nói đúng câu đó thay vì hứa khác.
   { name = "OTP_EMAIL_RATE_LIMITER", namespace_id = "20260920", simple = { limit = 1, period = 60 } },

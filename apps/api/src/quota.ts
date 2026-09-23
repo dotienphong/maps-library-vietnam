@@ -62,8 +62,14 @@ export function secondsUntilVnDayReset(now: Date = new Date()): number {
 }
 
 /** Đếm xấp xỉ trong KV, chặn 429 khi vượt 2× quota (tránh chặn nhầm vì đếm trễ).
- * Tenant internal: không đọc/ghi KV (Workers Free chỉ cho 1.000 ghi KV/ngày). */
-export function quotaMiddleware(group: QuotaGroup, preflight?: (c: Context<AppEnv>) => void) {
+ * Tenant internal: không đọc/ghi KV (Workers Free chỉ cho 1.000 ghi KV/ngày).
+ * Preflight có thể bất đồng bộ (đọc body JSON của POST /v1/fleet-plan) — luôn `await`. */
+export function quotaMiddleware(
+  group: QuotaGroup,
+  // `unknown` chứ không `void | Promise<void>`: các route cũ truyền thẳng hàm parse có giá trị trả về;
+  // giá trị đó bị bỏ, chỉ lỗi ném ra (hoặc Promise bị từ chối) là có nghĩa.
+  preflight?: (c: Context<AppEnv>) => unknown,
+) {
   return async (c: Context<AppEnv>, next: Next) => {
     const auth = c.get('auth');
     if (!auth) return next();
@@ -84,7 +90,7 @@ export function quotaMiddleware(group: QuotaGroup, preflight?: (c: Context<AppEn
     if (c.req.raw.method === 'HEAD') {
       return c.body(null, 405, { Allow: 'GET', 'cache-control': 'private, no-store' });
     }
-    preflight?.(c);
+    await preflight?.(c);
     if ((auth.quotaMode ?? 'legacy') === 'commercial') {
       return commercialQuota(c, next, auth, group);
     }

@@ -12,6 +12,7 @@ export default defineConfig({
           QUOTA_ENABLED: '1',
           COMMERCIAL_ADMISSION: '1',
           ROUTING_BASE: 'https://routing.test',
+          FLEET_BASE: 'https://fleet.test',
           ACCESS_TEAM_DOMAIN: 'test.cloudflareaccess.com',
           ACCESS_AUD: 'test-aud',
           BILLING_ADMIN_EMAILS: 'billing@test.local',
@@ -37,6 +38,10 @@ export default defineConfig({
           },
           MATRIX_RATE_LIMITER: {
             namespace_id: '20260923',
+            simple: { limit: 10_000, period: 60 },
+          },
+          FLEET_RATE_LIMITER: {
+            namespace_id: '20260924',
             simple: { limit: 10_000, period: 60 },
           },
         },
