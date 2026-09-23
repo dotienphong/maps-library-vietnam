@@ -148,13 +148,16 @@ import { MapsLibVNMap, Marker, useMap, usePlaces } from '@mapslibvn/react-native
    - Ngược lại: `mapStyle={url}` — native tải, đường nhanh nhất và là mặc định.
    - Một cơ chế cho cả hai tuỳ chọn để có một đường mã, test được thuần.
 3. **Camera**: `<Camera ref initialViewState={{ center, zoom }}>`; mặc định `[106.7, 10.776]`, zoom 12 như web. Đổi `center`/`zoom` sau khi mount **không** tạo lại map; app dùng `flyTo`. Đổi `apiKey`, `apiBase`, `style`, `lang`, `poiLayer` → tạo lại map (đổi `key` của cây con), như `@mapslibvn/react`.
-4. **Map props cố định**: `attribution` bật, `attributionPosition` góc dưới phải, `logo` tắt
+4. **Map props cố định**: `attribution` tắt (xem mục 5), `logo` tắt
    (BSD của MapLibre không yêu cầu logo; web SDK cũng không hiện), `compass` bật mặc định của wrapper.
 5. **Attribution MapsLibVN** (spec 12.3): một `<Text>` nhỏ chồng góc dưới trái, nền mờ,
    `accessibilityRole="link"`. Đầy đủ: `attributionText()` từ core (được xuống dòng). Gọn
-   (`compactAttribution`): `© MapsLibVN · © OpenStreetMap contributors`. Bấm vào gọi
-   `native.showAttribution()` — hộp thoại native liệt kê attribution từng source trong style
-   (OSM, OpenMapTiles, Overture, Foursquare đã nằm trong `sources.*.attribution`). Không có prop tắt.
+   (`compactAttribution`): `© MapsLibVN · © OpenStreetMap contributors`. Bấm vào mở danh sách
+   (`Modal`) do SDK dựng từ `ATTRIBUTION_LINKS` của core: đủ bốn nguồn kèm giấy phép, bấm từng dòng
+   mở link. Không có prop tắt. Sửa 23/09/2026: bản đầu gọi `native.showAttribution()` và bật nút "i"
+   native, nhưng MapLibre Native bỏ qua `attribution` của source có `url` mà đọc metadata PMTiles —
+   `vn-*.pmtiles` chỉ khai OpenMapTiles + OSM, `poi-*.pmtiles` không khai gì — nên hộp thoại thiếu
+   © MapsLibVN và Foursquare, và chế độ gọn không bao giờ hiện Foursquare.
 6. **Sự kiện**:
    - `onDidFinishLoadingStyle` → gọi `onLoad(handle)` một lần.
    - `onDidFailLoadingMap` → `onError(new Error('Không tải được bản đồ'))`.
@@ -283,7 +286,7 @@ Analytics (blob `key`).
 | 1 | `pnpm example:rn --ios` và `--android` chạy trọn: app hiện bản đồ VN nhãn tiếng Việt, tiles đọc thẳng từ `tiles.ai-solutions.io.vn` (không có request `/v1/tiles/*` trong log Worker), theme light/dark, `lang=en` đổi nhãn nhưng nhãn Hoàng Sa/Trường Sa vẫn tiếng Việt | ảnh chụp simulator iOS + emulator Android lưu `docs/evidence/m6/`; truy vấn Workers Observability không có `/v1/tiles` từ khoá mobile |
 | 2 | Gõ "highlands" → gợi ý ≤ 1 s; chọn → `flyTo` + marker hiện | ảnh chụp |
 | 3 | Bấm POI → `onPoiClick` trả tên/loại đúng với tile | ảnh chụp Alert |
-| 4 | Attribution MapsLibVN hiện; bấm mở hộp thoại native liệt kê OSM/OpenMapTiles/Overture/Foursquare; không có prop tắt (kiểm bằng typecheck) | ảnh chụp + test |
+| 4 | Attribution MapsLibVN hiện; bấm mở danh sách của SDK liệt kê MapsLibVN/OSM/OpenMapTiles/Foursquare; không có prop tắt (kiểm bằng typecheck) | ảnh chụp + test |
 | 5 | Request từ app xuất hiện trong Analytics với khoá `mobile`; log Worker có `X-Bundle-Id=vn.mapslibvn.demo` | truy vấn SQL API như báo cáo tuần |
 | 6 | CI xanh: lint, typecheck (gói mới với React 19), vitest (test mục 4.6), build 4 gói, `notices --check` 4 gói; docs deploy, link check qua | GitHub Actions |
 | 7 | Trang docs `react-native` hiển thị trên `mapslibvn-docs.pages.dev` | link |

@@ -384,8 +384,9 @@ export function MapsLibVNMap({
           ref={native}
           style={styles.map}
           mapStyle={resolved.mapStyle}
-          attribution
-          attributionPosition={{ bottom: 8, right: 8 }}
+          // Tắt nút "i" native: hộp thoại của nó đọc metadata PMTiles nên thiếu © MapsLibVN và
+          // Foursquare. Ghi nguồn đủ bốn nguồn do <Attribution> bên dưới vẽ và mở danh sách.
+          attribution={false}
           logo={false}
           onPress={onPress}
           onRegionWillChange={onRegionWillChange}
@@ -417,12 +418,7 @@ export function MapsLibVNMap({
           </MapContext.Provider>
         </NativeMap>
       ) : null}
-      <Attribution
-        compact={compactAttribution}
-        onPress={() => {
-          void native.current?.showAttribution();
-        }}
-      />
+      <Attribution compact={compactAttribution} />
     </View>
   );
 }

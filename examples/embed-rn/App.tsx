@@ -329,7 +329,7 @@ function DemoScreen() {
         style={theme}
         lang={lang}
         {...(BUNDLE_ID ? { bundleId: BUNDLE_ID } : {})}
-        // Một dòng "© MapsLibVN · © OpenStreetMap contributors"; bấm vào (hoặc nút "i") mở đủ nguồn.
+        // Một dòng "© MapsLibVN · © OpenStreetMap contributors"; bấm vào mở danh sách đủ bốn nguồn.
         compactAttribution
         navigation={session}
         userLocation={{

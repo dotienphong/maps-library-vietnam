@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import { vi } from 'vitest';
 
 type AnyProps = Record<string, unknown> & { children?: ReactNode; testID?: string };
 
@@ -23,6 +24,11 @@ export function TextInput(p: AnyProps) {
 export function Image(p: AnyProps) {
   return <img {...pick(p)} alt="mock" />;
 }
+/** Modal giả: chỉ dựng con khi `visible`. */
+export function Modal(p: AnyProps & { visible?: boolean }) {
+  return p.visible ? <div {...pick(p)}>{p.children}</div> : null;
+}
+export const Linking = { openURL: vi.fn(async (_url: string) => undefined) };
 export const StyleSheet = { create: <T,>(s: T): T => s };
 export const Platform = {
   OS: 'ios',

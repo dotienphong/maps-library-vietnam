@@ -109,7 +109,7 @@ phải tải style lần nữa.
 | Đổi `center`/`zoom` tạo lại map | `center`/`zoom` chỉ là giá trị khởi tạo; dùng `useMap().flyTo` / `fitBounds` |
 | `<Marker popupHtml>` | không có HTML; truyền `children` và `onPress` |
 | `map.navigation` gắn với map | `createNavigationSession()` độc lập, `navigation={session}` — xem [Dẫn đường React Native](/dan-duong-react-native/) |
-| Attribution `AttributionControl` | dòng MapsLibVN chồng góc dưới trái + nút "i" native; `compactAttribution` gọn, **không tắt được** |
+| Attribution `AttributionControl` | dòng ghi nguồn chồng góc dưới trái, bấm vào mở danh sách đủ bốn nguồn (mỗi dòng mở link); `compactAttribution` gọn, **không tắt được** |
 | không có chấm xanh/la bàn | `userLocation={{ source, heading, follow }}`, `useHeading()`, puck dẫn đường theo la bàn khi đứng yên — xem mục 6 |
 
 Đổi `apiKey`, `apiBase` hoặc `poiSources` sau khi mount sẽ tạo lại map và gọi `onLoad` lần nữa. Đổi

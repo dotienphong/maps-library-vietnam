@@ -26,7 +26,7 @@ afterEach(() => {
 });
 
 describe('MapsLibVNMap', () => {
-  it('mặc định: mapStyle là URL light, camera khởi tạo HCM zoom 12, không logo, có attribution', () => {
+  it('mặc định: mapStyle là URL light, camera khởi tạo HCM zoom 12, không logo, ghi nguồn do SDK vẽ', () => {
     render(<MapsLibVNMap {...base} />);
     expect(screen.getByTestId('mlrn-map').dataset.style).toBe(
       'https://api.test/v1/styles/light.json?key=mlv_live_k&sources=osm%2Cfsq',
@@ -36,7 +36,8 @@ describe('MapsLibVNMap', () => {
     );
     const props = getLastMapProps();
     expect(props?.logo).toBe(false);
-    expect(props?.attribution).toBe(true);
+    // Nút "i" native tắt: hộp thoại của nó đọc metadata PMTiles nên thiếu © MapsLibVN và Foursquare.
+    expect(props?.attribution).toBe(false);
     expect(screen.getByTestId('mapslibvn-attribution')).toBeTruthy();
   });
 
@@ -135,11 +136,12 @@ describe('MapsLibVNMap', () => {
     expect(mapRefMock.queryRenderedFeatures).not.toHaveBeenCalled();
   });
 
-  it('bấm attribution → showAttribution native; onError khi map lỗi', () => {
+  it('bấm attribution → danh sách nguồn của SDK, không gọi hộp thoại native; onError khi map lỗi', () => {
     const onError = vi.fn();
     render(<MapsLibVNMap {...base} onError={onError} />);
     fireEvent.click(screen.getByTestId('mapslibvn-attribution'));
-    expect(mapRefMock.showAttribution).toHaveBeenCalledTimes(1);
+    expect(screen.getAllByTestId('mapslibvn-attribution-link')).toHaveLength(4);
+    expect(mapRefMock.showAttribution).not.toHaveBeenCalled();
     const props = getLastMapProps() as unknown as { onDidFailLoadingMap: () => void };
     act(() => props.onDidFailLoadingMap());
     expect(onError).toHaveBeenCalledWith(
