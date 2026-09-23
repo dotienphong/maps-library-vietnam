@@ -65,7 +65,7 @@
 - Modify: `scripts/routing-test.mjs` (dựng vroom, chờ health, `--var FLEET_BASE`)
 - Modify: `.github/workflows/routing-test.yml`
 
-- [ ] **Step 1: Viết cấu hình VROOM dev**
+- [x] **Step 1: Viết cấu hình VROOM dev**
 
 Tạo `infra/dev/vroom/config.yml`:
 
@@ -102,7 +102,7 @@ routingServers:
       port: '8002'
 ```
 
-- [ ] **Step 2: Thêm service `vroom` vào compose dev**
+- [x] **Step 2: Thêm service `vroom` vào compose dev**
 
 Trong `infra/dev/compose.yml`, ngay sau khối `valhalla:` (trước `volumes:`), thêm:
 
@@ -123,7 +123,7 @@ Trong `infra/dev/compose.yml`, ngay sau khối `valhalla:` (trước `volumes:`)
 
 `access.log` mà entrypoint tạo trong `infra/dev/vroom/` đã bị `.gitignore` bỏ qua nhờ mẫu `*.log` sẵn có.
 
-- [ ] **Step 3: Viết test đỏ cho `parseRoutingTestArgs` có `vroomBase`**
+- [x] **Step 3: Viết test đỏ cho `parseRoutingTestArgs` có `vroomBase`**
 
 Trong `scripts/lib/routing-test.test.mjs`, thay khối `describe('parseRoutingTestArgs', …)` (dòng 14–42) bằng:
 
@@ -168,12 +168,12 @@ describe('parseRoutingTestArgs', () => {
 });
 ```
 
-- [ ] **Step 4: Chạy test, thấy đỏ**
+- [x] **Step 4: Chạy test, thấy đỏ**
 
 Run: `pnpm exec vitest run scripts/lib/routing-test.test.mjs`
 Expected: FAIL — `vroomBase` không có trong object trả về.
 
-- [ ] **Step 5: Thêm `vroomBase` vào `parseRoutingTestArgs`**
+- [x] **Step 5: Thêm `vroomBase` vào `parseRoutingTestArgs`**
 
 Thay hàm trong `scripts/lib/routing-test.mjs` (dòng 8–27) bằng:
 
@@ -208,12 +208,12 @@ export function parseRoutingTestArgs(argv, env) {
 }
 ```
 
-- [ ] **Step 6: Chạy test, thấy xanh**
+- [x] **Step 6: Chạy test, thấy xanh**
 
 Run: `pnpm exec vitest run scripts/lib/routing-test.test.mjs`
 Expected: PASS.
 
-- [ ] **Step 7: `routing-test.mjs` dựng VROOM, chờ health, truyền `FLEET_BASE`, capture fixture VROOM thô**
+- [x] **Step 7: `routing-test.mjs` dựng VROOM, chờ health, truyền `FLEET_BASE`, capture fixture VROOM thô**
 
 Trong `scripts/routing-test.mjs`:
 
@@ -307,7 +307,7 @@ và trong `createRoutingCleanup({ … stopValhalla … })` đổi `run('docker',
 
 Thêm `readFileSync` vào import từ `node:fs` ở đầu file.
 
-- [ ] **Step 8: CI chạy thêm container VROOM**
+- [x] **Step 8: CI chạy thêm container VROOM**
 
 Trong `.github/workflows/routing-test.yml`: thêm hai đường dẫn kích hoạt `"infra/dev/vroom/**"` và `"scripts/lib/receipt-ack.mjs"` vào `paths`; thay step "Valhalla trên fixture Quận 1" bằng:
 
@@ -334,12 +334,12 @@ Trong `.github/workflows/routing-test.yml`: thêm hai đường dẫn kích ho�
           docker logs vroom 2>&1 | tail -50 || true
 ```
 
-- [ ] **Step 9: Kiểm typecheck script và lint**
+- [x] **Step 9: Kiểm typecheck script và lint**
 
 Run: `pnpm exec tsc -p tsconfig.scripts.json && pnpm lint`
 Expected: không lỗi.
 
-- [ ] **Step 10: Commit**
+- [x] **Step 10: Commit**
 
 ```bash
 git add infra/dev/vroom/config.yml infra/dev/compose.yml scripts/lib/routing-test.mjs scripts/lib/routing-test.test.mjs scripts/routing-test.mjs .github/workflows/routing-test.yml
@@ -360,7 +360,7 @@ Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>"
 - Modify: `apps/api/src/quota.ts:66-90`
 - Test: `apps/api/test/routing-nhip.test.ts` (mới), `apps/api/test/quota.test.ts`
 
-- [ ] **Step 1: Test đỏ cho `apDungNhip`**
+- [x] **Step 1: Test đỏ cho `apDungNhip`**
 
 Tạo `apps/api/test/routing-nhip.test.ts`:
 
@@ -398,12 +398,12 @@ describe('apDungNhip', () => {
 });
 ```
 
-- [ ] **Step 2: Chạy, thấy đỏ**
+- [x] **Step 2: Chạy, thấy đỏ**
 
 Run: `pnpm --filter @mapslibvn/api exec vitest run test/routing-nhip.test.ts`
 Expected: FAIL — `apDungNhip` không tồn tại.
 
-- [ ] **Step 3: Tổng quát `nhip.ts`**
+- [x] **Step 3: Tổng quát `nhip.ts`**
 
 Thay toàn bộ `apps/api/src/routing/nhip.ts`:
 
@@ -438,12 +438,12 @@ export function apDungNhipMaTran(limiter: RateLimit | undefined, keyHash: string
 }
 ```
 
-- [ ] **Step 4: Chạy test nhịp, thấy xanh**
+- [x] **Step 4: Chạy test nhịp, thấy xanh**
 
 Run: `pnpm --filter @mapslibvn/api exec vitest run test/routing-nhip.test.ts`
 Expected: PASS (3 test).
 
-- [ ] **Step 5: Thêm biến môi trường**
+- [x] **Step 5: Thêm biến môi trường**
 
 Trong `apps/api/src/env.ts`, ngay sau khai báo `MATRIX_RATE_LIMITER?: RateLimit;` thêm:
 
@@ -461,7 +461,7 @@ Trong `apps/api/src/env.ts`, ngay sau khai báo `MATRIX_RATE_LIMITER?: RateLimit
   FLEET_RATE_LIMITER?: RateLimit;
 ```
 
-- [ ] **Step 6: wrangler.toml**
+- [x] **Step 6: wrangler.toml**
 
 (a) Trong `[vars]`, ngay sau dòng `ROUTING_BASE = "http://127.0.0.1:8002"` thêm:
 
@@ -480,7 +480,7 @@ FLEET_BASE = "http://127.0.0.1:3000/fleet"
   { name = "FLEET_RATE_LIMITER", namespace_id = "20260924", simple = { limit = 2, period = 60 } },
 ```
 
-- [ ] **Step 7: vitest.config.ts của API**
+- [x] **Step 7: vitest.config.ts của API**
 
 Trong `apps/api/vitest.config.ts`: `bindings` thêm `FLEET_BASE: 'https://fleet.test',` ngay sau `ROUTING_BASE`; `ratelimits` thêm:
 
@@ -491,7 +491,7 @@ Trong `apps/api/vitest.config.ts`: `bindings` thêm `FLEET_BASE: 'https://fleet.
           },
 ```
 
-- [ ] **Step 8: Test đỏ cho preflight bất đồng bộ**
+- [x] **Step 8: Test đỏ cho preflight bất đồng bộ**
 
 Thêm vào cuối `apps/api/test/quota.test.ts` (giữ import hiện có; thêm `import { Hono } from 'hono';` và `import type { AppEnv } from '../src/env';` nếu file chưa có):
 
@@ -539,12 +539,12 @@ describe('quotaMiddleware preflight bất đồng bộ (fleet-plan)', () => {
 
 Thêm `import { ApiError, errorResponse } from '../src/errors';` và `import { env } from 'cloudflare:test';` nếu chưa có ở đầu file.
 
-- [ ] **Step 9: Chạy, thấy đỏ (typecheck: preflight trả Promise)**
+- [x] **Step 9: Chạy, thấy đỏ (typecheck: preflight trả Promise)**
 
 Run: `pnpm --filter @mapslibvn/api exec vitest run test/quota.test.ts`
 Expected: FAIL hoặc lỗi kiểu — preflight hiện là `(c) => void`, Promise bị bỏ rơi nên 400 không ném trước handler.
 
-- [ ] **Step 10: Cho preflight trả Promise**
+- [x] **Step 10: Cho preflight trả Promise**
 
 Trong `apps/api/src/quota.ts`, đổi chữ ký và lời gọi:
 
@@ -557,12 +557,12 @@ export function quotaMiddleware(
 
 và dòng `preflight?.(c);` thành `await preflight?.(c);`. Cập nhật JSDoc phía trên hàm: thêm câu "Preflight có thể bất đồng bộ (đọc body JSON của POST /v1/fleet-plan) — luôn `await`."
 
-- [ ] **Step 11: Chạy cả hai file test, xanh; typecheck**
+- [x] **Step 11: Chạy cả hai file test, xanh; typecheck**
 
 Run: `pnpm --filter @mapslibvn/api exec vitest run test/quota.test.ts test/routing-nhip.test.ts && pnpm --filter @mapslibvn/api typecheck`
 Expected: PASS, typecheck sạch.
 
-- [ ] **Step 12: Commit**
+- [x] **Step 12: Commit**
 
 ```bash
 git add apps/api/src/env.ts apps/api/wrangler.toml apps/api/vitest.config.ts apps/api/src/routing/nhip.ts apps/api/src/quota.ts apps/api/test/routing-nhip.test.ts apps/api/test/quota.test.ts
@@ -578,7 +578,7 @@ Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>"
 - Create: `apps/api/src/routing/fleet-time.ts`
 - Test: `apps/api/test/fleet-time.test.ts`
 
-- [ ] **Step 1: Test đỏ**
+- [x] **Step 1: Test đỏ**
 
 Tạo `apps/api/test/fleet-time.test.ts`:
 
@@ -627,12 +627,12 @@ describe('formatIsoAt', () => {
 });
 ```
 
-- [ ] **Step 2: Chạy, thấy đỏ**
+- [x] **Step 2: Chạy, thấy đỏ**
 
 Run: `pnpm --filter @mapslibvn/api exec vitest run test/fleet-time.test.ts`
 Expected: FAIL — module không tồn tại.
 
-- [ ] **Step 3: Viết `fleet-time.ts`**
+- [x] **Step 3: Viết `fleet-time.ts`**
 
 ```ts
 import { ApiError } from '../errors';
@@ -699,12 +699,12 @@ export function formatIsoAt(unix: number, offsetMin: number): string {
 }
 ```
 
-- [ ] **Step 4: Chạy, xanh**
+- [x] **Step 4: Chạy, xanh**
 
 Run: `pnpm --filter @mapslibvn/api exec vitest run test/fleet-time.test.ts`
 Expected: PASS (3 test).
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add apps/api/src/routing/fleet-time.ts apps/api/test/fleet-time.test.ts
@@ -721,7 +721,7 @@ Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>"
 - Create: `apps/api/src/routing/vroom.ts`
 - Test: `apps/api/test/routing-vroom.test.ts`
 
-- [ ] **Step 1: Test đỏ**
+- [x] **Step 1: Test đỏ**
 
 Tạo `apps/api/test/routing-vroom.test.ts`:
 
@@ -822,12 +822,12 @@ describe('callVroom', () => {
 });
 ```
 
-- [ ] **Step 2: Chạy, thấy đỏ**
+- [x] **Step 2: Chạy, thấy đỏ**
 
 Run: `pnpm --filter @mapslibvn/api exec vitest run test/routing-vroom.test.ts`
 Expected: FAIL — module không tồn tại.
 
-- [ ] **Step 3: Viết `vroom.ts`**
+- [x] **Step 3: Viết `vroom.ts`**
 
 ```ts
 import type { Env } from '../env';
@@ -989,12 +989,12 @@ export async function callVroom(
 }
 ```
 
-- [ ] **Step 4: Chạy, xanh**
+- [x] **Step 4: Chạy, xanh**
 
 Run: `pnpm --filter @mapslibvn/api exec vitest run test/routing-vroom.test.ts`
 Expected: PASS (5 test).
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add apps/api/src/routing/vroom.ts apps/api/test/routing-vroom.test.ts
@@ -1013,7 +1013,7 @@ Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>"
 - Modify: `packages/web/src/index.ts`, `packages/web/src/umd.ts`, `packages/react-native/src/index.ts` (re-export kiểu)
 - Test: `packages/core/src/client.fleet-plan.test.ts`
 
-- [ ] **Step 1: Test đỏ**
+- [x] **Step 1: Test đỏ**
 
 Tạo `packages/core/src/client.fleet-plan.test.ts`:
 
@@ -1081,12 +1081,12 @@ describe('client.fleetPlan', () => {
 });
 ```
 
-- [ ] **Step 2: Chạy, thấy đỏ**
+- [x] **Step 2: Chạy, thấy đỏ**
 
 Run: `pnpm exec vitest run packages/core/src/client.fleet-plan.test.ts`
 Expected: FAIL — `fleetPlan` không tồn tại.
 
-- [ ] **Step 3: Thêm kiểu vào `types.ts`**
+- [x] **Step 3: Thêm kiểu vào `types.ts`**
 
 Sau `OptimizedRouteResponse` trong `packages/core/src/types.ts`:
 
@@ -1179,7 +1179,7 @@ export interface FleetPlanResponse {
 }
 ```
 
-- [ ] **Step 4: Thêm `fleetPlan` vào `client.ts`**
+- [x] **Step 4: Thêm `fleetPlan` vào `client.ts`**
 
 Thêm `FleetPlanOptions, FleetPlanResponse,` vào danh sách `import type { … } from './types'` (giữ thứ tự alphabet: sau `DirectionsResponse`, trước `GeocodeItem`). Sau phương thức `optimizedRoute` thêm:
 
@@ -1192,18 +1192,18 @@ Thêm `FleetPlanOptions, FleetPlanResponse,` vào danh sách `import type { … 
     fleetPlan: (opts: FleetPlanOptions) => post<FleetPlanResponse>('/v1/fleet-plan', opts),
 ```
 
-- [ ] **Step 5: Re-export kiểu ở web và RN**
+- [x] **Step 5: Re-export kiểu ở web và RN**
 
 - `packages/web/src/index.ts`: thêm `FleetJob, FleetPlanOptions, FleetPlanResponse, FleetStop, FleetVehicle, FleetVehiclePlan,` vào khối `export type { … } from '@mapslibvn/core'` (sau `DirectionsResponse`).
 - `packages/web/src/umd.ts`: thêm cùng sáu tên vào khối `export type { … } from './index'`.
 - `packages/react-native/src/index.ts`: thêm cùng sáu tên vào khối `export type { … } from '@mapslibvn/core'`.
 
-- [ ] **Step 6: Build core, chạy test, typecheck**
+- [x] **Step 6: Build core, chạy test, typecheck**
 
 Run: `pnpm --filter @mapslibvn/core build && pnpm exec vitest run packages/core/src/client.fleet-plan.test.ts && pnpm typecheck`
 Expected: build xanh (size-limit còn dưới 16 kB — kiểu không tốn byte, `fleetPlan` ~60 B), test PASS, typecheck sạch.
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add packages/core/src/types.ts packages/core/src/client.ts packages/core/src/client.fleet-plan.test.ts packages/web/src/index.ts packages/web/src/umd.ts packages/react-native/src/index.ts
@@ -1219,7 +1219,7 @@ Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>"
 - Create: `apps/api/src/routing/fleet.ts`
 - Test: `apps/api/test/routing-fleet.test.ts`
 
-- [ ] **Step 1: Test đỏ — kiểm đầu vào**
+- [x] **Step 1: Test đỏ — kiểm đầu vào**
 
 Tạo `apps/api/test/routing-fleet.test.ts`:
 
@@ -1487,12 +1487,12 @@ describe('fleetCacheUrl', () => {
 });
 ```
 
-- [ ] **Step 2: Chạy, thấy đỏ**
+- [x] **Step 2: Chạy, thấy đỏ**
 
 Run: `pnpm --filter @mapslibvn/api exec vitest run test/routing-fleet.test.ts`
 Expected: FAIL — module không tồn tại.
 
-- [ ] **Step 3: Viết `fleet.ts` phần 1**
+- [x] **Step 3: Viết `fleet.ts` phần 1**
 
 Tạo `apps/api/src/routing/fleet.ts`:
 
@@ -1821,12 +1821,12 @@ export async function fleetCacheUrl(p: FleetParams): Promise<string> {
 }
 ```
 
-- [ ] **Step 4: Chạy, xanh; lint**
+- [x] **Step 4: Chạy, xanh; lint**
 
 Run: `pnpm --filter @mapslibvn/api exec vitest run test/routing-fleet.test.ts && pnpm lint`
 Expected: PASS toàn bộ; lint sạch (nếu biome đòi format, chạy `pnpm lint:fix` rồi kiểm lại).
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add apps/api/src/routing/fleet.ts apps/api/test/routing-fleet.test.ts
@@ -1844,7 +1844,7 @@ Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>"
 - Create: `apps/api/test/fixtures/vroom/two-vehicles.json`
 - Modify: `apps/api/test/routing-fleet.test.ts` (thêm describe)
 
-- [ ] **Step 1: Fixture VROOM viết tay**
+- [x] **Step 1: Fixture VROOM viết tay**
 
 Tạo `apps/api/test/fixtures/vroom/two-vehicles.json` — kết quả cho `BODY` của Task 6: xe-1 nhận đơn 2 rồi đơn 1, xe-2 rỗi, đơn 3 không xếp được:
 
@@ -1894,7 +1894,7 @@ Tạo `apps/api/test/fixtures/vroom/two-vehicles.json` — kết quả cho `BODY
 }
 ```
 
-- [ ] **Step 2: Test đỏ**
+- [x] **Step 2: Test đỏ**
 
 Thêm vào đầu `apps/api/test/routing-fleet.test.ts` các import:
 
@@ -2130,12 +2130,12 @@ describe('noRouteMessage', () => {
 });
 ```
 
-- [ ] **Step 3: Chạy, thấy đỏ**
+- [x] **Step 3: Chạy, thấy đỏ**
 
 Run: `pnpm --filter @mapslibvn/api exec vitest run test/routing-fleet.test.ts`
 Expected: FAIL — `translateFleet` chưa export.
 
-- [ ] **Step 4: Viết phần 2 của `fleet.ts`**
+- [x] **Step 4: Viết phần 2 của `fleet.ts`**
 
 Đổi dòng import đầu file thành:
 
@@ -2377,12 +2377,12 @@ export function noRouteMessage(p: FleetParams): (error: string) => string {
 }
 ```
 
-- [ ] **Step 5: Chạy, xanh; typecheck; lint**
+- [x] **Step 5: Chạy, xanh; typecheck; lint**
 
 Run: `pnpm --filter @mapslibvn/api exec vitest run test/routing-fleet.test.ts && pnpm --filter @mapslibvn/api typecheck && pnpm lint`
 Expected: PASS toàn bộ, typecheck và lint sạch.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add apps/api/src/routing/fleet.ts apps/api/test/routing-fleet.test.ts apps/api/test/fixtures/vroom/two-vehicles.json
@@ -2402,7 +2402,7 @@ Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>"
 - Modify: `apps/api/test/admin-health.test.ts` (thêm ca `fleet`)
 - Test: `apps/api/test/fleet-plan.test.ts`
 
-- [ ] **Step 1: Test đỏ cho route và health**
+- [x] **Step 1: Test đỏ cho route và health**
 
 Tạo `apps/api/test/fleet-plan.test.ts`:
 
@@ -2590,12 +2590,12 @@ describe('GET /healthz/fleet', () => {
 });
 ```
 
-- [ ] **Step 2: Chạy, thấy đỏ**
+- [x] **Step 2: Chạy, thấy đỏ**
 
 Run: `pnpm --filter @mapslibvn/api exec vitest run test/fleet-plan.test.ts`
 Expected: FAIL — route trả 404 (chưa nối).
 
-- [ ] **Step 3: Thêm thành phần `fleet` vào `health/phep-do.ts`**
+- [x] **Step 3: Thêm thành phần `fleet` vào `health/phep-do.ts`**
 
 (a) Import thêm: `import { callVroom, FLEET_HEALTH_TIMEOUT_MS, type VroomRequest } from '../routing/vroom';`
 
@@ -2668,7 +2668,7 @@ export async function doBaPhepDo(env: Env, ctx: WaitUntil): Promise<BaPhepDo> {
 
 (Giữ tên `doBaPhepDo`/`BaPhepDo` để không đổi bốn chỗ gọi; thêm chú thích "nay là bốn" ở JSDoc.)
 
-- [ ] **Step 4: Viết `routes/fleet.ts`**
+- [x] **Step 4: Viết `routes/fleet.ts`**
 
 ```ts
 import { type Context, Hono } from 'hono';
@@ -2779,11 +2779,11 @@ fleet.get('/healthz/fleet', async (c) => {
 });
 ```
 
-- [ ] **Step 5: Nối route**
+- [x] **Step 5: Nối route**
 
 Trong `apps/api/src/index.ts`: thêm `import { fleet } from './routes/fleet';` (theo alphabet, sau `edits`), và `app.route('/', fleet);` ngay sau `app.route('/', optimized);`.
 
-- [ ] **Step 6: Cập nhật test cron và admin-health**
+- [x] **Step 6: Cập nhật test cron và admin-health**
 
 (a) `apps/api/test/health-canh-bao.test.ts`, trong `ghiKv` thêm dòng `fleet: { ok: true, tuLuc: '2026-09-19T20:00:00.000Z' },` sau `data`.
 
@@ -2824,17 +2824,17 @@ it('thành phần thứ tư `fleet`: bài 1 xe 2 đơn xếp đủ → ok kèm a
 
 (Các ca cũ không mock VROOM: `fleet.ok` là false nhưng chúng không khẳng định gì về `fleet` — vẫn xanh.)
 
-- [ ] **Step 7: Chạy bốn file test, typecheck, lint**
+- [x] **Step 7: Chạy bốn file test, typecheck, lint**
 
 Run: `pnpm --filter @mapslibvn/api exec vitest run test/fleet-plan.test.ts test/health-canh-bao.test.ts test/admin-health.test.ts test/routing-fleet.test.ts && pnpm --filter @mapslibvn/api typecheck && pnpm lint`
 Expected: PASS toàn bộ; typecheck và lint sạch.
 
-- [ ] **Step 8: Chạy cả bộ test API**
+- [x] **Step 8: Chạy cả bộ test API**
 
 Run: `pnpm --filter @mapslibvn/api test`
 Expected: 0 đỏ (ca nào cũ khẳng định số thành phần sức khoẻ = 3 thì sửa thành 4 và ghi vào commit).
 
-- [ ] **Step 9: Commit**
+- [x] **Step 9: Commit**
 
 ```bash
 git add apps/api/src/health/phep-do.ts apps/api/src/routes/fleet.ts apps/api/src/index.ts apps/api/test/fleet-plan.test.ts apps/api/test/health-canh-bao.test.ts apps/api/test/admin-health.test.ts
@@ -2853,7 +2853,7 @@ Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>"
 - Modify: `apps/admin/src/features/overview/page.tsx:66-78`
 - Modify: `apps/admin/src/features/health/page.test.tsx:8-24`, `apps/admin/src/features/overview/page.test.tsx` (fixture `HEALTH`)
 
-- [ ] **Step 1: Test đỏ**
+- [x] **Step 1: Test đỏ**
 
 Trong `apps/admin/src/features/health/page.test.tsx`, thêm vào object `HEALTH` (sau `data`): `fleet: { ok: true, ms: 812, assigned: 2 },` và thêm ca:
 
@@ -2867,12 +2867,12 @@ Trong `apps/admin/src/features/health/page.test.tsx`, thêm vào object `HEALTH`
 
 Trong `apps/admin/src/features/overview/page.test.tsx`, thêm `fleet: { ok: false, ms: 6001, error: 'Bộ giải đội xe không phản hồi' },` vào fixture `HEALTH` (sau `routing`).
 
-- [ ] **Step 2: Chạy, thấy đỏ**
+- [x] **Step 2: Chạy, thấy đỏ**
 
 Run: `pnpm exec vitest run apps/admin/src/features/health/page.test.tsx`
 Expected: FAIL — không thấy chữ "Đội xe".
 
-- [ ] **Step 3: Kiểu và giao diện**
+- [x] **Step 3: Kiểu và giao diện**
 
 (a) `apps/admin/src/features/health/api.ts`: sau dòng `routing: PhepDo<…>;` thêm
 
@@ -2906,12 +2906,12 @@ Expected: FAIL — không thấy chữ "Đội xe".
         )}
 ```
 
-- [ ] **Step 4: Chạy test Admin, typecheck**
+- [x] **Step 4: Chạy test Admin, typecheck**
 
 Run: `pnpm exec vitest run apps/admin/src/features/health/page.test.tsx apps/admin/src/features/overview/page.test.tsx && pnpm --filter @mapslibvn/admin typecheck`
 Expected: PASS; typecheck sạch.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add apps/admin/src/features/health/api.ts apps/admin/src/features/health/page.tsx apps/admin/src/features/health/page.test.tsx apps/admin/src/features/overview/page.tsx apps/admin/src/features/overview/page.test.tsx
@@ -2929,7 +2929,7 @@ Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>"
 - Capture (sinh bởi `--capture`): `apps/api/test/fixtures/vroom/q1-fleet.json`, `packages/core/tests/fixtures/fleet-plan-q1.json`, `apps/docs/e2e/fixtures/fleet-plan-q1.json`
 - Modify: `apps/api/test/routing-fleet.test.ts` (thêm describe trên fixture thật)
 
-- [ ] **Step 1: Body yêu cầu dùng chung cho capture và rtest**
+- [x] **Step 1: Body yêu cầu dùng chung cho capture và rtest**
 
 Tạo `apps/api/test/fixtures/vroom/q1-fleet-request.json` — kho Chợ Bến Thành, 2 xe `max_jobs: 3` để 5 đơn mẫu của Playground buộc dùng cả hai xe:
 
@@ -2950,7 +2950,7 @@ Tạo `apps/api/test/fixtures/vroom/q1-fleet-request.json` — kho Chợ Bến T
 }
 ```
 
-- [ ] **Step 2: Test tích hợp**
+- [x] **Step 2: Test tích hợp**
 
 Tạo `apps/api/test-routing/fleet-plan.rtest.mjs`:
 
@@ -3044,17 +3044,17 @@ describe('/v1/fleet-plan trên Valhalla + VROOM fixture Quận 1', () => {
 });
 ```
 
-- [ ] **Step 3: Chạy tích hợp kèm capture (lần đầu build graph Quận 1 vài phút)**
+- [x] **Step 3: Chạy tích hợp kèm capture (lần đầu build graph Quận 1 vài phút)**
 
 Run: `pnpm test:routing -- --capture`
 Expected: log `VROOM sẵn sàng tại http://127.0.0.1:3000/fleet`, `đã ghi …q1-fleet.json`, `đã ghi packages/core/tests/fixtures/fleet-plan-q1.json`, `đã ghi apps/docs/e2e/fixtures/fleet-plan-q1.json`; vitest routing: mọi rtest cũ và 4 ca mới PASS. Nếu ca "5 đơn chia hết cho 2 xe" báo một xe có 0 đơn: VROOM đã dồn vào một xe dù `max_tasks: 3` — không thể (5 > 3); kiểm lại `fleetVroomBody` có truyền `max_tasks`.
 
-- [ ] **Step 4: Kiểm fixture đã capture**
+- [x] **Step 4: Kiểm fixture đã capture**
 
 Run: `node -e "const p=require('./packages/core/tests/fixtures/fleet-plan-q1.json'); console.log(p.vehicles.map(v=>[v.vehicle,v.jobs,v.routes[0]?.legs.length]), p.unassigned)"`
 Expected: hai xe, mỗi xe 2–3 đơn, số leg = số đơn + 1, `unassigned` rỗng. `apps/api/test/fixtures/vroom/q1-fleet.json` có `code: 0`, 2 `routes`.
 
-- [ ] **Step 5: Test đơn vị trên fixture VROOM thật**
+- [x] **Step 5: Test đơn vị trên fixture VROOM thật**
 
 Thêm cuối `apps/api/test/routing-fleet.test.ts`:
 
@@ -3084,7 +3084,7 @@ describe('fixture VROOM thật Quận 1 (capture 23/09/2026)', () => {
 Run: `pnpm --filter @mapslibvn/api exec vitest run test/routing-fleet.test.ts`
 Expected: PASS.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add apps/api/test/fixtures/vroom/q1-fleet-request.json apps/api/test/fixtures/vroom/q1-fleet.json apps/api/test-routing/fleet-plan.rtest.mjs apps/api/test/routing-fleet.test.ts packages/core/tests/fixtures/fleet-plan-q1.json apps/docs/e2e/fixtures/fleet-plan-q1.json
@@ -3103,7 +3103,7 @@ Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>"
 - Modify: `packages/core/.size-limit.json`
 - Modify: `packages/web/src/index.ts`, `packages/web/src/umd.ts`, `packages/react-native/src/index.ts` (export `FLEET_COLORS`)
 
-- [ ] **Step 1: Test đỏ**
+- [x] **Step 1: Test đỏ**
 
 Thêm vào `packages/core/src/navigation/route-features.test.ts` (import thêm `decodeFleet, FLEET_COLORS, FLEET_DIM_OPACITY, fleetRouteFeatures` từ `./route-features`, `import fleetFixture from '../../tests/fixtures/fleet-plan-q1.json';` và `import type { FleetPlanResponse } from '../types';`):
 
@@ -3150,12 +3150,12 @@ describe('fleetRouteFeatures', () => {
 });
 ```
 
-- [ ] **Step 2: Chạy, thấy đỏ**
+- [x] **Step 2: Chạy, thấy đỏ**
 
 Run: `pnpm exec vitest run packages/core/src/navigation/route-features.test.ts`
 Expected: FAIL — `decodeFleet` không export.
 
-- [ ] **Step 3: Viết mã**
+- [x] **Step 3: Viết mã**
 
 Trong `packages/core/src/navigation/route-features.ts`:
 
@@ -3228,23 +3228,23 @@ export function fleetRouteFeatures(
 }
 ```
 
-- [ ] **Step 4: Export sang web, UMD, RN**
+- [x] **Step 4: Export sang web, UMD, RN**
 
 - `packages/web/src/index.ts`: thêm `FLEET_COLORS,` vào khối `export { … } from '@mapslibvn/core'` (giữ alphabet: sau `createNavigator`).
 - `packages/web/src/umd.ts`: thêm `FLEET_COLORS,` vào khối `export { … } from './index'` (sau `createSpeech`).
 - `packages/react-native/src/index.ts`: thêm `FLEET_COLORS,` vào khối `export { … } from '@mapslibvn/core'` (sau `decodePolyline6`).
 
-- [ ] **Step 5: Build core; nâng trần size-limit theo số đo**
+- [x] **Step 5: Build core; nâng trần size-limit theo số đo**
 
 Run: `pnpm --filter @mapslibvn/core build`
 Expected: có thể ĐỎ vì barrel vượt 16 kB (trước Task 5 đo 15,45 kB). Đọc số đo size-limit in ra, sửa `packages/core/.size-limit.json` thành `"limit": "17 kB"` và ghi vào `name`: `"barrel dist/index.js (size-limit đo CẢ file, không tree-shake; 23/09/2026 nâng 16 → 17 kB khi thêm fleetPlan + fleetRouteFeatures, đo <số thật> kB)"`. Chạy lại build → xanh.
 
-- [ ] **Step 6: Test, typecheck**
+- [x] **Step 6: Test, typecheck**
 
 Run: `pnpm exec vitest run packages/core/src/navigation/route-features.test.ts && pnpm typecheck`
 Expected: PASS; typecheck sạch (RN/web đang lọc `kind` bằng chuỗi nên không vỡ khi union rộng ra).
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add packages/core/src/navigation/route-features.ts packages/core/src/navigation/route-features.test.ts packages/core/.size-limit.json packages/web/src/index.ts packages/web/src/umd.ts packages/react-native/src/index.ts
@@ -3262,7 +3262,7 @@ Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>"
 - Modify: `packages/web/src/index.ts`, `packages/web/src/umd.ts` (export `FLEET_SOURCE_ID`)
 - Modify: `packages/web/.size-limit.json` (nếu vượt)
 
-- [ ] **Step 1: Test đỏ**
+- [x] **Step 1: Test đỏ**
 
 Thêm vào `packages/web/src/routes-layer.test.ts` (import thêm `FLEET_SOURCE_ID` từ `./routes-layer`, `import type { FleetPlanResponse } from '@mapslibvn/core';`, `import fleetFixture from '../../core/tests/fixtures/fleet-plan-q1.json';`):
 
@@ -3336,12 +3336,12 @@ describe('showFleet', () => {
 });
 ```
 
-- [ ] **Step 2: Chạy, thấy đỏ**
+- [x] **Step 2: Chạy, thấy đỏ**
 
 Run: `pnpm exec vitest run packages/web/src/routes-layer.test.ts`
 Expected: FAIL — `showFleet` không tồn tại.
 
-- [ ] **Step 3: Viết mã**
+- [x] **Step 3: Viết mã**
 
 Trong `packages/web/src/routes-layer.ts`:
 
@@ -3556,12 +3556,12 @@ Lưu ý `setData()` khi `response` null và source chưa có thì chỉ `return`
 
 (g) `packages/web/src/index.ts` và `umd.ts`: thêm `FLEET_SOURCE_ID` vào khối `export { ROUTE_LAYER_IDS, ROUTE_SOURCE_ID } from './routes-layer'` (index) và khối export từ `./index` (umd).
 
-- [ ] **Step 4: Test, build web, size-limit**
+- [x] **Step 4: Test, build web, size-limit**
 
 Run: `pnpm exec vitest run packages/web/src/routes-layer.test.ts && pnpm --filter @mapslibvn/web build`
 Expected: PASS; build in size — nếu `dist/index.js` vượt 15 kB, sửa `packages/web/.size-limit.json` lên `16 kB` kèm ghi chú số đo trong commit.
 
-- [ ] **Step 5: Typecheck, lint, commit**
+- [x] **Step 5: Typecheck, lint, commit**
 
 Run: `pnpm typecheck && pnpm lint`
 
@@ -3583,7 +3583,7 @@ Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>"
 - Modify: `packages/react-native/src/map.tsx:275-279`
 - Modify: `packages/react-native/src/navigation/routes-store.test.ts`, `route-layers.test.tsx`
 
-- [ ] **Step 1: Test đỏ — store**
+- [x] **Step 1: Test đỏ — store**
 
 Thêm vào `packages/react-native/src/navigation/routes-store.test.ts` (import `import fleetFixture from '../../../core/tests/fixtures/fleet-plan-q1.json';`, `import type { FleetPlanResponse } from '@mapslibvn/core';`):
 
@@ -3618,7 +3618,7 @@ describe('createRoutesStore — đội xe', () => {
 });
 ```
 
-- [ ] **Step 2: Test đỏ — layer**
+- [x] **Step 2: Test đỏ — layer**
 
 Thêm vào `packages/react-native/src/navigation/route-layers.test.tsx` (import `FLEET_SOURCE_ID` từ `./route-layers`, fixture và kiểu như trên):
 
@@ -3656,12 +3656,12 @@ describe('RouteLayers — đội xe', () => {
 });
 ```
 
-- [ ] **Step 3: Chạy, thấy đỏ**
+- [x] **Step 3: Chạy, thấy đỏ**
 
 Run: `pnpm exec vitest run packages/react-native/src/navigation/routes-store.test.ts packages/react-native/src/navigation/route-layers.test.tsx`
 Expected: FAIL — `showFleet` không tồn tại.
 
-- [ ] **Step 4: Store**
+- [x] **Step 4: Store**
 
 Trong `packages/react-native/src/navigation/routes-store.ts`:
 
@@ -3775,7 +3775,7 @@ Phương thức:
     },
 ```
 
-- [ ] **Step 5: Layer**
+- [x] **Step 5: Layer**
 
 Trong `packages/react-native/src/navigation/route-layers.tsx`:
 
@@ -3866,12 +3866,12 @@ và xoá hai dòng khai báo `casingColor`/`before` cũ phía dưới (đã chuy
 
 (d) `packages/react-native/src/map.tsx` khối `routes:` thêm `showFleet: (plan, opts) => store.showFleet(plan, opts ?? {}),`.
 
-- [ ] **Step 6: Chạy test RN, typecheck, size-limit**
+- [x] **Step 6: Chạy test RN, typecheck, size-limit**
 
 Run: `pnpm exec vitest run packages/react-native/src/navigation packages/react-native/src/map.test.tsx && pnpm --filter @mapslibvn/react-native build && pnpm typecheck && pnpm lint`
 Expected: PASS; build dưới trần 32 kB (nếu vượt, nâng `.size-limit.json` của RN kèm số đo trong commit).
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add packages/react-native/src/navigation/routes-store.ts packages/react-native/src/navigation/routes-store.test.ts packages/react-native/src/navigation/route-layers.tsx packages/react-native/src/navigation/route-layers.test.tsx packages/react-native/src/context.ts packages/react-native/src/map.tsx packages/react-native/.size-limit.json
@@ -3891,7 +3891,7 @@ Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>"
 - Modify: `apps/docs/public/playground.css` (cuối phần "Tab Đội xe")
 - Modify: `apps/docs/e2e/playground.spec.ts` (describe 'tab Đội xe')
 
-- [ ] **Step 1: Test đỏ cho logic thuần**
+- [x] **Step 1: Test đỏ cho logic thuần**
 
 Thêm vào `apps/docs/scripts/playground-lib.test.mjs` (mở rộng import từ `../public/playground-lib.js` thêm `FLEET_MAX_JOBS, FLEET_MAX_VEHICLES, fleetPlanRequest, plusHoursIso`):
 
@@ -3966,12 +3966,12 @@ describe('plusHoursIso', () => {
 
 Thêm vào ca `fleetSnippet` hiện có (hoặc ca mới) một khẳng định: `expect(fleetSnippet(state, {...})).toContain('client.fleetPlan(')` và `toContain('map.routes.showFleet(plan)')`.
 
-- [ ] **Step 2: Chạy, thấy đỏ**
+- [x] **Step 2: Chạy, thấy đỏ**
 
 Run: `pnpm exec vitest run apps/docs/scripts/playground-lib.test.mjs`
 Expected: FAIL — `fleetPlanRequest` không export.
 
-- [ ] **Step 3: `playground-lib.js`**
+- [x] **Step 3: `playground-lib.js`**
 
 (a) Trong typedef `NavPoint` (dòng `@typedef {{ lat: number, lng: number, label: string }} NavPoint`) thêm trường `tw?: string` với chú thích `khung giờ "HH:MM-HH:MM", chỉ tab Đội xe dùng`.
 
@@ -4082,12 +4082,12 @@ export function fleetPlanRequest(input) {
     'map.routes.showFleet(plan); // web và React Native: K xe K màu; bấm tuyến → routeClick(index xe)',
 ```
 
-- [ ] **Step 4: Chạy test lib, xanh**
+- [x] **Step 4: Chạy test lib, xanh**
 
 Run: `pnpm exec vitest run apps/docs/scripts/playground-lib.test.mjs`
 Expected: PASS.
 
-- [ ] **Step 5: HTML**
+- [x] **Step 5: HTML**
 
 Trong `apps/docs/public/playground.html`, ngay sau `<p class="pg-req" id="fl-opt-req"></p>` (trước `<h2>Ma trận khoảng cách</h2>`) chèn:
 
@@ -4149,7 +4149,7 @@ Trong `apps/docs/public/playground.html`, ngay sau `<p class="pg-req" id="fl-opt
 
 Đổi câu hint đầu tab: `API giới hạn <strong>6 lần/phút/khoá</strong>` → `API giới hạn <strong>6 lần/phút/khoá</strong> (ma trận, tối ưu) và <strong>2 lần/phút/khoá</strong> (chia đơn)`.
 
-- [ ] **Step 6: CSS**
+- [x] **Step 6: CSS**
 
 Cuối phần "Tab Đội xe" trong `apps/docs/public/playground.css` thêm:
 
@@ -4220,7 +4220,7 @@ Cuối phần "Tab Đội xe" trong `apps/docs/public/playground.css` thêm:
 }
 ```
 
-- [ ] **Step 7: `playground-fleet.js`**
+- [x] **Step 7: `playground-fleet.js`**
 
 (a) Import thêm từ `/playground-lib.js`: `fleetPlanRequest`. Thêm biến trạng thái sau `let busy = false;`:
 
@@ -4417,7 +4417,7 @@ và đưa `tw` vào `li.append(num, name, tw, …)` (giữ ba nút sau nó). Lư
 
 (h) `clearRoute()` và `attach()` giữ nguyên — `resetResults()` đã xoá cả kế hoạch đội xe. `lastPlan` dùng để không báo lint "unused": trong `renderSnippet()` không cần; nếu biome báo biến không dùng, bỏ `lastPlan` (chỉ giữ `assignment`).
 
-- [ ] **Step 8: E2E**
+- [x] **Step 8: E2E**
 
 Trong `apps/docs/e2e/playground.spec.ts`, `test.describe('tab Đội xe')` → `beforeEach` thêm:
 
@@ -4477,12 +4477,12 @@ và hai test mới trong describe:
   });
 ```
 
-- [ ] **Step 9: Chạy e2e docs**
+- [x] **Step 9: Chạy e2e docs**
 
 Run: `pnpm --filter @mapslibvn/docs build && pnpm --filter @mapslibvn/docs e2e -- e2e/playground.spec.ts`
 Expected: mọi test tab Đội xe PASS (kể cả hai ca cũ). Lỗi thường gặp: `SDK.FLEET_COLORS` undefined → chưa build web UMD sau Task 11/12 (`pnpm --filter @mapslibvn/web build` rồi build docs lại — `prebuild` chép SDK).
 
-- [ ] **Step 10: Lint, commit**
+- [x] **Step 10: Lint, commit**
 
 Run: `pnpm lint`
 
@@ -4502,7 +4502,7 @@ Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>"
 - Create: `scripts/lib/smoke-fleet.mjs`, `scripts/lib/smoke-fleet.test.mjs`, `scripts/smoke-fleet.mjs`
 - Modify: `package.json` (script `smoke:fleet`)
 
-- [ ] **Step 1: Test đỏ cho `postAndAck` và thư viện**
+- [x] **Step 1: Test đỏ cho `postAndAck` và thư viện**
 
 Thêm vào `scripts/lib/receipt-ack.test.mjs` (theo mẫu test `getAndAck` sẵn có trong file):
 
@@ -4616,12 +4616,12 @@ describe('parseFleetSmokeArgs', () => {
 });
 ```
 
-- [ ] **Step 2: Chạy, thấy đỏ**
+- [x] **Step 2: Chạy, thấy đỏ**
 
 Run: `pnpm exec vitest run scripts/lib/receipt-ack.test.mjs scripts/lib/smoke-fleet.test.mjs`
 Expected: FAIL — `postAndAck`, `smoke-fleet.mjs` không tồn tại.
 
-- [ ] **Step 3: `postAndAck`**
+- [x] **Step 3: `postAndAck`**
 
 Thêm cuối `scripts/lib/receipt-ack.mjs`:
 
@@ -4673,7 +4673,7 @@ export async function postAndAck(url, root, key, body, options = {}) {
 }
 ```
 
-- [ ] **Step 4: Thư viện `smoke-fleet.mjs`**
+- [x] **Step 4: Thư viện `smoke-fleet.mjs`**
 
 Tạo `scripts/lib/smoke-fleet.mjs`:
 
@@ -4842,7 +4842,7 @@ export function parseFleetSmokeArgs(argv) {
 }
 ```
 
-- [ ] **Step 5: Script `smoke-fleet.mjs`**
+- [x] **Step 5: Script `smoke-fleet.mjs`**
 
 Tạo `scripts/smoke-fleet.mjs`:
 
@@ -5003,19 +5003,19 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
 
 Thêm vào `package.json` (sau `"smoke:matrix"`): `"smoke:fleet": "node scripts/smoke-fleet.mjs",`.
 
-- [ ] **Step 6: Chạy test, typecheck script, lint**
+- [x] **Step 6: Chạy test, typecheck script, lint**
 
 Run: `pnpm exec vitest run scripts/lib/receipt-ack.test.mjs scripts/lib/smoke-fleet.test.mjs && pnpm exec tsc -p tsconfig.scripts.json && pnpm lint`
 Expected: PASS; typecheck sạch.
 
-- [ ] **Step 7: Thử khô trên wrangler dev (không cần production)**
+- [x] **Step 7: Thử khô trên wrangler dev (không cần production)**
 
 Với `pnpm test:routing` đã dựng xong VROOM+Valhalla ở Task 10, mở `cd apps/api && pnpm exec wrangler dev --var ROUTING_BASE:http://127.0.0.1:8002 --var FLEET_BASE:http://127.0.0.1:3000/fleet` ở một shell, rồi:
 
 Run: `MAPSLIBVN_API_KEY=mlv_live_routingtest0000000000000 pnpm smoke:fleet -- --base=http://127.0.0.1:8787 --requests=1 --interval-ms=0`
 Expected: bài E và E2 đỏ ở `codes` với `no_route`/`invalid_request` (graph dev chỉ có Quận 1, 28 đơn trải khắp TP.HCM) — điều cần thấy là script chạy tới cùng, in bảng, thoát mã 1 với thông điệp đúng. (Phép đo thật ở Task 17 do PHONG chạy.)
 
-- [ ] **Step 8: Commit**
+- [x] **Step 8: Commit**
 
 ```bash
 git add scripts/lib/receipt-ack.mjs scripts/lib/receipt-ack.test.mjs scripts/lib/smoke-fleet.mjs scripts/lib/smoke-fleet.test.mjs scripts/smoke-fleet.mjs package.json
@@ -5035,7 +5035,7 @@ Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>"
 - Modify: `infra/server/README.md` (mục "Việc tay trên Cloudflare" thêm bước 8; mục "Vận hành" thêm ba dòng)
 - Modify: `THIRD_PARTY_NOTICES.md:422`
 
-- [ ] **Step 1: Cấu hình VROOM production**
+- [x] **Step 1: Cấu hình VROOM production**
 
 Tạo `infra/server/vroom/config.yml` — giống `infra/dev/vroom/config.yml` (Task 1) nhưng `threads: 2` và đầu file ghi:
 
@@ -5045,7 +5045,7 @@ Tạo `infra/server/vroom/config.yml` — giống `infra/dev/vroom/config.yml` (
 # access.log nằm trong thư mục repo trên máy chủ nhưng đã bị .gitignore (*.log) bỏ qua.
 ```
 
-- [ ] **Step 2: Service `vroom` trong compose máy chủ**
+- [x] **Step 2: Service `vroom` trong compose máy chủ**
 
 Trong `infra/server/compose.yml`, sau khối `valhalla:` (trước `volumes:`) thêm:
 
@@ -5070,7 +5070,7 @@ Trong `infra/server/compose.yml`, sau khối `valhalla:` (trước `volumes:`) t
     # KHÔNG có `ports:` — chỉ cloudflared nối tới vroom:3000 qua luật đường dẫn /fleet/ của hostname maps-route.
 ```
 
-- [ ] **Step 3: `server-setup` dựng vroom; `pullPlan` kéo image vroom**
+- [x] **Step 3: `server-setup` dựng vroom; `pullPlan` kéo image vroom**
 
 (a) `scripts/lib/server-env.mjs` `pullPlan`: đổi `services: skipPipeline ? ['postgres', 'cloudflared', 'valhalla'] : []` thành `services: skipPipeline ? ['postgres', 'cloudflared', 'valhalla', 'vroom'] : []` và sửa JSDoc "ba dịch vụ" → "bốn dịch vụ". Trong `scripts/lib/server-env.test.mjs`, ca kiểm `pullPlan` với `:local` đổi mảng kỳ vọng thành `['postgres', 'cloudflared', 'valhalla', 'vroom']`.
 
@@ -5094,7 +5094,7 @@ và thêm vào checklist in ra, sau dòng 8:
 Run: `pnpm exec vitest run scripts/lib/server-env.test.mjs && pnpm exec tsc -p tsconfig.scripts.json`
 Expected: PASS.
 
-- [ ] **Step 4: README máy chủ và thông báo bên thứ ba**
+- [x] **Step 4: README máy chủ và thông báo bên thứ ba**
 
 (a) `infra/server/README.md`, mục "Việc tay trên Cloudflare (một lần)", sau bước 7 thêm:
 
@@ -5117,7 +5117,7 @@ Expected: PASS.
 
 (c) `THIRD_PARTY_NOTICES.md` dòng 422: sau `Valhalla (MIT — …, không liên kết mã),` thêm `VROOM và vroom-express (BSD-2-Clause — bộ giải đội xe, chạy như dịch vụ riêng trên máy chủ, không liên kết mã),`.
 
-- [ ] **Step 5: Cổng xanh toàn bộ và commit**
+- [x] **Step 5: Cổng xanh toàn bộ và commit**
 
 Run: `pnpm --filter @mapslibvn/core build && pnpm test && pnpm typecheck && pnpm lint`
 Expected: 0 đỏ.
@@ -5129,7 +5129,7 @@ git commit -m "feat(infra): VROOM trên máy chủ — compose, cấu hình, ser
 Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>"
 ```
 
-- [ ] **Step 6: PHONG bật VROOM trên máy chủ chính (MacBook) và thêm luật Tunnel**
+- [x] **Step 6: PHONG bật VROOM trên máy chủ chính (MacBook) và thêm luật Tunnel**
 
 PHONG gõ (tiền tố `!`), trên MacBook — nơi `docker ps --filter name=mapslibvn-server` thấy 5 container `Up`:
 
@@ -5147,7 +5147,7 @@ Kỳ vọng: `mapslibvn-server-vroom-1 … Up (healthy)` sau ~1 phút. Rồi PHO
 
 Kỳ vọng: `200` rồi `403` (hoặc `302`). Không đúng → luật đường dẫn đứng dưới luật cũ hoặc regex sai; sửa trên dashboard rồi kiểm lại. **Chưa đạt thì KHÔNG push** (Worker deploy sẽ khiến thành phần `fleet` của cron khởi đầu ở trạng thái hỏng).
 
-- [ ] **Step 7: PHONG duyệt push → CI deploy API → kiểm sống**
+- [x] **Step 7: PHONG duyệt push → CI deploy API → kiểm sống**
 
 Sau khi PHONG nói "push": `git push origin main`. Theo dõi Actions `Deploy API`, `CI`, `Routing tests`, `API tests` xanh. Rồi PHONG kiểm:
 
@@ -5168,7 +5168,7 @@ Kỳ vọng: `{"ok":true,"jobs_assigned":2,…}` và JSON có `"vehicles":[…"v
 - Create: `docs/evidence/routing/2026-09-<ngày>-fleet.md`
 - Có thể sửa: `apps/api/src/routing/fleet.ts` (hằng số), `apps/api/wrangler.toml` (nhịp), `apps/docs/public/playground-lib.js`, `scripts/lib/smoke-fleet.mjs` — CHỈ khi hụt ngưỡng
 
-- [ ] **Step 1: PHONG chạy smoke**
+- [x] **Step 1: PHONG chạy smoke**
 
 ```bash
 ! pnpm smoke:fleet -- --confirm-production --requests=5 --rounds=3 --p95-max=8000 --p95-max-e2=5000 --busy-max=2000 --ratio-max=2
@@ -5176,7 +5176,7 @@ Kỳ vọng: `{"ok":true,"jobs_assigned":2,…}` và JSON có `"vehicles":[…"v
 
 Dán nguyên hai bảng `console.table` và dòng kết luận vào chat. Ghi kèm máy chủ đang chạy production lúc đo (MacBook) và `VALHALLA_THREADS`.
 
-- [ ] **Step 2: Viết evidence**
+- [x] **Step 2: Viết evidence**
 
 Tạo `docs/evidence/routing/2026-09-<ngày>-fleet.md` theo khuôn file `2026-09-22-matrix.md`:
 
@@ -5214,11 +5214,11 @@ Lệnh: `pnpm smoke:fleet -- --confirm-production --requests=5 --rounds=3 …`.
 Trần công bố: … xe / … đơn / … đơn mỗi xe, nhịp … request/phút/khoá. (Số này là của MacBook; dời máy chủ sang Windows i5-1340P phải đo lại.)
 ```
 
-- [ ] **Step 3: Nếu hụt — hạ theo thứ tự mục 8.3 của spec, cùng commit**
+- [x] **Step 3: Nếu hụt — hạ theo thứ tự mục 8.3 của spec, cùng commit**
 
 Thứ tự: (1) `FLEET_MAX_JOBS` 30 → 20 và `FLEET_MAX_VEHICLES` 5 → 3 (sửa `fleet.ts`, test hằng số, `playground-lib.js` FLEET_MAX_*, `planBaiFleet()` E 28 → 18 đơn, HTML hint, docs/site ở Task 18–19 dùng số mới); (2) `FLEET_RATE_LIMITER` `limit = 1`; (3) `threads: 1` trong `infra/server/vroom/config.yml` (PHONG `up -d vroom` lại). Đo lại sau mỗi bước, ghi vào evidence "Lần đo N".
 
-- [ ] **Step 4: Commit evidence**
+- [x] **Step 4: Commit evidence**
 
 ```bash
 git add docs/evidence/routing/2026-09-<ngày>-fleet.md
@@ -5240,7 +5240,7 @@ Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>"
 
 Mọi con số trần/nhịp dưới đây là số **đã chốt ở Task 17**; nếu Task 17 hạ trần, thay số tương ứng (5 xe / 30 đơn / 10 đơn mỗi xe / 2 request/phút).
 
-- [ ] **Step 1: `doi-xe.md`**
+- [x] **Step 1: `doi-xe.md`**
 
 (a) Frontmatter `description`: `Chọn tài xế gần nhất bằng ma trận khoảng cách, sắp thứ tự giao cho một chuyến, chia đơn cho cả đội xe, vẽ tuyến và dẫn đường — trên web và React Native.`
 
@@ -5340,7 +5340,7 @@ nên tốt hơn tự chia theo khu vực. Hơn 30 đơn thì chia lô theo khu v
 - Theo dõi vị trí đội xe trên máy chủ — app của bạn tự gửi và lưu vị trí tài xế.
 ```
 
-- [ ] **Step 2: `api.md`**
+- [x] **Step 2: `api.md`**
 
 (a) Mục 3, sau đoạn `GET /v1/matrix và GET /v1/optimized-route tính vào cùng quota…` thêm:
 
@@ -5424,11 +5424,11 @@ curl -X POST -H "X-Api-Key: mlv_live_…" -H "content-type: application/json" \
 - Chưa có: pickup & delivery ghép đôi, kỹ năng tài xế, nghỉ giữa ca, nhiều loại xe trong một request.
 ```
 
-- [ ] **Step 3: `sdk.md`**
+- [x] **Step 3: `sdk.md`**
 
 Bảng phương thức thêm sau `optimizedRoute`: `| \`fleetPlan(opts)\` | \`POST /v1/fleet-plan\` | \`FleetPlanResponse\` (mỗi \`vehicles[k]\` = \`DirectionsResponse\` + \`vehicle\`/\`jobs\`/\`stops\`) |`. Bảng `opts` thêm: `| \`fleetPlan\` | \`vehicles\` (1–5: \`id\`, \`start\` \`[lat, lng]\`, \`end\`, \`capacity\`, \`max_jobs\`, \`time_window\`), \`jobs\` (1–30: \`id\`, \`location\`, \`demand\`, \`service_s\`, \`priority\`, \`time_windows\`), \`mode\`, \`lang\` — body JSON, xem REST API |`. Câu `Với \`directions\`, \`matrix\` và \`optimizedRoute\`, tham số vào là \`[lat, lng]\`…` → `Với \`directions\`, \`matrix\`, \`optimizedRoute\` và \`fleetPlan\`, …`. Thêm câu: `Web và React Native: \`map.routes.showFleet(plan)\` vẽ mọi xe, mỗi xe một màu (\`FLEET_COLORS\`), bấm tuyến phát \`routeClick\` với chỉ số xe.`
 
-- [ ] **Step 4: `tinh-nang.md`**
+- [x] **Step 4: `tinh-nang.md`**
 
 Thay đoạn `**Giao hàng và vận tải.** …` bằng:
 
@@ -5443,15 +5443,15 @@ ghép đôi và kỹ năng tài xế. Ví dụ đầy đủ cho web và React Na
 cần code ở [Playground → Đội xe](/playground#doi-xe).
 ```
 
-- [ ] **Step 5: `tu-host.md`**
+- [x] **Step 5: `tu-host.md`**
 
 Bảng kiến trúc thêm hàng sau Valhalla: `| Bộ giải đội xe VROOM | container \`vroom\` trên cùng máy chủ, lấy ma trận từ Valhalla trong mạng compose; Worker gọi qua luật đường dẫn \`/fleet/\` của hostname Tunnel routing | tiền điện và máy |`. Đoạn "Compose có năm dịch vụ" → "sáu dịch vụ", thêm câu sau phần `valhalla`: `\`vroom\` (vroom-express, cổng nội bộ 3000, baseurl \`/fleet/\`) giải bài chia đơn đội xe cho \`/v1/fleet-plan\`; cấu hình ở \`infra/server/vroom/config.yml\`, không mở cổng, không cần graph riêng.` Mục việc tay Cloudflare thêm: `…, và một luật Public Hostname cùng hostname routing với **Path \`^/fleet/\`** trỏ \`vroom:3000\` (đặt trên luật không đường dẫn).`
 
-- [ ] **Step 6: Spec 22/09 mục 12**
+- [x] **Step 6: Spec 22/09 mục 12**
 
 Bullet đầu `**Tầng 3 — tối ưu đội xe (VRP)**: …` thêm cuối: ` → **Đã làm**: spec \`2026-09-23-toi-uu-doi-xe-design.md\`, endpoint \`POST /v1/fleet-plan\`, container VROOM.`
 
-- [ ] **Step 7: Build docs, e2e docs, commit**
+- [x] **Step 7: Build docs, e2e docs, commit**
 
 Run: `pnpm --filter @mapslibvn/docs build && pnpm --filter @mapslibvn/docs e2e`
 Expected: build xanh (link `/api/#post-v1fleet-plan` phải tồn tại — Starlight sinh id từ heading `POST /v1/fleet-plan` → `post-v1fleet-plan`; kiểm bằng `grep -o 'id="post-v1fleet-plan"' apps/docs/dist/api/index.html`); e2e docs xanh.
@@ -5474,7 +5474,7 @@ Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>"
 - Modify: `apps/site/src/pages/so-sanh/google-maps-api.astro:35, 52-53, 101-114`
 - Modify: `apps/site/src/pages/so-sanh/vietmap.astro:31`
 
-- [ ] **Step 1: Test đỏ**
+- [x] **Step 1: Test đỏ**
 
 Trong `apps/site/src/lib/doi-dau.test.ts`:
 
@@ -5501,7 +5501,7 @@ Trong `apps/site/src/lib/doi-dau.test.ts`:
 
 Run: `pnpm exec vitest run apps/site/src/lib/doi-dau.test.ts` → FAIL.
 
-- [ ] **Step 2: `doi-dau.ts`**
+- [x] **Step 2: `doi-dau.ts`**
 
 (a) `CHUA_CO` còn `['giao thông thời gian thực', 'Street View', 'ảnh vệ tinh']` (cập nhật JSDoc: "Thêm tính năng thì xoá khỏi đây — 23/09/2026 xoá 'tối ưu đội xe nhiều xe' khi phát hành `/v1/fleet-plan`").
 
@@ -5524,7 +5524,7 @@ Run: `pnpm exec vitest run apps/site/src/lib/doi-dau.test.ts` → FAIL.
 
 Run: `pnpm exec vitest run apps/site/src/lib/doi-dau.test.ts` → PASS (kể cả ca "không hàng nào nhận ta thắng ở thứ chưa làm").
 
-- [ ] **Step 3: Trang Tính năng, trang chủ, hai trang so sánh**
+- [x] **Step 3: Trang Tính năng, trang chủ, hai trang so sánh**
 
 (a) `apps/site/src/pages/tinh-nang.astro` mục `giao-hang`, `doan` thứ hai:
 
@@ -5538,12 +5538,12 @@ Run: `pnpm exec vitest run apps/site/src/lib/doi-dau.test.ts` → PASS (kể c�
 
 (d) `apps/site/src/pages/so-sanh/vietmap.astro` dòng 31: `'Bài toán của bạn là theo dõi phương tiện hoặc tối ưu đội xe nhiều xe.'` → `'Bài toán của bạn là theo dõi phương tiện, hoặc đội xe lớn hơn 5 xe / 30 đơn mỗi lượt.'`.
 
-- [ ] **Step 4: Build site, test, e2e site**
+- [x] **Step 4: Build site, test, e2e site**
 
 Run: `pnpm exec vitest run apps/site/src && pnpm --filter @mapslibvn/site build && pnpm test:site-e2e`
 Expected: xanh. E2E `trang.spec.ts` chỉ kiểm tiêu đề bảy ô (không đổi).
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add apps/site/src/lib/doi-dau.ts apps/site/src/lib/doi-dau.test.ts apps/site/src/pages/tinh-nang.astro apps/site/src/pages/index.astro apps/site/src/pages/so-sanh/google-maps-api.astro apps/site/src/pages/so-sanh/vietmap.astro
@@ -5562,7 +5562,7 @@ Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>"
 - Modify: `docs/superpowers/plans/2026-09-23-toi-uu-doi-xe.md` (tick hộp, ghi chỗ thực tế khác thiết kế)
 - Memory: `/Users/dtphong/.claude/projects/-Users-dtphong-Desktop-software-business-mapsLibVN/memory/`
 
-- [ ] **Step 1: DEVLOG mục 34**
+- [x] **Step 1: DEVLOG mục 34**
 
 Thêm cuối `docs/DEVLOG.md`:
 
@@ -5588,7 +5588,7 @@ sau phát hành app dời sang Windows i5-1340P 16 GB.
 **Cổng xanh:** `pnpm test`, `pnpm typecheck`, `pnpm lint`, `pnpm test:routing` (<n> test), e2e docs, e2e site, CI.
 ```
 
-- [ ] **Step 2: Trạng thái spec và plan**
+- [x] **Step 2: Trạng thái spec và plan**
 
 Dòng 4 spec: `- Trạng thái: **Đã phát hành <ngày>/09/2026.** Trần chốt <…>; evidence \`docs/evidence/routing/2026-09-<ngày>-fleet.md\`; DEVLOG mục 34.` Tick mọi hộp trong plan đã làm; thêm mục "## Chỗ thực tế khác thiết kế" cuối plan nếu có.
 
@@ -5655,3 +5655,15 @@ Không có mục spec nào thiếu task. Spec mục 6.2 nói `setActive(i)` làm
 **2. Placeholder:** không còn TBD/TODO. `<ngày>`, `<số thật>`, `<máy>` là chỗ điền số đo lúc thực thi (evidence, DEVLOG, size-limit) — không thay thế được trước khi đo.
 
 **3. Nhất quán kiểu và tên:** `FleetParams/FleetVehicleParams/FleetJobParams` (API) ↔ `FleetVehicle/FleetJob/FleetPlanOptions` (core) tách bạch; `FleetVehicleSkeleton`/`FleetSkeleton` chỉ trong API; `parseFleetBody`, `fleetVroomBody`, `fleetCacheUrl`, `translateFleet`, `fleetRouteBody`, `assembleFleetPlan`, `noRouteMessage` dùng đồng nhất ở Task 6, 7, 8; `callVroom`, `mapVroomError`, `fleetBase`, `FLEET_TIMEOUT_MS`, `FLEET_ROUTE_TIMEOUT_MS`, `FLEET_HEALTH_TIMEOUT_MS` (Task 4, 8); `apDungNhip` (Task 2, 8); `doDoiXe`, `BAI_TI_HON` (Task 8); `FLEET_COLORS`, `FLEET_DIM_OPACITY`, `decodeFleet`, `fleetRouteFeatures`, `FleetLineFeature` (Task 11 → 12, 13); `FLEET_SOURCE_ID`, `ROUTE_LAYER_IDS.fleetCasing/fleetLine`, `showFleet(plan, { active, colors, markers })` giống nhau ở web và RN (Task 12, 13); playground `fleetPlanRequest`, `plusHoursIso`, `FLEET_MAX_*` (Task 14); scripts `postAndAck`, `planBaiFleet`, `fleetBodyFor`, `fleetIssues`, `parseFleetSmokeArgs` (Task 15). Fixture: `two-vehicles.json` (tay, Task 7), `q1-fleet.json` (VROOM thô), `q1-fleet-request.json`, `fleet-plan-q1.json` (API, hai bản copy) — Task 10 tạo, Task 11–14 dùng.
+
+## Chỗ thực tế khác thiết kế (ghi khi thực thi, 23/09/2026)
+
+- Task 2: kiểu preflight của `quotaMiddleware` là `(c) => unknown`, không phải `void | Promise<void>` — năm route cũ truyền thẳng hàm parse có giá trị trả về.
+- Task 3: thêm kiểm ngày tồn tại thật (V8 nhận 30/02 và cuộn sang tháng 3).
+- Task 4 + bản sửa `8517612`: VROOM báo vùng không nối bằng code 3 "unconnected regions" → `404 no_route`; `/healthz/fleet` luôn 503 khi hỏng; mọi 503 ghi lý do VROOM vào log.
+- Task 8: test cron đếm số lần đo theo `THANH_PHAN.length`; helper `fetch-mock` thêm `reset()` vì interceptor persist sống qua ranh giới `it()`.
+- Task 9–10: fixture API `fleet-plan-q1.json` capture qua Worker bằng `routing-test.mjs --capture`, thay cho snapshot trong `routing-fixture-sync.test.ts` mà spec mục 9 nêu.
+- Task 11–13: size-limit không phải nâng (core 15,79 / 16 kB, web 10,12 / 15 kB, RN 29,01 / 32 kB).
+- Task 14: 6 ca e2e docs ở tab khác đỏ sẵn trước thay đổi (khoá demo thật trong `.env` máy), không liên quan.
+- Task 16: push lần 1 chỉ tới `666279c`; docs (Task 18) và site (Task 19) giữ lại tới khi có số đo. Deploy docs tay phải lùi 5 trang Task 18 về bản `666279c` khi build.
+- Task 17: phải chờ tunnel còn một connector (Ubuntu cùng token chia request); đo đạt mọi ngưỡng, giữ trần thiết kế.

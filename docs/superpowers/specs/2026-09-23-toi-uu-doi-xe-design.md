@@ -1,7 +1,7 @@
 # MapsLibVN — Thiết kế tối ưu đội xe (chia đơn cho nhiều xe): `POST /v1/fleet-plan`
 
 - Ngày: 2026-09-23
-- Trạng thái: **Đã duyệt thiết kế 23/09/2026 (PHONG), chưa làm.** Plan: `docs/superpowers/plans/2026-09-23-toi-uu-doi-xe.md`.
+- Trạng thái: **Đã phát hành API 23/09/2026.** Trần giữ nguyên 5 xe / 30 đơn / 10 đơn mỗi xe, nhịp 2/phút — evidence `docs/evidence/routing/2026-09-23-fleet.md` (đo trên MacBook M4 Pro); DEVLOG mục 34. Plan: `docs/superpowers/plans/2026-09-23-toi-uu-doi-xe.md`.
 - Chủ dự án: PHONG
 - Tài liệu do Fable 5.1 viết
 - Spec gốc: `2026-09-22-ma-tran-toi-uu-thu-tu-design.md` mục 1.2 gọi đây là "tầng 3" và mục 12 dự trù đường đi

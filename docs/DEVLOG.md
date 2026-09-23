@@ -3964,3 +3964,44 @@ cloudflared và Postgres — đã hoàn nguyên). Dấu hiệu lẽ ra phải đ
 trùng lúc có ma trận chạy song song. Đây là tính chất của engine 1 luồng trên máy 2 nhân, không riêng
 ma trận. Máy chủ nên được nâng RAM: 3,7 GB cho Postgres cộng graph 1,16 GB đủ để đạt ngưỡng nhưng
 không còn dư địa.
+
+## 34. Tối ưu đội xe — `POST /v1/fleet-plan` trên VROOM — 23/09/2026
+
+Spec `2026-09-23-toi-uu-doi-xe-design.md`, plan `2026-09-23-toi-uu-doi-xe.md`, evidence
+`docs/evidence/routing/2026-09-23-fleet.md`. Container VROOM thứ sáu trong compose máy chủ lấy ma trận
+từ Valhalla; Worker kiểm body ở preflight quota, gọi VROOM chia đơn, rồi gọi `/route` từng xe song
+song để mỗi xe là một `DirectionsResponse` có câu tiếng Việt. Một request = một lượt `directions`,
+nhịp riêng 2/phút/khoá, trần 5 xe / 30 đơn / 10 đơn mỗi xe.
+
+**Quyết định PHONG 23/09:** đủ ràng buộc ngay bản đầu (sức chứa, khung giờ, thời gian dừng, kết thúc
+mở); một lượt mỗi request; `routes.showFleet()` cho cả web và React Native; làm thẳng trên `main`;
+máy chủ chính là MacBook, Ubuntu là máy phụ, sau khi phát hành app dời sang Windows i5-1340P 16 GB.
+
+**Đường tới VROOM không cần hostname mới:** luật Public Hostname cùng `maps-route` với Path `^/fleet/`
+trỏ `vroom:3000`, đặt trên luật Valhalla, dùng lại Access application và service token của routing.
+
+### Ba chỗ chỉ lộ ra khi chạy thật
+
+1. **VROOM báo vùng đường không nối bằng lỗi định tuyến mã 3** kèm "Locations are in unconnected
+   regions". Worker từng dịch thành 503 "bộ giải không phản hồi", làm lỗi dữ liệu của khách trông như
+   sự cố hạ tầng. Nay là `404 no_route`; mọi 503 khác ghi lý do thật của VROOM vào log.
+2. **V8 `Date.parse` nhận ngày 30/02 và cuộn sang tháng 3.** Parse ISO của khung giờ so lại
+   năm-tháng-ngày theo đúng múi giờ người gọi viết.
+3. **Tunnel `mapslibvn-db` có hai connector.** Ngay sau deploy, `/healthz/fleet` 2/12 lượt 503;
+   `/healthz/routing` xen kẽ graph MacBook và graph Ubuntu. `cloudflared` trên cả hai máy cùng token,
+   Cloudflare chia request giữa hai stack độc lập. Chỉ đo sau khi Ubuntu mất kết nối. Rủi ro còn treo:
+   Postgres đi cùng tunnel, ghi dữ liệu có thể đã tách đôi trong lúc hai connector cùng sống.
+
+### Nghiệm thu
+
+| Cổng | Kết quả |
+|---|---|
+| `pnpm lint`, `pnpm typecheck` | xanh, 18/18 task |
+| `pnpm test` | 2.123 root + 863 API, 0 đỏ |
+| `pnpm test:routing` | 19 test trên Valhalla + VROOM thật (fixture Quận 1), 4 ca đội xe |
+| E2E tab Đội xe Playground | 4/4 xanh |
+| Smoke production E / E2 | p95 2.627 / 2.310 ms — ngưỡng 8.000 / 5.000 ms |
+| Smoke production F | busy p95 xấu nhất 1.956 ms (vòng nguội), ratio 1,41 — đạt |
+| CI | Deploy API, Deploy Docs, CI, Routing tests, API tests, DB tests đều xanh |
+
+**Số đo là của MacBook M4 Pro 12 nhân.** Dời máy chủ phải đo lại trước khi giữ trần.
