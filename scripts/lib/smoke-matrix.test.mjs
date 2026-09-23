@@ -24,13 +24,13 @@ describe('HCM_POINTS', () => {
 });
 
 describe('planBai', () => {
-  it('mọi bài nằm trong trần 50 cặp / 8 điểm dừng: A 10×5, B 25×2, C from + 8 stops + to, D 5 ma trận 10×5', () => {
+  it('mọi bài nằm trong trần 50 cặp / 10 điểm dừng: A 10×5, B 25×2, C from + 10 stops + to, D 5 ma trận 10×5', () => {
     const bai = planBai();
     expect(bai.A.sources).toHaveLength(10);
     expect(bai.A.targets).toHaveLength(5);
     expect(bai.B.sources).toHaveLength(25);
     expect(bai.B.targets).toHaveLength(2);
-    expect(bai.C.stops).toHaveLength(8);
+    expect(bai.C.stops).toHaveLength(10);
     for (const m of [bai.A, bai.B, ...bai.D]) {
       expect(m.sources.length * m.targets.length).toBeLessThanOrEqual(50);
     }

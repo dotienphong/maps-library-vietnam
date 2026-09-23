@@ -47,15 +47,17 @@ describe('routing params', () => {
     });
   });
 
-  it('via xen giữa theo thứ tự; tối đa 5 điểm', () => {
+  it('via xen giữa theo thứ tự; tối đa 10 điểm', () => {
     const p = parseDirectionsParams({ ...base, via: '10.776,106.698;10.775,106.699' });
     expect(p.locations.map((l) => l.lat)).toEqual([10.7798, 10.776, 10.775, 10.7725]);
-    const six = Array.from({ length: 6 }, (_, i) => `10.77${i},106.69`).join(';');
-    expectInvalidRequest(() => parseDirectionsParams({ ...base, via: six }), /tối đa 5 điểm/);
-    const sixMalformed = Array.from({ length: 6 }, () => 'not-a-coordinate').join(';');
+    const ten = Array.from({ length: 10 }, (_, i) => `10.77${i},106.69`).join(';');
+    expect(parseDirectionsParams({ ...base, via: ten }).locations).toHaveLength(12);
+    const eleven = Array.from({ length: 11 }, (_, i) => `10.77${i},106.69`).join(';');
+    expectInvalidRequest(() => parseDirectionsParams({ ...base, via: eleven }), /tối đa 10 điểm/);
+    const sixMalformed = Array.from({ length: 11 }, () => 'not-a-coordinate').join(';');
     expectInvalidRequest(
       () => parseDirectionsParams({ ...base, via: sixMalformed }),
-      /tối đa 5 điểm/,
+      /tối đa 10 điểm/,
     );
   });
 

@@ -4,7 +4,11 @@ import { type LatLng, parseLatLngPair } from '../params';
 
 export const TRAVEL_MODES: readonly TravelMode[] = ['motorbike', 'car', 'walk'];
 export const DIRECTIONS_LANGS: readonly DirectionsLang[] = ['vi', 'en'];
-export const MAX_VIA = 5;
+/**
+ * Bằng `OPTIMIZED_MAX_STOPS`: tuyến tối ưu thứ tự lệch đường thì SDK tính lại bằng `/v1/directions`
+ * qua MỌI điểm dừng còn lại; nhỏ hơn là chuyến nhiều điểm không tính lại được (sửa 23/09/2026).
+ */
+export const MAX_VIA = 10;
 /** Tổng đường chim bay giữa các điểm liên tiếp, mét (spec A mục 5.1). */
 export const MAX_CROW_DISTANCE_M: Readonly<Record<TravelMode, number>> = {
   motorbike: 500_000,

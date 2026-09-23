@@ -48,8 +48,8 @@ export const HCM_POINTS = [
 /** @typedef {{ from: readonly [number, number], stops: (readonly [number, number])[], to: readonly [number, number], mode: 'motorbike' | 'car' | 'walk' }} BaiToiUu */
 
 /**
- * Cỡ bài bám đúng trần đang chạy (50 cặp, 8 điểm dừng — hạ 22/09/2026): A 10×5 xe máy, B 25×2 ô tô,
- * C TSP 10 điểm (from + 8 stops + to), D năm ma trận 10×5 dịch nhau để không trùng URL.
+ * Cỡ bài bám đúng trần đang chạy (50 cặp; 10 điểm dừng — nâng lại 23/09/2026): A 10×5 xe máy,
+ * B 25×2 ô tô, C TSP 12 điểm (from + 10 stops + to), D năm ma trận 10×5 dịch nhau để không trùng URL.
  * Đổi `MATRIX_MAX_PAIRS` / `OPTIMIZED_MAX_STOPS` bên Worker thì sửa cả đây, nếu không smoke đo một
  * cỡ mà production cho phép một cỡ khác.
  */
@@ -63,7 +63,7 @@ export function planBai() {
   const to = P[11];
   if (!from || !to) throw new Error('HCM_POINTS thiếu điểm');
   /** @type {BaiToiUu} */
-  const C = { from, stops: P.slice(1, 9), to, mode: 'motorbike' };
+  const C = { from, stops: P.slice(1, 11), to, mode: 'motorbike' };
   /** @type {BaiMaTran[]} */
   const D = Array.from({ length: 5 }, (_, i) => ({
     sources: P.slice(i, i + 10),
