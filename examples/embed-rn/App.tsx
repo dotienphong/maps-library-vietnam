@@ -3,6 +3,9 @@ import {
   createClient,
   createNavigationSession,
   type DirectionsResponse,
+  FLEET_COLORS,
+  type FleetPlanOptions,
+  type FleetPlanResponse,
   type Lang,
   type MapHandle,
   type MapsLibVNClient,
@@ -68,6 +71,29 @@ type Point = { name: string; lng: number; lat: number };
 /** Quận 1 — dùng khi simulator/emulator không có GPS hoặc trả vị trí ngoài Việt Nam. */
 const FALLBACK_ORIGIN: [number, number] = [106.699, 10.7798];
 const inVietnam = ([lng, lat]: [number, number]) => lng > 102 && lng < 110 && lat > 8 && lat < 24;
+
+/**
+ * Bài thử chia đơn đội xe (spec 2026-09-23): 2 xe cùng kho Chợ Bến Thành, 5 đơn Quận 1 — cùng bộ
+ * điểm với Playground. `max_jobs: 3` để 5 đơn buộc chia cho cả hai xe, nên luôn thấy hai màu.
+ * Mỗi lần bấm tốn một lượt Chỉ đường; API cho tối đa 2 lần mỗi phút mỗi khoá.
+ */
+const FLEET_DEPOT: [number, number] = [10.7725, 106.698];
+const FLEET_JOBS: { id: string; name: string; location: [number, number] }[] = [
+  { id: 'don-1', name: 'Hồ Con Rùa', location: [10.7826, 106.6958] },
+  { id: 'don-2', name: 'Bến Nhà Rồng', location: [10.7686, 106.7069] },
+  { id: 'don-3', name: 'Dinh Độc Lập', location: [10.777, 106.6953] },
+  { id: 'don-4', name: 'Bitexco', location: [10.7716, 106.7043] },
+  { id: 'don-5', name: 'Nhà thờ Đức Bà', location: [10.7798, 106.699] },
+];
+const fleetRequest = (mode: TravelMode): FleetPlanOptions => ({
+  mode,
+  vehicles: [
+    { id: 'xe-1', start: FLEET_DEPOT, max_jobs: 3 },
+    { id: 'xe-2', start: FLEET_DEPOT, max_jobs: 3 },
+  ],
+  jobs: FLEET_JOBS.map(({ id, location }) => ({ id, location, service_s: 300 })),
+});
+const jobName = (id: string) => FLEET_JOBS.find((j) => j.id === id)?.name ?? id;
 
 /** Ô tìm kiếm + gợi ý — nằm ngoài <MapsLibVNMap> nên truyền client tường minh. */
 function Search({ near, onPick }: { near: [number, number]; onPick: (p: Point) => void }) {
@@ -135,6 +161,66 @@ function DemoScreen() {
   const [navigating, setNavigating] = useState<false | 'real' | 'sim'>(false);
   const [compass, setCompass] = useState(false); // bản đồ xoay theo hướng nhìn
   const [userFollowing, setUserFollowing] = useState(false);
+  // Chế độ thử đội xe: kế hoạch đang vẽ, xe đang chọn (null = mọi xe rõ), đang gọi API.
+  const [fleet, setFleet] = useState<FleetPlanResponse | null>(null);
+  const [fleetActive, setFleetActive] = useState<number | null>(null);
+  const [fleetBusy, setFleetBusy] = useState(false);
+
+  /** Chọn điểm đến thường thì rời chế độ đội xe — `routes.show()` của tuyến mới cũng xoá kế hoạch. */
+  const pickDest = useCallback((p: Point) => {
+    setFleet(null);
+    setFleetActive(null);
+    setDest(p);
+  }, []);
+
+  const runFleet = useCallback(async () => {
+    if (!map || fleetBusy) return;
+    setFleetBusy(true);
+    setDest(null);
+    setResponse(null);
+    try {
+      const plan = await client.fleetPlan(fleetRequest(mode));
+      setFleet(plan);
+      setFleetActive(null);
+      map.routes.showFleet(plan);
+      const boxes = plan.vehicles.flatMap((v) => (v.routes[0] ? [v.routes[0].bbox] : []));
+      if (boxes.length > 0) {
+        map.fitBounds(
+          [
+            Math.min(...boxes.map((b) => b[0])),
+            Math.min(...boxes.map((b) => b[1])),
+            Math.max(...boxes.map((b) => b[2])),
+            Math.max(...boxes.map((b) => b[3])),
+          ],
+          60,
+        );
+      }
+    } catch (e: unknown) {
+      Alert.alert('Không chia được đơn', e instanceof Error ? e.message : '');
+    } finally {
+      setFleetBusy(false);
+    }
+  }, [map, mode, fleetBusy]);
+
+  const exitFleet = useCallback(() => {
+    setFleet(null);
+    setFleetActive(null);
+    map?.routes.clear();
+  }, [map]);
+
+  const selectVehicle = useCallback(
+    (k: number) => {
+      setFleetActive(k);
+      map?.routes.setActive(k);
+    },
+    [map],
+  );
+
+  /** `routes.setActive()` chỉ nhận chỉ số xe; bỏ làm mờ = vẽ lại kế hoạch với `active` rỗng. */
+  const showAllVehicles = useCallback(() => {
+    setFleetActive(null);
+    if (fleet) map?.routes.showFleet(fleet);
+  }, [map, fleet]);
 
   // Theo dõi bám chấm xanh để hiện nút "Về tôi" khi người dùng đã kéo bản đồ. `compass` không đọc
   // trong thân hàm nhưng vẫn cần trong deps: đổi follow mode khiến binding tự đặt lại wantFollow=true
@@ -254,10 +340,15 @@ function DemoScreen() {
         follow={compass ? { bearing: 'heading' } : true}
         onLoad={setMap}
         onRouteClick={(i) => {
+          // Đội xe: `i` là chỉ số xe; tuyến thường: chỉ số tuyến thay thế.
+          if (fleet) {
+            selectVehicle(i);
+            return;
+          }
           setActive(i);
           map?.routes.setActive(i);
         }}
-        onPoiClick={(poi) => setDest({ name: poi.name, lng: poi.lngLat[0], lat: poi.lngLat[1] })}
+        onPoiClick={(poi) => pickDest({ name: poi.name, lng: poi.lngLat[0], lat: poi.lngLat[1] })}
         onError={(e) => Alert.alert('Lỗi bản đồ', e.message)}
         testID="map"
       >
@@ -266,7 +357,50 @@ function DemoScreen() {
 
       {!navigating && (
         <>
-          <Search near={origin ? [origin[1], origin[0]] : [10.776, 106.7]} onPick={setDest} />
+          <Search near={origin ? [origin[1], origin[0]] : [10.776, 106.7]} onPick={pickDest} />
+          {fleet && (
+            <View style={styles.card} testID="fleet-card">
+              <Text style={styles.name}>
+                Đội xe · {fleet.summary.jobs_assigned}/{FLEET_JOBS.length} đơn ·{' '}
+                {(fleet.summary.distance_m / 1000).toFixed(1)} km
+              </Text>
+              {fleet.vehicles.map((v, k) => (
+                <Pressable
+                  key={v.vehicle}
+                  style={[styles.fleetRow, fleetActive === k && styles.fleetRowOn]}
+                  onPress={() => selectVehicle(k)}
+                >
+                  <View
+                    style={[
+                      styles.swatch,
+                      { backgroundColor: FLEET_COLORS[k % FLEET_COLORS.length] },
+                    ]}
+                  />
+                  <Text style={styles.fleetText} numberOfLines={2}>
+                    {v.vehicle} · {v.jobs.length} đơn
+                    {v.routes[0]
+                      ? ` · ${(v.routes[0].distance_m / 1000).toFixed(1)} km · ${Math.round(v.routes[0].duration_s / 60)} phút`
+                      : ' · nghỉ'}
+                    {'\n'}
+                    <Text style={styles.secondary}>{v.jobs.map(jobName).join(' → ')}</Text>
+                  </Text>
+                </Pressable>
+              ))}
+              {fleet.unassigned.length > 0 && (
+                <Text style={styles.secondary}>
+                  Chưa xếp được: {fleet.unassigned.map((u) => jobName(u.id)).join(', ')}
+                </Text>
+              )}
+              <View style={styles.chips}>
+                <Pressable style={styles.btn} onPress={showAllVehicles}>
+                  <Text style={styles.btnText}>Hiện cả hai</Text>
+                </Pressable>
+                <Pressable style={styles.btn} onPress={exitFleet}>
+                  <Text style={styles.btnText}>Thoát</Text>
+                </Pressable>
+              </View>
+            </View>
+          )}
           {dest && (
             <View style={styles.card}>
               <Text style={styles.name} numberOfLines={1}>
@@ -333,6 +467,17 @@ function DemoScreen() {
               <Text style={styles.btnText}>{lang === 'vi' ? 'EN' : 'VI'}</Text>
             </Pressable>
             <Pressable
+              style={[styles.btn, fleet && styles.primary]}
+              onPress={() => void runFleet()}
+              disabled={fleetBusy}
+              accessibilityLabel="Đội xe (thử)"
+              testID="fleet-button"
+            >
+              <Text style={[styles.btnText, fleet && { color: '#fff' }]}>
+                {fleetBusy ? 'Đang chia…' : 'Đội xe'}
+              </Text>
+            </Pressable>
+            <Pressable
               style={[styles.btn, compass && styles.primary]}
               onPress={() => setCompass((c) => !c)}
               accessibilityLabel="La bàn"
@@ -396,4 +541,8 @@ const styles = StyleSheet.create({
   btn: { backgroundColor: '#eef2f8', borderRadius: 20, paddingHorizontal: 14, paddingVertical: 8 },
   primary: { backgroundColor: '#2458a6' },
   btnText: { fontWeight: '600' },
+  fleetRow: { flexDirection: 'row', alignItems: 'center', gap: 8, padding: 6, borderRadius: 8 },
+  fleetRowOn: { backgroundColor: '#eef2f8' },
+  fleetText: { flex: 1, fontSize: 14, fontWeight: '600' },
+  swatch: { width: 14, height: 14, borderRadius: 3 },
 });
