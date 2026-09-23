@@ -77,6 +77,16 @@ export function OverviewPage() {
             }
           />
         )}
+        {can(me, 'health.read') && (
+          <O
+            ten="Đội xe"
+            den="/health"
+            dangTai={health.isPending}
+            loi={health.isError}
+            so={<TrangThaiBadge ok={health.data?.fleet?.ok} />}
+            phu={health.data?.fleet?.ok ? 'bộ giải xếp đủ đơn thử' : undefined}
+          />
+        )}
         {xemDon && (
           <O
             ten="Đơn chờ xử lý"

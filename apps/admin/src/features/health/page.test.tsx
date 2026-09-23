@@ -17,6 +17,7 @@ const HEALTH = {
   },
   routing: { ok: false, ms: 6001, error: 'Dịch vụ chỉ đường không phản hồi' },
   data: { ok: true, ms: 12, tiles: 'vn-20260901', poi: 'poi-20260901', updated_at: null },
+  fleet: { ok: true, ms: 812, assigned: 2 },
   watcher: null,
 };
 
@@ -69,6 +70,12 @@ describe('HealthPage', () => {
     expect(await screen.findByText(/Dịch vụ chỉ đường không phản hồi/)).toBeVisible();
     expect(screen.getByText('0019_poi_admin')).toBeVisible();
     expect(screen.getByText('vn-20260901')).toBeVisible();
+  });
+
+  it('ô Đội xe: bài thử 1 xe 2 đơn, hiện số đơn xếp được', async () => {
+    mo();
+    expect(await screen.findByText('Đội xe')).toBeVisible();
+    expect(screen.getByText(/xếp được 2\/2/)).toBeVisible();
   });
 
   it('dòng số liệu trước 18/09 không có mẫu route, hiện nhãn thay vì ô trống', async () => {

@@ -21,6 +21,7 @@ const HEALTH = {
     schema_migration: '0019_x',
   },
   routing: { ok: false, ms: 6001, error: 'Dịch vụ chỉ đường không phản hồi' },
+  fleet: { ok: true, ms: 812, assigned: 2 },
   data: { ok: true, ms: 12, tiles: 'vn-1', poi: 'poi-1', updated_at: null },
 };
 const METRICS = {

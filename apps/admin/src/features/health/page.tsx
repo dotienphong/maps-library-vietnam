@@ -118,7 +118,7 @@ const cotTenant: Column<DongTenant>[] = [
 
 function TrangThai({ health }: { health: Health }) {
   return (
-    <div className="grid gap-3 sm:grid-cols-3">
+    <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
       <The ten="Cơ sở dữ liệu" phepDo={health.db}>
         <dl className="space-y-0.5">
           <Dong nhan="migration" gia={health.db.ok ? (health.db.schema_migration ?? '—') : null} />
@@ -129,6 +129,11 @@ function TrangThai({ health }: { health: Health }) {
         <p className="text-xs text-[var(--text-muted)]">
           Tuyến thử {health.routing.ok ? health.routing.distance_km : 0} km ·{' '}
           {health.routing.ok ? health.routing.phut : 0} phút
+        </p>
+      </The>
+      <The ten="Đội xe" phepDo={health.fleet}>
+        <p className="text-xs text-[var(--text-muted)]">
+          Bài thử 1 xe 2 đơn: xếp được {health.fleet.ok ? health.fleet.assigned : 0}/2
         </p>
       </The>
       <The ten="Dữ liệu" phepDo={health.data}>

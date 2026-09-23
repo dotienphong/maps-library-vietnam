@@ -20,6 +20,8 @@ export interface Health {
     schema_migration: string | null;
   }>;
   routing: PhepDo<{ distance_km: number; phut: number }>;
+  /** Bài đội xe tí hon (1 xe, 2 đơn Hà Nội) qua VROOM + Valhalla — spec 2026-09-23 mục 4.8. */
+  fleet: PhepDo<{ assigned: number }>;
   data: PhepDo<{ tiles: string | null; poi: string | null; updated_at: string | null }>;
   /** Cron cảnh báo: `null` khi chưa chạy lần nào. `gui_trong_ngay` đếm theo ngày UTC. */
   watcher: { kiem_luc: string; gui_trong_ngay: number } | null;
