@@ -281,6 +281,8 @@ export function parseDirectionsArgs(argv) {
   const values = {};
   let confirmProduction = false;
   for (const value of argv) {
+    // pnpm 10 chuyển nguyên `--` của `pnpm smoke:… -- --cờ` vào argv thay vì nuốt nó.
+    if (value === '--') continue;
     if (value === '--confirm-production') {
       if (confirmProduction) throw new Error('--confirm-production không được lặp');
       confirmProduction = true;

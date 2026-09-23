@@ -153,6 +153,8 @@ describe('parseMatrixSmokeArgs', () => {
       busyMax: 1500,
     });
     expect(() => parseMatrixSmokeArgs(['--foo=1'])).toThrow(/Cờ không hợp lệ/);
+    // `pnpm smoke:matrix -- --confirm-production` đưa cả `--` vào argv (pnpm 10).
+    expect(parseMatrixSmokeArgs(['--', '--confirm-production']).confirmProduction).toBe(true);
     expect(() => parseMatrixSmokeArgs(['--requests=0'])).toThrow(/từ 1 đến 50/);
     expect(() => parseMatrixSmokeArgs(['--rounds=11'])).toThrow(/từ 0 đến 10/);
     expect(() => parseMatrixSmokeArgs(['--requests=2', '--requests=3'])).toThrow(/không được lặp/);
