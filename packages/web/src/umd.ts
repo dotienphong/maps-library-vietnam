@@ -14,7 +14,7 @@ import { type CreateMapOptions, createMap as createMapWithDeps } from './map';
  *
  * `document.currentScript` chỉ đúng trong lượt chạy đồng bộ đầu tiên của script, nên phải đọc
  * ngay ở tầng module. Vẫn chỉ đặt khi chưa có ai đặt, và người dùng ghi đè được bằng
- * `maplibregl.setWorkerUrl(...)` sau khi nạp — cách tự host mà tài liệu đang hướng dẫn.
+ * `maplibregl.setWorkerUrl(...)` sau khi nạp.
  */
 function bundledWorkerUrl(): string | undefined {
   if (typeof document === 'undefined') return undefined;

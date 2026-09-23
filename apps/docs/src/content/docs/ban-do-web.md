@@ -251,8 +251,8 @@ WebGL context và listener.
 | `poiClick` không bắn | Style không có lớp `poi`, hoặc bấm lệch khỏi biểu tượng |
 
 Các ví dụ trên dùng endpoint nội bộ hiện tại `api.ai-solutions.io.vn` và SDK phục vụ từ
-`mapslibvn-docs.pages.dev`. Cả hai là **tạm thời** trong giai đoạn nội bộ; nếu tự host hãy thay
-bằng tên miền của mình.
+`mapslibvn-docs.pages.dev`. Cả hai là **tạm thời** trong giai đoạn nội bộ và sẽ đổi khi MapsLibVN có
+tên miền riêng.
 
 Đọc thêm: [Tìm kiếm & autocomplete](/tim-kiem/), [React](/react/),
-[SDK JavaScript](/sdk/), [Tự host](/tu-host/).
+[SDK JavaScript](/sdk/).

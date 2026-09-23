@@ -17,7 +17,6 @@ const PAGES = [
   '/react/',
   '/do-chinh-xac/',
   '/dong-gop/',
-  '/tu-host/',
   '/api/',
   '/sdk/',
   '/nhung-thu/',

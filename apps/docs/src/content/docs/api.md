@@ -13,7 +13,7 @@ Gốc API trong giai đoạn nội bộ:
 https://api.ai-solutions.io.vn
 ```
 
-Endpoint này là **tạm thời** và sẽ đổi khi MapsLibVN có tên miền riêng. Nếu bạn tự host, hãy thay bằng tên miền của mình, xem [Tự host](/tu-host/).
+Endpoint này là **tạm thời** và sẽ đổi khi MapsLibVN có tên miền riêng.
 
 Khoá API chỉ truyền qua header `X-Api-Key`. Từ 09/09/2026 máy chủ **không** còn đọc `?key=` trên URL của các route `/v1/*` có kiểm khoá — khoá trên URL lọt vào log CDN, `Referer` và cache trung gian. (`?key=` trên URL style vẫn vô hại vì `/v1/styles/*` không kiểm khoá.)
 

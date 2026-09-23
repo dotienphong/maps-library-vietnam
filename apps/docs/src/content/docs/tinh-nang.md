@@ -3,9 +3,8 @@ title: Tính năng
 description: MapsLibVN có gì — bản đồ nền Việt Nam, lớp POI 164 loại, Places API, geocode trung thực về độ chính xác, đóng góp cộng đồng và SDK cho web, React, React Native.
 ---
 
-MapsLibVN là thư viện bản đồ và Places cho Việt Nam: tiles nền, lớp địa điểm, REST API và SDK,
-dựng lại được toàn bộ từ mã nguồn. Trang này liệt kê những gì thư viện làm được hôm nay và những
-gì chưa.
+MapsLibVN là thư viện bản đồ và Places cho Việt Nam: tiles nền, lớp địa điểm, REST API và SDK.
+Trang này liệt kê những gì thư viện làm được hôm nay và những gì chưa.
 
 ## 1. Bản đồ nền Việt Nam
 
@@ -94,7 +93,7 @@ trong 100 m; số nhà trả về dạng ước lượng ("≈ 86–90"). Xem
 
 `GET /v1/directions` trả tuyến cho **xe máy** (không lên cao tốc), **ô tô** và **đi bộ** giữa hai điểm
 trong Việt Nam, tối đa 10 điểm dừng, kèm bước rẽ tiếng Việt (hoặc tiếng Anh) có câu đọc bằng giọng nói.
-Engine là Valhalla tự host trên dữ liệu đường OpenStreetMap, cập nhật cùng kỳ với tiles nền. Kết quả
+Engine là Valhalla trên dữ liệu đường OpenStreetMap, cập nhật cùng kỳ với tiles nền. Kết quả
 theo schema riêng của MapsLibVN (`Route`, `RouteStep`), không lộ định dạng engine. Chưa có giao thông
 trực tiếp, chưa tránh phí/cao tốc theo yêu cầu; SDK web dẫn đường từng bước trên thiết bị: bám GPS vào
 tuyến, đọc câu tiếng Việt đúng lúc bằng giọng nói, tự tính lại khi lệch, báo đến nơi — xem
@@ -142,21 +141,7 @@ Bản **UMD** của `@mapslibvn/web` (`mapslibvn.umd.js` + `mapslibvn.css`) đó
 và `pmtiles`, tạo global `MapsLibVN` và tự đăng ký web component `<mapslibvn-autocomplete>` — nhúng
 bằng đúng một thẻ `<script>`, không cần bước build.
 
-## 9. Kiến trúc tóm tắt
-
-| Thành phần | Chạy ở đâu | Chi phí |
-|---|---|---|
-| Tiles PMTiles nền Việt Nam và lớp POI | Cloudflare R2 kèm custom domain, client đọc thẳng bằng HTTP Range | 0 đồng egress |
-| Places API, styles, trang duyệt đóng góp | Cloudflare Worker chạy Hono | gói Workers Free đủ cho nội bộ |
-| Postgres 16 kèm PostGIS | máy nội bộ chạy 24/7 trong Docker, nối ra qua Cloudflare Tunnel rồi Access rồi Hyperdrive | tiền điện và máy |
-| Engine chỉ đường Valhalla | container `valhalla` trên cùng máy chủ, không mở cổng; Worker gọi qua Cloudflare Tunnel | tiền điện và máy |
-| Pipeline dữ liệu OSM, Foursquare | container `pipeline` trên máy chủ, cron thứ Hai 02:00 | — |
-| Tài liệu | Cloudflare Pages | 0 đồng |
-
-Vì tiles không chạm Worker, lượt tải bản đồ không tính vào hạn mức request của Worker. Chi tiết ở
-[Tự host](/tu-host/).
-
-## 10. Trạng thái và giới hạn hiện tại
+## 9. Trạng thái và giới hạn hiện tại
 
 - **Bốn gói `@mapslibvn/*` đã public trên npm** dưới dist-tag `latest`. Bản UMD
   vẫn dùng được cho ứng dụng không có bundler. Xem [Cài đặt](/cai-dat/).
@@ -177,8 +162,6 @@ Vì tiles không chạm Worker, lượt tải bản đồ không tính vào hạ
 - Khoá API tự cấp được ở [cổng khách hàng](https://api.ai-solutions.io.vn/console/) (bản dùng thử
   30 ngày, không cần thẻ); khoá `mobile`, khoá `server` và scope `edits:write` vẫn xin qua email —
   xem [Khoá API](/khoa-api/).
-- **Mã máy chủ chưa mở.** Bốn gói SDK là MIT trên npm, nhưng Worker API, pipeline và hạ tầng nằm
-  trong repo private; liên hệ theo [Điều khoản tenant](/dieu-khoan/) mục 10 để xin quyền.
 - **Chưa cam kết SLA.** Xem [Điều khoản tenant](/dieu-khoan/) mục 2.
 
 Đọc thêm: [Cài đặt](/cai-dat/), [Bản đồ web](/ban-do-web/),

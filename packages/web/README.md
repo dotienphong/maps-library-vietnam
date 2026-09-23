@@ -45,7 +45,7 @@ const map = createMap(
 );
 ```
 
-The UMD build at `@mapslibvn/web/umd` bundles MapLibre and PMTiles for you. If you self-host the UMD file, place `maplibre-gl-worker.mjs` and `maplibre-gl-shared.mjs` next to `mapslibvn.umd.js`. Don't hide or disable attribution. Never ship a secret key in client-side code — Web keys must be origin-restricted.
+The UMD build at `@mapslibvn/web/umd` bundles MapLibre and PMTiles for you. If you copy the UMD file to your own CDN or static folder, place `maplibre-gl-worker.mjs` and `maplibre-gl-shared.mjs` next to `mapslibvn.umd.js`. Don't hide or disable attribution. Never ship a secret key in client-side code — Web keys must be origin-restricted.
 
 📖 Docs: <https://mapslibvn-docs.pages.dev/ban-do-web/>
 
@@ -97,7 +97,7 @@ const map = createMap(
 );
 ```
 
-Bản UMD tại export `@mapslibvn/web/umd` đóng gói sẵn MapLibre và PMTiles. Khi tự phục vụ UMD, đặt `maplibre-gl-worker.mjs` và `maplibre-gl-shared.mjs` cạnh `mapslibvn.umd.js`. Không tắt hoặc che attribution. Không đưa khóa bí mật vào mã nguồn; khóa Web phải giới hạn đúng origin.
+Bản UMD tại export `@mapslibvn/web/umd` đóng gói sẵn MapLibre và PMTiles. Nếu chép file UMD sang CDN hay thư mục tĩnh của bạn, đặt `maplibre-gl-worker.mjs` và `maplibre-gl-shared.mjs` cạnh `mapslibvn.umd.js`. Không tắt hoặc che attribution. Không đưa khóa bí mật vào mã nguồn; khóa Web phải giới hạn đúng origin.
 
 📖 Tài liệu: <https://mapslibvn-docs.pages.dev/ban-do-web/>
 

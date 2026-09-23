@@ -86,7 +86,6 @@ export default defineConfig({
             { label: 'React', slug: 'react' },
             { label: 'Độ chính xác geocode', slug: 'do-chinh-xac' },
             { label: 'Đóng góp & sửa POI', slug: 'dong-gop' },
-            { label: 'Tự host', slug: 'tu-host' },
           ],
         },
         {

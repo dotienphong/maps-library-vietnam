@@ -61,7 +61,7 @@ export const TRANG = {
     path: '/bai-viet/',
     title: 'Bài viết — MapsLibVN',
     description:
-      'Ghi chép về chi phí API bản đồ tại Việt Nam, cách tự dựng bản đồ từ dữ liệu mở và vì sao độ chính xác của geocode cần được nói thật với người dùng cuối.',
+      'Ghi chép về chi phí API bản đồ tại Việt Nam, cách cắt hoá đơn Google Maps và vì sao độ chính xác của geocode cần được nói thật với người dùng cuối.',
     h1: 'Bài viết',
     nhan: 'Bài viết',
   },

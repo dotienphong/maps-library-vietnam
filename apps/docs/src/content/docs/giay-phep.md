@@ -51,7 +51,7 @@ Endpoint tương ứng là `GET /v1/attribution`, cache 24 giờ.
 
 ## 5. Phông, icon và style nền
 
-Phông Noto Sans theo SIL Open Font License 1.1, icon Maki theo CC0 1.0, style sáng dẫn xuất từ osm-liberty và style tối dẫn xuất từ dark-matter (cả hai BSD-3-Clause cho mã, CC-BY cho thiết kế). Tất cả đều tự host, không gọi CDN bên thứ ba.
+Phông Noto Sans theo SIL Open Font License 1.1, icon Maki theo CC0 1.0, style sáng dẫn xuất từ osm-liberty và style tối dẫn xuất từ dark-matter (cả hai BSD-3-Clause cho mã, CC-BY cho thiết kế). Tất cả đều phục vụ từ hạ tầng của MapsLibVN, không gọi CDN bên thứ ba.
 
 ## 6. Pháp luật Việt Nam
 

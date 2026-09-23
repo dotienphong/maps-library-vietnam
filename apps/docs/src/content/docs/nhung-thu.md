@@ -163,8 +163,8 @@ kèm origin thật:
   `dotienphong1993@gmail.com` — nội dung cần ghi nằm ở [Khoá API](/khoa-api/) mục 7.
 - Kê đủ origin: `https://vidu.vn` và `https://*.vidu.vn` là hai mẫu khác nhau; staging cũng phải kê.
 - Cả `api.ai-solutions.io.vn` lẫn `mapslibvn-docs.pages.dev` đều là endpoint **tạm thời** của giai
-  đoạn nội bộ. Muốn không phụ thuộc chúng, hãy [tự host](/tu-host/) và thay hai tên miền trong file
-  trên.
+  đoạn nội bộ và sẽ đổi khi MapsLibVN có tên miền riêng; khi đó chỉ cần thay hai tên miền trong
+  file trên.
 
 ## 5. Ví dụ có sẵn trong repo
 

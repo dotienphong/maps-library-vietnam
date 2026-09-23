@@ -54,11 +54,12 @@ Global `MapsLibVN` gồm: `createMap`, `maplibregl`, `createClient`, `MapsLibVNE
 `mapslibvn.css` là CSS của MapLibre đóng gói kèm — thiếu nó thì bản đồ hiện sai (điều khiển chồng
 lên nhau, popup không có khung).
 
-MapLibre 6 chạy worker ESM riêng. Khi tự host SDK, phải đặt `maplibre-gl-worker.mjs` và
-`maplibre-gl-shared.mjs` cạnh `mapslibvn.umd.js`; thư mục `/sdk/` phát hành sẵn đã chứa đủ ba file.
+MapLibre 6 chạy worker ESM riêng. Nếu bạn chép file UMD sang CDN hay thư mục tĩnh của trang mình,
+phải đặt `maplibre-gl-worker.mjs` và `maplibre-gl-shared.mjs` cạnh `mapslibvn.umd.js`; thư mục
+`/sdk/` phát hành sẵn đã chứa đủ ba file.
 
-Nếu bạn tự host SDK, hãy thay tên miền: cả `mapslibvn-docs.pages.dev` lẫn `api.ai-solutions.io.vn`
-đều là endpoint **tạm thời** của giai đoạn nội bộ. Xem [Tự host](/tu-host/).
+Cả `mapslibvn-docs.pages.dev` lẫn `api.ai-solutions.io.vn` đều là endpoint **tạm thời** của giai
+đoạn nội bộ và sẽ đổi khi MapsLibVN có tên miền riêng.
 
 </TabItem>
 <TabItem label="npm (ESM)">

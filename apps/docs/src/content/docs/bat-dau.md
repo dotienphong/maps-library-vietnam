@@ -75,7 +75,7 @@ App iOS/Android dùng `@mapslibvn/react-native` với cùng props (`style`, `lan
 
 Các ví dụ trên dùng endpoint nội bộ hiện tại: API tại `api.ai-solutions.io.vn` và SDK phục vụ từ
 `mapslibvn-docs.pages.dev`. Cả hai là **tạm thời** trong giai đoạn nội bộ và sẽ đổi khi MapsLibVN có
-tên miền riêng. Nếu bạn tự host, hãy thay bằng tên miền của mình, xem [Tự host](/tu-host/).
+tên miền riêng.
 
 Khoá API phải khớp origin của trang nhúng. Nếu bị trả về lỗi `origin_not_allowed`, nghĩa là origin
 của bạn chưa nằm trong danh sách của khoá — xem [Khoá API](/khoa-api/).

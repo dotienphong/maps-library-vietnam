@@ -80,12 +80,6 @@ export function doiDauGoogle(): HangDoiDau[] {
       thang: 'ho',
     },
     {
-      tieuChi: 'Tự dựng lại trên hạ tầng của bạn',
-      ta: 'Được — pipeline và SDK là mã mở',
-      ho: 'Không',
-      thang: 'ta',
-    },
-    {
       tieuChi: 'Thanh toán bằng VND trong nước',
       ta: 'PayOS, chuyển khoản, VietQR',
       ho: 'Thẻ quốc tế, tính bằng USD',
@@ -138,12 +132,6 @@ export function doiDauVietmap(): HangDoiDau[] {
       ta: 'Chưa công bố',
       ho: 'Có đội hỗ trợ doanh nghiệp lâu năm',
       thang: 'ho',
-    },
-    {
-      tieuChi: 'Tự dựng lại trên hạ tầng của bạn',
-      ta: 'Được — pipeline và SDK là mã mở',
-      ho: 'Không phải mô hình của họ',
-      thang: 'ta',
     },
     {
       tieuChi: 'Bắt đầu không cần ký hợp đồng',
