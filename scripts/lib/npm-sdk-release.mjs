@@ -93,24 +93,84 @@ export function readSdkPackages(rootDir = process.cwd()) {
  * gói sau vẫn lên, và `@mapslibvn/react@0.13.0` nằm trên npm với `dependencies` trỏ
  * `@mapslibvn/core@0.13.0` không tồn tại — ai `npm install` gói đó đều gặp `ETARGET`.
  *
+ * "Đã lên" nghĩa là **cài được**: metadata có version VÀ tarball tải được. Từ 23/09/2026 npm xử lý
+ * publish bất đồng bộ — lần 0.14.1 metadata có version sau ~2 phút mà tarball còn 404 thêm ~7 phút,
+ * `npm install` lúc đó lỗi E404. Mọi lượt hỏi xin `no-cache` vì bản CDN của registry có thể cũ hơn.
+ *
  * @param {string} name @param {string} version
  * @param {{ fetchImpl?: typeof fetch, timeoutMs?: number }} [options]
  * @returns {Promise<boolean | null>}
  */
 export async function daLenRegistry(name, version, options = {}) {
   const fetchImpl = options.fetchImpl ?? fetch;
+  const timeoutMs = options.timeoutMs ?? 15_000;
+  const headers = { 'cache-control': 'no-cache' };
   const url = `https://registry.npmjs.org/${name.replace('/', '%2F')}`;
   try {
-    const response = await fetchImpl(url, {
-      signal: AbortSignal.timeout(options.timeoutMs ?? 15_000),
-    });
+    const response = await fetchImpl(url, { headers, signal: AbortSignal.timeout(timeoutMs) });
     if (response.status === 404) return false;
     if (!response.ok) return null;
-    const body = /** @type {{ versions?: Record<string, unknown> }} */ (await response.json());
-    return Object.hasOwn(body.versions ?? {}, version);
+    const body = /** @type {{ versions?: Record<string, { dist?: { tarball?: string } }> }} */ (
+      await response.json()
+    );
+    if (!Object.hasOwn(body.versions ?? {}, version)) return false;
+
+    const tarball =
+      body.versions?.[version]?.dist?.tarball ??
+      `https://registry.npmjs.org/${name}/-/${name.split('/').at(-1)}-${version}.tgz`;
+    const tai = await fetchImpl(tarball, {
+      method: 'HEAD',
+      headers,
+      signal: AbortSignal.timeout(timeoutMs),
+    });
+    if (tai.status === 404) return false;
+    return tai.ok ? true : null;
   } catch {
     return null;
   }
+}
+
+/**
+ * Chờ tới khi mọi gói cài được từ registry, hỏi lại mỗi `intervalMs`, tối đa `timeoutMs`.
+ *
+ * Không chờ thì bước tự kiểm sau publish báo "CHƯA lên npm" giả (23/09/2026: cả bốn gói 0.14.1 đã
+ * publish đúng mà script báo lỗi) — người phát hành dễ chạy lại lệnh publish và ăn EPUBLISHCONFLICT.
+ * Gói đã xác nhận không bị hỏi lại. `null` (không hỏi được) vẫn tiếp tục chờ vì mạng có thể hồi.
+ *
+ * @param {string[]} names @param {string} version
+ * @param {{
+ *   kiem?: (name: string, version: string) => Promise<boolean | null>,
+ *   now?: () => number,
+ *   sleep?: (ms: number) => Promise<void>,
+ *   timeoutMs?: number,
+ *   intervalMs?: number,
+ *   onProgress?: (p: { sanSang: number, tong: number, daChoMs: number }) => void,
+ * }} [options]
+ * @returns {Promise<{ thieu: string[], khongRo: string[] }>}
+ */
+export async function choLenRegistry(names, version, options = {}) {
+  const kiem = options.kiem ?? daLenRegistry;
+  const now = options.now ?? Date.now;
+  const sleep = options.sleep ?? ((ms) => new Promise((r) => setTimeout(r, ms)));
+  const timeoutMs = options.timeoutMs ?? 15 * 60_000;
+  const intervalMs = options.intervalMs ?? 30_000;
+
+  const batDau = now();
+  let conLai = [...names];
+  /** @type {Map<string, boolean | null>} */
+  const ketQua = new Map();
+  for (;;) {
+    for (const name of conLai) ketQua.set(name, await kiem(name, version));
+    conLai = conLai.filter((name) => ketQua.get(name) !== true);
+    const daChoMs = now() - batDau;
+    if (conLai.length === 0 || daChoMs >= timeoutMs) break;
+    options.onProgress?.({ sanSang: names.length - conLai.length, tong: names.length, daChoMs });
+    await sleep(intervalMs);
+  }
+  return {
+    thieu: conLai.filter((name) => ketQua.get(name) === false),
+    khongRo: conLai.filter((name) => ketQua.get(name) === null),
+  };
 }
 
 /**
