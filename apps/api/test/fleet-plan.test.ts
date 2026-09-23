@@ -207,4 +207,15 @@ describe('GET /healthz/fleet', () => {
     expect(res.status).toBe(503);
     expect((await loi(res)).message).toMatch(/1\/2/);
   });
+
+  it('graph không phủ Hà Nội (VROOM báo vùng không nối) → vẫn 503, không phải 404', async () => {
+    mockVroom(500, {
+      code: 3,
+      error:
+        'Valhalla matrix error (Locations are in unconnected regions. Go check/edit the map at osm.org).',
+    });
+    const res = await SELF.fetch('https://api/healthz/fleet');
+    expect(res.status).toBe(503);
+    expect((await loi(res)).message).toMatch(/không nối/);
+  });
 });

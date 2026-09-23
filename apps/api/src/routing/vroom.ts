@@ -87,6 +87,8 @@ const khongPhanHoi = () =>
 const duLieuSai = () =>
   new ApiError(503, 'upstream_unavailable', 'Bộ giải đội xe trả dữ liệu không hợp lệ');
 const UNFOUND = /Unfound route\(s\)/i;
+/** VROOM chuyển nguyên lỗi ma trận của Valhalla khi các điểm ở vùng đường không nối nhau (đo 23/09/2026). */
+const UNCONNECTED = /unconnected regions/i;
 
 /**
  * Bảng lỗi spec 23/09/2026 mục 4.5, đối chiếu với vroom-express thật ngày 23/09: 413 (code 4) khi quá
@@ -117,6 +119,16 @@ export function mapVroomError(
       noRouteMessage ? noRouteMessage(error) : 'Có điểm không tới được bằng mạng đường',
     );
   }
+  if (body?.code === 3 && UNCONNECTED.test(error)) {
+    return new ApiError(
+      404,
+      'no_route',
+      'Có điểm nằm ở vùng mạng đường không nối với các điểm còn lại',
+    );
+  }
+  // Không đưa thông điệp của VROOM ra ngoài (có thể lộ tên máy trong mạng nội bộ), nhưng PHẢI ghi
+  // vào log: Observability chỉ giữ stack, thiếu dòng này thì 503 không cho biết hỏng vì gì.
+  console.warn(`[fleet] vroom HTTP ${status} code ${body?.code ?? '?'}: ${error || '(không có)'}`);
   return khongPhanHoi();
 }
 
@@ -156,6 +168,6 @@ export async function callVroom(
     json = null;
   }
   if (!response.ok) throw mapVroomError(response.status, json, options.noRouteMessage);
-  if (!json || json.code !== 0 || !Array.isArray(json.routes)) throw duLieuSai();
+  if (json?.code !== 0 || !Array.isArray(json.routes)) throw duLieuSai();
   return json;
 }

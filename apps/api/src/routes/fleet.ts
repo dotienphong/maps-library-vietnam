@@ -89,14 +89,16 @@ fleet.post(
   },
 );
 
-/** Không cần khoá, không tính lượt, như /healthz/routing. Lỗi (503) để errorResponse xử lý. */
+/**
+ * Không cần khoá, không tính lượt, như /healthz/routing. MỌI hỏng hóc là 503 — kể cả khi VROOM báo
+ * "không tới được" (graph thiếu vùng Hà Nội cũng là máy chủ hỏng, không phải lỗi của người gọi).
+ */
 fleet.get('/healthz/fleet', async (c) => {
   const t0 = Date.now();
   let ketQua: Awaited<ReturnType<typeof doDoiXe>>;
   try {
     ketQua = await doDoiXe(c.env);
   } catch (error) {
-    if (error instanceof ApiError) throw error;
     throw new ApiError(
       503,
       'upstream_unavailable',

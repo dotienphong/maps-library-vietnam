@@ -59,6 +59,15 @@ describe('mapVroomError', () => {
     expect(unfound.code).toBe('no_route');
     expect(unfound.message).toBe(`tên: ${UNFOUND}`);
     expect(mapVroomError(500, { code: 3, error: UNFOUND }).message).toMatch(/không tới được/);
+    // Đo 23/09/2026: điểm ở vùng đường không nối nhau → VROOM chuyển nguyên lỗi ma trận của Valhalla.
+    const roi = mapVroomError(500, {
+      code: 3,
+      error:
+        'Valhalla matrix error (Locations are in unconnected regions. Go check/edit the map at osm.org).',
+    });
+    expect(roi.status).toBe(404);
+    expect(roi.code).toBe('no_route');
+    expect(roi.message).toMatch(/không nối/);
     expect(
       mapVroomError(500, { code: 3, error: 'Failed to connect to valhalla:8002' }).status,
     ).toBe(503);

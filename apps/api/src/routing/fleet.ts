@@ -389,7 +389,7 @@ export function translateFleet(json: VroomResponse, p: FleetParams): FleetSkelet
       };
     }
     const first = route.steps[0];
-    if (!first || first.type !== 'start' || typeof first.arrival !== 'number') {
+    if (first?.type !== 'start' || typeof first.arrival !== 'number') {
       throw invalidUpstream();
     }
     const departure = first.arrival;
