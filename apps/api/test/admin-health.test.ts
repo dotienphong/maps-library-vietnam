@@ -52,6 +52,9 @@ const mockRoute = (status: number, body: object | string) =>
 /** Tuyến thật rút gọn: chỉ những trường route đọc tới. */
 const TUYEN_OK = { trip: { summary: { length: 2.13, time: 420 }, legs: [], locations: [] } };
 
+const mockFleet = (reply: object) =>
+  fetchMock.get('https://fleet.test').intercept({ path: '/', method: 'POST' }).reply(200, reply);
+
 const goi = async () =>
   SELF.fetch('https://api/v1/admin/health', {
     headers: { 'Cf-Access-Jwt-Assertion': await jwtHopLe() },
@@ -67,6 +70,7 @@ interface Body {
   db: PhepDo;
   routing: PhepDo & { distance_km?: number; phut?: number };
   data: PhepDo & { tiles?: string | null };
+  fleet: PhepDo & { assigned?: number };
   watcher: { kiem_luc: string; gui_trong_ngay: number } | null;
 }
 
@@ -171,11 +175,44 @@ describe('GET /v1/admin/health', () => {
           db: { ok: true, tuLuc: homNay },
           routing: { ok: true, tuLuc: homNay },
           data: { ok: true, tuLuc: homNay },
+          fleet: { ok: true, tuLuc: homNay },
         },
         guiTrongNgay: { ngay: homNay.slice(0, 10), so: 2 },
       }),
     );
     const body = (await (await goi()).json()) as Body;
     expect(body.watcher).toEqual({ kiem_luc: homNay, gui_trong_ngay: 2 });
+  });
+
+  it('thành phần thứ tư `fleet`: bài 1 xe 2 đơn xếp đủ → ok kèm assigned; VROOM chết → fleet hỏng, định tuyến vẫn xanh', async () => {
+    mockRoute(200, TUYEN_OK);
+    mockFleet({
+      code: 0,
+      summary: { cost: 1, routes: 1, unassigned: 0, service: 0, duration: 1, waiting_time: 0 },
+      unassigned: [],
+      routes: [
+        {
+          vehicle: 0,
+          cost: 1,
+          service: 0,
+          duration: 1,
+          waiting_time: 0,
+          steps: [
+            { type: 'start', arrival: 0, duration: 0 },
+            { type: 'job', id: 0, arrival: 1, duration: 1 },
+            { type: 'job', id: 1, arrival: 2, duration: 2 },
+            { type: 'end', arrival: 3, duration: 3 },
+          ],
+        },
+      ],
+    });
+    const ok = (await (await goi()).json()) as Body;
+    expect(ok.fleet.ok).toBe(true);
+    expect(ok.fleet.assigned).toBe(2);
+    mockRoute(200, TUYEN_OK);
+    const chet = (await (await goi()).json()) as Body;
+    expect(chet.fleet.ok).toBe(false);
+    expect(chet.fleet.error).toMatch(/đội xe/);
+    expect(chet.routing.ok).toBe(true);
   });
 });

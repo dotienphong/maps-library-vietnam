@@ -115,6 +115,14 @@ class FetchMock {
     this.#real = null;
   }
 
+  /**
+   * Xoá mọi interceptor, kể cả `.persist()`. Cần khi một file test vừa có ca persist (thăm dò cache
+   * hit) vừa có ca sau mong upstream chết: interceptor persist sống qua ranh giới `it()`.
+   */
+  reset(): void {
+    this.#interceptors = [];
+  }
+
   disableNetConnect(): void {
     this.#netConnect = false;
   }

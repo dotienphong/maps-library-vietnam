@@ -10,7 +10,7 @@ import {
   type TrangThaiCanhBao,
   theoDoiSucKhoe,
 } from '../src/health/canh-bao';
-import type { KetQua, TenThanhPhan } from '../src/health/phep-do';
+import { type KetQua, type TenThanhPhan, THANH_PHAN } from '../src/health/phep-do';
 
 const NOW = new Date('2026-09-20T03:05:00Z');
 const ISO = NOW.toISOString();
@@ -81,6 +81,7 @@ const ghiKv = (tt: Partial<TrangThaiCanhBao>) =>
         db: { ok: true, tuLuc: '2026-09-19T20:00:00.000Z' },
         routing: { ok: true, tuLuc: '2026-09-19T20:00:00.000Z' },
         data: { ok: true, tuLuc: '2026-09-19T20:00:00.000Z' },
+        fleet: { ok: true, tuLuc: '2026-09-19T20:00:00.000Z' },
       },
       guiTrongNgay: { ngay: '2026-09-20', so: 0 },
       ...tt,
@@ -157,6 +158,7 @@ describe('theoDoiSucKhoe', () => {
         db: { ok: true, tuLuc: '2026-09-19T20:00:00.000Z' },
         routing: { ok: false, tuLuc: '2026-09-20T02:00:00.000Z', loi: 'x' },
         data: { ok: true, tuLuc: '2026-09-19T20:00:00.000Z' },
+        fleet: { ok: true, tuLuc: '2026-09-19T20:00:00.000Z' },
       },
     });
     const { kv } = kvDem();
@@ -172,6 +174,7 @@ describe('theoDoiSucKhoe', () => {
         db: { ok: true, tuLuc: '2026-09-19T20:00:00.000Z' },
         routing: { ok: false, tuLuc: '2026-09-20T02:42:00.000Z', loi: 'x' },
         data: { ok: true, tuLuc: '2026-09-19T20:00:00.000Z' },
+        fleet: { ok: true, tuLuc: '2026-09-19T20:00:00.000Z' },
       },
     });
     const { kv } = kvDem();
@@ -206,20 +209,20 @@ describe('theoDoiSucKhoe', () => {
     expect(email.daGui).toHaveLength(0);
     expect(cho).toHaveBeenCalledTimes(1);
     expect(cho).toHaveBeenCalledWith(CHO_DO_LAI_MS);
-    // 3 phép đo lần một + đúng 1 phép đo lại (routing), không đo lại db/data đang tốt.
-    expect(phepDo).toHaveBeenCalledTimes(4);
+    // Mỗi thành phần đo một lần + đúng 1 phép đo lại (routing), không đo lại các thành phần đang tốt.
+    expect(phepDo).toHaveBeenCalledTimes(THANH_PHAN.length + 1);
     expect((await docKv())?.thanhPhan.routing.ok).toBe(true);
     // Không chuyển trạng thái và ghiLuc mới 5 phút → không tốn một lượt ghi KV.
     expect(soPut()).toBe(0);
   });
 
-  it('không đo lại khi cả ba đều tốt', async () => {
+  it('không đo lại khi mọi thành phần đều tốt', async () => {
     await ghiKv({});
     const { kv } = kvDem();
     const { baoCao, cho, phepDo } = chay(kv);
     await baoCao;
     expect(cho).not.toHaveBeenCalled();
-    expect(phepDo).toHaveBeenCalledTimes(3);
+    expect(phepDo).toHaveBeenCalledTimes(THANH_PHAN.length);
   });
 
   it('gửi thư lỗi: thành phần vừa chuyển giữ trạng thái CŨ để lượt sau thử lại', async () => {
