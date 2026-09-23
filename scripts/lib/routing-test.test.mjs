@@ -12,31 +12,40 @@ import {
 } from './routing-test.mjs';
 
 describe('parseRoutingTestArgs', () => {
-  it('mặc định máy dev: dựng compose, valhalla 8002, api 8798', () => {
+  it('mặc định máy dev: dựng compose, valhalla 8002, vroom 3000/fleet, api 8798', () => {
     expect(parseRoutingTestArgs([], {})).toEqual({
       compose: true,
       valhallaBase: 'http://127.0.0.1:8002',
+      vroomBase: 'http://127.0.0.1:3000/fleet',
       apiPort: 8798,
       capture: false,
       down: false,
     });
   });
 
-  it('--no-compose bắt buộc VALHALLA_BASE; --capture/--down; VALHALLA_PORT đổi cổng', () => {
+  it('--no-compose bắt buộc VALHALLA_BASE và VROOM_BASE; --capture/--down; *_PORT đổi cổng', () => {
     expect(() => parseRoutingTestArgs(['--no-compose'], {})).toThrow(/VALHALLA_BASE/);
+    expect(() =>
+      parseRoutingTestArgs(['--no-compose'], { VALHALLA_BASE: 'http://valhalla:8002' }),
+    ).toThrow(/VROOM_BASE/);
     expect(
       parseRoutingTestArgs(['--no-compose', '--capture', '--down'], {
         VALHALLA_BASE: 'http://valhalla:8002/',
+        VROOM_BASE: 'http://vroom:3000/fleet/',
       }),
     ).toEqual({
       compose: false,
       valhallaBase: 'http://valhalla:8002',
+      vroomBase: 'http://vroom:3000/fleet',
       apiPort: 8798,
       capture: true,
       down: true,
     });
     expect(parseRoutingTestArgs([], { VALHALLA_PORT: '8102' }).valhallaBase).toBe(
       'http://127.0.0.1:8102',
+    );
+    expect(parseRoutingTestArgs([], { VROOM_PORT: '3100' }).vroomBase).toBe(
+      'http://127.0.0.1:3100/fleet',
     );
   });
 });

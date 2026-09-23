@@ -8,18 +8,26 @@ export const DEFAULT_API_PORT = 8798;
 /**
  * @param {string[]} argv
  * @param {Record<string, string | undefined>} env
- * @returns {{ compose: boolean, valhallaBase: string, apiPort: number, capture: boolean, down: boolean }}
+ * @returns {{ compose: boolean, valhallaBase: string, vroomBase: string, apiPort: number, capture: boolean, down: boolean }}
  */
 export function parseRoutingTestArgs(argv, env) {
   const compose = !argv.includes('--no-compose');
   let valhallaBase = env.VALHALLA_BASE?.replace(/\/+$/, '') ?? '';
+  let vroomBase = env.VROOM_BASE?.replace(/\/+$/, '') ?? '';
   if (!compose && !valhallaBase) {
     throw new Error('--no-compose cần VALHALLA_BASE trỏ tới Valhalla đang chạy');
   }
-  if (compose) valhallaBase = `http://127.0.0.1:${env.VALHALLA_PORT ?? '8002'}`;
+  if (!compose && !vroomBase) {
+    throw new Error('--no-compose cần VROOM_BASE trỏ tới vroom-express đang chạy (…/fleet)');
+  }
+  if (compose) {
+    valhallaBase = `http://127.0.0.1:${env.VALHALLA_PORT ?? '8002'}`;
+    vroomBase = `http://127.0.0.1:${env.VROOM_PORT ?? '3000'}/fleet`;
+  }
   return {
     compose,
     valhallaBase,
+    vroomBase,
     apiPort: DEFAULT_API_PORT,
     capture: argv.includes('--capture'),
     down: argv.includes('--down'),
