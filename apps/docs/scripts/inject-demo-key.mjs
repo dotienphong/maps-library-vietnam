@@ -6,9 +6,10 @@
 // `PUBLIC_MAPSLIBVN_DEMO_KEY`. Nhờ vậy khoá không nằm trong git và lần xoay khoá sau chỉ cần đổi
 // .env rồi build lại.
 //
-// Thiếu biến thì KHÔNG làm build đỏ: trang vẫn dựng được, ô Khoá API chỉ để trống và người xem tự
-// dán khoá của họ. Một trang tài liệu thiếu khoá demo vẫn đọc được; một build đỏ thì không.
-// Ngược lại, khoá SAI ĐỊNH DẠNG thì dừng hẳn: nó tạo ra 401 mà không ai đoán được nguồn.
+// Ở máy dev, thiếu biến thì KHÔNG làm build đỏ: trang vẫn dựng được, ô Khoá API chỉ để trống. Trên
+// CI (biến `CI` có mặt) thì thiếu biến là LỖI: bản build đó sẽ được deploy lên production, và một
+// playground trống khoá trả 401 cho mọi khách — đúng sự cố lặp lại tới 23/09/2026 khi workflow Deploy
+// Docs không truyền secret `PUBLIC_MAPSLIBVN_DEMO_KEY`. Khoá SAI ĐỊNH DẠNG thì dừng ở mọi nơi.
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 
@@ -41,15 +42,41 @@ export function docBienEnv(duong, ten) {
   return '';
 }
 
+/**
+ * @typedef {'chen' | 'thieu-file-canh-bao' | 'thieu-file-loi' | 'thieu-khoa-canh-bao'
+ *   | 'thieu-khoa-loi' | 'sai-dinh-dang'} QuyetDinh
+ * @param {{ key: string, coFileDich: boolean, laCI: boolean }} input
+ * @returns {QuyetDinh}
+ */
+export function quyetDinhChen({ key, coFileDich, laCI }) {
+  if (!coFileDich) return laCI ? 'thieu-file-loi' : 'thieu-file-canh-bao';
+  if (!key) return laCI ? 'thieu-khoa-loi' : 'thieu-khoa-canh-bao';
+  if (!DANG_KHOA.test(key)) return 'sai-dinh-dang';
+  return 'chen';
+}
+
 if (import.meta.url === `file://${process.argv[1]}`) {
   const dich = resolve('dist/playground-lib.js');
-  const key = (process.env[BIEN] ?? docBienEnv(resolve('.env'), BIEN)).trim();
+  const key = (process.env[BIEN] || docBienEnv(resolve('.env'), BIEN)).trim();
+  const quyetDinh = quyetDinhChen({
+    key,
+    coFileDich: existsSync(dich),
+    laCI: Boolean(process.env.CI),
+  });
 
-  if (!existsSync(dich)) {
+  if (quyetDinh === 'thieu-file-canh-bao') {
     console.warn(`⚠ Không thấy ${dich} — bỏ qua bước chèn khoá demo.`);
-  } else if (!key) {
+  } else if (quyetDinh === 'thieu-file-loi') {
+    console.error(`✗ Không thấy ${dich} trên CI — build docs hỏng, không deploy.`);
+    process.exit(1);
+  } else if (quyetDinh === 'thieu-khoa-canh-bao') {
     console.warn(`⚠ Thiếu ${BIEN} (apps/docs/.env) — playground sẽ để trống ô Khoá API.`);
-  } else if (!DANG_KHOA.test(key)) {
+  } else if (quyetDinh === 'thieu-khoa-loi') {
+    console.error(
+      `✗ Thiếu ${BIEN} trên CI — truyền secret cùng tên vào bước build (deploy-docs.yml), nếu không playground production trả 401.`,
+    );
+    process.exit(1);
+  } else if (quyetDinh === 'sai-dinh-dang') {
     console.error(`✗ ${BIEN} sai định dạng khoá: ${key.slice(0, 13)}…`);
     process.exit(1);
   } else {

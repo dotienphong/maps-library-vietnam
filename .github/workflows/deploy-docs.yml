@@ -15,6 +15,13 @@ jobs:
         with: { node-version: 22, cache: pnpm }
       - run: pnpm install --frozen-lockfile
       - run: pnpm --filter @mapslibvn/core build && pnpm --filter @mapslibvn/web build && pnpm --filter @mapslibvn/react build && pnpm --filter @mapslibvn/docs build
+        env:
+          # Khoá demo (loại `web`, vốn công khai trong JS của trang) cho playground. Thiếu biến này thì
+          # postbuild inject-demo-key.mjs dừng build trên CI — trước 23/09/2026 workflow không truyền
+          # nó nên mỗi lần deploy playground production mất khoá và trả 401 tới khi deploy tay đè.
+          PUBLIC_MAPSLIBVN_DEMO_KEY: ${{ secrets.PUBLIC_MAPSLIBVN_DEMO_KEY }}
+      - name: Chặn deploy nếu playground không có khoá demo
+        run: grep -Eq 'mlv_live_[0-9A-Za-z]{24}' apps/docs/dist/playground-lib.js || { echo '::error::dist/playground-lib.js không có khoá demo — không deploy'; exit 1; }
       - run: pnpm --filter @mapslibvn/docs exec wrangler pages deploy dist --project-name mapslibvn-docs
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}

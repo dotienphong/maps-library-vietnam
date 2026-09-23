@@ -2,7 +2,7 @@ import { mkdtempSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { DANG_KHOA, docBienEnv } from './inject-demo-key.mjs';
+import { DANG_KHOA, docBienEnv, quyetDinhChen } from './inject-demo-key.mjs';
 
 const KHOA = 'mlv_live_abcdefghijklmnopqrstuvwx';
 
@@ -41,5 +41,35 @@ describe('docBienEnv', () => {
     expect(DANG_KHOA.test(KHOA)).toBe(true);
     expect(DANG_KHOA.test(`'${KHOA}'`)).toBe(false);
     expect(DANG_KHOA.test('mlv_live_ngan')).toBe(false);
+  });
+});
+
+describe('quyetDinhChen', () => {
+  it('có file đích, khoá đúng định dạng → chèn, ở máy dev lẫn CI', () => {
+    expect(quyetDinhChen({ key: KHOA, coFileDich: true, laCI: false })).toBe('chen');
+    expect(quyetDinhChen({ key: KHOA, coFileDich: true, laCI: true })).toBe('chen');
+  });
+
+  it('máy dev thiếu khoá hoặc thiếu file → chỉ cảnh báo, build vẫn xanh', () => {
+    expect(quyetDinhChen({ key: '', coFileDich: true, laCI: false })).toBe('thieu-khoa-canh-bao');
+    expect(quyetDinhChen({ key: KHOA, coFileDich: false, laCI: false })).toBe(
+      'thieu-file-canh-bao',
+    );
+  });
+
+  it('CI thiếu khoá hoặc thiếu file → lỗi, không được deploy bản playground trống khoá', () => {
+    // Sự cố lặp lại nhiều lần tới 23/09/2026: workflow Deploy Docs không truyền secret nên bản CI
+    // luôn thiếu khoá, playground production trả 401 cho tới khi có người deploy tay đè.
+    expect(quyetDinhChen({ key: '', coFileDich: true, laCI: true })).toBe('thieu-khoa-loi');
+    expect(quyetDinhChen({ key: KHOA, coFileDich: false, laCI: true })).toBe('thieu-file-loi');
+  });
+
+  it('khoá sai định dạng → lỗi ở mọi nơi', () => {
+    expect(quyetDinhChen({ key: 'mlv_live_ngan', coFileDich: true, laCI: false })).toBe(
+      'sai-dinh-dang',
+    );
+    expect(quyetDinhChen({ key: 'mlv_live_ngan', coFileDich: true, laCI: true })).toBe(
+      'sai-dinh-dang',
+    );
   });
 });
