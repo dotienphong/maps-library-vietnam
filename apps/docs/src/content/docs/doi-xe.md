@@ -244,9 +244,6 @@ hướng từ kho) rồi gọi nhiều lượt cách nhau 30 giây, đúng nhị
 
 Nói thẳng để bạn quyết định sớm:
 
-- Lấy hàng ở A giao ở B trong cùng chuyến (pickup & delivery ghép đôi) — mỗi đơn hiện là một điểm giao.
-- Kỹ năng tài xế (đơn chỉ xe X mới chở được), nghỉ giữa ca, nhiều loại xe trong một request — một `mode` cho cả đội.
-- Kết thúc mở cho **tối ưu thứ tự một xe** — dùng chia đơn với một xe và `end: 'open'`.
 - Giao thông thời gian thực — thời gian tính trên hình học mạng đường và tốc độ theo loại đường.
 - Theo dõi vị trí đội xe trên máy chủ — app của bạn tự gửi và lưu vị trí tài xế.
 

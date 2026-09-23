@@ -793,7 +793,6 @@ curl -X POST -H "X-Api-Key: mlv_live_…" -H "content-type: application/json" \
 - `stops` lấy từ lịch của bộ giải (tính trên ma trận); `routes[0]` lấy từ chỉ đường. Lệch vài phần trăm là bình thường.
 - `unassigned` là đơn không xếp được: hết `max_jobs`, quá `capacity` hoặc khung giờ không thoả. Không kèm lý do.
 - Một điểm không tới được trả `404 no_route` cho cả request. Quá nhịp trả `429` với `retry-after: 60`. Bộ giải không phản hồi trả `503 upstream_unavailable`.
-- Chưa có: pickup & delivery ghép đôi, kỹ năng tài xế, nghỉ giữa ca, nhiều loại xe trong một request.
 
 ## 5. Endpoint ghi
 

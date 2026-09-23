@@ -108,8 +108,8 @@ Chi tiết REST API ở [REST API](/api/) mục 4.
 ghé tối ưu cho một chuyến tối đa 10 điểm dừng và trả luôn tuyến đầy đủ để vẽ; `POST /v1/fleet-plan`
 **chia đơn cho cả đội**: tối đa 5 xe và 30 đơn một lượt, nhận sức chứa, khung giờ khách hẹn, thời gian
 dừng và kết thúc mở, trả tuyến đầy đủ của từng xe. Cả ba tính **một lượt** Chỉ đường mỗi request bất kể
-cỡ; nhịp riêng là 6 request/phút cho ma trận và tối ưu, 2 request/phút cho đội xe. Chưa có pickup &
-delivery ghép đôi và kỹ năng tài xế. Ví dụ đầy đủ cho web và React Native ở [Giao hàng & đội xe](/doi-xe/);
+cỡ; nhịp riêng là 6 request/phút cho ma trận và tối ưu, 2 request/phút cho đội xe.
+Ví dụ đầy đủ cho web và React Native ở [Giao hàng & đội xe](/doi-xe/);
 thử không cần code ở [Playground → Đội xe](/playground#doi-xe).
 
 ## 6. Đóng góp và duyệt
