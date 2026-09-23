@@ -1,0 +1,14 @@
+{
+  "mode": "motorbike",
+  "vehicles": [
+    { "id": "xe-1", "start": [10.7725, 106.698], "max_jobs": 3 },
+    { "id": "xe-2", "start": [10.7725, 106.698], "max_jobs": 3 }
+  ],
+  "jobs": [
+    { "id": "don-1", "location": [10.7826, 106.6958] },
+    { "id": "don-2", "location": [10.7686, 106.7069] },
+    { "id": "don-3", "location": [10.777, 106.6953] },
+    { "id": "don-4", "location": [10.7716, 106.7043] },
+    { "id": "don-5", "location": [10.7798, 106.699] }
+  ]
+}

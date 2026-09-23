@@ -1,0 +1,1241 @@
+{
+  "mode": "motorbike",
+  "vehicles": [
+    {
+      "routes": [
+        {
+          "mode": "motorbike",
+          "distance_m": 4896,
+          "duration_s": 896,
+          "bbox": [
+            106.691659,
+            10.7721,
+            106.699923,
+            10.783036
+          ],
+          "geometry": "sonpSwrhojEg^lQiFhCbElHv@vAzSj_@pBlDfJnPjBfD}i@~b@_s@hz@wCnDkFtGyUnY{MjPaD|D}JzL}JnMwDvEmSzWeL`OkMhPaH|Iw@fAmCtDiD_DwUwSgD}CyK_KuQeP_\\qYjDsD~m@{q@`IeJdTkVdAmAbgAsnA`DqD~BmCKcJ`@uFlJaKze@}g@aPeWkEcFc\\_`@cLaKkOwMcA{@sVsTgEuDiC{Bo\\kYcS_QkFqEkApAcK|KqAvAs@v@yB`Cu@x@{@~@sAxAiH|Hm@p@mTnVoVxXkDdEgRhTiEzEiE|EoHhImCxCaGxGkAhAgFhGeP|Q_FzFa[n\\yFrGiRjTohAgdAa\\v^cG|GmCxC_BoAmB}@sBk@yBY{BC{BLyB^oBt@gBbA}AtAmAbB}@lBk@vBYzBE`CL|B^xBr@rBdAjBrA|A`BnAlB~@tBj@zBX|BD|BOr@MbASrBu@fBgAzAwAlAcBz@mBh@wBV{BD}BO_Ca@yBs@sBcAgBuA}AlCyCbG}G`\\w^h^ga@|DoE|I_KpEcF`VgXnC}CxAaB^Zf@Lh@Bh@I`Ab@fAXdANhADdAAdAKbCa@lAsA`@c@n@s@~PmRDEnPgRlB{BzLwN~PkS|DpDvWlUf^j[jQvOlHtG|[bYhC~BrCaDrUuWfBuBlBwB~TyVdDmDjC_BbA]|t@wVnC_AjF_B~EhEjVzTpEdE~B`CzKbRbFrIvDpGnBhDv@lAnC|EdB`DbJ|PnBpDtBzDxHjNpDxGhFiCf^mQ",
+          "legs": [
+            {
+              "distance_m": 1321,
+              "duration_s": 250,
+              "shape_offset": 0,
+              "steps": [
+                {
+                  "kind": "depart",
+                  "instruction": "Đi về hướng tây bắc trên Phan Chu Trinh.",
+                  "verbal_alert": null,
+                  "verbal_pre": "Đi về hướng tây bắc trên Phan Chu Trinh. Rồi rẽ trái vào Lê Thánh Tôn.",
+                  "verbal_post": "Tiếp tục đi thêm 80 mét.",
+                  "street_names": [
+                    "Phan Chu Trinh"
+                  ],
+                  "distance_m": 79,
+                  "duration_s": 19,
+                  "shape_begin": 0,
+                  "shape_end": 2,
+                  "location": [
+                    106.697532,
+                    10.772234
+                  ],
+                  "roundabout_exit": null
+                },
+                {
+                  "kind": "turn_left",
+                  "instruction": "Rẽ trái vào Lê Thánh Tôn/Đường Lê Thánh Tôn.",
+                  "verbal_alert": "Rẽ trái vào Lê Thánh Tôn.",
+                  "verbal_pre": "Rẽ trái vào Lê Thánh Tôn, Đường Lê Thánh Tôn.",
+                  "verbal_post": "Tiếp tục đi thêm 200 mét.",
+                  "street_names": [
+                    "Lê Thánh Tôn",
+                    "Đường Lê Thánh Tôn"
+                  ],
+                  "distance_m": 152,
+                  "duration_s": 26,
+                  "shape_begin": 2,
+                  "shape_end": 8,
+                  "location": [
+                    106.697168,
+                    10.772851
+                  ],
+                  "roundabout_exit": null
+                },
+                {
+                  "kind": "turn_right",
+                  "instruction": "Rẽ phải vào Trương Định.",
+                  "verbal_alert": "Rẽ phải vào Trương Định.",
+                  "verbal_pre": "Rẽ phải vào Trương Định.",
+                  "verbal_post": "Tiếp tục đi thêm 600 mét.",
+                  "street_names": [
+                    "Trương Định"
+                  ],
+                  "distance_m": 645,
+                  "duration_s": 110,
+                  "shape_begin": 8,
+                  "shape_end": 24,
+                  "location": [
+                    106.696004,
+                    10.7721
+                  ],
+                  "roundabout_exit": null
+                },
+                {
+                  "kind": "turn_right",
+                  "instruction": "Rẽ phải vào Nguyễn Thị Minh Khai.",
+                  "verbal_alert": "Rẽ phải vào Nguyễn Thị Minh Khai.",
+                  "verbal_pre": "Rẽ phải vào Nguyễn Thị Minh Khai.",
+                  "verbal_post": "Tiếp tục đi thêm 200 mét.",
+                  "street_names": [
+                    "Nguyễn Thị Minh Khai"
+                  ],
+                  "distance_m": 225,
+                  "duration_s": 36,
+                  "shape_begin": 24,
+                  "shape_end": 30,
+                  "location": [
+                    106.691659,
+                    10.775983
+                  ],
+                  "roundabout_exit": null
+                },
+                {
+                  "kind": "turn_right",
+                  "instruction": "Rẽ phải vào Huyền Trân Công Chúa.",
+                  "verbal_alert": "Rẽ phải vào Huyền Trân Công Chúa.",
+                  "verbal_pre": "Rẽ phải vào Huyền Trân Công Chúa.",
+                  "verbal_post": "Tiếp tục đi thêm 200 mét.",
+                  "street_names": [
+                    "Huyền Trân Công Chúa"
+                  ],
+                  "distance_m": 218,
+                  "duration_s": 58,
+                  "shape_begin": 30,
+                  "shape_end": 34,
+                  "location": [
+                    106.693042,
+                    10.777484
+                  ],
+                  "roundabout_exit": null
+                },
+                {
+                  "kind": "arrive",
+                  "instruction": "Điểm đến ở bên trái.",
+                  "verbal_alert": "Điểm đến ở bên trái.",
+                  "verbal_pre": "Điểm đến ở bên trái.",
+                  "verbal_post": null,
+                  "street_names": [],
+                  "distance_m": 0,
+                  "duration_s": 0,
+                  "shape_begin": 34,
+                  "shape_end": 34,
+                  "location": [
+                    106.694499,
+                    10.776146
+                  ],
+                  "roundabout_exit": null
+                }
+              ]
+            },
+            {
+              "distance_m": 1900,
+              "duration_s": 353,
+              "shape_offset": 34,
+              "steps": [
+                {
+                  "kind": "depart",
+                  "instruction": "Đi về hướng đông nam trên Huyền Trân Công Chúa.",
+                  "verbal_alert": null,
+                  "verbal_pre": "Đi về hướng đông nam trên Huyền Trân Công Chúa.",
+                  "verbal_post": "Tiếp tục đi thêm 200 mét.",
+                  "street_names": [
+                    "Huyền Trân Công Chúa"
+                  ],
+                  "distance_m": 218,
+                  "duration_s": 52,
+                  "shape_begin": 34,
+                  "shape_end": 38,
+                  "location": [
+                    106.694499,
+                    10.776146
+                  ],
+                  "roundabout_exit": null
+                },
+                {
+                  "kind": "slight_left",
+                  "instruction": "Giữ bên trái vào Thủ Khoa Huân.",
+                  "verbal_alert": "Giữ bên trái vào Thủ Khoa Huân.",
+                  "verbal_pre": "Giữ bên trái vào Thủ Khoa Huân.",
+                  "verbal_post": "Tiếp tục đi thêm 200 mét.",
+                  "street_names": [
+                    "Thủ Khoa Huân"
+                  ],
+                  "distance_m": 163,
+                  "duration_s": 41,
+                  "shape_begin": 38,
+                  "shape_end": 42,
+                  "location": [
+                    106.695972,
+                    10.774812
+                  ],
+                  "roundabout_exit": null
+                },
+                {
+                  "kind": "turn_left",
+                  "instruction": "Rẽ trái vào Lý Tự Trọng.",
+                  "verbal_alert": "Rẽ trái vào Lý Tự Trọng.",
+                  "verbal_pre": "Rẽ trái vào Lý Tự Trọng.",
+                  "verbal_post": "Tiếp tục đi thêm 400 mét.",
+                  "street_names": [
+                    "Lý Tự Trọng"
+                  ],
+                  "distance_m": 439,
+                  "duration_s": 74,
+                  "shape_begin": 42,
+                  "shape_end": 54,
+                  "location": [
+                    106.697121,
+                    10.773996
+                  ],
+                  "roundabout_exit": null
+                },
+                {
+                  "kind": "turn_left",
+                  "instruction": "Rẽ trái vào Pasteur.",
+                  "verbal_alert": "Rẽ trái vào Pasteur.",
+                  "verbal_pre": "Rẽ trái vào Pasteur.",
+                  "verbal_post": "Tiếp tục đi thêm 600 mét.",
+                  "street_names": [
+                    "Pasteur"
+                  ],
+                  "distance_m": 607,
+                  "duration_s": 94,
+                  "shape_begin": 54,
+                  "shape_end": 80,
+                  "location": [
+                    106.699923,
+                    10.776802
+                  ],
+                  "roundabout_exit": null
+                },
+                {
+                  "kind": "turn_right",
+                  "instruction": "Rẽ phải vào Nguyễn Thị Minh Khai.",
+                  "verbal_alert": "Rẽ phải vào Nguyễn Thị Minh Khai.",
+                  "verbal_pre": "Rẽ phải vào Nguyễn Thị Minh Khai.",
+                  "verbal_post": "Tiếp tục đi thêm 200 mét.",
+                  "street_names": [
+                    "Nguyễn Thị Minh Khai"
+                  ],
+                  "distance_m": 178,
+                  "duration_s": 31,
+                  "shape_begin": 80,
+                  "shape_end": 81,
+                  "location": [
+                    106.695864,
+                    10.780524
+                  ],
+                  "roundabout_exit": null
+                },
+                {
+                  "kind": "turn_left",
+                  "instruction": "Rẽ trái vào Phạm Ngọc Thạch.",
+                  "verbal_alert": "Rẽ trái vào Phạm Ngọc Thạch.",
+                  "verbal_pre": "Rẽ trái vào Phạm Ngọc Thạch.",
+                  "verbal_post": "Tiếp tục đi thêm 100 mét.",
+                  "street_names": [
+                    "Phạm Ngọc Thạch"
+                  ],
+                  "distance_m": 109,
+                  "duration_s": 21,
+                  "shape_begin": 81,
+                  "shape_end": 84,
+                  "location": [
+                    106.696972,
+                    10.7817
+                  ],
+                  "roundabout_exit": null
+                },
+                {
+                  "kind": "roundabout_enter",
+                  "instruction": "Đi vào Công trường Quốc tế và rẽ ra ngoài tại đoạn rẽ thứ 1.",
+                  "verbal_alert": "Đi vào Công trường Quốc tế và rẽ ra ngoài tại đoạn rẽ thứ 1.",
+                  "verbal_pre": "Đi vào Công trường Quốc tế và rẽ ra ngoài tại đoạn rẽ thứ 1.",
+                  "verbal_post": null,
+                  "street_names": [
+                    "Công trường Quốc tế"
+                  ],
+                  "distance_m": 185,
+                  "duration_s": 39,
+                  "shape_begin": 84,
+                  "shape_end": 111,
+                  "location": [
+                    106.696244,
+                    10.782366
+                  ],
+                  "roundabout_exit": 1
+                },
+                {
+                  "kind": "arrive",
+                  "instruction": "Điểm đến ở bên trái.",
+                  "verbal_alert": "Điểm đến ở bên trái.",
+                  "verbal_pre": "Điểm đến ở bên trái.",
+                  "verbal_post": null,
+                  "street_names": [],
+                  "distance_m": 0,
+                  "duration_s": 0,
+                  "shape_begin": 111,
+                  "shape_end": 111,
+                  "location": [
+                    106.695555,
+                    10.782533
+                  ],
+                  "roundabout_exit": null
+                }
+              ]
+            },
+            {
+              "distance_m": 526,
+              "duration_s": 93,
+              "shape_offset": 111,
+              "steps": [
+                {
+                  "kind": "depart",
+                  "instruction": "Đi về hướng đông nam trên Công trường Quốc tế.",
+                  "verbal_alert": null,
+                  "verbal_pre": "Đi về hướng đông nam trên Công trường Quốc tế.",
+                  "verbal_post": "Tiếp tục đi thêm 100 mét.",
+                  "street_names": [
+                    "Công trường Quốc tế"
+                  ],
+                  "distance_m": 94,
+                  "duration_s": 18,
+                  "shape_begin": 111,
+                  "shape_end": 125,
+                  "location": [
+                    106.695555,
+                    10.782533
+                  ],
+                  "roundabout_exit": null
+                },
+                {
+                  "kind": "roundabout_exit",
+                  "instruction": "Rẽ ra khỏi vòng xuyến vào Phạm Ngọc Thạch.",
+                  "verbal_alert": null,
+                  "verbal_pre": "Rẽ ra khỏi vòng xuyến vào Phạm Ngọc Thạch.",
+                  "verbal_post": "Tiếp tục đi thêm 300 mét.",
+                  "street_names": [
+                    "Phạm Ngọc Thạch"
+                  ],
+                  "distance_m": 331,
+                  "duration_s": 57,
+                  "shape_begin": 125,
+                  "shape_end": 135,
+                  "location": [
+                    106.696244,
+                    10.782366
+                  ],
+                  "roundabout_exit": null
+                },
+                {
+                  "kind": "roundabout_enter",
+                  "instruction": "Đi vào vòng xuyến và rẽ ra tại lối rẽ thứ 2 vào Công trường Công xã Paris.",
+                  "verbal_alert": "Đi vào vòng xuyến và rẽ ra tại lối rẽ thứ 2 vào Công trường Công xã Paris.",
+                  "verbal_pre": "Đi vào vòng xuyến và rẽ ra tại lối rẽ thứ 2 vào Công trường Công xã Paris.",
+                  "verbal_post": null,
+                  "street_names": [],
+                  "distance_m": 9,
+                  "duration_s": 3,
+                  "shape_begin": 135,
+                  "shape_end": 139,
+                  "location": [
+                    106.698462,
+                    10.780338
+                  ],
+                  "roundabout_exit": 2
+                },
+                {
+                  "kind": "roundabout_exit",
+                  "instruction": "Rẽ ra khỏi vòng xuyến vào Công trường Công xã Paris.",
+                  "verbal_alert": null,
+                  "verbal_pre": "Rẽ ra khỏi vòng xuyến vào Công trường Công xã Paris.",
+                  "verbal_post": "Tiếp tục đi thêm 90 mét.",
+                  "street_names": [
+                    "Công trường Công xã Paris"
+                  ],
+                  "distance_m": 91,
+                  "duration_s": 14,
+                  "shape_begin": 139,
+                  "shape_end": 150,
+                  "location": [
+                    106.698444,
+                    10.78026
+                  ],
+                  "roundabout_exit": null
+                },
+                {
+                  "kind": "arrive",
+                  "instruction": "Điểm đến ở bên trái.",
+                  "verbal_alert": "Điểm đến ở bên trái.",
+                  "verbal_pre": "Điểm đến ở bên trái.",
+                  "verbal_post": null,
+                  "street_names": [],
+                  "distance_m": 0,
+                  "duration_s": 0,
+                  "shape_begin": 150,
+                  "shape_end": 150,
+                  "location": [
+                    106.698823,
+                    10.779615
+                  ],
+                  "roundabout_exit": null
+                }
+              ]
+            },
+            {
+              "distance_m": 1148,
+              "duration_s": 200,
+              "shape_offset": 150,
+              "steps": [
+                {
+                  "kind": "depart",
+                  "instruction": "Đi về hướng đông nam trên Công trường Công xã Paris.",
+                  "verbal_alert": null,
+                  "verbal_pre": "Đi về hướng đông nam trên Công trường Công xã Paris. Rồi, trong 100 mét nữa, rẽ phải vào Nguyễn Du.",
+                  "verbal_post": "Tiếp tục đi thêm 100 mét.",
+                  "street_names": [
+                    "Công trường Công xã Paris"
+                  ],
+                  "distance_m": 140,
+                  "duration_s": 22,
+                  "shape_begin": 150,
+                  "shape_end": 155,
+                  "location": [
+                    106.698823,
+                    10.779615
+                  ],
+                  "roundabout_exit": null
+                },
+                {
+                  "kind": "turn_right",
+                  "instruction": "Rẽ phải vào Nguyễn Du.",
+                  "verbal_alert": "Rẽ phải vào Nguyễn Du.",
+                  "verbal_pre": "Rẽ phải vào Nguyễn Du.",
+                  "verbal_post": "Tiếp tục đi thêm 300 mét.",
+                  "street_names": [
+                    "Nguyễn Du"
+                  ],
+                  "distance_m": 294,
+                  "duration_s": 53,
+                  "shape_begin": 155,
+                  "shape_end": 162,
+                  "location": [
+                    106.699774,
+                    10.778767
+                  ],
+                  "roundabout_exit": null
+                },
+                {
+                  "kind": "turn_left",
+                  "instruction": "Rẽ trái vào Nam Kỳ Khởi Nghĩa.",
+                  "verbal_alert": "Rẽ trái vào Nam Kỳ Khởi Nghĩa.",
+                  "verbal_pre": "Rẽ trái vào Nam Kỳ Khởi Nghĩa.",
+                  "verbal_post": "Tiếp tục đi thêm 300 mét.",
+                  "street_names": [
+                    "Nam Kỳ Khởi Nghĩa"
+                  ],
+                  "distance_m": 300,
+                  "duration_s": 49,
+                  "shape_begin": 162,
+                  "shape_end": 173,
+                  "location": [
+                    106.697983,
+                    10.776799
+                  ],
+                  "roundabout_exit": null
+                },
+                {
+                  "kind": "turn_right",
+                  "instruction": "Rẽ phải vào Lê Thánh Tôn/Đường Lê Thánh Tôn.",
+                  "verbal_alert": "Rẽ phải vào Lê Thánh Tôn.",
+                  "verbal_pre": "Rẽ phải vào Lê Thánh Tôn, Đường Lê Thánh Tôn.",
+                  "verbal_post": "Tiếp tục đi thêm 300 mét.",
+                  "street_names": [
+                    "Lê Thánh Tôn",
+                    "Đường Lê Thánh Tôn"
+                  ],
+                  "distance_m": 333,
+                  "duration_s": 54,
+                  "shape_begin": 173,
+                  "shape_end": 189,
+                  "location": [
+                    106.699569,
+                    10.774664
+                  ],
+                  "roundabout_exit": null
+                },
+                {
+                  "kind": "turn_left",
+                  "instruction": "Rẽ trái vào Phan Chu Trinh.",
+                  "verbal_alert": "Rẽ trái vào Phan Chu Trinh.",
+                  "verbal_pre": "Rẽ trái vào Phan Chu Trinh.",
+                  "verbal_post": "Tiếp tục đi thêm 80 mét.",
+                  "street_names": [
+                    "Phan Chu Trinh"
+                  ],
+                  "distance_m": 79,
+                  "duration_s": 21,
+                  "shape_begin": 189,
+                  "shape_end": 191,
+                  "location": [
+                    106.697168,
+                    10.772851
+                  ],
+                  "roundabout_exit": null
+                },
+                {
+                  "kind": "arrive",
+                  "instruction": "Điểm đến ở bên trái.",
+                  "verbal_alert": "Điểm đến ở bên trái.",
+                  "verbal_pre": "Điểm đến ở bên trái.",
+                  "verbal_post": null,
+                  "street_names": [],
+                  "distance_m": 0,
+                  "duration_s": 0,
+                  "shape_begin": 191,
+                  "shape_end": 191,
+                  "location": [
+                    106.697532,
+                    10.772234
+                  ],
+                  "roundabout_exit": null
+                }
+              ]
+            }
+          ],
+          "flags": {
+            "toll": false,
+            "highway": false,
+            "ferry": false
+          }
+        }
+      ],
+      "waypoints": [
+        {
+          "location": [
+            106.698,
+            10.7725
+          ],
+          "snapped": [
+            106.697532,
+            10.772234
+          ],
+          "name": null
+        },
+        {
+          "location": [
+            106.6953,
+            10.777
+          ],
+          "snapped": [
+            106.694499,
+            10.776146
+          ],
+          "name": null
+        },
+        {
+          "location": [
+            106.6958,
+            10.7826
+          ],
+          "snapped": [
+            106.695555,
+            10.782533
+          ],
+          "name": null
+        },
+        {
+          "location": [
+            106.699,
+            10.7798
+          ],
+          "snapped": [
+            106.698823,
+            10.779615
+          ],
+          "name": null
+        },
+        {
+          "location": [
+            106.698,
+            10.7725
+          ],
+          "snapped": [
+            106.697532,
+            10.772234
+          ],
+          "name": null
+        }
+      ],
+      "attribution": "© OpenStreetMap contributors",
+      "engine": {
+        "name": "valhalla",
+        "graph": "2026-09-11"
+      },
+      "vehicle": "xe-1",
+      "jobs": [
+        "don-3",
+        "don-1",
+        "don-5"
+      ],
+      "stops": [
+        {
+          "job": "don-3",
+          "arrival_s": 249,
+          "waiting_s": 0,
+          "service_s": 0
+        },
+        {
+          "job": "don-1",
+          "arrival_s": 602,
+          "waiting_s": 0,
+          "service_s": 0
+        },
+        {
+          "job": "don-5",
+          "arrival_s": 694,
+          "waiting_s": 0,
+          "service_s": 0
+        }
+      ],
+      "load": 0,
+      "finish_s": 893
+    },
+    {
+      "routes": [
+        {
+          "mode": "motorbike",
+          "distance_m": 4634,
+          "duration_s": 810,
+          "bbox": [
+            106.696647,
+            10.765079,
+            106.707333,
+            10.772233
+          ],
+          "geometry": "sonpSwrhojEpAo@hYgOjDuBDfCRbBVdBbXxy@lDjFeA_H}Twt@a@qCQwC?wCL{Bf@wCr@qCh@aBvA{Cp@yAzA_Db@u@~AiC|BqE`IsPhDqIpC{I~A_KzA{dAh@o]T_OReIh@eTRqHt@o\\^iMD_Ct@gd@ZuPLeHz@kh@P_LkElAeGdB}DfAoBCuEnBw@zAeBzAiDpBqB|@{GpCzGqCpB}@hDqBdB{AqByFeAaBg@y@gDgDoLmKqJkIa\\kZ|TiWnB{BbQsRdEuE`Md@nRj@zDL`GZbERxHj@~Fr@nF`AdFfA|FdBtG~BdGfCnJtEhEjBdE`BbElAbE~@hEl@~D^pEVnEFtDA|EQvEg@|Dk@jDs@hD_A|CgAjDyA~ReJbDeBb[aQhEuB~BeAlCiA|CkAlwAcf@hBm@`EsAlFeBm@qBuA}A}A{A[dC_@tCaErA_{Apg@sCfAkCfAsD~AgD|A}DjBkUbMiFy@wTlIkAyCuYux@tYtx@jAxCyBv@uCVyLlEcAdAYV[\\Ub@Qd@Kl@Ej@Cd@Bh@Jn@Nh@Rf@Td@VZXXXRZTl@Tb@PC\\?XD\\HXLTRRXRVJZDV@p@~AtJnTxJtU`Mx]f@rAvA`EjAnDj@bBzC`JxElKjE|GfGnGvGbFrLjIpAfDhJvGxlAj}@`@d@Ld@Fp@Bl@CPC^Kf@e@hB_A|CcXtTgTtQep@|c@mSjOa@`@mCrEyCxBmv@tj@oG~E{B`BcChBis@xg@yBvAy\\jUmNjJ{HtEcB{AoDaDuh@ce@kBaBiEyDo@k@_CsBk@i@mC_C{A~CoBrEuA|C}@tBs@xBgD|MkDtBiYfOqAn@",
+          "legs": [
+            {
+              "distance_m": 1217,
+              "duration_s": 199,
+              "shape_offset": 0,
+              "steps": [
+                {
+                  "kind": "depart",
+                  "instruction": "Đi về hướng đông nam trên Phan Chu Trinh.",
+                  "verbal_alert": null,
+                  "verbal_pre": "Đi về hướng đông nam trên Phan Chu Trinh. Rồi, trong 70 mét nữa, rẽ phải vào Lê Lai.",
+                  "verbal_post": "Tiếp tục đi thêm 70 mét.",
+                  "street_names": [
+                    "Phan Chu Trinh"
+                  ],
+                  "distance_m": 71,
+                  "duration_s": 17,
+                  "shape_begin": 0,
+                  "shape_end": 3,
+                  "location": [
+                    106.697532,
+                    10.772234
+                  ],
+                  "roundabout_exit": null
+                },
+                {
+                  "kind": "turn_right",
+                  "instruction": "Rẽ phải vào Lê Lai.",
+                  "verbal_alert": "Rẽ phải vào Lê Lai.",
+                  "verbal_pre": "Rẽ phải vào Lê Lai.",
+                  "verbal_post": "Tiếp tục đi thêm 100 mét.",
+                  "street_names": [
+                    "Lê Lai"
+                  ],
+                  "distance_m": 147,
+                  "duration_s": 27,
+                  "shape_begin": 3,
+                  "shape_end": 8,
+                  "location": [
+                    106.697875,
+                    10.771686
+                  ],
+                  "roundabout_exit": null
+                },
+                {
+                  "kind": "sharp_left",
+                  "instruction": "Rẽ trái để tiếp tục đi trên Lê Lai.",
+                  "verbal_alert": "Rẽ trái để tiếp tục đi trên Lê Lai.",
+                  "verbal_pre": "Rẽ trái để tiếp tục đi trên Lê Lai.",
+                  "verbal_post": "Tiếp tục đi thêm 900 mét.",
+                  "street_names": [
+                    "Lê Lai"
+                  ],
+                  "distance_m": 891,
+                  "duration_s": 126,
+                  "shape_begin": 8,
+                  "shape_end": 41,
+                  "location": [
+                    106.696647,
+                    10.771172
+                  ],
+                  "roundabout_exit": null
+                },
+                {
+                  "kind": "ramp_left",
+                  "instruction": "Rẽ trái để đi vào đường nhánh.",
+                  "verbal_alert": "Rẽ trái để đi vào đường nhánh.",
+                  "verbal_pre": "Rẽ trái để đi vào đường nhánh.",
+                  "verbal_post": "Tiếp tục đi thêm 100 mét.",
+                  "street_names": [],
+                  "distance_m": 108,
+                  "duration_s": 29,
+                  "shape_begin": 41,
+                  "shape_end": 51,
+                  "location": [
+                    106.704535,
+                    10.770647
+                  ],
+                  "roundabout_exit": null
+                },
+                {
+                  "kind": "arrive",
+                  "instruction": "Điểm đến ở bên phải.",
+                  "verbal_alert": "Điểm đến ở bên phải.",
+                  "verbal_pre": "Điểm đến ở bên phải.",
+                  "verbal_post": null,
+                  "street_names": [],
+                  "distance_m": 0,
+                  "duration_s": 0,
+                  "shape_begin": 51,
+                  "shape_end": 51,
+                  "location": [
+                    106.704102,
+                    10.771501
+                  ],
+                  "roundabout_exit": null
+                }
+              ]
+            },
+            {
+              "distance_m": 1606,
+              "duration_s": 292,
+              "shape_offset": 51,
+              "steps": [
+                {
+                  "kind": "depart",
+                  "instruction": "Đi về hướng đông nam trên Hồ Tùng Mậu.",
+                  "verbal_alert": null,
+                  "verbal_pre": "Đi về hướng đông nam trên Hồ Tùng Mậu. Rồi rẽ trái vào Hải Triều.",
+                  "verbal_post": "Tiếp tục đi thêm 40 mét.",
+                  "street_names": [
+                    "Hồ Tùng Mậu"
+                  ],
+                  "distance_m": 43,
+                  "duration_s": 10,
+                  "shape_begin": 51,
+                  "shape_end": 55,
+                  "location": [
+                    106.704102,
+                    10.771501
+                  ],
+                  "roundabout_exit": null
+                },
+                {
+                  "kind": "turn_left",
+                  "instruction": "Rẽ trái vào Hải Triều.",
+                  "verbal_alert": "Rẽ trái vào Hải Triều.",
+                  "verbal_pre": "Rẽ trái vào Hải Triều.",
+                  "verbal_post": "Tiếp tục đi thêm 200 mét.",
+                  "street_names": [
+                    "Hải Triều"
+                  ],
+                  "distance_m": 168,
+                  "duration_s": 41,
+                  "shape_begin": 55,
+                  "shape_end": 62,
+                  "location": [
+                    106.704309,
+                    10.771166
+                  ],
+                  "roundabout_exit": null
+                },
+                {
+                  "kind": "turn_right",
+                  "instruction": "Rẽ phải vào Nguyễn Huệ.",
+                  "verbal_alert": "Rẽ phải vào Nguyễn Huệ.",
+                  "verbal_pre": "Rẽ phải vào Nguyễn Huệ.",
+                  "verbal_post": "Tiếp tục đi thêm 100 mét.",
+                  "street_names": [
+                    "Nguyễn Huệ"
+                  ],
+                  "distance_m": 130,
+                  "duration_s": 26,
+                  "shape_begin": 62,
+                  "shape_end": 66,
+                  "location": [
+                    106.705399,
+                    10.772228
+                  ],
+                  "roundabout_exit": null
+                },
+                {
+                  "kind": "turn_right",
+                  "instruction": "Rẽ phải vào Tôn Ðức Thắng.",
+                  "verbal_alert": "Rẽ phải vào Tôn Ðức Thắng.",
+                  "verbal_pre": "Rẽ phải vào Tôn Ðức Thắng.",
+                  "verbal_post": "Tiếp tục đi thêm 800 mét.",
+                  "street_names": [
+                    "Tôn Ðức Thắng"
+                  ],
+                  "distance_m": 762,
+                  "duration_s": 103,
+                  "shape_begin": 66,
+                  "shape_end": 106,
+                  "location": [
+                    106.706271,
+                    10.771432
+                  ],
+                  "roundabout_exit": null
+                },
+                {
+                  "kind": "turn_left",
+                  "instruction": "Rẽ trái vào Hoàng Diệu.",
+                  "verbal_alert": "Rẽ trái vào Hoàng Diệu.",
+                  "verbal_pre": "Rẽ trái vào Hoàng Diệu. Rồi rẽ trái để tiếp tục đi trên Hoàng Diệu.",
+                  "verbal_post": "Tiếp tục đi thêm 20 mét.",
+                  "street_names": [
+                    "Hoàng Diệu"
+                  ],
+                  "distance_m": 21,
+                  "duration_s": 7,
+                  "shape_begin": 106,
+                  "shape_end": 109,
+                  "location": [
+                    106.707184,
+                    10.765079
+                  ],
+                  "roundabout_exit": null
+                },
+                {
+                  "kind": "turn_left",
+                  "instruction": "Rẽ trái để tiếp tục đi trên Hoàng Diệu.",
+                  "verbal_alert": "Rẽ trái để tiếp tục đi trên Hoàng Diệu.",
+                  "verbal_pre": "Rẽ trái để tiếp tục đi trên Hoàng Diệu. Rồi rẽ phải vào Nguyễn Tất Thành.",
+                  "verbal_post": "Tiếp tục đi thêm 20 mét.",
+                  "street_names": [
+                    "Hoàng Diệu"
+                  ],
+                  "distance_m": 15,
+                  "duration_s": 9,
+                  "shape_begin": 109,
+                  "shape_end": 111,
+                  "location": [
+                    106.707334,
+                    10.765192
+                  ],
+                  "roundabout_exit": null
+                },
+                {
+                  "kind": "turn_right",
+                  "instruction": "Rẽ phải vào Nguyễn Tất Thành.",
+                  "verbal_alert": "Rẽ phải vào Nguyễn Tất Thành.",
+                  "verbal_pre": "Rẽ phải vào Nguyễn Tất Thành.",
+                  "verbal_post": "Tiếp tục đi thêm 300 mét.",
+                  "street_names": [
+                    "Nguyễn Tất Thành"
+                  ],
+                  "distance_m": 289,
+                  "duration_s": 40,
+                  "shape_begin": 111,
+                  "shape_end": 119,
+                  "location": [
+                    106.707192,
+                    10.765222
+                  ],
+                  "roundabout_exit": null
+                },
+                {
+                  "kind": "slight_right",
+                  "instruction": "Giữ bên phải để đi trên Nguyễn Tất Thành.",
+                  "verbal_alert": "Giữ bên phải để đi trên Nguyễn Tất Thành.",
+                  "verbal_pre": "Giữ bên phải để đi trên Nguyễn Tất Thành. Rồi rẽ phải để đi vào đường nhánh.",
+                  "verbal_post": "Tiếp tục đi thêm 60 mét.",
+                  "street_names": [
+                    "Nguyễn Tất Thành"
+                  ],
+                  "distance_m": 56,
+                  "duration_s": 8,
+                  "shape_begin": 119,
+                  "shape_end": 121,
+                  "location": [
+                    106.706054,
+                    10.767562
+                  ],
+                  "roundabout_exit": null
+                },
+                {
+                  "kind": "ramp_right",
+                  "instruction": "Rẽ phải để đi vào đường nhánh.",
+                  "verbal_alert": "Rẽ phải để đi vào đường nhánh.",
+                  "verbal_pre": "Rẽ phải để đi vào đường nhánh.",
+                  "verbal_post": "Tiếp tục đi thêm 100 mét.",
+                  "street_names": [],
+                  "distance_m": 121,
+                  "duration_s": 47,
+                  "shape_begin": 121,
+                  "shape_end": 123,
+                  "location": [
+                    106.705916,
+                    10.768027
+                  ],
+                  "roundabout_exit": null
+                },
+                {
+                  "kind": "arrive",
+                  "instruction": "Bạn đã tới nơi.",
+                  "verbal_alert": "Bạn sẽ tới nơi.",
+                  "verbal_pre": "Bạn đã tới nơi.",
+                  "verbal_post": null,
+                  "street_names": [],
+                  "distance_m": 0,
+                  "duration_s": 0,
+                  "shape_begin": 123,
+                  "shape_end": 123,
+                  "location": [
+                    106.706916,
+                    10.768492
+                  ],
+                  "roundabout_exit": null
+                }
+              ]
+            },
+            {
+              "distance_m": 1810,
+              "duration_s": 319,
+              "shape_offset": 123,
+              "steps": [
+                {
+                  "kind": "depart",
+                  "instruction": "Đi về hướng tây nam.",
+                  "verbal_alert": null,
+                  "verbal_pre": "Đi về hướng tây nam.",
+                  "verbal_post": "Tiếp tục đi thêm 100 mét.",
+                  "street_names": [],
+                  "distance_m": 112,
+                  "duration_s": 40,
+                  "shape_begin": 123,
+                  "shape_end": 124,
+                  "location": [
+                    106.706916,
+                    10.768492
+                  ],
+                  "roundabout_exit": null
+                },
+                {
+                  "kind": "ramp_straight",
+                  "instruction": "Đi thẳng để đi vào đường nhánh.",
+                  "verbal_alert": "Đi thẳng để đi vào đường nhánh.",
+                  "verbal_pre": "Đi thẳng để đi vào đường nhánh. Rồi rẽ phải vào Nguyễn Tất Thành.",
+                  "verbal_post": null,
+                  "street_names": [],
+                  "distance_m": 9,
+                  "duration_s": 2,
+                  "shape_begin": 124,
+                  "shape_end": 125,
+                  "location": [
+                    106.705993,
+                    10.768065
+                  ],
+                  "roundabout_exit": null
+                },
+                {
+                  "kind": "turn_right",
+                  "instruction": "Rẽ phải vào Nguyễn Tất Thành.",
+                  "verbal_alert": "Rẽ phải vào Nguyễn Tất Thành.",
+                  "verbal_pre": "Rẽ phải vào Nguyễn Tất Thành. Rồi giữ bên trái vào Bến Vân Đồn.",
+                  "verbal_post": "Tiếp tục đi thêm 50 mét.",
+                  "street_names": [
+                    "Nguyễn Tất Thành"
+                  ],
+                  "distance_m": 48,
+                  "duration_s": 13,
+                  "shape_begin": 125,
+                  "shape_end": 129,
+                  "location": [
+                    106.705916,
+                    10.768027
+                  ],
+                  "roundabout_exit": null
+                },
+                {
+                  "kind": "slight_left",
+                  "instruction": "Giữ bên trái vào Bến Vân Đồn.",
+                  "verbal_alert": "Giữ bên trái vào Bến Vân Đồn.",
+                  "verbal_pre": "Giữ bên trái vào Bến Vân Đồn. Rồi đi vào vòng xuyến và rẽ ra tại lối rẽ thứ 2 vào Bến Vân Đồn.",
+                  "verbal_post": "Tiếp tục đi thêm 40 mét.",
+                  "street_names": [
+                    "Bến Vân Đồn"
+                  ],
+                  "distance_m": 41,
+                  "duration_s": 6,
+                  "shape_begin": 129,
+                  "shape_end": 147,
+                  "location": [
+                    106.705738,
+                    10.768418
+                  ],
+                  "roundabout_exit": null
+                },
+                {
+                  "kind": "roundabout_enter",
+                  "instruction": "Đi vào vòng xuyến và rẽ ra tại lối rẽ thứ 2 vào Bến Vân Đồn.",
+                  "verbal_alert": "Đi vào vòng xuyến và rẽ ra tại lối rẽ thứ 2 vào Bến Vân Đồn.",
+                  "verbal_pre": "Đi vào vòng xuyến và rẽ ra tại lối rẽ thứ 2 vào Bến Vân Đồn.",
+                  "verbal_post": null,
+                  "street_names": [],
+                  "distance_m": 16,
+                  "duration_s": 3,
+                  "shape_begin": 147,
+                  "shape_end": 157,
+                  "location": [
+                    106.705437,
+                    10.768346
+                  ],
+                  "roundabout_exit": 2
+                },
+                {
+                  "kind": "roundabout_exit",
+                  "instruction": "Rẽ ra khỏi vòng xuyến vào Bến Vân Đồn.",
+                  "verbal_alert": null,
+                  "verbal_pre": "Rẽ ra khỏi vòng xuyến vào Bến Vân Đồn.",
+                  "verbal_post": "Tiếp tục đi thêm 300 mét.",
+                  "street_names": [
+                    "Bến Vân Đồn"
+                  ],
+                  "distance_m": 322,
+                  "duration_s": 46,
+                  "shape_begin": 157,
+                  "shape_end": 171,
+                  "location": [
+                    106.70534,
+                    10.768272
+                  ],
+                  "roundabout_exit": null
+                },
+                {
+                  "kind": "exit_right",
+                  "instruction": "Ra ở lối ra phía phải về hướng Cầu Calmette.",
+                  "verbal_alert": "Ra ở lối ra phía phải về hướng Cầu Calmette.",
+                  "verbal_pre": "Ra ở lối ra phía phải về hướng Cầu Calmette.",
+                  "verbal_post": null,
+                  "street_names": [
+                    "Đường dẫn Cầu Calmette"
+                  ],
+                  "distance_m": 243,
+                  "duration_s": 48,
+                  "shape_begin": 171,
+                  "shape_end": 183,
+                  "location": [
+                    106.70288,
+                    10.766743
+                  ],
+                  "roundabout_exit": null
+                },
+                {
+                  "kind": "slight_right",
+                  "instruction": "Giữ bên phải vào Cầu Calmette.",
+                  "verbal_alert": "Giữ bên phải vào Cầu Calmette.",
+                  "verbal_pre": "Giữ bên phải vào Cầu Calmette.",
+                  "verbal_post": "Tiếp tục đi thêm 700 mét.",
+                  "street_names": [
+                    "Cầu Calmette"
+                  ],
+                  "distance_m": 701,
+                  "duration_s": 103,
+                  "shape_begin": 183,
+                  "shape_end": 199,
+                  "location": [
+                    106.701395,
+                    10.765307
+                  ],
+                  "roundabout_exit": null
+                },
+                {
+                  "kind": "turn_right",
+                  "instruction": "Rẽ phải vào Trần Hưng Đạo.",
+                  "verbal_alert": "Rẽ phải vào Trần Hưng Đạo.",
+                  "verbal_pre": "Rẽ phải vào Trần Hưng Đạo.",
+                  "verbal_post": "Tiếp tục đi thêm 200 mét.",
+                  "street_names": [
+                    "Trần Hưng Đạo"
+                  ],
+                  "distance_m": 172,
+                  "duration_s": 26,
+                  "shape_begin": 199,
+                  "shape_end": 208,
+                  "location": [
+                    106.697455,
+                    10.770259
+                  ],
+                  "roundabout_exit": null
+                },
+                {
+                  "kind": "turn_left",
+                  "instruction": "Rẽ trái vào Công trường Quách Thị Trang.",
+                  "verbal_alert": "Rẽ trái vào Công trường Quách Thị Trang.",
+                  "verbal_pre": "Rẽ trái vào Công trường Quách Thị Trang. Rồi giữ bên phải vào Phan Chu Trinh.",
+                  "verbal_post": "Tiếp tục đi thêm 80 mét.",
+                  "street_names": [
+                    "Công trường Quách Thị Trang"
+                  ],
+                  "distance_m": 74,
+                  "duration_s": 14,
+                  "shape_begin": 208,
+                  "shape_end": 214,
+                  "location": [
+                    106.698499,
+                    10.7714
+                  ],
+                  "roundabout_exit": null
+                },
+                {
+                  "kind": "slight_right",
+                  "instruction": "Giữ bên phải vào Phan Chu Trinh.",
+                  "verbal_alert": "Giữ bên phải vào Phan Chu Trinh.",
+                  "verbal_pre": "Giữ bên phải vào Phan Chu Trinh.",
+                  "verbal_post": "Tiếp tục đi thêm 70 mét.",
+                  "street_names": [
+                    "Phan Chu Trinh"
+                  ],
+                  "distance_m": 71,
+                  "duration_s": 17,
+                  "shape_begin": 214,
+                  "shape_end": 217,
+                  "location": [
+                    106.697875,
+                    10.771686
+                  ],
+                  "roundabout_exit": null
+                },
+                {
+                  "kind": "arrive",
+                  "instruction": "Điểm đến ở bên phải.",
+                  "verbal_alert": "Điểm đến ở bên phải.",
+                  "verbal_pre": "Điểm đến ở bên phải.",
+                  "verbal_post": null,
+                  "street_names": [],
+                  "distance_m": 0,
+                  "duration_s": 0,
+                  "shape_begin": 217,
+                  "shape_end": 217,
+                  "location": [
+                    106.697532,
+                    10.772234
+                  ],
+                  "roundabout_exit": null
+                }
+              ]
+            }
+          ],
+          "flags": {
+            "toll": false,
+            "highway": false,
+            "ferry": false
+          }
+        }
+      ],
+      "waypoints": [
+        {
+          "location": [
+            106.698,
+            10.7725
+          ],
+          "snapped": [
+            106.697532,
+            10.772234
+          ],
+          "name": null
+        },
+        {
+          "location": [
+            106.7043,
+            10.7716
+          ],
+          "snapped": [
+            106.704102,
+            10.771501
+          ],
+          "name": null
+        },
+        {
+          "location": [
+            106.7069,
+            10.7686
+          ],
+          "snapped": [
+            106.706916,
+            10.768492
+          ],
+          "name": null
+        },
+        {
+          "location": [
+            106.698,
+            10.7725
+          ],
+          "snapped": [
+            106.697532,
+            10.772234
+          ],
+          "name": null
+        }
+      ],
+      "attribution": "© OpenStreetMap contributors",
+      "engine": {
+        "name": "valhalla",
+        "graph": "2026-09-11"
+      },
+      "vehicle": "xe-2",
+      "jobs": [
+        "don-4",
+        "don-2"
+      ],
+      "stops": [
+        {
+          "job": "don-4",
+          "arrival_s": 199,
+          "waiting_s": 0,
+          "service_s": 0
+        },
+        {
+          "job": "don-2",
+          "arrival_s": 490,
+          "waiting_s": 0,
+          "service_s": 0
+        }
+      ],
+      "load": 0,
+      "finish_s": 809
+    }
+  ],
+  "unassigned": [],
+  "summary": {
+    "vehicles_used": 2,
+    "jobs_assigned": 5,
+    "jobs_unassigned": 0,
+    "distance_m": 9530,
+    "duration_s": 1706,
+    "service_s": 0,
+    "waiting_s": 0
+  },
+  "attribution": "© OpenStreetMap contributors",
+  "engine": {
+    "name": "vroom+valhalla",
+    "graph": "2026-09-11"
+  }
+}

@@ -16,6 +16,8 @@ import { OPTIMIZED_MAX_STOPS } from '../src/routing/optimized';
 import type { ValhallaRouteResponse } from '../src/routing/valhalla';
 import type { VroomResponse } from '../src/routing/vroom';
 import routeFixture from './fixtures/valhalla/optimized-two-stops.json';
+import q1Vroom from './fixtures/vroom/q1-fleet.json';
+import q1Request from './fixtures/vroom/q1-fleet-request.json';
 import vroomFixture from './fixtures/vroom/two-vehicles.json';
 
 const DEPOT: [number, number] = [10.7725, 106.698]; // Chợ Bến Thành
@@ -664,5 +666,22 @@ describe('noRouteMessage', () => {
       'Không tới được bằng mạng đường: xe xe-1 (điểm xuất phát)',
     );
     expect(ten('Unfound route(s)')).toBe('Có điểm không tới được bằng mạng đường');
+  });
+});
+
+describe('fixture VROOM thật Quận 1 (capture 23/09/2026)', () => {
+  it('5 đơn chia cho 2 xe, không unassigned, mỗi xe ≤ 3 đơn, arrival_s tăng dần', () => {
+    const p = parseFleetBody(q1Request);
+    const skel = translateFleet(q1Vroom as unknown as VroomResponse, p);
+    expect(skel.unassigned).toEqual([]);
+    const tong = skel.vehicles.reduce((sum, v) => sum + v.jobIndexes.length, 0);
+    expect(tong).toBe(5);
+    for (const v of skel.vehicles) {
+      expect(v.jobIndexes.length).toBeGreaterThan(0);
+      expect(v.jobIndexes.length).toBeLessThanOrEqual(3);
+      const arrivals = v.stops.map((st) => st.arrival_s);
+      expect([...arrivals].sort((a, b) => a - b)).toEqual(arrivals);
+      expect(v.finishS).toBeGreaterThanOrEqual(arrivals.at(-1) ?? 0);
+    }
   });
 });
