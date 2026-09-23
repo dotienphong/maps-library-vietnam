@@ -47,6 +47,7 @@ export {
   createHeadingFilter,
   createNavigator,
   decodePolyline6,
+  FLEET_COLORS,
   formatDistance,
   formatDistanceShort,
   MOVING_SPEED_MPS,

@@ -38,6 +38,7 @@ export {
   attributionText,
   createClient,
   createNavigator,
+  FLEET_COLORS,
   formatDistance,
   formatDistanceShort,
   MapsLibVNError,

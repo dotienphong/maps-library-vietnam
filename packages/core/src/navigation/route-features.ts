@@ -1,8 +1,8 @@
 import { decodePolyline6 } from '../polyline';
-import type { DirectionsResponse } from '../types';
+import type { DirectionsResponse, FleetPlanResponse } from '../types';
 
 /** Vai của từng feature trong source tuyến — web và RN cùng lọc theo `properties.kind`. */
-export type RouteFeatureKind = 'alt' | 'active' | 'traveled' | 'puck';
+export type RouteFeatureKind = 'alt' | 'active' | 'traveled' | 'puck' | 'fleet';
 
 export interface RouteLineFeature {
   type: 'Feature';
@@ -16,7 +16,14 @@ export interface RoutePuckFeature {
   properties: { kind: 'puck'; bearing: number };
 }
 
-export type RouteFeature = RouteLineFeature | RoutePuckFeature;
+/** Tuyến một xe trong kế hoạch đội xe: màu và độ mờ nằm trong properties để layer vẽ data-driven. */
+export interface FleetLineFeature {
+  type: 'Feature';
+  geometry: { type: 'LineString'; coordinates: [number, number][] };
+  properties: { kind: 'fleet'; index: number; color: string; opacity: number };
+}
+
+export type RouteFeature = RouteLineFeature | RoutePuckFeature | FleetLineFeature;
 
 export interface RouteFeatureCollection {
   type: 'FeatureCollection';
@@ -124,4 +131,57 @@ export function routeFeatures(
       ...liveRouteFeatures(coords, opts).features,
     ],
   };
+}
+
+/** Bảng Okabe–Ito: 5 màu phân biệt được với người mù màu, đúng trần 5 xe. Xe thứ 6+ xoay vòng. */
+export const FLEET_COLORS: readonly string[] = [
+  '#0072b2',
+  '#d55e00',
+  '#009e73',
+  '#cc79a7',
+  '#e69f00',
+];
+/** Độ mờ của xe không được chọn khi `active` là một chỉ số. */
+export const FLEET_DIM_OPACITY = 0.35;
+
+/** Giải mã tuyến từng xe, giữ đúng chỉ số: xe rỗi (không `routes`) → mảng rỗng. */
+export function decodeFleet(plan: FleetPlanResponse): [number, number][][] {
+  return plan.vehicles.map((v) => {
+    const geometry = v.routes[0]?.geometry;
+    return geometry ? decodePolyline6(geometry) : [];
+  });
+}
+
+export interface FleetFeaturesOptions {
+  colors?: readonly string[];
+  /** Chỉ số xe được chọn: xe khác mờ đi. null/bỏ = mọi xe rõ. */
+  active?: number | null;
+}
+
+/**
+ * Mỗi xe một LineString `kind: 'fleet'` với `index`, `color`, `opacity`. Toạ độ DÙNG CHUNG mảng với
+ * `coords` (không sao chép) — cùng nguyên tắc với routeFeatures. Xe rỗi bị bỏ nhưng `index` của các
+ * xe còn lại giữ nguyên để bấm tuyến vẫn trả đúng chỉ số xe.
+ */
+export function fleetRouteFeatures(
+  coords: readonly (readonly [number, number][])[],
+  opts: FleetFeaturesOptions = {},
+): RouteFeatureCollection {
+  const colors = opts.colors && opts.colors.length > 0 ? opts.colors : FLEET_COLORS;
+  const active = opts.active ?? null;
+  const features: RouteFeature[] = [];
+  for (const [index, c] of coords.entries()) {
+    if (c.length < 2) continue;
+    features.push({
+      type: 'Feature',
+      geometry: { type: 'LineString', coordinates: c as [number, number][] },
+      properties: {
+        kind: 'fleet',
+        index,
+        color: colors[index % colors.length] ?? '#0072b2',
+        opacity: active === null || active === index ? 1 : FLEET_DIM_OPACITY,
+      },
+    });
+  }
+  return { type: 'FeatureCollection', features };
 }

@@ -78,6 +78,7 @@ export {
   createClient,
   createNavigator,
   createSpeech,
+  FLEET_COLORS,
   FOLLOW_ZOOM,
   formatDistance,
   formatDistanceShort,
