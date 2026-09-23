@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { ackReceipt, getAndAck, receiptFrom } from './receipt-ack.mjs';
+import { ackReceipt, getAndAck, postAndAck, receiptFrom } from './receipt-ack.mjs';
 
 const withReceipt = (body = {}) =>
   new Response(JSON.stringify(body), {
@@ -123,5 +123,59 @@ describe('getAndAck', () => {
     const r = await getAndAck('https://api.test/v1/matrix', 'https://api.test', 'k', { fetchImpl });
     expect(r.status).toBe(0);
     expect(r.code).toMatch(/ECONNREFUSED/);
+  });
+});
+
+describe('postAndAck', () => {
+  it('POST JSON kèm khoá, đo thời gian trước ACK, ACK receipt từ header', async () => {
+    /** @type {{ url: string, init: RequestInit }[]} */
+    const calls = [];
+    const fetchImpl = /** @type {typeof fetch} */ (
+      /** @type {unknown} */ (
+        vi.fn(async (/** @type {string} */ url, /** @type {RequestInit} */ init) => {
+          calls.push({ url: String(url), init });
+          if (String(url).endsWith('/ack')) return new Response('{}', { status: 200 });
+          return withReceipt({ vehicles: [] });
+        })
+      )
+    );
+    const r = await postAndAck(
+      'https://api.test/v1/fleet-plan',
+      'https://api.test',
+      'k',
+      { a: 1 },
+      {
+        fetchImpl,
+      },
+    );
+    expect(r.status).toBe(200);
+    expect(r.ackFailed).toBe(false);
+    expect(r.body).toEqual({ vehicles: [] });
+    expect(calls[0]?.init.method).toBe('POST');
+    expect(calls[0]?.init.body).toBe('{"a":1}');
+    const headers = /** @type {Record<string, string>} */ (calls[0]?.init.headers ?? {});
+    expect(headers['content-type']).toBe('application/json');
+    expect(calls[1]?.url).toBe('https://api.test/v1/quota/receipts/req-1/ack');
+  });
+
+  it('lỗi mạng → status 0, không ACK', async () => {
+    const fetchImpl = /** @type {typeof fetch} */ (
+      /** @type {unknown} */ (
+        vi.fn(async () => {
+          throw new Error('ECONNREFUSED');
+        })
+      )
+    );
+    const r = await postAndAck(
+      'https://api.test/v1/fleet-plan',
+      'https://api.test',
+      'k',
+      {},
+      {
+        fetchImpl,
+      },
+    );
+    expect(r.status).toBe(0);
+    expect(r.ackFailed).toBe(false);
   });
 });

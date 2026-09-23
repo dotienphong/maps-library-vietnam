@@ -95,3 +95,51 @@ export async function getAndAck(url, root, key, options = {}) {
       : undefined;
   return { ms, status: response.status, body, code: error?.code ?? null, ackFailed };
 }
+
+/**
+ * Gọi POST JSON rồi ACK ngay receipt kèm theo — cùng hợp đồng với getAndAck (thời gian đo TRƯỚC ACK).
+ * Dùng cho `POST /v1/fleet-plan` (spec 2026-09-23); timeout mặc định 40 s vì một bài đội xe cỡ tối
+ * đa có thể mất vài chục giây trên máy chủ yếu.
+ * @param {string} url @param {string} root @param {string} key @param {unknown} body
+ * @param {{ fetchImpl?: typeof fetch, timeoutMs?: number }} [options]
+ * @returns {Promise<{ ms: number, status: number, body: unknown, code: string | null, ackFailed: boolean }>}
+ */
+export async function postAndAck(url, root, key, body, options = {}) {
+  const fetchImpl = options.fetchImpl ?? fetch;
+  const t0 = performance.now();
+  const signal = AbortSignal.timeout(options.timeoutMs ?? 40_000);
+  /** @type {Response} */
+  let response;
+  try {
+    response = await fetchImpl(url, {
+      method: 'POST',
+      headers: { 'X-Api-Key': key, 'content-type': 'application/json' },
+      body: JSON.stringify(body),
+      redirect: 'error',
+      signal,
+    });
+  } catch (error) {
+    return {
+      ms: performance.now() - t0,
+      status: 0,
+      body: null,
+      code: signal.aborted ? 'timeout' : String(error),
+      ackFailed: false,
+    };
+  }
+  const ms = performance.now() - t0;
+  const receipt = receiptFrom(response);
+  /** @type {unknown} */
+  let parsed = null;
+  try {
+    parsed = await response.json();
+  } catch {
+    parsed = null;
+  }
+  const ackFailed = !(await ackReceipt(root, key, receipt, options));
+  const error =
+    parsed && typeof parsed === 'object' && 'error' in parsed
+      ? /** @type {{ error?: { code?: string } }} */ (parsed).error
+      : undefined;
+  return { ms, status: response.status, body: parsed, code: error?.code ?? null, ackFailed };
+}
