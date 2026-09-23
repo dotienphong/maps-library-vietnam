@@ -255,3 +255,93 @@ export interface OptimizedRouteResponse extends DirectionsResponse {
   /** Chỉ số vào mảng `stops` bạn gửi, theo thứ tự nên đi; `waypoints` và `legs` đã xếp theo đó. */
   order: number[];
 }
+
+/** Một xe trong `POST /v1/fleet-plan` (spec 23/09/2026 mục 4.1). Toạ độ `[lat, lng]`. */
+export interface FleetVehicle {
+  /** Chuỗi 1–64 ký tự, duy nhất trong `vehicles`. */
+  id: string;
+  start: [number, number];
+  /** Bỏ trống = về lại `start`; `'open'` = kết thúc ở đơn cuối. */
+  end?: [number, number] | 'open';
+  /** Sức chứa (một chiều, số nguyên). Một xe có thì mọi xe phải có. */
+  capacity?: number;
+  /** Tối đa đơn cho xe này, 1–10; mặc định 10. */
+  max_jobs?: number;
+  /**
+   * Giờ làm [sớm nhất rời start, muộn nhất kết thúc], ISO 8601 kèm múi giờ. Có khung giờ ở bất kỳ
+   * đâu trong request thì mọi xe phải có.
+   */
+  time_window?: [string, string];
+}
+
+/** Một đơn trong `POST /v1/fleet-plan`. */
+export interface FleetJob {
+  id: string;
+  location: [number, number];
+  /** Khối lượng, mặc định 0; `> 0` chỉ khi các xe có `capacity`. */
+  demand?: number;
+  /** Thời gian dừng tại điểm, giây (0–7.200). */
+  service_s?: number;
+  /** 0–100: đơn ưu tiên được xếp trước khi không đủ chỗ. */
+  priority?: number;
+  /** 1–3 khung giờ khách nhận, ISO 8601 kèm múi giờ. */
+  time_windows?: [string, string][];
+}
+
+export interface FleetPlanOptions {
+  /** 1–5 xe. */
+  vehicles: FleetVehicle[];
+  /** 1–30 đơn, tổng không quá tổng `max_jobs` các xe. */
+  jobs: FleetJob[];
+  /** Một phương tiện cho cả đội; mặc định máy chủ `motorbike`. */
+  mode?: TravelMode;
+  lang?: DirectionsLang;
+}
+
+/** Một điểm ghé trong lịch của xe. `arrival_at` chỉ có ở chế độ tuyệt đối (mọi xe có `time_window`). */
+export interface FleetStop {
+  job: string;
+  /** Giây kể từ lúc xe rời `start`. */
+  arrival_s: number;
+  arrival_at?: string;
+  /** Chờ tới khung giờ khách, giây. */
+  waiting_s: number;
+  service_s: number;
+}
+
+/** Kế hoạch một xe: `DirectionsResponse` đầy đủ (vẽ và dẫn đường được ngay) cộng đơn, lịch, tải. */
+export interface FleetVehiclePlan extends DirectionsResponse {
+  vehicle: string;
+  /** Id đơn theo thứ tự ghé; rỗng = xe nghỉ (khi đó `routes`/`waypoints` rỗng). */
+  jobs: string[];
+  stops: FleetStop[];
+  /** Tổng `demand` các đơn được giao; 0 khi không dùng sức chứa. */
+  load: number;
+  /** Giây từ lúc rời start tới lúc kết thúc (tới `end`, hoặc xong đơn cuối khi open-end). */
+  finish_s: number;
+  departure_at?: string;
+  finish_at?: string;
+}
+
+/** `POST /v1/fleet-plan` (spec 23/09/2026 mục 4.4). */
+export interface FleetPlanResponse {
+  mode: TravelMode;
+  /** Theo thứ tự `vehicles` bạn gửi, kể cả xe không được giao đơn. */
+  vehicles: FleetVehiclePlan[];
+  /** Đơn không xếp được (hết chỗ, quá sức chứa, khung giờ không thoả). */
+  unassigned: { id: string }[];
+  summary: {
+    vehicles_used: number;
+    jobs_assigned: number;
+    jobs_unassigned: number;
+    /** Tổng `routes[0]` các xe (tuyến thật từ /route). */
+    distance_m: number;
+    duration_s: number;
+    /** Tổng dừng và chờ theo lịch bộ giải. */
+    service_s: number;
+    waiting_s: number;
+  };
+  attribution: string;
+  /** Thông tin chẩn đoán, không phải hợp đồng ổn định. */
+  engine?: { name: string; graph: string | null };
+}

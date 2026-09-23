@@ -10,6 +10,8 @@ import type {
   AutocompleteType,
   DirectionsLang,
   DirectionsResponse,
+  FleetPlanOptions,
+  FleetPlanResponse,
   GeocodeItem,
   MatrixResponse,
   OptimizedRouteResponse,
@@ -423,6 +425,12 @@ export function createClient(options: ClientOptions) {
         mode: opts.mode,
         lang: opts.lang,
       }),
+    /**
+     * Chia đơn cho đội xe (spec 23/09/2026): body JSON `[lat, lng]`; mỗi `vehicles[k]` trong response
+     * là DirectionsResponse + `vehicle`/`jobs`/`stops`, đưa thẳng vào routes.show() hay navigation.start().
+     * Một lượt Chỉ đường mỗi request; nhịp 2 request/phút/khoá.
+     */
+    fleetPlan: (opts: FleetPlanOptions) => post<FleetPlanResponse>('/v1/fleet-plan', opts),
     /** Gửi đóng góp/sửa POI (spec 6.1). Khoá phải có scope edits:write. */
     suggestEdit: (edit: SuggestEditRequest) => post<SuggestEditResponse>('/v1/edits', edit),
   };
