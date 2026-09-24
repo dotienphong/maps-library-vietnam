@@ -29,6 +29,23 @@ function xuatWorkerMaplibre(thuMucRa: string) {
   };
 }
 
+/**
+ * `_headers` (CSP, X-Frame-Options, HSTS cho /admin và /console) phải nằm ở GỐC thư mục assets
+ * của Worker (`apps/admin/dist`), không phải trong `dist/admin`. Vite chỉ chép `public/` vào
+ * outDir, nên chép tay sau khi build xong.
+ */
+function chepHeaders() {
+  return {
+    name: 'mapslibvn-chep-headers',
+    closeBundle() {
+      copyFileSync(
+        fileURLToPath(new URL('./_headers', import.meta.url)),
+        fileURLToPath(new URL('./dist/_headers', import.meta.url)),
+      );
+    },
+  };
+}
+
 export default defineConfig(async ({ command }) => {
   // Chỉ nạp Access giả khi chạy `vite dev`. Import tĩnh sẽ sinh cặp khoá trong .cache/ ngay cả
   // lúc build trên CI, nơi không có và không cần thứ đó.
@@ -52,7 +69,7 @@ export default defineConfig(async ({ command }) => {
 
   return {
     base: '/admin/',
-    plugins: [react(), tailwindcss(), xuatWorkerMaplibre('dist/admin')],
+    plugins: [react(), tailwindcss(), xuatWorkerMaplibre('dist/admin'), chepHeaders()],
     resolve: {
       alias: { '@': fileURLToPath(new URL('./src', import.meta.url)) },
       // @mapslibvn/ui là source trong workspace; bảo đảm nó và admin dùng CÙNG một bản React,

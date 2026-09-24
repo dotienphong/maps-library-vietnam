@@ -89,6 +89,25 @@ for (const goc of ['admin', 'console'] as const) {
 app.notFound((c) => errorResponse(c, new ApiError(404, 'not_found', 'Không có route này')));
 
 app.get('/healthz', (c) => c.json({ ok: true, environment: c.env.ENVIRONMENT }));
+/**
+ * Nhận báo cáo vi phạm CSP của /admin và /console (`report-uri` trong apps/admin/_headers) và
+ * chỉ ghi một dòng log gọn. Đang ở chế độ Report-Only: đọc log `[csp]` để biết chính sách còn thiếu
+ * nguồn nào trước khi bật chặn thật. Không lưu gì, không trả dữ liệu.
+ */
+app.post('/csp-report', async (c) => {
+  const text = (await c.req.text()).slice(0, 8192);
+  try {
+    const body = JSON.parse(text) as { 'csp-report'?: Record<string, unknown> };
+    const r = body['csp-report'] ?? {};
+    const pick = (k: string) => String(r[k] ?? '').slice(0, 200);
+    console.log(
+      `[csp] ${pick('violated-directive') || pick('effective-directive')} blocked=${pick('blocked-uri')} page=${pick('document-uri')}`,
+    );
+  } catch {
+    // Thân không phải JSON thì bỏ qua; báo cáo CSP không bao giờ đáng để trả lỗi.
+  }
+  return c.body(null, 204);
+});
 // Cổng chống CSRF phải đứng trước requireBillingAccess: một POST cross-site không được đi xa tới
 // mức chạm vào danh sách email, và người gửi phải nhận đúng 403 cross_site_request. Nhóm này mount
 // ở đây chứ không trong app `admin`, nên phải gắn lại cổng bằng tay — xem test/billing-csrf.test.ts.
