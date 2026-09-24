@@ -53,12 +53,9 @@ vào file `.astro`**; sửa giá là sửa package đó.
 Ảnh hero và bốn ảnh OG sinh bằng `node scripts/site-images.mjs` rồi commit vào repo, vì máy dựng
 của Pages không chạy Playwright.
 
-**Chuyển từ tên miền cũ:** `mapslibvn-site.pages.dev` là project Pages riêng, dùng
-`apps/site/legacy-redirect/_redirects` để chuyển 301 mọi đường dẫn sang tên miền mới.
-`apps/site/public/_redirects` chỉ xử lý đường dẫn của site mới, gồm cả bài viết đã gỡ.
-Sau khi đổi `SITE_URL` trong `apps/site/site.config.mjs`, deploy site mới trước, kiểm tra
-canonical, robots và sitemap, rồi chạy `pnpm deploy:site:legacy` cho project cũ. Gửi lại
-sitemap mới ở Google Search Console và Bing Webmaster.
+`SITE_URL` trong `apps/site/site.config.mjs` là nguồn của URL tuyệt đối trong canonical,
+OG, robots và sitemap. `apps/site/public/_redirects` xử lý redirect của từng đường dẫn
+trên project hiện tại.
 
 ## Phát hành toàn bộ SDK lên npm
 

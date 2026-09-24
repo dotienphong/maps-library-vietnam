@@ -13,7 +13,6 @@
     "deploy:api": "pnpm build && pnpm --filter @mapslibvn/api exec wrangler deploy --env production",
     "deploy:docs": "pnpm build && pnpm --filter @mapslibvn/docs exec wrangler pages deploy dist --project-name mapslibvn-docs",
     "deploy:site": "pnpm --filter @mapslibvn/site build && pnpm --filter @mapslibvn/site exec wrangler pages deploy dist --project-name mapslibvn",
-    "deploy:site:legacy": "pnpm exec wrangler pages deploy apps/site/legacy-redirect --project-name mapslibvn-site",
     "lint": "biome check .",
     "lint:fix": "biome check --write .",
     "notices:sync": "node scripts/notices-sync.mjs",
