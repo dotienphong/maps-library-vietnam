@@ -15,10 +15,9 @@ export default defineConfig({
     reuseExistingServer: !process.env.CI,
     timeout: 180_000,
     env: {
-      // Astro 7 dò môi trường agent (gói `am-i-vibing`) và TỰ đẩy `astro preview` xuống chạy nền.
-      // Tiến trình nền thoát ngay, nên Playwright báo "webServer exited early" — một thông báo
-      // không hề dẫn tới nguyên nhân thật. Xoá biến này để preview chạy ở tiền cảnh như Playwright
-      // cần. Chỉ ảnh hưởng tiến trình máy chủ, không đụng môi trường của phần còn lại.
+      // Astro 7 tự chạy nền khi nhận diện agent; Playwright cần server ở tiền cảnh.
+      // Biến này tắt nhánh tự chạy nền của Astro (giá trị chỉ cần khác rỗng).
+      ASTRO_PREVIEW_BACKGROUND: '0',
       CLAUDECODE: '',
     },
   },

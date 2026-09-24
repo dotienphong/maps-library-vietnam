@@ -39,7 +39,7 @@ dừng; khi không dùng database nữa, chạy `pnpm db:down`.
 ## Website quảng bá
 
 Website tĩnh dựng bằng Astro, nằm ở `apps/site`, phát hành lên Cloudflare Pages
-`mapslibvn-site`. Chạy tại máy:
+`mapslibvn` tại https://mapslibvn.pages.dev/. Chạy tại máy:
 
 ```bash
 pnpm --filter @mapslibvn/site dev      # http://localhost:4322
@@ -53,9 +53,12 @@ vào file `.astro`**; sửa giá là sửa package đó.
 Ảnh hero và bốn ảnh OG sinh bằng `node scripts/site-images.mjs` rồi commit vào repo, vì máy dựng
 của Pages không chạy Playwright.
 
-**Đổi tên miền:** sửa `SITE_URL` trong `apps/site/site.config.mjs` (nguồn duy nhất của mọi URL
-tuyệt đối: canonical, OG, sitemap, robots.txt), thêm `_redirects` chuyển 301 toàn bộ đường dẫn từ
-tên miền cũ, rồi gửi lại sitemap ở Google Search Console.
+**Chuyển từ tên miền cũ:** `mapslibvn-site.pages.dev` là project Pages riêng, dùng
+`apps/site/legacy-redirect/_redirects` để chuyển 301 mọi đường dẫn sang tên miền mới.
+`apps/site/public/_redirects` chỉ xử lý đường dẫn của site mới, gồm cả bài viết đã gỡ.
+Sau khi đổi `SITE_URL` trong `apps/site/site.config.mjs`, deploy site mới trước, kiểm tra
+canonical, robots và sitemap, rồi chạy `pnpm deploy:site:legacy` cho project cũ. Gửi lại
+sitemap mới ở Google Search Console và Bing Webmaster.
 
 ## Phát hành toàn bộ SDK lên npm
 

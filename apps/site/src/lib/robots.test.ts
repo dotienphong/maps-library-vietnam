@@ -6,7 +6,7 @@ describe('robots.txt', () => {
     const txt = noiDungRobots();
     expect(txt).toContain('User-agent: *');
     expect(txt).toContain('Allow: /');
-    expect(txt).toContain('Sitemap: https://mapslibvn-site.pages.dev/sitemap-index.xml');
+    expect(txt).toContain('Sitemap: https://mapslibvn.pages.dev/sitemap-index.xml');
   });
 
   it('không chặn gì — website này không có khu vực riêng tư', () => {

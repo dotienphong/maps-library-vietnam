@@ -204,7 +204,7 @@ SDK không có sẵn giao diện danh sách đơn hay bảng ma trận vì mỗi
 
 Kết quả được cache 60 giây theo đúng bộ toạ độ và phương tiện, nên gọi lại y hệt trong một phút sẽ
 nhanh hơn. Hai con số trần là kết quả đo tải trên máy chủ hiện tại, không phải giới hạn của thuật
-toán; cần cỡ lớn hơn thì [liên hệ](https://mapslibvn-site.pages.dev/lien-he/).
+toán; cần cỡ lớn hơn thì [liên hệ](https://mapslibvn.pages.dev/lien-he/).
 
 ## 6. Khi cần vượt trần
 
@@ -248,4 +248,4 @@ Nói thẳng để bạn quyết định sớm:
 - Theo dõi vị trí đội xe trên máy chủ — app của bạn tự gửi và lưu vị trí tài xế.
 
 Nếu bài toán cần một trong số này ngay, xem
-[so sánh với Google Maps API](https://mapslibvn-site.pages.dev/so-sanh/google-maps-api/).
+[so sánh với Google Maps API](https://mapslibvn.pages.dev/so-sanh/google-maps-api/).

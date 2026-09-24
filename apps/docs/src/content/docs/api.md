@@ -847,9 +847,9 @@ curl "https://api.ai-solutions.io.vn/v1/attribution"
 ```json
 {
   "text": "© MapsLibVN · © OpenStreetMap contributors (ODbL) · © OpenMapTiles · Foursquare OS Places (Apache-2.0)",
-  "html": "<a href=\"https://mapslibvn-site.pages.dev/\" target=\"_blank\" rel=\"noopener\">© MapsLibVN</a> · …",
+  "html": "<a href=\"https://mapslibvn.pages.dev/\" target=\"_blank\" rel=\"noopener\">© MapsLibVN</a> · …",
   "links": [
-    { "text": "© MapsLibVN", "href": "https://mapslibvn-site.pages.dev/" },
+    { "text": "© MapsLibVN", "href": "https://mapslibvn.pages.dev/" },
     { "text": "© OpenStreetMap contributors", "href": "https://www.openstreetmap.org/copyright", "license": "ODbL" }
   ]
 }

@@ -1,8 +1,9 @@
 /**
  * Hằng dùng chung cho astro.config.mjs (không đọc được TypeScript) và mã trong src/.
- * Đổi tên miền = sửa ĐÚNG file này, rồi thêm _redirects 301 và gửi lại sitemap ở Search Console.
+ * URL chuẩn cho canonical, OG, robots và sitemap. Redirect tên miền cũ nằm ở
+ * legacy-redirect/ vì _redirects của project mới không thể xử lý host cũ.
  */
-export const SITE_URL = 'https://mapslibvn-site.pages.dev';
+export const SITE_URL = 'https://mapslibvn.pages.dev';
 export const CONSOLE_URL = 'https://api.ai-solutions.io.vn/console/';
 export const DOCS_URL = 'https://mapslibvn-docs.pages.dev';
 export const SUPPORT_EMAIL = 'dotienphong1993@gmail.com';

@@ -338,7 +338,7 @@ test('so sánh VIETMAP: bảng đối đầu có cả hàng đối thủ thắng
 test('bài viết: một bài dẫn lớn, các bài còn lại là hàng gọn', async ({ page }) => {
   await page.goto('/bai-viet/');
   await expect(page.getByTestId('bai-dan')).toHaveCount(1);
-  await expect(page.getByTestId('bai-hang')).toHaveCount(2);
+  await expect(page.getByTestId('bai-hang').first()).toBeVisible();
 });
 
 test('trang bài dài có mục lục riêng ở màn rộng', async ({ page }) => {

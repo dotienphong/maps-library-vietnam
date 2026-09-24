@@ -27,7 +27,7 @@ for (const path of TRANG) {
     expect(desc?.length ?? 0).toBeLessThanOrEqual(160);
 
     const canonical = await page.locator('link[rel="canonical"]').getAttribute('href');
-    expect(canonical).toBe(`https://mapslibvn-site.pages.dev${path}`);
+    expect(canonical).toBe(`https://mapslibvn.pages.dev${path}`);
 
     await expect(page.locator('meta[property="og:image"]')).toHaveCount(1);
     await expect(page.locator('html')).toHaveAttribute('lang', 'vi');
@@ -46,14 +46,12 @@ for (const path of TRANG) {
 test('robots.txt và sitemap trỏ đúng nhau', async ({ request }) => {
   const robots = await request.get('/robots.txt');
   expect(robots.status()).toBe(200);
-  expect(await robots.text()).toContain(
-    'Sitemap: https://mapslibvn-site.pages.dev/sitemap-index.xml',
-  );
+  expect(await robots.text()).toContain('Sitemap: https://mapslibvn.pages.dev/sitemap-index.xml');
 
   const sitemap = await request.get('/sitemap-0.xml');
   expect(sitemap.status()).toBe(200);
   const xml = await sitemap.text();
-  expect(xml).toContain('<loc>https://mapslibvn-site.pages.dev/bang-gia/</loc>');
+  expect(xml).toContain('<loc>https://mapslibvn.pages.dev/bang-gia/</loc>');
   // 404 không được nằm trong sitemap — gửi bot vào trang lỗi là tự hạ chất lượng.
   expect(xml).not.toContain('/404');
 });

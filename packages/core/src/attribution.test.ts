@@ -27,7 +27,7 @@ describe('attribution', () => {
     // Bấm ghi nguồn trên bản đồ của khách phải dẫn tới trang giới thiệu và bảng giá, không dẫn tới
     // hướng dẫn dựng máy chủ trong repo (PHONG chốt 23/09/2026).
     const mapsLibVN = ATTRIBUTION_LINKS.find((l) => l.text === '© MapsLibVN');
-    expect(mapsLibVN?.href).toBe('https://mapslibvn-site.pages.dev/');
+    expect(mapsLibVN?.href).toBe('https://mapslibvn.pages.dev/');
     expect(attributionHtml()).not.toMatch(/github\.com/);
   });
 

@@ -24,7 +24,7 @@ export function SapMo() {
         </p>
       )}
       <p className="mt-6 text-sm text-[var(--text-muted)]">
-        <a className="underline" href="https://mapslibvn-site.pages.dev/">
+        <a className="underline" href="https://mapslibvn.pages.dev/">
           Xem bảng giá và tài liệu
         </a>
       </p>
