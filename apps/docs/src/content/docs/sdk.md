@@ -290,14 +290,14 @@ Tham số thứ hai là `deps`. Bản ESM cần `{ maplibre: maplibregl }`; nế
 | `places` | `MapsLibVNClient` | client core dùng chung `apiKey` và `apiBase` |
 | `routes` | `RoutesLayer` | `show(response, { active, markers })`, `setActive(i)`, `setProgress(shapeIndex, snapped)`, `clear()` — source `mapslibvn-route`, bốn layer chèn dưới nhãn |
 | `navigation` | `NavigationController` | `start(opts)`, `stop()`, `recenter()`, `reroute()`, `state`, `status`, `following`, `on/off` — xem [Dẫn đường](/dan-duong/) |
-| `addMarker(o)` | `maplibregl.Marker` | `o` là `MarkerOptions`; có `popupHtml` thì gắn `Popup` với `offset: 24` |
+| `addMarker(o)` | `maplibregl.Marker` | `o` là `MarkerOptions`; có `popupText` hoặc `popupHtml` thì gắn `Popup` với `offset: 24` |
 | `fitBounds(bbox, padding?)` | `void` | `bbox` là `[minLng, minLat, maxLng, maxLat]`, `padding` mặc định `40` |
 | `flyTo(center, zoom?)` | `void` | `center` là `[lng, lat]`; bỏ `zoom` thì giữ zoom hiện tại |
 | `on(event, handler)` | `void` | |
 | `off(event, handler)` | `void` | |
 | `remove()` | `void` | dừng dẫn đường, xoá tuyến rồi gọi `gl.remove()` |
 
-`MarkerOptions`: `lng`, `lat` bắt buộc; `popupHtml` và `color` tuỳ chọn (bỏ `color` thì dùng màu mặc định của MapLibre).
+`MarkerOptions`: `lng`, `lat` bắt buộc; `popupText`, `popupHtml` và `color` tuỳ chọn (bỏ `color` thì dùng màu mặc định của MapLibre). `popupText` hiện nguyên văn và là lựa chọn đúng cho dữ liệu lấy từ API. `popupHtml` gán thẳng vào `innerHTML`, không được lọc, nên chỉ dùng cho HTML bạn tự viết. Có cả hai thì `popupText` được dùng.
 
 ### Sự kiện và payload
 
@@ -374,7 +374,7 @@ Khung bọc mặc định `width: 100%`, `height: 100%`, `position: relative` �
 
 `useMap()` trả bản đồ hiện hành (cùng kiểu `MapsLibVNMap` của `@mapslibvn/web`). Gọi ngoài `<MapsLibVNMap>` sẽ **ném lỗi** `useMap phải được gọi bên trong <MapsLibVNMap>`.
 
-`<Marker>` nhận đúng `MarkerOptions`: `lng`, `lat` bắt buộc, `popupHtml` và `color` tuỳ chọn. Component không render DOM của riêng nó; marker được thêm vào bản đồ khi mount và tự xoá khi unmount hoặc khi một trong bốn prop đổi.
+`<Marker>` nhận đúng `MarkerOptions`: `lng`, `lat` bắt buộc, `popupText`, `popupHtml` và `color` tuỳ chọn. Component không render DOM của riêng nó; marker được thêm vào bản đồ khi mount và tự xoá khi unmount hoặc khi một prop đổi.
 
 ```tsx
 usePlaces(query, { near, limit, debounceMs, client }) // → { items, loading, error }

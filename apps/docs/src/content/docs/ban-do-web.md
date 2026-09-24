@@ -113,8 +113,13 @@ const marker = map.addMarker({
 | Trường | Kiểu | Bắt buộc | Ghi chú |
 |---|---|---|---|
 | `lng`, `lat` | `number` | có | — |
-| `popupHtml` | `string` | không | Gắn `maplibregl.Popup` với `offset: 24` |
+| `popupText` | `string` | không | Popup văn bản thuần, hiện nguyên văn. Dùng cho mọi dữ liệu lấy từ API |
+| `popupHtml` | `string` | không | Popup HTML, **không được lọc**. Chỉ truyền HTML bạn tự viết |
 | `color` | `string` | không | Màu marker mặc định của MapLibre |
+
+Tên POI, địa chỉ và mọi chuỗi khác lấy từ API là dữ liệu bản đồ mà bên thứ ba sửa được. Đưa chúng
+vào `popupHtml` là để trang của bạn chạy HTML của người lạ, nên hãy dùng `popupText`. Có cả hai
+thì `popupText` được dùng. Popup luôn gắn `maplibregl.Popup` với `offset: 24`.
 
 `addMarker` trả về **`maplibregl.Marker`** đã `addTo(map.gl)`. Muốn gỡ thì gọi `marker.remove()`;
 muốn di chuyển thì `marker.setLngLat([lng, lat])`.
@@ -222,7 +227,7 @@ const { items } = await map.places.nearby({
   radius: 800,
   category: 'cafe',
 });
-for (const p of items) map.addMarker({ lng: p.lng, lat: p.lat, popupHtml: p.name });
+for (const p of items) map.addMarker({ lng: p.lng, lat: p.lat, popupText: p.name });
 ```
 
 Danh sách phương thức đầy đủ ở [Tìm kiếm & autocomplete](/tim-kiem/) và [SDK JavaScript](/sdk/).

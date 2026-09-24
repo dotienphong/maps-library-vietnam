@@ -146,8 +146,12 @@ component React, nên hãy import kèm bí danh:
 | Prop | Kiểu | Bắt buộc |
 |---|---|---|
 | `lng`, `lat` | `number` | có |
+| `popupText` | `string` | không |
 | `popupHtml` | `string` | không |
 | `color` | `string` | không |
+
+`popupText` hiện nguyên văn, dùng nó cho tên POI và mọi dữ liệu lấy từ API. `popupHtml` không được
+lọc, chỉ truyền HTML bạn tự viết.
 
 `<Marker>` không render DOM nào của riêng nó (`return null`): nó gọi `map.addMarker` trong effect và
 gỡ marker khi unmount. Đổi bất kỳ prop nào cũng gỡ marker cũ rồi thêm marker mới. Phải đặt bên trong

@@ -32,7 +32,7 @@ Bản UMD tự gọi `defineAutocomplete()` khi nạp, nên chỉ cần đặt t
   ac.addEventListener('select', (event) => {
     const item = event.detail;
     map.flyTo([item.lng, item.lat], 16);
-    map.addMarker({ lng: item.lng, lat: item.lat, popupHtml: item.name });
+    map.addMarker({ lng: item.lng, lat: item.lat, popupText: item.name });
   });
 </script>
 ```

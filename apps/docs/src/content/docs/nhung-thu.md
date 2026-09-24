@@ -75,7 +75,7 @@ Tạo một thư mục trống, đặt file `index.html` với nội dung sau. K
     ac.addEventListener('select', (e) => {
       const item = e.detail;
       if (marker) marker.remove();
-      marker = map.addMarker({ lng: item.lng, lat: item.lat, popupHtml: '<b>' + item.name + '</b>' });
+      marker = map.addMarker({ lng: item.lng, lat: item.lat, popupText: item.name });
       map.flyTo([item.lng, item.lat], 16);
       say('đã chọn: ' + item.name);
     });

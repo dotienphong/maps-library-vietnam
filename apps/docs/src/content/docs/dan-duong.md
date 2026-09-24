@@ -175,10 +175,10 @@ map.routes.show(response);
 map.fitBounds(response.routes[0].bbox, 60);
 
 // Đánh số điểm ghé theo thứ tự nên đi: waypoints[k + 1] là điểm ghé thứ k (waypoints[0] là from).
-// MarkerOptions của @mapslibvn/web nhận lng/lat rời và popupHtml, không có nhãn chữ trên ghim.
+// MarkerOptions của @mapslibvn/web nhận lng/lat rời và popupText, không có nhãn chữ trên ghim.
 response.order.forEach((stopIndex, k) => {
   const [lng, lat] = response.waypoints[k + 1].location;
-  map.addMarker({ lng, lat, popupHtml: `Điểm ghé ${k + 1} (đơn số ${stopIndex + 1})` });
+  map.addMarker({ lng, lat, popupText: `Điểm ghé ${k + 1} (đơn số ${stopIndex + 1})` });
 });
 
 startButton.onclick = () => map.navigation.start({ response });
