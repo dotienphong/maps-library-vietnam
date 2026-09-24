@@ -92,6 +92,29 @@ describe('createMapOnto', () => {
     expect(map.fitBounds).not.toHaveBeenCalled();
   });
 
+  it('mot-chot: tên POI lân cận đi vào popup dạng văn bản thuần, không phải HTML', () => {
+    // Tên POI đến nguyên văn từ OSM/Foursquare; ghép vào popupHtml là XSS trong origin admin.
+    const { deps, map } = fakeSdk();
+    const docHai: MapPlan = {
+      mode: 'mot-chot',
+      point: { lat: 10.78, lng: 106.7 },
+      nearby: [
+        {
+          id: 'p2',
+          name: '<img src=x>',
+          category: null,
+          lat: 10.7801,
+          lng: 106.7002,
+          distance_m: 40,
+        },
+      ],
+    };
+    createMapOnto(deps, document.createElement('div'), docHai);
+    const calls = map.addMarker.mock.calls.map((c) => c[0] as Record<string, unknown>);
+    expect(calls.some((o) => 'popupHtml' in o)).toBe(false);
+    expect(calls[0]?.popupText).toBe('<img src=x> · 40 m');
+  });
+
   it('so-sanh: vẽ đường nối khi style đã tải xong', () => {
     const { deps, gl } = fakeSdk();
     createMapOnto(deps, document.createElement('div'), SO_SANH);

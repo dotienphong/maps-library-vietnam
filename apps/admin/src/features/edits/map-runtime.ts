@@ -85,7 +85,9 @@ export function createMapOnto(
         lng: poi.lng,
         lat: poi.lat,
         color: COLOR_CU,
-        popupHtml: `${poi.name ?? poi.id} · ${poi.distance_m} m`,
+        // Văn bản thuần, KHÔNG phải HTML: tên POI đến nguyên văn từ OSM/Foursquare, ghép vào
+        // popupHtml là chạy được mã trong origin admin (audit bảo mật 23/09/2026).
+        popupText: `${poi.name ?? poi.id} · ${poi.distance_m} m`,
       });
     }
     map.addMarker({ lng: plan.point.lng, lat: plan.point.lat, color: COLOR_MOI });

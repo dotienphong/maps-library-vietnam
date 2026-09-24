@@ -678,28 +678,7 @@ export class QuotaObject extends DurableObject<Env> {
       }
       if (row.state !== 'awaiting_ack') throw new BillingCommandError('receipt_closed');
       if (row.token_hash !== tokenHash) throw new BillingCommandError('invalid_receipt_token');
-      this.moveReserved(row, -1);
-      this.moveUsed(row, 1);
-      this.ctx.storage.sql.exec(
-        "UPDATE reservation SET state='committed',updated_at=? WHERE request_id=?",
-        now,
-        requestId,
-      );
-      // Đây là dòng journal DUY NHẤT nằm trên đường nóng, và nó đi kèm đúng lúc lượt được tính
-      // tiền. reserve/prepare/release không ghi journal: chúng chỉ động tới `reserved`, mà
-      // `reserved` không được phục hồi — sau khôi phục mọi chỗ đang giữ đều nhả về cho khách.
-      this.appendJournal(
-        'commit',
-        requestId,
-        {
-          group: row.group_name,
-          sourceKind: row.source_kind,
-          sourceId: row.source_id,
-          dayKey: row.day_key,
-          deadline: row.deadline,
-        },
-        now,
-      );
+      this.commitRow(row, now);
       receipt = {
         requestId,
         state: 'committed',
@@ -852,7 +831,7 @@ export class QuotaObject extends DurableObject<Env> {
           actor,
           reason,
         );
-        this.releaseKeyPending(keyHash, now, 'key_revoked');
+        this.releaseKeyPending(keyHash, now, 'key_revoked', actor.startsWith('customer:'));
       } else {
         this.ctx.storage.sql.exec('DELETE FROM revoked_key WHERE key_hash=?', keyHash);
       }
@@ -1655,7 +1634,18 @@ export class QuotaObject extends DurableObject<Env> {
     this.releasePendingRows(rows, now, reason);
   }
 
-  private releaseKeyPending(keyHash: string, now: number, reason: string): void {
+  /**
+   * `chargeDelivered`: khách TỰ thu hồi khoá thì lượt `awaiting_ack` (response 2xx đã giao) bị
+   * tính như đã ACK. Ngoại lệ "thu hồi không tính" của spec 15/09 viết cho admin xử lý khoá bị lộ;
+   * giao nó cho khách thì thu hồi rồi cấp lại khoá thành cách dùng không mất lượt và không bao giờ
+   * chạm khoá `ack_required` (audit bảo mật 23/09/2026). Lượt `reserved` chưa giao gì nên vẫn nhả.
+   */
+  private releaseKeyPending(
+    keyHash: string,
+    now: number,
+    reason: string,
+    chargeDelivered = false,
+  ): void {
     const rows = this.ctx.storage.sql
       .exec(
         `SELECT request_id,group_name,state,source_kind,source_id,day_key,token_hash,deadline
@@ -1663,7 +1653,39 @@ export class QuotaObject extends DurableObject<Env> {
         keyHash,
       )
       .toArray() as ReservationRow[];
-    this.releasePendingRows(rows, now, reason);
+    const delivered = chargeDelivered ? rows.filter((row) => row.state === 'awaiting_ack') : [];
+    for (const row of delivered) this.commitRow(row, now);
+    this.releasePendingRows(
+      rows.filter((row) => !delivered.includes(row)),
+      now,
+      reason,
+    );
+  }
+
+  /** Tính một lượt đã giao: chuyển `reserved` sang `used` và ghi journal `commit`. */
+  private commitRow(row: ReservationRow, now: number): void {
+    this.moveReserved(row, -1);
+    this.moveUsed(row, 1);
+    this.ctx.storage.sql.exec(
+      "UPDATE reservation SET state='committed',updated_at=? WHERE request_id=?",
+      now,
+      row.request_id,
+    );
+    // Dòng journal duy nhất đi kèm lúc lượt được tính tiền. reserve/prepare/release không ghi
+    // journal: chúng chỉ động tới `reserved`, mà `reserved` không được phục hồi — sau khôi phục
+    // mọi chỗ đang giữ đều nhả về cho khách.
+    this.appendJournal(
+      'commit',
+      row.request_id,
+      {
+        group: row.group_name,
+        sourceKind: row.source_kind,
+        sourceId: row.source_id,
+        dayKey: row.day_key,
+        deadline: row.deadline,
+      },
+      now,
+    );
   }
 
   private releasePendingRows(rows: ReservationRow[], now: number, reason: string): void {

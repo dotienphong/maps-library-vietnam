@@ -42,6 +42,15 @@ export interface CreateMapOptions {
 export interface MarkerOptions {
   lng: number;
   lat: number;
+  /**
+   * Nội dung popup dạng văn bản thuần, hiển thị nguyên văn. Dùng cái này cho mọi dữ liệu lấy từ
+   * API (tên POI, địa chỉ…): dữ liệu bản đồ do bên thứ ba sửa được.
+   */
+  popupText?: string;
+  /**
+   * HTML của popup, gán thẳng vào `innerHTML` và KHÔNG được lọc. Chỉ truyền HTML bạn tự viết; dữ
+   * liệu từ API phải escape trước, hoặc dùng `popupText`. Có cả hai thì `popupText` thắng.
+   */
   popupHtml?: string;
   color?: string;
 }
@@ -159,7 +168,8 @@ export function createMap(opts: CreateMapOptions, deps?: Deps): MapsLibVNMap {
         o.lng,
         o.lat,
       ]);
-      if (o.popupHtml) marker.setPopup(new ml.Popup({ offset: 24 }).setHTML(o.popupHtml));
+      if (o.popupText) marker.setPopup(new ml.Popup({ offset: 24 }).setText(o.popupText));
+      else if (o.popupHtml) marker.setPopup(new ml.Popup({ offset: 24 }).setHTML(o.popupHtml));
       return marker.addTo(gl);
     },
     fitBounds(bbox, padding = 40) {

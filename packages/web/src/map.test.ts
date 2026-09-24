@@ -45,6 +45,7 @@ function fakeMaplibre() {
   }
   class Popup {
     setHTML = vi.fn(() => this);
+    setText = vi.fn(() => this);
   }
   class AttributionControl {
     options: Record<string, unknown>;
@@ -155,6 +156,24 @@ describe('createMap', () => {
     expect(marker.setLngLat).toHaveBeenCalledWith([106.7, 10.77]);
     expect(marker.setPopup).toHaveBeenCalled();
     expect(marker.addTo).toHaveBeenCalledWith(m.gl);
+  });
+
+  it('addMarker với popupText dùng setText, không bao giờ parse HTML', () => {
+    const { ml } = fakeMaplibre();
+    const m = createMap(base, { maplibre: ml as never });
+    const marker = m.addMarker({
+      lng: 106.7,
+      lat: 10.77,
+      popupText: '<b>Tên POI</b>',
+    }) as unknown as {
+      setPopup: ReturnType<typeof vi.fn>;
+    };
+    const popup = marker.setPopup.mock.calls[0]?.[0] as {
+      setText: ReturnType<typeof vi.fn>;
+      setHTML: ReturnType<typeof vi.fn>;
+    };
+    expect(popup.setText).toHaveBeenCalledWith('<b>Tên POI</b>');
+    expect(popup.setHTML).not.toHaveBeenCalled();
   });
 
   it('poiClick nhận feature từ lớp poi khi click', () => {

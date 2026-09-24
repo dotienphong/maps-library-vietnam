@@ -464,4 +464,30 @@ describe('QuotaObject reservations', () => {
       });
     });
   });
+
+  it('charges delivered receipts when the customer revokes their own key', async () => {
+    const { object } = await provision();
+    const keyHash = 'c'.repeat(64);
+    // Một lượt đã giao dữ liệu (awaiting_ack) và một lượt handler còn đang chạy (reserved).
+    await object.reserve('customer-delivered', 'places', keyHash);
+    await object.prepare('customer-delivered', await tokenHash('delivered-token'));
+    await object.reserve('customer-in-flight', 'places', keyHash);
+    await object.setKeyRevoked(
+      keyHash,
+      true,
+      'customer-revoke',
+      'customer:khach@test.local',
+      'Khách tự thu hồi qua cổng khách hàng',
+    );
+    // Dữ liệu đã giao thì phải tính: nếu không, tự thu hồi khoá là cách dùng không mất lượt.
+    expect(await object.readReceipt('customer-delivered')).toMatchObject({
+      state: 'committed',
+      charged: true,
+    });
+    // Handler chưa trả gì cho client thì nhả như cũ.
+    expect(await object.readReceipt('customer-in-flight')).toMatchObject({
+      state: 'released',
+      charged: false,
+    });
+  });
 });
