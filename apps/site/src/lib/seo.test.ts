@@ -5,9 +5,14 @@ import {
   breadcrumbJsonLd,
   canonicalUrl,
   faqJsonLd,
+  LOGO,
+  ORG_ID,
   organizationJsonLd,
+  SOFTWARE_ID,
   seoMeta,
   softwareApplicationJsonLd,
+  WEBSITE_ID,
+  websiteJsonLd,
 } from './seo';
 import { TRANG } from './trang';
 
@@ -42,6 +47,13 @@ describe('seoMeta', () => {
     const meta = seoMeta(TRANG.baiViet, { type: 'article', publishedAt: '2026-09-18' });
     expect(meta.og.type).toBe('article');
     expect(meta.og.publishedTime).toBe('2026-09-18');
+  });
+
+  it('ảnh OG khai kích thước và alt để Zalo/Facebook vẽ thẻ ngay lần đầu', () => {
+    const meta = seoMeta(TRANG.bangGia);
+    expect(meta.og.imageWidth).toBe(1200);
+    expect(meta.og.imageHeight).toBe(630);
+    expect(meta.og.imageAlt).toBe(TRANG.bangGia.title);
   });
 });
 
@@ -94,8 +106,62 @@ describe('JSON-LD', () => {
     expect(bread.itemListElement[1]?.item).toBe('https://mapslibvn.pages.dev/bai-viet/');
   });
 
+  it('Organization có @id cố định, logo vuông và sameAs không dẫn về repo', () => {
+    const ld = organizationJsonLd();
+    expect(ld['@id']).toBe('https://mapslibvn.pages.dev/#organization');
+    expect(ORG_ID).toBe(ld['@id']);
+    expect(ld.logo).toEqual({
+      '@type': 'ImageObject',
+      url: 'https://mapslibvn.pages.dev/logo-512.png',
+      width: 512,
+      height: 512,
+    });
+    expect(LOGO.width).toBe(LOGO.height);
+    expect(ld.sameAs).toContain('https://www.npmjs.com/org/mapslibvn');
+    expect(JSON.stringify(ld.sameAs)).not.toContain('github.com');
+  });
+
+  it('WebSite tham chiếu tổ chức bằng @id', () => {
+    const ld = websiteJsonLd();
+    expect(ld['@type']).toBe('WebSite');
+    expect(ld['@id']).toBe(WEBSITE_ID);
+    expect(ld.url).toBe('https://mapslibvn.pages.dev/');
+    expect(ld.inLanguage).toBe('vi');
+    expect(ld.publisher).toEqual({ '@id': ORG_ID });
+  });
+
+  it('SoftwareApplication có @id, mô tả trang chủ, publisher và link tài liệu', () => {
+    const ld = softwareApplicationJsonLd();
+    expect(ld['@id']).toBe(SOFTWARE_ID);
+    expect(ld.description).toBe(TRANG.trangChu.description);
+    expect(ld.publisher).toEqual({ '@id': ORG_ID });
+    expect(ld.softwareHelp).toEqual({
+      '@type': 'CreativeWork',
+      url: 'https://mapslibvn-docs.pages.dev/',
+    });
+  });
+
+  it('Article tham chiếu tổ chức bằng @id, có ảnh và ngôn ngữ', () => {
+    const ld = articleJsonLd({
+      title: 'T',
+      description: 'D',
+      path: '/bai-viet/x/',
+      publishedAt: '2026-09-18',
+    });
+    expect(ld.author).toEqual({ '@id': ORG_ID });
+    expect(ld.publisher).toEqual({ '@id': ORG_ID });
+    expect(ld.image).toBe('https://mapslibvn.pages.dev/og/mac-dinh-v3.png');
+    expect(ld.inLanguage).toBe('vi');
+  });
+
   it('mọi khối JSON-LD serialize được và có @context', () => {
-    for (const ld of [organizationJsonLd(), softwareApplicationJsonLd(), faqJsonLd([])]) {
+    for (const ld of [
+      organizationJsonLd(),
+      websiteJsonLd(),
+      softwareApplicationJsonLd(),
+      faqJsonLd([]),
+      articleJsonLd({ title: 'T', description: 'D', path: '/x/', publishedAt: '2026-09-18' }),
+    ]) {
       expect(ld['@context']).toBe('https://schema.org');
       expect(() => JSON.parse(JSON.stringify(ld))).not.toThrow();
     }

@@ -3,6 +3,7 @@
 // @fontsource nên ra ĐÚNG một asset, không nhân đôi tệp font.
 import font800Latin from '@fontsource/be-vietnam-pro/files/be-vietnam-pro-latin-800-normal.woff2?url';
 import font800Viet from '@fontsource/be-vietnam-pro/files/be-vietnam-pro-vietnamese-800-normal.woff2?url';
+import { GOOGLE_SITE_VERIFICATION } from '../../site.config.mjs';
 import { organizationJsonLd, type SeoTuyChon, seoMeta } from '../lib/seo';
 import type { TrangMeta } from '../lib/trang';
 
@@ -31,12 +32,22 @@ const khoi = [organizationJsonLd(), ...jsonLd];
 <link rel="preload" as="font" type="font/woff2" crossorigin href={font800Viet} />
 <title>{meta.title}</title>
 <meta name="description" content={meta.description} />
+{/* Cho Google hiện ảnh xem trước cỡ lớn (Discover, kết quả có ảnh); mặc định chỉ là cỡ chuẩn. */}
+<meta name="robots" content="max-image-preview:large" />
 <link rel="canonical" href={meta.canonical} />
+{
+  GOOGLE_SITE_VERIFICATION && (
+    <meta name="google-site-verification" content={GOOGLE_SITE_VERIFICATION} />
+  )
+}
 
 <meta property="og:title" content={meta.og.title} />
 <meta property="og:description" content={meta.og.description} />
 <meta property="og:url" content={meta.og.url} />
 <meta property="og:image" content={meta.og.image} />
+<meta property="og:image:width" content={String(meta.og.imageWidth)} />
+<meta property="og:image:height" content={String(meta.og.imageHeight)} />
+<meta property="og:image:alt" content={meta.og.imageAlt} />
 <meta property="og:type" content={meta.og.type} />
 <meta property="og:locale" content={meta.og.locale} />
 <meta property="og:site_name" content={meta.og.siteName} />

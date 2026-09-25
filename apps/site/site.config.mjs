@@ -11,3 +11,13 @@ export const SUPPORT_PHONE = '+84983450456';
 /** Dạng người đọc, tách nhóm cho dễ nhìn. Hai hằng phải cùng một số. */
 export const SUPPORT_PHONE_HIEN_THI = '+84 983 450 456';
 export const BRAND = 'MapsLibVN';
+/**
+ * Hồ sơ chính thức của MapsLibVN ở nơi khác, cho `sameAs` của Organization. Thêm trang Facebook,
+ * LinkedIn… khi lập. KHÔNG thêm repo GitHub: PHONG không công bố hướng dẫn tự host (23/09/2026).
+ */
+export const SAME_AS = ['https://www.npmjs.com/org/mapslibvn'];
+/**
+ * Mã xác thực Google Search Console (phương thức thẻ HTML) cho property URL prefix
+ * https://mapslibvn.pages.dev/. Rỗng thì không in thẻ. Mã nằm công khai trong HTML nên commit được.
+ */
+export const GOOGLE_SITE_VERIFICATION = '';

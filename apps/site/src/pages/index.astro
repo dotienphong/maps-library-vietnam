@@ -13,7 +13,7 @@ import SoLieu from '../components/SoLieu.astro';
 import The from '../components/The.astro';
 import Base from '../layouts/Base.astro';
 import { GOI_NOI_BAT, soSanh, tomTatGia } from '../lib/gia';
-import { faqJsonLd, softwareApplicationJsonLd } from '../lib/seo';
+import { faqJsonLd, softwareApplicationJsonLd, websiteJsonLd } from '../lib/seo';
 import { TRANG } from '../lib/trang';
 
 /* Khoảng phần trăm TÍNH TỪ COMPARISON, không gõ tay: đổi bảng giá đối thủ là con số tự đúng theo. */
@@ -56,7 +56,10 @@ const VI_SAO = [
 ] as const;
 ---
 
-<Base trang={TRANG.trangChu} jsonLd={[softwareApplicationJsonLd(), faqJsonLd(CAU_HOI)]}>
+<Base
+  trang={TRANG.trangChu}
+  jsonLd={[websiteJsonLd(), softwareApplicationJsonLd(), faqJsonLd(CAU_HOI)]}
+>
   <Hero />
 
   <BanDoSong />

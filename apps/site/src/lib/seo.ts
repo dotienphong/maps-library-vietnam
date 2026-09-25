@@ -1,8 +1,30 @@
 import { PAID_TIERS, PLAN_CATALOG } from '@mapslibvn/catalog';
-import { BRAND, SITE_URL, SUPPORT_EMAIL, SUPPORT_PHONE } from '../../site.config.mjs';
-import type { TrangMeta } from './trang';
+import {
+  BRAND,
+  DOCS_URL,
+  SAME_AS,
+  SITE_URL,
+  SUPPORT_EMAIL,
+  SUPPORT_PHONE,
+} from '../../site.config.mjs';
+import { TRANG, type TrangMeta } from './trang';
 
 const OG_MAC_DINH = '/og/mac-dinh-v3.png';
+/** Mọi ảnh OG do scripts/site-images.mjs sinh đều 1200×630. */
+const OG_RONG = 1200;
+const OG_CAO = 630;
+
+/**
+ * `@id` cố định của các thực thể trong JSON-LD. Tài liệu (`apps/docs/src/lib/seo-docs.ts`) dùng
+ * lại ĐÚNG `ORG_ID`, nên máy hiểu website và tài liệu — hai tên miền — là cùng một chủ.
+ */
+export const ORG_ID = `${SITE_URL}/#organization`;
+export const WEBSITE_ID = `${SITE_URL}/#website`;
+export const SOFTWARE_ID = `${SITE_URL}/#software`;
+
+/** Logo vuông sinh từ favicon.svg (`node scripts/site-images.mjs --logo`). Không dùng ảnh OG
+ *  1200×630: Google cắt logo về khung vuông. */
+export const LOGO = { url: `${SITE_URL}/logo-512.png`, width: 512, height: 512 } as const;
 
 /** URL tuyệt đối, luôn có dấu gạch cuối. Hai URL cho cùng một trang là tự chia điểm SEO. */
 export function canonicalUrl(path: string): string {
@@ -28,6 +50,9 @@ export function seoMeta(trang: TrangMeta, tuyChon: SeoTuyChon = {}) {
       description: trang.description,
       url: canonical,
       image,
+      imageWidth: OG_RONG,
+      imageHeight: OG_CAO,
+      imageAlt: trang.title,
       type: tuyChon.type ?? 'website',
       locale: 'vi_VN',
       siteName: BRAND,
@@ -46,10 +71,12 @@ export function organizationJsonLd() {
   return {
     '@context': 'https://schema.org',
     '@type': 'Organization',
+    '@id': ORG_ID,
     name: BRAND,
     url: canonicalUrl('/'),
-    logo: `${SITE_URL}${OG_MAC_DINH}`,
+    logo: { '@type': 'ImageObject', ...LOGO },
     description: 'Nền tảng bản đồ và địa điểm Việt Nam dựng trên dữ liệu mở.',
+    sameAs: [...SAME_AS],
     contactPoint: {
       '@type': 'ContactPoint',
       email: SUPPORT_EMAIL,
@@ -57,6 +84,19 @@ export function organizationJsonLd() {
       contactType: 'customer support',
       availableLanguage: ['vi', 'en'],
     },
+  } as const;
+}
+
+/** Chỉ đặt ở trang chủ. Không có `SearchAction`: website không có ô tìm kiếm. */
+export function websiteJsonLd() {
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'WebSite',
+    '@id': WEBSITE_ID,
+    name: BRAND,
+    url: canonicalUrl('/'),
+    inLanguage: 'vi',
+    publisher: { '@id': ORG_ID },
   } as const;
 }
 
@@ -78,10 +118,14 @@ export function softwareApplicationJsonLd() {
   return {
     '@context': 'https://schema.org',
     '@type': 'SoftwareApplication',
+    '@id': SOFTWARE_ID,
     name: BRAND,
+    description: TRANG.trangChu.description,
     applicationCategory: 'DeveloperApplication',
     operatingSystem: 'Web, iOS, Android',
     url: canonicalUrl('/'),
+    publisher: { '@id': ORG_ID },
+    softwareHelp: { '@type': 'CreativeWork', url: `${DOCS_URL}/` },
     offers,
   } as const;
 }
@@ -104,6 +148,8 @@ export function articleJsonLd(input: {
   path: string;
   publishedAt: string;
   updatedAt?: string;
+  /** URL tuyệt đối ảnh của bài; thiếu thì ảnh OG mặc định của site. */
+  image?: string;
 }) {
   return {
     '@context': 'https://schema.org',
@@ -111,10 +157,12 @@ export function articleJsonLd(input: {
     headline: input.title,
     description: input.description,
     mainEntityOfPage: canonicalUrl(input.path),
+    image: input.image ?? `${SITE_URL}${OG_MAC_DINH}`,
+    inLanguage: 'vi',
     datePublished: input.publishedAt,
     dateModified: input.updatedAt ?? input.publishedAt,
-    author: { '@type': 'Organization' as const, name: BRAND, url: canonicalUrl('/') },
-    publisher: { '@type': 'Organization' as const, name: BRAND, url: canonicalUrl('/') },
+    author: { '@id': ORG_ID },
+    publisher: { '@id': ORG_ID },
   } as const;
 }
 
