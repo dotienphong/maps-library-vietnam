@@ -70,10 +70,17 @@ DB + routing qua tunnel như 23/09.
 
 ## Việc của PHONG
 
+Thẻ `google-site-verification` lên production ở commit `876ef61` (Deploy Site/Docs xanh), cùng một mã
+cho hai property vì Google cấp mã theo tài khoản; đã curl thấy thẻ trên trang chủ cả hai host.
+
 | # | Việc | Ngày làm | Kết quả |
 |---|---|---|---|
-| 6 | Rich Results Test: `/`, `/bang-gia/`, một bài viết, `/api/` của docs | | |
-| 8a | Search Console: xác thực `https://mapslibvn.pages.dev/`, gửi sitemap, Request indexing trang chủ | | |
-| 8b | Search Console: xác thực `https://mapslibvn-docs.pages.dev/`, gửi sitemap | | |
-| 8c | Bing Webmaster: Import from Google Search Console | | |
-| 8d | Kiểm lại: trang chủ đã được lập chỉ mục (hạn 14 ngày sau 8a) | | |
+| 6 | Rich Results Test: `/`, `/bang-gia/`, một bài viết, `/api/` của docs | 25/09/2026 | PHONG báo đã làm (chưa gửi ảnh chụp) |
+| 8a | Search Console: xác thực `https://mapslibvn.pages.dev/`, gửi sitemap, Request indexing trang chủ | 25/09/2026 | PHONG báo đã xong |
+| 8b | Search Console: xác thực `https://mapslibvn-docs.pages.dev/`, gửi sitemap | 25/09/2026 | PHONG báo đã xong |
+| 8c | Bing Webmaster: Import from Google Search Console | 25/09/2026 | PHONG báo đã xong |
+| 8d | Kiểm lại: trang chủ đã được lập chỉ mục (hạn 14 ngày sau 8a, tức trước 09/10/2026) | | |
+
+Ghi chú về `sitemap-index.xml`: `lastmod` của mục chỉ mục là ngày MỚI NHẤT trong các URL mà tệp con
+chứa (`@astrojs/sitemap` `getLatestLastmod`) — site ra `2026-09-18` vì chỉ bài viết mang ngày (quyết
+định 5), docs ra `2026-09-25T10:57:55Z`. Đúng như thiết kế, không phải lỗi.
