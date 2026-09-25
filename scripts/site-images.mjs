@@ -1,8 +1,11 @@
 #!/usr/bin/env node
-// Sinh ảnh cho website: ảnh nền hero (chụp playground thật) và ảnh OG 1200×630 cho từng trang.
-//   node scripts/site-images.mjs            — làm cả hai
-//   node scripts/site-images.mjs --og       — chỉ ảnh OG (không cần mạng ngoài)
-//   node scripts/site-images.mjs --hero     — chỉ ảnh hero
+// Sinh ảnh cho website và tài liệu: ảnh nền hero (chụp playground thật), ảnh OG 1200×630 và logo
+// vuông 512×512.
+//   node scripts/site-images.mjs              — làm hết
+//   node scripts/site-images.mjs --og         — mọi ảnh OG (không cần mạng ngoài)
+//   node scripts/site-images.mjs --og=<tên>   — một ảnh OG, ví dụ --og=tai-lieu
+//   node scripts/site-images.mjs --logo       — chỉ logo
+//   node scripts/site-images.mjs --hero       — chỉ ảnh hero
 // Ảnh được COMMIT vào repo: build trên Cloudflare Pages không chạy Playwright.
 import { mkdir, readFile, stat } from 'node:fs/promises';
 import { createRequire } from 'node:module';
@@ -11,6 +14,9 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 
 const GOC = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const THU_MUC_OG = resolve(GOC, 'apps/site/public/og');
+const THU_MUC_OG_DOCS = resolve(GOC, 'apps/docs/public/og');
+const FAVICON = resolve(GOC, 'apps/site/public/favicon.svg');
+const LOGO = resolve(GOC, 'apps/site/public/logo-512.png');
 // JPEG chứ không PNG: đây là ảnh raster nhiều màu như một tấm ảnh chụp, PNG cho ra tệp nặng gấp
 // gần mười lần mà mắt không thấy khác. Astro vẫn chuyển sang AVIF/WebP lúc build, tệp này chỉ là
 // bản gốc nằm trong repo.
@@ -34,7 +40,7 @@ const FONT_DAI = ['latin', 'vietnamese'];
  * scripts/*.mjs phải có kiểu qua JSDoc. Khai hẹp đúng phần Playwright mà script này dùng, thay vì
  * kéo cả kiểu của @playwright/test vào — gói đó không nằm ở node_modules gốc.
  *
- * @typedef {{ path: string, type?: 'png' | 'jpeg', quality?: number }} TuyChonChup
+ * @typedef {{ path: string, type?: 'png' | 'jpeg', quality?: number, omitBackground?: boolean }} TuyChonChup
  * @typedef {{
  *   setContent(html: string, opts?: object): Promise<unknown>,
  *   goto(url: string, opts?: object): Promise<unknown>,
@@ -45,9 +51,14 @@ const FONT_DAI = ['latin', 'vietnamese'];
  * @typedef {{ newPage(opts?: object): Promise<Trang>, close(): Promise<unknown> }} TrinhDuyet
  * @typedef {{ launch(opts?: object): Promise<TrinhDuyet> }} Chromium
  * @typedef {{ net: number, b64: string }} NetFont
+ * @typedef {{ ten: string, tieuDe: string, phu: string, tep?: string }} AnhOg
  */
 
-/** Bốn ảnh OG. `ten` + `-v3` phải KHỚP trường `og` trong apps/site/src/lib/trang.ts. */
+/**
+ * Ảnh OG. Ảnh của site: `ten` + `-v3` phải KHỚP trường `og` trong apps/site/src/lib/trang.ts. Ảnh
+ * có `tep` thì ghi thẳng vào đó — ảnh của tài liệu đọc từ apps/docs/src/lib/seo-docs.ts.
+ * @type {AnhOg[]}
+ */
 const ANH_OG = [
   { ten: 'mac-dinh', tieuDe: 'MapsLibVN', phu: 'API bản đồ và địa điểm Việt Nam' },
   {
@@ -64,6 +75,12 @@ const ANH_OG = [
     ten: 'so-sanh',
     tieuDe: 'So sánh chi phí API bản đồ',
     phu: 'MapsLibVN · Google · VIETMAP — kèm giả định và nguồn',
+  },
+  {
+    ten: 'tai-lieu',
+    tieuDe: 'Tài liệu MapsLibVN',
+    phu: 'API bản đồ Việt Nam · Web, React, React Native',
+    tep: resolve(THU_MUC_OG_DOCS, 'tai-lieu-v1.png'),
   },
 ];
 
@@ -110,9 +127,11 @@ function trangOg({ tieuDe, phu }, fontBase64) {
 </body></html>`;
 }
 
-/** @param {Chromium} chromium */
-async function sinhAnhOg(chromium) {
-  await mkdir(THU_MUC_OG, { recursive: true });
+/**
+ * @param {Chromium} chromium
+ * @param {string | undefined} chi chỉ sinh ảnh có `ten` này; undefined = sinh tất cả
+ */
+async function sinhAnhOg(chromium, chi) {
   const fontBase64 = await Promise.all(
     FONT_NET.flatMap((net) =>
       FONT_DAI.map(async (dai) => ({
@@ -123,20 +142,45 @@ async function sinhAnhOg(chromium) {
       })),
     ),
   );
+  const danhSach = ANH_OG.filter((anh) => chi === undefined || anh.ten === chi);
+  if (danhSach.length === 0) throw new Error(`Không có ảnh OG tên "${chi}"`);
   const trinhDuyet = await chromium.launch();
   try {
     const trang = await trinhDuyet.newPage({ viewport: { width: 1200, height: 630 } });
-    for (const anh of ANH_OG) {
+    for (const anh of danhSach) {
       await trang.setContent(trangOg(anh, fontBase64), { waitUntil: 'load' });
       // Chờ font nạp xong, nếu không chữ có dấu bị vẽ bằng font dự phòng rồi mới đổi.
       await trang.evaluate(() => document.fonts.ready);
-      // Tên có hậu tố phiên bản: mạng xã hội cache ảnh OG theo URL, giữ tên cũ thì bản navy còn
+      // Tên có hậu tố phiên bản: mạng xã hội cache ảnh OG theo URL, giữ tên cũ thì bản cũ còn
       // sống trong bộ nhớ đệm của Facebook/Zalo rất lâu sau khi đã đổi.
-      const duong = resolve(THU_MUC_OG, `${anh.ten}-v3.png`);
+      const duong = anh.tep ?? resolve(THU_MUC_OG, `${anh.ten}-v3.png`);
+      await mkdir(dirname(duong), { recursive: true });
       await trang.screenshot({ path: duong });
       const { size } = await stat(duong);
-      console.log(`  og/${anh.ten}-v3.png — ${Math.round(size / 1024)} KB`);
+      console.log(`  ${duong.slice(GOC.length + 1)} — ${Math.round(size / 1024)} KB`);
     }
+  } finally {
+    await trinhDuyet.close();
+  }
+}
+
+/**
+ * Logo vuông cho `Organization.logo` trong JSON-LD: vẽ lại favicon.svg ở 512×512, nền trong suốt.
+ * Google cắt logo về khung vuông, nên ảnh OG 1200×630 không dùng làm logo được.
+ * @param {Chromium} chromium
+ */
+async function sinhLogo(chromium) {
+  const svg = (await readFile(FAVICON)).toString('base64');
+  const trinhDuyet = await chromium.launch();
+  try {
+    const trang = await trinhDuyet.newPage({ viewport: { width: 512, height: 512 } });
+    await trang.setContent(
+      `<html><body style="margin:0;background:transparent"><img src="data:image/svg+xml;base64,${svg}" width="512" height="512" style="display:block" /></body></html>`,
+      { waitUntil: 'load' },
+    );
+    await trang.screenshot({ path: LOGO, omitBackground: true });
+    const { size } = await stat(LOGO);
+    console.log(`  apps/site/public/logo-512.png — ${Math.round(size / 1024)} KB`);
   } finally {
     await trinhDuyet.close();
   }
@@ -174,8 +218,13 @@ async function chupHero(chromium) {
  * @returns {Promise<number>}
  */
 export async function main(argv) {
-  const chiOg = argv.includes('--og');
+  // --og: mọi ảnh OG · --og=<tên>: một ảnh OG · --logo: chỉ logo · --hero: chỉ ảnh hero.
+  // Không cờ nào: làm hết. Cờ --og=<tên> để thêm ảnh mới mà không vẽ lại (và làm đổi byte) ảnh cũ.
+  const ogMot = argv.find((thamSo) => thamSo.startsWith('--og='))?.slice('--og='.length);
+  const chiOg = argv.includes('--og') || ogMot !== undefined;
   const chiHero = argv.includes('--hero');
+  const chiLogo = argv.includes('--logo');
+  const tatCa = !chiOg && !chiHero && !chiLogo;
   // pnpm không nâng dependency lên gốc, và Node phân giải tên gói theo thư mục của CHÍNH file
   // này (scripts/), nơi không có node_modules. Phân giải từ apps/site — nơi thật sự khai
   // @playwright/test — rồi import bằng đường dẫn tuyệt đối.
@@ -186,12 +235,17 @@ export async function main(argv) {
   const chromium = mo.chromium ?? mo.default?.chromium;
   if (!chromium) throw new Error('Không lấy được chromium từ @playwright/test');
 
-  if (!chiHero) {
+  if (tatCa || chiOg) {
     console.log('Sinh ảnh OG…');
-    await sinhAnhOg(chromium);
+    await sinhAnhOg(chromium, ogMot);
   }
 
-  if (!chiOg) {
+  if (tatCa || chiLogo) {
+    console.log('Sinh logo…');
+    await sinhLogo(chromium);
+  }
+
+  if (tatCa || chiHero) {
     console.log('Chụp bản đồ cho hero…');
     try {
       await chupHero(chromium);
