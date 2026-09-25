@@ -63,7 +63,7 @@ Lệnh dùng xuyên suốt (chạy từ gốc repo `/Users/dtphong/Desktop/softw
 - Create: `packages/catalog/src/bot.ts`, `packages/catalog/src/bot.test.ts`
 - Modify: `packages/catalog/src/lien-ket.ts`, `packages/catalog/src/index.ts`, `apps/site/src/lib/robots.ts`, `apps/site/src/lib/robots.test.ts`, `apps/site/src/lib/lien-ket-docs.test.ts`
 
-- [ ] **Step 1: Viết test đỏ cho `robotsTxt`**
+- [x] **Step 1: Viết test đỏ cho `robotsTxt`**
 
 `packages/catalog/src/bot.test.ts`:
 
@@ -101,12 +101,12 @@ describe('robotsTxt', () => {
 });
 ```
 
-- [ ] **Step 2: Chạy, thấy đỏ**
+- [x] **Step 2: Chạy, thấy đỏ**
 
 Run: `pnpm exec vitest run packages/catalog/src/bot.test.ts`
 Expected: FAIL — `Failed to resolve import "./bot"`.
 
-- [ ] **Step 3: Viết `bot.ts`**
+- [x] **Step 3: Viết `bot.ts`**
 
 `packages/catalog/src/bot.ts`:
 
@@ -135,7 +135,7 @@ export function robotsTxt(siteUrl: string): string {
 }
 ```
 
-- [ ] **Step 4: Thêm hằng vào `lien-ket.ts`**
+- [x] **Step 4: Thêm hằng vào `lien-ket.ts`**
 
 Trong `packages/catalog/src/lien-ket.ts`, ngay sau dòng `export const DOCS_URL = 'https://mapslibvn-docs.pages.dev';` thêm:
 
@@ -159,7 +159,7 @@ và trong object `DOCS` thêm một dòng sau `timKiem`:
   api: `${DOCS_URL}/api/`,
 ```
 
-- [ ] **Step 5: Export từ `index.ts`**
+- [x] **Step 5: Export từ `index.ts`**
 
 Trong `packages/catalog/src/index.ts`: thêm dòng đầu tiên
 
@@ -173,12 +173,12 @@ và thay dòng `export { DOCS, DOCS_URL } from './lien-ket';` bằng:
 export { API_BASE, DOCS, DOCS_LLMS, DOCS_URL, SITE_URL } from './lien-ket';
 ```
 
-- [ ] **Step 6: Chạy test catalog, thấy xanh**
+- [x] **Step 6: Chạy test catalog, thấy xanh**
 
 Run: `pnpm exec vitest run packages/catalog/src/bot.test.ts`
 Expected: PASS 4/4.
 
-- [ ] **Step 7: Viết test đỏ cho robots của site và cho hằng `SITE_URL`**
+- [x] **Step 7: Viết test đỏ cho robots của site và cho hằng `SITE_URL`**
 
 Trong `apps/site/src/lib/robots.test.ts`, thêm vào trong `describe('robots.txt', …)`:
 
@@ -207,7 +207,7 @@ và thêm vào cuối `describe('địa chỉ tài liệu', …)`:
 Run: `pnpm exec vitest run apps/site/src/lib/robots.test.ts apps/site/src/lib/lien-ket-docs.test.ts`
 Expected: FAIL đúng một bài — "khai Content-Signal…". Bài `SITE_URL` xanh ngay (hai giá trị đã khớp).
 
-- [ ] **Step 8: Cho `robots.ts` gọi catalog**
+- [x] **Step 8: Cho `robots.ts` gọi catalog**
 
 Thay toàn bộ `apps/site/src/lib/robots.ts`:
 
@@ -225,7 +225,7 @@ export function noiDungRobots(): string {
 }
 ```
 
-- [ ] **Step 9: Chạy lại, thấy xanh; lint**
+- [x] **Step 9: Chạy lại, thấy xanh; lint**
 
 Run: `pnpm exec vitest run packages/catalog apps/site/src/lib/robots.test.ts apps/site/src/lib/lien-ket-docs.test.ts`
 Expected: PASS toàn bộ.
@@ -233,7 +233,7 @@ Expected: PASS toàn bộ.
 Run: `pnpm exec biome check --write packages/catalog/src apps/site/src/lib/robots.ts apps/site/src/lib/robots.test.ts apps/site/src/lib/lien-ket-docs.test.ts`
 Expected: không còn lỗi.
 
-- [ ] **Step 10: Commit**
+- [x] **Step 10: Commit**
 
 ```bash
 git add packages/catalog/src apps/site/src/lib/robots.ts apps/site/src/lib/robots.test.ts apps/site/src/lib/lien-ket-docs.test.ts
@@ -250,7 +250,7 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 - Modify: `scripts/site-images.mjs`
 - Create (sinh ra): `apps/docs/public/og/tai-lieu-v1.png`, `apps/site/public/logo-512.png`
 
-- [ ] **Step 1: Cho mỗi ảnh OG khai được đích riêng**
+- [x] **Step 1: Cho mỗi ảnh OG khai được đích riêng**
 
 Trong `scripts/site-images.mjs`:
 
@@ -423,12 +423,12 @@ và thay đoạn từ `if (!chiHero) {` tới hết khối `if (!chiOg) { … }`
 
 (Giữ nguyên dòng `// Ảnh được COMMIT vào repo: …`.) Bản `sinhAnhOg` mới không còn `mkdir(THU_MUC_OG)` ở đầu hàm: `mkdir(dirname(duong))` trong vòng lặp tạo đúng thư mục của từng ảnh, kể cả `apps/docs/public/og`.
 
-- [ ] **Step 2: Typecheck script**
+- [x] **Step 2: Typecheck script**
 
 Run: `pnpm exec tsc -p tsconfig.scripts.json`
 Expected: không lỗi.
 
-- [ ] **Step 3: Sinh hai ảnh mới — không vẽ lại ảnh cũ**
+- [x] **Step 3: Sinh hai ảnh mới — không vẽ lại ảnh cũ**
 
 Run: `node scripts/site-images.mjs --og=tai-lieu && node scripts/site-images.mjs --logo`
 Expected: in `apps/docs/public/og/tai-lieu-v1.png — … KB` và `apps/site/public/logo-512.png — … KB`.
@@ -438,7 +438,7 @@ Expected: `PNG image data, 1200 x 630` và `PNG image data, 512 x 512, 8-bit/col
 
 Mở hai ảnh bằng Read tool để nhìn: chữ tiếng Việt đủ dấu, logo tròn nền trong suốt.
 
-- [ ] **Step 4: Lint và commit**
+- [x] **Step 4: Lint và commit**
 
 Run: `pnpm exec biome check --write scripts/site-images.mjs`
 
@@ -456,7 +456,7 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 **Files:**
 - Modify: `apps/site/site.config.mjs`, `apps/site/src/lib/seo.ts`, `apps/site/src/lib/seo.test.ts`, `apps/site/src/components/SeoHead.astro`, `apps/site/src/pages/index.astro`
 
-- [ ] **Step 1: Thêm hằng vào `site.config.mjs`**
+- [x] **Step 1: Thêm hằng vào `site.config.mjs`**
 
 Cuối `apps/site/site.config.mjs` thêm:
 
@@ -473,7 +473,7 @@ export const SAME_AS = ['https://www.npmjs.com/org/mapslibvn'];
 export const GOOGLE_SITE_VERIFICATION = '';
 ```
 
-- [ ] **Step 2: Viết test đỏ**
+- [x] **Step 2: Viết test đỏ**
 
 Trong `apps/site/src/lib/seo.test.ts`:
 
@@ -571,12 +571,12 @@ import {
     ]) {
 ```
 
-- [ ] **Step 3: Chạy, thấy đỏ**
+- [x] **Step 3: Chạy, thấy đỏ**
 
 Run: `pnpm exec vitest run apps/site/src/lib/seo.test.ts`
 Expected: FAIL — `LOGO`, `ORG_ID`, `websiteJsonLd`… không được export.
 
-- [ ] **Step 4: Viết lại `seo.ts`**
+- [x] **Step 4: Viết lại `seo.ts`**
 
 Thay toàn bộ `apps/site/src/lib/seo.ts`:
 
@@ -763,12 +763,12 @@ export function breadcrumbJsonLd(items: readonly { ten: string; path: string }[]
 }
 ```
 
-- [ ] **Step 5: Chạy, thấy xanh**
+- [x] **Step 5: Chạy, thấy xanh**
 
 Run: `pnpm exec vitest run apps/site/src/lib/seo.test.ts apps/site/src/lib/trang.test.ts`
 Expected: PASS toàn bộ (bài Organization cũ vẫn xanh: `contactPoint` giữ nguyên).
 
-- [ ] **Step 6: Thẻ meta trong `SeoHead.astro`**
+- [x] **Step 6: Thẻ meta trong `SeoHead.astro`**
 
 Trong `apps/site/src/components/SeoHead.astro`:
 
@@ -807,7 +807,7 @@ bằng:
 <meta property="og:image:alt" content={meta.og.imageAlt} />
 ```
 
-- [ ] **Step 7: Trang chủ mang `WebSite`**
+- [x] **Step 7: Trang chủ mang `WebSite`**
 
 Trong `apps/site/src/pages/index.astro`: đổi `import { faqJsonLd, softwareApplicationJsonLd } from '../lib/seo';` thành
 
@@ -824,7 +824,7 @@ và dòng `<Base trang={TRANG.trangChu} jsonLd={[softwareApplicationJsonLd(), fa
 >
 ```
 
-- [ ] **Step 8: Build và nhìn HTML thật**
+- [x] **Step 8: Build và nhìn HTML thật**
 
 Run: `pnpm --filter @mapslibvn/site typecheck && pnpm --filter @mapslibvn/site build`
 Expected: `astro check` 0 lỗi; build xong.
@@ -832,7 +832,7 @@ Expected: `astro check` 0 lỗi; build xong.
 Run: `grep -o '<meta name="robots"[^>]*>\|<meta property="og:image:[a-z]*"[^>]*>' apps/site/dist/index.html; grep -c '"@type":"WebSite"' apps/site/dist/index.html; grep -c 'google-site-verification' apps/site/dist/index.html`
 Expected: đủ thẻ `robots` + ba thẻ `og:image:*`; `1`; `0` (hằng xác thực đang rỗng).
 
-- [ ] **Step 9: Lint và commit**
+- [x] **Step 9: Lint và commit**
 
 Run: `pnpm exec biome check --write apps/site/site.config.mjs apps/site/src/lib/seo.ts apps/site/src/lib/seo.test.ts apps/site/src/components/SeoHead.astro apps/site/src/pages/index.astro`
 
@@ -850,7 +850,7 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 **Files:**
 - Create: `apps/site/src/lib/llms.ts`, `apps/site/src/lib/llms.test.ts`, `apps/site/src/pages/llms.txt.ts`
 
-- [ ] **Step 1: Viết test đỏ**
+- [x] **Step 1: Viết test đỏ**
 
 `apps/site/src/lib/llms.test.ts`:
 
@@ -929,12 +929,12 @@ describe('noiDungLlms', () => {
 });
 ```
 
-- [ ] **Step 2: Chạy, thấy đỏ**
+- [x] **Step 2: Chạy, thấy đỏ**
 
 Run: `pnpm exec vitest run apps/site/src/lib/llms.test.ts`
 Expected: FAIL — `Failed to resolve import "./llms"`.
 
-- [ ] **Step 3: Viết `llms.ts`**
+- [x] **Step 3: Viết `llms.ts`**
 
 `apps/site/src/lib/llms.ts`:
 
@@ -1011,12 +1011,12 @@ export function noiDungLlms(baiViet: readonly BaiLlms[]): string {
 }
 ```
 
-- [ ] **Step 4: Chạy, thấy xanh**
+- [x] **Step 4: Chạy, thấy xanh**
 
 Run: `pnpm exec vitest run apps/site/src/lib/llms.test.ts`
 Expected: PASS 8/8.
 
-- [ ] **Step 5: Endpoint `/llms.txt`**
+- [x] **Step 5: Endpoint `/llms.txt`**
 
 `apps/site/src/pages/llms.txt.ts`:
 
@@ -1040,12 +1040,12 @@ export const GET: APIRoute = async () => {
 };
 ```
 
-- [ ] **Step 6: Build và đọc tệp thật**
+- [x] **Step 6: Build và đọc tệp thật**
 
 Run: `pnpm --filter @mapslibvn/site build && sed -n 1,20p apps/site/dist/llms.txt && grep -c 'llms' apps/site/dist/sitemap-0.xml`
 Expected: tệp mở đầu `# MapsLibVN`, có dòng giá `Starter: 650.000đ mỗi tháng, …`; số cuối là `0` (sitemap không chứa `llms.txt` — endpoint không phải trang).
 
-- [ ] **Step 7: Lint, typecheck, commit**
+- [x] **Step 7: Lint, typecheck, commit**
 
 Run: `pnpm exec biome check --write apps/site/src/lib/llms.ts apps/site/src/lib/llms.test.ts apps/site/src/pages/llms.txt.ts && pnpm --filter @mapslibvn/site typecheck`
 Expected: sạch.
@@ -1065,7 +1065,7 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 - Create: `apps/site/src/lib/lastmod.mjs`, `apps/site/src/lib/lastmod.test.ts`
 - Modify: `apps/site/astro.config.mjs`
 
-- [ ] **Step 1: Viết test đỏ**
+- [x] **Step 1: Viết test đỏ**
 
 `apps/site/src/lib/lastmod.test.ts`:
 
@@ -1122,12 +1122,12 @@ describe('lastmodChoUrl', () => {
 });
 ```
 
-- [ ] **Step 2: Chạy, thấy đỏ**
+- [x] **Step 2: Chạy, thấy đỏ**
 
 Run: `pnpm exec vitest run apps/site/src/lib/lastmod.test.ts`
 Expected: FAIL — `Failed to resolve import "./lastmod.mjs"`.
 
-- [ ] **Step 3: Viết `lastmod.mjs`**
+- [x] **Step 3: Viết `lastmod.mjs`**
 
 `apps/site/src/lib/lastmod.mjs` (JS thuần để `astro.config.mjs` import được — tệp cấu hình Astro không đọc TypeScript):
 
@@ -1165,12 +1165,12 @@ export function lastmodChoUrl(url, thuMucBai) {
 }
 ```
 
-- [ ] **Step 4: Chạy, thấy xanh**
+- [x] **Step 4: Chạy, thấy xanh**
 
 Run: `pnpm exec vitest run apps/site/src/lib/lastmod.test.ts`
 Expected: PASS 7/7.
 
-- [ ] **Step 5: Gắn vào sitemap**
+- [x] **Step 5: Gắn vào sitemap**
 
 Trong `apps/site/astro.config.mjs`:
 
@@ -1198,12 +1198,12 @@ const THU_MUC_BAI = new URL('./src/content/bai-viet/', import.meta.url);
   ],
 ```
 
-- [ ] **Step 6: Build và đọc sitemap thật**
+- [x] **Step 6: Build và đọc sitemap thật**
 
 Run: `pnpm --filter @mapslibvn/site build && grep -o '<url><loc>[^<]*</loc>\(<lastmod>[^<]*</lastmod>\)\?' apps/site/dist/sitemap-0.xml`
 Expected: hai URL `/bai-viet/<slug>/` có `<lastmod>2026-09-18…</lastmod>`; bảy URL còn lại không có `lastmod`.
 
-- [ ] **Step 7: Lint, typecheck, commit**
+- [x] **Step 7: Lint, typecheck, commit**
 
 Run: `pnpm exec biome check --write apps/site/astro.config.mjs apps/site/src/lib/lastmod.mjs apps/site/src/lib/lastmod.test.ts && pnpm --filter @mapslibvn/site typecheck`
 
@@ -1221,7 +1221,7 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 **Files:**
 - Modify: `apps/site/e2e/seo.spec.ts`
 
-- [ ] **Step 1: Thêm bài e2e**
+- [x] **Step 1: Thêm bài e2e**
 
 Thêm vào cuối `apps/site/e2e/seo.spec.ts`:
 
@@ -1257,12 +1257,12 @@ test('logo vuông mà Organization.logo trỏ tới tồn tại thật', async (
 });
 ```
 
-- [ ] **Step 2: Chạy toàn bộ e2e site**
+- [x] **Step 2: Chạy toàn bộ e2e site**
 
 Run: `pnpm test:site-e2e`
 Expected: mọi bài xanh (các bài cũ + 4 bài mới). Nếu bài `content-type` của llms đỏ vì preview trả `text/plain` không kèm charset thì vẫn đạt — bài chỉ đòi chứa `text/plain`.
 
-- [ ] **Step 3: Lint và commit**
+- [x] **Step 3: Lint và commit**
 
 Run: `pnpm exec biome check --write apps/site/e2e/seo.spec.ts`
 
@@ -1281,12 +1281,12 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 - Modify: `apps/docs/package.json` (qua `pnpm add`), `pnpm-lock.yaml`, `apps/docs/scripts/copy-legal.mjs`
 - Create: `apps/docs/docs.config.mjs`, `apps/docs/src/lib/docs-config.test.ts`, `apps/docs/scripts/ngay-git.mjs`, `apps/docs/scripts/ngay-git.test.mjs`, `apps/docs/scripts/copy-legal.test.mjs`
 
-- [ ] **Step 1: Thêm phụ thuộc catalog**
+- [x] **Step 1: Thêm phụ thuộc catalog**
 
 Run: `pnpm --filter @mapslibvn/docs add @mapslibvn/catalog@workspace:*`
 Expected: `apps/docs/package.json` có `"@mapslibvn/catalog": "workspace:*"` trong `dependencies`; lockfile đổi.
 
-- [ ] **Step 2: Viết test đỏ cho `docs.config.mjs`**
+- [x] **Step 2: Viết test đỏ cho `docs.config.mjs`**
 
 `apps/docs/src/lib/docs-config.test.ts`:
 
@@ -1311,7 +1311,7 @@ describe('docs.config.mjs', () => {
 Run: `pnpm exec vitest run apps/docs/src/lib/docs-config.test.ts`
 Expected: FAIL — không tìm thấy `../../docs.config.mjs`.
 
-- [ ] **Step 3: Viết `docs.config.mjs`**
+- [x] **Step 3: Viết `docs.config.mjs`**
 
 `apps/docs/docs.config.mjs`:
 
@@ -1335,7 +1335,7 @@ export const GOOGLE_SITE_VERIFICATION = '';
 Run: `pnpm exec vitest run apps/docs/src/lib/docs-config.test.ts`
 Expected: PASS 2/2.
 
-- [ ] **Step 4: Viết test đỏ cho `ngayGit`**
+- [x] **Step 4: Viết test đỏ cho `ngayGit`**
 
 `apps/docs/scripts/ngay-git.test.mjs`:
 
@@ -1367,7 +1367,7 @@ describe('ngayGit', () => {
 Run: `pnpm exec vitest run apps/docs/scripts/ngay-git.test.mjs`
 Expected: FAIL — không tìm thấy `./ngay-git.mjs`.
 
-- [ ] **Step 5: Viết `ngay-git.mjs`**
+- [x] **Step 5: Viết `ngay-git.mjs`**
 
 `apps/docs/scripts/ngay-git.mjs`:
 
@@ -1406,7 +1406,7 @@ export function ngayGit(tep) {
 Run: `pnpm exec vitest run apps/docs/scripts/ngay-git.test.mjs`
 Expected: PASS 2/2.
 
-- [ ] **Step 6: Viết test đỏ cho `copy-legal.mjs`**
+- [x] **Step 6: Viết test đỏ cho `copy-legal.mjs`**
 
 `apps/docs/scripts/copy-legal.test.mjs`:
 
@@ -1448,7 +1448,7 @@ describe('PAGES', () => {
 Run: `pnpm exec vitest run apps/docs/scripts/copy-legal.test.mjs`
 Expected: FAIL — `PAGES` không được export, và import tệp chạy luôn vòng ghi tệp (đó là lý do phải tách `main`).
 
-- [ ] **Step 7: Viết lại `copy-legal.mjs`**
+- [x] **Step 7: Viết lại `copy-legal.mjs`**
 
 Thay toàn bộ `apps/docs/scripts/copy-legal.mjs`:
 
@@ -1518,7 +1518,7 @@ function main() {
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) main();
 ```
 
-- [ ] **Step 8: Chạy test, rồi chạy thật**
+- [x] **Step 8: Chạy test, rồi chạy thật**
 
 Run: `pnpm exec vitest run apps/docs/scripts/copy-legal.test.mjs`
 Expected: PASS 3/3.
@@ -1526,7 +1526,7 @@ Expected: PASS 3/3.
 Run: `node apps/docs/scripts/copy-legal.mjs && sed -n 1,5p apps/docs/src/content/docs/dieu-khoan.md`
 Expected: in `✓ sinh 2 trang pháp lý…` (đường dẫn tính từ `GOC_DOCS` nên chạy từ gốc repo được); frontmatter có `title: "Điều khoản sử dụng API cho tenant"` và `lastUpdated: 2026-09-21T10:38:08+07:00` (không nháy; ngày là commit cuối của `docs/legal/dieu-khoan-tenant.md`).
 
-- [ ] **Step 9: Lint và commit**
+- [x] **Step 9: Lint và commit**
 
 Run: `pnpm exec biome check --write apps/docs/docs.config.mjs apps/docs/src/lib/docs-config.test.ts apps/docs/scripts/ngay-git.mjs apps/docs/scripts/ngay-git.test.mjs apps/docs/scripts/copy-legal.mjs apps/docs/scripts/copy-legal.test.mjs`
 
@@ -1544,7 +1544,7 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 **Files:**
 - Modify: 18 tệp trong `apps/docs/src/content/docs/`, `apps/docs/src/content.config.ts`, `apps/docs/astro.config.mjs`
 
-- [ ] **Step 1: Sửa frontmatter**
+- [x] **Step 1: Sửa frontmatter**
 
 Mọi giá trị mới đặt trong nháy kép: nhiều chuỗi chứa `: ` mà YAML hiểu là khoá lồng nếu để trần. Chỉ thay đúng dòng ghi dưới đây, giữ nguyên các dòng khác.
 
@@ -1571,7 +1571,7 @@ Mọi giá trị mới đặt trong nháy kép: nhiều chuỗi chứa `: ` mà 
 
 Riêng `index.mdx`: trong khối `hero:` thêm dòng `  title: MapsLibVN` làm dòng đầu tiên (trên `  tagline:`), để phần hero vẫn hiện tên thương hiệu.
 
-- [ ] **Step 2: Ép description bằng schema**
+- [x] **Step 2: Ép description bằng schema**
 
 Thay toàn bộ `apps/docs/src/content.config.ts`:
 
@@ -1593,7 +1593,7 @@ export const collections = {
 };
 ```
 
-- [ ] **Step 3: Dấu nối tiêu đề giống website**
+- [x] **Step 3: Dấu nối tiêu đề giống website**
 
 Trong `apps/docs/astro.config.mjs`, trong `starlight({ … })` thêm ngay dưới `title: 'MapsLibVN',`:
 
@@ -1602,7 +1602,7 @@ Trong `apps/docs/astro.config.mjs`, trong `starlight({ … })` thêm ngay dướ
       titleDelimiter: '—',
 ```
 
-- [ ] **Step 4: Build — phải xanh**
+- [x] **Step 4: Build — phải xanh**
 
 Run: `pnpm --filter @mapslibvn/core build && pnpm --filter @mapslibvn/web build && pnpm --filter @mapslibvn/react build && pnpm --filter @mapslibvn/docs build`
 Expected: build xong, không lỗi schema.
@@ -1610,12 +1610,12 @@ Expected: build xong, không lỗi schema.
 Run: `grep -oh '<title>[^<]*' apps/docs/dist/index.html apps/docs/dist/*/index.html | sort | uniq -c | sort -rn | head -30`
 Expected: mỗi title xuất hiện đúng 1 lần; có `<title>Tài liệu API bản đồ Việt Nam — MapsLibVN`; không dòng nào chứa `| MapsLibVN`.
 
-- [ ] **Step 5: Kiểm schema thật sự chặn**
+- [x] **Step 5: Kiểm schema thật sự chặn**
 
 Tạm đổi dòng `description:` của `bat-dau.md` thành `description: "Ngắn."`, chạy `pnpm --filter @mapslibvn/docs build`.
 Expected: build ĐỎ, lỗi nhắc `description` ở `bat-dau`. Sau đó đổi dòng đó lại ĐÚNG giá trị trong bảng Step 1 (KHÔNG dùng `git checkout` — thay đổi của Step 1 chưa commit, checkout sẽ xoá luôn). Nếu build KHÔNG đỏ: `extend` không siết được description — chuyển sang phương án dự phòng ở spec mục 12: thêm bài vitest `apps/docs/src/lib/frontmatter.test.ts` đọc frontmatter mọi tệp `.md`/`.mdx` trong `apps/docs/src/content/docs` và khẳng định 120 ≤ độ dài description ≤ 160, rồi ghi việc này vào mục "Lệch spec có chủ ý".
 
-- [ ] **Step 6: Lint và commit**
+- [x] **Step 6: Lint và commit**
 
 Run: `pnpm exec biome check --write apps/docs/src/content.config.ts apps/docs/astro.config.mjs && pnpm --filter @mapslibvn/docs typecheck`
 
@@ -1637,7 +1637,7 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 - Create: `apps/docs/src/lib/seo-docs.ts`, `apps/docs/src/lib/seo-docs.test.ts`, `apps/docs/src/route-data.ts`
 - Modify: `apps/docs/astro.config.mjs`
 
-- [ ] **Step 1: Viết test đỏ**
+- [x] **Step 1: Viết test đỏ**
 
 `apps/docs/src/lib/seo-docs.test.ts`:
 
@@ -1753,12 +1753,12 @@ describe('theHeadDocs', () => {
 });
 ```
 
-- [ ] **Step 2: Chạy, thấy đỏ**
+- [x] **Step 2: Chạy, thấy đỏ**
 
 Run: `pnpm exec vitest run apps/docs/src/lib/seo-docs.test.ts`
 Expected: FAIL — `Failed to resolve import "./seo-docs"`.
 
-- [ ] **Step 3: Viết `seo-docs.ts`**
+- [x] **Step 3: Viết `seo-docs.ts`**
 
 `apps/docs/src/lib/seo-docs.ts`:
 
@@ -1861,12 +1861,12 @@ export function theHeadDocs(trang: TrangDocs): TheHead[] {
 }
 ```
 
-- [ ] **Step 4: Chạy, thấy xanh**
+- [x] **Step 4: Chạy, thấy xanh**
 
 Run: `pnpm exec vitest run apps/docs/src/lib/seo-docs.test.ts`
 Expected: PASS 9/9.
 
-- [ ] **Step 5: Middleware**
+- [x] **Step 5: Middleware**
 
 `apps/docs/src/route-data.ts`:
 
@@ -1907,7 +1907,7 @@ Trong `apps/docs/astro.config.mjs`, trong `starlight({ … })` thêm dưới dò
       routeMiddleware: './src/route-data.ts',
 ```
 
-- [ ] **Step 6: Build và đọc `<head>` thật**
+- [x] **Step 6: Build và đọc `<head>` thật**
 
 Run: `pnpm --filter @mapslibvn/docs build && grep -o '<meta property="og:image"[^>]*>' apps/docs/dist/api/index.html && grep -o '<script type="application/ld+json">.\{0,160\}' apps/docs/dist/api/index.html && grep -c 'content="noindex"' apps/docs/dist/thong-bao-ben-thu-ba/index.html apps/docs/dist/api/index.html`
 Expected: thẻ `og:image` trỏ `…/og/tai-lieu-v1.png`; khối JSON-LD mở đầu `{"@context":"https://schema.org","@graph":[{"@type":"Organization"…`; `thong-bao-ben-thu-ba` = 1, `api` = 0.
@@ -1915,7 +1915,7 @@ Expected: thẻ `og:image` trỏ `…/og/tai-lieu-v1.png`; khối JSON-LD mở �
 Run: `grep -o '"datePublished":"[^"]*"\|"dateModified":"[^"]*"' apps/docs/dist/api/index.html`
 Expected: hai ngày, `datePublished` sớm hơn `dateModified`. (`dateModified` chỉ có khi Task 10 bật `lastUpdated` — lúc này có thể chỉ thấy `datePublished`; đó là đúng.)
 
-- [ ] **Step 7: Lint, typecheck, commit**
+- [x] **Step 7: Lint, typecheck, commit**
 
 Run: `pnpm exec biome check --write apps/docs/src/lib/seo-docs.ts apps/docs/src/lib/seo-docs.test.ts apps/docs/src/route-data.ts apps/docs/astro.config.mjs && pnpm --filter @mapslibvn/docs typecheck`
 
@@ -1934,12 +1934,12 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 - Create: `apps/docs/scripts/lastmod.mjs`, `apps/docs/scripts/lastmod.test.mjs`, `apps/docs/src/pages/robots.txt.ts`
 - Modify: `apps/docs/package.json` (qua `pnpm add`), `pnpm-lock.yaml`, `apps/docs/astro.config.mjs`, `.github/workflows/deploy-docs.yml`
 
-- [ ] **Step 1: Thêm phụ thuộc sitemap**
+- [x] **Step 1: Thêm phụ thuộc sitemap**
 
 Run: `pnpm --filter @mapslibvn/docs add @astrojs/sitemap@^3.7.4`
 Expected: `apps/docs/package.json` có `"@astrojs/sitemap": "^3.7.4"`.
 
-- [ ] **Step 2: Viết test đỏ**
+- [x] **Step 2: Viết test đỏ**
 
 `apps/docs/scripts/lastmod.test.mjs`:
 
@@ -1991,7 +1991,7 @@ describe('lastmodChoUrl', () => {
 Run: `pnpm exec vitest run apps/docs/scripts/lastmod.test.mjs`
 Expected: FAIL — không tìm thấy `./lastmod.mjs`.
 
-- [ ] **Step 3: Viết `lastmod.mjs`**
+- [x] **Step 3: Viết `lastmod.mjs`**
 
 `apps/docs/scripts/lastmod.mjs`:
 
@@ -2045,7 +2045,7 @@ export function lastmodChoUrl(url, gocDocs) {
 Run: `pnpm exec vitest run apps/docs/scripts/lastmod.test.mjs`
 Expected: PASS 6/6.
 
-- [ ] **Step 4: robots.txt của docs**
+- [x] **Step 4: robots.txt của docs**
 
 `apps/docs/src/pages/robots.txt.ts`:
 
@@ -2059,7 +2059,7 @@ export const GET: APIRoute = () =>
   new Response(robotsTxt(DOCS_URL), { headers: { 'content-type': 'text/plain; charset=utf-8' } });
 ```
 
-- [ ] **Step 5: Gắn sitemap và `lastUpdated` vào cấu hình**
+- [x] **Step 5: Gắn sitemap và `lastUpdated` vào cấu hình**
 
 Trong `apps/docs/astro.config.mjs`:
 
@@ -2103,7 +2103,7 @@ const KHONG_LEN_SITEMAP = ['/thong-bao-ben-thu-ba/', '/react-demo/', '/404/'];
       lastUpdated: true,
 ```
 
-- [ ] **Step 6: Build và đọc thật**
+- [x] **Step 6: Build và đọc thật**
 
 Run: `pnpm --filter @mapslibvn/docs build && grep -o '<url><loc>[^<]*</loc><lastmod>[^<]*' apps/docs/dist/sitemap-0.xml | head -30 && grep -c '<loc>' apps/docs/dist/sitemap-0.xml && cat apps/docs/dist/robots.txt && grep -o 'Cập nhật lần cuối:[^<]*<[^>]*>[^<]*' apps/docs/dist/api/index.html`
 Expected:
@@ -2114,7 +2114,7 @@ Expected:
 
 Nếu số `<loc>` khác 20, liệt kê bằng `grep -o '<loc>[^<]*' apps/docs/dist/sitemap-0.xml` và đối chiếu với `apps/docs/e2e/docs.spec.ts` (`PAGES`) trước khi sửa `KHONG_LEN_SITEMAP`.
 
-- [ ] **Step 7: CI kéo đủ lịch sử, deploy lại khi catalog đổi**
+- [x] **Step 7: CI kéo đủ lịch sử, deploy lại khi catalog đổi**
 
 Trong `.github/workflows/deploy-docs.yml`:
 
@@ -2130,7 +2130,7 @@ Trong `.github/workflows/deploy-docs.yml`:
           fetch-depth: 0
 ```
 
-- [ ] **Step 8: Lint, typecheck, commit**
+- [x] **Step 8: Lint, typecheck, commit**
 
 Run: `pnpm exec biome check --write apps/docs/astro.config.mjs apps/docs/scripts/lastmod.mjs apps/docs/scripts/lastmod.test.mjs apps/docs/src/pages/robots.txt.ts && pnpm --filter @mapslibvn/docs typecheck`
 
@@ -2149,7 +2149,7 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 - Create: `apps/docs/src/components/Footer.astro`
 - Modify: `apps/docs/astro.config.mjs`, `apps/docs/public/playground.html`, `apps/docs/src/pages/react-demo.astro`
 
-- [ ] **Step 1: Footer**
+- [x] **Step 1: Footer**
 
 `apps/docs/src/components/Footer.astro`:
 
@@ -2204,7 +2204,7 @@ Trong `apps/docs/astro.config.mjs`, trong `starlight({ … })` thêm dưới `la
       components: { Footer: './src/components/Footer.astro' },
 ```
 
-- [ ] **Step 2: Playground**
+- [x] **Step 2: Playground**
 
 Trong `apps/docs/public/playground.html`, thay ba dòng
 
@@ -2234,7 +2234,7 @@ bằng:
   <meta name="twitter:card" content="summary_large_image" />
 ```
 
-- [ ] **Step 3: React demo không lập chỉ mục**
+- [x] **Step 3: React demo không lập chỉ mục**
 
 Trong `apps/docs/src/pages/react-demo.astro`, ngay sau dòng `<meta name="description" content="Demo React SDK của MapsLibVN" />` thêm:
 
@@ -2243,17 +2243,17 @@ Trong `apps/docs/src/pages/react-demo.astro`, ngay sau dòng `<meta name="descri
     <meta name="robots" content="noindex" />
 ```
 
-- [ ] **Step 4: Build và đọc thật**
+- [x] **Step 4: Build và đọc thật**
 
 Run: `pnpm --filter @mapslibvn/docs build && grep -c 'class="lien-ket-site"' apps/docs/dist/api/index.html apps/docs/dist/index.html && grep -o '<link rel="canonical"[^>]*>' apps/docs/dist/playground.html && grep -c 'content="noindex"' apps/docs/dist/react-demo/index.html`
 Expected: `1` và `1` (footer có ở trang thường lẫn trang chủ splash); canonical `…/playground`; `1`.
 
-- [ ] **Step 5: e2e cũ của docs vẫn xanh**
+- [x] **Step 5: e2e cũ của docs vẫn xanh**
 
 Run: `pnpm --filter @mapslibvn/docs e2e`
 Expected: xanh như trước (bài `docs.spec.ts` chỉ kiểm link nội bộ `a[href^="/"]`; link footer là tuyệt đối nên không bị kiểm). Bài này cần API chạy ở máy (`pnpm --filter @mapslibvn/api dev:e2e` do Playwright tự dựng). Nếu API không dựng được vì thiếu Postgres/khoá, ghi rõ lý do vào báo cáo task và dựa vào Task 13 cho phần SEO — không bỏ qua im lặng.
 
-- [ ] **Step 6: Lint và commit**
+- [x] **Step 6: Lint và commit**
 
 Run: `pnpm exec biome check --write apps/docs/src/components/Footer.astro apps/docs/astro.config.mjs apps/docs/public/playground.html apps/docs/src/pages/react-demo.astro && pnpm --filter @mapslibvn/docs typecheck`
 
@@ -2271,12 +2271,12 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 **Files:**
 - Modify: `apps/docs/package.json` (qua `pnpm add`), `pnpm-lock.yaml`, `apps/docs/astro.config.mjs`
 
-- [ ] **Step 1: Thêm plugin**
+- [x] **Step 1: Thêm plugin**
 
 Run: `pnpm --filter @mapslibvn/docs add starlight-llms-txt@^0.12.0`
 Expected: `apps/docs/package.json` có `"starlight-llms-txt": "^0.12.0"`.
 
-- [ ] **Step 2: Cấu hình plugin**
+- [x] **Step 2: Cấu hình plugin**
 
 Trong `apps/docs/astro.config.mjs`:
 
@@ -2349,7 +2349,7 @@ và đổi import hằng thành `import { API_BASE, DOCS_URL, GOOGLE_SITE_VERIFI
       ],
 ```
 
-- [ ] **Step 3: Build và đọc thật**
+- [x] **Step 3: Build và đọc thật**
 
 Run: `pnpm --filter @mapslibvn/docs build && ls -la apps/docs/dist/llms*.txt apps/docs/dist/_llms-txt/ && sed -n 1,30p apps/docs/dist/llms.txt`
 Expected: có `llms.txt`, `llms-full.txt`, `llms-small.txt`, `_llms-txt/getting-started.txt`, `guides.txt`, `reference.txt`; `llms.txt` mở đầu `# MapsLibVN`, có blockquote mô tả, mục details, "Documentation Sets" và "Optional".
@@ -2359,7 +2359,7 @@ Expected: mọi số đếm khoá là `0`; "tự host" `0`; số tiêu đề `##
 
 Nếu build đỏ vì một trang MDX (`cai-dat.mdx`, `index.mdx`) không chuyển được: bật `rawContent: true` trong cấu hình plugin, build lại, ghi vào "Lệch spec có chủ ý".
 
-- [ ] **Step 4: Lint, typecheck (có đổi dependency — không tin cache), commit**
+- [x] **Step 4: Lint, typecheck (có đổi dependency — không tin cache), commit**
 
 Run: `pnpm exec biome check --write apps/docs/astro.config.mjs && pnpm exec turbo run typecheck --filter=@mapslibvn/docs --force`
 Expected: sạch; dòng tổng kết có `Cached: 0 cached` (memory: turbo từng replay kết quả cũ sau khi đổi dependency).
@@ -2379,7 +2379,7 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 - Create: `apps/docs/playwright.seo.config.ts`, `apps/docs/e2e/seo.spec.ts`
 - Modify: `apps/docs/package.json` (thêm script `e2e:seo`)
 
-- [ ] **Step 1: Cấu hình Playwright riêng, không cần API**
+- [x] **Step 1: Cấu hình Playwright riêng, không cần API**
 
 `apps/docs/playwright.seo.config.ts`:
 
@@ -2415,7 +2415,7 @@ Trong `apps/docs/package.json`, thêm vào `scripts` ngay sau `"e2e": "playwrigh
     "e2e:seo": "playwright test -c playwright.seo.config.ts",
 ```
 
-- [ ] **Step 2: Viết bài e2e**
+- [x] **Step 2: Viết bài e2e**
 
 `apps/docs/e2e/seo.spec.ts`:
 
@@ -2503,12 +2503,12 @@ test('footer mọi trang có link về website', async ({ page }) => {
 });
 ```
 
-- [ ] **Step 3: Chạy**
+- [x] **Step 3: Chạy**
 
 Run: `pnpm --filter @mapslibvn/docs e2e:seo`
 Expected: 3/3 xanh. Bài đầu đỏ ở trang nào thì sửa đúng trang đó (thường là description hay title), không nới ngưỡng.
 
-- [ ] **Step 4: Lint, typecheck, commit**
+- [x] **Step 4: Lint, typecheck, commit**
 
 Run: `pnpm exec biome check --write apps/docs/playwright.seo.config.ts apps/docs/e2e/seo.spec.ts && pnpm --filter @mapslibvn/docs typecheck`
 
@@ -2526,7 +2526,7 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 **Files:**
 - Modify: `apps/docs/astro.config.mjs`
 
-- [ ] **Step 1: In thẻ khi hằng có giá trị**
+- [x] **Step 1: In thẻ khi hằng có giá trị**
 
 Trong `apps/docs/astro.config.mjs`, trong mảng `head` của `starlight({ … })`, thêm sau phần tử `{ tag: 'script', content: … }` hiện có:
 
@@ -2542,7 +2542,7 @@ Trong `apps/docs/astro.config.mjs`, trong mảng `head` của `starlight({ … }
           : []),
 ```
 
-- [ ] **Step 2: Kiểm cả hai nhánh**
+- [x] **Step 2: Kiểm cả hai nhánh**
 
 Run: `pnpm --filter @mapslibvn/docs build && grep -c 'google-site-verification' apps/docs/dist/index.html`
 Expected: `0`.
@@ -2551,7 +2551,7 @@ Tạm đặt `GOOGLE_SITE_VERIFICATION = 'thu-nghiem'` trong `apps/docs/docs.con
 
 Làm tương tự cho site: tạm đặt hằng trong `apps/site/site.config.mjs`, `pnpm --filter @mapslibvn/site build`, grep `apps/site/dist/index.html`, rồi `git checkout -- apps/site/site.config.mjs`.
 
-- [ ] **Step 3: Lint và commit**
+- [x] **Step 3: Lint và commit**
 
 Run: `pnpm exec biome check --write apps/docs/astro.config.mjs && pnpm --filter @mapslibvn/docs typecheck`
 
@@ -2569,7 +2569,7 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 **Files:**
 - Create: `scripts/indexnow.mjs`, `scripts/indexnow.test.mjs`, `apps/site/public/c1da44e6cf8707383215e23e4fc36e9e.txt`, `apps/docs/public/c1da44e6cf8707383215e23e4fc36e9e.txt`
 
-- [ ] **Step 1: Tệp khoá (không có dấu xuống dòng cuối)**
+- [x] **Step 1: Tệp khoá (không có dấu xuống dòng cuối)**
 
 Run:
 
@@ -2578,7 +2578,7 @@ printf '%s' c1da44e6cf8707383215e23e4fc36e9e > apps/site/public/c1da44e6cf870738
 printf '%s' c1da44e6cf8707383215e23e4fc36e9e > apps/docs/public/c1da44e6cf8707383215e23e4fc36e9e.txt
 ```
 
-- [ ] **Step 2: Viết test đỏ**
+- [x] **Step 2: Viết test đỏ**
 
 `scripts/indexnow.test.mjs`:
 
@@ -2786,7 +2786,7 @@ describe('tệp khoá IndexNow trong hai site', () => {
 Run: `pnpm exec vitest run scripts/indexnow.test.mjs`
 Expected: FAIL — không tìm thấy `./indexnow.mjs` (bài tệp khoá đã xanh sau Step 1).
 
-- [ ] **Step 3: Viết `indexnow.mjs`**
+- [x] **Step 3: Viết `indexnow.mjs`**
 
 `scripts/indexnow.mjs`:
 
@@ -3034,7 +3034,7 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
 }
 ```
 
-- [ ] **Step 4: Chạy test, typecheck**
+- [x] **Step 4: Chạy test, typecheck**
 
 Run: `pnpm exec vitest run scripts/indexnow.test.mjs`
 Expected: PASS 11/11.
@@ -3042,12 +3042,12 @@ Expected: PASS 11/11.
 Run: `pnpm exec tsc -p tsconfig.scripts.json`
 Expected: không lỗi (script và test đều nằm trong `checkJs`).
 
-- [ ] **Step 5: Chạy `truoc` thật với bản build hiện có (không gửi)**
+- [x] **Step 5: Chạy `truoc` thật với bản build hiện có (không gửi)**
 
 Run: `pnpm --filter @mapslibvn/site build && node scripts/indexnow.mjs truoc --dist apps/site/dist --site https://mapslibvn.pages.dev --out "${TMPDIR:-/tmp}/indexnow-thu.json" && cat "${TMPDIR:-/tmp}/indexnow-thu.json"`
 Expected: in số URL đổi so với production hiện tại (các trang có chữ `<main>` khác, ví dụ không trang nào nếu chỉ `<head>` đổi); payload có `"key":"c1da44e6cf8707383215e23e4fc36e9e"`. KHÔNG chạy `gui` ở bước này — tệp khoá chưa có trên production nên IndexNow sẽ trả 403.
 
-- [ ] **Step 6: Lint và commit**
+- [x] **Step 6: Lint và commit**
 
 Run: `pnpm exec biome check --write scripts/indexnow.mjs scripts/indexnow.test.mjs`
 
@@ -3065,7 +3065,7 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 **Files:**
 - Modify: `.github/workflows/deploy-site.yml`, `.github/workflows/deploy-docs.yml`, `package.json`, `scripts/indexnow.test.mjs`
 
-- [ ] **Step 1: Viết test đỏ khoá thứ tự bước**
+- [x] **Step 1: Viết test đỏ khoá thứ tự bước**
 
 Thêm vào cuối `scripts/indexnow.test.mjs`:
 
@@ -3100,7 +3100,7 @@ describe('IndexNow nằm đúng chỗ trong quy trình deploy', () => {
 Run: `pnpm exec vitest run scripts/indexnow.test.mjs`
 Expected: FAIL ba bài (workflow và `package.json` chưa gắn); bài `fetch-depth` đã xanh từ Task 10.
 
-- [ ] **Step 2: `deploy-site.yml`**
+- [x] **Step 2: `deploy-site.yml`**
 
 Trong `.github/workflows/deploy-site.yml`, thay khối từ `- run: pnpm --filter @mapslibvn/site build` tới hết bước deploy bằng:
 
@@ -3117,7 +3117,7 @@ Trong `.github/workflows/deploy-site.yml`, thay khối từ `- run: pnpm --filte
       - run: node scripts/indexnow.mjs gui --site https://mapslibvn.pages.dev
 ```
 
-- [ ] **Step 3: `deploy-docs.yml`**
+- [x] **Step 3: `deploy-docs.yml`**
 
 Trong `.github/workflows/deploy-docs.yml`, ngay trước bước `- run: pnpm --filter @mapslibvn/docs exec wrangler pages deploy dist --project-name mapslibvn-docs` thêm:
 
@@ -3132,7 +3132,7 @@ và cuối job (sau bước deploy) thêm:
       - run: node scripts/indexnow.mjs gui --site https://mapslibvn-docs.pages.dev
 ```
 
-- [ ] **Step 4: Lệnh deploy tay**
+- [x] **Step 4: Lệnh deploy tay**
 
 Trong `package.json` gốc, thay hai dòng `deploy:docs` và `deploy:site` bằng:
 
@@ -3148,12 +3148,12 @@ Cập nhật luôn bảng lệnh trong `Pnpm_Scripts_Guide.md` (PHONG thêm ngà
 | `pnpm deploy:site` | 🔴 | Build rồi đẩy website `apps/site` lên Cloudflare Pages `mapslibvn`, rồi báo IndexNow những URL có chữ đổi. |
 ```
 
-- [ ] **Step 5: Chạy lại, thấy xanh**
+- [x] **Step 5: Chạy lại, thấy xanh**
 
 Run: `pnpm exec vitest run scripts/indexnow.test.mjs`
 Expected: PASS toàn bộ.
 
-- [ ] **Step 6: Lint và commit**
+- [x] **Step 6: Lint và commit**
 
 Run: `pnpm exec biome check --write scripts/indexnow.test.mjs`
 
@@ -3171,7 +3171,7 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 **Files:**
 - Modify: `packages/{core,web,react,react-native}/package.json`, `packages/{core,web,react,react-native}/README.md`, `scripts/lib/package-release.test.mjs`
 
-- [ ] **Step 1: Viết test đỏ**
+- [x] **Step 1: Viết test đỏ**
 
 Trong `scripts/lib/package-release.test.mjs`, thêm vào trong `describe('npm release contract', …)`, trước dấu `});` cuối cùng:
 
@@ -3211,7 +3211,7 @@ Trong `scripts/lib/package-release.test.mjs`, thêm vào trong `describe('npm re
 Run: `pnpm exec vitest run scripts/lib/package-release.test.mjs`
 Expected: FAIL — `homepage` là undefined.
 
-- [ ] **Step 2: Sửa bốn `package.json` bằng script (giữ nguyên định dạng)**
+- [x] **Step 2: Sửa bốn `package.json` bằng script (giữ nguyên định dạng)**
 
 Bốn tệp hiện đúng định dạng `JSON.stringify(…, null, 2)` + xuống dòng cuối (đã kiểm 25/09), nên ghi lại bằng Node chỉ làm diff chứa phần thêm. Chạy từ gốc repo — script đổi `description` và chèn `keywords`, `homepage` ngay sau nó, không đụng khoá nào khác:
 
@@ -3258,7 +3258,7 @@ for (const [ten, { moTa, rieng }] of Object.entries(GOI)) {
 Run: `git diff --stat packages/*/package.json && git diff packages/web/package.json`
 Expected: mỗi tệp chỉ đổi dòng `description` và thêm khối `keywords` + dòng `homepage`; không dòng nào khác đổi.
 
-- [ ] **Step 3: Dòng link trong README (tiếng Anh, khớp ngôn ngữ README)**
+- [x] **Step 3: Dòng link trong README (tiếng Anh, khớp ngôn ngữ README)**
 
 Trong mỗi README, chèn một dòng trống rồi dòng dưới đây NGAY SAU dòng badge cuối cùng (trước đoạn chữ đậm giới thiệu):
 
@@ -3269,7 +3269,7 @@ Trong mỗi README, chèn một dòng trống rồi dòng dưới đây NGAY SAU
 
 Không ghi số phiên bản ở đâu cả (memory: badge npm đã tự động).
 
-- [ ] **Step 4: Chạy lại, thấy xanh; kiểm tarball**
+- [x] **Step 4: Chạy lại, thấy xanh; kiểm tarball**
 
 Run: `pnpm exec vitest run scripts/lib/package-release.test.mjs`
 Expected: PASS.
@@ -3277,7 +3277,7 @@ Expected: PASS.
 Run: `for p in core web react react-native; do (cd packages/$p && npm pack --dry-run --json 2>/dev/null | node -e "let s='';process.stdin.on('data',d=>s+=d).on('end',()=>{const j=JSON.parse(s)[0];console.log(j.name, j.files.some(f=>f.path==='README.md'))})"); done`
 Expected: bốn dòng `@mapslibvn/<gói> true`.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add packages/core/package.json packages/web/package.json packages/react/package.json packages/react-native/package.json packages/core/README.md packages/web/README.md packages/react/README.md packages/react-native/README.md scripts/lib/package-release.test.mjs
@@ -3296,7 +3296,7 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 - Modify: `README.md`, `docs/DEVLOG.md`
 - Create: `docs/evidence/seo-ai/2026-09-25-seo-ai-search.md`
 
-- [ ] **Step 1: README**
+- [x] **Step 1: README**
 
 Trong `README.md`, mục "## Website quảng bá":
 
@@ -3333,7 +3333,7 @@ máy dựng của Pages không chạy Playwright.
 - e2e SEO của docs chạy riêng, không cần API ở máy: `pnpm --filter @mapslibvn/docs e2e:seo`.
 ```
 
-- [ ] **Step 2: Tệp chứng cứ (khung, điền sau deploy)**
+- [x] **Step 2: Tệp chứng cứ (khung, điền sau deploy)**
 
 `docs/evidence/seo-ai/2026-09-25-seo-ai-search.md`:
 
@@ -3367,7 +3367,7 @@ của nhánh `seo-ai-search`.
 | 8d | Kiểm lại: trang chủ đã được lập chỉ mục (hạn 14 ngày sau 8a) | | |
 ````
 
-- [ ] **Step 3: DEVLOG**
+- [x] **Step 3: DEVLOG**
 
 Thêm vào cuối `docs/DEVLOG.md`:
 
@@ -3396,7 +3396,7 @@ catalog; docs chèn OG/JSON-LD qua route middleware của Starlight, `llms*.txt`
 
 Nếu trong lúc làm có chỗ lệch spec thật (mục "Lệch spec có chủ ý" dưới đây hoặc phát sinh mới), thêm một mục `### Chỗ lệch spec` liệt kê đúng những gì đã xảy ra.
 
-- [ ] **Step 4: Cổng kiểm đầy đủ**
+- [x] **Step 4: Cổng kiểm đầy đủ**
 
 Run lần lượt, đọc kết quả thật của từng lệnh:
 
@@ -3413,7 +3413,7 @@ pnpm --filter @mapslibvn/docs e2e
 
 Expected: tất cả xanh; dòng tổng kết của lệnh `turbo … --force` có `Cached: 0 cached`. Lệnh docs `e2e` cuối cần API ở máy — nếu không dựng được, ghi lý do thật vào evidence, không coi là xanh.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add README.md docs/DEVLOG.md docs/evidence/seo-ai/2026-09-25-seo-ai-search.md

@@ -44,18 +44,33 @@ Website tĩnh dựng bằng Astro, nằm ở `apps/site`, phát hành lên Cloud
 ```bash
 pnpm --filter @mapslibvn/site dev      # http://localhost:4322
 pnpm --filter @mapslibvn/site build    # dựng tĩnh ra apps/site/dist
-pnpm test:site-e2e                     # 20 bài Playwright chạy trên bản build
+pnpm test:site-e2e                     # các bài Playwright, chạy trên bản build
 ```
 
 Giá và bảng so sánh đối thủ đọc từ `@mapslibvn/catalog` lúc build, nên **không gõ tay con số nào
 vào file `.astro`**; sửa giá là sửa package đó.
 
-Ảnh hero và bốn ảnh OG sinh bằng `node scripts/site-images.mjs` rồi commit vào repo, vì máy dựng
-của Pages không chạy Playwright.
+Ảnh hero, bốn ảnh OG của site, ảnh OG của tài liệu và logo 512×512 sinh bằng
+`node scripts/site-images.mjs` (`--og`, `--og=<tên>`, `--logo`, `--hero`) rồi commit vào repo, vì
+máy dựng của Pages không chạy Playwright.
 
 `SITE_URL` trong `apps/site/site.config.mjs` là nguồn của URL tuyệt đối trong canonical,
 OG, robots và sitemap. `apps/site/public/_redirects` xử lý redirect của từng đường dẫn
 trên project hiện tại.
+
+### SEO và AI search
+
+- `robots.txt` của site và docs cùng sinh từ `robotsTxt()` trong `@mapslibvn/catalog`, kèm
+  `Content-Signal: search=yes, ai-input=yes, ai-train=yes` (PHONG cho mọi bot AI, 25/09/2026).
+- `/llms.txt` của site sinh từ `TRANG`, catalog giá và bài đã duyệt. Docs có `/llms.txt`,
+  `/llms-full.txt`, `/llms-small.txt` do plugin `starlight-llms-txt` sinh.
+- Mỗi lần deploy (CI, hoặc `pnpm deploy:site` / `pnpm deploy:docs`), `scripts/indexnow.mjs` báo
+  Bing và các máy tìm kiếm dùng IndexNow những URL có chữ đổi. Khoá là tệp `<32 hex>.txt` trong
+  `public/` của hai app; IndexNow lỗi chỉ in cảnh báo, không làm đỏ deploy.
+- Xác thực Google Search Console: dán mã thẻ HTML vào `GOOGLE_SITE_VERIFICATION` (site:
+  `apps/site/site.config.mjs`, docs: `apps/docs/docs.config.mjs`), deploy, bấm Verify. Bing
+  Webmaster dùng "Import from Google Search Console".
+- e2e SEO của docs chạy riêng, không cần API ở máy: `pnpm --filter @mapslibvn/docs e2e:seo`.
 
 ## Phát hành toàn bộ SDK lên npm
 

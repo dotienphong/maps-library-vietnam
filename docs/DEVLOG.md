@@ -4005,3 +4005,53 @@ trỏ `vroom:3000`, đặt trên luật Valhalla, dùng lại Access application
 | CI | Deploy API, Deploy Docs, CI, Routing tests, API tests, DB tests đều xanh |
 
 **Số đo là của MacBook M4 Pro 12 nhân.** Dời máy chủ phải đo lại trước khi giữ trần.
+
+## 35. SEO và AI search cho website và tài liệu — 25/09/2026
+
+Spec `2026-09-25-seo-ai-search-design.md`, plan `2026-09-25-seo-ai-search.md`, evidence
+`docs/evidence/seo-ai/2026-09-25-seo-ai-search.md`. Nền SEO của site đã chắc từ 18/09; việc lần này
+là lấp chỗ hổng đo được trên production: docs có title "MapsLibVN | MapsLibVN", 11/20 description
+dưới 120 ký tự, không `og:image`, không JSON-LD, robots chỉ là chú thích mặc định của Cloudflare
+không có `Sitemap:`; cả hai site không `lastmod`, không `llms.txt`, chưa xác thực Search Console.
+
+**Quyết định PHONG 25/09:** giữ `pages.dev`; cho mọi bot AI kể cả huấn luyện
+(`Content-Signal: search=yes, ai-input=yes, ai-train=yes`); sinh lúc build, không thêm runtime; nội
+dung mới và tên miền riêng tách spec sau; npm không thêm `repository`/`bugs`; làm thẳng trên `main`,
+inline từng task.
+
+**Cách làm:** chính sách bot một chỗ ở `@mapslibvn/catalog`; site sinh `llms.txt` từ `TRANG` +
+catalog; docs chèn OG/JSON-LD qua route middleware của Starlight, `llms*.txt` qua
+`starlight-llms-txt`; JSON-LD hai tên miền cùng `@id` tổ chức `https://mapslibvn.pages.dev/#organization`;
+`lastmod`, `dateModified` và "Cập nhật lần cuối" cùng đọc ngày committer từ git (CI docs đổi sang
+`fetch-depth: 0`); IndexNow so chữ `<main>` với bản đang chạy rồi chỉ báo URL đổi.
+
+### Chỗ lệch spec
+
+1. e2e SEO của docs dùng `playwright.seo.config.ts` riêng (cổng 4324): cấu hình cũ luôn dựng API ở
+   máy mà bài SEO không cần.
+2. Dòng link trong README các gói viết tiếng Anh ("Website · Pricing · Docs") cho khớp README.
+3. Nhãn `customSets` của plugin llms bằng tiếng Anh để URL `/_llms-txt/<nhóm>.txt` là ASCII.
+4. `copy-legal.mjs` chỉ chạy khi gọi thẳng bằng `node` (import để test và cho `lastmod.mjs`).
+5. Bước `truoc` của IndexNow cũng không bao giờ thoát khác 0.
+6. Import `GOOGLE_SITE_VERIFICATION` dời từ Task 12 sang Task 14 để không commit import thừa.
+7. `apps/docs/playwright.config.ts` thêm `ASTRO_PREVIEW_BACKGROUND=0` / `CLAUDECODE=''` như website
+   (96cd980).
+
+### Ba chỗ chỉ lộ ra khi chạy thật
+
+1. **Astro 7 chạy preview ở nền khi nhận diện agent**, nên `pnpm --filter @mapslibvn/docs e2e` (cấu
+   hình cũ thiếu hai biến trên) để lại server ở 4321 chặn mọi lần preview sau: "Another astro
+   preview server is already running". Kèm theo: một preview website mồ côi từ phiên trước giữ cổng
+   4323 suốt 20 giờ, và `reuseExistingServer` làm e2e website dùng lại server cũ thay vì build mới —
+   kết quả vẫn đúng vì server đọc thẳng `dist`, nhưng là chỗ dễ kiểm nhầm. Đã dừng cả hai.
+2. **e2e playground cũ không chạy được ở máy này:** bước postbuild chèn khoá demo production từ
+   `apps/docs/.env`, API local từ chối (6 bài đỏ). Build với khoá seed thì còn 2 bài đỏ — baseline
+   trên `317f640` đỏ y hệt. Lượt sau lên 5 bài: gọi thẳng API local bằng khoá seed ra
+   `401 invalid_key`, vì DB **dev** chỉ còn 1 tenant, 1 khoá và `api_key` không còn cột `key` — khoá
+   seed `mlv_live_demo000…` mà `playground.spec.ts` đòi không còn tồn tại. Lỗi môi trường có từ
+   trước; seed lại DB dev là việc riêng, không tự làm.
+3. **`lastmod` docs phần lớn trùng một ngày** (giờ commit sửa frontmatter cả 18 trang) — đúng theo
+   git, khác giờ build; trang không bị đụng giữ ngày riêng.
+
+**Còn nợ:** việc tay của PHONG ở evidence mục "Việc của PHONG"; metadata npm chỉ lên npm ở lần
+`pnpm sdk:publish` tới.
