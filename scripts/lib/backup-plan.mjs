@@ -84,7 +84,8 @@ export function backupBucket(env) {
  * RTL8723BE (cổng LAN không cắm dây), upload kéo dài làm card nghẹt, tunnel cloudflared (DB + định
  * tuyến) chết theo; rclone 4 luồng không giới hạn giữ mạng nghẽn suốt 2 giờ. Gốc là mạng (phải chạy
  * dây); ở đây chỉ giới hạn thiệt hại: một luồng, giới hạn băng thông (mặc định 4 MiB/s ≈ 2 phút cho
- * 463 MB, chừa đường cho tunnel), và cắt cứng sau 30 phút — mạng hỏng thì bỏ lượt, thử lại ban ngày.
+ * 463 MB, chừa đường cho tunnel). Giới hạn thời gian KHÔNG nằm ở đây: `--max-duration 30m --cutoff-mode
+ * hard` không cắt được multi-thread copy (đo 25/09: chạy 42 phút) — xem UPLOAD_TIMEOUT_MS.
  * @param {string} file @param {string} dest @param {Record<string, string | undefined>} env
  */
 export function uploadArgs(file, dest, env) {
@@ -98,14 +99,16 @@ export function uploadArgs(file, dest, env) {
     '1',
     '--s3-upload-concurrency',
     '1',
-    '--max-duration',
-    '30m',
-    '--cutoff-mode',
-    'hard',
     '--retries',
     '1',
   ];
 }
+
+/**
+ * Trần thời gian một lần `rclone copyto`, do Node cắt (spawnSync `timeout` → SIGTERM): mạng hỏng thì
+ * bỏ lượt sau 30 phút thay vì giữ tunnel nghẽn hàng giờ.
+ */
+export const UPLOAD_TIMEOUT_MS = 30 * 60_000;
 
 /** Giờ VN thử upload lại khi lượt 03:00 hỏng — ban ngày, trước lượt 03:00 kế tiếp. */
 export const RETRY_HOURS_VN = [10, 15];

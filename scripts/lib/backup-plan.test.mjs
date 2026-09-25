@@ -11,6 +11,7 @@ import {
   requireBackupPassphrase,
   retentionPlan,
   staleTemps,
+  UPLOAD_TIMEOUT_MS,
   uploadArgs,
 } from './backup-plan.mjs';
 
@@ -119,10 +120,10 @@ describe('uploadArgs (sự cố 25/09/2026: upload chiếm hết đường mạn
     expect(flag('--multi-thread-streams')).toBe('1');
     expect(flag('--s3-upload-concurrency')).toBe('1');
   });
-  it('bỏ cuộc sau 30 phút (cắt cứng) thay vì giữ mạng nghẽn hàng giờ', () => {
-    expect(flag('--max-duration')).toBe('30m');
-    expect(flag('--cutoff-mode')).toBe('hard');
+  it('không dựa vào --max-duration (rclone không cắt được multi-thread copy, đo 25/09: 42 phút)', () => {
+    expect(args).not.toContain('--max-duration');
     expect(flag('--retries')).toBe('1');
+    expect(UPLOAD_TIMEOUT_MS).toBe(30 * 60_000);
   });
   it('BACKUP_BWLIMIT ghi đè giới hạn mặc định', () => {
     const a = uploadArgs('f', 'd', { BACKUP_BWLIMIT: '512k' });

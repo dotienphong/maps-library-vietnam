@@ -18,6 +18,7 @@ import {
   requireBackupPassphrase,
   retentionPlan,
   staleTemps,
+  UPLOAD_TIMEOUT_MS,
   uploadArgs,
 } from '../../../scripts/lib/backup-plan.mjs';
 import { databaseUrlFromEnv } from '../../../scripts/lib/migrations.mjs';
@@ -79,9 +80,15 @@ function dumpOnce(now = new Date()) {
  */
 function uploadOnce(b) {
   const mb = (statSync(b.file).size / 2 ** 20).toFixed(1);
-  run('rclone', uploadArgs(b.file, `r2:${bucket}/backups/daily/${b.name}`, process.env));
+  run('rclone', uploadArgs(b.file, `r2:${bucket}/backups/daily/${b.name}`, process.env), {
+    timeout: UPLOAD_TIMEOUT_MS,
+    killSignal: 'SIGKILL',
+  });
   if (b.weekly)
-    run('rclone', uploadArgs(b.file, `r2:${bucket}/backups/weekly/${b.name}`, process.env));
+    run('rclone', uploadArgs(b.file, `r2:${bucket}/backups/weekly/${b.name}`, process.env), {
+      timeout: UPLOAD_TIMEOUT_MS,
+      killSignal: 'SIGKILL',
+    });
   rmSync(b.file, { force: true });
   const plan = retentionPlan(
     { daily: listNames('backups/daily'), weekly: listNames('backups/weekly') },
