@@ -2,8 +2,11 @@ import { copyFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { fileURLToPath } from 'node:url';
 import react from '@astrojs/react';
+import sitemap from '@astrojs/sitemap';
 import starlight from '@astrojs/starlight';
 import { defineConfig } from 'astro/config';
+import { DOCS_URL } from './docs.config.mjs';
+import { lastmodChoUrl } from './scripts/lastmod.mjs';
 
 const require = createRequire(import.meta.url);
 
@@ -34,15 +37,31 @@ function copyMaplibreWorker() {
   };
 }
 
+const GOC_DOCS = fileURLToPath(new URL('.', import.meta.url));
+/** Trang không lên sitemap: bản chép giấy phép (noindex), demo mỏng (noindex) và trang lỗi. */
+const KHONG_LEN_SITEMAP = ['/thong-bao-ben-thu-ba/', '/react-demo/', '/404/'];
+
 export default defineConfig({
-  site: 'https://mapslibvn-docs.pages.dev',
+  site: DOCS_URL,
   integrations: [
+    // Tự khai sitemap để có `lastmod` thật từ git (Starlight thấy có sẵn thì bỏ bản của nó).
+    sitemap({
+      filter: (page) => !KHONG_LEN_SITEMAP.some((duong) => page.endsWith(duong)),
+      customPages: [`${DOCS_URL}/playground`],
+      serialize(item) {
+        const lastmod = lastmodChoUrl(item.url, GOC_DOCS);
+        return lastmod ? { ...item, lastmod } : item;
+      },
+    }),
     starlight({
       title: 'MapsLibVN',
       // "Trang — MapsLibVN" giống website, thay cho "Trang | MapsLibVN" mặc định của Starlight.
       titleDelimiter: '—',
       // OG, JSON-LD, noindex cho từng trang (spec SEO-AI mục 6.2).
       routeMiddleware: './src/route-data.ts',
+      // "Cập nhật lần cuối: …" cuối mỗi trang — tín hiệu độ mới mà AI dựa vào khi chọn nguồn.
+      // Đọc từ git, nên deploy-docs.yml phải checkout đủ lịch sử.
+      lastUpdated: true,
       defaultLocale: 'root',
       locales: { root: { label: 'Tiếng Việt', lang: 'vi' } },
       customCss: ['./src/styles/custom.css'],

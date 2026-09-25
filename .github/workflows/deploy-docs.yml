@@ -2,13 +2,18 @@ name: Deploy Docs
 on:
   push:
     branches: [main]
-    paths: ['apps/docs/**', 'packages/web/**', 'packages/core/**', 'packages/react/**', 'docs/legal/**', 'THIRD_PARTY_NOTICES.md', 'pnpm-lock.yaml']
+    paths: ['apps/docs/**', 'packages/web/**', 'packages/core/**', 'packages/react/**', 'packages/catalog/**', 'docs/legal/**', 'THIRD_PARTY_NOTICES.md', 'pnpm-lock.yaml']
   workflow_dispatch:
 jobs:
   deploy:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          # Đủ lịch sử git: "Cập nhật lần cuối", lastmod của sitemap và dateModified trong JSON-LD
+          # đều đọc ngày commit của từng tệp. Clone nông làm mọi trang mang cùng một ngày — sai mà
+          # không ai thấy (spec SEO-AI mục 6.3).
+          fetch-depth: 0
       - uses: pnpm/action-setup@v4
         with: { version: 9.15.0 }
       - uses: actions/setup-node@v4
