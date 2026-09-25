@@ -70,15 +70,18 @@ edits.post('/v1/edits', requireAuth('edits:write'), async (c) => {
 
     // 3) Phiếu trùng trong 30 ngày (spec 6.5) — đẳng thức jsonb. Audit 09/09/2026: `end_user_token`
     // do client tự đặt nên hai "người dùng" cùng tenant có thể là một kẻ với hai token; đồng thuận
-    // chỉ tính phiếu từ TENANT KHÁC (khoá khác, khách khác) — điều kẻ cầm một khoá không giả được.
-    let consensusUsers = 1;
+    // chỉ tính phiếu từ TENANT KHÁC. Siết 26/09/2026: đếm theo tenant (không theo end-user), và chỉ
+    // phiếu gửi bằng khoá server — khoá web/mobile công khai, một kẻ gom khoá của hai tenant là tự
+    // tạo được "đồng thuận".
+    let consensusTenants = 1;
     if (edit.kind !== 'create' && edit.kind !== 'report') {
       const [dup] = await sql<{ n: number }[]>`
-        SELECT count(DISTINCT end_user_hash)::int AS n FROM poi_edit
-        WHERE poi_id = ${edit.poiId} AND kind = ${edit.kind} AND status = 'pending'
-          AND changes = ${changesParam}
-          AND tenant_id <> ${auth.tenantId} AND created_at > now() - interval '30 days'`;
-      consensusUsers = 1 + (dup?.n ?? 0);
+        SELECT count(DISTINCT e.tenant_id)::int AS n FROM poi_edit e
+        JOIN api_key k ON k.key_hash = e.api_key
+        WHERE e.poi_id = ${edit.poiId} AND e.kind = ${edit.kind} AND e.status = 'pending'
+          AND e.changes = ${changesParam} AND k.kind = 'server'
+          AND e.tenant_id <> ${auth.tenantId} AND e.created_at > now() - interval '30 days'`;
+      consensusTenants = 1 + (dup?.n ?? 0);
     }
 
     const newPoiId = edit.kind === 'create' ? ulid() : null;
@@ -95,17 +98,18 @@ edits.post('/v1/edits', requireAuth('edits:write'), async (c) => {
     const changedFields = Object.keys(edit.changes).filter((f) => !f.endsWith('_norm'));
     const status = decideStatus({
       plan: auth.plan,
+      keyKind: auth.kind,
       kind: edit.kind,
       changedFields,
       qualityScore: quality,
-      consensusUsers,
+      consensusTenants,
     });
     let poiId = edit.poiId ?? newPoiId;
     if (status === 'auto_approved') {
       const reason =
         auth.plan === 'internal'
           ? 'auto:internal'
-          : consensusUsers > 1
+          : consensusTenants > 1
             ? 'auto:consensus'
             : 'auto:rule';
       const [applied] = await sql<{ poi_id: string | null }[]>`

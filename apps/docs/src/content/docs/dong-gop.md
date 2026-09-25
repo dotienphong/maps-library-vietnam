@@ -8,10 +8,18 @@ Khoá API phải có scope `edits:write`. Với khoá `web`, request phải đi 
 origin trong `allowed_origins` (thiếu `Origin` trả `403 origin_required`); gọi từ máy chủ thì dùng
 khoá `server`.
 
-Cách duyệt: tenant `internal` tự duyệt; sửa `hours`/`contact` trên POI chất lượng ≥ 60 tự duyệt;
-cùng một thay đổi được người dùng của **hai tenant khác nhau** gửi trong 30 ngày tự duyệt; còn lại
-chờ quản trị duyệt. `end_user_token` do app tự đặt nên hai token cùng một tenant **không** được
-tính là hai người khi xét đồng thuận.
+Cách duyệt:
+
+- Chỉ sửa đổi gửi bằng khoá `server` mới có thể được tự duyệt. Khoá `web` và `mobile` nằm trong
+  trang web hoặc app nên ai cũng lấy được; sửa đổi gửi bằng hai loại khoá này luôn chờ quản trị duyệt.
+- Với khoá `server`: sửa **chỉ `hours`** trên POI chất lượng ≥ 60 được tự duyệt. Cùng một thay đổi
+  được **hai tenant khác nhau** gửi bằng khoá `server` trong 30 ngày cũng được tự duyệt.
+- Sửa `contact` (điện thoại, website, Facebook) hoặc `name` luôn chờ quản trị duyệt, kể cả khi đủ
+  đồng thuận.
+- Mọi trường hợp khác chờ quản trị duyệt.
+
+`end_user_token` do app tự đặt nên hai token cùng một tenant **không** được tính là hai người khi
+xét đồng thuận.
 
 ## Gửi một sửa đổi
 

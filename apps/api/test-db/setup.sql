@@ -222,6 +222,25 @@ VALUES (encode(sha256(convert_to('mlv_live_edit20000000000000000000', 'UTF8')), 
         '00000000-0000-4000-8000-0000000000dd', 'itest edits free 2', 'server', '{places:read,edits:write}')
 ON CONFLICT (key_hash) DO NOTHING;
 
+-- Tenant free thứ ba chỉ có khoá WEB mang edits:write: khoá web/mobile là khoá công khai nên
+-- không bao giờ được tự duyệt, kể cả phiếu đồng thuận (siết 26/09/2026).
+INSERT INTO tenant (id, name, plan)
+VALUES ('00000000-0000-4000-8000-0000000000ee', 'M4 itest web', 'free')
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO api_key (key_hash, key_prefix, tenant_id, label, kind, scopes, allowed_origins)
+VALUES (encode(sha256(convert_to('mlv_live_editweb00000000000000000', 'UTF8')), 'hex'), 'mlv_live_editweb0',
+        '00000000-0000-4000-8000-0000000000ee', 'itest edits web', 'web', '{places:read,edits:write}',
+        '{https://itest.example}')
+ON CONFLICT (key_hash) DO NOTHING;
+
+-- POI quality cao (≥ 60) cho test chiếm SĐT/tên: trước 26/09 sửa contact ở đây được tự duyệt.
+INSERT INTO poi (id, name, name_norm, category, geom, ward, province,
+                 quality_score, popularity, status, primary_source, primary_source_id, created_by) VALUES
+  ('01M4TEST0000000000000HIJ01', 'Quán Chống Chiếm', 'quan chong chiem', 'cafe',
+    ST_SetSRID(ST_MakePoint(106.696, 10.776), 4326), 'Bến Thành', 'Thành phố Hồ Chí Minh',
+    80, 0.1, 'active', 'osm', 'm4test-hij1', 'pipeline')
+ON CONFLICT (id) DO NOTHING;
+
 -- POI quality thấp (< 60) cho test luật đồng thuận: update hours KHÔNG auto theo luật quality.
 INSERT INTO poi (id, name, name_norm, category, geom, ward, province,
                  quality_score, popularity, status, primary_source, primary_source_id, created_by) VALUES

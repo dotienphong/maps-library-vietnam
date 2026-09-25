@@ -442,6 +442,7 @@ Khi đường trùng tên ở nhiều nơi (5 đường "Nguyễn Lâm"), ưu ti
 
 - `end_user_token` do app nhúng tạo (chuỗi bất kỳ ổn định theo người dùng); Worker băm với `tenant_id` thành `end_user_hash`. Giới hạn 20 edit/ngày/end-user, 500/ngày/key.
 - Tự duyệt (`auto_approved`) khi: tenant `internal`; hoặc `kind='update'` chỉ đổi `hours`/`contact` trên POI có `quality_score ≥ 60`; hoặc cùng thay đổi được ≥ 2 end-user khác nhau gửi trong 30 ngày.
+  - **Siết 26/09/2026** (`apps/api/src/edits/rules.ts`): ngoài `internal`, chỉ khoá `server` được tự duyệt (khoá web/mobile là khoá công khai, Origin giả được ngoài trình duyệt); luật quality chỉ còn `hours`; `contact` và `name` luôn chờ admin kể cả khi đủ đồng thuận; đồng thuận đếm ≥ 2 **tenant** khác nhau gửi bằng khoá `server`. Lý do: trước đó ai cầm khoá web có `edits:write` của một tenant là tự duyệt được việc đổi SĐT/website trên POI quality ≥ 60, và `locked_fields` giữ giá trị sai qua mọi lần build.
 - Mọi trường hợp khác `pending` → trang `apps/admin` (bảo vệ bằng Cloudflare Access, chỉ email admin của PHONG) duyệt/từ chối; duyệt → áp dụng vào `poi`, thêm trường vào `locked_fields`, tạo `address_anchor` nếu có số nhà.
 - `kind='create'` từ người dùng: tạo `poi` với `status='pending'`, `created_by='user'`; chỉ hiển thị cho tenant tạo ra cho đến khi duyệt.
 

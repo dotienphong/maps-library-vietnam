@@ -7,13 +7,15 @@ const INTERNAL_KEY = 'mlv_live_test00000000000000000000';
 const FREE_KEY = 'mlv_live_edit00000000000000000000';
 const FREE_KEY_2 = 'mlv_live_edit20000000000000000000'; // tenant free khác (dd)
 const FREE_TENANT = '00000000-0000-4000-8000-0000000000cc';
+const WEB_KEY = 'mlv_live_editweb00000000000000000'; // tenant free (ee), khoá web công khai
+const WEB_ORIGIN = 'https://itest.example';
 const sql = postgres(process.env.DATABASE_URL ?? '', { max: 1, onnotice: () => {} });
 afterAll(() => sql.end({ timeout: 5 }));
 
-const post = async (key, body) => {
+const post = async (key, body, headers = {}) => {
   const response = await fetch(`${base}/v1/edits`, {
     method: 'POST',
-    headers: { 'X-Api-Key': key, 'content-type': 'application/json' },
+    headers: { 'X-Api-Key': key, 'content-type': 'application/json', ...headers },
     body: JSON.stringify(body),
   });
   return { status: response.status, body: await response.json() };
@@ -130,6 +132,82 @@ describe('POST /v1/edits với DB thật', () => {
     expect(firstRow.reviewer).toBe('auto:consensus');
     const [poi] = await sql`SELECT hours FROM poi WHERE id = '01M4TEST0000000000000CON01'`;
     expect(poi.hours).toEqual({ osm: 'Mo-Su 09:00-18:00' });
+  });
+
+  it('khoá server sửa contact trên POI quality 80 → pending (không tự duyệt đổi SĐT/website)', async () => {
+    const { status, body } = await post(FREE_KEY, {
+      poi_id: '01M4TEST0000000000000HIJ01',
+      kind: 'update',
+      changes: { contact: { phone: ['0900000001'] } },
+      end_user_token: 'hijack-1',
+    });
+    expect(status).toBe(200);
+    expect(body.status).toBe('pending');
+    const [poi] =
+      await sql`SELECT contact, locked_fields FROM poi WHERE id = '01M4TEST0000000000000HIJ01'`;
+    expect(poi.contact?.phone ?? []).not.toContain('0900000001');
+    expect(poi.locked_fields).not.toContain('contact');
+  });
+
+  it('khoá WEB sửa hours trên POI quality 80 → pending (khoá công khai không đủ tin)', async () => {
+    const { status, body } = await post(
+      WEB_KEY,
+      {
+        poi_id: '01M4TEST0000000000000HIJ01',
+        kind: 'update',
+        changes: { hours: 'Mo-Su 00:00-01:00' },
+        end_user_token: 'hijack-2',
+      },
+      { Origin: WEB_ORIGIN },
+    );
+    expect(status).toBe(200);
+    expect(body.status).toBe('pending');
+  });
+
+  it('phiếu từ khoá WEB của tenant khác không tính đồng thuận', async () => {
+    const changes = { hours: 'Mo-Su 06:00-06:30' };
+    const webVote = await post(
+      WEB_KEY,
+      {
+        poi_id: '01M4TEST0000000000000CON01',
+        kind: 'update',
+        changes,
+        end_user_token: 'web-voter',
+      },
+      { Origin: WEB_ORIGIN },
+    );
+    expect(webVote.body.status).toBe('pending');
+    const serverVote = await post(FREE_KEY, {
+      poi_id: '01M4TEST0000000000000CON01',
+      kind: 'update',
+      changes,
+      end_user_token: 'server-voter',
+    });
+    expect(serverVote.status).toBe(200);
+    expect(serverVote.body.status).toBe('pending');
+    await sql`UPDATE poi_edit SET status = 'rejected', reviewer = 'itest-cleanup'
+      WHERE poi_id = '01M4TEST0000000000000CON01' AND status = 'pending'`;
+  });
+
+  it('2 tenant đồng thuận đổi contact → vẫn pending', async () => {
+    const changes = { contact: { phone: ['0900000002'] } };
+    const first = await post(FREE_KEY, {
+      poi_id: '01M4TEST0000000000000CON01',
+      kind: 'update',
+      changes,
+      end_user_token: 'contact-voter-1',
+    });
+    expect(first.body.status).toBe('pending');
+    const second = await post(FREE_KEY_2, {
+      poi_id: '01M4TEST0000000000000CON01',
+      kind: 'update',
+      changes,
+      end_user_token: 'contact-voter-2',
+    });
+    expect(second.status).toBe(200);
+    expect(second.body.status).toBe('pending');
+    await sql`UPDATE poi_edit SET status = 'rejected', reviewer = 'itest-cleanup'
+      WHERE poi_id = '01M4TEST0000000000000CON01' AND status = 'pending'`;
   });
 
   it('vượt 20 edit/ngày/end-user → 429 quota_exceeded', async () => {
