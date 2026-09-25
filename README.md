@@ -60,8 +60,9 @@ trên project hiện tại.
 
 ### SEO và AI search
 
-- `robots.txt` của site và docs cùng sinh từ `robotsTxt()` trong `@mapslibvn/catalog`, kèm
-  `Content-Signal: search=yes, ai-input=yes, ai-train=yes` (PHONG cho mọi bot AI, 25/09/2026).
+- `robots.txt` của site và docs cùng sinh từ `robotsTxt()` trong `@mapslibvn/catalog`: `Allow: /`
+  cho mọi bot, kể cả bot AI (PHONG chốt 25/09/2026). Đừng thêm `Content-Signal` — Lighthouse coi
+  là chỉ thị lạ và hạ SEO từ 100 xuống 92; test chặn việc này.
 - `/llms.txt` của site sinh từ `TRANG`, catalog giá và bài đã duyệt. Docs có `/llms.txt`,
   `/llms-full.txt`, `/llms-small.txt` do plugin `starlight-llms-txt` sinh.
 - Mỗi lần deploy (CI, hoặc `pnpm deploy:site` / `pnpm deploy:docs`), `scripts/indexnow.mjs` báo

@@ -1,12 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { CONTENT_SIGNAL, robotsTxt } from './bot';
+import { robotsTxt } from './bot';
 
 describe('robotsTxt', () => {
-  it('cho mọi bot, khai Content-Signal và trỏ sitemap tuyệt đối — đúng từng dòng', () => {
+  it('cho mọi bot và trỏ sitemap tuyệt đối — đúng từng dòng', () => {
     expect(robotsTxt('https://mapslibvn.pages.dev')).toBe(
       [
         'User-agent: *',
-        'Content-Signal: search=yes, ai-input=yes, ai-train=yes',
         'Allow: /',
         '',
         'Sitemap: https://mapslibvn.pages.dev/sitemap-index.xml',
@@ -15,8 +14,13 @@ describe('robotsTxt', () => {
     );
   });
 
-  it('PHONG chốt 25/09/2026: cho cả tìm kiếm, trả lời AI lẫn huấn luyện', () => {
-    expect(CONTENT_SIGNAL).toBe('search=yes, ai-input=yes, ai-train=yes');
+  it('chỉ dùng chỉ thị Lighthouse hiểu — thêm `Content-Signal` là SEO tụt 100 → 92', () => {
+    // Đo 25/09/2026 trên production: Lighthouse báo "robots.txt is not valid — Unknown directive"
+    // cho dòng Content-Signal ở cả website lẫn tài liệu. PHONG chốt bỏ dòng đó.
+    for (const dong of robotsTxt('https://mapslibvn.pages.dev').split('\n')) {
+      if (dong === '') continue;
+      expect(dong).toMatch(/^(User-agent|Allow|Disallow|Sitemap): /);
+    }
   });
 
   it('không nhân đôi gạch chéo khi gốc lỡ có gạch cuối', () => {

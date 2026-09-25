@@ -119,9 +119,13 @@ test('ngân sách JavaScript trang chủ dưới 15 KB gzip', async ({ page }) =
   expect(tepJs.length, `không được có tệp JS ngoài: ${tepJs.join(', ')}`).toBe(0);
 });
 
-test('robots.txt khai Content-Signal cho bot AI', async ({ request }) => {
+test('robots.txt chỉ có chỉ thị Lighthouse hiểu — chỉ thị lạ làm SEO tụt xuống 92', async ({
+  request,
+}) => {
   const txt = await (await request.get('/robots.txt')).text();
-  expect(txt).toContain('Content-Signal: search=yes, ai-input=yes, ai-train=yes');
+  for (const dong of txt.split('\n').filter(Boolean)) {
+    expect(dong).toMatch(/^(User-agent|Allow|Disallow|Sitemap): /);
+  }
 });
 
 test('llms.txt có mọi trang chính và giá lấy từ catalog', async ({ request }) => {

@@ -3980,7 +3980,7 @@ máy chủ chính là MacBook, Ubuntu là máy phụ, sau khi phát hành app d�
 **Đường tới VROOM không cần hostname mới:** luật Public Hostname cùng `maps-route` với Path `^/fleet/`
 trỏ `vroom:3000`, đặt trên luật Valhalla, dùng lại Access application và service token của routing.
 
-### Ba chỗ chỉ lộ ra khi chạy thật
+### Bốn chỗ chỉ lộ ra khi chạy thật
 
 1. **VROOM báo vùng đường không nối bằng lỗi định tuyến mã 3** kèm "Locations are in unconnected
    regions". Worker từng dịch thành 503 "bộ giải không phản hồi", làm lỗi dữ liệu của khách trông như
@@ -4015,7 +4015,7 @@ dưới 120 ký tự, không `og:image`, không JSON-LD, robots chỉ là chú t
 không có `Sitemap:`; cả hai site không `lastmod`, không `llms.txt`, chưa xác thực Search Console.
 
 **Quyết định PHONG 25/09:** giữ `pages.dev`; cho mọi bot AI kể cả huấn luyện
-(`Content-Signal: search=yes, ai-input=yes, ai-train=yes`); sinh lúc build, không thêm runtime; nội
+(bằng `Allow: /`; dòng `Content-Signal` thêm rồi bỏ, xem dưới); sinh lúc build, không thêm runtime; nội
 dung mới và tên miền riêng tách spec sau; npm không thêm `repository`/`bugs`; làm thẳng trên `main`,
 inline từng task.
 
@@ -4050,7 +4050,10 @@ catalog; docs chèn OG/JSON-LD qua route middleware của Starlight, `llms*.txt`
    `401 invalid_key`, vì DB **dev** chỉ còn 1 tenant, 1 khoá và `api_key` không còn cột `key` — khoá
    seed `mlv_live_demo000…` mà `playground.spec.ts` đòi không còn tồn tại. Lỗi môi trường có từ
    trước; seed lại DB dev là việc riêng, không tự làm.
-3. **`lastmod` docs phần lớn trùng một ngày** (giờ commit sửa frontmatter cả 18 trang) — đúng theo
+3. **`Content-Signal` làm Lighthouse SEO tụt 100 → 92** ở cả site lẫn docs: "robots.txt is not
+   valid — Unknown directive". Bot bỏ qua dòng lạ theo RFC 9309 nhưng Lighthouse thì không; spec
+   đã đoán sai rủi ro này. PHONG chọn bỏ dòng đó; test ở catalog và hai e2e chặn nó quay lại.
+4. **`lastmod` docs phần lớn trùng một ngày** (giờ commit sửa frontmatter cả 18 trang) — đúng theo
    git, khác giờ build; trang không bị đụng giữ ngày riêng.
 
 **Còn nợ:** việc tay của PHONG ở evidence mục "Việc của PHONG"; metadata npm chỉ lên npm ở lần

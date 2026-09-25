@@ -1,4 +1,4 @@
-export { CONTENT_SIGNAL, robotsTxt } from './bot';
+export { robotsTxt } from './bot';
 export { COMPARISON, type ComparisonRow, comparisonAgeDays, savingsPercent } from './comparison';
 export { API_BASE, DOCS, DOCS_LLMS, DOCS_URL, SITE_URL } from './lien-ket';
 export { addMonths } from './months';

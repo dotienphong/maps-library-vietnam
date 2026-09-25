@@ -45,8 +45,11 @@ test('mọi trang trong sitemap đạt chuẩn SEO', async ({ page, request }) =
 
 test('robots, llms và các trang noindex', async ({ page, request }) => {
   const robots = await (await request.get('/robots.txt')).text();
-  expect(robots).toContain('Content-Signal: search=yes, ai-input=yes, ai-train=yes');
   expect(robots).toContain(`Sitemap: ${DOCS}/sitemap-index.xml`);
+  // Chỉ thị lạ (như Content-Signal) làm Lighthouse chấm robots.txt không hợp lệ, SEO tụt xuống 92.
+  for (const dong of robots.split('\n').filter(Boolean)) {
+    expect(dong).toMatch(/^(User-agent|Allow|Disallow|Sitemap): /);
+  }
 
   for (const tep of [
     '/llms.txt',

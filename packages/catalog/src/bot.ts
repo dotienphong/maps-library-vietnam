@@ -1,22 +1,13 @@
 /**
- * Chính sách bot dùng chung cho website và tài liệu — một chỗ duy nhất để hai trang không bao giờ
- * lệch nhau (spec SEO-AI 25/09/2026 mục 4).
+ * `robots.txt` dùng chung cho website và tài liệu — một chỗ duy nhất để hai trang không bao giờ lệch
+ * nhau (spec SEO-AI 25/09/2026 mục 4).
  *
- * `Content-Signal` là đề xuất của Cloudflare, chưa phải chuẩn: bot không hiểu dòng này sẽ bỏ qua
- * theo RFC 9309, nên khai thêm không hại ai. PHONG chốt 25/09/2026 cho cả ba mục đích, kể cả huấn
- * luyện: model biết SDK thì viết đúng code `@mapslibvn` cho khách.
+ * PHONG cho MỌI bot, kể cả bot AI huấn luyện: `Allow: /` cho `*` đã nói đủ điều đó. KHÔNG thêm dòng
+ * `Content-Signal` (đề xuất của Cloudflare): đo 25/09/2026 trên production, Lighthouse báo
+ * "robots.txt is not valid — Unknown directive" và kéo SEO của cả hai trang từ 100 xuống 92. Theo
+ * chính sách Cloudflare, thiếu dòng đó là "không cấp cũng không cấm", nên không mất quyền gì.
  */
-export const CONTENT_SIGNAL = 'search=yes, ai-input=yes, ai-train=yes';
-
-/** Nội dung `robots.txt` của một site. `siteUrl` là gốc tuyệt đối, có hay không gạch cuối đều được. */
 export function robotsTxt(siteUrl: string): string {
   const goc = siteUrl.replace(/\/+$/, '');
-  return [
-    'User-agent: *',
-    `Content-Signal: ${CONTENT_SIGNAL}`,
-    'Allow: /',
-    '',
-    `Sitemap: ${goc}/sitemap-index.xml`,
-    '',
-  ].join('\n');
+  return ['User-agent: *', 'Allow: /', '', `Sitemap: ${goc}/sitemap-index.xml`, ''].join('\n');
 }

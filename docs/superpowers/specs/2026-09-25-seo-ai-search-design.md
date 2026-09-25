@@ -4,6 +4,10 @@ Trạng thái: **PHONG đã duyệt phạm vi, hai chính sách (tên miền, bo
 kế trong phiên brainstorm 25/09/2026.** Bảng title/description ở mục 6.1 là bản đề xuất đầy đủ để
 PHONG duyệt khi đọc spec này. Mọi con số ở đây là quyết định, không phải gợi ý.
 
+**Cập nhật sau nghiệm thu 25/09/2026:** bỏ dòng `Content-Signal` khỏi robots.txt. Đo trên production,
+Lighthouse báo "robots.txt is not valid — Unknown directive" và kéo SEO của cả site lẫn docs từ 100
+xuống 92; PHONG chọn bỏ. Các mục 2, 4, 5.1, 10, 11, 12 dưới đây đã sửa theo.
+
 Kế thừa spec `2026-09-18-thuong-mai-tu-phuc-vu-design.md` mục 11.3 (SEO kỹ thuật) và spec
 `2026-09-22-thiet-ke-lai-giao-dien-design.md`. Mọi ràng buộc SEO đã có của site **giữ nguyên**: một
 `h1` mỗi trang, `title` ≤ 60, `description` 120–160, canonical tuyệt đối, `trailingSlash: 'always'`,
@@ -38,7 +42,7 @@ Gói npm: bốn gói `@mapslibvn/*` không có `homepage`, không có `keywords`
 | # | Câu hỏi | PHONG chốt |
 |---|---|---|
 | 1 | Tên miền | **Giữ `pages.dev`, làm ngay.** Mọi URL đi qua một hằng; đổi tên miền về sau là spec riêng. |
-| 2 | Bot AI | **Cho tất cả, kể cả huấn luyện**: `search=yes, ai-input=yes, ai-train=yes`. Sản phẩm cho dev: model biết SDK thì viết đúng code `@mapslibvn`. Docs chỉ dạy dùng API trả phí; hướng dẫn tự host đã gỡ 23/09. |
+| 2 | Bot AI | **Cho tất cả, kể cả huấn luyện** — nói bằng `Allow: /` cho `*`, KHÔNG dùng dòng `Content-Signal` (xem cập nhật sau nghiệm thu). Sản phẩm cho dev: model biết SDK thì viết đúng code `@mapslibvn`. Docs chỉ dạy dùng API trả phí; hướng dẫn tự host đã gỡ 23/09. |
 | 3 | Cách làm | **Sinh lúc build, trong repo.** Không Pages Functions, không Worker. |
 | 4 | Phạm vi | SEO kỹ thuật + lớp AI cho cả hai site + metadata npm. Nội dung mới và tên miền tách spec riêng. |
 | 5 | `lastmod` trang marketing | **Không đặt.** Chúng phụ thuộc nhiều nguồn (catalog, component), không có ngày nào đúng thật. |
@@ -70,7 +74,6 @@ Gói npm: bốn gói `@mapslibvn/*` không có `homepage`, không có `keywords`
 `src/bot.ts` (mới):
 
 ```ts
-export const CONTENT_SIGNAL = 'search=yes, ai-input=yes, ai-train=yes';
 export function robotsTxt(siteUrl: string): string; // siteUrl không có gạch cuối
 ```
 
@@ -78,7 +81,6 @@ export function robotsTxt(siteUrl: string): string; // siteUrl không có gạch
 
 ```
 User-agent: *
-Content-Signal: search=yes, ai-input=yes, ai-train=yes
 Allow: /
 
 Sitemap: https://mapslibvn.pages.dev/sitemap-index.xml
@@ -99,7 +101,7 @@ catalog, đúng cách `DOCS_URL` đang làm (`lien-ket-docs.test.ts`).
 
 ### 5.1. robots
 
-`src/lib/robots.ts` gọi `robotsTxt(SITE_URL)`. Test cũ giữ nguyên, thêm dòng `Content-Signal`.
+`src/lib/robots.ts` gọi `robotsTxt(SITE_URL)`. Test cũ giữ nguyên, thêm bài chặn `Content-Signal` quay lại.
 
 ### 5.2. `/llms.txt`
 
@@ -399,10 +401,10 @@ muốn sớm hơn thì bump bản vá riêng cho việc này.
 - `apps/docs/e2e/seo.spec.ts` (mới): với **mọi** URL trong sitemap đã build — `200`; đúng một `h1`;
   `<title>` 20–60 ký tự và không trùng giữa các trang; description 120–160; canonical tuyệt đối;
   `og:image` trả `200`; mọi JSON-LD parse được và có `@context`. Thêm: `/robots.txt` có
-  `Content-Signal` và `Sitemap:`; `/llms.txt`, `/llms-full.txt` trả `200`, không có chuỗi khớp
+  `Sitemap:` và chỉ gồm chỉ thị Lighthouse hiểu; `/llms.txt`, `/llms-full.txt` trả `200`, không có chuỗi khớp
   `mlv_live_[0-9A-Za-z]{24}`; `thong-bao-ben-thu-ba` có `noindex`.
-- `apps/site/e2e/seo.spec.ts` (sửa): `/llms.txt` trả `200`, có mọi trang chính; `/robots.txt` có
-  `Content-Signal`.
+- `apps/site/e2e/seo.spec.ts` (sửa): `/llms.txt` trả `200`, có mọi trang chính; `/robots.txt` chỉ gồm
+  chỉ thị Lighthouse hiểu.
 
 **Cổng trước khi merge:** `pnpm lint`, `pnpm typecheck`, `pnpm test`, `pnpm test:site-e2e`, e2e docs
 (`pnpm --filter @mapslibvn/docs e2e`) đều xanh.
@@ -432,7 +434,7 @@ Ghi vào `docs/evidence/seo-ai/2026-09-25-seo-ai-search.md`, đo trên productio
 | `docsSchema({ extend })` không siết được `description` của Starlight | Chuyển bài kiểm độ dài sang vitest đọc frontmatter; e2e vẫn bắt ở tầng HTML |
 | Plugin `starlight-llms-txt` vỡ build vì component MDX lạ | Plugin có `rawContent`; bật cho trang lỗi, hoặc bỏ trang đó khỏi custom set |
 | `fetch-depth: 0` chậm deploy docs | Repo ~72 MB pack — chấp nhận; nếu cần thì thêm `filter: blob:none` |
-| `Content-Signal` chưa là chuẩn chính thức | RFC 9309: bot không hiểu dòng này sẽ bỏ qua — không hại gì |
+| `Content-Signal` chưa là chuẩn chính thức | Bot bỏ qua theo RFC 9309, NHƯNG Lighthouse chấm robots.txt không hợp lệ (SEO 92) — đã bỏ dòng này sau nghiệm thu |
 | Title docs dài hơn làm `h1` dài | Nhãn sidebar vẫn ngắn; title ≤ 48 ký tự trước hậu tố |
 | Khoá demo lọt vào `llms-full.txt` rồi agent curl trần làm khoá tenant 24 giờ | Khoá chỉ nằm trong bundle JS, không trong markdown; e2e chặn chuỗi dạng khoá |
 | Google không sang docs để tra `@id` tổ chức | Docs lặp lại nút `Organization` rút gọn cùng `@id` |

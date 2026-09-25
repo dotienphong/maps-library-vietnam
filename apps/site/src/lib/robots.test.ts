@@ -13,8 +13,8 @@ describe('robots.txt', () => {
     expect(noiDungRobots()).not.toContain('Disallow: /');
   });
 
-  it('khai Content-Signal cho bot AI: tìm kiếm, trả lời và huấn luyện đều được', () => {
-    expect(noiDungRobots()).toContain('Content-Signal: search=yes, ai-input=yes, ai-train=yes');
+  it('không có Content-Signal — Lighthouse coi là chỉ thị lạ và hạ SEO xuống 92', () => {
+    expect(noiDungRobots()).not.toContain('Content-Signal');
   });
 
   it('kết thúc bằng dòng trống, đúng quy ước tệp văn bản', () => {
