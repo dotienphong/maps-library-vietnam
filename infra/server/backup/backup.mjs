@@ -6,7 +6,7 @@
 // BACKUP_BUCKET không gắn domain. Thiếu passphrase thì dừng, không upload dump trần.
 import 'dotenv/config';
 import { execFileSync, spawnSync } from 'node:child_process';
-import { mkdirSync, rmSync, statSync } from 'node:fs';
+import { mkdirSync, readdirSync, rmSync, statSync } from 'node:fs';
 import { resolve } from 'node:path';
 import {
   backupBucket,
@@ -14,8 +14,11 @@ import {
   dumpCommand,
   encryptedName,
   localTempName,
+  RETRY_HOURS_VN,
   requireBackupPassphrase,
   retentionPlan,
+  staleTemps,
+  uploadArgs,
 } from '../../../scripts/lib/backup-plan.mjs';
 import { databaseUrlFromEnv } from '../../../scripts/lib/migrations.mjs';
 import { run } from '../../../scripts/lib/run.mjs';
@@ -42,11 +45,18 @@ function listNames(prefix) {
   }
 }
 
-async function backupOnce(now = new Date()) {
+/** Dump + mã hoá ra file tạm. Trả thông tin để upload (có thể upload lại nhiều lần). */
+function dumpOnce(now = new Date()) {
   const passphrase = requireBackupPassphrase(process.env);
   mkdirSync(work, { recursive: true });
   const name = encryptedName(backupName(now));
-  const file = resolve(work, localTempName(name, process.pid));
+  const tmp = localTempName(name, process.pid);
+  const file = resolve(work, tmp);
+  // File tạm của các lần upload hỏng trước (mỗi file 463 MB) — không dọn thì đĩa đầy dần.
+  for (const old of staleTemps(readdirSync(work), tmp)) {
+    console.warn(`[backup] xoá file tạm cũ ${old}`);
+    rmSync(resolve(work, old), { force: true });
+  }
   const dump = spawnSync('sh', ['-c', dumpCommand(file)], {
     stdio: 'inherit',
     env: {
@@ -55,12 +65,24 @@ async function backupOnce(now = new Date()) {
       BACKUP_PASSPHRASE: passphrase,
     },
   });
-  if (dump.status !== 0) throw new Error(`pg_dump/zstd/openssl thoát mã ${dump.status}`);
-  const mb = (statSync(file).size / 2 ** 20).toFixed(1);
-  run('rclone', ['copyto', file, `r2:${bucket}/backups/daily/${name}`]);
+  if (dump.status !== 0) {
+    rmSync(file, { force: true });
+    throw new Error(`pg_dump/zstd/openssl thoát mã ${dump.status}`);
+  }
   const vnWeekday = new Date(now.getTime() + 7 * 3600 * 1000).getUTCDay();
-  if (vnWeekday === 0) run('rclone', ['copyto', file, `r2:${bucket}/backups/weekly/${name}`]);
-  rmSync(file, { force: true });
+  return { name, file, weekly: vnWeekday === 0 };
+}
+
+/**
+ * Upload + dọn bản cũ trên R2. Ném lỗi nếu upload hỏng; file tạm GIỮ lại để thử lại.
+ * @param {{ name: string, file: string, weekly: boolean }} b
+ */
+function uploadOnce(b) {
+  const mb = (statSync(b.file).size / 2 ** 20).toFixed(1);
+  run('rclone', uploadArgs(b.file, `r2:${bucket}/backups/daily/${b.name}`, process.env));
+  if (b.weekly)
+    run('rclone', uploadArgs(b.file, `r2:${bucket}/backups/weekly/${b.name}`, process.env));
+  rmSync(b.file, { force: true });
   const plan = retentionPlan(
     { daily: listNames('backups/daily'), weekly: listNames('backups/weekly') },
     { keepDaily: 7, keepWeekly: 4 },
@@ -71,22 +93,47 @@ async function backupOnce(now = new Date()) {
     run('rclone', ['deletefile', `r2:${bucket}/backups/weekly/${n}`]);
   }
   console.log(
-    `✓ backup ${name} (${mb} MB) → r2:${bucket}/backups/daily — xoá ${plan.deleteDaily.length + plan.deleteWeekly.length} bản cũ`,
+    `✓ backup ${b.name} (${mb} MB) → r2:${bucket}/backups/daily — xoá ${plan.deleteDaily.length + plan.deleteWeekly.length} bản cũ`,
   );
 }
 
 const mode = process.argv[2] ?? '--once';
 if (mode === '--once') {
-  await backupOnce();
+  uploadOnce(dumpOnce());
 } else if (mode === '--daemon') {
   for (;;) {
     const at = nextRun(new Date(), { hour: 3, minute: 0 });
     console.log(`[backup] lần kế tiếp ${at.toISOString()} (03:00 giờ VN)`);
     await waitUntil(at); // kiểm giờ thật mỗi phút — máy ngủ không làm trượt mốc
+    /** @type {{ name: string, file: string, weekly: boolean } | undefined} */
+    let b;
     try {
-      await backupOnce();
+      b = dumpOnce();
+      uploadOnce(b);
+      continue;
     } catch (e) {
       console.error('[backup] LỖI', e);
+    }
+    if (!b) continue; // dump hỏng: không có gì để upload lại
+    // Upload hỏng (thường vì mạng yếu lúc đêm — sự cố 25/09/2026): thử lại ban ngày cùng file.
+    let ok = false;
+    for (const hour of RETRY_HOURS_VN) {
+      const retryAt = nextRun(new Date(), { hour, minute: 0 });
+      console.log(
+        `[backup] thử upload lại ${b.name} lúc ${retryAt.toISOString()} (${hour}:00 giờ VN)`,
+      );
+      await waitUntil(retryAt);
+      try {
+        uploadOnce(b);
+        ok = true;
+        break;
+      } catch (e) {
+        console.error('[backup] thử lại LỖI', e);
+      }
+    }
+    if (!ok) {
+      console.error(`[backup] BỎ bản ${b.name} sau ${RETRY_HOURS_VN.length} lần thử lại`);
+      rmSync(b.file, { force: true });
     }
   }
 } else {

@@ -7,8 +7,11 @@ import {
   encryptedName,
   localTempName,
   plainName,
+  RETRY_HOURS_VN,
   requireBackupPassphrase,
   retentionPlan,
+  staleTemps,
+  uploadArgs,
 } from './backup-plan.mjs';
 
 describe('backupName', () => {
@@ -101,5 +104,42 @@ describe('localTempName', () => {
     expect(localTempName('mapslibvn-20260909-2201.dump.zst.enc', 4242)).toBe(
       'mapslibvn-20260909-2201.dump.zst.enc.4242.tmp',
     );
+  });
+});
+
+describe('uploadArgs (sự cố 25/09/2026: upload chiếm hết đường mạng của tunnel)', () => {
+  const args = uploadArgs('/app/work/a.tmp', 'r2:b/backups/daily/a.enc', {});
+  const flag = (/** @type {string} */ name) => args[args.indexOf(name) + 1];
+
+  it('copyto đúng nguồn và đích', () => {
+    expect(args.slice(0, 3)).toEqual(['copyto', '/app/work/a.tmp', 'r2:b/backups/daily/a.enc']);
+  });
+  it('giới hạn băng thông và chỉ một luồng để luôn chừa đường cho cloudflared', () => {
+    expect(flag('--bwlimit')).toBe('4M');
+    expect(flag('--multi-thread-streams')).toBe('1');
+    expect(flag('--s3-upload-concurrency')).toBe('1');
+  });
+  it('bỏ cuộc sau 30 phút (cắt cứng) thay vì giữ mạng nghẽn hàng giờ', () => {
+    expect(flag('--max-duration')).toBe('30m');
+    expect(flag('--cutoff-mode')).toBe('hard');
+    expect(flag('--retries')).toBe('1');
+  });
+  it('BACKUP_BWLIMIT ghi đè giới hạn mặc định', () => {
+    const a = uploadArgs('f', 'd', { BACKUP_BWLIMIT: '512k' });
+    expect(a[a.indexOf('--bwlimit') + 1]).toBe('512k');
+  });
+});
+
+describe('staleTemps', () => {
+  it('chỉ trả file .tmp khác file đang dùng — file tạm của các lần hỏng trước không được kẹt mãi', () => {
+    expect(
+      staleTemps(['x-0919.enc.1.tmp', 'x-0925.enc.1.tmp', 'ghi-chu.txt'], 'x-0925.enc.1.tmp'),
+    ).toEqual(['x-0919.enc.1.tmp']);
+  });
+});
+
+describe('RETRY_HOURS_VN', () => {
+  it('thử lại ban ngày, trước lượt 03:00 kế tiếp', () => {
+    expect(RETRY_HOURS_VN).toEqual([10, 15]);
   });
 });
