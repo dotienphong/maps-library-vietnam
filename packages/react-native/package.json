@@ -1,6 +1,6 @@
 {
   "name": "@mapslibvn/react-native",
-  "version": "0.15.0",
+  "version": "0.15.1",
   "description": "Bản đồ Việt Nam cho React Native (iOS, Android): <MapsLibVNMap>, <Marker>, useMap, usePlaces, dẫn đường giọng Việt, la bàn — bọc @maplibre/maplibre-react-native (Vietnam map for React Native)",
   "keywords": [
     "mapslibvn",

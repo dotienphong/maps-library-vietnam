@@ -1,6 +1,6 @@
 {
   "name": "@mapslibvn/core",
-  "version": "0.15.0",
+  "version": "0.15.1",
   "description": "Client TypeScript cho API bản đồ Việt Nam MapsLibVN: autocomplete, tìm kiếm địa điểm, geocode, dẫn đường, ma trận khoảng cách và chuỗi ghi nguồn (Vietnam maps API client)",
   "keywords": [
     "mapslibvn",

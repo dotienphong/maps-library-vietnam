@@ -1,6 +1,6 @@
 {
   "name": "@mapslibvn/react",
-  "version": "0.15.0",
+  "version": "0.15.1",
   "description": "Bản đồ Việt Nam cho React: <MapsLibVNMap>, <Marker>, useMap, usePlaces (Vietnam map for React)",
   "keywords": [
     "mapslibvn",

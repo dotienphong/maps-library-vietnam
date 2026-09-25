@@ -1,6 +1,6 @@
 {
   "name": "@mapslibvn/web",
-  "version": "0.15.0",
+  "version": "0.15.1",
   "description": "Bản đồ Việt Nam cho web: nhúng bản đồ MapLibre với tiles PMTiles, marker, ô tìm kiếm địa điểm và dẫn đường từng bước (Vietnam map SDK for web)",
   "keywords": [
     "mapslibvn",
