@@ -43,7 +43,7 @@
 | `apps/docs/playwright.seo.config.ts`, `e2e/seo.spec.ts` | Tạo | e2e SEO docs không cần API |
 | `scripts/indexnow.mjs` (+ test) | Tạo | IndexNow `truoc`/`gui` |
 | `apps/{site,docs}/public/c1da44e6cf8707383215e23e4fc36e9e.txt` | Tạo | tệp khoá IndexNow |
-| `.github/workflows/deploy-site.yml`, `deploy-docs.yml`, `package.json` | Sửa | gắn IndexNow, `fetch-depth: 0`, paths |
+| `.github/workflows/deploy-site.yml`, `deploy-docs.yml`, `package.json`, `Pnpm_Scripts_Guide.md` | Sửa | gắn IndexNow, `fetch-depth: 0`, paths; mô tả lệnh deploy |
 | `packages/{core,web,react,react-native}/package.json`, `README.md` | Sửa | `homepage`, `keywords`, mô tả, dòng link |
 | `scripts/lib/package-release.test.mjs` | Sửa | khoá metadata npm |
 | `README.md`, `docs/DEVLOG.md`, `docs/evidence/seo-ai/2026-09-25-seo-ai-search.md` | Sửa/Tạo | tài liệu vận hành, nhật ký, chứng cứ |
@@ -3141,6 +3141,13 @@ Trong `package.json` gốc, thay hai dòng `deploy:docs` và `deploy:site` bằn
     "deploy:site": "pnpm --filter @mapslibvn/site build && node scripts/indexnow.mjs truoc --dist apps/site/dist --site https://mapslibvn.pages.dev && pnpm --filter @mapslibvn/site exec wrangler pages deploy dist --project-name mapslibvn && node scripts/indexnow.mjs gui --site https://mapslibvn.pages.dev",
 ```
 
+Cập nhật luôn bảng lệnh trong `Pnpm_Scripts_Guide.md` (PHONG thêm ngày 25/09, commit `7b349c2`) — thay hai dòng `deploy:docs` và `deploy:site` bằng:
+
+```md
+| `pnpm deploy:docs` | 🔴 | Build rồi đẩy `apps/docs` lên Cloudflare Pages `mapslibvn-docs`, rồi báo IndexNow những URL có chữ đổi. (CI đã tự deploy từ `main`.) |
+| `pnpm deploy:site` | 🔴 | Build rồi đẩy website `apps/site` lên Cloudflare Pages `mapslibvn`, rồi báo IndexNow những URL có chữ đổi. |
+```
+
 - [ ] **Step 5: Chạy lại, thấy xanh**
 
 Run: `pnpm exec vitest run scripts/indexnow.test.mjs`
@@ -3151,7 +3158,7 @@ Expected: PASS toàn bộ.
 Run: `pnpm exec biome check --write scripts/indexnow.test.mjs`
 
 ```bash
-git add .github/workflows/deploy-site.yml .github/workflows/deploy-docs.yml package.json scripts/indexnow.test.mjs
+git add .github/workflows/deploy-site.yml .github/workflows/deploy-docs.yml package.json scripts/indexnow.test.mjs Pnpm_Scripts_Guide.md
 git commit -m "ci: báo IndexNow quanh bước deploy site và docs, cả khi deploy tay
 
 Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
