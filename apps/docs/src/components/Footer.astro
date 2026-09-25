@@ -1,0 +1,42 @@
+---
+// Footer gốc của Starlight (cập nhật lần cuối, trang trước/sau) cộng một hàng link về website.
+// Trước 25/09/2026 docs link về site đúng 4 lần, toàn trong nội dung, nên máy khó thấy hai tên
+// miền là một (spec SEO-AI mục 6.5).
+import Default from '@astrojs/starlight/components/Footer.astro';
+import { SITE_URL } from '@mapslibvn/catalog';
+
+const LINK = [
+  { nhan: 'Website MapsLibVN', href: `${SITE_URL}/` },
+  { nhan: 'Bảng giá', href: `${SITE_URL}/bang-gia/` },
+  { nhan: 'So với Google Maps', href: `${SITE_URL}/so-sanh/google-maps-api/` },
+  { nhan: 'Liên hệ', href: `${SITE_URL}/lien-he/` },
+];
+---
+
+<Default />
+<nav class="lien-ket-site" aria-label="Website MapsLibVN">
+  {LINK.map(({ nhan, href }) => <a href={href}>{nhan}</a>)}
+</nav>
+
+<style>
+  .lien-ket-site {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0 1.5rem;
+    margin-top: 2rem;
+    padding-top: 0.5rem;
+    border-top: 1px solid var(--sl-color-hairline);
+    font-size: var(--sl-text-sm);
+  }
+  /* Vùng chạm ≥ 44 px như quy định của website. */
+  .lien-ket-site a {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+    color: var(--sl-color-gray-3);
+    text-decoration: none;
+  }
+  .lien-ket-site a:hover {
+    color: var(--sl-color-white);
+  }
+</style>

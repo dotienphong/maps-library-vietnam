@@ -62,6 +62,7 @@ export default defineConfig({
       // "Cập nhật lần cuối: …" cuối mỗi trang — tín hiệu độ mới mà AI dựa vào khi chọn nguồn.
       // Đọc từ git, nên deploy-docs.yml phải checkout đủ lịch sử.
       lastUpdated: true,
+      components: { Footer: './src/components/Footer.astro' },
       defaultLocale: 'root',
       locales: { root: { label: 'Tiếng Việt', lang: 'vi' } },
       customCss: ['./src/styles/custom.css'],
