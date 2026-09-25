@@ -118,3 +118,33 @@ test('ngân sách JavaScript trang chủ dưới 15 KB gzip', async ({ page }) =
   expect(byteNhung).toBeLessThan(15_000);
   expect(tepJs.length, `không được có tệp JS ngoài: ${tepJs.join(', ')}`).toBe(0);
 });
+
+test('robots.txt khai Content-Signal cho bot AI', async ({ request }) => {
+  const txt = await (await request.get('/robots.txt')).text();
+  expect(txt).toContain('Content-Signal: search=yes, ai-input=yes, ai-train=yes');
+});
+
+test('llms.txt có mọi trang chính và giá lấy từ catalog', async ({ request }) => {
+  const res = await request.get('/llms.txt');
+  expect(res.status()).toBe(200);
+  expect(res.headers()['content-type']).toContain('text/plain');
+  const txt = await res.text();
+  expect(txt.startsWith('# MapsLibVN\n')).toBe(true);
+  for (const path of TRANG.filter((p) => p !== '/')) {
+    expect(txt, path).toContain(`(https://mapslibvn.pages.dev${path})`);
+  }
+  expect(txt).toContain('650.000đ');
+  expect(txt).not.toMatch(/mlv_live_[0-9A-Za-z]{24}/);
+});
+
+test('sitemap: bài viết có lastmod, trang marketing thì không', async ({ request }) => {
+  const xml = await (await request.get('/sitemap-0.xml')).text();
+  expect(xml).toMatch(/<loc>https:\/\/mapslibvn\.pages\.dev\/bai-viet\/[^<]+\/<\/loc><lastmod>/);
+  expect(xml).toContain('<loc>https://mapslibvn.pages.dev/bang-gia/</loc></url>');
+});
+
+test('logo vuông mà Organization.logo trỏ tới tồn tại thật', async ({ request }) => {
+  const logo = await request.get('/logo-512.png');
+  expect(logo.status()).toBe(200);
+  expect(logo.headers()['content-type']).toContain('image/png');
+});
