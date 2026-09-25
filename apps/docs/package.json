@@ -11,6 +11,7 @@
     "postbuild": "node scripts/inject-demo-key.mjs",
     "preview": "astro preview --port 4321",
     "e2e": "playwright test",
+    "e2e:seo": "playwright test -c playwright.seo.config.ts",
     "typecheck": "astro check"
   },
   "dependencies": {

@@ -16,6 +16,13 @@ export default defineConfig({
       url: 'http://localhost:4321/',
       reuseExistingServer: !process.env.CI,
       timeout: 120_000,
+      env: {
+        // Astro 7 tự chạy preview ở NỀN khi nhận diện agent, nên Playwright không tắt được và server
+        // sót lại chặn mọi lần preview sau ("Another astro preview server is already running").
+        // Cùng cách chữa với apps/site/playwright.config.ts (commit 96cd980).
+        ASTRO_PREVIEW_BACKGROUND: '0',
+        CLAUDECODE: '',
+      },
     },
   ],
 });
