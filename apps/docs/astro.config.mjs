@@ -41,6 +41,8 @@ export default defineConfig({
       title: 'MapsLibVN',
       // "Trang — MapsLibVN" giống website, thay cho "Trang | MapsLibVN" mặc định của Starlight.
       titleDelimiter: '—',
+      // OG, JSON-LD, noindex cho từng trang (spec SEO-AI mục 6.2).
+      routeMiddleware: './src/route-data.ts',
       defaultLocale: 'root',
       locales: { root: { label: 'Tiếng Việt', lang: 'vi' } },
       customCss: ['./src/styles/custom.css'],
