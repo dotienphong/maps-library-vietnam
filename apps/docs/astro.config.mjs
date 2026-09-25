@@ -39,6 +39,8 @@ export default defineConfig({
   integrations: [
     starlight({
       title: 'MapsLibVN',
+      // "Trang — MapsLibVN" giống website, thay cho "Trang | MapsLibVN" mặc định của Starlight.
+      titleDelimiter: '—',
       defaultLocale: 'root',
       locales: { root: { label: 'Tiếng Việt', lang: 'vi' } },
       customCss: ['./src/styles/custom.css'],

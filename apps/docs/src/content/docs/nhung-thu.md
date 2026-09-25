@@ -1,6 +1,6 @@
 ---
-title: Nhúng thử trang của bạn
-description: Chạy một trang HTML trắng có bản đồ MapsLibVN trên máy trong hai phút bằng khoá demo, rồi chuyển sang origin thật.
+title: "Nhúng thử bản đồ vào trang HTML của bạn"
+description: "Chạy một trang HTML có bản đồ MapsLibVN trên máy trong hai phút bằng khoá demo và một máy chủ tĩnh, vì sao file:// không chạy, rồi chuyển sang origin thật."
 ---
 
 Trang này để bạn tự kiểm chứng: SDK nhúng được vào một trang HTML bất kỳ, không cần build, không cần

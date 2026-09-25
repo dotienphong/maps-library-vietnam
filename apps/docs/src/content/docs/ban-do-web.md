@@ -1,5 +1,5 @@
 ---
-title: Bản đồ web
+title: "Bản đồ web: tuỳ chọn, marker, sự kiện"
 description: Hướng dẫn đầy đủ gói @mapslibvn/web — tuỳ chọn createMap, theme, ngôn ngữ, marker, khung nhìn, sự kiện load và poiClick, truy cập thẳng MapLibre qua map.gl.
 ---
 

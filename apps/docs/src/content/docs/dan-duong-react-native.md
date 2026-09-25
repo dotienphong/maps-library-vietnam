@@ -1,6 +1,6 @@
 ---
-title: Dẫn đường trên React Native
-description: Phiên dẫn đường độc lập với màn hình bản đồ, định vị cả khi khoá máy, giọng Việt bằng TTS native — @mapslibvn/react-native 0.5.
+title: "Dẫn đường trên React Native có giọng Việt"
+description: "Dẫn đường trên iOS và Android bằng @mapslibvn/react-native: phiên chạy độc lập với màn hình bản đồ, định vị cả khi khoá máy, đọc chỉ dẫn tiếng Việt bằng TTS."
 ---
 
 Trang này dành cho `@mapslibvn/react-native` (0.5 trở lên). Logic dẫn đường giống hệt web (cùng

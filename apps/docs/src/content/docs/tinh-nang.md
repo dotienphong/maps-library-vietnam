@@ -1,6 +1,6 @@
 ---
-title: Tính năng
-description: MapsLibVN có gì — bản đồ nền Việt Nam, lớp POI 164 loại, Places API, geocode trung thực về độ chính xác, đóng góp cộng đồng và SDK cho web, React, React Native.
+title: "Tính năng kỹ thuật và 164 mã POI"
+description: "Tham chiếu kỹ thuật của MapsLibVN: tiles PMTiles, style sáng và tối, 164 mã POI trong 13 nhóm, Places API, geocode có precision, cùng những gì chưa có."
 ---
 
 MapsLibVN là thư viện bản đồ và Places cho Việt Nam: tiles nền, lớp địa điểm, REST API và SDK.

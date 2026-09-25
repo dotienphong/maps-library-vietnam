@@ -1,6 +1,6 @@
 ---
-title: Giấy phép & ghi nguồn
-description: SDK MIT; dữ liệu OpenStreetMap (ODbL), Foursquare OS Places (Apache-2.0); chuỗi ghi nguồn bắt buộc.
+title: "Giấy phép dữ liệu và chuỗi ghi nguồn"
+description: "SDK MapsLibVN theo giấy phép MIT, dữ liệu mở từ OpenStreetMap (ODbL) và Foursquare OS Places (Apache-2.0), chuỗi ghi nguồn bắt buộc và cách áp dụng ODbL."
 ---
 
 ## 1. Mã nguồn SDK — MIT

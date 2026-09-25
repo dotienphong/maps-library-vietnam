@@ -1,6 +1,6 @@
 ---
-title: Đóng góp & sửa POI
-description: Gửi sửa giờ mở cửa, thêm địa điểm mới qua POST /v1/edits và SDK suggestEdit.
+title: "Đóng góp và sửa địa điểm (POI)"
+description: "Cho người dùng cuối sửa giờ mở cửa, vị trí, liên hệ hoặc thêm địa điểm mới qua POST /v1/edits và suggestEdit của SDK, kèm scope cần có và luật tự duyệt."
 ---
 
 Người dùng cuối của app nhúng có thể sửa thông tin địa điểm hoặc thêm địa điểm mới.

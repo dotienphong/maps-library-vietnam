@@ -1,6 +1,6 @@
 ---
-title: Khoá API
-description: Ba loại khoá web/mobile/server, cách kiểm origin, scope, quota, khoá demo và cách xin khoá MapsLibVN.
+title: "Khoá API: web, mobile và server"
+description: "Lấy khoá API MapsLibVN trong năm phút, phân biệt ba loại khoá web, mobile và server, cách kiểm origin, scope, quota, khoá demo và cách truyền khoá qua header."
 ---
 
 Mọi endpoint `/v1/*` đọc dữ liệu Places đều cần khoá API. Khoá có dạng `mlv_live_…`, gắn với một

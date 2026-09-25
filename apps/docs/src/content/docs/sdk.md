@@ -1,5 +1,5 @@
 ---
-title: SDK JavaScript
+title: "Tham chiếu SDK JavaScript @mapslibvn"
 description: Tham chiếu bốn gói @mapslibvn — export thật, bảng tuỳ chọn và mặc định, sự kiện và payload, phương thức client ứng với endpoint nào.
 ---
 

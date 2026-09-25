@@ -1,6 +1,6 @@
 ---
-title: Bắt đầu 5 phút
-description: Đường nhanh nhất để có bản đồ MapsLibVN chạy — script tag, npm, React hoặc React Native.
+title: "Nhúng bản đồ Việt Nam trong 5 phút"
+description: "Đường nhanh nhất để chạy bản đồ MapsLibVN: một thẻ script không cần build, hoặc cài từ npm cho web, React và React Native, kèm marker và sự kiện bấm POI."
 ---
 
 Đây là đường ngắn nhất. Muốn biết đủ điều kiện, yêu cầu và cách xử lý lỗi thì đọc

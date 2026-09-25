@@ -1,6 +1,6 @@
 ---
-title: Dẫn đường từng bước
-description: Bám GPS theo tuyến của /v1/directions trên web — vẽ tuyến, đọc câu tiếng Việt, tự tính lại khi lệch.
+title: "Dẫn đường từng bước trên web"
+description: "Dẫn đường từng bước trên web với MapsLibVN: vẽ tuyến từ /v1/directions, bám GPS, đọc câu rẽ bằng giọng tiếng Việt và tự tính lại tuyến khi người dùng đi lệch."
 ---
 
 Trang này dành cho web (`@mapslibvn/web` và `@mapslibvn/react`). Bạn đã có tuyến từ

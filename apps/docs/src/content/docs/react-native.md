@@ -1,6 +1,6 @@
 ---
-title: React Native
-description: Nhúng bản đồ MapsLibVN vào app iOS/Android bằng @mapslibvn/react-native.
+title: "Bản đồ Việt Nam cho React Native"
+description: "Nhúng bản đồ MapsLibVN vào app iOS và Android bằng @mapslibvn/react-native: yêu cầu New Architecture, cài bằng Expo hoặc bare, MapsLibVNMap, Marker, useMap."
 ---
 
 `@mapslibvn/react-native` bọc [`@maplibre/maplibre-react-native`](https://maplibre.org/maplibre-react-native/)

@@ -1,5 +1,5 @@
 ---
-title: React
+title: "SDK React cho bản đồ Việt Nam"
 description: Gói @mapslibvn/react — component MapsLibVNMap, hook useMap và usePlaces, component Marker, kèm ví dụ tìm-và-ghim trọn màn hình.
 ---
 

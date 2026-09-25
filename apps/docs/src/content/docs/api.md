@@ -1,5 +1,5 @@
 ---
-title: REST API
+title: "REST API bản đồ, geocode và dẫn đường"
 description: Tham chiếu Places API và Routing API của MapsLibVN — xác thực, mã lỗi, quota, cache và từng endpoint kèm tham số, ví dụ curl và phản hồi.
 ---
 

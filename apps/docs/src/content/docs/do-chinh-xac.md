@@ -1,6 +1,6 @@
 ---
-title: Độ chính xác geocode
-description: Ý nghĩa của precision và confidence trong kết quả /v1/geocode và /v1/reverse, và cách dùng đúng trong ứng dụng.
+title: "Độ chính xác geocode địa chỉ Việt Nam"
+description: "Ý nghĩa của precision và confidence trong kết quả geocode và reverse của MapsLibVN, thang phân giải từ mái nhà tới phường, địa chỉ theo đơn vị hành chính cũ."
 ---
 
 Mọi kết quả geocode của MapsLibVN kèm hai trường: `precision` (mức phân giải) và `confidence` (độ tin, từ 0 đến 1). Ứng dụng **phải** đọc hai trường này trước khi dùng toạ độ. Đây là nguyên tắc "trung thực về độ chính xác" của MapsLibVN: thà nói rõ kết quả chỉ tới mức đường, còn hơn ghim sai một điểm trông như chính xác.
