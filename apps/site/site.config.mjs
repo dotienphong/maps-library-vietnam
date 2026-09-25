@@ -19,5 +19,7 @@ export const SAME_AS = ['https://www.npmjs.com/org/mapslibvn'];
 /**
  * Mã xác thực Google Search Console (phương thức thẻ HTML) cho property URL prefix
  * https://mapslibvn.pages.dev/. Rỗng thì không in thẻ. Mã nằm công khai trong HTML nên commit được.
+ * Google cấp mã theo TÀI KHOẢN, nên docs dùng đúng mã này (PHONG nhận 25/09/2026). Gỡ thẻ là
+ * Search Console mất quyền sở hữu ở lần kiểm lại sau.
  */
-export const GOOGLE_SITE_VERIFICATION = '';
+export const GOOGLE_SITE_VERIFICATION = 'K1craNPbR4NEi_BcSWqxNcIWaYHq76E284DVE83ab-o';
