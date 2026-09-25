@@ -6,7 +6,7 @@ import sitemap from '@astrojs/sitemap';
 import starlight from '@astrojs/starlight';
 import { defineConfig } from 'astro/config';
 import starlightLlmsTxt from 'starlight-llms-txt';
-import { API_BASE, DOCS_URL, SITE_URL } from './docs.config.mjs';
+import { API_BASE, DOCS_URL, GOOGLE_SITE_VERIFICATION, SITE_URL } from './docs.config.mjs';
 import { lastmodChoUrl } from './scripts/lastmod.mjs';
 
 const require = createRequire(import.meta.url);
@@ -141,6 +141,15 @@ export default defineConfig({
           content:
             "(function(){try{if(!localStorage.getItem('starlight-theme'))localStorage.setItem('starlight-theme','dark')}catch(e){document.documentElement.dataset.theme='dark'}})()",
         },
+        // Xác thực Google Search Console (spec SEO-AI mục 8). Hằng rỗng thì không in thẻ nào.
+        ...(GOOGLE_SITE_VERIFICATION
+          ? [
+              {
+                tag: 'meta',
+                attrs: { name: 'google-site-verification', content: GOOGLE_SITE_VERIFICATION },
+              },
+            ]
+          : []),
       ],
       sidebar: [
         {
