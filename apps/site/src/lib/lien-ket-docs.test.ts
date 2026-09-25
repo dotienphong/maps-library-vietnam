@@ -1,6 +1,6 @@
-import { DOCS, DOCS_URL } from '@mapslibvn/catalog';
+import { DOCS, DOCS_URL, SITE_URL } from '@mapslibvn/catalog';
 import { describe, expect, it } from 'vitest';
-import { DOCS_URL as DOCS_URL_SITE } from '../../site.config.mjs';
+import { DOCS_URL as DOCS_URL_SITE, SITE_URL as SITE_URL_SITE } from '../../site.config.mjs';
 
 describe('địa chỉ tài liệu', () => {
   it('website và gói dùng chung phải ghi CÙNG một địa chỉ', () => {
@@ -17,5 +17,9 @@ describe('địa chỉ tài liệu', () => {
       expect(url, ten).toMatch(/\/$/);
       expect(url, ten).toContain(DOCS_URL);
     }
+  });
+
+  it('website và gói dùng chung ghi CÙNG một gốc website', () => {
+    expect(SITE_URL_SITE).toBe(SITE_URL);
   });
 });

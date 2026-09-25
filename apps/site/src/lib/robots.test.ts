@@ -13,6 +13,10 @@ describe('robots.txt', () => {
     expect(noiDungRobots()).not.toContain('Disallow: /');
   });
 
+  it('khai Content-Signal cho bot AI: tìm kiếm, trả lời và huấn luyện đều được', () => {
+    expect(noiDungRobots()).toContain('Content-Signal: search=yes, ai-input=yes, ai-train=yes');
+  });
+
   it('kết thúc bằng dòng trống, đúng quy ước tệp văn bản', () => {
     expect(noiDungRobots().endsWith('\n')).toBe(true);
   });
