@@ -61,18 +61,18 @@ Một màu nhấn duy nhất, tách làm hai token theo vai trò: `--accent` là
 muốn khách nhìn thấy trước (nút chính, con số đắt giá, ô thắng trong bảng đối đầu, gói nổi bật). Link
 trong đoạn văn dùng `--accent-text`, không dùng `--accent`.
 
-Token mới trong `packages/ui/src/tokens.css`, thay toàn bộ `--color-brand-*`:
+Token mới trong `packages/ui/src/tokens.css`, thay toàn bộ `--color-brand-*`. **Cập nhật 25/09/2026:** nền tối đổi từ đen `#0a0a0a` sang xám than `#232327` theo banner ra mắt (PHONG chốt), kéo cả thang xám tối lên theo; tài liệu Starlight ghi đè thang xám tối cho cùng nền (`apps/docs/src/styles/custom.css`).
 
 | Token | Tối (`.dark`) | Sáng (`:root`) | Dùng cho |
 |---|---|---|---|
-| `--bg` | `#0a0a0a` | `#fafafa` | nền trang |
-| `--surface` | `#111113` | `#ffffff` | thẻ, header, footer |
-| `--surface-2` | `#18181b` | `#f4f4f5` | ô bento, khối mã, hàng bảng xen kẽ |
-| `--border` | `#27272a` | `#e4e4e7` | viền mặc định |
-| `--border-strong` | `#3f3f46` | `#a1a1aa` | viền khi hover, tab đang chọn |
+| `--bg` | `#232327` | `#fafafa` | nền trang |
+| `--surface` | `#2d2d32` | `#ffffff` | thẻ, header, footer |
+| `--surface-2` | `#35353b` | `#f4f4f5` | ô bento, khối mã, hàng bảng xen kẽ |
+| `--border` | `#44444b` | `#e4e4e7` | viền mặc định |
+| `--border-strong` | `#5a5a63` | `#a1a1aa` | viền khi hover, tab đang chọn |
 | `--text` | `#fafafa` | `#0a0a0a` | chữ chính |
-| `--text-muted` | `#a1a1aa` | `#52525b` | chữ phụ, lead |
-| `--text-faint` | `#71717a` | `#71717a` | chỉ cho chữ lớn hoặc phần trang trí (viền, dấu chấm); không dùng cho chữ < 19 px |
+| `--text-muted` | `#b4b4bb` | `#52525b` | chữ phụ, lead |
+| `--text-faint` | `#83838c` | `#71717a` | chỉ cho chữ lớn hoặc phần trang trí (viền, dấu chấm); không dùng cho chữ < 19 px |
 | `--accent` | `#a3e635` | `#a3e635` | **chỉ làm nền** (nút chính, chip), luôn đi kèm chữ `--accent-ink` |
 | `--accent-ink` | `#0a0a0a` | `#0a0a0a` | chữ đặt trên `--accent` |
 | `--accent-text` | `#a3e635` | `#3f6212` | link, chữ nhấn, **viền nhấn và nét vẽ** trên nền thường |
@@ -84,10 +84,10 @@ thành phần giao diện):
 
 | Cặp | Tỉ lệ |
 |---|---|
-| `#fafafa` trên `#0a0a0a` | 19,0:1 |
-| `#a1a1aa` trên `#0a0a0a` | 7,7:1 |
-| `#71717a` trên `#0a0a0a` | 4,1:1 → **chỉ** cho chữ ≥ 24 px hoặc ≥ 19 px in đậm; không dùng cho nhãn nhỏ |
-| `#a3e635` trên `#0a0a0a` | 13,1:1 |
+| `#fafafa` trên `#232327` | 15,0:1 |
+| `#b4b4bb` trên `#232327` | 7,6:1 |
+| `#83838c` trên `#232327` | 4,2:1 → **chỉ** cho chữ ≥ 24 px hoặc ≥ 19 px in đậm; không dùng cho nhãn nhỏ |
+| `#a3e635` trên `#232327` | 10,4:1 |
 | `#0a0a0a` trên `#a3e635` | 13,1:1 |
 | `#0a0a0a` trên `#fafafa` | 19,0:1 |
 | `#52525b` trên `#fafafa` | 7,4:1 |
@@ -102,7 +102,7 @@ Tailwind: khai báo trong `@theme` thành `--color-bg`, `--color-surface`, `--co
 được `bg-accent text-accent-ink`, `border-border`, `text-muted`. **Không còn lớp `brand-*` nào** trong
 bốn app; grep `brand-` trên `apps/` và `packages/ui` phải trả 0 (trừ tên tệp/tài liệu).
 
-`<meta name="theme-color">` đổi theo theme: tối `#0a0a0a`, sáng `#fafafa` (hai thẻ với `media`).
+`<meta name="theme-color">` đổi theo theme: tối `#232327`, sáng `#fafafa` (hai thẻ với `media`).
 
 ### 4.2. Chữ
 

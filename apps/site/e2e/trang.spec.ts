@@ -208,7 +208,7 @@ test('mặc định tối bất kể cài đặt máy; chọn sáng thì nhớ',
   await page.goto('/');
   const html = page.locator('html');
   expect(await html.evaluate((el) => el.classList.contains('dark'))).toBe(true);
-  await expect(page.locator('meta[name="theme-color"]')).toHaveAttribute('content', '#0a0a0a');
+  await expect(page.locator('meta[name="theme-color"]')).toHaveAttribute('content', '#232327');
 
   await page.getByRole('button', { name: 'Đổi giao diện sáng tối' }).click();
   await expect.poll(() => html.evaluate((el) => el.classList.contains('dark'))).toBe(false);

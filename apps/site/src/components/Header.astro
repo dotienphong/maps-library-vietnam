@@ -139,7 +139,7 @@ const mucNav = NAV.map((key) => ({ ...TRANG[key], dangXem: pathname === TRANG[ke
     // Thanh trạng thái của trình duyệt di động phải đổi theo, nếu không nó vẫn đen trên nền sáng.
     document
       .querySelector('meta[name="theme-color"]')
-      ?.setAttribute('content', toi ? '#0a0a0a' : '#fafafa');
+      ?.setAttribute('content', toi ? '#232327' : '#fafafa');
     try {
       localStorage.setItem(KHOA, toi ? 'dark' : 'light');
     } catch {

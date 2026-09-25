@@ -1,13 +1,31 @@
 /* Màu nhấn đồng bộ với website và cổng khách hàng (spec 2026-09-22 mục 8.3).
    Starlight lấy ba biến này cho link, viền hoạt động và nút chính.
 
-   Bản TỐI dùng xanh chanh #a3e635 (13,1:1 trên #0a0a0a). Bản SÁNG KHÔNG được dùng nó làm chữ —
-   #a3e635 trên nền trắng chỉ đạt 1,4:1 — nên chuyển sang xanh ô liu đậm #3f6212 (6,8:1). Cùng
-   nguyên tắc tách vai trò như `packages/ui/src/tokens.css`. */
+   Bản TỐI dùng xanh chanh #a3e635 (10,4:1 trên nền #232327). Bản SÁNG KHÔNG được dùng nó làm
+   chữ — #a3e635 trên nền trắng chỉ đạt 1,4:1 — nên chuyển sang xanh ô liu đậm #3f6212 (6,8:1).
+   Cùng nguyên tắc tách vai trò như `packages/ui/src/tokens.css`. */
 :root {
   --sl-color-accent-low: #1a2e08;
   --sl-color-accent: #a3e635;
   --sl-color-accent-high: #d9f99d;
+}
+
+/* Thang xám bản TỐI: xám than trung tính cùng nền với website (tokens.css `.dark`), thay cho
+   thang xám ngả xanh mặc định của Starlight. PHONG chốt 25/09/2026 theo banner ra mắt.
+   Phải loại trừ bản sáng bằng :not(): tệp này nằm NGOÀI @layer nên một khối `:root` trần sẽ đè
+   luôn thang xám bản sáng của Starlight (vốn nằm trong @layer starlight.base).
+   Starlight dùng gray-6 cho thanh trên, thanh bên và khối code; gray-3 cho chữ phụ, nên gray-3
+   phải đạt 4,5:1 trên CẢ nền trang lẫn gray-6 (5,6:1 và 4,9:1). Chữ thân gray-2 đạt 9,0:1. */
+:root:not([data-theme="light"]),
+:root:not([data-theme="light"]) ::backdrop {
+  --sl-color-gray-1: #ececf0;
+  --sl-color-gray-2: #c4c4cb;
+  --sl-color-gray-3: #9a9aa3;
+  --sl-color-gray-4: #5f5f68;
+  --sl-color-gray-5: #44444b;
+  --sl-color-gray-6: #2d2d32;
+  --sl-color-black: #232327;
+  --sl-color-backdrop-overlay: hsla(240, 5%, 14%, 0.66);
 }
 
 :root[data-theme="light"] {

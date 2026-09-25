@@ -2,7 +2,7 @@ import { PAID_TIERS, PLAN_CATALOG } from '@mapslibvn/catalog';
 import { BRAND, SITE_URL, SUPPORT_EMAIL, SUPPORT_PHONE } from '../../site.config.mjs';
 import type { TrangMeta } from './trang';
 
-const OG_MAC_DINH = '/og/mac-dinh-v2.png';
+const OG_MAC_DINH = '/og/mac-dinh-v3.png';
 
 /** URL tuyệt đối, luôn có dấu gạch cuối. Hai URL cho cùng một trang là tự chia điểm SEO. */
 export function canonicalUrl(path: string): string {

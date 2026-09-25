@@ -18,7 +18,7 @@
   --border-strong: #a1a1aa;
   --text: #0a0a0a;
   --text-muted: #52525b;
-  /* Chỉ cho chữ ≥ 24 px, ≥ 19 px in đậm, hoặc phần trang trí. 4,1:1 trên nền tối. */
+  /* Chỉ cho chữ ≥ 24 px, ≥ 19 px in đậm, hoặc phần trang trí. 4,2:1 trên nền tối. */
   --text-faint: #71717a;
   /* CHỈ dùng làm NỀN (nút chính, chip), luôn đi kèm chữ --accent-ink. Trên nền sáng nó chỉ đạt
      1,4:1 nên không được dùng cho chữ, viền hay nét vẽ — những thứ đó dùng --accent-text. */
@@ -32,15 +32,18 @@
   --focus: #3f6212;
 }
 
+/* Nền tối là xám than, không phải đen: PHONG chốt 25/09/2026 theo banner ra mắt, cho tổng thể
+   sáng hơn. Nâng nền thì phải nâng CẢ thang (surface, viền, chữ phụ), nếu không thẻ và viền chìm
+   vào nền. muted 7,6:1 và faint 4,2:1 trên nền mới — faint vẫn chỉ cho chữ lớn hoặc trang trí. */
 .dark {
-  --bg: #0a0a0a;
-  --surface: #111113;
-  --surface-2: #18181b;
-  --border: #27272a;
-  --border-strong: #3f3f46;
+  --bg: #232327;
+  --surface: #2d2d32;
+  --surface-2: #35353b;
+  --border: #44444b;
+  --border-strong: #5a5a63;
   --text: #fafafa;
-  --text-muted: #a1a1aa;
-  --text-faint: #71717a;
+  --text-muted: #b4b4bb;
+  --text-faint: #83838c;
   --accent: #a3e635;
   --accent-ink: #0a0a0a;
   --accent-text: #a3e635;

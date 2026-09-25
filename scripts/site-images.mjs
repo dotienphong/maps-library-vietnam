@@ -47,7 +47,7 @@ const FONT_DAI = ['latin', 'vietnamese'];
  * @typedef {{ net: number, b64: string }} NetFont
  */
 
-/** Bốn ảnh OG. `ten` + `-v2` phải KHỚP trường `og` trong apps/site/src/lib/trang.ts. */
+/** Bốn ảnh OG. `ten` + `-v3` phải KHỚP trường `og` trong apps/site/src/lib/trang.ts. */
 const ANH_OG = [
   { ten: 'mac-dinh', tieuDe: 'MapsLibVN', phu: 'API bản đồ và địa điểm Việt Nam' },
   {
@@ -90,10 +90,10 @@ function trangOg({ tieuDe, phu }, fontBase64) {
     justify-content: space-between; padding: 72px;
     /* Nền PHẲNG chứ không chuyển màu: PNG nén dải chuyển màu rất kém, một tấm gradient nặng gấp
        gần mười lần cùng nội dung trên nền phẳng. */
-    background: #0a0a0a;
+    background: #232327;
     color: #fafafa; font-family: 'Be Vietnam Pro', sans-serif; font-weight: 400;
   }
-  .nhan { font-size: 28px; letter-spacing: .04em; color: #a1a1aa; font-weight: 800; }
+  .nhan { font-size: 28px; letter-spacing: .04em; color: #b4b4bb; font-weight: 800; }
   /* Gạch nhấn là chỗ DUY NHẤT dùng xanh chanh trên ảnh này — cùng quy tắc một màu nhấn cho một
      việc như trên website. */
   .gach { width: 120px; height: 8px; background: #a3e635; border-radius: 4px; }
@@ -101,7 +101,7 @@ function trangOg({ tieuDe, phu }, fontBase64) {
     margin-top: 28px; font-size: 62px; line-height: 1.06; max-width: 17ch;
     font-weight: 800; letter-spacing: -.03em;
   }
-  .phu { font-size: 29px; color: #a1a1aa; }
+  .phu { font-size: 29px; color: #b4b4bb; }
 </style></head>
 <body>
   <div class="nhan">MapsLibVN</div>
@@ -132,10 +132,10 @@ async function sinhAnhOg(chromium) {
       await trang.evaluate(() => document.fonts.ready);
       // Tên có hậu tố phiên bản: mạng xã hội cache ảnh OG theo URL, giữ tên cũ thì bản navy còn
       // sống trong bộ nhớ đệm của Facebook/Zalo rất lâu sau khi đã đổi.
-      const duong = resolve(THU_MUC_OG, `${anh.ten}-v2.png`);
+      const duong = resolve(THU_MUC_OG, `${anh.ten}-v3.png`);
       await trang.screenshot({ path: duong });
       const { size } = await stat(duong);
-      console.log(`  og/${anh.ten}-v2.png — ${Math.round(size / 1024)} KB`);
+      console.log(`  og/${anh.ten}-v3.png — ${Math.round(size / 1024)} KB`);
     }
   } finally {
     await trinhDuyet.close();
