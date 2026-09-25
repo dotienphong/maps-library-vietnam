@@ -3422,11 +3422,11 @@ git commit -m "docs: DEVLOG mục 35, README vận hành SEO/AI search, khung ng
 Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 ```
 
-- [ ] **Step 6: Bàn giao — hỏi PHONG trước khi đụng `main`**
+- [x] **Step 6: Bàn giao — hỏi PHONG trước khi đụng `main`**
 
 Dùng skill `superpowers:finishing-a-development-branch`. Hỏi PHONG: merge `seo-ai-search` vào `main` và push (CI tự deploy site + docs). Nhắc hai điều: (1) nhánh không merge thì production không có gì (memory: nhánh cache 20/09 từng mất bản sửa vì CI deploy từ `main`); (2) lần deploy đầu IndexNow sẽ báo gần như mọi trang docs vì title đổi — đúng như mong đợi.
 
-- [ ] **Step 7: Sau khi PHONG merge và CI deploy xong — nghiệm thu production**
+- [x] **Step 7: Sau khi PHONG merge và CI deploy xong — nghiệm thu production**
 
 1. Chờ `Deploy Site` và `Deploy Docs` xanh: `gh run list --limit 5`.
 2. Chạy từng lệnh ở bảng "Máy tự đo" của tệp chứng cứ, dán kết quả thật vào cột "Kết quả".

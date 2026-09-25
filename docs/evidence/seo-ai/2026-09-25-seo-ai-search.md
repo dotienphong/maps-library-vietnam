@@ -38,17 +38,35 @@ PHONG ngày 25/09/2026, mỗi task một commit, từ `3e6a829` tới commit tà
   nhiều khả năng nhờ cache KV của `wrangler dev`. Muốn bộ này xanh lại ở máy phải seed lại DB dev —
   việc môi trường, ngoài phạm vi đợt này, KHÔNG tự làm.
 
-## Sau deploy — máy tự đo trên production
+## Sau deploy — máy tự đo trên production, 25/09/2026
+
+Hai lần push: `317f640..11dd040` (18:15 giờ VN) và bản sửa robots `11dd040..de336ac` (18:31).
 
 | # | Tiêu chí | Lệnh | Kết quả |
 |---|---|---|---|
-| 1 | robots hai host đúng nguyên văn | `curl -s https://mapslibvn.pages.dev/robots.txt; curl -s https://mapslibvn-docs.pages.dev/robots.txt` | |
-| 2 | llms 200 + `text/plain; charset=utf-8` | `for u in https://mapslibvn.pages.dev/llms.txt https://mapslibvn-docs.pages.dev/llms.txt https://mapslibvn-docs.pages.dev/llms-full.txt https://mapslibvn-docs.pages.dev/llms-small.txt; do curl -s -o /dev/null -w "%{http_code} %{content_type} $u\n" $u; done` | |
-| 3 | không còn title "X \| MapsLibVN" | `curl -s https://mapslibvn-docs.pages.dev/ \| grep -o '<title>[^<]*'` | |
-| 4 | lastmod theo git, không theo giờ build | `curl -s https://mapslibvn-docs.pages.dev/sitemap-0.xml \| grep -o '<lastmod>[^<]*' \| sort \| uniq -c`; `curl -s https://mapslibvn.pages.dev/sitemap-0.xml \| grep -o '<lastmod>[^<]*'` | |
-| 5 | IndexNow 200/202, chỉ URL đổi | `gh run list --workflow "Deploy Docs" --limit 1` rồi `gh run view <id> --log \| grep IndexNow` (và Deploy Site) | |
-| 5b | tệp khoá sống | `curl -s https://mapslibvn.pages.dev/c1da44e6cf8707383215e23e4fc36e9e.txt; curl -s https://mapslibvn-docs.pages.dev/c1da44e6cf8707383215e23e4fc36e9e.txt` | |
-| 7 | Lighthouse SEO = 100 (trang chủ docs, `/api/`, `/tim-kiem/`) | Task 18 Step 7 của plan | |
+| 1 | robots hai host đúng nguyên văn | `curl -s https://mapslibvn.pages.dev/robots.txt; curl -s https://mapslibvn-docs.pages.dev/robots.txt` | **Đạt.** Cả hai: `User-agent: *` / `Allow: /` / `Sitemap: <gốc>/sitemap-index.xml`. Docs không còn đoạn chú thích mặc định của Cloudflare. (Bản đầu có dòng `Content-Signal`, đã bỏ ở `de336ac` — xem 7.) |
+| 2 | llms 200 + `text/plain; charset=utf-8` | `for u in …/llms.txt …; do curl -s -o /dev/null -w "%{http_code} %{content_type}" $u; done` | **Đạt.** 200 `text/plain; charset=utf-8`: site `llms.txt` 3.628 B; docs `llms.txt` 2.187 B, `llms-full.txt` 380.395 B, `llms-small.txt` 297.057 B, `_llms-txt/getting-started.txt` 42.749 B |
+| 3 | không còn title "X \| MapsLibVN" | `curl -s https://mapslibvn-docs.pages.dev/ \| grep -o '<title>[^<]*'` | **Đạt.** "Tài liệu API bản đồ Việt Nam — MapsLibVN"; `/react/`: "SDK React cho bản đồ Việt Nam — MapsLibVN" |
+| 4 | lastmod theo git, không theo giờ build | `curl -s https://mapslibvn-docs.pages.dev/sitemap-0.xml \| grep -o '<lastmod>[^<]*' \| sort \| uniq -c` | **Đạt.** 20 URL: 18 × `2026-09-25T10:46:48Z` (= commit `1ed3138`), `/playground` `10:57:55Z` (= `fdc8c0f`), `/dieu-khoan/` `2026-09-21T03:38:08Z` (= tệp gốc `docs/legal/dieu-khoan-tenant.md`). Không trang nào mang giờ HEAD `11:15:31Z` → CI `fetch-depth: 0` có hiệu lực. Site: 2 bài viết `2026-09-18`, trang marketing không có |
+| 5 | IndexNow 200/202, chỉ URL đổi | `gh run view <id> --log \| grep IndexNow` | **Đạt.** Push 1 — site: 0 URL, không gửi; docs: 21 URL (19 trang đổi chữ + 2 URL bỏ khỏi sitemap), **HTTP 202**. Push 2 — cả hai 0 URL: so với bản vừa deploy không có chữ nào đổi, tên asset mới không bị tính nhầm |
+| 5b | tệp khoá sống | `curl -s …/c1da44e6cf8707383215e23e4fc36e9e.txt` | **Đạt.** Hai host trả đúng `c1da44e6cf8707383215e23e4fc36e9e` |
+| 7 | Lighthouse SEO = 100 | `npx lighthouse@12 <url> --only-categories=seo` với Chromium của Playwright | **Đạt sau sửa.** Push 1: **92** ở docs `/`, `/api/`, `/tim-kiem/` và site `/`, `/bang-gia/` — `robots-txt`: "robots.txt is not valid — Unknown directive: Content-Signal". PHONG chọn bỏ dòng đó (`de336ac`). Push 2: **100** ở cả 5 trang |
+
+### CI của hai lần push
+
+| Workflow | Push 1 (`11dd040`) | Push 2 (`de336ac`) |
+|---|---|---|
+| Deploy Site, Deploy Docs | xanh | xanh |
+| CI | xanh | xanh |
+| Routing tests, API tests (Places, real DB), DB tests | xanh | (không chạy lại) |
+| Deploy API | **đỏ ở cổng migration**: `/healthz/db` production hết 15 s → cổng chặn deploy | **đỏ ở `test:admin-e2e`**: 1/21 bài ("thu hồi khoá … sau 5 giây") vì `Network connection lost` trong ProxyWorker của `wrangler dev` trên CI; job deploy bị bỏ qua |
+
+Deploy API không cần cho đợt này: API chỉ nhận thêm hằng trong `@mapslibvn/catalog`, hành vi không đổi,
+nên production vẫn chạy bản API trước là đúng. Cổng migration làm đúng việc của nó.
+
+**Sự cố hạ tầng thấy trong lúc nghiệm thu (không do đợt này):** 11:24–11:31 UTC `/healthz/db` trả
+`503 upstream_unavailable` rồi `200` sau 10,9 s; `/healthz/routing` `503` — cùng kiểu chập chờn
+DB + routing qua tunnel như 23/09.
 
 ## Việc của PHONG
 
