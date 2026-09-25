@@ -63,8 +63,8 @@ Ký hiệu mức độ:
 |---|---|---|
 | `pnpm check:migration` | 🟡 | Cổng chặn deploy: so migration mới nhất trong repo với `schema_migration` mà `/healthz/db` production báo. Lệch hoặc không gọi được → CHẶN. Chạy **trước** `deploy:api`. |
 | `pnpm deploy:api` | 🔴 | Build rồi `wrangler deploy --env production` cho API. Migration phải lên trước (`server:migrate`), nếu không API chết. |
-| `pnpm deploy:docs` | 🔴 | Build rồi đẩy `apps/docs` lên Cloudflare Pages `mapslibvn-docs`. (CI đã tự deploy từ `main`.) |
-| `pnpm deploy:site` | 🔴 | Build rồi đẩy website `apps/site` lên Cloudflare Pages `mapslibvn`. |
+| `pnpm deploy:docs` | 🔴 | Build rồi đẩy `apps/docs` lên Cloudflare Pages `mapslibvn-docs`, rồi báo IndexNow những URL có chữ đổi. (CI đã tự deploy từ `main`.) |
+| `pnpm deploy:site` | 🔴 | Build rồi đẩy website `apps/site` lên Cloudflare Pages `mapslibvn`, rồi báo IndexNow những URL có chữ đổi. |
 | `pnpm sdk:publish` | 🔴 | Phát hành 4 gói SDK lên npm theo thứ tự core → web → react → react-native, rồi chờ đối chiếu registry. `--dry-run` để thử. Chạy `npm whoami` trước; OTP qua `NPM_CONFIG_OTP=...`. |
 
 ## 5. Dữ liệu bản đồ / POI

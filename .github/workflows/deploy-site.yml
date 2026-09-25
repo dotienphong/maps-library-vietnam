@@ -17,8 +17,12 @@ jobs:
       # Website đọc giá và token màu từ hai package nội bộ; chúng không có bước build riêng
       # (app import thẳng source), nên chỉ cần build site.
       - run: pnpm --filter @mapslibvn/site build
+      # IndexNow (spec SEO-AI mục 7): so chữ bản vừa build với bản ĐANG chạy, nên phải chạy trước khi
+      # deploy đè lên. Bước này và bước gui không bao giờ thoát khác 0.
+      - run: node scripts/indexnow.mjs truoc --dist apps/site/dist --site https://mapslibvn.pages.dev
       # Project Pages `mapslibvn` đã được tạo với production branch `main`.
       - run: pnpm --filter @mapslibvn/site exec wrangler pages deploy dist --project-name mapslibvn
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      - run: node scripts/indexnow.mjs gui --site https://mapslibvn.pages.dev

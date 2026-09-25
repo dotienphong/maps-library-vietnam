@@ -196,3 +196,31 @@ describe('tệp khoá IndexNow trong hai site', () => {
     expect(khoa[0]).toBe(khoa[1]);
   });
 });
+
+describe('IndexNow nằm đúng chỗ trong quy trình deploy', () => {
+  it.each([
+    ['.github/workflows/deploy-site.yml', 'https://mapslibvn.pages.dev', 'apps/site/dist'],
+    ['.github/workflows/deploy-docs.yml', 'https://mapslibvn-docs.pages.dev', 'apps/docs/dist'],
+  ])('%s: truoc giữa build và deploy, gui sau deploy', (tep, site, dist) => {
+    const yml = readFileSync(tep, 'utf8');
+    const truoc = yml.indexOf(`node scripts/indexnow.mjs truoc --dist ${dist} --site ${site}`);
+    const deploy = yml.indexOf('wrangler pages deploy');
+    const gui = yml.indexOf(`node scripts/indexnow.mjs gui --site ${site}`);
+    expect(truoc, 'thiếu bước truoc').toBeGreaterThan(0);
+    expect(truoc).toBeLessThan(deploy);
+    expect(gui).toBeGreaterThan(deploy);
+  });
+
+  it('deploy-docs kéo đủ lịch sử git — thiếu thì mọi trang mang cùng một ngày', () => {
+    expect(readFileSync('.github/workflows/deploy-docs.yml', 'utf8')).toContain('fetch-depth: 0');
+  });
+
+  it('lệnh deploy tay cũng báo IndexNow', () => {
+    const scripts = JSON.parse(readFileSync('package.json', 'utf8')).scripts;
+    for (const lenh of ['deploy:site', 'deploy:docs']) {
+      expect(scripts[lenh], lenh).toMatch(
+        /indexnow\.mjs truoc .*wrangler pages deploy.*indexnow\.mjs gui/,
+      );
+    }
+  });
+});

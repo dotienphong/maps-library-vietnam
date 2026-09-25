@@ -27,7 +27,10 @@ jobs:
           PUBLIC_MAPSLIBVN_DEMO_KEY: ${{ secrets.PUBLIC_MAPSLIBVN_DEMO_KEY }}
       - name: Chặn deploy nếu playground không có khoá demo
         run: grep -Eq 'mlv_live_[0-9A-Za-z]{24}' apps/docs/dist/playground-lib.js || { echo '::error::dist/playground-lib.js không có khoá demo — không deploy'; exit 1; }
+      # IndexNow (spec SEO-AI mục 7): so với bản ĐANG chạy trước khi deploy đè lên; không bao giờ đỏ.
+      - run: node scripts/indexnow.mjs truoc --dist apps/docs/dist --site https://mapslibvn-docs.pages.dev
       - run: pnpm --filter @mapslibvn/docs exec wrangler pages deploy dist --project-name mapslibvn-docs
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      - run: node scripts/indexnow.mjs gui --site https://mapslibvn-docs.pages.dev
