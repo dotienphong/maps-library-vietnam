@@ -5,6 +5,8 @@
 [![minzipped size](https://img.shields.io/bundlephobia/minzip/@mapslibvn/web)](https://bundlephobia.com/package/@mapslibvn/web)
 [![license](https://img.shields.io/npm/l/@mapslibvn/web.svg)](https://www.npmjs.com/package/@mapslibvn/web)
 
+**[Website](https://mapslibvn.pages.dev/) · [Pricing](https://mapslibvn.pages.dev/bang-gia/) · [Docs](https://mapslibvn-docs.pages.dev/ban-do-web/)**
+
 **A production-ready web map SDK for Vietnam.** `@mapslibvn/web` wraps MapLibre GL JS and PMTiles into a single `createMap()` call — vector tiles, Vietnamese/English labels, a built-in accessible search box, and turn-by-turn navigation, with attribution handled correctly out of the box.
 
 Framework-agnostic: drop it into a plain HTML page via `<script>`, or use it as the engine under [`@mapslibvn/react`](https://www.npmjs.com/package/@mapslibvn/react).

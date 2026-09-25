@@ -23,4 +23,35 @@ describe('npm release contract', () => {
     expect(web.devDependencies['maplibre-gl']).toBe('^6.9.1');
     expect(react.devDependencies['maplibre-gl']).toBe('^6.9.1');
   });
+
+  it('metadata npm dẫn về website và tìm được bằng từ khoá (spec SEO-AI 25/09/2026 mục 9)', () => {
+    const CHUNG = [
+      'mapslibvn',
+      'vietnam',
+      'viet-nam',
+      'vietnam-map',
+      'ban-do',
+      'bản đồ',
+      'map',
+      'maps',
+      'geocoding',
+      'autocomplete',
+      'places',
+      'poi',
+      'directions',
+      'routing',
+      'openstreetmap',
+    ];
+    for (const dir of SDK_PACKAGE_DIRS) {
+      const manifest = readJson(`${dir}/package.json`);
+      expect(manifest.homepage, dir).toBe('https://mapslibvn.pages.dev/');
+      for (const tu of CHUNG) expect(manifest.keywords, `${dir} thiếu "${tu}"`).toContain(tu);
+      // Không dẫn khách về repo GitHub: PHONG không công bố hướng dẫn tự host (23/09/2026).
+      expect(manifest.repository, dir).toBeUndefined();
+      expect(manifest.bugs, dir).toBeUndefined();
+      expect(readFileSync(`${dir}/README.md`, 'utf8'), dir).toContain(
+        '[Website](https://mapslibvn.pages.dev/)',
+      );
+    }
+  });
 });

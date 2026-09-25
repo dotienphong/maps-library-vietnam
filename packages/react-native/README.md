@@ -4,6 +4,8 @@
 [![npm downloads](https://img.shields.io/npm/dm/@mapslibvn/react-native.svg)](https://www.npmjs.com/package/@mapslibvn/react-native)
 [![license](https://img.shields.io/npm/l/@mapslibvn/react-native.svg)](https://www.npmjs.com/package/@mapslibvn/react-native)
 
+**[Website](https://mapslibvn.pages.dev/) · [Pricing](https://mapslibvn.pages.dev/bang-gia/) · [Docs](https://mapslibvn-docs.pages.dev/react-native/)**
+
 **Native maps and voice-guided navigation for Vietnam, built for React Native.** `@mapslibvn/react-native` wraps `@maplibre/maplibre-react-native` behind the same API shape as [`@mapslibvn/react`](https://www.npmjs.com/package/@mapslibvn/react), so a team that already ships the web SDK can bring the exact same mental model to iOS and Android.
 
 Works with Expo (bare or managed, not Expo Go) and bare React Native apps alike. Example app: `examples/embed-rn`.

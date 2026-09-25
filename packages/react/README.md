@@ -5,6 +5,8 @@
 [![minzipped size](https://img.shields.io/bundlephobia/minzip/@mapslibvn/react)](https://bundlephobia.com/package/@mapslibvn/react)
 [![license](https://img.shields.io/npm/l/@mapslibvn/react.svg)](https://www.npmjs.com/package/@mapslibvn/react)
 
+**[Website](https://mapslibvn.pages.dev/) · [Pricing](https://mapslibvn.pages.dev/bang-gia/) · [Docs](https://mapslibvn-docs.pages.dev/react/)**
+
 **Idiomatic React bindings for MapsLibVN.** Drop a Vietnam-ready map, search box and turn-by-turn navigation into any React app with `<MapsLibVNMap>`, `<Marker>`, `useMap()`, `usePlaces()` and `useNavigation()` — no imperative MapLibre plumbing required.
 
 Built on top of [`@mapslibvn/web`](https://www.npmjs.com/package/@mapslibvn/web) and [`@mapslibvn/core`](https://www.npmjs.com/package/@mapslibvn/core), so every feature of the underlying engine (Vietnamese search, POI sources, navigation) is available through familiar React patterns.

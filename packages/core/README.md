@@ -5,6 +5,8 @@
 [![minzipped size](https://img.shields.io/bundlephobia/minzip/@mapslibvn/core)](https://bundlephobia.com/package/@mapslibvn/core)
 [![license](https://img.shields.io/npm/l/@mapslibvn/core.svg)](https://www.npmjs.com/package/@mapslibvn/core)
 
+**[Website](https://mapslibvn.pages.dev/) · [Pricing](https://mapslibvn.pages.dev/bang-gia/) · [Docs](https://mapslibvn-docs.pages.dev/sdk/)**
+
 **The Vietnam-first geodata client for TypeScript/JavaScript.** Framework-agnostic, no runtime dependencies, and built from day one to understand Vietnamese addresses the way people actually type them — no diacritics, abbreviated street types, old-vs-new administrative names, and hẻm/ngõ (alley) numbering that generic geocoders get wrong.
 
 `@mapslibvn/core` is the foundation shared by [`@mapslibvn/web`](https://www.npmjs.com/package/@mapslibvn/web), [`@mapslibvn/react`](https://www.npmjs.com/package/@mapslibvn/react) and [`@mapslibvn/react-native`](https://www.npmjs.com/package/@mapslibvn/react-native) — but it works just as well on its own, in any Node.js service, CLI, or non-map UI (search bars, address forms, delivery apps, coverage checks…).
