@@ -5,7 +5,8 @@ import react from '@astrojs/react';
 import sitemap from '@astrojs/sitemap';
 import starlight from '@astrojs/starlight';
 import { defineConfig } from 'astro/config';
-import { DOCS_URL } from './docs.config.mjs';
+import starlightLlmsTxt from 'starlight-llms-txt';
+import { API_BASE, DOCS_URL, SITE_URL } from './docs.config.mjs';
 import { lastmodChoUrl } from './scripts/lastmod.mjs';
 
 const require = createRequire(import.meta.url);
@@ -63,6 +64,62 @@ export default defineConfig({
       // Đọc từ git, nên deploy-docs.yml phải checkout đủ lịch sử.
       lastUpdated: true,
       components: { Footer: './src/components/Footer.astro' },
+      // llms.txt / llms-full.txt / llms-small.txt cho AI và trợ lý lập trình (spec SEO-AI mục 6.7).
+      // Nhãn nhóm bằng tiếng Anh để URL /_llms-txt/<nhóm>.txt là ASCII sạch; mô tả vẫn tiếng Việt.
+      // KHÔNG ghi số tiền: docs cố ý không chép cứng giá (xem khoa-api.md), giá đọc ở /v1/catalog.
+      plugins: [
+        starlightLlmsTxt({
+          projectName: 'MapsLibVN',
+          description:
+            'Tài liệu kỹ thuật của MapsLibVN — API bản đồ, tìm kiếm địa điểm, geocode và dẫn đường cho Việt Nam, kèm SDK cho web, React và React Native.',
+          details: [
+            `- API base: \`${API_BASE}\`; mọi endpoint \`/v1/*\` cần khoá API gửi qua header \`X-Api-Key\`.`,
+            '- Ba loại khoá: `web` (kiểm origin của trình duyệt), `mobile`, `server`. Khoá demo chỉ để thử trên playground và `localhost`; ứng dụng thật cần khoá riêng.',
+            '- Bốn gói npm: `@mapslibvn/web` (bản đồ web), `@mapslibvn/react` (React), `@mapslibvn/react-native` (iOS, Android), `@mapslibvn/core` (client API, không giao diện).',
+            '- Ghi nguồn là bắt buộc: SDK luôn hiện attribution và không có tuỳ chọn tắt.',
+            `- Giá và hạn mức: đọc bằng máy ở \`GET /v1/catalog\`, hoặc xem ${SITE_URL}/bang-gia/.`,
+          ].join('\n'),
+          customSets: [
+            {
+              label: 'Getting started',
+              description: 'Cài đặt, khoá API, bản đồ đầu tiên trong 5 phút, React Native',
+              paths: ['cai-dat', 'khoa-api', 'bat-dau', 'react-native'],
+            },
+            {
+              label: 'Guides',
+              description:
+                'Bản đồ web, tìm kiếm, dẫn đường trên web và React Native, đội xe, React, độ chính xác geocode, đóng góp POI',
+              paths: [
+                'ban-do-web',
+                'tim-kiem',
+                'dan-duong',
+                'dan-duong-react-native',
+                'doi-xe',
+                'react',
+                'do-chinh-xac',
+                'dong-gop',
+              ],
+            },
+            {
+              label: 'Reference',
+              description: 'Tham chiếu REST API và SDK JavaScript',
+              paths: ['api', 'sdk'],
+            },
+          ],
+          optionalLinks: [
+            { label: 'Website MapsLibVN', url: `${SITE_URL}/`, description: 'giới thiệu sản phẩm' },
+            {
+              label: 'Bảng giá',
+              url: `${SITE_URL}/bang-gia/`,
+              description: 'bốn gói, giá VND, hạn mức',
+            },
+            { label: 'So với Google Maps Platform', url: `${SITE_URL}/so-sanh/google-maps-api/` },
+            { label: 'So với VIETMAP', url: `${SITE_URL}/so-sanh/vietmap/` },
+          ],
+          demote: ['dieu-khoan', 'giay-phep', 'thong-bao-ben-thu-ba'],
+          exclude: ['thong-bao-ben-thu-ba'],
+        }),
+      ],
       defaultLocale: 'root',
       locales: { root: { label: 'Tiếng Việt', lang: 'vi' } },
       customCss: ['./src/styles/custom.css'],
