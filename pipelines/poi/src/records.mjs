@@ -135,15 +135,17 @@ export function buildRow(r) {
 /**
  * Với mỗi đối tượng mà loại chỉ có thể đến từ khoá mở rộng (theo `<osm_type><osm_id>`): có nằm trong
  * một xã/phường hiện hành không, và tên (đã bỏ tiền tố) các xã/phường hiện hành + cũ chứa nó. Bảng
- * hành chính là của lần build trước; DB mới chưa có thì bỏ qua hai luật này.
+ * hành chính là của lần build trước; DB mới (admin_area rỗng) thì bỏ qua hai luật này.
  * @param {Sql} sql
  * @returns {Promise<Map<string, { inCommune: boolean, cores: Set<string> }>>}
  */
 export async function loadExtendedAdmin(sql) {
-  const [exists] =
-    await sql`SELECT to_regclass('admin_area') IS NOT NULL AND to_regclass('admin_area_old') IS NOT NULL AS ok`;
-  if (!exists?.ok) {
-    console.warn('! chưa có admin_area/admin_area_old — bỏ qua luật phạm vi xã và trùng tên xã');
+  // Kiểm DỮ LIỆU chứ không kiểm bảng: migration 0004/0008 tạo sẵn hai bảng rỗng, và trong
+  // data-update records chạy TRƯỚC admin.mjs — DB mới mà coi là "đã có" thì mọi đối tượng thành
+  // "ngoài xã" và toàn bộ POI khoá mở rộng bị bỏ lặng lẽ.
+  const [ready] = await sql`SELECT EXISTS (SELECT 1 FROM admin_area WHERE level = 8) AS ok`;
+  if (!ready?.ok) {
+    console.warn('! admin_area chưa có xã/phường — bỏ qua luật phạm vi xã và trùng tên xã');
     return new Map();
   }
   const legacy = LEGACY_POI_KEYS.map((k) => `'${k}'`).join(',');
@@ -167,7 +169,9 @@ export async function loadExtendedAdmin(sql) {
 }
 
 /**
- * Gom bản ghi OSM cùng `name_norm` + cùng mã trong 1 km, giữ rid nhỏ nhất (plan 2026-09-26 Task 4).
+ * Gom bản ghi OSM cùng `name_norm` + cùng mã trong 1 km (plan 2026-09-26 Task 4). DELETE … USING so
+ * với trạng thái đầu câu lệnh, nên một chuỗi bản ghi liền nhau (< 1 km giữa từng cặp) dồn về bản rid
+ * nhỏ nhất dù bản đó có thể xa hơn 1 km — chấp nhận: đo 26/09 chỉ 46 bản (hồ rác "Industry pond").
  * @param {Sql} sql
  * @param {string} [table]
  * @returns {Promise<number>} số bản ghi bị xoá
@@ -180,10 +184,12 @@ export async function dedupeSameName(sql, table = 'poi_work_record') {
     WHERE r.source = 'osm' AND o.source = 'osm' AND r.category = o.category
       AND r.category IN (${codes}) AND r.name_norm = o.name_norm AND r.rid > o.rid AND ${near}`);
   // Bản ghi từ khoá mở rộng nhường POI OSM cũ cùng tên: polygon landuse=religious "Chùa X" trùng
-  // node chùa nằm trong nó (460 ứng viên trùng POI đang giữ trong 1,3 km, đo 26/09).
+  // node chùa nằm trong nó (442 bản ghi, đo 26/09). Trừ khi POI cũ là trạm giao thông: bến xe buýt,
+  // ga đặt tên theo chính địa danh ("Ngã tư Thủ Đức", "KCN Tân Thới Hiệp", 182 ca) — nhường thì
+  // nút giao/KCN/thôn mất hẳn, chỉ còn điểm dừng xe buýt.
   const yielded = await sql.unsafe(`DELETE FROM ${table} r USING ${table} o
     WHERE r.source = 'osm' AND o.source = 'osm' AND r.ext AND NOT o.ext
-      AND r.name_norm = o.name_norm AND ${near}`);
+      AND o.group_code <> 'transport' AND r.name_norm = o.name_norm AND ${near}`);
   return sameCode.count + yielded.count;
 }
 

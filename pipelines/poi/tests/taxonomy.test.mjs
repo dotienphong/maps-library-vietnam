@@ -158,6 +158,20 @@ describe('khoá OSM mở rộng 26/09/2026 (danh sách trắng giá trị)', () 
     expect(cat({ barrier: 'gate' })).toBeNull();
     expect(cat({ highway: 'primary' })).toBeNull();
   });
+  it('khoá cũ ra *_other vẫn thắng khoá mở rộng: POI đang có không bị đổi nhóm', () => {
+    // 86 viện nghiên cứu amenity=research_institute + landuse=commercial (đo 26/09/2026).
+    expect(cat({ amenity: 'research_institute', landuse: 'commercial' })).toEqual({
+      code: 'education_other',
+      group: 'education',
+    });
+    expect(cat({ office: 'yes', landuse: 'commercial' })?.group).not.toBe('place');
+  });
+  it('khoá cũ bị OSM_DROP thì khoá mở rộng được xét', () => {
+    expect(cat({ amenity: 'bench', natural: 'peak' })).toEqual({
+      code: 'mountain',
+      group: 'culture_tourism',
+    });
+  });
   it('khoá cũ vẫn đứng trước; natural đứng trước place (bãi biển gắn kèm place=locality)', () => {
     expect(cat({ amenity: 'cafe', natural: 'peak' })).toEqual({
       code: 'cafe',

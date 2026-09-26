@@ -208,6 +208,19 @@ export function refineSchool(code, name) {
 }
 
 /**
+ * Ứng viên OSM sau OSM_DROP. Khoá mở rộng (STRICT_OSM_KEYS) chỉ được xét khi KHÔNG còn ứng viên
+ * khoá cũ nào: nếu không, categoryFor bỏ qua kết quả `*_other` của khoá cũ để lấy khoá mở rộng, và
+ * 136 POI đang có (viện nghiên cứu + landuse=commercial…) bị đổi sang nhóm `place`, mất khỏi tiles.
+ * @param {{ osm: Map<string, string> }} maps @param {Record<string, string>} tags
+ */
+function osmValues(maps, tags) {
+  const all = osmCandidates(tags).filter((v) => !OSM_DROP.has(v));
+  const isStrict = (/** @type {string} */ v) => STRICT_OSM_KEYS.has(v.split('=')[0] ?? '');
+  const legacy = all.filter((v) => !isStrict(v));
+  return legacy.length > 0 ? legacy : all.filter((v) => maps.osm.has(v));
+}
+
+/**
  * Chọn loại cho một bản ghi: lấy ứng viên đầu tiên ánh xạ được (không phải *_other/other); nếu không có ứng viên nào → theo ứng viên đầu.
  * @param {{ osm: Map<string, string>, fsq: Map<string, string> }} maps
  * @param {'osm' | 'fsq'} source
@@ -217,9 +230,7 @@ export function refineSchool(code, name) {
 export function categoryFor(maps, source, input) {
   const values = Array.isArray(input)
     ? input.filter((v) => typeof v === 'string' && v)
-    : osmCandidates(input).filter(
-        (v) => !OSM_DROP.has(v) && (!STRICT_OSM_KEYS.has(v.split('=')[0] ?? '') || maps.osm.has(v)),
-      );
+    : osmValues(maps, input);
   if (values.length === 0) return source === 'osm' ? null : OTHER;
   let fallback = null;
   for (const v of values) {

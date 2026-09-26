@@ -55,6 +55,7 @@ describe('extendedAllowed — luật chặn cho mã từ khoá OSM mở rộng',
     expect(extendedAllowed({ tags: {}, name: 'Hồ', cat: lake, ext: true })).toBe(false);
     expect(extendedAllowed({ tags: {}, name: 'Núi 2', cat: mountain, ext: true })).toBe(false);
     expect(extendedAllowed({ tags: {}, name: 'Toll Plaza', cat: toll, ext: true })).toBe(false);
+    expect(extendedAllowed({ tags: {}, name: 'Industry pond', cat: lake, ext: true })).toBe(false);
     expect(extendedAllowed({ tags: {}, name: 'Hồ Tây', cat: lake, ext: true })).toBe(true);
   });
   it('junction chỉ nhận tên dạng nút giao', () => {
