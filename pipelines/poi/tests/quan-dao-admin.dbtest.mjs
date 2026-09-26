@@ -49,12 +49,12 @@ describe('buildCurrentAdmin — hai đặc khu', () => {
       const rows =
         await tx`SELECT a.id, a.level, a.name, a.name_norm, a.osm_relation_id, p.name AS cha
         FROM admin_area_new a LEFT JOIN admin_area_new p ON p.id = a.parent_id ORDER BY a.id`;
-      const seed = rows.filter((r) => Number(r.osm_relation_id) < -8000);
+      const seed = rows.filter((r) => Number(r.osm_relation_id) < -9000);
       expect(
         seed.map((r) => [r.level, r.name, r.name_norm, Number(r.osm_relation_id), r.cha]),
       ).toEqual([
-        [8, 'Đặc khu Hoàng Sa', 'dac khu hoang sa', -8001, 'Thành phố Đà Nẵng'],
-        [8, 'Đặc khu Trường Sa', 'dac khu truong sa', -8002, 'Tỉnh Khánh Hòa'],
+        [8, 'Đặc khu Hoàng Sa', 'dac khu hoang sa', -9001, 'Thành phố Đà Nẵng'],
+        [8, 'Đặc khu Trường Sa', 'dac khu truong sa', -9002, 'Tỉnh Khánh Hòa'],
       ]);
       // Nối SAU mọi hàng khác: không xê dịch id của các L8 đang có.
       const maxKhac = Math.max(...rows.filter((r) => !seed.includes(r)).map((r) => Number(r.id)));
@@ -67,13 +67,13 @@ describe('buildCurrentAdmin — hai đặc khu', () => {
       expect(ten).not.toContain('Xã Vĩnh Hưng');
       // Hình thật lấy từ data/quan-dao.geojson: chứa đảo, KHÔNG chứa đất/lãnh hải Sabah, Palawan, đảo ven bờ.
       const [hinh] = await tx`SELECT
-          bool_and(ST_Contains(geom, ST_SetSRID(ST_MakePoint(114.331, 11.429), 4326))) FILTER (WHERE osm_relation_id = -8002) AS song_tu_tay,
-          bool_and(ST_Contains(geom, ST_SetSRID(ST_MakePoint(112.341, 16.834), 4326))) FILTER (WHERE osm_relation_id = -8001) AS phu_lam,
+          bool_and(ST_Contains(geom, ST_SetSRID(ST_MakePoint(114.331, 11.429), 4326))) FILTER (WHERE osm_relation_id = -9002) AS song_tu_tay,
+          bool_and(ST_Contains(geom, ST_SetSRID(ST_MakePoint(112.341, 16.834), 4326))) FILTER (WHERE osm_relation_id = -9001) AS phu_lam,
           bool_or(ST_Contains(geom, ST_SetSRID(ST_MakePoint(116.85, 6.88), 4326))) AS kudat,
           bool_or(ST_Contains(geom, ST_SetSRID(ST_MakePoint(117.05, 7.98), 4326))) AS balabac,
           bool_or(ST_Contains(geom, ST_SetSRID(ST_MakePoint(116.2, 6.7), 4326))) AS mantanani,
           bool_or(ST_Contains(geom, ST_SetSRID(ST_MakePoint(109.12, 15.38), 4326))) AS ly_son
-        FROM admin_area_new WHERE osm_relation_id IN (-8001, -8002)`;
+        FROM admin_area_new WHERE osm_relation_id IN (-9001, -9002)`;
       expect(hinh).toEqual({
         song_tu_tay: true,
         phu_lam: true,

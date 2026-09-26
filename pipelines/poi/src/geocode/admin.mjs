@@ -59,7 +59,7 @@ export async function buildCurrentAdmin(sql) {
   // Hòa dựng bù (−4). Cha đặt theo tên tỉnh, không theo chứa-điểm: hình L4 của Khánh Hòa/Đà Nẵng cố ý không
   // nới ra biển (bbox của kết quả "Đà Nẵng" sẽ kéo tới 113°E).
   const dacKhu = vungQuanDao().map((v, i) => ({
-    osm: -8001 - i,
+    osm: -9001 - i,
     ten: v.ten,
     norm: normalizeVi(v.ten),
     tinh: normalizeVi(v.tinh),

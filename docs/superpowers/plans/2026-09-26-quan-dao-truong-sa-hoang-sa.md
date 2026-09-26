@@ -89,7 +89,7 @@ dòng) + dbtest ingest.
 `apps/api/src/routes/reverse.ts`; tests geocode dbtest + API test.
 
 - [ ] RED: sau `buildCurrentAdmin`, có 2 hàng L8 tên "Đặc khu Trường Sa"/"Đặc khu Hoàng Sa", `name_norm` "dac khu
-  …", cha là L4 Khánh Hòa/Đà Nẵng, id nối sau (không xê dịch id L8 khác), `osm_relation_id` −8001/−8002; hàng
+  …", cha là L4 Khánh Hòa/Đà Nẵng, id nối sau (không xê dịch id L8 khác), `osm_relation_id` −9001/−9002 (−8001/−8002 đã là id tổng hợp của db/admin-old.dbtest.mjs); hàng
   raw L6/L8 có điểm nằm trong vùng quần đảo bị loại (chặn relation TQ "Quận Nam Sa"/"Tam Sa").
 - [ ] RED: `fillPoiAdmin` cho POI trên Song Tử Tây → ward "Đặc khu Trường Sa", province "Khánh Hòa".
 - [ ] RED (API): reverse trên Song Tử Tây trả ward + province qua cha.
