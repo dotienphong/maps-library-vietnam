@@ -71,13 +71,17 @@ reverse.get(
         }
       }
 
-      const admins = await sql<{ name: string; level: number }[]>`
-      SELECT name, level
-      FROM admin_area
-      WHERE ST_Contains(geom, ${point}) AND level IN (4, 8)
-      ORDER BY level DESC`;
-      const ward = admins.find((admin) => admin.level === 8)?.name;
-      const province = admins.find((admin) => admin.level === 4)?.name;
+      // Đặc khu Hoàng Sa/Trường Sa: hình L4 của Đà Nẵng/Khánh Hòa cố ý không nới ra biển (pipeline admin.mjs),
+      // nên khi không L4 nào chứa điểm thì tỉnh lấy theo cha của đơn vị cấp 8.
+      const admins = await sql<{ name: string; level: number; parent_province: string | null }[]>`
+      SELECT a.name, a.level, p.name AS parent_province
+      FROM admin_area a LEFT JOIN admin_area p ON p.id = a.parent_id AND p.level = 4
+      WHERE ST_Contains(a.geom, ${point}) AND a.level IN (4, 8)
+      ORDER BY a.level DESC`;
+      const wardRow = admins.find((admin) => admin.level === 8);
+      const ward = wardRow?.name;
+      const province =
+        admins.find((admin) => admin.level === 4)?.name ?? wardRow?.parent_province ?? undefined;
 
       const [poiRow] = await sql<PlaceRow[]>`
       SELECT ${placeColumns(sql)}

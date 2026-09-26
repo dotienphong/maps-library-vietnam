@@ -6,7 +6,8 @@ INSERT INTO category (code, group_code, name_vi, name_en, icon, rank) VALUES
   ('cafe', 'food_drink', 'Quán cà phê', 'Cafe', 'cafe', 3)
 ON CONFLICT (code) DO NOTHING;
 
-DELETE FROM admin_area WHERE osm_relation_id IN (880000000001, 880000000002, 880000000003, 880000000004)
+DELETE FROM admin_area WHERE osm_relation_id IN (880000000001, 880000000002, 880000000003, 880000000004,
+    880000000011, 880000000012)
   OR osm_relation_id BETWEEN 880000000101 AND 880000000110;
 INSERT INTO admin_area (level, name, name_norm, osm_relation_id, geom) VALUES
   (4, 'Thành phố Hồ Chí Minh', 'ho chi minh', 880000000001,
@@ -21,6 +22,13 @@ INSERT INTO admin_area (level,name,name_norm,osm_relation_id,geom)
 SELECT 8,'Phường Đích '||lpad(n::text,2,'0'),'dich '||lpad(n::text,2,'0'),880000000100+n,
   ST_Multi(ST_Buffer(ST_SetSRID(ST_MakePoint(106.652+n*0.002,10.752+n*0.002),4326),0.001))
 FROM generate_series(1,10) n;
+-- Đặc khu Trường Sa (PHONG 26/09/2026): hình L4 Khánh Hòa chỉ phủ đất liền, tỉnh lấy theo cha của L8.
+INSERT INTO admin_area (level, name, name_norm, osm_relation_id, geom) VALUES
+  (4, 'Khánh Hòa', 'khanh hoa', 880000000011, ST_Multi(ST_MakeEnvelope(108.6, 11.5, 109.5, 13.0, 4326))),
+  (8, 'Đặc khu Trường Sa', 'dac khu truong sa', 880000000012,
+    ST_Multi(ST_MakeEnvelope(111.4, 6.5, 116.3, 12.1, 4326)));
+UPDATE admin_area child SET parent_id=province.id FROM admin_area province
+WHERE province.osm_relation_id=880000000011 AND child.osm_relation_id=880000000012;
 UPDATE admin_area child SET parent_id=province.id
 FROM admin_area province
 WHERE province.osm_relation_id=880000000001

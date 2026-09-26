@@ -121,6 +121,13 @@ describe('thang geocode và các route còn lại', () => {
     });
   });
 
+  it('reverse trên Song Tử Tây: đặc khu Trường Sa, tỉnh Khánh Hòa theo cha (L4 không phủ ra biển)', async () => {
+    const { status, body } = await get('/v1/reverse?lat=11.429&lng=114.331');
+    expect(status).toBe(200);
+    expect(body.address).toMatchObject({ ward: 'Đặc khu Trường Sa', province: 'Khánh Hòa' });
+    expect(body.address.display_name).toBe('Đặc khu Trường Sa, Khánh Hòa');
+  });
+
   it('autocomplete Highlands có score giảm dần', async () => {
     const { status, body } = await get('/v1/autocomplete?q=highlands&near=10.77,106.70');
     expect(status).toBe(200);

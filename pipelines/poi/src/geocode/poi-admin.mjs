@@ -15,7 +15,13 @@ export async function fillPoiAdmin(sql) {
     FROM (
       SELECT p2.id,
         (SELECT w.name FROM admin_area w WHERE w.level = 8 AND ST_Contains(w.geom, p2.geom) ORDER BY w.id LIMIT 1) AS ward,
-        (SELECT pr.name FROM admin_area pr WHERE pr.level = 4 AND ST_Contains(pr.geom, p2.geom) ORDER BY pr.id LIMIT 1) AS province
+        coalesce(
+          (SELECT pr.name FROM admin_area pr WHERE pr.level = 4 AND ST_Contains(pr.geom, p2.geom) ORDER BY pr.id LIMIT 1),
+          -- Đặc khu Hoàng Sa/Trường Sa: hình L4 của Đà Nẵng/Khánh Hòa cố ý không nới ra biển (admin.mjs),
+          -- nên tỉnh lấy theo cha của đơn vị cấp 8 chứa POI.
+          (SELECT pr.name FROM admin_area w JOIN admin_area pr ON pr.id = w.parent_id AND pr.level = 4
+            WHERE w.level = 8 AND ST_Contains(w.geom, p2.geom) ORDER BY w.id LIMIT 1)
+        ) AS province
       FROM poi p2
     ) a
     WHERE a.id = p.id AND (p.admin_ward, p.admin_province) IS DISTINCT FROM (a.ward, a.province)`);
