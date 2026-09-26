@@ -28,6 +28,18 @@ ALTER TABLE street OWNER TO pipeline;
 ALTER TABLE alley OWNER TO pipeline;
 ALTER TABLE address_anchor OWNER TO pipeline;
 ALTER TABLE vn_boundary OWNER TO pipeline;
+-- Bảng làm việc tạm của pipeline không có trong migration nên không gọi đích danh được, nhưng vẫn
+-- nằm trong backup (poi_work_* sống giữa hai lần chạy; *_new/*_keys_stage còn lại khi một lần chạy
+-- dừng giữa chừng). Bỏ sót thì câu DROP đầu tiên của records.mjs chết "must be owner of table
+-- poi_work_pair" trên máy chủ vừa phục hồi (sự cố 26/09/2026). Không bảng migration nào khớp mẫu này.
+DO $$ DECLARE t text; BEGIN
+  FOR t IN SELECT tablename FROM pg_tables WHERE schemaname = 'public' AND tableowner <> 'pipeline'
+    AND (tablename ~ '^poi_work_|_new$|_keys_stage$'
+      OR tablename IN ('admin_overlap_work', 'address_anchor_raw', 'address_anchor_edge', 'address_anchor_merge'))
+  LOOP
+    EXECUTE format('ALTER TABLE %I OWNER TO pipeline', t);
+  END LOOP;
+END $$;
 
 ALTER SEQUENCE admin_area_id_seq OWNER TO pipeline;
 ALTER SEQUENCE admin_area_old_id_seq OWNER TO pipeline;
