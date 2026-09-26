@@ -44,6 +44,19 @@ describe('extendedAllowed — luật chặn cho mã từ khoá OSM mở rộng',
     for (const name of ['Thôn Tân Lễ B', 'Ấp Bình Minh', 'Bản Lác', 'Làng Chuông'])
       expect(extendedAllowed({ tags: {}, name, cat: hamlet, ext: true }), name).toBe(true);
   });
+  it('nhóm place: tên dưới 3 chữ cái ("P", "V", "A1") → bỏ', () => {
+    for (const name of ['P', 'V', 'A1', 'Ô 3'])
+      expect(extendedAllowed({ tags: {}, name, cat: hamlet, ext: true }), name).toBe(false);
+    expect(extendedAllowed({ tags: {}, name: 'Tân Lập 5', cat: hamlet, ext: true })).toBe(true);
+  });
+  it('tên chỉ là từ chỉ loại ("Hồ", "Núi 2", "Toll Plaza") → bỏ; tên riêng → giữ', () => {
+    const lake = { code: 'lake', group: 'culture_tourism' };
+    const toll = { code: 'toll_booth', group: 'transport' };
+    expect(extendedAllowed({ tags: {}, name: 'Hồ', cat: lake, ext: true })).toBe(false);
+    expect(extendedAllowed({ tags: {}, name: 'Núi 2', cat: mountain, ext: true })).toBe(false);
+    expect(extendedAllowed({ tags: {}, name: 'Toll Plaza', cat: toll, ext: true })).toBe(false);
+    expect(extendedAllowed({ tags: {}, name: 'Hồ Tây', cat: lake, ext: true })).toBe(true);
+  });
   it('junction chỉ nhận tên dạng nút giao', () => {
     for (const name of [
       'Ngã tư Sở',

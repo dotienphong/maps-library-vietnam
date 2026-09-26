@@ -41,7 +41,7 @@ Search/Nearby. Biểu tượng chọn theo nhóm.
 | `transport` | 16 | `bus_stop` Trạm xe buýt, `train_station` Ga tàu, `toll_booth` Trạm thu phí, `border_gate` Cửa khẩu, `junction` Nút giao |
 | `public_admin` | 13 | `town_hall` UBND, trụ sở chính quyền, `police` Công an, `fire_station` Trạm cứu hoả |
 | `religion_community` | 9 | `pagoda` Chùa, `church` Nhà thờ, `temple` Đền, miếu, đình |
-| `place` | 7 | `hamlet` Thôn, ấp, bản; `neighbourhood` Khu phố; `industrial_zone` Khu công nghiệp; `residential_area` Khu dân cư |
+| `place` | 7 | `hamlet` Thôn, ấp, bản; `neighbourhood` Khu phố; `industrial_zone` Khu công nghiệp, nhà máy; `residential_area` Khu dân cư |
 | `other` | 1 | `other` Địa điểm khác |
 
 Mã `code` dùng trực tiếp làm tham số `category` của `/v1/search` và `/v1/nearby`. Nhóm `place` và các

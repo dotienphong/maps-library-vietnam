@@ -21,9 +21,10 @@ try {
     await sql`SELECT primary_source AS source, count(*)::int AS n FROM poi GROUP BY 1 ORDER BY 2 DESC`;
   const byGroup =
     await sql`SELECT c.group_code, count(*)::int AS n FROM poi p JOIN category c ON c.code = p.category GROUP BY 1 ORDER BY 2 DESC`;
-  // Tỉnh hiện hành suy từ toạ độ (poi-admin.mjs); province của nguồn chỉ là dự phòng khi chưa backfill.
+  // Chỉ tỉnh hiện hành suy từ toạ độ (poi-admin.mjs, 99,9 % POI): trộn thêm province của địa chỉ
+  // nguồn sinh ra tên hai kiểu ("Tỉnh Lạng Sơn" và "Lạng Sơn") thành hai dòng. Null → "(không rõ)".
   const coverageRows = /** @type {any[]} */ (
-    await sql`SELECT coalesce(p.admin_province, p.province) AS province, c.group_code,
+    await sql`SELECT p.admin_province AS province, c.group_code,
         coalesce(p.primary_source, 'user') AS source, count(*)::int AS n
       FROM poi p JOIN category c ON c.code = p.category
       WHERE p.status = 'active' GROUP BY 1, 2, 3`

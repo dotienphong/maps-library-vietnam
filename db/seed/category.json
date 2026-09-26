@@ -177,7 +177,7 @@
 {"code":"neighbourhood","group":"place","vi":"Khu phố","en":"Neighbourhood","icon":"marker","rank":5},
 {"code":"locality","group":"place","vi":"Địa danh","en":"Locality","icon":"marker","rank":5},
 {"code":"residential_area","group":"place","vi":"Khu dân cư","en":"Residential area","icon":"marker","rank":4},
-{"code":"industrial_zone","group":"place","vi":"Khu công nghiệp","en":"Industrial zone","icon":"marker","rank":3},
+{"code":"industrial_zone","group":"place","vi":"Khu công nghiệp, nhà máy","en":"Industrial area","icon":"marker","rank":3},
 {"code":"commercial_area","group":"place","vi":"Khu thương mại","en":"Commercial area","icon":"marker","rank":4},
 {"code":"place_other","group":"place","vi":"Địa danh khác","en":"Other locality","icon":"marker","rank":5},
 {"code":"other","group":"other","vi":"Địa điểm khác","en":"Other place","icon":"marker","rank":5}

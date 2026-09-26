@@ -1,6 +1,5 @@
-// Độ phủ POI theo tỉnh × nhóm × nguồn cho report.mjs (plan 2026-09-26, Task 5). Tỉnh lấy
-// coalesce(admin_province, province): admin_province suy từ toạ độ (tỉnh hiện hành), province là
-// địa chỉ nguồn (hệ cũ, hay lệch) — chỉ dùng khi chưa backfill.
+// Độ phủ POI theo tỉnh × nhóm × nguồn cho report.mjs (plan 2026-09-26, Task 5). Tỉnh là
+// admin_province (tỉnh hiện hành suy từ toạ độ); POI chưa có tỉnh gom vào "(không rõ)".
 
 const UNKNOWN = '(không rõ)';
 

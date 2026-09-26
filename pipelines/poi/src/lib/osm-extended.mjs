@@ -2,6 +2,7 @@
 // barrier, highway, junction) — plan docs/superpowers/plans/2026-09-26-lam-giau-poi-lam-ngay.md Task 4.
 // Đo trên OSM 25/09/2026: 37.586 ứng viên có tên → ~26 nghìn sau các luật dưới đây.
 import { normalizeVi } from '@mapslibvn/core';
+import { isGeneric } from './osm-names.mjs';
 
 /** Mã category chỉ sinh ra từ khoá mở rộng. */
 export const EXTENDED_CODES = new Set([
@@ -72,9 +73,13 @@ export function extendedAllowed({ tags, name, cat, ext, adminCores, inCommune })
   // Vùng đệm 2 km của deleteOutsideVn còn làng/núi bên kia biên giới (338 ứng viên, đo 26/09).
   if (inCommune === false) return false;
   if (CJK.test(name)) return false;
+  // "Hồ", "Núi 2", "Toll Plaza": tên chỉ là từ chỉ loại.
+  if (isGeneric(name)) return false;
   const norm = normalizeVi(name);
   if (cat.code === 'junction') return JUNCTION_NAME.test(norm);
   if (cat.group === 'place') {
+    // "P", "V", "A1": mã ô/lô, không phải tên để tìm.
+    if (norm.replace(/[^a-z]/g, '').length < 3) return false;
     if (NUMBERED_PLACE.test(norm)) return false;
     if (adminCores?.has(adminCore(name))) return false;
   }
