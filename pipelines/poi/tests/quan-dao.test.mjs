@@ -87,12 +87,9 @@ describe('laTenViet — tên tiếng Việt, không chữ Hán, không tên Lati
     'Trung tâm dịch vụ hậu cần nghề cá đảo Đá Tây A',
     'Nhà tưởng niệm Chủ tịch Hồ Chí Minh',
     'Đảo Bình Nguyên',
-  ])(
-    '%s là tên Việt',
-    (ten) => {
-      expect(laTenViet(ten)).toBe(true);
-    },
-  );
+  ])('%s là tên Việt', (ten) => {
+    expect(laTenViet(ten)).toBe(true);
+  });
 
   it.each([
     'Parola Lighthouse',
