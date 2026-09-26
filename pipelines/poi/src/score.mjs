@@ -28,3 +28,14 @@ export function pickPrimary(members) {
       a.rid - b.rid,
   )[0];
 }
+
+/**
+ * Trạng thái đóng của một cụm. `closed` là đóng chắc chắn (FSQ `date_closed`, OSM `disused`) — một
+ * thành viên là đủ. `closedReported` chỉ là báo cáo cộng đồng chưa xác minh (cờ `closed` của FSQ):
+ * không được đóng POI mà nguồn khác còn thấy mở, chỉ đóng khi MỌI thành viên đều đóng/bị báo đóng.
+ * @param {{ closed: boolean, closedReported: boolean }[]} members
+ */
+export function clusterClosed(members) {
+  if (members.some((m) => m.closed)) return true;
+  return members.length > 0 && members.every((m) => m.closed || m.closedReported);
+}

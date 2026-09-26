@@ -64,3 +64,19 @@ describe('buildRow — cột dẫn xuất tìm kiếm (spec 05/09 mục 6)', () 
     expect(buildRow(record)).toHaveLength(RECORD_COLUMNS.length);
   });
 });
+
+describe('buildRow — closed_reported (cờ closed của FSQ)', () => {
+  const at = (/** @type {string} */ c) => RECORD_COLUMNS.indexOf(c);
+  it('mặc định false; ghi riêng với closed', () => {
+    const row = buildRow({ ...base, cat: { code: 'cafe', group: 'food_drink' } });
+    expect(row[at('closed')]).toBe(false);
+    expect(row[at('closed_reported')]).toBe(false);
+    const flagged = buildRow({
+      ...base,
+      cat: { code: 'cafe', group: 'food_drink' },
+      closedReported: true,
+    });
+    expect(flagged[at('closed')]).toBe(false);
+    expect(flagged[at('closed_reported')]).toBe(true);
+  });
+});

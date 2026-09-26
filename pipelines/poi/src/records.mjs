@@ -4,6 +4,7 @@ import { filterNameAlt, nameCore, normalizeVi, parseAddress, searchKeys } from '
 import { domainsOf, phonesOf } from './lib/contacts.mjs';
 import { ewkt, pgArray, pgJson } from './lib/copy-format.mjs';
 import { vnDate } from './lib/env.mjs';
+import { fsqFlagDecision } from './lib/fsq-flags.mjs';
 import { connect, copyInto, countRows } from './pg.mjs';
 import { categoryFor, loadCategories, loadCategoryMaps, refineSchool } from './taxonomy.mjs';
 
@@ -54,12 +55,13 @@ export const RECORD_COLUMNS = [
   'completeness',
   'updated_at',
   'closed',
+  'closed_reported',
   'geom',
 ];
 
 /** @param {{ source: string, sourceId: string, name: string, nameAlt: string[], cat: { code: string, group: string }, confidence: number,
  *   phones: unknown[], websites: unknown[], facebook: string | null, hours: Record<string, unknown> | null, address: string | null,
- *   updatedAt: unknown, closed: boolean, lon: number, lat: number }} r */
+ *   updatedAt: unknown, closed: boolean, closedReported?: boolean, lon: number, lat: number }} r */
 export function buildRow(r) {
   const addr = r.address ? parseAddress(r.address) : { alleyChain: [], confidence: 0 };
   const e164 = phonesOf(/** @type {string[]} */ (r.phones));
@@ -116,6 +118,7 @@ export function buildRow(r) {
     completeness,
     dateStr(r.updatedAt),
     r.closed,
+    r.closedReported ?? false,
     ewkt(r.lon, r.lat),
   ];
 }
@@ -175,11 +178,13 @@ async function* osmRows(sql) {
 
 /** @param {Sql} sql */
 async function* fsqRows(sql) {
-  for await (const rows of sql`SELECT fsq_place_id, name, categories, address, locality, region, tel, website, date_closed, ST_X(geom) AS lon, ST_Y(geom) AS lat, release FROM src_fsq_place WHERE name IS NOT NULL ORDER BY fsq_place_id`.cursor(
+  for await (const rows of sql`SELECT fsq_place_id, name, categories, address, locality, region, tel, website, date_closed, unresolved_flags, ST_X(geom) AS lon, ST_Y(geom) AS lat, release FROM src_fsq_place WHERE name IS NOT NULL ORDER BY fsq_place_id`.cursor(
     2000,
   )) {
     for (const raw of rows) {
       const r = /** @type {any} */ (raw);
+      const flags = fsqFlagDecision(r.unresolved_flags);
+      if (flags.drop) continue;
       const cat = categoryFor(maps, 'fsq', r.categories ?? []) ?? { code: 'other', group: 'other' };
       yield buildRow({
         source: 'fsq',
@@ -195,6 +200,7 @@ async function* fsqRows(sql) {
         address: [r.address, r.locality, r.region].filter(Boolean).join(', ') || null,
         updatedAt: r.release,
         closed: r.date_closed !== null,
+        closedReported: flags.closed,
         lon: r.lon,
         lat: r.lat,
       });
@@ -213,7 +219,8 @@ if (process.argv[1]?.endsWith('records.mjs')) {
       name_alt text[], name_key text NOT NULL, name_alt_norm text, group_code text NOT NULL, category text NOT NULL, confidence real NOT NULL, phones text[] NOT NULL, domains text[] NOT NULL,
       housenumber text, street text, street_norm text, ward text, ward_norm text, province text, province_norm text, address_text text,
       contact jsonb, hours jsonb, has_phone boolean, has_website boolean, has_hours boolean, has_housenumber boolean, has_category boolean,
-      completeness real NOT NULL, updated_at date NOT NULL, closed boolean NOT NULL, geom geometry(Point, 4326) NOT NULL, UNIQUE (source, source_id))`);
+      completeness real NOT NULL, updated_at date NOT NULL, closed boolean NOT NULL, closed_reported boolean NOT NULL DEFAULT false,
+      geom geometry(Point, 4326) NOT NULL, UNIQUE (source, source_id))`);
     let n = 0;
     for (const gen of [osmRows, fsqRows])
       n += await copyInto(sql, 'poi_work_record', RECORD_COLUMNS, gen(sql));

@@ -4,7 +4,7 @@
 import { mkdirSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { openDuck } from '../duck.mjs';
-import { ewkt, pgJson } from '../lib/copy-format.mjs';
+import { ewkt, pgArray, pgJson } from '../lib/copy-format.mjs';
 import { arg, FIXTURE, fsqSource, POI_WORK } from '../lib/env.mjs';
 import { lonLatWhere, VN_BBOX } from '../lib/vn-bbox.mjs';
 import {
@@ -30,6 +30,8 @@ try {
   await duck.run(`COPY (
     SELECT fsq_place_id, name, fsq_category_labels AS categories, address, locality, region, tel, website,
            NULLIF(date_closed, '') AS date_closed,                 -- date_closed là VARCHAR trong parquet FSQ
+           NULLIF(date_created, '') AS date_created, NULLIF(date_refreshed, '') AS date_refreshed,
+           unresolved_flags,                                        -- VARCHAR[]; migration 0025
            longitude AS lon, latitude AS lat
     FROM read_parquet('${fsqSource(release)}')
     WHERE ${lonLatWhere(VN_BBOX)} AND (country IS NULL OR country = 'VN')
@@ -50,6 +52,11 @@ async function* rows() {
       r.tel ?? null,
       r.website ?? null,
       r.date_closed ?? null,
+      r.date_created ?? null,
+      r.date_refreshed ?? null,
+      Array.isArray(r.unresolved_flags) && r.unresolved_flags.length
+        ? pgArray(r.unresolved_flags)
+        : null,
       ewkt(r.lon, r.lat),
       release,
     ];
@@ -73,6 +80,9 @@ try {
       'tel',
       'website',
       'date_closed',
+      'date_created',
+      'date_refreshed',
+      'unresolved_flags',
       'geom',
       'release',
     ],

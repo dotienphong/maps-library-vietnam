@@ -9,7 +9,7 @@ import {
 } from './lib/poi-ids.mjs';
 import { stableId } from './lib/stable-id.mjs';
 import { connect, copyInto, countRows } from './pg.mjs';
-import { pickPrimary, popularity, qualityScore } from './score.mjs';
+import { clusterClosed, pickPrimary, popularity, qualityScore } from './score.mjs';
 
 const SOURCES = ['osm', 'fsq'];
 const sql = connect();
@@ -40,7 +40,7 @@ try {
   const flags = new Uint8Array(maxRid + 1);
   const months = new Uint16Array(maxRid + 1);
   const sourceIds = /** @type {string[]} */ (new Array(maxRid + 1));
-  for await (const rows of sql`SELECT rid, source, source_id, completeness, confidence, has_phone, has_website, has_hours, has_housenumber, closed,
+  for await (const rows of sql`SELECT rid, source, source_id, completeness, confidence, has_phone, has_website, has_hours, has_housenumber, closed, closed_reported,
       GREATEST(0, (EXTRACT(YEAR FROM age(now(), updated_at)) * 12 + EXTRACT(MONTH FROM age(now(), updated_at))))::int AS months FROM poi_work_record`.cursor(
     5000,
   )) {
@@ -54,7 +54,8 @@ try {
         (Number(r.has_website) << 1) |
         (Number(r.has_hours) << 2) |
         (Number(r.has_housenumber) << 3) |
-        (Number(r.closed) << 4);
+        (Number(r.closed) << 4) |
+        (Number(r.closed_reported) << 5);
       months[r.rid] = Math.min(65535, r.months);
       sourceIds[r.rid] = r.source_id;
     }
@@ -141,7 +142,12 @@ try {
       const srcs = new Set(m.map(sourceOf));
       const f = flags[primaryRid] ?? 0;
       const c = conf[primaryRid] ?? 0;
-      const closed = m.some((rid) => ((flags[rid] ?? 0) >> 4) & 1);
+      const closed = clusterClosed(
+        m.map((rid) => ({
+          closed: Boolean(((flags[rid] ?? 0) >> 4) & 1),
+          closedReported: Boolean(((flags[rid] ?? 0) >> 5) & 1),
+        })),
+      );
       yield [
         cid,
         primaryRid,

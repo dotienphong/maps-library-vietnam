@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { pickPrimary, popularity, qualityScore, SOURCE_ORDER } from '../src/score.mjs';
+import {
+  clusterClosed,
+  pickPrimary,
+  popularity,
+  qualityScore,
+  SOURCE_ORDER,
+} from '../src/score.mjs';
 
 describe('qualityScore (spec 5.5)', () => {
   it('đủ mọi trường, 2 nguồn, mới → 100', () => {
@@ -74,5 +80,26 @@ describe('pickPrimary', () => {
         { rid: 4, source: 'fsq', completeness: 8 },
       ]).rid,
     ).toBe(4);
+  });
+});
+
+describe('clusterClosed — đóng cửa chắc chắn vs chỉ bị báo đóng', () => {
+  const open = { closed: false, closedReported: false };
+  const closed = { closed: true, closedReported: false };
+  const reported = { closed: false, closedReported: true };
+
+  it('một thành viên đóng chắc chắn (date_closed, disused) → cả cụm đóng', () => {
+    expect(clusterClosed([open, closed])).toBe(true);
+  });
+  it('bị báo đóng (cờ FSQ chưa xác minh) không đóng được POI mà nguồn khác còn thấy mở', () => {
+    expect(clusterClosed([open, reported])).toBe(false);
+  });
+  it('mọi thành viên đều đóng hoặc bị báo đóng → đóng', () => {
+    expect(clusterClosed([reported])).toBe(true);
+    expect(clusterClosed([reported, closed])).toBe(true);
+  });
+  it('không thành viên nào đóng → mở', () => {
+    expect(clusterClosed([open])).toBe(false);
+    expect(clusterClosed([])).toBe(false);
   });
 });
