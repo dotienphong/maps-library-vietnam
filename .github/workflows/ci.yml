@@ -57,6 +57,10 @@ jobs:
           tags: |
             ghcr.io/dotienphong/mapslibvn-pipeline:latest
             ghcr.io/dotienphong/mapslibvn-pipeline:${{ github.sha }}
+          # server:update/setup so nhãn này với HEAD (scripts/lib/image-khop-repo.mjs); checkout CI luôn sạch.
+          labels: |
+            org.opencontainers.image.revision=${{ github.sha }}
+            vn.mapslibvn.tree-dirty=false
           cache-from: type=gha
           cache-to: type=gha,mode=max
       - name: Smoke image

@@ -71,7 +71,7 @@ Ký hiệu mức độ:
 
 | Lệnh | Mức | Dùng để làm gì |
 |---|---|---|
-| `pnpm image:build` | 🟢 | Build Docker image pipeline (planetiler, duckdb, osmium, tippecanoe, pg_dump, rclone...). |
+| `pnpm image:build` | 🟢 | Build Docker image pipeline (planetiler, duckdb, osmium, tippecanoe, pg_dump, rclone...). Gắn nhãn commit + trạng thái cây; `server:update`/`setup` từ chối image lệch HEAD hoặc dựng từ cây chưa commit. |
 | `pnpm image:smoke` | 🟢 | Kiểm image pipeline có đủ công cụ và đúng phiên bản. |
 | `pnpm data:update` | 🔴 | Pipeline **phát hành** dữ liệu: dò nguồn OSM/FSQ → so state R2 → build tiles/POI → QA → upload R2 → manifest → routing graph. Cờ: `--dry-run`, `--tiles`, `--poi`, `--force`. |
 | `pnpm data:rollback` | 🔴 | Quay dữ liệu về bản trước trong `manifest.history` (graph routing trước, manifest sau). `--skip-routing` nếu cố ý bỏ qua graph. |
@@ -86,7 +86,7 @@ Các lệnh `server:*` tác động lên **máy đang gõ lệnh** — chạy tr
 |---|---|---|
 | `pnpm server:setup` | 🔴 | Dựng máy chủ nội bộ 24/7 một lệnh (Postgres, Valhalla, Tunnel, cron...). |
 | `pnpm server:restore` | 🔴 | Dựng stack trên máy **mới**, phục hồi backup production mới nhất và nghiệm thu DB. |
-| `pnpm server:update` | 🔴 | Cập nhật máy chủ: kéo mã mới, image mới, `compose up`, chạy migration; kiểm cấu hình `.env` (vd `PG_SHARED_BUFFERS`). |
+| `pnpm server:update` | 🔴 | Cập nhật máy chủ: kéo mã mới, image mới, `compose up`, chạy migration; kiểm cấu hình `.env` (vd `PG_SHARED_BUFFERS`). Dừng trước khi đụng DB nếu image pipeline lệch HEAD. |
 | `pnpm server:migrate` | 🔴 | CHỈ áp migration lên DB máy chủ, không đụng container đang chạy. Dùng khi migration phải đi trước deploy Worker. `-- --down` để revert một migration. |
 | `pnpm server:seed-tenant <file.sql>` | 🔴 | Nạp seed tenant lên DB máy chủ. |
 | `pnpm server:tenants` | 🟡 | Kiểm kê tenant/mode trên DB máy chủ (chỉ đọc). |

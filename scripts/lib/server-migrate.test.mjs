@@ -40,6 +40,14 @@ describe('serverMigrateRun', () => {
     expect(args.some((a) => a.endsWith('/db:/app/db:ro'))).toBe(true);
   });
 
+  it('mountDb: false (server:update) chạy migration có sẵn trong image, không mount cây làm việc', () => {
+    // server:update đã xác nhận image khớp HEAD; mount cây làm việc chỉ thêm được migration chưa commit.
+    const { args } = serverMigrateRun({ POSTGRES_SUPER_PASSWORD: 'x' }, [], { mountDb: false });
+    expect(args).not.toContain('-v');
+    expect(args.join(' ')).not.toContain(':/app/db');
+    expect(args).toContain('--no-deps');
+  });
+
   it('chuyển tiếp tham số cho db-migrate (ví dụ --down)', () => {
     const { args } = serverMigrateRun(env, ['--down']);
     expect(args.slice(-2)).toEqual(['scripts/db-migrate.mjs', '--down']);

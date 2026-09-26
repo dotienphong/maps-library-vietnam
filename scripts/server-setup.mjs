@@ -4,6 +4,7 @@ import { spawnSync } from 'node:child_process';
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { totalmem } from 'node:os';
 import { resolve } from 'node:path';
+import { phaiKhopRepo } from './lib/image-khop-repo.mjs';
 import { capture, run, sleep } from './lib/run.mjs';
 import {
   generatePassword,
@@ -99,6 +100,9 @@ if (!pulled && !capture('docker', ['image', 'inspect', '--format', '{{.Id}}', pi
   );
   process.exit(1);
 }
+// Trước khi khởi động và migrate: image lệch HEAD thì dừng. server:restore đi qua đây trước db-restore,
+// nên image mang db-permissions.mjs cũ không kịp phục hồi DB thiếu quyền (sự cố 26/09/2026).
+phaiKhopRepo(pipelineImage);
 
 step('Khởi động dịch vụ');
 const services = ['postgres', 'backup', 'pipeline'];

@@ -101,6 +101,16 @@ pnpm server:setup
 ## Vận hành
 
 - Cập nhật mã/image: `pnpm server:update`.
+- **`server:update`/`server:setup` dừng nếu image pipeline lệch repo** (từ 26/09/2026). Migration,
+  `db-restore` và `db-permissions` chạy TRONG image, nên image cũ từng làm `server:update` lặng lẽ bỏ
+  qua 0025 và suýt làm `server:restore` phục hồi một DB thiếu quyền. Image mang nhãn commit
+  (`org.opencontainers.image.revision`, gắn bởi CI và `pnpm image:build`); lệnh so nó với HEAD trên
+  `db/`, `scripts/`, `pipelines/`, `packages/core`, `packages/style` và lockfile (bỏ test, `.md`). Bị
+  chặn thì: image GHCR → chờ job `image` của CI xanh cho commit đó; image `:local` → commit/stash
+  rồi `pnpm image:build`. Image dựng từ cây có thay đổi chưa commit cũng bị từ chối.
+- `server:restore` kết thúc bằng một bảng nghiệm thu từng nhóm (`kiem|dat`): owner bảng tạm, quyền
+  `api` trên khách hàng/đơn hàng/khoá, hàm xoá tenant, ngưỡng tìm mờ 0.5, `statement_timeout` của
+  `api`. Nhóm nào `f` thì DB đã phục hồi nhưng thiếu đúng thứ đó — dừng lại xử lý, đừng dùng tiếp.
 - **Release có migration — thứ tự bắt buộc là migration trước, deploy sau.** Chạy
   `pnpm server:migrate` (chỉ áp migration, `--no-deps` nên không chạm container postgres đang phục
   vụ, và mount `db/` của working tree nên không phụ thuộc `db/` nướng trong image). Kiểm

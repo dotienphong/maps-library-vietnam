@@ -35,8 +35,10 @@ export function missingServerMigrateEnv(env) {
  *
  * @param {Record<string, string | undefined>} env nội dung infra/server/.env đã parse
  * @param {string[]} argv tham số chuyển tiếp cho scripts/db-migrate.mjs
+ * @param {{ mountDb?: boolean }} [opts] mountDb=false: dùng migration có sẵn trong image — server:update
+ *   đã xác nhận image khớp HEAD (image-khop-repo.mjs), mount cây làm việc chỉ thêm được file chưa commit.
  */
-export function serverMigrateRun(env, argv = []) {
+export function serverMigrateRun(env, argv = [], { mountDb = true } = {}) {
   const missing = missingServerMigrateEnv(env);
   if (missing.length > 0) {
     throw new Error(`Thiếu biến bắt buộc trong infra/server/.env: ${missing.join(', ')}`);
@@ -53,8 +55,7 @@ export function serverMigrateRun(env, argv = []) {
       'run',
       '--rm',
       '--no-deps',
-      '-v',
-      `${toPosixPath(resolve('db'))}:/app/db:ro`,
+      ...(mountDb ? ['-v', `${toPosixPath(resolve('db'))}:/app/db:ro`] : []),
       '-e',
       'POSTGRES_USER',
       '-e',

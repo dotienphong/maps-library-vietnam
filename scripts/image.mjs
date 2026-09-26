@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 // pnpm image:build | pnpm image:smoke — build và kiểm tra image pipeline
-import { run } from './lib/run.mjs';
+import { NHAN_DIRTY, NHAN_REV, PATHSPEC } from './lib/image-khop-repo.mjs';
+import { capture, run } from './lib/run.mjs';
 
 const IMAGE = process.env.PIPELINE_IMAGE ?? 'mapslibvn/pipeline:local';
 const SMOKE = [
@@ -19,7 +20,27 @@ const SMOKE = [
 
 const command = process.argv[2];
 if (command === 'build') {
-  run('docker', ['build', '-f', 'pipelines/Dockerfile', '-t', IMAGE, '.']);
+  // Nhãn commit + trạng thái cây: server:update/setup từ chối image lệch HEAD hoặc dựng từ cây bẩn
+  // (Dockerfile `COPY . .` chép cả file chưa commit, kể cả migration đang viết dở).
+  const head = capture('git', ['rev-parse', 'HEAD']);
+  const dirty = capture('git', ['status', '--porcelain', '--', ...PATHSPEC]) !== '';
+  if (dirty) {
+    console.warn(
+      '[image:build] Cây có thay đổi chưa commit trong db/, scripts/, pipelines/… — image mang nhãn dirty, server:update/setup sẽ từ chối nó.',
+    );
+  }
+  run('docker', [
+    'build',
+    '-f',
+    'pipelines/Dockerfile',
+    '--label',
+    `${NHAN_REV}=${head}`,
+    '--label',
+    `${NHAN_DIRTY}=${dirty}`,
+    '-t',
+    IMAGE,
+    '.',
+  ]);
 } else if (command === 'smoke') {
   run('docker', ['run', '--rm', IMAGE, 'sh', '-c', SMOKE]);
   console.log(`\n✔ Image ${IMAGE} có đủ công cụ.`);
