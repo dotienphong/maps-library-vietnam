@@ -15,6 +15,7 @@ import 'dotenv/config';
 import postgres from 'postgres';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { databaseUrlFromEnv } from '../scripts/lib/migrations.mjs';
+import { kiemRestoreHong, verifyRestoredDatabaseSql } from '../scripts/lib/server-restore.mjs';
 
 const url = new URL(databaseUrlFromEnv(process.env));
 if (!['localhost', '127.0.0.1', 'postgres'].includes(url.hostname)) {
@@ -143,5 +144,43 @@ describe('restore từ backup + PERMISSIONS_SQL', () => {
       thieuSauRestore: truoc.filter((d) => !sau.includes(d)),
       thuaSauRestore: sau.filter((d) => !truoc.includes(d)),
     }).toEqual({ thieuSauRestore: [], thuaSauRestore: [] });
+  });
+
+  it('câu nghiệm thu của server:restore xanh trên DB phục hồi đúng (trừ du_lieu: DB test không có POI)', async () => {
+    const rows = /** @type {{ kiem: string, dat: boolean }[]} */ (
+      await phucHoi.unsafe(verifyRestoredDatabaseSql())
+    );
+    expect(kiemRestoreHong(rows)).toEqual(['du_lieu']);
+  });
+
+  it('câu nghiệm thu bắt được đúng DB hỏng 26/09 mà bản cũ báo xanh', async () => {
+    const ROLLBACK = new Error('rollback');
+    /** @type {{ kiem: string, dat: boolean }[]} */
+    let rows = [];
+    // Dựng lại đúng trạng thái sau PERMISSIONS_SQL cũ, trong transaction rồi trả về như cũ.
+    await phucHoi
+      .begin(async (tx) => {
+        await tx.unsafe(`
+          REVOKE ALL ON customer_account, customer_login_code, customer_session, tenant_member,
+            customer_order, payment_event FROM api;
+          REVOKE INSERT ON api_key FROM api;
+          GRANT EXECUTE ON FUNCTION xoa_tenant_hoan_toan(uuid) TO PUBLIC;
+          ALTER TABLE poi_work_pair OWNER TO CURRENT_USER;
+          ALTER DATABASE ${PHUC_HOI} RESET pg_trgm.word_similarity_threshold;`);
+        rows = /** @type {any} */ (await tx.unsafe(verifyRestoredDatabaseSql()));
+        throw ROLLBACK;
+      })
+      .catch((error) => {
+        if (error !== ROLLBACK) throw error;
+      });
+    expect(kiemRestoreHong(rows)).toEqual([
+      'du_lieu',
+      'bang_tam_thuoc_pipeline',
+      'khach_hang',
+      'don_hang_payos',
+      'cap_khoa',
+      'xoa_tenant_chi_api',
+      'nguong_tim_mo',
+    ]);
   });
 });

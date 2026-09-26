@@ -2,6 +2,9 @@ import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import {
+  docKetQuaPsql,
+  KIEM_RESTORE,
+  kiemRestoreHong,
   requiredServerRestoreEnv,
   serverRestoreRun,
   verifyRestoredDatabaseSql,
@@ -43,9 +46,43 @@ describe('server restore plan', () => {
     const sql = verifyRestoredDatabaseSql();
     expect(sql).toContain('schema_migrations');
     expect(sql).toContain('count(*) FROM poi');
-    expect(sql).toMatch(/schema_migrations\) > 0 AND .*poi\) > 0\) AS data_ok/);
     expect(sql).toContain("tableowner = 'pipeline'");
     expect(sql).toContain("has_table_privilege('api', 'poi', 'SELECT')");
+  });
+
+  it('nghiệm thu cả thứ restore từng làm mất (26/09): GRANT 0018–0024, ngưỡng 0007, timeout 0015', () => {
+    // Bản cũ chỉ soi bảng poi nên báo xanh trên đúng DB đã làm trang admin khách hàng/đơn hàng chết.
+    const sql = verifyRestoredDatabaseSql();
+    for (const doiTuong of [
+      "'customer_account'",
+      "'customer_order'",
+      "'payment_event'",
+      "'key_hash'",
+      "'xoa_tenant_hoan_toan(uuid)'",
+      'pg_trgm.word_similarity_threshold=0.5',
+      'statement_timeout=29s',
+      '^poi_work_',
+      'osm_road_raw',
+      "'reject_poi_edit(bigint, text)'",
+    ]) {
+      expect(sql).toContain(doiTuong);
+    }
+    for (const ten of KIEM_RESTORE) expect(sql).toContain(`'${ten}'`);
+  });
+
+  it('kiemRestoreHong: nhóm kiểm vắng mặt trong output cũng là hỏng — psql lỗi không được coi là xanh', () => {
+    const tatCa = KIEM_RESTORE.map((kiem) => ({ kiem, dat: true }));
+    expect(kiemRestoreHong(tatCa)).toEqual([]);
+    expect(kiemRestoreHong([])).toEqual([...KIEM_RESTORE]);
+    const hong = tatCa.map((r) => (r.kiem === 'khach_hang' ? { ...r, dat: false } : r));
+    expect(kiemRestoreHong(hong)).toEqual(['khach_hang']);
+  });
+
+  it('docKetQuaPsql đọc output `psql -At -F |`', () => {
+    expect(docKetQuaPsql('du_lieu|t\nkhach_hang|f\n\n')).toEqual([
+      { kiem: 'du_lieu', dat: true },
+      { kiem: 'khach_hang', dat: false },
+    ]);
   });
 });
 

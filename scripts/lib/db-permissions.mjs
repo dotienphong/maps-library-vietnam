@@ -110,6 +110,10 @@ GRANT EXECUTE ON FUNCTION stage_poi_create(bigint), apply_poi_edit(bigint, text,
 REVOKE ALL ON FUNCTION xoa_tenant_hoan_toan(uuid) FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION xoa_tenant_hoan_toan(uuid) TO api;
 
+-- 0015: timeout cấp ROLE (cả cluster) không nằm trong dump. server:restore chạy server:setup (migrate DB
+-- rỗng) trước nên cluster mới vẫn có, nhưng db:restore chạy tay trên cluster mới thì mất — lặp lại ở đây.
+ALTER ROLE api SET statement_timeout = '29s';
+
 -- 0007: thiết lập cấp DATABASE không nằm trong dump, và db-restore.mjs dựng DB mới rồi đổi tên, nên
 -- ngưỡng rơi về mặc định 0.6 của pg_trgm (tìm mờ lệch). Gắn theo OID nên sống qua lần đổi tên.
 DO $$ BEGIN

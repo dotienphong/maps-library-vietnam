@@ -37,4 +37,9 @@ describe('PERMISSIONS_SQL', () => {
     expect(PERMISSIONS_SQL).toContain('FROM PUBLIC');
     expect(PERMISSIONS_SQL).toMatch(/GRANT EXECUTE ON FUNCTION[\s\S]*TO api;/);
   });
+
+  it('0015: timeout cấp ROLE của api — cluster mới restore bằng db:restore tay không có nó', () => {
+    // restore-parity không thấy được thiếu sót này: hai DB của nó chung một cluster, nơi 0015 đã chạy.
+    expect(PERMISSIONS_SQL).toContain("ALTER ROLE api SET statement_timeout = '29s'");
+  });
 });
