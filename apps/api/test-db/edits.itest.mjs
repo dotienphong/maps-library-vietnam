@@ -9,6 +9,8 @@ const FREE_KEY_2 = 'mlv_live_edit20000000000000000000'; // tenant free khác (dd
 const FREE_TENANT = '00000000-0000-4000-8000-0000000000cc';
 const WEB_KEY = 'mlv_live_editweb00000000000000000'; // tenant free (ee), khoá web công khai
 const WEB_ORIGIN = 'https://itest.example';
+const INTERNAL_WEB_KEY = 'mlv_live_intweb000000000000000000'; // tenant internal (aa), khoá web
+const REVOKED_KEY = 'mlv_live_editrev00000000000000000'; // tenant free (ff), bị thu hồi giữa test
 const sql = postgres(process.env.DATABASE_URL ?? '', { max: 1, onnotice: () => {} });
 afterAll(() => sql.end({ timeout: 5 }));
 
@@ -208,6 +210,101 @@ describe('POST /v1/edits với DB thật', () => {
     expect(second.body.status).toBe('pending');
     await sql`UPDATE poi_edit SET status = 'rejected', reviewer = 'itest-cleanup'
       WHERE poi_id = '01M4TEST0000000000000CON01' AND status = 'pending'`;
+  });
+
+  it('2 tenant khoá server cùng đóng POI → vẫn pending, POI còn active', async () => {
+    const first = await post(FREE_KEY, {
+      poi_id: '01M4TEST0000000000000HIJ01',
+      kind: 'close',
+      end_user_token: 'closer-1',
+    });
+    expect(first.body.status).toBe('pending');
+    const second = await post(FREE_KEY_2, {
+      poi_id: '01M4TEST0000000000000HIJ01',
+      kind: 'close',
+      end_user_token: 'closer-2',
+    });
+    expect(second.status).toBe(200);
+    expect(second.body.status).toBe('pending');
+    const [poi] = await sql`SELECT status FROM poi WHERE id = '01M4TEST0000000000000HIJ01'`;
+    expect(poi.status).toBe('active');
+    await sql`UPDATE poi_edit SET status = 'rejected', reviewer = 'itest-cleanup'
+      WHERE poi_id = '01M4TEST0000000000000HIJ01' AND status = 'pending'`;
+  });
+
+  it('2 tenant khoá server cùng dời toạ độ + số nhà → pending, không sinh mốc geocode', async () => {
+    const changes = { lat: 10.8, lng: 106.7, housenumber: '999', street: 'Đường Giả' };
+    const first = await post(FREE_KEY, {
+      poi_id: '01M4TEST0000000000000CON01',
+      kind: 'update',
+      changes,
+      end_user_token: 'mover-1',
+    });
+    expect(first.body.status).toBe('pending');
+    const second = await post(FREE_KEY_2, {
+      poi_id: '01M4TEST0000000000000CON01',
+      kind: 'update',
+      changes,
+      end_user_token: 'mover-2',
+    });
+    expect(second.body.status).toBe('pending');
+    const anchors = await sql`SELECT 1 FROM address_anchor WHERE source = 'user'
+      AND source_id IN (${`edit-${first.body.edit_id}`}, ${`edit-${second.body.edit_id}`})`;
+    expect(anchors).toHaveLength(0);
+    await sql`UPDATE poi_edit SET status = 'rejected', reviewer = 'itest-cleanup'
+      WHERE poi_id = '01M4TEST0000000000000CON01' AND status = 'pending'`;
+  });
+
+  it('khoá WEB của tenant internal không được miễn kiểm → pending', async () => {
+    const { status, body } = await post(
+      INTERNAL_WEB_KEY,
+      {
+        poi_id: '01M4TEST0000000000000HIJ01',
+        kind: 'update',
+        changes: { contact: { phone: ['0900000003'] } },
+        end_user_token: 'internal-web-1',
+      },
+      { Origin: WEB_ORIGIN },
+    );
+    expect(status).toBe(200);
+    expect(body.status).toBe('pending');
+    await sql`UPDATE poi_edit SET status = 'rejected', reviewer = 'itest-cleanup'
+      WHERE poi_id = '01M4TEST0000000000000HIJ01' AND status = 'pending'`;
+  });
+
+  it('phiếu của khoá server đã thu hồi không tính đồng thuận', async () => {
+    const changes = { hours: 'Mo-Su 05:00-05:30' };
+    const early = await post(REVOKED_KEY, {
+      poi_id: '01M4TEST0000000000000CON01',
+      kind: 'update',
+      changes,
+      end_user_token: 'revoked-voter',
+    });
+    expect(early.body.status).toBe('pending');
+    await sql`UPDATE api_key SET active = false, revoked_at = now()
+      WHERE key_hash = encode(sha256(convert_to(${REVOKED_KEY}, 'UTF8')), 'hex')`;
+    const later = await post(FREE_KEY, {
+      poi_id: '01M4TEST0000000000000CON01',
+      kind: 'update',
+      changes,
+      end_user_token: 'live-voter',
+    });
+    expect(later.status).toBe(200);
+    expect(later.body.status).toBe('pending');
+    await sql`UPDATE poi_edit SET status = 'rejected', reviewer = 'itest-cleanup'
+      WHERE poi_id = '01M4TEST0000000000000CON01' AND status = 'pending'`;
+  });
+
+  it('hours chở chữ tự do/SĐT → 400 vì sai cú pháp opening_hours', async () => {
+    const { status, body } = await post(FREE_KEY, {
+      poi_id: '01M3TEST0000000000000SCH01',
+      kind: 'update',
+      changes: { hours: 'Gọi 0901234567' },
+      end_user_token: 'hours-spam',
+    });
+    expect(status).toBe(400);
+    expect(body.error.code).toBe('invalid_request');
+    expect(body.error.message).toContain('opening_hours');
   });
 
   it('vượt 20 edit/ngày/end-user → 429 quota_exceeded', async () => {

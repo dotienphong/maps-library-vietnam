@@ -73,10 +73,10 @@ const stringArray = (
 };
 
 /**
- * `contact` được trả nguyên văn qua `Place.contact` cho app nhúng, và một `update` chỉ đổi
- * `hours`/`contact` trên POI quality ≥ 60 được TỰ DUYỆT (edits/rules.ts) — không người nào xem.
- * Nên scheme thực thi được (`javascript:`, `data:`, `vbscript:`) lọt vào đây là XSS lưu trữ xuyên
- * tenant ngay trong app của khách. Chỉ nhận URL tuyệt đối http/https.
+ * `contact` được trả nguyên văn qua `Place.contact` cho app nhúng. Tenant internal (khoá server)
+ * vẫn tự duyệt contact, và admin duyệt tay cũng không làm sạch giá trị, nên scheme thực thi được
+ * (`javascript:`, `data:`, `vbscript:`) lọt vào đây là XSS lưu trữ xuyên tenant ngay trong app
+ * của khách. Chỉ nhận URL tuyệt đối http/https.
  */
 const isHttpUrl = (value: string): boolean => {
   let url: URL;
@@ -87,6 +87,26 @@ const isHttpUrl = (value: string): boolean => {
   }
   return url.protocol === 'http:' || url.protocol === 'https:';
 };
+
+/**
+ * `hours` là trường duy nhất có đường tự duyệt (edits/rules.ts) và được trả nguyên văn cho app
+ * nhúng, nên không được chở chữ tự do: SĐT, URL hay lời nhắn "đã chuyển chỗ" đội lốt giờ mở cửa.
+ * Nhận đúng tập con opening_hours thường gặp — mỗi token (tách theo khoảng trắng , ;) là các
+ * nguyên tử nối bằng `-`: thứ, tháng, PH/SH, HH:MM (có thể kèm `+`), ngày 1–31, năm 1900–2100,
+ * off/closed/open/unknown, sunrise/sunset/dawn/dusk, 24/7.
+ */
+const HOURS_ATOM =
+  /^(?:(?:Mo|Tu|We|Th|Fr|Sa|Su)(?:\[-?[1-5](?:,-?[1-5])*\])?|PH|SH|Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec|(?:[01]\d|2[0-4]):[0-5]\d\+?|[1-9]|[12]\d|3[01]|19\d\d|20\d\d|2100|off|closed|open|unknown|sunrise|sunset|dawn|dusk)$/;
+export function isOpeningHours(value: string): boolean {
+  const tokens = value
+    .trim()
+    .split(/[\s,;]+/)
+    .filter(Boolean);
+  return (
+    tokens.length > 0 &&
+    tokens.every((t) => t === '24/7' || t.split('-').every((atom) => HOURS_ATOM.test(atom)))
+  );
+}
 
 /** Facebook lưu được cả handle trần (`xvn`) lẫn URL đầy đủ — chặn mọi thứ còn lại. */
 const FACEBOOK_HANDLE = /^[A-Za-z0-9._-]{1,100}$/;
@@ -130,17 +150,13 @@ function validateChanges(kind: EditKind, raw: Record<string, unknown>): EditChan
     out.contact = clean;
   }
   if (raw.hours !== undefined) {
-    if (typeof raw.hours === 'string') {
-      out.hours = {
-        osm: optionalString(raw.hours, 'changes.hours', 200) ?? bad('changes.hours rỗng'),
-      };
-    } else {
-      const hours = asRecord(raw.hours, 'changes.hours');
-      out.hours = {
-        osm:
-          optionalString(hours.osm, 'changes.hours.osm', 200) ?? bad('changes.hours.osm bắt buộc'),
-      };
-    }
+    const osm =
+      typeof raw.hours === 'string'
+        ? (optionalString(raw.hours, 'changes.hours', 200) ?? bad('changes.hours rỗng'))
+        : (optionalString(asRecord(raw.hours, 'changes.hours').osm, 'changes.hours.osm', 200) ??
+          bad('changes.hours.osm bắt buộc'));
+    if (!isOpeningHours(osm)) bad('changes.hours phải theo cú pháp opening_hours của OSM');
+    out.hours = { osm };
   }
   // Dẫn xuất *_norm để hàm SQL áp dụng không cần chuẩn hoá tiếng Việt (quyết định 4).
   if (typeof out.name === 'string') out.name_norm = normalizeVi(out.name);

@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { type DecideInput, decideStatus } from '../src/edits/rules';
+import { consensusEligible, type DecideInput, decideStatus } from '../src/edits/rules';
 import { ulid } from '../src/edits/ulid';
 import { vnDayStartUtc } from '../src/quota';
 
-describe('decideStatus (spec 6.5, siết 26/09/2026)', () => {
+describe('decideStatus (spec 6.5, siết 26/09/2026: danh sách trắng)', () => {
   const base: DecideInput = {
     plan: 'free',
     keyKind: 'server',
@@ -12,58 +12,83 @@ describe('decideStatus (spec 6.5, siết 26/09/2026)', () => {
     qualityScore: 70,
     consensusTenants: 1,
   };
+  const PENDING = { status: 'pending', reason: null };
+  const auto = (reason: string) => ({ status: 'auto_approved', reason });
 
-  it('tenant internal → auto mọi kind, kể cả khoá web', () => {
-    expect(decideStatus({ ...base, plan: 'internal' })).toBe('auto_approved');
-    expect(decideStatus({ ...base, plan: 'internal', kind: 'create', qualityScore: null })).toBe(
-      'auto_approved',
+  it('tenant internal + khoá server → auto mọi kind', () => {
+    expect(decideStatus({ ...base, plan: 'internal' })).toEqual(auto('internal'));
+    expect(decideStatus({ ...base, plan: 'internal', kind: 'create', qualityScore: null })).toEqual(
+      auto('internal'),
     );
-    expect(
-      decideStatus({ ...base, plan: 'internal', keyKind: 'web', changedFields: ['contact'] }),
-    ).toBe('auto_approved');
-  });
-
-  it('khoá server: update chỉ hours + quality ≥ 60 → auto; quality thấp hoặc thêm trường → pending', () => {
-    expect(decideStatus({ ...base })).toBe('auto_approved');
-    expect(decideStatus({ ...base, changedFields: ['hours', 'street'] })).toBe('pending');
-    expect(decideStatus({ ...base, qualityScore: 59 })).toBe('pending');
-    expect(decideStatus({ ...base, qualityScore: null })).toBe('pending');
-  });
-
-  it('đổi contact hoặc name không bao giờ tự duyệt ngoài internal (đường chiếm SĐT/tên cửa hàng)', () => {
-    expect(decideStatus({ ...base, changedFields: ['contact'] })).toBe('pending');
-    expect(decideStatus({ ...base, changedFields: ['hours', 'contact'] })).toBe('pending');
-    expect(decideStatus({ ...base, changedFields: ['name'], consensusTenants: 3 })).toBe('pending');
-    expect(decideStatus({ ...base, changedFields: ['contact'], consensusTenants: 3 })).toBe(
-      'pending',
+    expect(decideStatus({ ...base, plan: 'internal', changedFields: ['contact'] })).toEqual(
+      auto('internal'),
     );
   });
 
-  it('khoá web/mobile là khoá công khai: không tự duyệt theo luật quality lẫn đồng thuận', () => {
+  it('khoá web/mobile của tenant internal KHÔNG được miễn kiểm (khoá công khai, sự cố 09/09)', () => {
     for (const keyKind of ['web', 'mobile'] as const) {
-      expect(decideStatus({ ...base, keyKind })).toBe('pending');
       expect(
-        decideStatus({ ...base, keyKind, kind: 'close', changedFields: [], consensusTenants: 2 }),
-      ).toBe('pending');
+        decideStatus({ ...base, plan: 'internal', keyKind, changedFields: ['contact'] }),
+      ).toEqual(PENDING);
+      expect(decideStatus({ ...base, plan: 'internal', keyKind })).toEqual(PENDING);
     }
   });
 
-  it('khoá server: ≥ 2 tenant cùng thay đổi → auto, kể cả kind close', () => {
-    expect(decideStatus({ ...base, kind: 'close', changedFields: [], consensusTenants: 2 })).toBe(
-      'auto_approved',
+  it('khoá server: update chỉ hours + quality ≥ 60 → auto (rule); quality thấp hoặc thêm trường → pending', () => {
+    expect(decideStatus({ ...base })).toEqual(auto('rule'));
+    expect(decideStatus({ ...base, changedFields: ['hours', 'street'] })).toEqual(PENDING);
+    expect(decideStatus({ ...base, qualityScore: 59 })).toEqual(PENDING);
+    expect(decideStatus({ ...base, qualityScore: null })).toEqual(PENDING);
+  });
+
+  it('khoá server: chỉ hours + ≥ 2 tenant → auto (consensus) dù quality thấp', () => {
+    expect(decideStatus({ ...base, qualityScore: 40, consensusTenants: 2 })).toEqual(
+      auto('consensus'),
     );
-    expect(decideStatus({ ...base, kind: 'close', changedFields: [], consensusTenants: 1 })).toBe(
-      'pending',
-    );
-    expect(decideStatus({ ...base, qualityScore: 40, consensusTenants: 2 })).toBe('auto_approved');
+    expect(decideStatus({ ...base, qualityScore: 40, consensusTenants: 1 })).toEqual(PENDING);
+    // quality đủ thì nhãn là rule, không phải consensus
+    expect(decideStatus({ ...base, consensusTenants: 2 })).toEqual(auto('rule'));
+  });
+
+  it('mọi thứ ngoài "chỉ hours" luôn chờ admin, kể cả khi đủ đồng thuận', () => {
+    const cases: Partial<DecideInput>[] = [
+      { changedFields: ['contact'] },
+      { changedFields: ['hours', 'contact'] },
+      { changedFields: ['name'] },
+      { changedFields: ['lat', 'lng'] },
+      { changedFields: ['housenumber', 'street'] },
+      { changedFields: ['address_text'] },
+      { changedFields: ['category'] },
+      { kind: 'close', changedFields: [] },
+      { kind: 'reopen', changedFields: [] },
+    ];
+    for (const c of cases) {
+      expect(decideStatus({ ...base, ...c, consensusTenants: 3 }), JSON.stringify(c)).toEqual(
+        PENDING,
+      );
+    }
+  });
+
+  it('khoá web/mobile của tenant thường → pending cả luật quality lẫn đồng thuận', () => {
+    for (const keyKind of ['web', 'mobile'] as const) {
+      expect(decideStatus({ ...base, keyKind })).toEqual(PENDING);
+      expect(decideStatus({ ...base, keyKind, qualityScore: 40, consensusTenants: 2 })).toEqual(
+        PENDING,
+      );
+    }
   });
 
   it('create/report từ tenant ngoài internal → pending', () => {
-    expect(decideStatus({ ...base, kind: 'create', qualityScore: null })).toBe('pending');
-    expect(decideStatus({ ...base, kind: 'report', changedFields: [] })).toBe('pending');
-    expect(decideStatus({ ...base, kind: 'create', qualityScore: null, consensusTenants: 2 })).toBe(
-      'pending',
-    );
+    expect(decideStatus({ ...base, kind: 'create', qualityScore: null })).toEqual(PENDING);
+    expect(decideStatus({ ...base, kind: 'report', changedFields: [] })).toEqual(PENDING);
+  });
+
+  it('consensusEligible: chỉ tra đồng thuận khi kết quả còn phụ thuộc vào nó', () => {
+    expect(consensusEligible({ ...base, qualityScore: 40 })).toBe(true);
+    expect(consensusEligible({ ...base })).toBe(false); // luật quality đã duyệt
+    expect(consensusEligible({ ...base, plan: 'internal' })).toBe(false);
+    expect(consensusEligible({ ...base, keyKind: 'web', qualityScore: 40 })).toBe(false);
+    expect(consensusEligible({ ...base, kind: 'close', changedFields: [] })).toBe(false);
   });
 });
 

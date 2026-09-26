@@ -126,9 +126,9 @@ describe('validateEditBody', () => {
   });
 
   /**
-   * `update` chỉ đổi `hours`/`contact` trên POI quality ≥ 60 được TỰ DUYỆT (edits/rules.ts), rồi
-   * `contact` được trả nguyên văn qua `Place.contact` cho mọi app nhúng. Một scheme thực thi được
-   * lọt vào đây là XSS lưu trữ xuyên tenant trong app của khách, không qua mắt người duyệt nào.
+   * `contact` được trả nguyên văn qua `Place.contact` cho mọi app nhúng. Tenant internal (khoá
+   * server) vẫn tự duyệt contact, và admin duyệt tay cũng không làm sạch giá trị, nên một scheme
+   * thực thi được lọt vào đây là XSS lưu trữ xuyên tenant trong app của khách.
    */
   const contactEdit = (contact: unknown) =>
     validateEditBody({ ...base, poi_id: '01ABC', kind: 'update', changes: { contact } });
@@ -180,5 +180,39 @@ describe('validateEditBody', () => {
     expect(() => validateEditBody({ ...base, poi_id: '01ABC', kind: 'delete' })).toThrowError(
       ApiError,
     );
+  });
+
+  const hoursEdit = (hours: unknown) =>
+    validateEditBody({ ...base, poi_id: '01ABC', kind: 'update', changes: { hours } });
+
+  it('hours nhận cú pháp opening_hours thường gặp', () => {
+    for (const h of [
+      'Mo-Fr 07:00-17:00',
+      'Mo-Su 07:00-22:00',
+      '24/7',
+      'Mo-Sa 08:00-12:00,13:30-17:30; Su off',
+      'Mo-Fr 08:00-17:00; Sa 08:00-11:30; PH off',
+      'Mo,We,Fr 06:00-09:00',
+      'Dec 25 off',
+      'Mo-Su 22:00-02:00',
+    ]) {
+      expect(hoursEdit(h).changes.hours, h).toEqual({ osm: h });
+      expect(hoursEdit({ osm: h }).changes.hours, h).toEqual({ osm: h });
+    }
+  });
+
+  it('hours từ chối chữ tự do, URL và số điện thoại (không để hours chở SĐT/liên kết)', () => {
+    for (const h of [
+      'Gọi 0901234567',
+      'Mo-Su 07:00-22:00 call 090 123 4567',
+      'https://x.vn',
+      'Mo-Su 07:00-22:00 www.x.vn',
+      'Đã chuyển sang địa chỉ mới',
+      'Mo-Su "hỏi chủ quán"',
+      'Mo-Su 07:00-22:00; +84901234567',
+      'Mo-Su 0901',
+    ]) {
+      expect(() => hoursEdit(h), h).toThrowError(ApiError);
+    }
   });
 });

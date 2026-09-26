@@ -233,6 +233,24 @@ VALUES (encode(sha256(convert_to('mlv_live_editweb00000000000000000', 'UTF8')), 
         '{https://itest.example}')
 ON CONFLICT (key_hash) DO NOTHING;
 
+-- Khoá WEB của tenant internal có edits:write: khoá công khai nên không được miễn kiểm (sự cố khoá
+-- demo 09/09/2026 là đúng ca này).
+INSERT INTO api_key (key_hash, key_prefix, tenant_id, label, kind, scopes, allowed_origins)
+VALUES (encode(sha256(convert_to('mlv_live_intweb000000000000000000', 'UTF8')), 'hex'), 'mlv_live_intweb00',
+        '00000000-0000-4000-8000-0000000000aa', 'itest internal web', 'web', '{places:read,edits:write}',
+        '{https://itest.example}')
+ON CONFLICT (key_hash) DO NOTHING;
+
+-- Tenant free thứ tư, khoá server sẽ bị THU HỒI giữa test: phiếu của khoá đã thu hồi không được
+-- tính đồng thuận.
+INSERT INTO tenant (id, name, plan)
+VALUES ('00000000-0000-4000-8000-0000000000ff', 'M4 itest revoked', 'free')
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO api_key (key_hash, key_prefix, tenant_id, label, kind, scopes)
+VALUES (encode(sha256(convert_to('mlv_live_editrev00000000000000000', 'UTF8')), 'hex'), 'mlv_live_editrev0',
+        '00000000-0000-4000-8000-0000000000ff', 'itest edits revoked', 'server', '{places:read,edits:write}')
+ON CONFLICT (key_hash) DO NOTHING;
+
 -- POI quality cao (≥ 60) cho test chiếm SĐT/tên: trước 26/09 sửa contact ở đây được tự duyệt.
 INSERT INTO poi (id, name, name_norm, category, geom, ward, province,
                  quality_score, popularity, status, primary_source, primary_source_id, created_by) VALUES

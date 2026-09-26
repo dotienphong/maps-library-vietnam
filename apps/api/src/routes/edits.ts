@@ -3,7 +3,12 @@ import { requireAuth } from '../auth';
 import { invalidateCachedJson, placeCacheUrl } from '../cache';
 import { endSql, getSql } from '../db';
 import { endUserHash, ipHash, requirePepper } from '../edits/hash';
-import { decideStatus, EDITS_PER_KEY_PER_DAY, EDITS_PER_USER_PER_DAY } from '../edits/rules';
+import {
+  consensusEligible,
+  decideStatus,
+  EDITS_PER_KEY_PER_DAY,
+  EDITS_PER_USER_PER_DAY,
+} from '../edits/rules';
 import { ulid } from '../edits/ulid';
 import { validateEditBody } from '../edits/validate';
 import type { AppEnv } from '../env';
@@ -70,16 +75,26 @@ edits.post('/v1/edits', requireAuth('edits:write'), async (c) => {
 
     // 3) Phiếu trùng trong 30 ngày (spec 6.5) — đẳng thức jsonb. Audit 09/09/2026: `end_user_token`
     // do client tự đặt nên hai "người dùng" cùng tenant có thể là một kẻ với hai token; đồng thuận
-    // chỉ tính phiếu từ TENANT KHÁC. Siết 26/09/2026: đếm theo tenant (không theo end-user), và chỉ
-    // phiếu gửi bằng khoá server — khoá web/mobile công khai, một kẻ gom khoá của hai tenant là tự
-    // tạo được "đồng thuận".
+    // chỉ tính phiếu từ TENANT KHÁC. Siết 26/09/2026: đếm theo tenant (không theo end-user), chỉ
+    // phiếu gửi bằng khoá server còn hiệu lực và còn scope edits:write (khoá web/mobile công khai,
+    // khoá đã thu hồi là khoá không còn đáng tin), và chỉ tra khi kết quả còn phụ thuộc vào nó.
+    const changedFields = Object.keys(edit.changes).filter((f) => !f.endsWith('_norm'));
+    const decideBase = {
+      plan: auth.plan,
+      keyKind: auth.kind,
+      kind: edit.kind,
+      changedFields,
+      qualityScore: quality,
+    };
     let consensusTenants = 1;
-    if (edit.kind !== 'create' && edit.kind !== 'report') {
+    if (consensusEligible(decideBase)) {
       const [dup] = await sql<{ n: number }[]>`
         SELECT count(DISTINCT e.tenant_id)::int AS n FROM poi_edit e
         JOIN api_key k ON k.key_hash = e.api_key
         WHERE e.poi_id = ${edit.poiId} AND e.kind = ${edit.kind} AND e.status = 'pending'
-          AND e.changes = ${changesParam} AND k.kind = 'server'
+          AND e.changes = ${changesParam}
+          AND k.kind = 'server' AND k.active AND k.revoked_at IS NULL
+          AND 'edits:write' = ANY (k.scopes)
           AND e.tenant_id <> ${auth.tenantId} AND e.created_at > now() - interval '30 days'`;
       consensusTenants = 1 + (dup?.n ?? 0);
     }
@@ -95,29 +110,16 @@ edits.post('/v1/edits', requireAuth('edits:write'), async (c) => {
     if (!row) throw new ApiError(503, 'upstream_unavailable', 'Không ghi được edit');
     if (edit.kind === 'create') await sql`SELECT stage_poi_create(${row.id}::bigint)`;
 
-    const changedFields = Object.keys(edit.changes).filter((f) => !f.endsWith('_norm'));
-    const status = decideStatus({
-      plan: auth.plan,
-      keyKind: auth.kind,
-      kind: edit.kind,
-      changedFields,
-      qualityScore: quality,
-      consensusTenants,
-    });
+    const decision = decideStatus({ ...decideBase, consensusTenants });
     let poiId = edit.poiId ?? newPoiId;
-    if (status === 'auto_approved') {
-      const reason =
-        auth.plan === 'internal'
-          ? 'auto:internal'
-          : consensusTenants > 1
-            ? 'auto:consensus'
-            : 'auto:rule';
+    if (decision.status === 'auto_approved') {
+      const reason = `auto:${decision.reason}`;
       const [applied] = await sql<{ poi_id: string | null }[]>`
         SELECT apply_poi_edit(${row.id}::bigint, ${reason}, 'auto_approved') AS poi_id`;
       poiId = applied?.poi_id ?? poiId;
       if (poiId) await invalidateCachedJson(placeCacheUrl(poiId));
     }
-    return c.json({ edit_id: row.id, status, poi_id: poiId });
+    return c.json({ edit_id: row.id, status: decision.status, poi_id: poiId });
   } catch (error) {
     if (error instanceof ApiError) throw error;
     console.error(`edits: ${moTaLoi(error)}`, error);

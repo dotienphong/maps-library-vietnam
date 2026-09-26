@@ -8,18 +8,8 @@ Khoá API phải có scope `edits:write`. Với khoá `web`, request phải đi 
 origin trong `allowed_origins` (thiếu `Origin` trả `403 origin_required`); gọi từ máy chủ thì dùng
 khoá `server`.
 
-Cách duyệt:
-
-- Chỉ sửa đổi gửi bằng khoá `server` mới có thể được tự duyệt. Khoá `web` và `mobile` nằm trong
-  trang web hoặc app nên ai cũng lấy được; sửa đổi gửi bằng hai loại khoá này luôn chờ quản trị duyệt.
-- Với khoá `server`: sửa **chỉ `hours`** trên POI chất lượng ≥ 60 được tự duyệt. Cùng một thay đổi
-  được **hai tenant khác nhau** gửi bằng khoá `server` trong 30 ngày cũng được tự duyệt.
-- Sửa `contact` (điện thoại, website, Facebook) hoặc `name` luôn chờ quản trị duyệt, kể cả khi đủ
-  đồng thuận.
-- Mọi trường hợp khác chờ quản trị duyệt.
-
-`end_user_token` do app tự đặt nên hai token cùng một tenant **không** được tính là hai người khi
-xét đồng thuận.
+Mọi đóng góp đều được ghi lại; chỉ một loại được áp dụng ngay mà không qua người duyệt — xem
+[Luật duyệt](#luật-duyệt).
 
 ## Gửi một sửa đổi
 
@@ -39,7 +29,8 @@ const result = await client.suggestEdit({
   changes: { hours: 'Mo-Su 07:00-22:00' },
   end_user_token: 'user-12345',
 });
-// result.status: 'auto_approved' (áp dụng ngay) hoặc 'pending' (chờ quản trị duyệt)
+// result.status: 'auto_approved' (áp dụng ngay) hoặc 'pending' (chờ quản trị duyệt).
+// Gửi bằng khoá web/mobile thì luôn là 'pending'.
 ```
 
 ## Thêm địa điểm mới
@@ -73,15 +64,24 @@ const created = await client.suggestEdit({
 
 Trường được phép sửa trong `changes`: `name`, `lat`/`lng`, `category`, `housenumber`, `street`,
 `ward`, `province`, `address_text`, `contact` (`phone[]`, `website[]`, `facebook`) và `hours`
-(chuỗi opening_hours OSM hoặc `{ osm: '…' }`). Trường lạ bị bỏ qua; toạ độ ngoài Việt Nam bị từ chối.
+(chuỗi opening_hours OSM hoặc `{ osm: '…' }`, ví dụ `Mo-Sa 08:00-12:00,13:30-17:30; Su off`;
+chuỗi có chữ tự do, số điện thoại hay đường dẫn bị từ chối `400`). Trường lạ bị bỏ qua; toạ độ
+ngoài Việt Nam bị từ chối.
 
 ## Luật duyệt
 
 | Trường hợp | Kết quả |
 |---|---|
-| Chỉ đổi `hours`/`contact` trên POI chất lượng tốt (`quality_score` ≥ 60) | Tự duyệt, thấy ngay |
-| Từ 2 người dùng khác nhau gửi cùng một thay đổi trong 30 ngày | Tự duyệt |
-| Còn lại (tạo mới, đổi tên hoặc vị trí, đóng cửa, báo lỗi) | Chờ quản trị duyệt |
+| Khoá `server` của tenant nội bộ | Tự duyệt |
+| Khoá `server`, update **chỉ đổi `hours`** trên POI chất lượng tốt (`quality_score` ≥ 60) | Tự duyệt, thấy ngay |
+| Khoá `server`, update **chỉ đổi `hours`**, được **2 tenant khác nhau** gửi cùng thay đổi trong 30 ngày | Tự duyệt |
+| Gửi bằng khoá `web` hoặc `mobile` (kể cả của tenant nội bộ) | Chờ quản trị duyệt |
+| Còn lại: đổi liên hệ, tên, vị trí, địa chỉ, loại; đóng/mở cửa; tạo mới; báo lỗi | Chờ quản trị duyệt |
+
+Khoá `web` nằm trong HTML, khoá `mobile` nằm trong app, nên ai cũng lấy được — vì vậy chỉ khoá
+`server` mới được tính là nguồn đáng tin. `end_user_token` do app tự đặt nên hai token cùng một
+tenant **không** được tính là hai người khi xét đồng thuận; phiếu gửi bằng khoá đã thu hồi cũng
+không được tính.
 
 Thay đổi đã được duyệt sẽ **khoá** trường tương ứng: các lần cập nhật dữ liệu tự động sau đó
 không ghi đè lên nữa. Địa chỉ có số nhà còn tạo thêm một mốc geocoding riêng, giúp tìm đúng
