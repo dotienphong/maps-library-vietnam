@@ -81,3 +81,54 @@ describe('geocode helpers', () => {
     );
   });
 });
+
+// "Duong"/"pho" gõ không dấu: parser trả thêm tên bỏ tiền tố, geocoder chọn tên nào thật sự có
+// trong bảng street. "38 Duong Nguyen Tat Thanh" từng rơi xuống bước đường mờ, lệch cả km.
+describe('geocode — tiền tố "duong"/"pho" không dấu', () => {
+  const anchor = { lat: 10.77, lng: 106.69, source: 'osm', ward_norm: null, province_norm: null };
+  const streetExists = (names: string[]) => (query: { text: string; params: unknown[] }) =>
+    query.text.includes('EXISTS') && query.text.includes('FROM street')
+      ? [
+          {
+            primary_ok: names.includes(String(query.params[0])),
+            alt_ok: names.includes(String(query.params[1])),
+          },
+        ]
+      : null;
+
+  it('tên gốc không có, tên bỏ tiền tố có → tra số nhà theo tên bỏ tiền tố', async () => {
+    const exists = streetExists(['nguyen tat thanh']);
+    const { sql } = fakeSql(
+      (q) =>
+        exists(q) ??
+        (q.text.includes('FROM address_anchor') && q.params.includes('nguyen tat thanh')
+          ? [anchor]
+          : []),
+    );
+    await expect(geocode(sql, '38 Duong Nguyen Tat Thanh', null, 5)).resolves.toMatchObject([
+      { precision: 'rooftop', matched: { housenumber: '38', street: 'Nguyen Tat Thanh' } },
+    ]);
+  });
+
+  it('tên gốc có (Dương Bá Trạc gõ không dấu) → giữ tên gốc', async () => {
+    const exists = streetExists(['duong ba trac']);
+    const { sql } = fakeSql(
+      (q) =>
+        exists(q) ??
+        (q.text.includes('FROM address_anchor') && q.params.includes('duong ba trac')
+          ? [anchor]
+          : []),
+    );
+    await expect(geocode(sql, '12 Duong Ba Trac', null, 5)).resolves.toMatchObject([
+      { precision: 'rooftop', matched: { street: 'Duong Ba Trac' } },
+    ]);
+  });
+
+  it('không có phương án phụ thì không tốn thêm truy vấn kiểm tên', async () => {
+    const { sql, calls } = fakeSql([]);
+    await geocode(sql, '38 Nguyễn Tất Thành', null, 5);
+    expect(calls.some((c) => c.text.includes('EXISTS') && c.text.includes('FROM street'))).toBe(
+      false,
+    );
+  });
+});

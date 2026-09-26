@@ -5,6 +5,17 @@ commit với code).
 
 ## 1. Trạng thái hiện tại
 
+- **26/09/2026 — geocode: tiền tố "Duong"/"pho" gõ không dấu.** Chạy bộ đo 60 địa chỉ
+  OSM trên fixture Quận 1: 13/60 truy vấn không dấu có chữ "Duong" rơi xuống bước đường mờ, lệch tới
+  12,3 km (ví dụ "38 Duong Nguyen Tat Thanh"; bỏ chữ "Duong" thì ra rooftop). Nguyên nhân:
+  `isStreetWord` chỉ coi là tiền tố khi gõ "Đ" có gạch, để khỏi nhầm tên riêng Dương/Phổ. Sửa:
+  `parseAddress` giữ cách tách cũ nhưng trả thêm `streetAlt`/`streetNormAlt` khi tiền tố là ASCII;
+  `geocode()` (`pickStreetReading`) chỉ đổi sang tên bỏ tiền tố khi tên gốc không có trong `street`
+  mà tên bỏ tiền tố có. Thêm một truy vấn `EXISTS`, chỉ chạy khi có phương án phụ. Test: 5 core + 3
+  API; 2 core + 1 API đỏ trước sửa. Sau sửa bộ đo không dấu 60/60 rooftop, có dấu/tên quận cũ/bỏ-một-ra
+  không đổi; root 2268 và API 876 test pass, typecheck + Biome sạch. Fixture Quận 1 không có phố tên
+  riêng "Dương …" nên ca "Duong Ba Trac" mới chỉ có test đơn vị, chưa kiểm trên dữ liệu thật.
+
 - **18/09/2026 — sửa trang Admin Audit sau chuyển máy Ubuntu.** PostgreSQL production
   ghi `permission denied for table admin_audit` khi Worker role `api` gọi danh sách audit.
   Restore `--no-privileges` bỏ ACL nhưng `PERMISSIONS_SQL` chưa reconcile grants của 0017;

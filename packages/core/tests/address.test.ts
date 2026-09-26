@@ -56,3 +56,40 @@ describe('parseAddress — hành vi biên', () => {
     expect(() => parseAddress('!!!, ,,, 12//, P., Q.')).not.toThrow();
   });
 });
+
+// "Duong"/"pho" gõ không dấu mơ hồ giữa tiền tố (Đường/Phố) và tên riêng (Dương/Phổ): parser giữ
+// nguyên cách tách cũ, trả thêm phương án bỏ tiền tố để geocoder đối chiếu với bảng `street`.
+describe('parseAddress — tiền tố "duong"/"pho" không dấu', () => {
+  it('"Duong" ASCII: giữ tên gốc, thêm phương án bỏ tiền tố', () => {
+    expect(parseAddress('38 Duong Nguyen Tat Thanh')).toMatchObject({
+      housenumber: '38',
+      street: 'Duong Nguyen Tat Thanh',
+      streetNorm: 'duong nguyen tat thanh',
+      streetAlt: 'Nguyen Tat Thanh',
+      streetNormAlt: 'nguyen tat thanh',
+    });
+  });
+  it('"pho" ASCII: cùng cơ chế', () => {
+    expect(parseAddress('12 pho Hang Bac, Ha Noi')).toMatchObject({
+      street: 'pho Hang Bac',
+      streetAlt: 'Hang Bac',
+      streetNormAlt: 'hang bac',
+    });
+  });
+  it('"Dương" có dấu là tên riêng chắc chắn — không có phương án phụ', () => {
+    const p = parseAddress('12 Dương Bá Trạc');
+    expect(p.streetNorm).toBe('duong ba trac');
+    expect(p.streetAlt).toBeUndefined();
+    expect(p.streetNormAlt).toBeUndefined();
+  });
+  it('"Đường" có dấu vẫn bị bỏ như cũ — không có phương án phụ', () => {
+    const p = parseAddress('38 Đường Nguyễn Tất Thành');
+    expect(p.streetNorm).toBe('nguyen tat thanh');
+    expect(p.streetAlt).toBeUndefined();
+  });
+  it('"Duong so 7" là tên đường số — không tách tiền tố', () => {
+    const p = parseAddress('12 Duong so 7');
+    expect(p.streetNorm).toBe('duong so 7');
+    expect(p.streetAlt).toBeUndefined();
+  });
+});
