@@ -55,12 +55,40 @@ GRANT USAGE, SELECT ON SEQUENCE poi_edit_id_seq TO api;
 GRANT SELECT, UPDATE ON poi_edit TO pipeline;
 GRANT SELECT ON admin_area, admin_area_old, admin_alias, street, alley, address_anchor TO api;
 GRANT SELECT ON tenant, api_key TO api, pipeline;
--- Hai quyền ghi DUY NHẤT của Worker ngoài poi_edit, cấp theo cột (0015 và 0016). Thiếu chúng thì
--- route đổi quota_mode và route thu hồi khoá trả upstream_unavailable — mà chỉ lộ ra trên máy chủ
--- thật, vì test nối DB bằng role chủ sở hữu. pg_restore bỏ hết privilege nên phải có ở đây,
--- không chỉ trong migration.
+-- Quyền ghi theo cột của Worker trên tenant/api_key (0015, 0016, 0018/0021, 0020). Thiếu chúng thì
+-- route quản trị trả upstream_unavailable — mà chỉ lộ ra trên máy chủ thật, vì test nối DB bằng
+-- role chủ sở hữu. pg_restore bỏ hết privilege nên MỌI GRANT của migration phải lặp lại ở đây;
+-- db/restore-parity.dbtest.mjs so từng dòng ACL giữa DB vừa migrate và DB phục hồi từ backup.
 GRANT UPDATE (quota_mode) ON tenant TO api;
 GRANT UPDATE (active, revoked_at) ON api_key TO api;
+GRANT INSERT (
+  key_hash, key_prefix, tenant_id, label, kind,
+  allowed_origins, allowed_bundle_ids, scopes, quota_directions_per_day
+) ON api_key TO api;
+
+-- 0020: cổng khách hàng. Sự cố 26/09/2026: restore sang máy chủ MacBook bỏ sót khối này và 0023,
+-- nên trang admin khách hàng/tenant/billing/đơn hàng, đăng nhập console và webhook PayOS cùng chết.
+GRANT SELECT, INSERT ON customer_account TO api;
+GRANT UPDATE (name, google_sub, trial_tenant_id, last_login_at, disabled_at)
+  ON customer_account TO api;
+GRANT SELECT, INSERT, DELETE ON customer_login_code TO api;
+GRANT UPDATE (attempts, consumed_at) ON customer_login_code TO api;
+GRANT USAGE, SELECT ON SEQUENCE customer_login_code_id_seq TO api;
+GRANT SELECT, INSERT, DELETE ON customer_session TO api;
+GRANT UPDATE (last_seen_at, expires_at) ON customer_session TO api;
+GRANT SELECT, INSERT ON tenant_member TO api;
+GRANT INSERT ON tenant TO api;
+GRANT UPDATE (name, billing_name, billing_tax_code, billing_address, billing_email)
+  ON tenant TO api;
+
+-- 0023: đơn hàng và sự kiện thanh toán PayOS.
+GRANT SELECT, INSERT ON customer_order TO api;
+GRANT UPDATE (status, payment_link_id, checkout_url, qr_code, link_expires_at, paid_at,
+              paid_amount_vnd, fulfilled_at, fulfil_attempts, fulfil_error,
+              entitlement_receipt, note, updated_at) ON customer_order TO api;
+GRANT USAGE, SELECT ON SEQUENCE customer_order_code_seq TO api;
+GRANT SELECT, INSERT ON payment_event TO api;
+GRANT USAGE, SELECT ON SEQUENCE payment_event_id_seq TO api;
 
 -- 0017: restore portable bỏ ACL, migration đã chạy không được áp lại. Worker phải
 -- đọc/ghi audit và dùng sequence, nhưng không được sửa/xoá lịch sử.
@@ -76,4 +104,15 @@ REVOKE ALL ON FUNCTION stage_poi_create(bigint), apply_poi_edit(bigint, text, te
   reject_poi_edit(bigint, text) FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION stage_poi_create(bigint), apply_poi_edit(bigint, text, text),
   reject_poi_edit(bigint, text) TO api;
+
+-- 0022/0024: hàm SECURITY DEFINER xoá tenant chạy bằng quyền superuser. Restore trả EXECUTE về mặc
+-- định PUBLIC — mọi role (kể cả pipeline) gọi được — nên phải thu hồi lại, chỉ api được gọi.
+REVOKE ALL ON FUNCTION xoa_tenant_hoan_toan(uuid) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION xoa_tenant_hoan_toan(uuid) TO api;
+
+-- 0007: thiết lập cấp DATABASE không nằm trong dump, và db-restore.mjs dựng DB mới rồi đổi tên, nên
+-- ngưỡng rơi về mặc định 0.6 của pg_trgm (tìm mờ lệch). Gắn theo OID nên sống qua lần đổi tên.
+DO $$ BEGIN
+  EXECUTE format('ALTER DATABASE %I SET pg_trgm.word_similarity_threshold = 0.5', current_database());
+END $$;
 `;
