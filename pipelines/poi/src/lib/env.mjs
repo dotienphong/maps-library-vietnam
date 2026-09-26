@@ -5,6 +5,8 @@ export const OUT = process.env.MAPSLIBVN_OUT ?? resolve('out');
 export const POI_WORK = resolve(WORK, 'poi');
 export const FIXTURES = resolve('pipelines/poi/fixtures');
 export const VN_BOUNDARY = resolve('pipelines/poi/data/vn-boundary.geojson');
+/** Vùng hai quần đảo Hoàng Sa/Trường Sa (lib/quan-dao.mjs) — đọc lại mỗi lần chạy, không nằm trong vn_boundary. */
+export const QUAN_DAO = resolve('pipelines/poi/data/quan-dao.geojson');
 export const ADMIN_OLD_MANIFEST = resolve('pipelines/poi/fixtures/admin-old-source.json');
 export const ADMIN_OLD_PBF = resolve(WORK, 'data/sources/vietnam-250101.osm.pbf');
 export const ADMIN_OLD_FIXTURE_PBF = resolve(FIXTURES, 'admin-old-q1.osm.pbf');

@@ -1,0 +1,31 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "region": "hoang_sa",
+        "ten": "Đặc khu Hoàng Sa",
+        "tinh": "Đà Nẵng",
+        "source": "Vẽ tay 26/09/2026, trùng bbox Hoàng Sa của pipelines/tiles/python/patch_sovereignty.py; Natural Earth 10m không có đất nước khác trong khung"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[[111.0, 15.7], [113.0, 15.7], [113.0, 17.2], [111.0, 17.2], [111.0, 15.7]]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "region": "truong_sa",
+        "ten": "Đặc khu Trường Sa",
+        "tinh": "Khánh Hòa",
+        "source": "Vẽ tay 26/09/2026 từ bbox Trường Sa của patch_sovereignty.py, khoét góc đông nam (lon > 116.3 khi lat < 9.8) để không chứa đất Sabah/Banggi (116.5–117.67°E, 6.5–7.36°N) và Palawan/Balabac (116.95–117.8°E, 7.8–9.17°N) theo Natural Earth 10m"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[[111.4, 6.5], [116.3, 6.5], [116.3, 9.8], [117.8, 9.8], [117.8, 12.1], [111.4, 12.1], [111.4, 6.5]]]
+      }
+    }
+  ]
+}
