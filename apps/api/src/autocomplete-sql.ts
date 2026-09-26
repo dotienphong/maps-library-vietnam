@@ -3,7 +3,7 @@ import { areaCandidates } from './area-candidates';
 import type { getSql } from './db';
 import type { LatLng } from './params';
 import { poiSourceFilter } from './poi-sources';
-import type { ItemType } from './ranking';
+import { COEFF, type ItemType, PREFIX_BONUS, PROX_SCALE_M } from './ranking';
 import { type FastGate, planStages } from './stages';
 
 type Sql = ReturnType<typeof getSql>;
@@ -238,22 +238,29 @@ export function poiFastCandidates(sql: Sql, input: CandidateQueryInput, tsQuery:
       -- hàm trigram, nên bể vẫn cắt rẻ như trước.
       ORDER BY starts_with(name_norm, ${queryNorm}) DESC, coalesce(popularity, 0) DESC
       LIMIT ${FAST_CANDIDATE_POOL}
+    ),
+    cham AS (
+      SELECT 'poi' AS type, id, name,
+        ${poiSecondary(sql)},
+        ST_Y(geom) AS lat, ST_X(geom) AS lng, NULL AS precision,
+        greatest(
+          word_similarity(${queryNorm}, name_norm),
+          similarity(name_norm, ${queryNorm}),
+          word_similarity(${queryNorm}, coalesce(name_alt_norm, ''))
+          ${coreSim}
+        ) AS sim,
+        starts_with(name_norm, ${queryNorm}) AS prefix,
+        coalesce(popularity, 0) AS pop,
+        ${distance(sql, near, 'geom')} AS d,
+        NULL AS matched_alt
+      FROM ung_vien
     )
-    SELECT 'poi' AS type, id, name,
-      ${poiSecondary(sql)},
-      ST_Y(geom) AS lat, ST_X(geom) AS lng, NULL AS precision,
-      greatest(
-        word_similarity(${queryNorm}, name_norm),
-        similarity(name_norm, ${queryNorm}),
-        word_similarity(${queryNorm}, coalesce(name_alt_norm, ''))
-        ${coreSim}
-      ) AS sim,
-      starts_with(name_norm, ${queryNorm}) AS prefix,
-      coalesce(popularity, 0) AS pop,
-      ${distance(sql, near, 'geom')} AS d,
-      NULL AS matched_alt
-    FROM ung_vien
-    ORDER BY sim DESC, prefix DESC, pop DESC
+    SELECT * FROM cham
+    -- Cắt 20 theo đúng các vế của rankScore (sim + thưởng tiền tố + gần; d NULL → 0,5 như proxScore):
+    -- theo prefix mà bỏ khoảng cách thì POI gần tên "Chợ + truy vấn" bị vứt; theo pop thì POI trùng
+    -- tên một nguồn bị vứt. pop (kẹp về 1 trong rankScore) chỉ còn để phá hoà.
+    ORDER BY ${COEFF.sim}::float8 * (sim + CASE WHEN prefix THEN ${PREFIX_BONUS}::float8 ELSE 0 END)
+      + ${COEFF.prox}::float8 * coalesce(exp(-d / ${PROX_SCALE_M}::float8), 0.5) DESC, pop DESC
     LIMIT 20`;
 }
 

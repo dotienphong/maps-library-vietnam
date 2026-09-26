@@ -154,6 +154,12 @@ describe('thang geocode và các route còn lại', () => {
     expect(body.items[0]?.name).toBe('Zzpool Hồ');
   });
 
+  it('bậc nhanh có near: POI gần tên "Chợ + truy vấn" không bị các tên bắt đầu bằng truy vấn ở xa đẩy ra', async () => {
+    const { status, body } = await get(`/v1/autocomplete?q=zzbenth&near=10.771,106.701`);
+    expect(status).toBe(200);
+    expect(body.items[0]?.name).toBe('Chợ Zzbenth');
+  });
+
   it('autocomplete area gom Quận 10 cũ, giữ bbox qua cache và lọc theo types', async () => {
     const path = `/v1/autocomplete?q=${enc('Quận 10')}&types=area&limit=7`;
     const first = await get(path);

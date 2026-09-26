@@ -325,3 +325,19 @@ VALUES ('ZZPOOLEXACT000000000000001', 'Zzpool Hồ', 'zzpool ho', 'cafe',
         ST_SetSRID(ST_MakePoint(105.82, 21.055), 4326), 'Pool Ward', 'Pool Province', 50, 1.0,
         'active', 'osm', 'zzpool-exact', 'pipeline', to_tsvector('simple', 'zzpool ho'))
 ON CONFLICT (id) DO NOTHING;
+
+-- Có near: 25 POI xa (~50 km) tên BẮT ĐẦU bằng truy vấn và 1 POI gần tên "Chợ + truy vấn" (cụm đa nguồn
+-- 2,085). Cắt 20 dòng cuối theo prefix mà bỏ khoảng cách thì POI gần bị vứt trước khi rankScore xét.
+INSERT INTO poi (id, name, name_norm, category, geom, ward, province, quality_score, popularity,
+                 status, primary_source, primary_source_id, created_by, name_tsv)
+SELECT 'ZZNEARFAR' || lpad(i::text, 17, '0'), 'Zzbenth ' || i, 'zzbenth ' || i, 'cafe',
+       ST_SetSRID(ST_MakePoint(106.20 + i * 0.001, 10.40), 4326), 'Near Ward', 'Near Province', 50, 1.5,
+       'active', 'fsq', 'zznear-far-' || i, 'pipeline', to_tsvector('simple', 'zzbenth ' || i)
+FROM generate_series(1, 25) AS i
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO poi (id, name, name_norm, category, geom, ward, province, quality_score, popularity,
+                 status, primary_source, primary_source_id, created_by, name_tsv)
+VALUES ('ZZNEARCLOSE00000000000001', 'Chợ Zzbenth', 'cho zzbenth', 'cafe',
+        ST_SetSRID(ST_MakePoint(106.700, 10.770), 4326), 'Near Ward', 'Near Province', 50, 2.0849626,
+        'active', 'osm', 'zznear-close', 'pipeline', to_tsvector('simple', 'cho zzbenth'))
+ON CONFLICT (id) DO NOTHING;

@@ -10,6 +10,7 @@ import {
   streetCandidates,
   streetFastCandidates,
 } from '../src/autocomplete-sql';
+import { COEFF, PREFIX_BONUS, PROX_SCALE_M } from '../src/ranking';
 import { fakeSql } from './helpers/fake-sql';
 
 /** 16 ký tự — dài hơn SIMILARITY_MAX_QUERY_LENGTH nên KHÔNG có nhánh `%`. */
@@ -411,10 +412,27 @@ describe('poiFastCandidates — bậc nhanh', () => {
     expect(text.indexOf('word_similarity')).toBeGreaterThan(viTriCat);
     // starts_with là so chuỗi, không phải hàm trigram: bể vẫn cắt rẻ như trước.
     expect(text.slice(0, viTriCat)).not.toContain('similarity(');
-    expect(call?.params).toContain(fastInput.queryNorm);
-    // Cắt 20 dòng cuối cũng vậy: sim hoà (tên dài chứa trọn truy vấn cũng được 1,0) thì tên bắt đầu
-    // bằng truy vấn đứng trước popularity, không thì bị LIMIT 20 vứt trước khi rankScore cộng thưởng.
-    expect(text).toMatch(/ORDER BY sim DESC, prefix DESC, pop DESC\s+LIMIT 20/);
+    // starts_with trong bể nhận ĐÚNG queryNorm (lấy chỉ số tham số, không chỉ "có trong params").
+    const n = Number(/starts_with\(name_norm, \$(\d+)\) DESC, coalesce/.exec(text)?.[1]);
+    expect(call?.params[n - 1]).toBe(fastInput.queryNorm);
+  });
+
+  /**
+   * Cắt 20 dòng cuối phải theo đúng các vế của rankScore (sim + thưởng tiền tố + gần): chỉ theo
+   * `prefix` thì POI gần tên "Chợ + truy vấn" bị các tên bắt đầu bằng truy vấn ở xa đẩy ra; chỉ theo
+   * `pop` thì POI trùng tên một nguồn bị đẩy ra. `pop` chỉ còn để phá hoà.
+   */
+  it('cắt 20 dòng cuối theo sim + thưởng tiền tố + gần, pop chỉ phá hoà', async () => {
+    const { sql, calls } = fakeSql([]);
+    await poiFastCandidates(sql, fastInput, 'ben:* & thanh:*');
+    const text = cauChinh(calls)?.text ?? '';
+    const cuoi = text.slice(text.lastIndexOf('ORDER BY'));
+    expect(cuoi).toMatch(/CASE WHEN prefix THEN/);
+    expect(cuoi).toMatch(/exp\(-d \/ /);
+    expect(cuoi).toMatch(/DESC, pop DESC\s+LIMIT 20/);
+    const params = cauChinh(calls)?.params ?? [];
+    for (const value of [COEFF.sim, COEFF.prox, PREFIX_BONUS, PROX_SCALE_M])
+      expect(params).toContain(value);
   });
 
   it('lọc bằng name_tsv, WHERE không có toán tử trigram lẫn LIKE', async () => {
