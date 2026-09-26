@@ -5,7 +5,7 @@
 import 'dotenv/config';
 import { execFileSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
-import { existsSync, readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, readFileSync, renameSync, rmSync, writeFileSync } from 'node:fs';
 import { POI_SOURCE_PROFILES } from '../pipelines/poi/src/lib/poi-filter.mjs';
 import { poiReleaseSet, releaseName } from '../pipelines/tiles/src/lib/dates.mjs';
 import { hasListedFile } from '../pipelines/tiles/src/lib/manifest-state.mjs';
@@ -101,16 +101,28 @@ if (flags.dryRun || (!work.tiles && !work.poi)) {
   process.exit(0);
 }
 
-const osmChanged = !state.osm || state.osm.md5 !== versions.osm.md5;
 const patched = `${WORK}/vietnam-patched.osm.pbf`;
 const PATCH_SCRIPT = 'pipelines/tiles/python/patch_sovereignty.py';
+// Patch đọc chung dữ liệu chính sách quần đảo với POI (plan 2026-09-26-quan-dao) → đổi file nào cũng patch lại.
+const PATCH_INPUTS = [
+  PATCH_SCRIPT,
+  'pipelines/poi/data/quan-dao-dao.csv',
+  'pipelines/poi/data/quan-dao-ta-giu.json',
+];
 const patchMark = `${patched}.patch-sha256`;
 const ensurePatchedPbf = () => {
-  const dauMoi = createHash('sha256').update(readFileSync(PATCH_SCRIPT)).digest('hex');
+  const hash = createHash('sha256');
+  for (const file of PATCH_INPUTS) hash.update(readFileSync(file));
+  const dauMoi = `${hash.digest('hex')} ${versions.osm.md5}`;
   const dauCu = existsSync(patchMark) ? readFileSync(patchMark, 'utf8').trim() : '';
-  if (!canPatchLai({ coFile: existsSync(patched), osmDoi: osmChanged, dauCu, dauMoi })) return;
+  if (!canPatchLai({ coFile: existsSync(patched), dauCu, dauMoi })) return;
+  // Xoá dấu TRƯỚC khi patch và ghi ra file tạm rồi mới đổi tên: patch chết giữa chừng (OOM, đầy đĩa) không
+  // được để lại một PBF cụt đi kèm dấu còn khớp.
+  rmSync(patchMark, { force: true });
   run('node', ['pipelines/tiles/src/download.mjs']);
-  run('python', [PATCH_SCRIPT, `${WORK}/data/sources/vietnam.osm.pbf`, patched]);
+  const tam = `${WORK}/vietnam-patched.part.osm.pbf`;
+  run('python', [PATCH_SCRIPT, `${WORK}/data/sources/vietnam.osm.pbf`, tam]);
+  renameSync(tam, patched);
   writeFileSync(patchMark, `${dauMoi}\n`);
 };
 

@@ -72,6 +72,15 @@ export async function buildCurrentAdmin(sql) {
   await sql`UPDATE admin_area_new a SET parent_id=(SELECT p.id FROM admin_area_new p
       WHERE p.level=4 AND p.name_norm=d.tinh ORDER BY p.id LIMIT 1)
     FROM jsonb_to_recordset(${sql.json(dacKhu)}) AS d(osm bigint, tinh text) WHERE a.osm_relation_id=d.osm`;
+  // Không có tỉnh cha thì poi-admin/reverse mất tỉnh của MỌI POI hai quần đảo mà bước vẫn in ✓ — dừng
+  // (fixture Quận 1 không có Khánh Hòa/Đà Nẵng nên chỉ cảnh báo).
+  const moCoi = await sql`SELECT name FROM admin_area_new
+    WHERE osm_relation_id = ANY(${dacKhu.map((d) => d.osm)}) AND parent_id IS NULL ORDER BY name`;
+  if (moCoi.length > 0) {
+    const msg = `${moCoi.map((r) => r.name).join(', ')} không tìm được tỉnh cha (L4 Khánh Hòa/Đà Nẵng vắng)`;
+    if (!FIXTURE) throw new Error(msg);
+    console.warn(`! ${msg} — fixture`);
+  }
   await sql.unsafe('ANALYZE admin_area_new');
   await fillSearchKeys(sql, 'admin_area_new', {
     joinColumns: ['id'],

@@ -9,7 +9,7 @@ import { featureCentroid } from '../lib/geometry.mjs';
 import { keepSourceFeature } from '../lib/osm-extended.mjs';
 import { OSM_POI_FILTERS } from '../lib/osm-filters.mjs';
 import { parseOsmiumId } from '../lib/osmium-id.mjs';
-import { dongQuanDao, quanDaoGeoJson } from '../lib/quan-dao.mjs';
+import { napQuanDao } from '../lib/quan-dao.mjs';
 import {
   connect,
   copyInto,
@@ -75,21 +75,10 @@ try {
     rows(),
   );
   const removed = await deleteOutsideVn(sql, 'src_osm_place_new');
-  // Hoàng Sa/Trường Sa lấy từ MỘT nguồn: ảnh chụp đã lọc theo chính sách PHONG chốt 26/09/2026
-  // (lib/quan-dao.mjs). Chèn SAU deleteOutsideVn — ranh giới Natural Earth dừng ở 109,47°E. Mọi dòng PBF
-  // trong vùng bị bỏ trước: extract VN thiếu nửa Trường Sa và patch chủ quyền đổi tên theo luật khác.
-  // Fixture (Quận 1) không có quần đảo nên bỏ qua; đường này có test riêng (tests/quan-dao*.mjs).
-  let quanDao = 0;
-  if (!FIXTURE) {
-    await sql`DELETE FROM src_osm_place_new
-      WHERE ST_Intersects(geom, ST_SetSRID(ST_GeomFromGeoJSON(${quanDaoGeoJson()}), 4326))`;
-    quanDao = await copyInto(
-      sql,
-      'src_osm_place_new',
-      ['osm_type', 'osm_id', 'name', 'names', 'tags', 'geom', 'release'],
-      dongQuanDao(release),
-    );
-  }
+  // Hoàng Sa/Trường Sa lấy từ MỘT nguồn: ảnh chụp đã lọc theo chính sách PHONG chốt 26/09/2026, chèn SAU
+  // deleteOutsideVn (lib/quan-dao.mjs napQuanDao). Fixture (Quận 1) không có quần đảo nên bỏ qua; nhánh
+  // này có test riêng: tests/quan-dao-ingest.dbtest.mjs.
+  const quanDao = FIXTURE ? 0 : await napQuanDao(sql, 'src_osm_place_new', release);
   await publishNew(sql, ['src_osm_place']);
   console.log(
     `✓ src_osm_place: ${await countRows(sql, 'src_osm_place')} dòng (COPY ${copied}, ngoài VN ${removed}, quần đảo ${quanDao}, release ${release})`,

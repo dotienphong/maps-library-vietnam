@@ -3,13 +3,126 @@
 // vn_boundary: bảng đó chỉ nạp một lần (sửa không tới được production), và bootstrapMissingProvince dùng nó
 // để dựng Khánh Hòa, nên nới nó sẽ kéo relation hành chính của nước khác trong vùng vào tỉnh.
 import { readFileSync } from 'node:fs';
+import { copyInto } from '../pg.mjs';
 import { ewkt, pgJson } from './copy-format.mjs';
 import { QUAN_DAO, QUAN_DAO_DAO, QUAN_DAO_OSM, QUAN_DAO_TA_GIU } from './env.mjs';
 
-/** Chữ Hán/Kana/Hangul — cùng dải với luật CJK của osm-extended.mjs và patch_sovereignty.py. */
-export const CJK = /[぀-ヿ㐀-鿿가-힯豈-﫿]/;
-/** Chữ cái riêng của tiếng Việt: đ, ă/â/ê/ô/ơ/ư và nguyên âm mang dấu thanh. */
-const CHU_VIET = /[àáảãạăằắẳẵặâầấẩẫậđèéẻẽẹêềếểễệìíỉĩịòóỏõọôồốổỗộơờớởỡợùúủũụưừứửữựỳýỷỹỵ]/i;
+/**
+ * Chữ Hán/Kana/Hangul, kể cả chữ tương thích (U+F900–FAFF) và mặt phẳng mở rộng (Ext-B…). Viết bằng mã
+ * escape: ký tự tương thích dán thẳng vào nguồn bị chuẩn hoá NFC thành chữ khác, làm lệch dải.
+ */
+export const CJK = /[\u3040-\u30ff\u3400-\u9fff\uac00-\ud7af\uf900-\ufaff\u{20000}-\u{3134f}]/u;
+/** Có dấu tiếng Việt (hoặc đ) — tên không dấu ("An Bang", "Cay") không phân biệt được với tên nước ngoài. */
+const CO_DAU = /[àáảãạăằắẳẵặâầấẩẫậđèéẻẽẹêềếểễệìíỉĩịòóỏõọôồốổỗộơờớởỡợùúủũụưừứửữựỳýỷỹỵ]/iu;
+const PHU_AM_DAU = [
+  'ngh',
+  'ch',
+  'gh',
+  'gi',
+  'kh',
+  'ng',
+  'nh',
+  'ph',
+  'qu',
+  'th',
+  'tr',
+  'b',
+  'c',
+  'd',
+  'đ',
+  'g',
+  'h',
+  'k',
+  'l',
+  'm',
+  'n',
+  'p',
+  'r',
+  's',
+  't',
+  'v',
+  'x',
+  '',
+];
+/** Vần chính của tiếng Việt (đã bỏ dấu thanh, giữ ă â ê ô ơ ư), dài trước ngắn sau. */
+const VAN = [
+  'uyê',
+  'uyu',
+  'uya',
+  'iêu',
+  'yêu',
+  'oai',
+  'oay',
+  'oao',
+  'oeo',
+  'uây',
+  'uôi',
+  'ươi',
+  'ươu',
+  'ai',
+  'ao',
+  'au',
+  'ay',
+  'âu',
+  'ây',
+  'eo',
+  'êu',
+  'ia',
+  'iê',
+  'iu',
+  'oa',
+  'oă',
+  'oe',
+  'oi',
+  'ôi',
+  'ơi',
+  'ua',
+  'uâ',
+  'uê',
+  'ui',
+  'uô',
+  'uơ',
+  'uy',
+  'ưa',
+  'ưi',
+  'ươ',
+  'ưu',
+  'yê',
+  'a',
+  'ă',
+  'â',
+  'e',
+  'ê',
+  'i',
+  'o',
+  'ô',
+  'ơ',
+  'u',
+  'ư',
+  'y',
+];
+const PHU_AM_CUOI = ['ch', 'ng', 'nh', 'c', 'm', 'n', 'p', 't', ''];
+
+/** Bỏ dấu thanh (huyền, sắc, ngã, hỏi, nặng), giữ ă â ê ô ơ ư đ. @param {string} s */
+const boDauThanh = (s) =>
+  s
+    .normalize('NFD')
+    .replace(/[\u0300\u0301\u0303\u0309\u0323]/g, '')
+    .normalize('NFC');
+
+/** Một âm tiết tiếng Việt: phụ âm đầu + vần + phụ âm cuối. @param {string} tu */
+function laAmTiet(tu) {
+  const w = boDauThanh(tu.toLowerCase());
+  return PHU_AM_DAU.some((dau) => {
+    if (!w.startsWith(dau)) return false;
+    const con = w.slice(dau.length);
+    if (dau === 'gi' && con === '') return true; // "gì"
+    return VAN.some((van) => con.startsWith(van) && PHU_AM_CUOI.includes(con.slice(van.length)));
+  });
+}
+
+/** Dấu thanh riêng của pinyin (ā ǎ ē ě ī ǐ ō ǒ ū ǔ ü ǖ ǘ ǚ ǜ): có là tên phiên âm tiếng Trung. */
+const PINYIN = /[āǎēěīǐōǒūǔüǖǘǚǜ]/iu;
 
 /**
  * @typedef {{ region: 'hoang_sa' | 'truong_sa', ten: string, tinh: string,
@@ -58,17 +171,30 @@ export function vungCua(lon, lat) {
 }
 
 /**
- * Tên tiếng Việt: có chữ cái riêng của tiếng Việt và không có chữ Hán/Kana/Hangul. Tên không dấu
- * ("An Bang") không phân biệt được với tên Latin nước ngoài ("Parola") nên không nhận — trừ khi có
- * name:vi, việc đó do nơi gọi quyết định.
+ * Tên tiếng Việt: MỌI từ là âm tiết tiếng Việt (hoặc số, chữ viết tắt in hoa), có ít nhất một dấu, không chữ
+ * Hán/Kana/Hangul, không dấu pinyin. Dấu sắc/huyền dùng chung với pinyin và tiếng Pháp nên dấu thôi không đủ:
+ * "Parola", "Pag-asa", "Layang", "Récif", "Tàipíng" rơi ở luật âm tiết; "Chùa Vinh Phúc", "Hòn Tháp" qua.
+ * Tên không dấu ("An Bang") không nhận — nơi gọi dùng name:vi hoặc danh sách duyệt.
  * @param {string | null | undefined} ten
  */
 export function laTenViet(ten) {
+  if (!tenAnToan(ten) || !CO_DAU.test(String(ten))) return false;
+  const tu = String(ten)
+    .split(/[\s\-–—(),./:;"'“”]+/u)
+    .filter(Boolean);
+  // Mọi từ là âm tiết tiếng Việt, số, hoặc chữ viết tắt/ký hiệu in hoa (UBND, VNCH, "Đá Tây A").
   return (
-    Boolean(ten) &&
-    CHU_VIET.test(/** @type {string} */ (ten)) &&
-    !CJK.test(/** @type {string} */ (ten))
+    tu.length > 0 && tu.every((w) => /^\d+$/.test(w) || /^[A-ZĐ]{1,6}$/u.test(w) || laAmTiet(w))
   );
+}
+
+/**
+ * Không chữ Hán/Kana/Hangul, không dấu pinyin. Dùng cho tên trong danh sách duyệt: tên người duyệt ghi có thể
+ * hợp lệ mà thiếu chữ riêng tiếng Việt ("Hòn Tháp"), nên chỉ chặn chữ nước ngoài.
+ * @param {string | null | undefined} ten
+ */
+export function tenAnToan(ten) {
+  return Boolean(ten) && !CJK.test(String(ten)) && !PINYIN.test(String(ten));
 }
 
 /**
@@ -148,10 +274,29 @@ function datTen(tags, ten, tenKhac) {
   return { ...giu, name: ten, 'name:vi': ten, ...(tenKhac ? { alt_name: tenKhac } : {}) };
 }
 
+/** @param {{ lon: number, lat: number }} f @param {NguCanh} ctx */
+const trongVongTaGiu = (f, ctx) =>
+  ctx.taGiu.some((c) => khoangCachM(f.lon, f.lat, c.lon, c.lat) <= c.banKinhM);
+
+/** Tag quân sự, hoặc do quân đội vận hành (Luật Đo đạc và Bản đồ 2018: không công bố đối tượng quân sự). */
+const laQuanSu = (/** @type {Record<string, string>} */ t) =>
+  t.military !== undefined ||
+  t.landuse === 'military' ||
+  /army|navy|military|quân đội|hải quân|quân chủng|bộ quốc phòng|bộ đội/i.test(t.operator ?? '');
+
+/** Hòn đảo/bãi/rạn: chỉ giữ place/natural loại đảo và tên — không một tag cơ sở nào (sân bay, cơ quan…). */
+function tenDao(/** @type {Record<string, string>} */ t, /** @type {DaoDuyet} */ duyet) {
+  const loai = LA_DAO(t)
+    ? Object.fromEntries(Object.entries(t).filter(([k]) => k === 'place' || k === 'natural'))
+    : { place: 'island' };
+  return datTen(loai, duyet.ten, duyet.tenKhac);
+}
+
 /**
  * Chính sách PHONG chốt 26/09/2026. Đảo/bãi/rạn: chỉ khi có trong danh sách duyệt, tên Việt ghi đè
- * (name:vi ở Hoàng Sa và đá nước khác chiếm phần lớn là phiên âm tên TQ). Cơ sở: chỉ trong vòng ta
- * giữ ở Trường Sa, tên tiếng Việt, không gắn quân sự; Hoàng Sa không nhận cơ sở nào.
+ * (name:vi ở Hoàng Sa và đá nước khác chiếm phần lớn là phiên âm tên TQ), chỉ giữ tag loại đảo. Cơ sở:
+ * chỉ trong vòng ta giữ ở Trường Sa, tên tiếng Việt, không quân sự; Hoàng Sa và đá nước khác chiếm không
+ * nhận cơ sở nào. Hàng duyệt có `ten` rỗng = loại trừ.
  * @param {DoiTuong} f @param {NguCanh} ctx
  * @returns {{ tags: Record<string, string> } | null}
  */
@@ -159,15 +304,22 @@ export function chinhSach(f, ctx) {
   const vung = vungCua(f.lon, f.lat);
   if (!vung) return null;
   const t = f.tags;
-  // Đảo trong danh sách duyệt nhận TÊN ĐẢO kể cả khi nước chiếm giữ gắn căn cứ lên đó (Đá Xu Bi, Đá Công
-  // Đo); datTen bỏ tag quân sự. Luật quân sự (Luật Đo đạc 2018) áp cho cơ sở ở dưới.
   const duyet = ctx.dao.get(`${f.osmType}${f.osmId}`);
-  if (duyet) return { tags: datTen(t, duyet.ten, duyet.tenKhac) };
+  if (duyet) {
+    if (!duyet.ten) return null;
+    // Đảo trong danh sách nhận TÊN ĐẢO kể cả khi nước chiếm giữ gắn căn cứ lên đó (Đá Xu Bi, Đá Công Đo).
+    // Vùng chỉ có landuse (Sinh Tồn: OSM chỉ vẽ landuse=residential) là hình của chính hòn đảo.
+    if (LA_DAO(t) || !Object.keys(t).some((k) => KHOA_CO_SO.has(k)))
+      return { tags: tenDao(t, duyet) };
+    // Cơ sở được duyệt đích danh (sửa tên, hoặc giữ dù do quân đội vận hành): chỉ trên đảo ta giữ.
+    if (duyet.nuocGiu !== 'VN' || vung === 'hoang_sa' || !trongVongTaGiu(f, ctx)) return null;
+    return { tags: datTen(t, duyet.ten, duyet.tenKhac) };
+  }
   if (LA_DAO(t) || vung === 'hoang_sa') return null;
-  if (t.military !== undefined || t.landuse === 'military') return null;
+  if (laQuanSu(t)) return null;
   // Vùng chỉ có landuse (landuse=residential "Đảo Nam Yết") là hình của chính hòn đảo → trùng tên đảo.
   if (!Object.keys(t).some((k) => KHOA_CO_SO.has(k))) return null;
-  if (!ctx.taGiu.some((c) => khoangCachM(f.lon, f.lat, c.lon, c.lat) <= c.banKinhM)) return null;
+  if (!trongVongTaGiu(f, ctx)) return null;
   const ten = [t['name:vi'], t.name].find((x) => laTenViet(x));
   return ten ? { tags: datTen(t, ten) } : null;
 }
@@ -211,4 +363,28 @@ export function* dongQuanDao(
       release,
     ];
   }
+}
+
+/** Cột COPY vào src_osm_place — cùng thứ tự với dòng dongQuanDao. */
+const COT_SRC_OSM = ['osm_type', 'osm_id', 'name', 'names', 'tags', 'geom', 'release'];
+
+/**
+ * Nạp hai quần đảo vào bảng dàn src_osm_place_new: bỏ MỌI dòng PBF trong vùng (extract VN thiếu nửa Trường
+ * Sa, patch tiles đổi tên theo luật riêng), rồi chèn ảnh chụp đã lọc. Gọi SAU deleteOutsideVn — ranh giới
+ * Natural Earth dừng ở 109,47°E. Ảnh chụp rỗng thì dừng: không lặng lẽ phát hành bản không có hai quần đảo.
+ * @param {import('postgres').Sql} sql @param {string} table @param {string} release @param {DongAnhChup[]} [anhChup]
+ */
+export async function napQuanDao(sql, table, release, anhChup = docAnhChup()) {
+  if (!/^[a-z_][a-z0-9_]*$/.test(table)) throw new Error(`tên bảng không hợp lệ: ${table}`);
+  await sql.unsafe(
+    `DELETE FROM ${table} WHERE ST_Intersects(geom, ST_SetSRID(ST_GeomFromGeoJSON($1), 4326))`,
+    [quanDaoGeoJson()],
+  );
+  const n = await copyInto(sql, table, COT_SRC_OSM, dongQuanDao(release, anhChup));
+  if (n === 0) {
+    throw new Error(
+      'Ảnh chụp quần đảo (data/quan-dao-osm.json) không cho dòng nào — dừng, không phát hành thiếu hai quần đảo',
+    );
+  }
+  return n;
 }

@@ -3,6 +3,7 @@ osm,ten,ten_khac,nuoc_giu,ghi_chu
 # name:vi của OSM ở Hoàng Sa và các đá nước khác chiếm phần lớn là phiên âm tên TQ (vd "Đảo Triệu Thuật" = Đảo Cây,
 # "Đá Vĩnh Thử" = Đá Chữ Thập) nên không dùng. Chỉ ghi tên chắc chắn; tên chưa chắc để ngoài tới khi PHONG duyệt.
 # nuoc_giu = nước đang thực tế chiếm giữ (chỉ để ghi chú và kiểm tra dữ liệu, không hiển thị).
+# ten để trống = LOẠI TRỪ đối tượng đó. Đảo/bãi chỉ giữ tag loại đảo + tên; cơ sở chỉ được duyệt ở đảo ta giữ.
 # --- Hoàng Sa (Đặc khu Hoàng Sa, Đà Nẵng) — nhóm An Vĩnh
 r7434587,Đảo Phú Lâm,,CN,Woody Island
 w14235277,Đảo Cây,,CN,Tree Island (OSM name:vi "Đảo Triệu Thuật" là phiên âm TQ)
@@ -52,8 +53,13 @@ w1190948447,Đảo Tốc Tan A,,VN,Alison Reef A
 w1191582349,Đảo Thuyền Chài D,,VN,Barque Canada Reef D
 w1396126463,Đảo Thuyền Chài E,,VN,Barque Canada Reef E
 w1430294993,Đảo An Bang,,VN,Amboyna Cay
+w493742720,Đảo Sinh Tồn,,VN,Sin Cowe Island (OSM chỉ vẽ landuse=residential → dựng thành place=island)
+w1559928547,Đá Len Đao,,VN,Lansdowne Reef (đảo nổi không tên trong OSM)
+w159002343,Đá Thị,,VN,Petley Reef (đảo nổi không tên trong OSM)
+w704074552,Đá Ba Kè,,VN,Bombay Castle
 # --- Trường Sa — sửa tên cơ sở ta giữ (danh sách này ghi đè tên của MỌI đối tượng, không chỉ đảo)
 w614161313,Chùa Sơn Linh,,VN,đảo Sơn Ca; OSM ghi "Chùa Sơn inh" (lỗi chính tả) — CẦN PHONG xác nhận tên
+n2647317689,Sân bay Trường Sa,,VN,OSM ghi operator = People's Army of Vietnam nên luật quân sự sẽ loại; giữ vì PHONG chọn phương án có sân bay — CẦN PHONG xác nhận
 # --- Trường Sa — đảo/đá nước khác đang chiếm giữ: chỉ tên đảo tiếng Việt, không nhận cơ sở
 r12651740,Đảo Thị Tứ,,PH,Thitu / Pag-asa
 w332539799,Đảo Song Tử Đông,,PH,Northeast Cay / Parola

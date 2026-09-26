@@ -9,6 +9,7 @@ import {
   dongQuanDao,
   khoangCachM,
   laTenViet,
+  tenAnToan,
   vungCua,
   vungQuanDao,
 } from '../src/lib/quan-dao.mjs';
@@ -19,8 +20,17 @@ const ctx = {
     ['r7434587', { ten: 'Đảo Phú Lâm', tenKhac: '', nuocGiu: 'CN' }],
     ['w332539799', { ten: 'Đảo Song Tử Đông', tenKhac: '', nuocGiu: 'PH' }],
     ['r7910282', { ten: 'Đảo Trường Sa', tenKhac: 'Đảo Trường Sa Lớn', nuocGiu: 'VN' }],
+    ['w537200587', { ten: 'Đá Xu Bi', tenKhac: '', nuocGiu: 'CN' }],
+    ['w493742720', { ten: 'Đảo Sinh Tồn', tenKhac: '', nuocGiu: 'VN' }],
+    ['n2647317689', { ten: 'Sân bay Trường Sa', tenKhac: '', nuocGiu: 'VN' }],
+    ['n77', { ten: '', tenKhac: '', nuocGiu: 'VN' }],
+    ['n88', { ten: 'Nhà khách Đá Chữ Thập', tenKhac: '', nuocGiu: 'CN' }],
   ]),
-  taGiu: [{ ten: 'Song Tử Tây', lon: 114.331, lat: 11.428, banKinhM: 1500 }],
+  taGiu: [
+    { ten: 'Song Tử Tây', lon: 114.331, lat: 11.428, banKinhM: 1500 },
+    { ten: 'Sinh Tồn', lon: 114.33, lat: 9.885, banKinhM: 1500 },
+    { ten: 'Trường Sa', lon: 111.919, lat: 8.645, banKinhM: 2500 },
+  ],
 };
 
 describe('vungCua — vùng hai quần đảo (PHONG chốt 26/09/2026)', () => {
@@ -45,6 +55,9 @@ describe('vungCua — vùng hai quần đảo (PHONG chốt 26/09/2026)', () => 
     ['Banggi (Sabah)', 117.1, 7.25],
     ['Balabac (Palawan)', 117.05, 7.98],
     ['Quezon (Palawan)', 117.99, 9.23],
+    // Lãnh hải 12 hải lý quanh Pulau Mantanani (Sabah, 116,31°E 6,71°N) — không chỉ đất liền.
+    ['vùng biển Mantanani (Sabah)', 116.2, 6.7],
+    ['vùng biển Balabac (Palawan)', 116.85, 8.2],
     ['Sanya (Hải Nam)', 109.5, 18.25],
     ['Lý Sơn (đảo ven bờ, không thuộc hai quần đảo)', 109.12, 15.38],
     ['Hà Nội', 105.85, 21.03],
@@ -61,7 +74,20 @@ describe('vungCua — vùng hai quần đảo (PHONG chốt 26/09/2026)', () => 
 });
 
 describe('laTenViet — tên tiếng Việt, không chữ Hán, không tên Latin nước ngoài', () => {
-  it.each(['Đảo Song Tử Tây', 'Hải đăng Đá Lát', 'Chùa Trường Sa Lớn', 'Đá Chữ Thập'])(
+  it.each([
+    'Đảo Song Tử Tây',
+    'Hải đăng Đá Lát',
+    'Chùa Trường Sa Lớn',
+    'Đá Chữ Thập',
+    // Chỉ có dấu sắc/huyền (dùng chung với pinyin) nhưng mọi từ là âm tiết tiếng Việt.
+    'Chùa Vinh Phúc',
+    'Hòn Tháp',
+    'UBND Thị trấn Trường Sa (cũ)',
+    'Bia chủ quyền của VNCH năm 1956',
+    'Trung tâm dịch vụ hậu cần nghề cá đảo Đá Tây A',
+    'Nhà tưởng niệm Chủ tịch Hồ Chí Minh',
+    'Đảo Bình Nguyên',
+  ])(
     '%s là tên Việt',
     (ten) => {
       expect(laTenViet(ten)).toBe(true);
@@ -71,6 +97,19 @@ describe('laTenViet — tên tiếng Việt, không chữ Hán, không tên Lati
   it.each([
     'Parola Lighthouse',
     'Pag-asa Island',
+    // Dấu á/à/é/í/ó/ú dùng chung với pinyin và tiếng Pháp/Tây Ban Nha — không đủ để là tên Việt.
+    'Nánshā Qúndǎo',
+    'Tàipíng Dǎo',
+    'Zhōngyè Dǎo',
+    'Récif Discovery',
+    'Repúblika ng Pilipinas',
+    'Isla Parolá',
+    // Có chữ riêng tiếng Việt nhưng lẫn từ nước ngoài.
+    'Đảo Pag-asa',
+    'Đảo Layang Layang',
+    'Southwest Cay Light',
+    'Đảo 𠀀',
+    'Đảo 豈',
     // Không dấu thì không phân biệt được với tên Latin nước ngoài → không nhận, trừ khi có name:vi.
     'An Bang',
     '永兴岛',
@@ -158,6 +197,56 @@ describe('chinhSach — nhận/loại đối tượng OSM trong hai quần đả
     });
   });
 
+  it('đảo nước khác chiếm trong danh sách: CHỈ tag loại đảo + tên — không thành "sân bay" tên Việt', () => {
+    const out = chinhSach(
+      f('w537200587', 114.081, 10.926, {
+        place: 'island',
+        natural: 'coastline',
+        aeroway: 'aerodrome',
+        landuse: 'military',
+        name: '渚碧岛',
+      }),
+      ctx,
+    );
+    expect(out?.tags).toEqual({
+      place: 'island',
+      natural: 'coastline',
+      name: 'Đá Xu Bi',
+      'name:vi': 'Đá Xu Bi',
+    });
+  });
+
+  it('hàng duyệt cho vùng chỉ có landuse (Sinh Tồn) dựng thành place=island', () => {
+    const out = chinhSach(f('w493742720', 114.33, 9.885, { landuse: 'residential' }), ctx);
+    expect(out?.tags).toEqual({ place: 'island', name: 'Đảo Sinh Tồn', 'name:vi': 'Đảo Sinh Tồn' });
+  });
+
+  it('hàng duyệt tên rỗng = loại trừ', () => {
+    expect(
+      chinhSach(f('n77', 114.331, 11.428, { amenity: 'school', name: 'Trường Song Tử Tây' }), ctx),
+    ).toBeNull();
+  });
+
+  it('cơ sở do quân đội vận hành: loại, trừ khi được duyệt đích danh trên đảo ta giữ', () => {
+    const tags = {
+      aeroway: 'aerodrome',
+      operator: "People's Army of Vietnam",
+      name: 'Sân bay Trường Sa',
+    };
+    expect(chinhSach(f('n5', 111.92, 8.646, tags), ctx)).toBeNull();
+    expect(chinhSach(f('n2647317689', 111.92, 8.646, tags), ctx)?.tags).toEqual({
+      aeroway: 'aerodrome',
+      name: 'Sân bay Trường Sa',
+      'name:vi': 'Sân bay Trường Sa',
+    });
+  });
+
+  it('cơ sở được duyệt nhưng thuộc nước khác chiếm: loại', () => {
+    expect(
+      chinhSach(f('n88', 112.89, 9.55, { tourism: 'hotel', name: '永暑宾馆' }), ctx),
+    ).toBeNull();
+  });
+
   it('đảo KHÔNG có trong danh sách duyệt: loại, kể cả khi có name:vi', () => {
     expect(
       chinhSach(f('w50548011', 111.686, 16.566, { place: 'islet', 'name:vi': 'Đảo Ba Ba' }), ctx),
@@ -222,11 +311,25 @@ describe('chinhSach — nhận/loại đối tượng OSM trong hai quần đả
 
 describe('dữ liệu commit — CI chặn mọi thứ trái chính sách trước khi lên production', () => {
   /** @type {{ osm_type: string, osm_id: string, lon: number, lat: number, tags: Record<string, string> }[]} */
-  const doiTuong = JSON.parse(readFileSync(QUAN_DAO_OSM, 'utf8')).doi_tuong;
+  const anhChup = JSON.parse(readFileSync(QUAN_DAO_OSM, 'utf8')).doi_tuong;
   const dao = docDao();
   const taGiu = docTaGiu();
+  const ctxThat = { dao, taGiu };
+  // Kiểm ĐÚNG thứ được nạp (dongQuanDao đọc lại CSV hiện hành), không chỉ file ảnh chụp: sửa riêng CSV
+  // (thêm ten_khac "Pag-asa Island") mà không dựng lại ảnh chụp vẫn phải đỏ.
+  const napVao = [...dongQuanDao('kiem', anhChup, ctxThat)].map((r) => {
+    const m = /POINT\(([-\d.]+) ([-\d.]+)\)/.exec(String(r[5]));
+    return {
+      key: `${r[0]}${r[1]}`,
+      lon: Number(m?.[1]),
+      lat: Number(m?.[2]),
+      tags: /** @type {Record<string, string>} */ (JSON.parse(String(r[4]))),
+    };
+  });
   const qa = JSON.parse(readFileSync('pipelines/tiles/qa.config.json', 'utf8'));
-  // Từ cấm của QA tiles + tên nước ngoài hay gặp ở hai quần đảo (Tam Sa, Vĩnh Hưng, Pag-asa, Parola…).
+  /** Bỏ dấu, đ→d, chữ thường: "Nánshā" và "Vĩnh Hưng" khớp từ cấm viết không dấu. @param {string} s */
+  const gap = (s) => s.normalize('NFD').replace(/\p{M}/gu, '').replace(/đ/gi, 'd').toLowerCase();
+  // Từ cấm của QA tiles + tên/phiên âm nước ngoài hay gặp ở hai quần đảo; so NGUYÊN TỪ sau khi bỏ dấu.
   const TU_CAM = [
     ...qa.forbiddenWords,
     'Sansha',
@@ -238,56 +341,78 @@ describe('dữ liệu commit — CI chặn mọi thứ trái chính sách trư�
     'Taiping',
     'Layang',
     'Tam Sa',
+    'Vĩnh Hưng',
+    'Nam Sa',
+    'Tây Sa',
+    'Trung Sa',
     'Trung Quốc',
     'Trung Hoa',
-  ].map((w) => w.toLowerCase());
-  const toaDo = new Map(doiTuong.map((d) => [`${d.osm_type}${d.osm_id}`, d]));
+  ].map((w) => new RegExp(`\\b${gap(w).replace(/[-]/g, '\\-')}\\b`));
+  const coTuCam = (/** @type {string} */ v) => TU_CAM.some((re) => re.test(gap(v)));
+  const toaDo = new Map(anhChup.map((d) => [`${d.osm_type}${d.osm_id}`, d]));
 
-  it('ảnh chụp có cả hai quần đảo', () => {
-    expect(doiTuong.filter((d) => vungCua(d.lon, d.lat) === 'hoang_sa').length).toBeGreaterThan(0);
-    expect(doiTuong.filter((d) => vungCua(d.lon, d.lat) === 'truong_sa').length).toBeGreaterThan(0);
+  it('ảnh chụp có cả hai quần đảo, và chạy lại chính sách lên nó ra y hệt (CSV không trôi khỏi ảnh chụp)', () => {
+    expect(anhChup.filter((d) => vungCua(d.lon, d.lat) === 'hoang_sa').length).toBeGreaterThan(0);
+    expect(anhChup.filter((d) => vungCua(d.lon, d.lat) === 'truong_sa').length).toBeGreaterThan(0);
+    const troi = anhChup.filter((d) => {
+      const out = chinhSach(
+        { osmType: d.osm_type, osmId: d.osm_id, lon: d.lon, lat: d.lat, tags: d.tags },
+        ctxThat,
+      );
+      return JSON.stringify(out?.tags) !== JSON.stringify(d.tags);
+    });
+    expect(troi.map((d) => `${d.osm_type}${d.osm_id}`)).toEqual([]);
+    expect(napVao).toHaveLength(anhChup.length);
   });
 
-  it('mọi đối tượng: trong vùng, tên tiếng Việt, không chữ Hán/từ cấm ở BẤT KỲ tag nào, không quân sự', () => {
-    const sai = doiTuong.filter((d) => {
+  it('mọi dòng nạp: trong vùng, name = name:vi, tên Việt (cơ sở) / tên an toàn (hàng duyệt), không chữ Hán hay từ cấm ở BẤT KỲ tag nào, không quân sự', () => {
+    const sai = napVao.filter((d) => {
       const giaTri = Object.values(d.tags);
+      const tenHopLe = dao.has(d.key)
+        ? tenAnToan(d.tags.name) && (!d.tags.alt_name || tenAnToan(d.tags.alt_name))
+        : laTenViet(d.tags.name);
       return (
         !vungCua(d.lon, d.lat) ||
         d.tags.name !== d.tags['name:vi'] ||
-        !laTenViet(d.tags.name) ||
-        giaTri.some((v) => CJK.test(v) || TU_CAM.some((w) => v.toLowerCase().includes(w))) ||
+        !tenHopLe ||
+        giaTri.some((v) => CJK.test(v) || coTuCam(v)) ||
         d.tags.military !== undefined ||
         d.tags.landuse === 'military'
       );
     });
-    expect(sai).toEqual([]);
+    expect(sai.map((d) => `${d.key} ${d.tags.name}`)).toEqual([]);
   });
 
-  it('Hoàng Sa chỉ có đảo/bãi trong danh sách duyệt; cơ sở Trường Sa nằm trong vòng ta giữ', () => {
-    const sai = doiTuong.filter((d) => {
-      if (dao.has(`${d.osm_type}${d.osm_id}`)) return false;
-      if (vungCua(d.lon, d.lat) === 'hoang_sa') return true;
-      return !taGiu.some((c) => khoangCachM(d.lon, d.lat, c.lon, c.lat) <= c.banKinhM);
+  it('Hoàng Sa và đảo nước khác chiếm: chỉ tag loại đảo + tên; cơ sở Trường Sa nằm trong vòng ta giữ', () => {
+    const TAG_DAO = new Set(['place', 'natural', 'name', 'name:vi', 'alt_name']);
+    const sai = napVao.filter((d) => {
+      const duyet = dao.get(d.key);
+      const trongVong = taGiu.some((c) => khoangCachM(d.lon, d.lat, c.lon, c.lat) <= c.banKinhM);
+      if (vungCua(d.lon, d.lat) === 'hoang_sa' || (duyet && duyet.nuocGiu !== 'VN')) {
+        return !duyet || Object.keys(d.tags).some((k) => !TAG_DAO.has(k));
+      }
+      return !trongVong;
     });
-    expect(sai).toEqual([]);
+    expect(sai.map((d) => `${d.key} ${JSON.stringify(d.tags)}`)).toEqual([]);
   });
 
-  it('mọi hàng trong danh sách duyệt có mặt trong ảnh chụp (không lặng lẽ mất một hòn đảo)', () => {
-    expect([...dao.keys()].filter((k) => !toaDo.has(k))).toEqual([]);
+  it('mọi hàng duyệt (trừ hàng loại trừ) có mặt trong ảnh chụp (không lặng lẽ mất một hòn đảo)', () => {
+    expect([...dao].filter(([k, v]) => v.ten && !toaDo.has(k)).map(([k]) => k)).toEqual([]);
   });
 
-  it('danh sách duyệt: tên Việt, nước giữ hợp lệ, Hoàng Sa ghi CN, đảo ta giữ nằm trong vòng ta giữ', () => {
+  it('danh sách duyệt: ten/ten_khac an toàn, không từ cấm; nước giữ hợp lệ; Hoàng Sa ghi CN; VN nằm trong vòng ta giữ', () => {
     const sai = [...dao].filter(([k, v]) => {
+      if (!['VN', 'CN', 'PH', 'TW', 'MY'].includes(v.nuocGiu)) return true;
+      if (!v.ten) return false;
+      if (!tenAnToan(v.ten) || coTuCam(v.ten)) return true;
+      if (v.tenKhac && (!tenAnToan(v.tenKhac) || coTuCam(v.tenKhac))) return true;
       const d = toaDo.get(k);
-      if (!d || !laTenViet(v.ten) || !['VN', 'CN', 'PH', 'TW', 'MY'].includes(v.nuocGiu))
-        return true;
+      if (!d) return true;
       if (vungCua(d.lon, d.lat) === 'hoang_sa') return v.nuocGiu !== 'CN';
-      const trongVongTaGiu = taGiu.some(
-        (c) => khoangCachM(d.lon, d.lat, c.lon, c.lat) <= c.banKinhM,
-      );
-      return (v.nuocGiu === 'VN') !== trongVongTaGiu;
+      const trongVong = taGiu.some((c) => khoangCachM(d.lon, d.lat, c.lon, c.lat) <= c.banKinhM);
+      return (v.nuocGiu === 'VN') !== trongVong;
     });
-    expect(sai).toEqual([]);
+    expect(sai.map(([k]) => k)).toEqual([]);
   });
 
   it('mỗi vòng ta giữ cách mọi đảo/đá nước khác chiếm ≥ bán kính + 2 km (Song Tử Tây–Song Tử Đông 3,5 km)', () => {
@@ -332,6 +457,12 @@ describe('dongQuanDao — dòng COPY vào src_osm_place (cùng cột với rows(
     const [row] = rows;
     expect(row?.slice(0, 3)).toEqual(['r', '7434587', 'Đảo Phú Lâm']);
     expect(JSON.parse(String(row?.[3]))).toEqual({ name: 'Đảo Phú Lâm', 'name:vi': 'Đảo Phú Lâm' });
+    // records.mjs đọc tên và tên khác từ cột tags — phải là tag đã qua chính sách, không phải tag gốc.
+    expect(JSON.parse(String(row?.[4]))).toEqual({
+      place: 'island',
+      name: 'Đảo Phú Lâm',
+      'name:vi': 'Đảo Phú Lâm',
+    });
     expect(row?.[5]).toBe('SRID=4326;POINT(112.341 16.834)');
     expect(row?.[6]).toBe('2026-09-26');
   });

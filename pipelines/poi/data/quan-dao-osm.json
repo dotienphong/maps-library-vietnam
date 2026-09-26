@@ -1,5 +1,5 @@
 {
- "nguon": "Overpass API (https://overpass-api.de/api/interpreter), OSM tới 2026-09-26T12:42:22Z; lọc bằng lib/quan-dao.mjs",
+ "nguon": "Overpass API (https://overpass-api.de/api/interpreter), OSM tới 2026-09-26T13:23:02Z; lọc bằng lib/quan-dao.mjs",
  "ban_quyen": "© OpenStreetMap contributors, ODbL 1.0",
  "doi_tuong": [
   {
@@ -702,6 +702,18 @@
   },
   {
    "osm_type": "w",
+   "osm_id": "159002343",
+   "lon": 114.5875984,
+   "lat": 10.4105972,
+   "tags": {
+    "natural": "coastline",
+    "place": "islet",
+    "name": "Đá Thị",
+    "name:vi": "Đá Thị"
+   }
+  },
+  {
+   "osm_type": "w",
    "osm_id": "181126483",
    "lon": 111.6902886,
    "lat": 16.2188438,
@@ -852,6 +864,17 @@
     "place": "islet",
     "name": "Đá Châu Viên",
     "name:vi": "Đá Châu Viên"
+   }
+  },
+  {
+   "osm_type": "w",
+   "osm_id": "493742720",
+   "lon": 114.3299209,
+   "lat": 9.8850041,
+   "tags": {
+    "place": "island",
+    "name": "Đảo Sinh Tồn",
+    "name:vi": "Đảo Sinh Tồn"
    }
   },
   {
@@ -1117,6 +1140,18 @@
     "religion": "buddhist",
     "name": "Chùa Vinh Phúc",
     "name:vi": "Chùa Vinh Phúc"
+   }
+  },
+  {
+   "osm_type": "w",
+   "osm_id": "704074552",
+   "lon": 111.7187646,
+   "lat": 7.954395,
+   "tags": {
+    "natural": "reef",
+    "place": "locality",
+    "name": "Đá Ba Kè",
+    "name:vi": "Đá Ba Kè"
    }
   },
   {
@@ -1462,6 +1497,18 @@
     "religion": "buddhist",
     "name": "Chùa Tiên Nữ",
     "name:vi": "Chùa Tiên Nữ"
+   }
+  },
+  {
+   "osm_type": "w",
+   "osm_id": "1559928547",
+   "lon": 114.3699798,
+   "lat": 9.7787397,
+   "tags": {
+    "natural": "coastline",
+    "place": "islet",
+    "name": "Đá Len Đao",
+    "name:vi": "Đá Len Đao"
    }
   }
  ]

@@ -43,7 +43,8 @@ describe('buildCurrentAdmin — hai đặc khu', () => {
         (100, 6, 'Phường Nha Trang', 'phuong nha trang', ${khung(109.1, 12.2, 109.25, 12.3)}),
         (101, 6, 'Phường Hải Châu', 'phuong hai chau', ${khung(108.2, 16.0, 108.25, 16.1)}),
         (3479413, 6, 'Đặc khu Trường Sa', 'dac khu truong sa', ${khung(114.2, 11.3, 114.5, 11.5)}),
-        (6753263, 6, 'Quận Nam Sa', 'quan nam sa', ${khung(112.8, 9.4, 113.0, 9.7)})`);
+        (6753263, 6, 'Quận Nam Sa', 'quan nam sa', ${khung(112.8, 9.4, 113.0, 9.7)}),
+        (900001, 8, 'Xã Vĩnh Hưng', 'xa vinh hung', ${khung(112.3, 16.8, 112.4, 16.9)})`);
       await buildCurrentAdmin(tx);
       const rows =
         await tx`SELECT a.id, a.level, a.name, a.name_norm, a.osm_relation_id, p.name AS cha
@@ -63,7 +64,40 @@ describe('buildCurrentAdmin — hai đặc khu', () => {
       expect(ten).not.toContain('Quận Nam Sa');
       // Không có hai "Đặc khu Trường Sa": relation dở dang của OSM bị bỏ, hàng dựng từ file thắng.
       expect(ten.filter((n) => n === 'Đặc khu Trường Sa')).toHaveLength(1);
+      expect(ten).not.toContain('Xã Vĩnh Hưng');
+      // Hình thật lấy từ data/quan-dao.geojson: chứa đảo, KHÔNG chứa đất/lãnh hải Sabah, Palawan, đảo ven bờ.
+      const [hinh] = await tx`SELECT
+          bool_and(ST_Contains(geom, ST_SetSRID(ST_MakePoint(114.331, 11.429), 4326))) FILTER (WHERE osm_relation_id = -8002) AS song_tu_tay,
+          bool_and(ST_Contains(geom, ST_SetSRID(ST_MakePoint(112.341, 16.834), 4326))) FILTER (WHERE osm_relation_id = -8001) AS phu_lam,
+          bool_or(ST_Contains(geom, ST_SetSRID(ST_MakePoint(116.85, 6.88), 4326))) AS kudat,
+          bool_or(ST_Contains(geom, ST_SetSRID(ST_MakePoint(117.05, 7.98), 4326))) AS balabac,
+          bool_or(ST_Contains(geom, ST_SetSRID(ST_MakePoint(116.2, 6.7), 4326))) AS mantanani,
+          bool_or(ST_Contains(geom, ST_SetSRID(ST_MakePoint(109.12, 15.38), 4326))) AS ly_son
+        FROM admin_area_new WHERE osm_relation_id IN (-8001, -8002)`;
+      expect(hinh).toEqual({
+        song_tu_tay: true,
+        phu_lam: true,
+        kudat: false,
+        balabac: false,
+        mantanani: false,
+        ly_son: false,
+      });
     });
+  });
+});
+
+describe('buildCurrentAdmin — thiếu tỉnh cha thì dừng', () => {
+  it('không có L4 Đà Nẵng → ném lỗi thay vì để Đặc khu Hoàng Sa mồ côi tỉnh', async () => {
+    await expect(
+      thuRoiBo(async (tx) => {
+        await tx.unsafe(`CREATE TEMP TABLE osm_admin_raw (osm_relation_id bigint PRIMARY KEY,
+          level smallint NOT NULL, name text NOT NULL, name_norm text NOT NULL,
+          tags jsonb NOT NULL DEFAULT '{}', geom geometry(MultiPolygon, 4326) NOT NULL)`);
+        await tx.unsafe(`INSERT INTO osm_admin_raw (osm_relation_id, level, name, name_norm, geom) VALUES
+          (1887959, 4, 'Tỉnh Khánh Hòa', 'khanh hoa', ${khung(108.5, 11.5, 109.5, 13)})`);
+        await buildCurrentAdmin(tx);
+      }),
+    ).rejects.toThrow(/Đặc khu Hoàng Sa/);
   });
 });
 

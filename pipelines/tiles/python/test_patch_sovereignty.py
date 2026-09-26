@@ -80,6 +80,51 @@ def write_fixture(path):
             tags={"place": "islet", "name": "西礁西岛", "name:ja": "西礁", "name:nan-Hant": "西礁"},
         )
     )
+    # Chính sách chung với POI (pipelines/poi/data/quan-dao-*.{csv,json}): đảo trong danh sách duyệt lấy tên
+    # Việt ghi đè (name:vi OSM ở đây thường là phiên âm tên TQ); ngoài vòng ta giữ không giữ tên cơ sở nào;
+    # int_name/alt_name/official_name… (lọt vào name_int của tiles) bị bỏ.
+    writer.add_node(
+        mutable.Node(
+            id=12,
+            location=(114.355, 11.453),
+            tags={
+                "place": "islet",
+                "name": "Parola Island",
+                "name:vi": "Đảo Song Tử Đông",
+                "int_name": "Northeast Cay",
+                "alt_name": "Parola",
+                "official_name:en": "Northeast Cay",
+            },
+        )
+    )
+    writer.add_node(
+        mutable.Node(
+            id=13,
+            location=(112.27, 16.978),
+            tags={"place": "islet", "name": "赵述岛", "name:vi": "Đảo Triệu Thuật"},
+        )
+    )
+    writer.add_node(
+        mutable.Node(
+            id=14,
+            location=(112.34, 16.83),
+            tags={"amenity": "townhall", "name": "三沙市人民政府", "name:vi": "Tòa Thị chính Thành phố Tam Sa"},
+        )
+    )
+    writer.add_node(
+        mutable.Node(
+            id=15,
+            location=(114.0, 10.0),
+            tags={"place": "archipelago", "name:vi": "Quần đảo Trường Sa", "name": "Spratly Islands"},
+        )
+    )
+    writer.add_node(
+        mutable.Node(
+            id=16,
+            location=(113.7084, 8.975),
+            tags={"amenity": "place_of_worship", "name": "Chùa Vinh Phúc", "int_name": "Vinh Phuc Pagoda"},
+        )
+    )
     # Phần đệm biên giới phía bắc (Quảng Tây, 22,2°N): ngoài vùng CJK → giữ nguyên
     writer.add_node(
         mutable.Node(
@@ -156,5 +201,47 @@ def test_patch(tmp_path):
     assert collected.tags[("n", 7)] == {"amenity": "place_of_worship", "name": "Chùa Song Tử Tây"}
     assert collected.tags[("n", 8)] == {"man_made": "lighthouse"}
     assert collected.tags[("n", 9)] == {"place": "islet"}
+    # n12: không có trong danh sách duyệt (danh sách ghi way w332539799) và ngoài vòng ta giữ → không tên.
+    assert collected.tags[("n", 12)] == {"place": "islet"}
+    # n13 Đảo Cây ở Hoàng Sa: name:vi là phiên âm TQ, không có trong danh sách → không tên.
+    assert collected.tags[("n", 13)] == {"place": "islet"}
+    assert collected.tags[("n", 14)] == {"amenity": "townhall"}
+    # Nhãn quần đảo tiếng Việt giữ ở mọi nơi trong hai vùng.
+    assert collected.tags[("n", 15)] == {
+        "place": "archipelago",
+        "name": "Quần đảo Trường Sa",
+        "name:vi": "Quần đảo Trường Sa",
+    }
+    # Chùa Vinh Phúc (đảo Phan Vinh, ta giữ): chỉ dấu sắc/huyền nhưng mọi từ là âm tiết tiếng Việt → giữ.
+    assert collected.tags[("n", 16)] == {"amenity": "place_of_worship", "name": "Chùa Vinh Phúc"}
     # n7 không đổi gì nên không tính là "patched".
-    assert "patched objects: 7" in result.stdout
+    assert "patched objects: 12" in result.stdout
+
+
+def test_la_ten_viet_cung_luat_voi_poi():
+    # Cùng danh sách với pipelines/poi/tests/quan-dao.test.mjs (laTenViet).
+    sys.path.insert(0, str(HERE))
+    from patch_sovereignty import la_ten_viet
+
+    for ten in [
+        "Đảo Song Tử Tây",
+        "Chùa Vinh Phúc",
+        "Hòn Tháp",
+        "UBND Thị trấn Trường Sa (cũ)",
+        "Bia chủ quyền của VNCH năm 1956",
+    ]:
+        assert la_ten_viet(ten), ten
+    for ten in [
+        "Parola Lighthouse",
+        "An Bang",
+        "Nánshā Qúndǎo",
+        "Tàipíng Dǎo",
+        "Récif Discovery",
+        "Đảo Pag-asa",
+        "Đảo Layang Layang",
+        "永兴岛",
+        "Đảo 𠀀",
+        "Đảo \uf900",
+        "",
+    ]:
+        assert not la_ten_viet(ten), ten

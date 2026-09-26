@@ -16,6 +16,8 @@ const SMOKE = [
   'cloudflared --version',
   'node --version',
   'pnpm --version',
+  // Luật tên chủ quyền của patch tiles (patch_sovereignty.py) — chỉ chạy được trong image (pyosmium).
+  'python -m pytest -q -p no:cacheprovider pipelines/tiles/python',
 ].join(' && ');
 
 const command = process.argv[2];
