@@ -172,7 +172,7 @@ test('bento bảy ô đúng thứ tự và mỗi ô có link tài liệu', async
   await expect(khoi.getByRole('heading', { level: 3 })).toHaveText([
     'Tìm kiếm hiểu tiếng Việt',
     'Rẻ hơn Google',
-    '164 loại địa điểm',
+    '182 loại địa điểm',
     'Geocode nói thật',
     'Dẫn đường',
     'Giao hàng & vận tải',

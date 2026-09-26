@@ -4091,7 +4091,11 @@ mức tăng thật của bộ lọc mở rộng là ~24,8 nghìn (+19,7 %), khô
 
 **Làm:** FSQ lưu cờ + bỏ/đóng theo cờ (`f5a1063`, migration 0025); tên OSM (`f09d2c3`); báo cáo theo
 tỉnh (`69fc620`); mở rộng bộ lọc tag theo danh sách trắng giá trị (`c304296`); hai luật chặn nhỏ từ mẫu
-kiểm tay (`f92a6d5`); sửa xếp hạng autocomplete (`340cb1f`).
+kiểm tay (`f92a6d5`); sửa xếp hạng autocomplete (`340cb1f`, `8822f9c`). Review độc lập trước push tìm
+thêm và đã sửa (`873b272`): khoá mở rộng thắng kết quả `*_other` của khoá cũ (136 POI đổi nhóm, mất
+khỏi tiles); luật hành chính coi bảng rỗng là có dữ liệu (lần build đầu trên DB mới mất hết POI mở
+rộng); luật nhường xoá nút giao/KCN vì bến xe buýt trùng tên. Thêm `be76958`: đóng góp contact nhận
+email, nếu không duyệt một sửa SĐT sẽ xoá email.
 
 ### Ba chỗ chỉ lộ ra khi chạy thật
 
@@ -4106,8 +4110,10 @@ kiểm tay (`f92a6d5`); sửa xếp hạng autocomplete (`340cb1f`).
    đầu tiên tôi viết cũng sai theo kiểu khác: seed popularity 0,1 (không có thật) nên POI trùng tên
    thua ở `rankScore`; sửa seed về 1,0/1,5 như pipeline thật mới đo đúng lỗi.
 
-**Dựng thử toàn quốc cục bộ** (2 DB cô lập trên Postgres dev, mã cũ qua git worktree): POI active
-377.677 → 402.547, OSM 118.462 → 147.172, 0 bước lỗi, hit@3 bộ mờ 37/40 và biến thể 11/19 không đổi.
+**Dựng thử toàn quốc cục bộ** (DB cô lập trên Postgres dev, mã cũ qua git worktree), rồi **diễn tập
+lần chuyển production** trên DB sao từ bản mã cũ với mã cuối, đúng thứ tự data-update, publish không
+`--force`: POI active 377.677 → 402.396, 99,0 % POI cũ giữ ID, 0 bước lỗi, hit@3 bộ mờ 37/40 và biến
+thể 11/19 không đổi.
 
 **Còn nợ:** PHONG chạy `pnpm server:update` trên máy chủ (áp 0025) rồi rerun Deploy API và
 `data:update --poi` (evidence mục 7); địa danh lớn còn hai bản do conflate chỉ ghép trong 150 m;

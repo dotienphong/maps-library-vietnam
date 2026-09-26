@@ -26,7 +26,7 @@ export const TRANG = {
     path: '/tinh-nang/',
     title: 'Tính năng — MapsLibVN',
     description:
-      'Bản đồ nền Việt Nam, 164 loại địa điểm, tìm kiếm hiểu cách người Việt gõ, geocode nói thật độ chính xác, dẫn đường, ma trận khoảng cách và bốn SDK.',
+      'Bản đồ nền Việt Nam, 182 loại địa điểm, tìm kiếm hiểu cách người Việt gõ, geocode nói thật độ chính xác, dẫn đường, ma trận khoảng cách và bốn SDK.',
     h1: 'MapsLibVN làm được gì',
     nhan: 'Tính năng',
   },

@@ -1,6 +1,6 @@
 ---
-title: "Tính năng kỹ thuật và 164 mã POI"
-description: "Tham chiếu kỹ thuật của MapsLibVN: tiles PMTiles, style sáng và tối, 164 mã POI trong 13 nhóm, Places API, geocode có precision, cùng những gì chưa có."
+title: "Tính năng kỹ thuật và 182 mã POI"
+description: "Tham chiếu kỹ thuật của MapsLibVN: tiles PMTiles, style sáng và tối, 182 mã POI trong 14 nhóm, Places API, geocode có precision, cùng những gì chưa có."
 ---
 
 MapsLibVN là thư viện bản đồ và Places cho Việt Nam: tiles nền, lớp địa điểm, REST API và SDK.
@@ -21,7 +21,7 @@ không đi qua máy chủ API — SDK tự đăng ký protocol `pmtiles://` trư
 - Chủ quyền được bảo vệ ở ba tầng: vá dữ liệu OSM trước khi build, lớp nhãn riêng trong style, và
   bước QA trong pipeline chặn phát hành nếu tiles hoặc style không đạt.
 
-## 2. Lớp POI — 164 loại trong 13 nhóm
+## 2. Lớp POI — 182 loại trong 14 nhóm
 
 Biểu tượng POI xuất hiện tăng dần từ zoom 10 theo độ quan trọng và mật độ. Nhãn địa danh lớn xuất
 hiện từ zoom 12; nhãn địa điểm địa phương từ zoom 16. POI không hiện trên nền vẫn tìm được qua

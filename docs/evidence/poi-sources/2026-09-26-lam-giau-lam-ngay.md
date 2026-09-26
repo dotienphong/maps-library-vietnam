@@ -89,13 +89,19 @@ building (để sau: 31 % là mã ngắn, 25 % nằm trong khuôn viên POI đã
 4. **Độ phủ chuỗi** so với số cửa hàng công bố (OSM ∪ FSQ, gộp 150 m): Long Châu 3,1 %, An Khang 3,9 %,
    Bách Hoá Xanh 11,7 %, Pharmacity 14,5 %, WinMart 38,8 %.
 5. **Tư thế ODbL của bảng `poi`**, SĐT di động trong FSQ (Luật 91/2025): xem memory khảo sát.
+6. **Đảo Trường Sa/Hoàng Sa không vào kho** (cần PHONG quyết, liên quan chủ quyền): extract có 24 đảo
+   phía đông kinh độ 110,5 (Song Tử Tây, Trường Sa Đông, Đá Tây A…) nhưng `vn-boundary` (Natural
+   Earth) dừng ở 109,47 nên `deleteOutsideVn` xoá chúng ngay ở ingest; luật "trong xã/phường hiện
+   hành" của khoá mở rộng cũng sẽ chặn. Muốn tìm được thì cần một vùng lãnh hải riêng miễn hai luật.
+7. **Biểu tượng trên nền theo nhóm**: núi/thác/hang/hải đăng mang icon của nhóm văn hoá (bảo tàng),
+   trạm thu phí/cửa khẩu mang icon giao thông (xe buýt) — trường `icon` của category không vào tiles.
 
 ## 6. Dựng thử toàn quốc cục bộ (Task 6)
 
 Hai DB cô lập trên Postgres **dev** (`mapslibvn_nat_before`, `mapslibvn_nat_after`), cùng OSM
-25/09/2026 đã vá chủ quyền và FSQ 2026-09-15, chạy đúng chuỗi DB của `data:update --poi` (ingest →
-taxonomy → osm-roads → admin → records → conflate → publish → poi-admin → streets → alleys →
-anchors → report; không export/upload tiles). "Trước" = mã `7c0889a` qua git worktree; "sau" =
+25/09/2026 đã vá chủ quyền và FSQ 2026-09-15, chạy các bước DB của `data:update --poi` vào DB rỗng
+(`publish --force`), nhưng đặt osm-roads → admin **trước** records để luật hành chính có dữ liệu
+(production chạy records trước, dùng bảng hành chính của lần build trước); không export/upload tiles. "Trước" = mã `7c0889a` qua git worktree; "sau" =
 `c304296` (trước hai luật chặn nhỏ của `f92a6d5`, chỉ làm bớt vài chục bản ghi). Cả hai chuỗi xong
 trong ~17 phút, **0 bước lỗi**, cổng QA hành chính qua (L4 = 34, gồm Khánh Hòa dựng từ 64 xã).
 
@@ -130,9 +136,32 @@ Quần đảo Cát Bà, Đảo Cát Bà; "núi bà đen" → Núi Bà Đen; "c�
 đứng đầu (trước: không có); "ngã tư sở" → nút giao Ngã tư Sở; "trạm thu phí" → trạm có tên riêng
 thay cho "Trạm Thu Phí" trống; "atm vietcombank" → 5/5 ATM Vietcombank.
 
+### 6b. Diễn tập lần chuyển production — mã cuối (`be76958`)
+
+DB `mapslibvn_nat_trans` **sao từ `mapslibvn_nat_before`** (dữ liệu dựng bằng mã cũ, như production
+hiện tại), chạy mã mới ĐÚNG thứ tự `scripts/data-update.mjs` (records → conflate → publish **không
+`--force`** → osm-roads → admin → poi-admin → streets → alleys → anchors → report). ~23 phút, **0 bước
+lỗi**, publish qua cổng sanity 10 %.
+
+| | Giá trị |
+|---|---:|
+| POI active trước → sau | 377.677 → **402.396** (+24.719) |
+| OSM active / FSQ active | 147.029 / 255.367 |
+| POI cũ còn active và giữ nguyên ID | 373.946 / 377.677 (**99,0 %**) |
+| POI cũ bị đóng (chủ yếu nhà hàng/cà phê chỉ-FSQ bị báo đóng) | 2.506 |
+| POI cũ mất ID (407 rác "Tôn giáo, cộng đồng khác", 84 `health_other` không tên, FSQ bị báo không tồn tại/riêng tư…) | 1.225 |
+| `poi-admin` ghi (chỉ dòng đổi) | 28.400 / 411.319 |
+| Gom trùng cùng tên ≤ 1 km | 887 |
+
+Mã mới: thôn/ấp 8.924, khu phố 3.247, khu dân cư 1.597, khu công nghiệp/nhà máy 1.503, hồ 1.499, núi
+1.013, sông 697, nút giao 649, khu thương mại 489, trạm thu phí 332, đảo 231, thác 157, quảng trường
+124, hang 115, trạm dừng nghỉ 61, hải đăng 37, cửa khẩu 29. So với lượt 6: nút giao 612 → 649 (không
+còn nhường bến xe buýt trùng tên), khu thương mại 619 → 489 (130 viện/trung tâm về lại nhóm cũ).
+Tìm kiếm (API `8822f9c`): bộ mờ 37/40, biến thể 11/19 — không đổi; "kcn tan tao" nay có KCN Tân Thới Hiệp.
+
 **Phát hiện khi đo:** bậc nhanh của autocomplete cắt bể 200 ứng viên thuần theo popularity, nên POI
 chỉ-OSM (1,0) trùng tên chính xác bị hàng trăm POI chỉ-FSQ (1,5) chứa cùng từ đẩy ra ngoài — "hồ tây"
-không ra Hồ Tây. Sửa ở `340cb1f` (ưu tiên tên bắt đầu bằng truy vấn khi cắt bể và khi cắt 20).
+không ra Hồ Tây. Sửa ở `340cb1f` (ưu tiên tên bắt đầu bằng truy vấn khi cắt bể) và `8822f9c` (cắt 20 dòng cuối theo đúng các vế của rankScore, kể cả khoảng cách — review chỉ ra bản `340cb1f` bỏ qua `near`).
 
 **Còn hạn chế:** địa danh lớn còn **hai bản** (Hồ Tây FSQ cách tâm polygon OSM 394 m, Núi Bà Đen hai
 bản cách 2,2 km) vì conflate chỉ ghép trong 150 m — cần luật bán kính theo loại/FSQ nằm trong polygon.
@@ -140,21 +169,30 @@ Không có `near` thì "hồ tây" hoà điểm với "Ho Tay Hotel".
 
 ## 7. Việc trên máy chủ (PHONG chạy, đúng thứ tự)
 
-Sau khi `main` đã push (CI dựng image `ghcr.io/dotienphong/mapslibvn-pipeline:latest`):
-
-1. Trên máy chủ Ubuntu, trong repo: `pnpm server:update` — `git pull`, kéo image mới, `up -d`, áp
-   migration **0025** (chỉ thêm cột nullable vào `src_fsq_place`; pipeline cũ vẫn chạy được với nó).
-2. Kiểm: `curl -s https://api.ai-solutions.io.vn/healthz/db` → `schema_migration` là
-   `0025_fsq_quality_columns.sql`.
-3. Chạy lại Deploy API đang bị cổng `check:migration` chặn (chặn đúng thiết kế vì repo có 0025 mà
-   production chưa áp): `gh run rerun <id> --failed` — hoặc báo tôi chạy.
-4. Dựng lại dữ liệu ngay (hoặc để cron 02:00 thứ Hai tự chạy bằng image mới):
-   `docker compose -f infra/server/compose.yml --env-file infra/server/.env run --rm pipeline node scripts/data-update.mjs --poi --skip-routing`
-5. Sau khi xong: `/v1/autocomplete?q=cửa khẩu hữu nghị`, `?q=ngã tư sở&near=21.0,105.82`,
-   `?q=atm vietcombank`; `out/poi-report-*.json` có `byProvince`.
-6. Rà edit đã tự duyệt trước 26/09 (chỉ đọc):
+0. Chờ CI của SHA vừa push xanh **cả hai job** `test` và `image` (job `image` đẩy
+   `ghcr.io/dotienphong/mapslibvn-pipeline:latest`). Deploy API sẽ **đỏ ở `check:migration`** — đúng
+   thiết kế, vì repo có 0025 mà production chưa áp; Worker production vẫn chạy bản cũ.
+1. Trên máy chủ Ubuntu (xác nhận đang chạy **cáp LAN** — sự cố 25/09: upload qua Wi-Fi RTL8723BE làm
+   sập tunnel): `pnpm server:update` — `git pull`, kéo image, `up -d`, áp migration **0025** (chỉ thêm
+   cột nullable vào `src_fsq_place`; image cũ vẫn chạy được với nó). Migration chạy TRONG image vừa
+   kéo, nên kiểm: `docker compose -f infra/server/compose.yml --env-file infra/server/.env run --rm pipeline ls db/migrations/0025_fsq_quality_columns.sql`.
+2. `curl -s https://api.ai-solutions.io.vn/healthz/db` → `schema_migration` là `0025_fsq_quality_columns.sql`.
+3. Chạy lại Deploy API bị chặn ở bước 0: `gh run rerun <id> --failed` (hoặc báo tôi chạy).
+4. Dựng lại dữ liệu vào giờ vắng (hoặc để cron 02:00 thứ Hai tự chạy bằng image mới):
+   `docker compose -f infra/server/compose.yml --env-file infra/server/.env run --rm pipeline node scripts/data-update.mjs --poi --skip-routing`.
+   Máy chủ Ubuntu 2 nhân/3,7 GB, cùng máy với Postgres/Valhalla đang phục vụ: ghi lại thời gian, RAM
+   đỉnh, swap. `publish` đổi bảng `poi` TRƯỚC khi export/upload tiles, nên nếu upload đứt thì API đã
+   có POI mới mà tiles còn cũ tới lần chạy xanh sau (không hỏng dữ liệu). Nếu in "Không có gì mới"
+   (md5 OSM/FSQ chưa đổi) thì thêm `--force` — cờ này cũng bỏ cổng sanity 10 % của publish.
+5. Kiểm bằng **playground trên trình duyệt** (SDK tự ACK receipt), KHÔNG dùng curl trần: tenant
+   Phong_Admin là commercial, 3 phản hồi không ACK trong 24 giờ là khoá cả nhóm places, kéo theo
+   playground. Truy vấn: "cửa khẩu hữu nghị", "ngã tư sở" (gần Hà Nội), "atm vietcombank". Autocomplete
+   cache 10 phút theo truy vấn — chờ ≥ 10 phút sau publish/deploy hoặc đổi truy vấn. Report nằm trong
+   volume `pipeline-out` (`/app/out/poi-report-*.json`) và trên R2 `state/reports/`.
+6. Rà edit đã tự duyệt mà KHÔNG thoả luật mới (chỉ đọc):
    `SELECT e.id, e.poi_id, e.kind, e.changes, e.reviewer, k.kind AS key_kind, e.created_at
     FROM poi_edit e LEFT JOIN api_key k ON k.key_hash = e.api_key
-    WHERE e.status = 'auto_approved' AND e.reviewer IN ('auto:rule', 'auto:consensus')
-      AND (k.kind IS DISTINCT FROM 'server' OR e.changes ?| ARRAY['contact', 'name'] OR e.kind IN ('close', 'reopen'))
+    WHERE e.status = 'auto_approved' AND e.reviewer LIKE 'auto:%'
+      AND NOT (k.kind = 'server' AND e.kind = 'update'
+               AND (SELECT array_agg(x) FROM jsonb_object_keys(e.changes) x) <@ ARRAY['hours'])
     ORDER BY e.created_at;`

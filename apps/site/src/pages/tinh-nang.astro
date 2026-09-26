@@ -21,10 +21,11 @@ const NHOM_POI = [
   ['Tài chính', 6],
   ['Lưu trú', 8],
   ['Giải trí, thể thao', 16],
-  ['Văn hoá, du lịch', 15],
-  ['Giao thông', 13],
+  ['Văn hoá, du lịch', 23],
+  ['Giao thông', 16],
   ['Hành chính công', 13],
   ['Tôn giáo, cộng đồng', 9],
+  ['Địa danh', 7],
   ['Khác', 1],
 ] as const;
 
@@ -54,7 +55,7 @@ const MUC = [
   {
     id: 'poi',
     nhan: 'Địa điểm',
-    tieuDe: 'Lớp địa điểm 164 loại',
+    tieuDe: 'Lớp địa điểm 182 loại',
     doan: [
       'Địa điểm gộp từ OpenStreetMap và Foursquare OS Places. Mỗi địa điểm có một nguồn chính quyết định toạ độ và tên; các nguồn khác được ghi lại để bạn đối chiếu.',
       'Biểu tượng xuất hiện tăng dần theo mức phóng để bản đồ không rối. Địa điểm chưa hiện trên nền vẫn tìm được qua API tìm kiếm.',
@@ -186,7 +187,7 @@ const MUC = [
                   <div class="max-h-80 overflow-y-auto rounded-[var(--radius-card)] border border-border">
                     <table class="w-full border-collapse text-left">
                       <caption class="t-small bg-surface-2 px-4 py-3 font-semibold">
-                        13 nhóm và số mã loại trong mỗi nhóm
+                        14 nhóm và số mã loại trong mỗi nhóm
                       </caption>
                       <tbody>
                         {NHOM_POI.map(([ten, so]) => (

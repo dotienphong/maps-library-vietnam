@@ -348,7 +348,7 @@ Tìm POI theo tên, theo loại, theo bán kính quanh một điểm hoặc theo
 | Tham số | Kiểu | Bắt buộc | Mặc định | Khoảng |
 |---|---|---|---|---|
 | `q` | chuỗi | — | — | phải còn ký tự tra cứu được sau chuẩn hoá nếu có gửi |
-| `category` | chuỗi | — | — | một trong 164 mã loại, khớp chính xác |
+| `category` | chuỗi | — | — | một trong 182 mã loại, khớp chính xác |
 | `near` | `"lat,lng"` | — | — | `lat` trong ±90, `lng` trong ±180 |
 | `bbox` | `"minLng,minLat,maxLng,maxLat"` | — | — | biên hợp lệ và `min` phải nhỏ hơn `max` ở cả hai trục |
 | `radius` | số nguyên, mét | không | `5000` | 1–50000 (chỉ có tác dụng khi có `near`) |
@@ -812,6 +812,7 @@ Body là JSON theo kiểu `SuggestEditRequest` (mục 7). Các giới hạn đư
 | `changes.lat` và `changes.lng` | phải đi cùng nhau; vĩ độ 7,8–23,6 và kinh độ 101,8–117,4 (phạm vi Việt Nam kể cả đảo) |
 | `changes.contact.phone` và `.website` | mảng tối đa 5 chuỗi, mỗi chuỗi tối đa 200 ký tự |
 | `changes.contact.facebook` | tối đa 200 ký tự |
+| `changes.contact.email` | mảng tối đa 5 email hợp lệ; duyệt một sửa `contact` thay cả object, nên gửi lại mọi trường muốn giữ |
 | `changes.hours` | chuỗi opening_hours OSM tối đa 200 ký tự, hoặc `{ "osm": "…" }` |
 | `photo_url` | tối đa 512 ký tự và phải bắt đầu bằng `https://` |
 | `note` | tối đa 500 ký tự; bắt buộc với `kind: "report"` |
@@ -1060,7 +1061,7 @@ interface EditChanges {
   ward?: string;
   province?: string;
   address_text?: string;
-  contact?: { phone?: string[]; website?: string[]; facebook?: string };
+  contact?: { phone?: string[]; website?: string[]; facebook?: string; email?: string[] };
   /** Chuỗi opening_hours OSM hoặc {osm: chuỗi}. */
   hours?: string | { osm: string };
 }
@@ -1173,6 +1174,7 @@ Vài điểm dễ sai:
 - `PoiFeature.category` và `.group` là **mã** dạng chuỗi, khác `Place.category` là một object có tên tiếng Việt và tiếng Anh.
 - `PoiFeature.lngLat` theo thứ tự **kinh độ trước** (chuẩn GeoJSON), còn tham số `near` của API theo thứ tự **vĩ độ trước**.
 - `contact` và `hours` có thể là `null`. `hours` không có kiểu chặt vì giữ nguyên chuỗi opening_hours của nguồn.
+- Từ 09/2026 kho POI có thêm địa danh: nhóm `place` (thôn/ấp, khu phố, khu dân cư, khu công nghiệp, khu thương mại) và các mã `mountain`, `lake`, `river`, `island`, `waterfall`, `cave`, `junction`, `border_gate`, `rest_area`. Chúng có trong `/v1/autocomplete`, `/v1/search`, `/v1/nearby` và `nearest_poi` của `/v1/reverse`; muốn danh sách "cửa hàng quanh đây" thì lọc bằng `category`.
 - `contact` gồm `phone[]`, `website[]`, `facebook`, và với một số POI từ OpenStreetMap có thêm `email[]` (chỉ email tên miền riêng; không có trong tiles). Đọc trường theo tên, đừng giả định `contact` chỉ có ba khoá.
 - `Route.geometry` là polyline6 (không phải GeoJSON); mọi toạ độ trong `Route`/`Waypoint` là `[lng, lat]`.
 - `MatrixResponse.durations_s` và `distances_m` là mảng hai chiều `[source][target]`; `null` là không nối được, không phải lỗi.
