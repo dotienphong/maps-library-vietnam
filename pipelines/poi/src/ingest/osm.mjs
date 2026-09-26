@@ -4,10 +4,12 @@ import { mkdirSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { run } from '../../../../scripts/lib/run.mjs';
 import { ewkt, pgJson } from '../lib/copy-format.mjs';
-import { OSM_PBF, POI_WORK, vnDate } from '../lib/env.mjs';
+import { FIXTURE, OSM_PBF, POI_WORK, vnDate } from '../lib/env.mjs';
 import { featureCentroid } from '../lib/geometry.mjs';
 import { keepSourceFeature } from '../lib/osm-extended.mjs';
+import { OSM_POI_FILTERS } from '../lib/osm-filters.mjs';
 import { parseOsmiumId } from '../lib/osmium-id.mjs';
+import { dongQuanDao, quanDaoGeoJson } from '../lib/quan-dao.mjs';
 import {
   connect,
   copyInto,
@@ -18,32 +20,6 @@ import {
   publishNew,
   readJsonl,
 } from '../pg.mjs';
-
-/** Khoá tag coi là "địa điểm" + đối tượng có số nhà (cho address_anchor ở Task 8). */
-export const OSM_POI_FILTERS = [
-  'nwr/amenity',
-  'nwr/shop',
-  'nwr/tourism',
-  'nwr/leisure',
-  'nwr/office',
-  'nwr/craft',
-  'nwr/healthcare',
-  'nwr/historic',
-  'nwr/public_transport',
-  'nwr/aeroway=aerodrome,terminal',
-  'nwr/railway=station,halt',
-  'nwr/addr:housenumber',
-  // Khoá mở rộng 26/09/2026 (plan 2026-09-26 Task 4): chỉ đúng các giá trị có trong
-  // category_map_osm.csv; đối tượng chỉ mang khoá này mà không có tên bị bỏ ngay ở rows().
-  'nwr/natural=peak,volcano,water,beach,cave_entrance,bay,cape,spring,hot_spring,wetland',
-  'nwr/waterway=waterfall',
-  'nwr/place=island,islet,square,hamlet,village,isolated_dwelling,neighbourhood,quarter,locality',
-  'nwr/landuse=residential,industrial,commercial,retail,cemetery,religious',
-  'nwr/man_made=lighthouse',
-  'nwr/barrier=toll_booth,border_control',
-  'nwr/highway=services,rest_area',
-  'nwr/junction=yes,roundabout',
-];
 
 mkdirSync(POI_WORK, { recursive: true });
 const filtered = resolve(POI_WORK, 'osm-pois.osm.pbf');
@@ -99,9 +75,24 @@ try {
     rows(),
   );
   const removed = await deleteOutsideVn(sql, 'src_osm_place_new');
+  // Hoàng Sa/Trường Sa lấy từ MỘT nguồn: ảnh chụp đã lọc theo chính sách PHONG chốt 26/09/2026
+  // (lib/quan-dao.mjs). Chèn SAU deleteOutsideVn — ranh giới Natural Earth dừng ở 109,47°E. Mọi dòng PBF
+  // trong vùng bị bỏ trước: extract VN thiếu nửa Trường Sa và patch chủ quyền đổi tên theo luật khác.
+  // Fixture (Quận 1) không có quần đảo nên bỏ qua; đường này có test riêng (tests/quan-dao*.mjs).
+  let quanDao = 0;
+  if (!FIXTURE) {
+    await sql`DELETE FROM src_osm_place_new
+      WHERE ST_Intersects(geom, ST_SetSRID(ST_GeomFromGeoJSON(${quanDaoGeoJson()}), 4326))`;
+    quanDao = await copyInto(
+      sql,
+      'src_osm_place_new',
+      ['osm_type', 'osm_id', 'name', 'names', 'tags', 'geom', 'release'],
+      dongQuanDao(release),
+    );
+  }
   await publishNew(sql, ['src_osm_place']);
   console.log(
-    `✓ src_osm_place: ${await countRows(sql, 'src_osm_place')} dòng (COPY ${copied}, ngoài VN ${removed}, release ${release})`,
+    `✓ src_osm_place: ${await countRows(sql, 'src_osm_place')} dòng (COPY ${copied}, ngoài VN ${removed}, quần đảo ${quanDao}, release ${release})`,
   );
 } finally {
   await sql.end();

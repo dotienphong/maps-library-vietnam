@@ -1,0 +1,75 @@
+osm,ten,ten_khac,nuoc_giu,ghi_chu
+# Đảo/bãi/rạn được nhận ở hai quần đảo (PHONG chốt 26/09/2026): tên Việt truyền thống GHI ĐÈ mọi tên trong OSM.
+# name:vi của OSM ở Hoàng Sa và các đá nước khác chiếm phần lớn là phiên âm tên TQ (vd "Đảo Triệu Thuật" = Đảo Cây,
+# "Đá Vĩnh Thử" = Đá Chữ Thập) nên không dùng. Chỉ ghi tên chắc chắn; tên chưa chắc để ngoài tới khi PHONG duyệt.
+# nuoc_giu = nước đang thực tế chiếm giữ (chỉ để ghi chú và kiểm tra dữ liệu, không hiển thị).
+# --- Hoàng Sa (Đặc khu Hoàng Sa, Đà Nẵng) — nhóm An Vĩnh
+r7434587,Đảo Phú Lâm,,CN,Woody Island
+w14235277,Đảo Cây,,CN,Tree Island (OSM name:vi "Đảo Triệu Thuật" là phiên âm TQ)
+r11201623,Đảo Bắc,,CN,North Island
+r11201625,Đảo Trung,,CN,Middle Island
+r11201627,Đảo Nam,,CN,South Island
+r7434588,Đảo Đá,,CN,Rocky Island
+r11201629,Cồn cát Bắc,,CN,North Sand
+r11201630,Cồn cát Trung,,CN,Middle Sand
+r11201631,Cồn cát Nam,,CN,South Sand
+w759111371,Cồn cát Tây,,CN,West Sand
+r4812933,Đảo Linh Côn,,CN,Lincoln Island (OSM name:vi "Đảo Đông Đảo" là phiên âm TQ)
+r11085887,Hòn Tháp,,CN,Pyramid Rock
+# --- Hoàng Sa — nhóm Lưỡi Liềm và các đảo lẻ
+w50548010,Đảo Hoàng Sa,,CN,Pattle Island
+w50548004,Đảo Hữu Nhật,,CN,Robert Island
+r19123019,Đảo Quang Ảnh,,CN,Money Island
+r7250845,Đảo Quang Hòa,,CN,Duncan Island (OSM name:vi "Đảo Sâm Hàng" là phiên âm TQ)
+w50548005,Đảo Duy Mộng,,CN,Drummond Island
+w14235204,Đảo Bạch Quy,,CN,Passu Keah
+r16610828,Đá Hải Sâm,,CN,Antelope Reef
+w181126483,Đá Lồi,,CN,Discovery Reef (OSM name:vi "Đá Hoa Quang" là phiên âm TQ)
+w39459320,Đá Bông Bay,,CN,Bombay Reef
+w14235138,Đảo Tri Tôn,,CN,Triton Island
+w14235163,Đá Bắc,,CN,North Reef
+# --- Trường Sa (Đặc khu Trường Sa, Khánh Hòa) — đảo/đá ta giữ
+r7910282,Đảo Trường Sa,Đảo Trường Sa Lớn,VN,Spratly Island
+w238275873,Đảo Song Tử Tây,,VN,Southwest Cay
+w996019858,Đảo Đá Nam,,VN,South Reef
+w1190948449,Đảo Sơn Ca,,VN,Sand Cay
+r16219385,Đảo Nam Yết,,VN,Namyit Island
+w1489841497,Đảo Sinh Tồn Đông,,VN,Grierson Reef
+r8007979,Đá Cô Lin,,VN,Collins Reef
+r18148392,Đảo Đá Lớn A,,VN,Discovery Great Reef A
+r18148391,Đảo Đá Lớn B,,VN,Discovery Great Reef B
+r18148390,Đảo Đá Lớn C,,VN,Discovery Great Reef C
+r16219271,Đảo Đá Lát,,VN,Ladd Reef
+w244139917,Đảo Trường Sa Đông,,VN,Central London Reef
+w259234961,Đảo Đá Tây A,,VN,West London Reef
+w1448193063,Đảo Đá Đông C,,VN,East London Reef
+r16122633,Đảo Phan Vinh,,VN,Pearson Reef
+w1396133765,Đảo Phan Vinh B,,VN,Pearson Reef B
+w1375155406,Đảo Tiên Nữ A,,VN,Tennent Reef A
+w1154328325,Đảo Tiên Nữ B,,VN,Tennent Reef B
+w1190948446,Đảo Núi Le C,,VN,Cornwallis South Reef C
+w1190948447,Đảo Tốc Tan A,,VN,Alison Reef A
+w1191582349,Đảo Thuyền Chài D,,VN,Barque Canada Reef D
+w1396126463,Đảo Thuyền Chài E,,VN,Barque Canada Reef E
+w1430294993,Đảo An Bang,,VN,Amboyna Cay
+# --- Trường Sa — sửa tên cơ sở ta giữ (danh sách này ghi đè tên của MỌI đối tượng, không chỉ đảo)
+w614161313,Chùa Sơn Linh,,VN,đảo Sơn Ca; OSM ghi "Chùa Sơn inh" (lỗi chính tả) — CẦN PHONG xác nhận tên
+# --- Trường Sa — đảo/đá nước khác đang chiếm giữ: chỉ tên đảo tiếng Việt, không nhận cơ sở
+r12651740,Đảo Thị Tứ,,PH,Thitu / Pag-asa
+w332539799,Đảo Song Tử Đông,,PH,Northeast Cay / Parola
+w126171950,Đảo Bến Lạc,,PH,West York / Likas
+w332529925,Đảo Bình Nguyên,,PH,Flat Island / Patag
+w332529933,Đảo Vĩnh Viễn,,PH,Nanshan Island / Lawak
+w525384185,Đảo Loại Ta,,PH,Loaita Island / Kota
+w512656633,Đá Công Đo,,PH,Commodore Reef / Rizal
+r6262405,Đảo Ba Bình,,TW,Itu Aba (OSM name:vi "Đảo Thái Bình" là phiên âm Taiping)
+w1060359750,Bãi Bàn Than,,TW,Zhongzhou Reef
+r5220687,Đá Hoa Lau,,MY,Swallow Reef / Layang-Layang
+r20034307,Đá Én Ca,,MY,Erica Reef
+w537200587,Đá Xu Bi,,CN,Subi Reef (OSM name:vi "Đảo Chử Bích" là phiên âm TQ)
+r18148395,Đá Chữ Thập,,CN,Fiery Cross Reef (OSM name:vi "Đá Vĩnh Thử" là phiên âm TQ)
+r11887493,Đá Vành Khăn,,CN,Mischief Reef
+w301419555,Đá Gạc Ma,,CN,Johnson South Reef
+w301419687,Đá Ga Ven,,CN,Gaven Reef
+w321773558,Đá Tư Nghĩa,,CN,Hughes Reef
+w435371531,Đá Châu Viên,,CN,Cuarteron Reef

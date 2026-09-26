@@ -13,6 +13,7 @@ import {
   SAME_NAME_DEDUPE_CODES,
 } from './lib/osm-extended.mjs';
 import { osmEmails, osmNameAlt, resolveOsmName } from './lib/osm-names.mjs';
+import { quanDaoGeoJson } from './lib/quan-dao.mjs';
 import { connect, copyInto, countRows } from './pg.mjs';
 import { categoryFor, loadCategories, loadCategoryMaps, refineSchool } from './taxonomy.mjs';
 
@@ -149,14 +150,20 @@ export async function loadExtendedAdmin(sql) {
     return new Map();
   }
   const legacy = LEGACY_POI_KEYS.map((k) => `'${k}'`).join(',');
-  const rows = await sql.unsafe(`SELECT s.osm_type, s.osm_id,
-      EXISTS (SELECT 1 FROM admin_area a WHERE a.level = 8 AND ST_Covers(a.geom, s.geom)) AS in_commune,
+  // Vùng hai quần đảo tính như "trong xã": admin_area của lần build trước chưa có hai đặc khu (OSM không
+  // dựng được relation) nên không miễn thì mọi đảo khoá mở rộng bị loại ở lần chạy đầu (PHONG 26/09/2026).
+  const rows = await sql.unsafe(
+    `SELECT s.osm_type, s.osm_id,
+      (EXISTS (SELECT 1 FROM admin_area a WHERE a.level = 8 AND ST_Covers(a.geom, s.geom))
+        OR ST_Covers(ST_SetSRID(ST_GeomFromGeoJSON($1), 4326), s.geom)) AS in_commune,
       (SELECT array_agg(DISTINCT x.name_norm) FROM (
          SELECT name_norm, geom FROM admin_area WHERE level >= 6
          UNION ALL SELECT name_norm, geom FROM admin_area_old WHERE level >= 6) x
        WHERE ST_Covers(x.geom, s.geom)) AS names
     FROM src_osm_place s
-    WHERE NOT (s.tags ?| ARRAY[${legacy}])`);
+    WHERE NOT (s.tags ?| ARRAY[${legacy}])`,
+    [quanDaoGeoJson()],
+  );
   return new Map(
     rows.map((r) => [
       `${r.osm_type}${r.osm_id}`,

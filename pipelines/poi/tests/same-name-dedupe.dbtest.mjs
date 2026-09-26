@@ -85,4 +85,32 @@ describe('loadExtendedAdmin', () => {
       await solo.end({ timeout: 5 });
     }
   });
+
+  // Hai quần đảo (PHONG chốt 26/09/2026): admin_area của lần build trước chưa có đặc khu Trường Sa/Hoàng Sa
+  // (OSM không dựng được relation), nên luật "trong xã" loại mọi đảo khoá mở rộng ở lần chạy đầu. Vùng
+  // quần đảo đọc từ data/quan-dao.geojson được coi như trong xã; ngoài vùng vẫn áp luật.
+  it('trong vùng quần đảo: inCommune true dù không L8 nào chứa; ngoài vùng vẫn false', async () => {
+    const solo = postgres(databaseUrlFromEnv(process.env), { max: 1, onnotice: () => {} });
+    try {
+      await solo.unsafe(
+        `CREATE TEMP TABLE admin_area (level smallint, name_norm text, geom geometry)`,
+      );
+      await solo.unsafe(
+        `CREATE TEMP TABLE admin_area_old (level smallint, name_norm text, geom geometry)`,
+      );
+      await solo.unsafe(
+        `CREATE TEMP TABLE src_osm_place (osm_type text, osm_id bigint, tags jsonb, geom geometry)`,
+      );
+      await solo.unsafe(`INSERT INTO admin_area VALUES (8, 'phuong ben thanh',
+        ST_SetSRID(ST_MakeEnvelope(106.69, 10.76, 106.71, 10.78), 4326))`);
+      await solo.unsafe(`INSERT INTO src_osm_place VALUES
+        ('w', 238275873, '{"place":"islet","name":"Đảo Song Tử Tây"}', ST_SetSRID(ST_MakePoint(114.331, 11.429), 4326)),
+        ('n', 2, '{"natural":"peak","name":"Núi ngoài xã"}', ST_SetSRID(ST_MakePoint(105.8, 21.0), 4326))`);
+      const info = await loadExtendedAdmin(solo);
+      expect(info.get('w238275873')?.inCommune).toBe(true);
+      expect(info.get('n2')?.inCommune).toBe(false);
+    } finally {
+      await solo.end({ timeout: 5 });
+    }
+  });
 });

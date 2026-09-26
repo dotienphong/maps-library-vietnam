@@ -7,6 +7,12 @@ export const FIXTURES = resolve('pipelines/poi/fixtures');
 export const VN_BOUNDARY = resolve('pipelines/poi/data/vn-boundary.geojson');
 /** Vùng hai quần đảo Hoàng Sa/Trường Sa (lib/quan-dao.mjs) — đọc lại mỗi lần chạy, không nằm trong vn_boundary. */
 export const QUAN_DAO = resolve('pipelines/poi/data/quan-dao.geojson');
+/** Đảo/bãi được nhận ở hai quần đảo, tên Việt ghi đè (PHONG duyệt). */
+export const QUAN_DAO_DAO = resolve('pipelines/poi/data/quan-dao-dao.csv');
+/** Tâm + bán kính các cụm đảo ta giữ ở Trường Sa — chỉ trong đó mới nhận cơ sở. */
+export const QUAN_DAO_TA_GIU = resolve('pipelines/poi/data/quan-dao-ta-giu.json');
+/** Ảnh chụp OSM đã lọc theo chính sách — nguồn DUY NHẤT của POI hai quần đảo. */
+export const QUAN_DAO_OSM = resolve('pipelines/poi/data/quan-dao-osm.json');
 export const ADMIN_OLD_MANIFEST = resolve('pipelines/poi/fixtures/admin-old-source.json');
 export const ADMIN_OLD_PBF = resolve(WORK, 'data/sources/vietnam-250101.osm.pbf');
 export const ADMIN_OLD_FIXTURE_PBF = resolve(FIXTURES, 'admin-old-q1.osm.pbf');

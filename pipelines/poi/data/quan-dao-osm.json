@@ -1,0 +1,1468 @@
+{
+ "nguon": "Overpass API (https://overpass-api.de/api/interpreter), OSM tới 2026-09-26T12:42:22Z; lọc bằng lib/quan-dao.mjs",
+ "ban_quyen": "© OpenStreetMap contributors, ODbL 1.0",
+ "doi_tuong": [
+  {
+   "osm_type": "n",
+   "osm_id": "2645906877",
+   "lon": 114.331434,
+   "lat": 11.4294173,
+   "tags": {
+    "historic": "memorial",
+    "name": "Bia chủ quyền Đảo Song Tử Tây",
+    "name:vi": "Bia chủ quyền Đảo Song Tử Tây"
+   }
+  },
+  {
+   "osm_type": "n",
+   "osm_id": "2647317689",
+   "lon": 111.9203378,
+   "lat": 8.6446723,
+   "tags": {
+    "aeroway": "aerodrome",
+    "name": "Sân bay Trường Sa",
+    "name:vi": "Sân bay Trường Sa"
+   }
+  },
+  {
+   "osm_type": "n",
+   "osm_id": "5692356255",
+   "lon": 111.9191353,
+   "lat": 8.644002,
+   "tags": {
+    "historic": "monument",
+    "name": "Đài liệt sĩ",
+    "name:vi": "Đài liệt sĩ"
+   }
+  },
+  {
+   "osm_type": "n",
+   "osm_id": "5788934070",
+   "lon": 114.3323476,
+   "lat": 11.4288134,
+   "tags": {
+    "historic": "memorial",
+    "tourism": "artwork",
+    "name": "Tượng Trần Hưng Đạo",
+    "name:vi": "Tượng Trần Hưng Đạo"
+   }
+  },
+  {
+   "osm_type": "n",
+   "osm_id": "5808893069",
+   "lon": 114.3666203,
+   "lat": 10.1795616,
+   "tags": {
+    "historic": "memorial",
+    "name": "Bia chủ quyền",
+    "name:vi": "Bia chủ quyền"
+   }
+  },
+  {
+   "osm_type": "n",
+   "osm_id": "5808893070",
+   "lon": 114.3661335,
+   "lat": 10.1790125,
+   "tags": {
+    "historic": "monument",
+    "tourism": "artwork",
+    "name": "Tượng Trần Hưng Đạo",
+    "name:vi": "Tượng Trần Hưng Đạo"
+   }
+  },
+  {
+   "osm_type": "n",
+   "osm_id": "5808893324",
+   "lon": 112.3532781,
+   "lat": 8.9313642,
+   "tags": {
+    "historic": "memorial",
+    "name": "Cột mốc Chủ quyền Trường Sa Đông",
+    "name:vi": "Cột mốc Chủ quyền Trường Sa Đông"
+   }
+  },
+  {
+   "osm_type": "n",
+   "osm_id": "5809817017",
+   "lon": 114.2985379,
+   "lat": 11.3875074,
+   "tags": {
+    "historic": "memorial",
+    "name": "Bia chủ quyền đảo Đá Nam",
+    "name:vi": "Bia chủ quyền đảo Đá Nam"
+   }
+  },
+  {
+   "osm_type": "n",
+   "osm_id": "5809817393",
+   "lon": 114.4800281,
+   "lat": 10.3750452,
+   "tags": {
+    "historic": "monument",
+    "name": "Bia chủ quyền",
+    "name:vi": "Bia chủ quyền"
+   }
+  },
+  {
+   "osm_type": "n",
+   "osm_id": "5809817490",
+   "lon": 114.3670495,
+   "lat": 10.1794389,
+   "tags": {
+    "historic": "memorial",
+    "name": "Bia chủ quyền của VNCH năm 1956",
+    "name:vi": "Bia chủ quyền của VNCH năm 1956"
+   }
+  },
+  {
+   "osm_type": "n",
+   "osm_id": "6586702673",
+   "lon": 114.3296179,
+   "lat": 9.8853856,
+   "tags": {
+    "historic": "memorial",
+    "name": "Bia chủ quyền đảo Sinh Tồn",
+    "name:vi": "Bia chủ quyền đảo Sinh Tồn"
+   }
+  },
+  {
+   "osm_type": "n",
+   "osm_id": "6586930661",
+   "lon": 113.7086485,
+   "lat": 8.9752373,
+   "tags": {
+    "historic": "memorial",
+    "name": "Bia chủ quyền Đảo Phan Vinh",
+    "name:vi": "Bia chủ quyền Đảo Phan Vinh"
+   }
+  },
+  {
+   "osm_type": "n",
+   "osm_id": "8191726960",
+   "lon": 111.7245196,
+   "lat": 7.9351356,
+   "tags": {
+    "man_made": "lighthouse",
+    "name": "Hải đăng Ba Kè",
+    "name:vi": "Hải đăng Ba Kè"
+   }
+  },
+  {
+   "osm_type": "n",
+   "osm_id": "10988967691",
+   "lon": 112.2564314,
+   "lat": 8.8664861,
+   "tags": {
+    "historic": "memorial",
+    "name": "Bia chủ quyền đảo Đá Tây A",
+    "name:vi": "Bia chủ quyền đảo Đá Tây A"
+   }
+  },
+  {
+   "osm_type": "n",
+   "osm_id": "11042604082",
+   "lon": 114.5641194,
+   "lat": 9.9024634,
+   "tags": {
+    "historic": "memorial",
+    "name": "Cột mốc chủ quyền đảo Sinh Tồn Đông",
+    "name:vi": "Cột mốc chủ quyền đảo Sinh Tồn Đông"
+   }
+  },
+  {
+   "osm_type": "n",
+   "osm_id": "11062697679",
+   "lon": 113.8544981,
+   "lat": 10.024427,
+   "tags": {
+    "historic": "memorial",
+    "name": "Bia chủ quyền đảo Đá Lớn A",
+    "name:vi": "Bia chủ quyền đảo Đá Lớn A"
+   }
+  },
+  {
+   "osm_type": "n",
+   "osm_id": "12922545731",
+   "lon": 113.7099071,
+   "lat": 8.9759248,
+   "tags": {
+    "man_made": "lighthouse",
+    "name": "Hải đăng Phan Vinh",
+    "name:vi": "Hải đăng Phan Vinh"
+   }
+  },
+  {
+   "osm_type": "n",
+   "osm_id": "12942294872",
+   "lon": 113.6541842,
+   "lat": 8.958969,
+   "tags": {
+    "historic": "memorial",
+    "name": "Bia chủ quyền Phan Vinh B",
+    "name:vi": "Bia chủ quyền Phan Vinh B"
+   }
+  },
+  {
+   "osm_type": "n",
+   "osm_id": "13065465044",
+   "lon": 114.3317382,
+   "lat": 11.4292508,
+   "tags": {
+    "place": "village",
+    "name": "Song Tử Tây",
+    "name:vi": "Song Tử Tây"
+   }
+  },
+  {
+   "osm_type": "n",
+   "osm_id": "13065481104",
+   "lon": 112.2567013,
+   "lat": 8.8663957,
+   "tags": {
+    "place": "village",
+    "name": "Đá Tây A",
+    "name:vi": "Đá Tây A"
+   }
+  },
+  {
+   "osm_type": "n",
+   "osm_id": "13065490563",
+   "lon": 114.3298685,
+   "lat": 9.885106,
+   "tags": {
+    "place": "village",
+    "name": "Sinh Tồn",
+    "name:vi": "Sinh Tồn"
+   }
+  },
+  {
+   "osm_type": "n",
+   "osm_id": "13147488835",
+   "lon": 112.9212567,
+   "lat": 7.8919522,
+   "tags": {
+    "historic": "memorial",
+    "name": "Cột mốc chủ quyền đảo An Bang",
+    "name:vi": "Cột mốc chủ quyền đảo An Bang"
+   }
+  },
+  {
+   "osm_type": "n",
+   "osm_id": "13287177847",
+   "lon": 113.3155172,
+   "lat": 8.1948888,
+   "tags": {
+    "place": "village",
+    "name": "Thuyền Chài D",
+    "name:vi": "Thuyền Chài D"
+   }
+  },
+  {
+   "osm_type": "n",
+   "osm_id": "13287177848",
+   "lon": 113.3281687,
+   "lat": 8.1772009,
+   "tags": {
+    "place": "village",
+    "name": "Thuyền Chài E",
+    "name:vi": "Thuyền Chài E"
+   }
+  },
+  {
+   "osm_type": "n",
+   "osm_id": "14041819017",
+   "lon": 112.9205174,
+   "lat": 7.8940805,
+   "tags": {
+    "leisure": "marina",
+    "name": "Âu tàu An Bang",
+    "name:vi": "Âu tàu An Bang"
+   }
+  },
+  {
+   "osm_type": "r",
+   "osm_id": "4812933",
+   "lon": 112.7304319,
+   "lat": 16.6672935,
+   "tags": {
+    "place": "island",
+    "name": "Đảo Linh Côn",
+    "name:vi": "Đảo Linh Côn"
+   }
+  },
+  {
+   "osm_type": "r",
+   "osm_id": "5220687",
+   "lon": 113.8206692,
+   "lat": 7.3745216,
+   "tags": {
+    "natural": "atoll",
+    "place": "island",
+    "name": "Đá Hoa Lau",
+    "name:vi": "Đá Hoa Lau"
+   }
+  },
+  {
+   "osm_type": "r",
+   "osm_id": "6262405",
+   "lon": 114.3651798,
+   "lat": 10.3757379,
+   "tags": {
+    "place": "islet",
+    "name": "Đảo Ba Bình",
+    "name:vi": "Đảo Ba Bình"
+   }
+  },
+  {
+   "osm_type": "r",
+   "osm_id": "7250845",
+   "lon": 111.7103839,
+   "lat": 16.4513238,
+   "tags": {
+    "place": "islet",
+    "name": "Đảo Quang Hòa",
+    "name:vi": "Đảo Quang Hòa"
+   }
+  },
+  {
+   "osm_type": "r",
+   "osm_id": "7434587",
+   "lon": 112.3408515,
+   "lat": 16.8341074,
+   "tags": {
+    "place": "island",
+    "name": "Đảo Phú Lâm",
+    "name:vi": "Đảo Phú Lâm"
+   }
+  },
+  {
+   "osm_type": "r",
+   "osm_id": "7434588",
+   "lon": 112.3473849,
+   "lat": 16.8447197,
+   "tags": {
+    "place": "islet",
+    "name": "Đảo Đá",
+    "name:vi": "Đảo Đá"
+   }
+  },
+  {
+   "osm_type": "r",
+   "osm_id": "7910282",
+   "lon": 111.9202231,
+   "lat": 8.645102,
+   "tags": {
+    "place": "island",
+    "name": "Đảo Trường Sa",
+    "name:vi": "Đảo Trường Sa",
+    "alt_name": "Đảo Trường Sa Lớn"
+   }
+  },
+  {
+   "osm_type": "r",
+   "osm_id": "8007979",
+   "lon": 114.258041,
+   "lat": 9.7707456,
+   "tags": {
+    "natural": "reef",
+    "place": "island",
+    "name": "Đá Cô Lin",
+    "name:vi": "Đá Cô Lin"
+   }
+  },
+  {
+   "osm_type": "r",
+   "osm_id": "10074917",
+   "lon": 114.3311228,
+   "lat": 11.426925,
+   "tags": {
+    "amenity": "school",
+    "name": "Trường Song Tử Tây",
+    "name:vi": "Trường Song Tử Tây"
+   }
+  },
+  {
+   "osm_type": "r",
+   "osm_id": "11085887",
+   "lon": 112.6424047,
+   "lat": 16.5770839,
+   "tags": {
+    "place": "islet",
+    "name": "Hòn Tháp",
+    "name:vi": "Hòn Tháp"
+   }
+  },
+  {
+   "osm_type": "r",
+   "osm_id": "11201623",
+   "lon": 112.3106377,
+   "lat": 16.9627202,
+   "tags": {
+    "place": "islet",
+    "name": "Đảo Bắc",
+    "name:vi": "Đảo Bắc"
+   }
+  },
+  {
+   "osm_type": "r",
+   "osm_id": "11201625",
+   "lon": 112.324351,
+   "lat": 16.9551332,
+   "tags": {
+    "place": "islet",
+    "name": "Đảo Trung",
+    "name:vi": "Đảo Trung"
+   }
+  },
+  {
+   "osm_type": "r",
+   "osm_id": "11201627",
+   "lon": 112.3344886,
+   "lat": 16.9466713,
+   "tags": {
+    "place": "islet",
+    "name": "Đảo Nam",
+    "name:vi": "Đảo Nam"
+   }
+  },
+  {
+   "osm_type": "r",
+   "osm_id": "11201629",
+   "lon": 112.3415817,
+   "lat": 16.9379067,
+   "tags": {
+    "place": "islet",
+    "name": "Cồn cát Bắc",
+    "name:vi": "Cồn cát Bắc"
+   }
+  },
+  {
+   "osm_type": "r",
+   "osm_id": "11201630",
+   "lon": 112.3435736,
+   "lat": 16.9340979,
+   "tags": {
+    "place": "islet",
+    "name": "Cồn cát Trung",
+    "name:vi": "Cồn cát Trung"
+   }
+  },
+  {
+   "osm_type": "r",
+   "osm_id": "11201631",
+   "lon": 112.3460949,
+   "lat": 16.9291062,
+   "tags": {
+    "place": "islet",
+    "name": "Cồn cát Nam",
+    "name:vi": "Cồn cát Nam"
+   }
+  },
+  {
+   "osm_type": "r",
+   "osm_id": "11887493",
+   "lon": 115.5386678,
+   "lat": 9.9156009,
+   "tags": {
+    "place": "island",
+    "name": "Đá Vành Khăn",
+    "name:vi": "Đá Vành Khăn"
+   }
+  },
+  {
+   "osm_type": "r",
+   "osm_id": "12651740",
+   "lon": 114.2836442,
+   "lat": 11.0532907,
+   "tags": {
+    "place": "islet",
+    "name": "Đảo Thị Tứ",
+    "name:vi": "Đảo Thị Tứ"
+   }
+  },
+  {
+   "osm_type": "r",
+   "osm_id": "16122633",
+   "lon": 113.7028258,
+   "lat": 8.9720994,
+   "tags": {
+    "place": "island",
+    "name": "Đảo Phan Vinh",
+    "name:vi": "Đảo Phan Vinh"
+   }
+  },
+  {
+   "osm_type": "r",
+   "osm_id": "16219271",
+   "lon": 111.6771513,
+   "lat": 8.669279,
+   "tags": {
+    "place": "island",
+    "name": "Đảo Đá Lát",
+    "name:vi": "Đảo Đá Lát"
+   }
+  },
+  {
+   "osm_type": "r",
+   "osm_id": "16219385",
+   "lon": 114.3591796,
+   "lat": 10.1810927,
+   "tags": {
+    "place": "island",
+    "name": "Đảo Nam Yết",
+    "name:vi": "Đảo Nam Yết"
+   }
+  },
+  {
+   "osm_type": "r",
+   "osm_id": "16610828",
+   "lon": 111.5894034,
+   "lat": 16.4673122,
+   "tags": {
+    "natural": "reef",
+    "place": "island",
+    "name": "Đá Hải Sâm",
+    "name:vi": "Đá Hải Sâm"
+   }
+  },
+  {
+   "osm_type": "r",
+   "osm_id": "18148390",
+   "lon": 113.8450822,
+   "lat": 10.0121916,
+   "tags": {
+    "place": "island",
+    "name": "Đảo Đá Lớn C",
+    "name:vi": "Đảo Đá Lớn C"
+   }
+  },
+  {
+   "osm_type": "r",
+   "osm_id": "18148391",
+   "lon": 113.8591557,
+   "lat": 10.098043,
+   "tags": {
+    "place": "island",
+    "name": "Đảo Đá Lớn B",
+    "name:vi": "Đảo Đá Lớn B"
+   }
+  },
+  {
+   "osm_type": "r",
+   "osm_id": "18148392",
+   "lon": 113.8517154,
+   "lat": 10.02817,
+   "tags": {
+    "place": "island",
+    "name": "Đảo Đá Lớn A",
+    "name:vi": "Đảo Đá Lớn A"
+   }
+  },
+  {
+   "osm_type": "r",
+   "osm_id": "18148395",
+   "lon": 112.8907594,
+   "lat": 9.5507788,
+   "tags": {
+    "place": "island",
+    "name": "Đá Chữ Thập",
+    "name:vi": "Đá Chữ Thập"
+   }
+  },
+  {
+   "osm_type": "r",
+   "osm_id": "19123019",
+   "lon": 111.5069812,
+   "lat": 16.4472581,
+   "tags": {
+    "place": "islet",
+    "name": "Đảo Quang Ảnh",
+    "name:vi": "Đảo Quang Ảnh"
+   }
+  },
+  {
+   "osm_type": "r",
+   "osm_id": "20034307",
+   "lon": 114.1336857,
+   "lat": 8.1064499,
+   "tags": {
+    "natural": "reef",
+    "place": "island",
+    "name": "Đá Én Ca",
+    "name:vi": "Đá Én Ca"
+   }
+  },
+  {
+   "osm_type": "w",
+   "osm_id": "14235138",
+   "lon": 111.2031841,
+   "lat": 15.7854533,
+   "tags": {
+    "natural": "coastline",
+    "place": "island",
+    "name": "Đảo Tri Tôn",
+    "name:vi": "Đảo Tri Tôn"
+   }
+  },
+  {
+   "osm_type": "w",
+   "osm_id": "14235163",
+   "lon": 111.4652564,
+   "lat": 17.0659459,
+   "tags": {
+    "natural": "coastline",
+    "place": "islet",
+    "name": "Đá Bắc",
+    "name:vi": "Đá Bắc"
+   }
+  },
+  {
+   "osm_type": "w",
+   "osm_id": "14235204",
+   "lon": 111.7616638,
+   "lat": 16.0559868,
+   "tags": {
+    "natural": "coastline",
+    "place": "islet",
+    "name": "Đảo Bạch Quy",
+    "name:vi": "Đảo Bạch Quy"
+   }
+  },
+  {
+   "osm_type": "w",
+   "osm_id": "14235277",
+   "lon": 112.2700664,
+   "lat": 16.9779612,
+   "tags": {
+    "natural": "coastline",
+    "place": "islet",
+    "name": "Đảo Cây",
+    "name:vi": "Đảo Cây"
+   }
+  },
+  {
+   "osm_type": "w",
+   "osm_id": "39459320",
+   "lon": 112.5177538,
+   "lat": 16.048344,
+   "tags": {
+    "natural": "reef",
+    "place": "island",
+    "name": "Đá Bông Bay",
+    "name:vi": "Đá Bông Bay"
+   }
+  },
+  {
+   "osm_type": "w",
+   "osm_id": "50548004",
+   "lon": 111.5855087,
+   "lat": 16.5055513,
+   "tags": {
+    "natural": "coastline",
+    "place": "islet",
+    "name": "Đảo Hữu Nhật",
+    "name:vi": "Đảo Hữu Nhật"
+   }
+  },
+  {
+   "osm_type": "w",
+   "osm_id": "50548005",
+   "lon": 111.7415687,
+   "lat": 16.4633308,
+   "tags": {
+    "natural": "coastline",
+    "place": "islet",
+    "name": "Đảo Duy Mộng",
+    "name:vi": "Đảo Duy Mộng"
+   }
+  },
+  {
+   "osm_type": "w",
+   "osm_id": "50548010",
+   "lon": 111.6071033,
+   "lat": 16.5332827,
+   "tags": {
+    "natural": "coastline",
+    "place": "islet",
+    "name": "Đảo Hoàng Sa",
+    "name:vi": "Đảo Hoàng Sa"
+   }
+  },
+  {
+   "osm_type": "w",
+   "osm_id": "126171950",
+   "lon": 115.0241637,
+   "lat": 11.0815472,
+   "tags": {
+    "natural": "coastline",
+    "place": "islet",
+    "name": "Đảo Bến Lạc",
+    "name:vi": "Đảo Bến Lạc"
+   }
+  },
+  {
+   "osm_type": "w",
+   "osm_id": "181126483",
+   "lon": 111.6902886,
+   "lat": 16.2188438,
+   "tags": {
+    "natural": "reef",
+    "place": "island",
+    "name": "Đá Lồi",
+    "name:vi": "Đá Lồi"
+   }
+  },
+  {
+   "osm_type": "w",
+   "osm_id": "238275873",
+   "lon": 114.3312723,
+   "lat": 11.4288425,
+   "tags": {
+    "natural": "coastline",
+    "place": "islet",
+    "name": "Đảo Song Tử Tây",
+    "name:vi": "Đảo Song Tử Tây"
+   }
+  },
+  {
+   "osm_type": "w",
+   "osm_id": "244139917",
+   "lon": 112.3501906,
+   "lat": 8.9298251,
+   "tags": {
+    "natural": "coastline",
+    "place": "islet",
+    "name": "Đảo Trường Sa Đông",
+    "name:vi": "Đảo Trường Sa Đông"
+   }
+  },
+  {
+   "osm_type": "w",
+   "osm_id": "259234961",
+   "lon": 112.2558379,
+   "lat": 8.867033,
+   "tags": {
+    "natural": "coastline",
+    "place": "islet",
+    "name": "Đảo Đá Tây A",
+    "name:vi": "Đảo Đá Tây A"
+   }
+  },
+  {
+   "osm_type": "w",
+   "osm_id": "301419555",
+   "lon": 114.2872136,
+   "lat": 9.7153254,
+   "tags": {
+    "natural": "coastline",
+    "place": "islet",
+    "name": "Đá Gạc Ma",
+    "name:vi": "Đá Gạc Ma"
+   }
+  },
+  {
+   "osm_type": "w",
+   "osm_id": "301419687",
+   "lon": 114.224387,
+   "lat": 10.2071708,
+   "tags": {
+    "natural": "coastline",
+    "place": "islet",
+    "name": "Đá Ga Ven",
+    "name:vi": "Đá Ga Ven"
+   }
+  },
+  {
+   "osm_type": "w",
+   "osm_id": "321773558",
+   "lon": 114.4978136,
+   "lat": 9.9083407,
+   "tags": {
+    "natural": "coastline",
+    "place": "islet",
+    "name": "Đá Tư Nghĩa",
+    "name:vi": "Đá Tư Nghĩa"
+   }
+  },
+  {
+   "osm_type": "w",
+   "osm_id": "332529925",
+   "lon": 115.8225934,
+   "lat": 10.8164627,
+   "tags": {
+    "natural": "coastline",
+    "place": "islet",
+    "name": "Đảo Bình Nguyên",
+    "name:vi": "Đảo Bình Nguyên"
+   }
+  },
+  {
+   "osm_type": "w",
+   "osm_id": "332529933",
+   "lon": 115.8030687,
+   "lat": 10.732584,
+   "tags": {
+    "natural": "coastline",
+    "place": "islet",
+    "name": "Đảo Vĩnh Viễn",
+    "name:vi": "Đảo Vĩnh Viễn"
+   }
+  },
+  {
+   "osm_type": "w",
+   "osm_id": "332539799",
+   "lon": 114.3545021,
+   "lat": 11.4525727,
+   "tags": {
+    "natural": "coastline",
+    "place": "islet",
+    "name": "Đảo Song Tử Đông",
+    "name:vi": "Đảo Song Tử Đông"
+   }
+  },
+  {
+   "osm_type": "w",
+   "osm_id": "435362381",
+   "lon": 111.9191417,
+   "lat": 8.6444939,
+   "tags": {
+    "office": "government",
+    "name": "UBND Thị trấn Trường Sa (cũ)",
+    "name:vi": "UBND Thị trấn Trường Sa (cũ)"
+   }
+  },
+  {
+   "osm_type": "w",
+   "osm_id": "435366231",
+   "lon": 112.1952395,
+   "lat": 8.8450711,
+   "tags": {
+    "man_made": "lighthouse",
+    "name": "Hải đăng Đá Tây",
+    "name:vi": "Hải đăng Đá Tây"
+   }
+  },
+  {
+   "osm_type": "w",
+   "osm_id": "435371531",
+   "lon": 112.8289756,
+   "lat": 8.8652781,
+   "tags": {
+    "natural": "coastline",
+    "place": "islet",
+    "name": "Đá Châu Viên",
+    "name:vi": "Đá Châu Viên"
+   }
+  },
+  {
+   "osm_type": "w",
+   "osm_id": "512656633",
+   "lon": 115.2378628,
+   "lat": 8.3582068,
+   "tags": {
+    "place": "islet",
+    "name": "Đá Công Đo",
+    "name:vi": "Đá Công Đo"
+   }
+  },
+  {
+   "osm_type": "w",
+   "osm_id": "525384185",
+   "lon": 114.4234631,
+   "lat": 10.6672609,
+   "tags": {
+    "natural": "coastline",
+    "place": "islet",
+    "name": "Đảo Loại Ta",
+    "name:vi": "Đảo Loại Ta"
+   }
+  },
+  {
+   "osm_type": "w",
+   "osm_id": "537200587",
+   "lon": 114.0810488,
+   "lat": 10.9256971,
+   "tags": {
+    "natural": "coastline",
+    "place": "island",
+    "name": "Đá Xu Bi",
+    "name:vi": "Đá Xu Bi"
+   }
+  },
+  {
+   "osm_type": "w",
+   "osm_id": "597992121",
+   "lon": 111.920791,
+   "lat": 8.6443236,
+   "tags": {
+    "tourism": "hotel",
+    "name": "Nhà khách Thủ Đô",
+    "name:vi": "Nhà khách Thủ Đô"
+   }
+  },
+  {
+   "osm_type": "w",
+   "osm_id": "597992122",
+   "lon": 111.9205366,
+   "lat": 8.6438933,
+   "tags": {
+    "amenity": "place_of_worship",
+    "denomination": "mahayana",
+    "religion": "buddhist",
+    "name": "Chùa Trường Sa Lớn",
+    "name:vi": "Chùa Trường Sa Lớn"
+   }
+  },
+  {
+   "osm_type": "w",
+   "osm_id": "597992123",
+   "lon": 111.9195476,
+   "lat": 8.6443794,
+   "tags": {
+    "historic": "memorial",
+    "name": "Nhà tưởng niệm Chủ tịch Hồ Chí Minh",
+    "name:vi": "Nhà tưởng niệm Chủ tịch Hồ Chí Minh"
+   }
+  },
+  {
+   "osm_type": "w",
+   "osm_id": "597992127",
+   "lon": 111.9202231,
+   "lat": 8.6455129,
+   "tags": {
+    "aeroway": "terminal",
+    "name": "Nhà ga Hàng không",
+    "name:vi": "Nhà ga Hàng không"
+   }
+  },
+  {
+   "osm_type": "w",
+   "osm_id": "597992961",
+   "lon": 111.9197856,
+   "lat": 8.6448849,
+   "tags": {
+    "office": "government",
+    "name": "UBND Đặc khu Trường Sa",
+    "name:vi": "UBND Đặc khu Trường Sa"
+   }
+  },
+  {
+   "osm_type": "w",
+   "osm_id": "610144901",
+   "lon": 114.3317476,
+   "lat": 11.4281655,
+   "tags": {
+    "amenity": "community_centre",
+    "name": "Nhà văn hóa Trường Sa",
+    "name:vi": "Nhà văn hóa Trường Sa"
+   }
+  },
+  {
+   "osm_type": "w",
+   "osm_id": "610144920",
+   "lon": 114.3300211,
+   "lat": 11.4272635,
+   "tags": {
+    "amenity": "place_of_worship",
+    "denomination": "mahayana",
+    "religion": "buddhist",
+    "name": "Chùa Song Tử Tây",
+    "name:vi": "Chùa Song Tử Tây"
+   }
+  },
+  {
+   "osm_type": "w",
+   "osm_id": "611435476",
+   "lon": 114.3317408,
+   "lat": 11.4292389,
+   "tags": {
+    "leisure": "stadium;pitch",
+    "sport": "football;soccer",
+    "name": "Sân vận động Song Tử Tây",
+    "name:vi": "Sân vận động Song Tử Tây"
+   }
+  },
+  {
+   "osm_type": "w",
+   "osm_id": "613415825",
+   "lon": 111.9191519,
+   "lat": 8.6463974,
+   "tags": {
+    "man_made": "lighthouse",
+    "name": "Hải đăng Trường Sa Lớn",
+    "name:vi": "Hải đăng Trường Sa Lớn"
+   }
+  },
+  {
+   "osm_type": "w",
+   "osm_id": "614046079",
+   "lon": 114.3672855,
+   "lat": 10.1794395,
+   "tags": {
+    "amenity": "place_of_worship",
+    "religion": "buddhist",
+    "name": "Chùa Nam Huyên",
+    "name:vi": "Chùa Nam Huyên"
+   }
+  },
+  {
+   "osm_type": "w",
+   "osm_id": "614046133",
+   "lon": 114.3309969,
+   "lat": 11.428439,
+   "tags": {
+    "amenity": "hospital",
+    "name": "Bệnh xá Đảo Song Tử Tây",
+    "name:vi": "Bệnh xá Đảo Song Tử Tây"
+   }
+  },
+  {
+   "osm_type": "w",
+   "osm_id": "614046152",
+   "lon": 114.3311754,
+   "lat": 11.428188,
+   "tags": {
+    "man_made": "lighthouse",
+    "name": "Hải đăng Song Tử Tây",
+    "name:vi": "Hải đăng Song Tử Tây"
+   }
+  },
+  {
+   "osm_type": "w",
+   "osm_id": "614161313",
+   "lon": 114.4805142,
+   "lat": 10.3735263,
+   "tags": {
+    "amenity": "place_of_worship",
+    "religion": "buddhist",
+    "name": "Chùa Sơn Linh",
+    "name:vi": "Chùa Sơn Linh"
+   }
+  },
+  {
+   "osm_type": "w",
+   "osm_id": "614161316",
+   "lon": 111.6642384,
+   "lat": 8.6661922,
+   "tags": {
+    "man_made": "lighthouse",
+    "name": "Hải đăng Đá Lát",
+    "name:vi": "Hải đăng Đá Lát"
+   }
+  },
+  {
+   "osm_type": "w",
+   "osm_id": "614161317",
+   "lon": 114.4814561,
+   "lat": 10.373985,
+   "tags": {
+    "man_made": "lighthouse",
+    "name": "Hải đăng Sơn Ca",
+    "name:vi": "Hải đăng Sơn Ca"
+   }
+  },
+  {
+   "osm_type": "w",
+   "osm_id": "677746230",
+   "lon": 114.3307271,
+   "lat": 9.8845523,
+   "tags": {
+    "amenity": "school",
+    "name": "Trường Tiểu học xã Sinh Tồn",
+    "name:vi": "Trường Tiểu học xã Sinh Tồn"
+   }
+  },
+  {
+   "osm_type": "w",
+   "osm_id": "701320925",
+   "lon": 111.919959,
+   "lat": 8.6447306,
+   "tags": {
+    "historic": "monument",
+    "name": "Bia chủ quyền Đảo Trường Sa",
+    "name:vi": "Bia chủ quyền Đảo Trường Sa"
+   }
+  },
+  {
+   "osm_type": "w",
+   "osm_id": "701336130",
+   "lon": 114.3302702,
+   "lat": 9.8849077,
+   "tags": {
+    "amenity": "place_of_worship",
+    "denomination": "mahayana",
+    "religion": "buddhist",
+    "name": "Chùa Sinh Tồn",
+    "name:vi": "Chùa Sinh Tồn"
+   }
+  },
+  {
+   "osm_type": "w",
+   "osm_id": "701336145",
+   "lon": 114.328222,
+   "lat": 9.8855013,
+   "tags": {
+    "man_made": "lighthouse",
+    "name": "Hải đăng Sinh Tồn",
+    "name:vi": "Hải đăng Sinh Tồn"
+   }
+  },
+  {
+   "osm_type": "w",
+   "osm_id": "701367048",
+   "lon": 113.7083952,
+   "lat": 8.9750271,
+   "tags": {
+    "amenity": "place_of_worship",
+    "religion": "buddhist",
+    "name": "Chùa Vinh Phúc",
+    "name:vi": "Chùa Vinh Phúc"
+   }
+  },
+  {
+   "osm_type": "w",
+   "osm_id": "759111371",
+   "lon": 112.2118114,
+   "lat": 16.9777695,
+   "tags": {
+    "natural": "coastline",
+    "place": "islet",
+    "name": "Cồn cát Tây",
+    "name:vi": "Cồn cát Tây"
+   }
+  },
+  {
+   "osm_type": "w",
+   "osm_id": "785735595",
+   "lon": 111.9189838,
+   "lat": 8.6446961,
+   "tags": {
+    "amenity": "school",
+    "name": "Trường Tiểu học thị trấn Trường Sa",
+    "name:vi": "Trường Tiểu học thị trấn Trường Sa"
+   }
+  },
+  {
+   "osm_type": "w",
+   "osm_id": "996019858",
+   "lon": 114.3002584,
+   "lat": 11.3856317,
+   "tags": {
+    "natural": "coastline",
+    "place": "island",
+    "name": "Đảo Đá Nam",
+    "name:vi": "Đảo Đá Nam"
+   }
+  },
+  {
+   "osm_type": "w",
+   "osm_id": "998293310",
+   "lon": 111.9174314,
+   "lat": 8.6439818,
+   "tags": {
+    "natural": "water",
+    "name": "Âu tàu Trường Sa",
+    "name:vi": "Âu tàu Trường Sa"
+   }
+  },
+  {
+   "osm_type": "w",
+   "osm_id": "998317254",
+   "lon": 111.9186307,
+   "lat": 8.6443869,
+   "tags": {
+    "amenity": "hospital",
+    "healthcare": "hospital",
+    "name": "Trung tâm y tế thị trấn Trường Sa",
+    "name:vi": "Trung tâm y tế thị trấn Trường Sa"
+   }
+  },
+  {
+   "osm_type": "w",
+   "osm_id": "1021927469",
+   "lon": 112.2549006,
+   "lat": 8.8666829,
+   "tags": {
+    "natural": "water",
+    "name": "Âu tàu Đá Tây A",
+    "name:vi": "Âu tàu Đá Tây A"
+   }
+  },
+  {
+   "osm_type": "w",
+   "osm_id": "1051792703",
+   "lon": 114.5636742,
+   "lat": 9.9026608,
+   "tags": {
+    "amenity": "place_of_worship",
+    "religion": "buddhist",
+    "name": "Chùa Sinh Tồn Đông",
+    "name:vi": "Chùa Sinh Tồn Đông"
+   }
+  },
+  {
+   "osm_type": "w",
+   "osm_id": "1057978198",
+   "lon": 114.6807795,
+   "lat": 8.8711313,
+   "tags": {
+    "man_made": "lighthouse",
+    "name": "Hải đăng Tiên Nữ",
+    "name:vi": "Hải đăng Tiên Nữ"
+   }
+  },
+  {
+   "osm_type": "w",
+   "osm_id": "1060359750",
+   "lon": 114.4131048,
+   "lat": 10.3853772,
+   "tags": {
+    "natural": "sand",
+    "place": "islet",
+    "name": "Bãi Bàn Than",
+    "name:vi": "Bãi Bàn Than"
+   }
+  },
+  {
+   "osm_type": "w",
+   "osm_id": "1092772454",
+   "lon": 112.3533001,
+   "lat": 8.9310021,
+   "tags": {
+    "amenity": "place_of_worship",
+    "religion": "buddhist",
+    "name": "Chùa Trường Sa Đông",
+    "name:vi": "Chùa Trường Sa Đông"
+   }
+  },
+  {
+   "osm_type": "w",
+   "osm_id": "1094011834",
+   "lon": 112.2562331,
+   "lat": 8.8660905,
+   "tags": {
+    "amenity": "place_of_worship",
+    "religion": "buddhist",
+    "name": "Chùa Đá Tây A",
+    "name:vi": "Chùa Đá Tây A"
+   }
+  },
+  {
+   "osm_type": "w",
+   "osm_id": "1119999401",
+   "lon": 112.921554,
+   "lat": 7.8918923,
+   "tags": {
+    "man_made": "lighthouse",
+    "name": "Hải đăng An Bang",
+    "name:vi": "Hải đăng An Bang"
+   }
+  },
+  {
+   "osm_type": "w",
+   "osm_id": "1154328325",
+   "lon": 114.6593302,
+   "lat": 8.8485785,
+   "tags": {
+    "natural": "coastline",
+    "place": "island",
+    "name": "Đảo Tiên Nữ B",
+    "name:vi": "Đảo Tiên Nữ B"
+   }
+  },
+  {
+   "osm_type": "w",
+   "osm_id": "1190320960",
+   "lon": 112.256176,
+   "lat": 8.8668383,
+   "tags": {
+    "amenity": "social_facility",
+    "name": "Trung tâm dịch vụ hậu cần nghề cá đảo Đá Tây A",
+    "name:vi": "Trung tâm dịch vụ hậu cần nghề cá đảo Đá Tây A"
+   }
+  },
+  {
+   "osm_type": "w",
+   "osm_id": "1190948446",
+   "lon": 114.1763474,
+   "lat": 8.6838234,
+   "tags": {
+    "natural": "coastline",
+    "place": "island",
+    "name": "Đảo Núi Le C",
+    "name:vi": "Đảo Núi Le C"
+   }
+  },
+  {
+   "osm_type": "w",
+   "osm_id": "1190948447",
+   "lon": 114.0524015,
+   "lat": 8.7790555,
+   "tags": {
+    "natural": "coastline",
+    "place": "islet",
+    "name": "Đảo Tốc Tan A",
+    "name:vi": "Đảo Tốc Tan A"
+   }
+  },
+  {
+   "osm_type": "w",
+   "osm_id": "1190948449",
+   "lon": 114.4798802,
+   "lat": 10.3755104,
+   "tags": {
+    "natural": "coastline",
+    "place": "island",
+    "name": "Đảo Sơn Ca",
+    "name:vi": "Đảo Sơn Ca"
+   }
+  },
+  {
+   "osm_type": "w",
+   "osm_id": "1191582349",
+   "lon": 113.3196953,
+   "lat": 8.200057,
+   "tags": {
+    "natural": "coastline",
+    "place": "island",
+    "name": "Đảo Thuyền Chài D",
+    "name:vi": "Đảo Thuyền Chài D"
+   }
+  },
+  {
+   "osm_type": "w",
+   "osm_id": "1375155406",
+   "lon": 114.6387017,
+   "lat": 8.8492863,
+   "tags": {
+    "natural": "coastline",
+    "place": "island",
+    "name": "Đảo Tiên Nữ A",
+    "name:vi": "Đảo Tiên Nữ A"
+   }
+  },
+  {
+   "osm_type": "w",
+   "osm_id": "1377679514",
+   "lon": 114.3631354,
+   "lat": 10.179142,
+   "tags": {
+    "man_made": "lighthouse",
+    "name": "Hải đăng Nam Yết",
+    "name:vi": "Hải đăng Nam Yết"
+   }
+  },
+  {
+   "osm_type": "w",
+   "osm_id": "1377679517",
+   "lon": 114.3580553,
+   "lat": 10.181585,
+   "tags": {
+    "leisure": "marina",
+    "name": "Âu tàu Nam Yết",
+    "name:vi": "Âu tàu Nam Yết"
+   }
+  },
+  {
+   "osm_type": "w",
+   "osm_id": "1396126463",
+   "lon": 113.3282397,
+   "lat": 8.1777949,
+   "tags": {
+    "place": "island",
+    "name": "Đảo Thuyền Chài E",
+    "name:vi": "Đảo Thuyền Chài E"
+   }
+  },
+  {
+   "osm_type": "w",
+   "osm_id": "1396133765",
+   "lon": 113.6514479,
+   "lat": 8.9540424,
+   "tags": {
+    "place": "island",
+    "name": "Đảo Phan Vinh B",
+    "name:vi": "Đảo Phan Vinh B"
+   }
+  },
+  {
+   "osm_type": "w",
+   "osm_id": "1414619753",
+   "lon": 114.3029312,
+   "lat": 11.3803998,
+   "tags": {
+    "leisure": "marina",
+    "name": "Âu tàu Đá Nam",
+    "name:vi": "Âu tàu Đá Nam"
+   }
+  },
+  {
+   "osm_type": "w",
+   "osm_id": "1416763534",
+   "lon": 112.3543368,
+   "lat": 8.9316946,
+   "tags": {
+    "man_made": "lighthouse",
+    "name": "Trạm hải đăng Trường Sa Đông",
+    "name:vi": "Trạm hải đăng Trường Sa Đông"
+   }
+  },
+  {
+   "osm_type": "w",
+   "osm_id": "1430294993",
+   "lon": 112.9214341,
+   "lat": 7.8922933,
+   "tags": {
+    "place": "island",
+    "name": "Đảo An Bang",
+    "name:vi": "Đảo An Bang"
+   }
+  },
+  {
+   "osm_type": "w",
+   "osm_id": "1448193063",
+   "lon": 112.5924094,
+   "lat": 8.8393213,
+   "tags": {
+    "place": "island",
+    "name": "Đảo Đá Đông C",
+    "name:vi": "Đảo Đá Đông C"
+   }
+  },
+  {
+   "osm_type": "w",
+   "osm_id": "1489841497",
+   "lon": 114.5640054,
+   "lat": 9.9036902,
+   "tags": {
+    "natural": "coastline",
+    "place": "island",
+    "name": "Đảo Sinh Tồn Đông",
+    "name:vi": "Đảo Sinh Tồn Đông"
+   }
+  },
+  {
+   "osm_type": "w",
+   "osm_id": "1489841500",
+   "lon": 114.5645954,
+   "lat": 9.9005152,
+   "tags": {
+    "leisure": "marina",
+    "name": "Âu tàu Sinh Tồn Đông",
+    "name:vi": "Âu tàu Sinh Tồn Đông"
+   }
+  },
+  {
+   "osm_type": "w",
+   "osm_id": "1543186629",
+   "lon": 114.6615968,
+   "lat": 8.8535611,
+   "tags": {
+    "amenity": "place_of_worship",
+    "religion": "buddhist",
+    "name": "Chùa Tiên Nữ",
+    "name:vi": "Chùa Tiên Nữ"
+   }
+  }
+ ]
+}

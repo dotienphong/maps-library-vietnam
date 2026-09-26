@@ -1,0 +1,27 @@
+{
+  "ghi_chu": "Cụm đảo/đá Việt Nam đang giữ ở Trường Sa (PHONG chốt 26/09/2026): chỉ trong các vòng này mới nhận cơ sở (trường, chùa, hải đăng…). Tâm/bán kính đo từ các đối tượng OSM của chính cụm (Overpass 26/09); test giữ mọi vòng cách đảo/đá nước khác ≥ bán kính + 2 km (Song Tử Tây–Song Tử Đông chỉ cách 3,5 km, Cô Lin–Gạc Ma 7 km).",
+  "cum": [
+    { "ten": "Song Tử Tây", "lon": 114.331, "lat": 11.428, "banKinhM": 1500 },
+    { "ten": "Đá Nam", "lon": 114.3, "lat": 11.386, "banKinhM": 1500 },
+    { "ten": "Sơn Ca", "lon": 114.481, "lat": 10.375, "banKinhM": 1500 },
+    { "ten": "Nam Yết", "lon": 114.362, "lat": 10.18, "banKinhM": 1500 },
+    { "ten": "Sinh Tồn", "lon": 114.33, "lat": 9.885, "banKinhM": 1500 },
+    { "ten": "Sinh Tồn Đông", "lon": 114.564, "lat": 9.902, "banKinhM": 1500 },
+    { "ten": "Cô Lin", "lon": 114.258, "lat": 9.771, "banKinhM": 1500 },
+    { "ten": "Len Đao", "lon": 114.37, "lat": 9.779, "banKinhM": 1500 },
+    { "ten": "Đá Lớn", "lon": 113.853, "lat": 10.055, "banKinhM": 7000 },
+    { "ten": "Đá Thị", "lon": 114.588, "lat": 10.411, "banKinhM": 1500 },
+    { "ten": "Trường Sa", "lon": 111.919, "lat": 8.645, "banKinhM": 2500 },
+    { "ten": "Đá Lát", "lon": 111.671, "lat": 8.668, "banKinhM": 1500 },
+    { "ten": "Đá Tây", "lon": 112.226, "lat": 8.858, "banKinhM": 5000 },
+    { "ten": "Trường Sa Đông", "lon": 112.353, "lat": 8.931, "banKinhM": 1500 },
+    { "ten": "Đá Đông", "lon": 112.6, "lat": 8.83, "banKinhM": 6000 },
+    { "ten": "Phan Vinh", "lon": 113.68, "lat": 8.965, "banKinhM": 4500 },
+    { "ten": "Tốc Tan", "lon": 113.99, "lat": 8.81, "banKinhM": 8000 },
+    { "ten": "Núi Le", "lon": 114.183, "lat": 8.715, "banKinhM": 4500 },
+    { "ten": "Tiên Nữ", "lon": 114.66, "lat": 8.856, "banKinhM": 3500 },
+    { "ten": "An Bang", "lon": 112.921, "lat": 7.892, "banKinhM": 1500 },
+    { "ten": "Thuyền Chài", "lon": 113.29, "lat": 8.17, "banKinhM": 13000 },
+    { "ten": "Ba Kè", "lon": 111.722, "lat": 7.945, "banKinhM": 2000 }
+  ]
+}
