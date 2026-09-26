@@ -232,7 +232,11 @@ export function poiFastCandidates(sql: Sql, input: CandidateQueryInput, tsQuery:
       WHERE status = 'active'
         AND ${poiSourceFilter(sql, sources)}
         AND name_tsv @@ to_tsquery('simple', ${tsQuery})
-      ORDER BY coalesce(popularity, 0) DESC
+      -- Tên bắt đầu bằng đúng truy vấn vào bể TRƯỚC: cắt thuần theo popularity thì POI trùng tên
+      -- chính xác nhưng một nguồn (OSM 1,0 < FSQ 1,5) bị hàng trăm tên chứa cùng từ đẩy ra ngoài
+      -- ("hồ tây" không ra Hồ Tây, đo toàn quốc 26/09/2026). starts_with là so chuỗi, không phải
+      -- hàm trigram, nên bể vẫn cắt rẻ như trước.
+      ORDER BY starts_with(name_norm, ${queryNorm}) DESC, coalesce(popularity, 0) DESC
       LIMIT ${FAST_CANDIDATE_POOL}
     )
     SELECT 'poi' AS type, id, name,
@@ -249,7 +253,7 @@ export function poiFastCandidates(sql: Sql, input: CandidateQueryInput, tsQuery:
       ${distance(sql, near, 'geom')} AS d,
       NULL AS matched_alt
     FROM ung_vien
-    ORDER BY sim DESC, pop DESC
+    ORDER BY sim DESC, prefix DESC, pop DESC
     LIMIT 20`;
 }
 

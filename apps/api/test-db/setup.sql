@@ -308,3 +308,20 @@ INSERT INTO street (osm_way_ids, name, name_norm, name_alt, province_norm, geom)
     ST_Multi(ST_GeomFromText('LINESTRING(106.680 10.780,106.685 10.790)', 4326)));
 -- Bậc 2 khớp qua name_tsv đặt tay; name_norm vô nghĩa để bậc 1 rỗng.
 UPDATE street SET name_tsv = to_tsvector('simple', 'khoi nghia bac hai') WHERE name_norm = 'wwqq zzxx';
+
+-- Bể ứng viên của bậc nhanh (26/09/2026): 210 POI chỉ-FSQ (popularity 1,5) cùng khớp full-text với
+-- một POI chỉ-OSM (1,0 — đúng giá trị thật của pipeline) trùng tên CHÍNH XÁC. Cắt 200 theo popularity là vứt mất POI trùng tên — đúng
+-- lối "hồ tây" không ra Hồ Tây trên dữ liệu toàn quốc.
+INSERT INTO poi (id, name, name_norm, category, geom, ward, province, quality_score, popularity,
+                 status, primary_source, primary_source_id, created_by, name_tsv)
+SELECT 'ZZPOOLCOMP' || lpad(i::text, 16, '0'), 'Quán Zzpool Hồ ' || i, 'quan zzpool ho ' || i, 'cafe',
+       ST_SetSRID(ST_MakePoint(105.80 + i * 0.0001, 21.05), 4326), 'Pool Ward', 'Pool Province', 50, 1.5,
+       'active', 'fsq', 'zzpool-comp-' || i, 'pipeline', to_tsvector('simple', 'quan zzpool ho ' || i)
+FROM generate_series(1, 210) AS i
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO poi (id, name, name_norm, category, geom, ward, province, quality_score, popularity,
+                 status, primary_source, primary_source_id, created_by, name_tsv)
+VALUES ('ZZPOOLEXACT000000000000001', 'Zzpool Hồ', 'zzpool ho', 'cafe',
+        ST_SetSRID(ST_MakePoint(105.82, 21.055), 4326), 'Pool Ward', 'Pool Province', 50, 1.0,
+        'active', 'osm', 'zzpool-exact', 'pipeline', to_tsvector('simple', 'zzpool ho'))
+ON CONFLICT (id) DO NOTHING;

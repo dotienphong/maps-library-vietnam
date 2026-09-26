@@ -399,13 +399,22 @@ describe('poiFastCandidates — bậc nhanh', () => {
    * thì Postgres tính 4 hàm trigram cho mọi dòng khớp (18.269–29.107 dòng đo trên production) và
    * bậc nhanh không còn nhanh. Test này khoá đúng thứ tự đó.
    */
-  it('cắt theo popularity TRƯỚC rồi mới tính sim', async () => {
+  it('cắt (tên bắt đầu bằng truy vấn trước, rồi popularity) TRƯỚC rồi mới tính sim', async () => {
     const { sql, calls } = fakeSql([]);
     await poiFastCandidates(sql, fastInput, 'ben:* & thanh:*');
-    const text = cauChinh(calls)?.text ?? '';
-    const viTriCat = text.indexOf('ORDER BY coalesce(popularity, 0) DESC LIMIT $');
+    const call = cauChinh(calls);
+    const text = call?.text ?? '';
+    const viTriCat = text.search(
+      /ORDER BY starts_with\(name_norm, \$\d+\) DESC, coalesce\(popularity, 0\) DESC LIMIT \$/,
+    );
     expect(viTriCat).toBeGreaterThan(-1);
     expect(text.indexOf('word_similarity')).toBeGreaterThan(viTriCat);
+    // starts_with là so chuỗi, không phải hàm trigram: bể vẫn cắt rẻ như trước.
+    expect(text.slice(0, viTriCat)).not.toContain('similarity(');
+    expect(call?.params).toContain(fastInput.queryNorm);
+    // Cắt 20 dòng cuối cũng vậy: sim hoà (tên dài chứa trọn truy vấn cũng được 1,0) thì tên bắt đầu
+    // bằng truy vấn đứng trước popularity, không thì bị LIMIT 20 vứt trước khi rankScore cộng thưởng.
+    expect(text).toMatch(/ORDER BY sim DESC, prefix DESC, pop DESC\s+LIMIT 20/);
   });
 
   it('lọc bằng name_tsv, WHERE không có toán tử trigram lẫn LIKE', async () => {

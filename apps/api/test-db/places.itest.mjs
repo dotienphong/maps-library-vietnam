@@ -148,6 +148,12 @@ describe('thang geocode và các route còn lại', () => {
     expect(body.items[0].name).toBe('Trường Tiểu học Hoàng Diệu');
   });
 
+  it('bậc nhanh: POI trùng tên chính xác không bị bể 200 ứng viên theo popularity cắt mất', async () => {
+    const { status, body } = await get(`/v1/autocomplete?q=${enc('zzpool hồ')}`);
+    expect(status).toBe(200);
+    expect(body.items[0]?.name).toBe('Zzpool Hồ');
+  });
+
   it('autocomplete area gom Quận 10 cũ, giữ bbox qua cache và lọc theo types', async () => {
     const path = `/v1/autocomplete?q=${enc('Quận 10')}&types=area&limit=7`;
     const first = await get(path);
