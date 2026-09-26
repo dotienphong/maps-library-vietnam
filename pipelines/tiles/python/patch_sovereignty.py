@@ -1,11 +1,14 @@
 #!/usr/bin/env python3
 """Patch OSM trước khi build tiles (spec 4.3 tầng 1).
 
-Hai bbox Hoàng Sa / Trường Sa (luật đầy đủ):
+Hai bbox Hoàng Sa / Trường Sa (luật đầy đủ, PHONG chốt lại 26/09/2026):
 - Có name:vi: đặt name = name:vi.
-- Không có name:vi: xoá name để không hiển thị tên nước ngoài.
-- Luôn xoá name:zh, name:zh-Hans, name:zh-Hant và name:en trong bbox.
+- Không có name:vi: GIỮ name nếu là tiếng Việt (có chữ cái riêng tiếng Việt, không chữ Hán/Kana/Hangul);
+  ngược lại xoá — tên chữ Hán và tên Latin nước ngoài ("Parola Lighthouse") không hiển thị. Luật cũ xoá
+  mọi name thiếu name:vi nên mất 24 tên thật trên đảo ta giữ (Trường Song Tử Tây, Hải đăng Đá Lát…).
+- Luôn xoá mọi name:* trừ name:vi trong bbox (name:zh*, name:en, name:ja, name:nan-Hant, name:tl…).
 - Áp dụng cho node trong bbox, way có node trong bbox và relation chứa node/way đó.
+- Cùng luật tên với POI hai quần đảo (pipelines/poi/src/lib/quan-dao.mjs laTenViet).
 
 Vùng biển Đông mở rộng (DEVLOG 27/08/2026, quyết định phát sinh M1b T5): các núi ngầm/địa vật
 mang tên chữ Hán nằm ngay ngoài hai bbox (ví dụ 111,3°E 11,4°N) lọt vào tile giao bbox. Trong
@@ -23,7 +26,9 @@ BBOXES = [
     ("Hoàng Sa", 111.0, 15.7, 113.0, 17.2),
     ("Trường Sa", 111.5, 6.5, 117.8, 12.0),
 ]
-DROP_KEYS = {"name:zh", "name:zh-Hans", "name:zh-Hant", "name:en"}
+CHU_VIET_RE = re.compile(
+    r"[àáảãạăằắẳẵặâầấẩẫậđèéẻẽẹêềếểễệìíỉĩịòóỏõọôồốổỗộơờớởỡợùúủũụưừứửữựỳýỷỹỵ]", re.IGNORECASE
+)
 
 CJK_ZONE = (102.0, 6.0, 117.8, 17.5)
 CJK_DROP_KEYS = {"name:zh", "name:zh-Hans", "name:zh-Hant"}
@@ -44,18 +49,20 @@ def has_cjk_name(tags):
     return bool(name and CJK_RE.search(name))
 
 
+def la_ten_viet(name):
+    """Tên tiếng Việt: có chữ cái riêng tiếng Việt, không chữ Hán/Kana/Hangul (không dấu → không nhận)."""
+    return bool(name) and bool(CHU_VIET_RE.search(name)) and not CJK_RE.search(name)
+
+
 def patched_tags(tags):
     """Luật đầy đủ trong bbox. Trả dict tag mới, hoặc None nếu không có gì cần đổi."""
-    result = {tag.k: tag.v for tag in tags}
-    if "name" not in result and not (DROP_KEYS & result.keys()):
-        return None
+    original = {tag.k: tag.v for tag in tags}
+    result = {k: v for k, v in original.items() if not k.startswith("name:") or k == "name:vi"}
     if "name:vi" in result:
         result["name"] = result["name:vi"]
-    else:
+    elif not la_ten_viet(result.get("name")):
         result.pop("name", None)
-    for key in DROP_KEYS:
-        result.pop(key, None)
-    return result
+    return None if result == original else result
 
 
 def cjk_patched_tags(tags):

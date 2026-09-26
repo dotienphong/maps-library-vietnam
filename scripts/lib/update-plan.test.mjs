@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { immutableUploadAction } from '../../pipelines/tiles/src/lib/archive-guard.mjs';
 import {
+  canPatchLai,
   decideWork,
   missingLiveEnv,
   nextState,
@@ -447,4 +448,19 @@ describe('POI release transaction', () => {
       ).toThrow(/bất biến/);
     });
   }
+});
+
+describe('canPatchLai — PBF patch chủ quyền phải dựng lại khi LUẬT patch đổi, không chỉ khi OSM đổi', () => {
+  // 26/09/2026: luật tên đổi (giữ tên tiếng Việt thiếu name:vi) nhưng md5 Geofabrik không đổi → data:update
+  // --poi dùng lại PBF patch theo luật cũ, bản đồ nền và POI không nhận luật mới.
+  const dau = 'a'.repeat(64);
+  it.each([
+    ['chưa có file', { coFile: false, osmDoi: false, dauCu: dau, dauMoi: dau }, true],
+    ['OSM đổi', { coFile: true, osmDoi: true, dauCu: dau, dauMoi: dau }, true],
+    ['luật patch đổi', { coFile: true, osmDoi: false, dauCu: dau, dauMoi: 'b'.repeat(64) }, true],
+    ['file cũ chưa có dấu', { coFile: true, osmDoi: false, dauCu: '', dauMoi: dau }, true],
+    ['không gì đổi', { coFile: true, osmDoi: false, dauCu: dau, dauMoi: dau }, false],
+  ])('%s', (_ca, input, expected) => {
+    expect(canPatchLai(input)).toBe(expected);
+  });
 });

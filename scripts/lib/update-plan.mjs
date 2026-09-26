@@ -250,3 +250,14 @@ export function routingStep(s) {
   if (!s.graphDirExists) return { run: false, reason: 'không có volume valhalla-data (máy dev)' };
   return { run: true, reason: 'OSM đổi → build lại graph Valhalla' };
 }
+
+/**
+ * PBF patch chủ quyền (work/vietnam-patched.osm.pbf) phải dựng lại khi OSM đổi HOẶC khi luật patch đổi.
+ * `dauMoi` = sha256 của pipelines/tiles/python/patch_sovereignty.py; `dauCu` = dấu ghi cạnh file lần dựng
+ * trước (rỗng nếu file dựng trước khi có dấu). Chỉ xét OSM thì luật tên đổi 26/09/2026 không bao giờ áp
+ * cho tới lần Geofabrik đổi md5, mà `data:update --poi --force` cũng không dựng lại.
+ * @param {{ coFile: boolean, osmDoi: boolean, dauCu: string, dauMoi: string }} x
+ */
+export function canPatchLai({ coFile, osmDoi, dauCu, dauMoi }) {
+  return !coFile || osmDoi || dauCu !== dauMoi;
+}

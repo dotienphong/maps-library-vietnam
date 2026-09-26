@@ -57,6 +57,29 @@ def write_fixture(path):
             tags={"natural": "reef", "name": "Bãi Tư Chính"},
         )
     )
+    # Luật tên 26/09/2026 (PHONG): trong bbox giữ tên tiếng Việt dù thiếu name:vi (trước đây bị xoá, mất
+    # 24 tên thật trên đảo ta giữ), xoá tên Latin nước ngoài, xoá chữ Hán và mọi name:* trừ name:vi.
+    writer.add_node(
+        mutable.Node(
+            id=7,
+            location=(114.331, 11.429),
+            tags={"amenity": "place_of_worship", "name": "Chùa Song Tử Tây"},
+        )
+    )
+    writer.add_node(
+        mutable.Node(
+            id=8,
+            location=(114.355, 11.453),
+            tags={"man_made": "lighthouse", "name": "Parola Lighthouse", "name:tl": "Parola"},
+        )
+    )
+    writer.add_node(
+        mutable.Node(
+            id=9,
+            location=(112.23, 8.876),
+            tags={"place": "islet", "name": "西礁西岛", "name:ja": "西礁", "name:nan-Hant": "西礁"},
+        )
+    )
     # Phần đệm biên giới phía bắc (Quảng Tây, 22,2°N): ngoài vùng CJK → giữ nguyên
     writer.add_node(
         mutable.Node(
@@ -130,4 +153,8 @@ def test_patch(tmp_path):
         "name": "Bãi ngầm Lưu Xuân",
         "name:vi": "Bãi ngầm Lưu Xuân",
     }
-    assert "patched objects: 5" in result.stdout
+    assert collected.tags[("n", 7)] == {"amenity": "place_of_worship", "name": "Chùa Song Tử Tây"}
+    assert collected.tags[("n", 8)] == {"man_made": "lighthouse"}
+    assert collected.tags[("n", 9)] == {"place": "islet"}
+    # n7 không đổi gì nên không tính là "patched".
+    assert "patched objects: 7" in result.stdout

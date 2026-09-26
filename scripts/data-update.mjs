@@ -4,7 +4,8 @@
 // → routing graph (máy chủ) → manifest → state.
 import 'dotenv/config';
 import { execFileSync } from 'node:child_process';
-import { existsSync } from 'node:fs';
+import { createHash } from 'node:crypto';
+import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { POI_SOURCE_PROFILES } from '../pipelines/poi/src/lib/poi-filter.mjs';
 import { poiReleaseSet, releaseName } from '../pipelines/tiles/src/lib/dates.mjs';
 import { hasListedFile } from '../pipelines/tiles/src/lib/manifest-state.mjs';
@@ -12,6 +13,7 @@ import { run } from './lib/run.mjs';
 import { detectSources } from './lib/sources.mjs';
 import { openDatabaseTunnel } from './lib/tunnel.mjs';
 import {
+  canPatchLai,
   decideWork,
   missingLiveEnv,
   nextState,
@@ -101,14 +103,15 @@ if (flags.dryRun || (!work.tiles && !work.poi)) {
 
 const osmChanged = !state.osm || state.osm.md5 !== versions.osm.md5;
 const patched = `${WORK}/vietnam-patched.osm.pbf`;
+const PATCH_SCRIPT = 'pipelines/tiles/python/patch_sovereignty.py';
+const patchMark = `${patched}.patch-sha256`;
 const ensurePatchedPbf = () => {
-  if (existsSync(patched) && !osmChanged) return;
+  const dauMoi = createHash('sha256').update(readFileSync(PATCH_SCRIPT)).digest('hex');
+  const dauCu = existsSync(patchMark) ? readFileSync(patchMark, 'utf8').trim() : '';
+  if (!canPatchLai({ coFile: existsSync(patched), osmDoi: osmChanged, dauCu, dauMoi })) return;
   run('node', ['pipelines/tiles/src/download.mjs']);
-  run('python', [
-    'pipelines/tiles/python/patch_sovereignty.py',
-    `${WORK}/data/sources/vietnam.osm.pbf`,
-    patched,
-  ]);
+  run('python', [PATCH_SCRIPT, `${WORK}/data/sources/vietnam.osm.pbf`, patched]);
+  writeFileSync(patchMark, `${dauMoi}\n`);
 };
 
 /** @type {{ vn?: string, poi?: string, poiOsm?: string, poiProfiles?: Record<string, string> }} */
