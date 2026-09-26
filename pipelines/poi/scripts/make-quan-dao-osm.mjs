@@ -11,7 +11,7 @@ import { writeFileSync } from 'node:fs';
 import { QUAN_DAO_OSM } from '../src/lib/env.mjs';
 import { keepSourceFeature } from '../src/lib/osm-extended.mjs';
 import { OSM_POI_FILTERS } from '../src/lib/osm-filters.mjs';
-import { chinhSach, docDao, docTaGiu, vungQuanDao } from '../src/lib/quan-dao.mjs';
+import { chinhSach, docDao, docTaGiu, vungCua, vungQuanDao } from '../src/lib/quan-dao.mjs';
 
 const OVERPASS = process.env.OVERPASS_URL ?? 'https://overpass-api.de/api/interpreter';
 
@@ -96,7 +96,7 @@ writeFileSync(
     1,
   )}\n`,
 );
-const theoVung = Object.groupBy(doiTuong, (d) => (d.lat > 14 ? 'hoang_sa' : 'truong_sa'));
+const hoangSa = doiTuong.filter((d) => vungCua(d.lon, d.lat) === 'hoang_sa').length;
 console.log(
-  `✓ ${QUAN_DAO_OSM}: ${doiTuong.length} đối tượng (Hoàng Sa ${theoVung.hoang_sa?.length ?? 0}, Trường Sa ${theoVung.truong_sa?.length ?? 0}) từ ${data.elements.length} phần tử Overpass`,
+  `✓ ${QUAN_DAO_OSM}: ${doiTuong.length} đối tượng (Hoàng Sa ${hoangSa}, Trường Sa ${doiTuong.length - hoangSa}) từ ${data.elements.length} phần tử Overpass`,
 );
