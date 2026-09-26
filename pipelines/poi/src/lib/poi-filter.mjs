@@ -1,6 +1,7 @@
 // Lọc POI theo profile nguồn khi export tile (spec 07/09 mục 4–5). Hằng lấy từ @mapslibvn/core để
 // pipeline và API không lệch nhau.
 import { POI_SOURCE_PROFILES, poiSourceClause } from '@mapslibvn/core';
+import { TILE_EXCLUDED_CODES, TILE_EXCLUDED_GROUPS } from './osm-extended.mjs';
 
 export { POI_SOURCE_PROFILES };
 
@@ -23,6 +24,15 @@ export function activePoiWhereSql(profile) {
     .map((source) => `'${source}'`)
     .join(',');
   return `p.status = 'active' AND ${poiSourceClause(`ARRAY[${list}]::text[]`)}`;
+}
+
+/**
+ * POI được vẽ lên tiles (bảng `poi p` JOIN `category c`). Nhóm `place` và hồ/sông/đảo/nút giao chỉ
+ * để tìm kiếm: bản đồ nền đã có nhãn nơi chốn và mặt nước, vẽ thêm là nhãn hiện hai lần.
+ */
+export function tileVisibleSql() {
+  const list = (/** @type {string[]} */ values) => values.map((v) => `'${v}'`).join(',');
+  return `c.group_code NOT IN (${list(TILE_EXCLUDED_GROUPS)}) AND p.category NOT IN (${list(TILE_EXCLUDED_CODES)})`;
 }
 
 /** Tiền tố tên release: `all` giữ `poi-YYYYMMDD` để archive cũ không đổi tên. @param {string} profile */

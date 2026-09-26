@@ -114,3 +114,62 @@ describe('mapCategory', () => {
     expect(mapCategory(maps, 'fsq', 'Totally Unknown').code).toBe('other');
   });
 });
+
+describe('khoá OSM mở rộng 26/09/2026 (danh sách trắng giá trị)', () => {
+  const cat = (/** @type {Record<string, string>} */ tags) => categoryFor(maps, 'osm', tags);
+  it('địa danh tự nhiên → nhóm culture_tourism', () => {
+    expect(cat({ natural: 'peak' })).toEqual({ code: 'mountain', group: 'culture_tourism' });
+    expect(cat({ natural: 'volcano' })).toEqual({ code: 'mountain', group: 'culture_tourism' });
+    expect(cat({ natural: 'water' })).toEqual({ code: 'lake', group: 'culture_tourism' });
+    expect(cat({ natural: 'water', water: 'river' })).toEqual({
+      code: 'river',
+      group: 'culture_tourism',
+    });
+    expect(cat({ natural: 'beach' })).toEqual({ code: 'beach', group: 'culture_tourism' });
+    expect(cat({ natural: 'cave_entrance' })).toEqual({ code: 'cave', group: 'culture_tourism' });
+    expect(cat({ waterway: 'waterfall' })).toEqual({ code: 'waterfall', group: 'culture_tourism' });
+    expect(cat({ place: 'island' })).toEqual({ code: 'island', group: 'culture_tourism' });
+    expect(cat({ place: 'islet' })).toEqual({ code: 'island', group: 'culture_tourism' });
+    expect(cat({ man_made: 'lighthouse' })).toEqual({
+      code: 'lighthouse',
+      group: 'culture_tourism',
+    });
+  });
+  it('thôn/ấp, khu phố, khu chức năng → nhóm place', () => {
+    for (const place of ['hamlet', 'village', 'isolated_dwelling'])
+      expect(cat({ place }), place).toEqual({ code: 'hamlet', group: 'place' });
+    expect(cat({ place: 'neighbourhood' })).toEqual({ code: 'neighbourhood', group: 'place' });
+    expect(cat({ place: 'quarter' })).toEqual({ code: 'neighbourhood', group: 'place' });
+    expect(cat({ landuse: 'industrial' })).toEqual({ code: 'industrial_zone', group: 'place' });
+    expect(cat({ landuse: 'residential' })).toEqual({ code: 'residential_area', group: 'place' });
+  });
+  it('giao thông: trạm thu phí, cửa khẩu, trạm dừng nghỉ, nút giao', () => {
+    expect(cat({ barrier: 'toll_booth' })).toEqual({ code: 'toll_booth', group: 'transport' });
+    expect(cat({ barrier: 'border_control' })).toEqual({ code: 'border_gate', group: 'transport' });
+    expect(cat({ highway: 'rest_area' })).toEqual({ code: 'rest_area', group: 'transport' });
+    expect(cat({ junction: 'yes' })).toEqual({ code: 'junction', group: 'transport' });
+  });
+  it('giá trị không có trong danh sách trắng → không phải POI (không rơi về other)', () => {
+    expect(cat({ place: 'town' })).toBeNull();
+    expect(cat({ place: 'suburb' })).toBeNull();
+    expect(cat({ landuse: 'military' })).toBeNull();
+    expect(cat({ landuse: 'farmland' })).toBeNull();
+    expect(cat({ natural: 'tree' })).toBeNull();
+    expect(cat({ barrier: 'gate' })).toBeNull();
+    expect(cat({ highway: 'primary' })).toBeNull();
+  });
+  it('khoá cũ vẫn đứng trước; natural đứng trước place (bãi biển gắn kèm place=locality)', () => {
+    expect(cat({ amenity: 'cafe', natural: 'peak' })).toEqual({
+      code: 'cafe',
+      group: 'food_drink',
+    });
+    expect(cat({ natural: 'beach', place: 'locality' })).toEqual({
+      code: 'beach',
+      group: 'culture_tourism',
+    });
+    expect(cat({ place: 'island', natural: 'coastline' })).toEqual({
+      code: 'island',
+      group: 'culture_tourism',
+    });
+  });
+});

@@ -12,7 +12,7 @@ import { displayFields, priorityOrderSql } from './display-priority.mjs';
 import { createDisplaySelector } from './display-selector.mjs';
 import { readSnapshotRows, snapshotRowIncluded } from './export-snapshot.mjs';
 import { arg, OUT, POI_WORK } from './lib/env.mjs';
-import { activePoiWhereSql, poiReleasePrefix } from './lib/poi-filter.mjs';
+import { activePoiWhereSql, poiReleasePrefix, tileVisibleSql } from './lib/poi-filter.mjs';
 import { connect } from './pg.mjs';
 
 /**
@@ -68,7 +68,7 @@ if (process.argv[1]?.endsWith('export-tiles.mjs')) {
           ST_X(p.geom) AS lon, ST_Y(p.geom) AS lat
         FROM poi p
         JOIN category c ON c.code = p.category
-        WHERE ${activePoiWhereSql(profile)}
+        WHERE ${activePoiWhereSql(profile)} AND ${tileVisibleSql()}
         ORDER BY ${priorityOrderSql}`;
         for await (const rows of /** @type {NonNullable<typeof sql>} */ (sql)
           .unsafe(query)

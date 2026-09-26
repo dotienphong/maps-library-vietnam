@@ -37,13 +37,16 @@ Search/Nearby. Biểu tượng chọn theo nhóm.
 | `finance` | 6 | `bank` Ngân hàng, `atm` ATM, `money_exchange` Đổi tiền |
 | `lodging` | 8 | `hotel` Khách sạn, `motel` Nhà nghỉ, `hostel` Hostel |
 | `entertainment_sport` | 16 | `cinema` Rạp chiếu phim, `karaoke` Karaoke, `nightclub` Vũ trường, club |
-| `culture_tourism` | 15 | `museum` Bảo tàng, `art_gallery` Phòng tranh, `theatre` Nhà hát |
-| `transport` | 13 | `bus_stop` Trạm xe buýt, `bus_station` Bến xe, `train_station` Ga tàu |
+| `culture_tourism` | 23 | `museum` Bảo tàng, `mountain` Núi, `lake` Hồ, `island` Đảo, `waterfall` Thác nước, `cave` Hang động |
+| `transport` | 16 | `bus_stop` Trạm xe buýt, `train_station` Ga tàu, `toll_booth` Trạm thu phí, `border_gate` Cửa khẩu, `junction` Nút giao |
 | `public_admin` | 13 | `town_hall` UBND, trụ sở chính quyền, `police` Công an, `fire_station` Trạm cứu hoả |
 | `religion_community` | 9 | `pagoda` Chùa, `church` Nhà thờ, `temple` Đền, miếu, đình |
+| `place` | 7 | `hamlet` Thôn, ấp, bản; `neighbourhood` Khu phố; `industrial_zone` Khu công nghiệp; `residential_area` Khu dân cư |
 | `other` | 1 | `other` Địa điểm khác |
 
-Mã `code` dùng trực tiếp làm tham số `category` của `/v1/search` và `/v1/nearby`.
+Mã `code` dùng trực tiếp làm tham số `category` của `/v1/search` và `/v1/nearby`. Nhóm `place` và các
+mã `lake`, `river`, `island`, `junction` chỉ để tìm kiếm, không vẽ thành biểu tượng trên nền (bản đồ
+nền đã có nhãn nơi chốn và mặt nước).
 
 Mặc định bản đồ và Places API dùng **cả hai nguồn** (`all`). Ba profile là `all` (`osm,fsq`), `osm`
 và `fsq`. Trong SDK, các profile riêng dùng `poiSources: ['osm']`, `['fsq']`; REST dùng

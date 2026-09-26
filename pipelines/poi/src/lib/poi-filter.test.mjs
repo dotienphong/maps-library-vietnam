@@ -1,6 +1,11 @@
 import { poiSourceClause } from '@mapslibvn/core';
 import { describe, expect, it } from 'vitest';
-import { activePoiWhereSql, poiReleasePrefix, sourcesForProfile } from './poi-filter.mjs';
+import {
+  activePoiWhereSql,
+  poiReleasePrefix,
+  sourcesForProfile,
+  tileVisibleSql,
+} from './poi-filter.mjs';
 
 describe('poi-filter', () => {
   it('sourcesForProfile: osm | all; lạ → ném lỗi', () => {
@@ -21,5 +26,11 @@ describe('poi-filter', () => {
   it('poiReleasePrefix: all giữ tên cũ, profile khác thêm hậu tố', () => {
     expect(poiReleasePrefix('all')).toBe('poi');
     expect(poiReleasePrefix('osm')).toBe('poi-osm');
+  });
+
+  it('tileVisibleSql loại nhóm place và hồ/sông/đảo/nút giao khỏi POI tiles (vẫn tìm được)', () => {
+    expect(tileVisibleSql()).toBe(
+      "c.group_code NOT IN ('place') AND p.category NOT IN ('lake','river','island','junction')",
+    );
   });
 });

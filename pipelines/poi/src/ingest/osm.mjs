@@ -6,6 +6,7 @@ import { run } from '../../../../scripts/lib/run.mjs';
 import { ewkt, pgJson } from '../lib/copy-format.mjs';
 import { OSM_PBF, POI_WORK, vnDate } from '../lib/env.mjs';
 import { featureCentroid } from '../lib/geometry.mjs';
+import { keepSourceFeature } from '../lib/osm-extended.mjs';
 import { parseOsmiumId } from '../lib/osmium-id.mjs';
 import {
   connect,
@@ -32,6 +33,16 @@ export const OSM_POI_FILTERS = [
   'nwr/aeroway=aerodrome,terminal',
   'nwr/railway=station,halt',
   'nwr/addr:housenumber',
+  // Khoá mở rộng 26/09/2026 (plan 2026-09-26 Task 4): chỉ đúng các giá trị có trong
+  // category_map_osm.csv; đối tượng chỉ mang khoá này mà không có tên bị bỏ ngay ở rows().
+  'nwr/natural=peak,volcano,water,beach,cave_entrance,bay,cape,spring,hot_spring,wetland',
+  'nwr/waterway=waterfall',
+  'nwr/place=island,islet,square,hamlet,village,isolated_dwelling,neighbourhood,quarter,locality',
+  'nwr/landuse=residential,industrial,commercial,retail,cemetery,religious',
+  'nwr/man_made=lighthouse',
+  'nwr/barrier=toll_booth,border_control',
+  'nwr/highway=services,rest_area',
+  'nwr/junction=yes,roundabout',
 ];
 
 mkdirSync(POI_WORK, { recursive: true });
@@ -61,6 +72,7 @@ async function* rows() {
     const id = parseOsmiumId(f.id ?? f.properties?.id);
     if (!c || !id) continue;
     const { id: _id, ...tags } = f.properties ?? {};
+    if (!keepSourceFeature(tags)) continue;
     const names = Object.fromEntries(
       Object.entries(tags).filter(([k]) => k === 'name' || k.startsWith('name:')),
     );

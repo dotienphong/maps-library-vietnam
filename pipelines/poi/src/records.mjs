@@ -5,6 +5,13 @@ import { domainsOf, phonesOf } from './lib/contacts.mjs';
 import { ewkt, pgArray, pgJson } from './lib/copy-format.mjs';
 import { vnDate } from './lib/env.mjs';
 import { fsqFlagDecision } from './lib/fsq-flags.mjs';
+import {
+  adminCore,
+  extendedAllowed,
+  fromExtendedKey,
+  LEGACY_POI_KEYS,
+  SAME_NAME_DEDUPE_CODES,
+} from './lib/osm-extended.mjs';
 import { osmEmails, osmNameAlt, resolveOsmName } from './lib/osm-names.mjs';
 import { connect, copyInto, countRows } from './pg.mjs';
 import { categoryFor, loadCategories, loadCategoryMaps, refineSchool } from './taxonomy.mjs';
@@ -50,12 +57,13 @@ export const RECORD_COLUMNS = [
   'updated_at',
   'closed',
   'closed_reported',
+  'ext',
   'geom',
 ];
 
 /** @param {{ source: string, sourceId: string, name: string, nameAlt: string[], cat: { code: string, group: string }, confidence: number,
  *   phones: unknown[], websites: unknown[], facebook: string | null, emails?: string[], hours: Record<string, unknown> | null, address: string | null,
- *   updatedAt: unknown, closed: boolean, closedReported?: boolean, lon: number, lat: number }} r */
+ *   updatedAt: unknown, closed: boolean, closedReported?: boolean, ext?: boolean, lon: number, lat: number }} r */
 export function buildRow(r) {
   const addr = r.address ? parseAddress(r.address) : { alleyChain: [], confidence: 0 };
   const e164 = phonesOf(/** @type {string[]} */ (r.phones));
@@ -119,12 +127,68 @@ export function buildRow(r) {
     dateStr(r.updatedAt),
     r.closed,
     r.closedReported ?? false,
+    r.ext ?? false,
     ewkt(r.lon, r.lat),
   ];
 }
 
-/** @param {Sql} sql */
-async function* osmRows(sql) {
+/**
+ * Với mỗi đối tượng mà loại chỉ có thể đến từ khoá mở rộng (theo `<osm_type><osm_id>`): có nằm trong
+ * một xã/phường hiện hành không, và tên (đã bỏ tiền tố) các xã/phường hiện hành + cũ chứa nó. Bảng
+ * hành chính là của lần build trước; DB mới chưa có thì bỏ qua hai luật này.
+ * @param {Sql} sql
+ * @returns {Promise<Map<string, { inCommune: boolean, cores: Set<string> }>>}
+ */
+export async function loadExtendedAdmin(sql) {
+  const [exists] =
+    await sql`SELECT to_regclass('admin_area') IS NOT NULL AND to_regclass('admin_area_old') IS NOT NULL AS ok`;
+  if (!exists?.ok) {
+    console.warn('! chưa có admin_area/admin_area_old — bỏ qua luật phạm vi xã và trùng tên xã');
+    return new Map();
+  }
+  const legacy = LEGACY_POI_KEYS.map((k) => `'${k}'`).join(',');
+  const rows = await sql.unsafe(`SELECT s.osm_type, s.osm_id,
+      EXISTS (SELECT 1 FROM admin_area a WHERE a.level = 8 AND ST_Covers(a.geom, s.geom)) AS in_commune,
+      (SELECT array_agg(DISTINCT x.name_norm) FROM (
+         SELECT name_norm, geom FROM admin_area WHERE level >= 6
+         UNION ALL SELECT name_norm, geom FROM admin_area_old WHERE level >= 6) x
+       WHERE ST_Covers(x.geom, s.geom)) AS names
+    FROM src_osm_place s
+    WHERE NOT (s.tags ?| ARRAY[${legacy}])`);
+  return new Map(
+    rows.map((r) => [
+      `${r.osm_type}${r.osm_id}`,
+      {
+        inCommune: Boolean(r.in_commune),
+        cores: new Set(/** @type {string[]} */ (r.names ?? []).map(adminCore)),
+      },
+    ]),
+  );
+}
+
+/**
+ * Gom bản ghi OSM cùng `name_norm` + cùng mã trong 1 km, giữ rid nhỏ nhất (plan 2026-09-26 Task 4).
+ * @param {Sql} sql
+ * @param {string} [table]
+ * @returns {Promise<number>} số bản ghi bị xoá
+ */
+export async function dedupeSameName(sql, table = 'poi_work_record') {
+  const codes = SAME_NAME_DEDUPE_CODES.map((c) => `'${c}'`).join(',');
+  // Lọc thô bằng độ (≈ 1,1 km) để dùng index geometry, rồi mới đo geography chính xác.
+  const near = `ST_DWithin(r.geom, o.geom, 0.012) AND ST_DWithin(r.geom::geography, o.geom::geography, 1000)`;
+  const sameCode = await sql.unsafe(`DELETE FROM ${table} r USING ${table} o
+    WHERE r.source = 'osm' AND o.source = 'osm' AND r.category = o.category
+      AND r.category IN (${codes}) AND r.name_norm = o.name_norm AND r.rid > o.rid AND ${near}`);
+  // Bản ghi từ khoá mở rộng nhường POI OSM cũ cùng tên: polygon landuse=religious "Chùa X" trùng
+  // node chùa nằm trong nó (460 ứng viên trùng POI đang giữ trong 1,3 km, đo 26/09).
+  const yielded = await sql.unsafe(`DELETE FROM ${table} r USING ${table} o
+    WHERE r.source = 'osm' AND o.source = 'osm' AND r.ext AND NOT o.ext
+      AND r.name_norm = o.name_norm AND ${near}`);
+  return sameCode.count + yielded.count;
+}
+
+/** @param {Sql} sql @param {Map<string, { inCommune: boolean, cores: Set<string> }>} [adminInfo] */
+async function* osmRows(sql, adminInfo = new Map()) {
   // rid là tie-break của ghép tham lam, nên thứ tự COPY phải ổn định giữa các lần dựng.
   for await (const rows of sql`SELECT osm_type, osm_id, name, tags, ST_X(geom) AS lon, ST_Y(geom) AS lat, release FROM src_osm_place ORDER BY osm_type, osm_id`.cursor(
     2000,
@@ -138,6 +202,18 @@ async function* osmRows(sql) {
       if (!resolved) continue;
       const { name, extraAlt } = resolved;
       const cat = { code: refineSchool(cat0.code, name), group: cat0.group };
+      const key = `${r.osm_type}${r.osm_id}`;
+      const ext = fromExtendedKey(t);
+      const admin = adminInfo.get(key);
+      const allowed = extendedAllowed({
+        tags: t,
+        name,
+        cat,
+        ext,
+        adminCores: admin?.cores,
+        inCommune: admin?.inCommune,
+      });
+      if (!allowed) continue;
       const line1 = [t['addr:housenumber'], t['addr:street']].filter(Boolean).join(' ');
       const address = line1
         ? [
@@ -151,7 +227,7 @@ async function* osmRows(sql) {
         : null;
       yield buildRow({
         source: 'osm',
-        sourceId: `${r.osm_type}${r.osm_id}`,
+        sourceId: key,
         name,
         nameAlt: osmNameAlt(t, name, extraAlt),
         cat,
@@ -164,6 +240,7 @@ async function* osmRows(sql) {
         address,
         updatedAt: r.release,
         closed: t.disused === 'yes' || 'disused:amenity' in t || 'disused:shop' in t,
+        ext,
         lon: r.lon,
         lat: r.lat,
       });
@@ -215,11 +292,15 @@ if (process.argv[1]?.endsWith('records.mjs')) {
       housenumber text, street text, street_norm text, ward text, ward_norm text, province text, province_norm text, address_text text,
       contact jsonb, hours jsonb, has_phone boolean, has_website boolean, has_hours boolean, has_housenumber boolean, has_category boolean,
       completeness real NOT NULL, updated_at date NOT NULL, closed boolean NOT NULL, closed_reported boolean NOT NULL DEFAULT false,
-      geom geometry(Point, 4326) NOT NULL, UNIQUE (source, source_id))`);
-    let n = 0;
-    for (const gen of [osmRows, fsqRows])
-      n += await copyInto(sql, 'poi_work_record', RECORD_COLUMNS, gen(sql));
+      ext boolean NOT NULL DEFAULT false, geom geometry(Point, 4326) NOT NULL, UNIQUE (source, source_id))`);
+    const adminInfo = await loadExtendedAdmin(sql);
+    let n = await copyInto(sql, 'poi_work_record', RECORD_COLUMNS, osmRows(sql, adminInfo));
+    n += await copyInto(sql, 'poi_work_record', RECORD_COLUMNS, fsqRows(sql));
     await sql.unsafe('CREATE INDEX poi_work_record_geom_idx ON poi_work_record USING gist (geom)');
+    const merged = await dedupeSameName(sql);
+    console.log(
+      `  gom ${merged} bản ghi OSM cùng tên trong 1 km (${SAME_NAME_DEDUPE_CODES.join(', ')})`,
+    );
     await sql.unsafe('CREATE INDEX poi_work_record_source_idx ON poi_work_record (source)');
     await sql.unsafe('ANALYZE poi_work_record');
     const by =

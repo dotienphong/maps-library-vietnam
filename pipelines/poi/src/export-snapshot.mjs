@@ -13,7 +13,7 @@ import { Readable } from 'node:stream';
 import { pipeline } from 'node:stream/promises';
 import { priorityOrderSql } from './display-priority.mjs';
 import { arg, POI_WORK } from './lib/env.mjs';
-import { sourcesForProfile } from './lib/poi-filter.mjs';
+import { sourcesForProfile, tileVisibleSql } from './lib/poi-filter.mjs';
 import { connect, readJsonl } from './pg.mjs';
 
 /** @param {{primary_source?: unknown, created_by?: unknown}} row @param {string} profile */
@@ -88,7 +88,7 @@ if (process.argv[1]?.endsWith('export-snapshot.mjs')) {
           ST_X(p.geom) AS lon, ST_Y(p.geom) AS lat
         FROM poi p
         JOIN category c ON c.code = p.category
-        WHERE p.status = 'active'
+        WHERE p.status = 'active' AND ${tileVisibleSql()}
         ORDER BY ${priorityOrderSql}`;
       for await (const rows of sql.unsafe(query).cursor(5000)) {
         for (const row of rows) {

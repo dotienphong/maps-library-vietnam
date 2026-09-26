@@ -17,6 +17,7 @@ export const GROUPS = [
   'transport',
   'public_admin',
   'religion_community',
+  'place',
 ];
 /** Thứ tự ưu tiên khoá OSM khi một đối tượng có nhiều tag (spec 5.6: amenity=cafe → cafe). */
 export const OSM_KEYS = [
@@ -31,13 +32,38 @@ export const OSM_KEYS = [
   'public_transport',
   'aeroway',
   'railway',
+  // Khoá mở rộng 26/09/2026 — sau khoá cũ để POI đang có giữ nguyên loại; natural trước place để
+  // bãi biển gắn kèm place=locality vẫn là beach.
+  'natural',
+  'waterway',
+  'place',
+  'landuse',
+  'man_made',
+  'barrier',
+  'highway',
+  'junction',
 ];
+/**
+ * Khoá chỉ thành POI khi đúng giá trị có trong category_map_osm.csv: giá trị lạ (place=town,
+ * landuse=military, natural=tree…) không được rơi về `other` như khoá POI cũ.
+ */
+export const STRICT_OSM_KEYS = new Set([
+  'natural',
+  'waterway',
+  'place',
+  'landuse',
+  'man_made',
+  'barrier',
+  'highway',
+  'junction',
+]);
 /** Tag phụ làm rõ loại: ứng viên "khoá=giá trị/phụ" được thử TRƯỚC "khoá=giá trị". */
 const OSM_QUALIFIER = /** @type {Record<string, string[]>} */ ({
   'amenity=place_of_worship': ['religion'],
   'leisure=pitch': ['sport'],
   'railway=station': ['station'],
   'public_transport=station': ['station'],
+  'natural=water': ['water'],
 });
 /** Đối tượng OSM không phải địa điểm để tìm kiếm — không tạo poi. */
 export const OSM_DROP = new Set([
@@ -191,7 +217,9 @@ export function refineSchool(code, name) {
 export function categoryFor(maps, source, input) {
   const values = Array.isArray(input)
     ? input.filter((v) => typeof v === 'string' && v)
-    : osmCandidates(input).filter((v) => !OSM_DROP.has(v));
+    : osmCandidates(input).filter(
+        (v) => !OSM_DROP.has(v) && (!STRICT_OSM_KEYS.has(v.split('=')[0] ?? '') || maps.osm.has(v)),
+      );
   if (values.length === 0) return source === 'osm' ? null : OTHER;
   let fallback = null;
   for (const v of values) {
