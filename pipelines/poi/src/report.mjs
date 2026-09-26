@@ -2,6 +2,7 @@
 // Báo cáo số liệu kho POI → out/poi-report-<YYYYMMDD>.json + bảng console. Dùng: node report.mjs
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
+import { nestCoverage } from './lib/coverage.mjs';
 import { OUT, vnDate } from './lib/env.mjs';
 import { connect } from './pg.mjs';
 
@@ -20,6 +21,14 @@ try {
     await sql`SELECT primary_source AS source, count(*)::int AS n FROM poi GROUP BY 1 ORDER BY 2 DESC`;
   const byGroup =
     await sql`SELECT c.group_code, count(*)::int AS n FROM poi p JOIN category c ON c.code = p.category GROUP BY 1 ORDER BY 2 DESC`;
+  // Tỉnh hiện hành suy từ toạ độ (poi-admin.mjs); province của nguồn chỉ là dự phòng khi chưa backfill.
+  const coverageRows = /** @type {any[]} */ (
+    await sql`SELECT coalesce(p.admin_province, p.province) AS province, c.group_code,
+        coalesce(p.primary_source, 'user') AS source, count(*)::int AS n
+      FROM poi p JOIN category c ON c.code = p.category
+      WHERE p.status = 'active' GROUP BY 1, 2, 3`
+  );
+  const byProvince = nestCoverage(coverageRows);
   const links = /** @type {any} */ (
     (
       await sql`SELECT count(*)::int AS links, count(DISTINCT poi_id)::int AS pois,
@@ -43,6 +52,7 @@ try {
     poi,
     bySource,
     byGroup,
+    byProvince,
     links: {
       ...links,
       multiSourcePois: multi.n,
@@ -66,6 +76,12 @@ try {
     streets: geo.streets,
     alleys: geo.alleys,
   });
+  console.log('10 tỉnh ít POI active nhất:');
+  console.table(
+    Object.entries(byProvince)
+      .slice(-10)
+      .map(([province, v]) => ({ province, total: v.total, ...v.bySource })),
+  );
   console.log(`✓ ${file}`);
 } finally {
   await sql.end();
