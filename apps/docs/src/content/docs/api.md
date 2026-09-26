@@ -1173,6 +1173,7 @@ Vài điểm dễ sai:
 - `PoiFeature.category` và `.group` là **mã** dạng chuỗi, khác `Place.category` là một object có tên tiếng Việt và tiếng Anh.
 - `PoiFeature.lngLat` theo thứ tự **kinh độ trước** (chuẩn GeoJSON), còn tham số `near` của API theo thứ tự **vĩ độ trước**.
 - `contact` và `hours` có thể là `null`. `hours` không có kiểu chặt vì giữ nguyên chuỗi opening_hours của nguồn.
+- `contact` gồm `phone[]`, `website[]`, `facebook`, và với một số POI từ OpenStreetMap có thêm `email[]` (chỉ email tên miền riêng; không có trong tiles). Đọc trường theo tên, đừng giả định `contact` chỉ có ba khoá.
 - `Route.geometry` là polyline6 (không phải GeoJSON); mọi toạ độ trong `Route`/`Waypoint` là `[lng, lat]`.
 - `MatrixResponse.durations_s` và `distances_m` là mảng hai chiều `[source][target]`; `null` là không nối được, không phải lỗi.
 

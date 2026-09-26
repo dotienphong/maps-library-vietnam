@@ -5,18 +5,12 @@ import { domainsOf, phonesOf } from './lib/contacts.mjs';
 import { ewkt, pgArray, pgJson } from './lib/copy-format.mjs';
 import { vnDate } from './lib/env.mjs';
 import { fsqFlagDecision } from './lib/fsq-flags.mjs';
+import { osmEmails, osmNameAlt, resolveOsmName } from './lib/osm-names.mjs';
 import { connect, copyInto, countRows } from './pg.mjs';
 import { categoryFor, loadCategories, loadCategoryMaps, refineSchool } from './taxonomy.mjs';
 
 /** @typedef {import('postgres').Sql} Sql */
 
-const UNNAMED_OK = new Set([
-  'transport',
-  'public_admin',
-  'health',
-  'education',
-  'religion_community',
-]);
 const maps = loadCategoryMaps();
 const catVi = new Map(loadCategories().map((c) => [c.code, c.vi]));
 const today = vnDate();
@@ -60,7 +54,7 @@ export const RECORD_COLUMNS = [
 ];
 
 /** @param {{ source: string, sourceId: string, name: string, nameAlt: string[], cat: { code: string, group: string }, confidence: number,
- *   phones: unknown[], websites: unknown[], facebook: string | null, hours: Record<string, unknown> | null, address: string | null,
+ *   phones: unknown[], websites: unknown[], facebook: string | null, emails?: string[], hours: Record<string, unknown> | null, address: string | null,
  *   updatedAt: unknown, closed: boolean, closedReported?: boolean, lon: number, lat: number }} r */
 export function buildRow(r) {
   const addr = r.address ? parseAddress(r.address) : { alleyChain: [], confidence: 0 };
@@ -108,7 +102,13 @@ export function buildRow(r) {
     addr.province ?? null,
     addr.province ? normalizeVi(addr.province) : null,
     r.address,
-    pgJson({ phone: e164, website: websites, facebook: r.facebook }),
+    // `email` chỉ khi có, để JSON contact của POI khác giữ nguyên ba khoá cũ.
+    pgJson({
+      phone: e164,
+      website: websites,
+      facebook: r.facebook,
+      ...(r.emails?.length ? { email: r.emails } : {}),
+    }),
     r.hours ? pgJson(r.hours) : null,
     f.phone,
     f.website,
@@ -134,11 +134,9 @@ async function* osmRows(sql) {
       const t = /** @type {Record<string, string>} */ (r.tags);
       const cat0 = categoryFor(maps, 'osm', t);
       if (!cat0) continue;
-      let name = r.name;
-      if (!name) {
-        if (!UNNAMED_OK.has(cat0.group)) continue;
-        name = catVi.get(cat0.code) ?? cat0.code;
-      }
+      const resolved = resolveOsmName(t, cat0, (code) => catVi.get(code) ?? code);
+      if (!resolved) continue;
+      const { name, extraAlt } = resolved;
       const cat = { code: refineSchool(cat0.code, name), group: cat0.group };
       const line1 = [t['addr:housenumber'], t['addr:street']].filter(Boolean).join(' ');
       const address = line1
@@ -155,16 +153,13 @@ async function* osmRows(sql) {
         source: 'osm',
         sourceId: `${r.osm_type}${r.osm_id}`,
         name,
-        nameAlt: /** @type {string[]} */ (
-          [t['name:en'], t.alt_name, t.old_name, t.official_name].filter(
-            (x) => typeof x === 'string' && x !== name,
-          )
-        ),
+        nameAlt: osmNameAlt(t, name, extraAlt),
         cat,
         confidence: 1,
         phones: [t.phone, t['contact:phone'], t.mobile, t['contact:mobile']],
         websites: [t.website, t['contact:website'], t.url],
         facebook: t['contact:facebook'] ?? null,
+        emails: osmEmails(t),
         hours: t.opening_hours ? { osm: t.opening_hours } : null,
         address,
         updatedAt: r.release,

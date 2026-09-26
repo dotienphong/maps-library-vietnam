@@ -163,8 +163,57 @@ ALTER TABLE src_fsq_place DROP COLUMN IF EXISTS date_created;
 
 ### Task 4: Mở rộng bộ lọc tag OSM
 
-(Viết chi tiết ngay khi nhánh đo A trả số: danh sách tag, luật loại trùng với đơn vị hành chính,
-CJK, ngoài biên giới, nhóm/mã mới, loại khỏi tiles.)
+Số đo nhánh A (OSM 25/09/2026): 37.586 đối tượng có tên, không phải building, mang khoá ứng viên →
+33.854 sau khi bỏ ngoài 34 tỉnh, CJK, trùng xã/phường → 26.371 sau khi bỏ tên "tiền tố + số" (+21 %
+POI OSM). Trùng FSQ thấp (1,3 % trong 150 m). Tăng mạnh nhất: Lai Châu +169 %, Đắk Lắk +124 %.
+
+**Nhận (danh sách trắng giá trị, khoá mới chỉ thành POI khi giá trị có trong `category_map_osm.csv`):**
+
+| Tag | Mã mới | Nhóm |
+|---|---|---|
+| `place=hamlet,village,isolated_dwelling` | `hamlet` (Thôn, ấp, bản) | `place` (mới) |
+| `place=neighbourhood,quarter` | `neighbourhood` (Khu phố) | `place` |
+| `place=locality` | `locality` (Địa danh) | `place` |
+| `landuse=residential` | `residential_area` (Khu dân cư) | `place` |
+| `landuse=industrial` | `industrial_zone` (Khu công nghiệp) | `place` |
+| `landuse=commercial,retail` | `commercial_area` (Khu thương mại) | `place` |
+| `place=square` | `square` (Quảng trường) | `culture_tourism` |
+| `place=island,islet` | `island` (Đảo) | `culture_tourism` |
+| `natural=peak,volcano` | `mountain` (Núi) | `culture_tourism` |
+| `natural=water` (`/river,canal,stream` → `river`) | `lake` (Hồ) / `river` (Sông) | `culture_tourism` |
+| `natural=beach` | `beach` (có sẵn) | `culture_tourism` |
+| `natural=cave_entrance` | `cave` (Hang động) | `culture_tourism` |
+| `waterway=waterfall` | `waterfall` (Thác) | `culture_tourism` |
+| `natural=bay,cape,spring,hot_spring,wetland` | `culture_tourism_other` | `culture_tourism` |
+| `man_made=lighthouse` | `lighthouse` (Hải đăng) | `culture_tourism` |
+| `landuse=cemetery` | `cemetery` (có sẵn) | `public_admin` |
+| `landuse=religious` | `religion_community_other` | `religion_community` |
+| `barrier=toll_booth` | `toll_booth` (có sẵn) | `transport` |
+| `barrier=border_control` | `border_gate` (Cửa khẩu) | `transport` |
+| `highway=services,rest_area` | `rest_area` (Trạm dừng nghỉ) | `transport` |
+| `junction=yes,roundabout` (chỉ khi tên khớp Ngã…/Vòng xoay/Bùng binh/Nút giao/Công trường) | `junction` (Nút giao) | `transport` |
+
+**Không nhận:** `place=town,suburb,city,state` (86 %/76 % là xã/phường mới); building (để sau);
+`landuse=military`, `military=*` (Luật Đo đạc và Bản đồ); `natural=reef,strait` (ngoài khơi); đường hở.
+
+**Luật chặn trong records:** tên CJK ở mã mới; tên "tiền tố + số" (Thôn 3, Khu phố 4, Ấp 2, Tổ dân phố
+5…) ở nhóm `place`; `place=*` trùng tên xã/phường chứa nó (admin_area + admin_area_old, bỏ tiền tố)
+khi bảng hành chính có sẵn; `junction` không khớp mẫu tên. Sau COPY: gom bản ghi OSM cùng
+`name_norm` + cùng mã trong 1 km cho `toll_booth`, `border_gate`, `rest_area`, `lake`, `river`,
+`island`, `mountain`, `junction` (trạm thu phí mỗi làn một node).
+
+**Tiles:** loại nhóm `place` và mã `lake`, `river`, `island`, `junction` khỏi POI tiles (bản đồ nền đã
+vẽ nhãn nơi chốn/mặt nước; nút giao chỉ để tìm kiếm) — áp ở cả `export-tiles` lẫn `export-snapshot`.
+
+**Chưa làm (ghi evidence):** thay ranh giới Natural Earth của `deleteOutsideVn` bằng 34 tỉnh OSM —
+đang xoá nhầm 556 POI OSM + ~929 FSQ trên đảo/bờ biển (Bãi Cháy, Cù Lao Chàm, Lý Sơn…) và giữ 339 POI
+ngoài mọi tỉnh; conflate cho vật thể lớn (bán kính theo loại, FSQ trong polygon).
+
+- [ ] Step 1: test taxonomy (khoá mới, thứ tự ưu tiên natural trước place, giá trị lạ/military → null).
+- [ ] Step 2: test `osm-extended.mjs` (CJK, tên số, mẫu junction, khớp tên hành chính).
+- [ ] Step 3: dbtest gom trùng cùng tên 1 km.
+- [ ] Step 4: cài đặt `category.json`, `category_map_osm.csv`, `taxonomy.mjs`, `ingest/osm.mjs`, `records.mjs`, `poi-filter.mjs` (tiles).
+- [ ] Step 5: unit + `test:db` đầy đủ + typecheck; commit `feat(pipeline): mở rộng bộ lọc tag OSM — thôn/ấp, núi, hồ, đảo, thác, hang, trạm thu phí, cửa khẩu, nút giao`.
 
 ### Task 5: Báo cáo độ phủ tỉnh × nhóm × nguồn
 

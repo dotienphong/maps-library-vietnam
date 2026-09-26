@@ -80,3 +80,23 @@ describe('buildRow — closed_reported (cờ closed của FSQ)', () => {
     expect(flagged[at('closed_reported')]).toBe(true);
   });
 });
+
+describe('buildRow — contact.email (OSM email/contact:email)', () => {
+  const at = (/** @type {string} */ c) => RECORD_COLUMNS.indexOf(c);
+  const cat = { code: 'hotel', group: 'lodging' };
+  it('có email → contact.email; không có → JSON contact giữ nguyên ba khoá cũ', () => {
+    const withEmail = buildRow({ ...base, cat, emails: ['info@hotel.vn'] });
+    expect(JSON.parse(String(withEmail[at('contact')]))).toEqual({
+      phone: [],
+      website: [],
+      facebook: null,
+      email: ['info@hotel.vn'],
+    });
+    const without = buildRow({ ...base, cat });
+    expect(JSON.parse(String(without[at('contact')]))).toEqual({
+      phone: [],
+      website: [],
+      facebook: null,
+    });
+  });
+});
