@@ -20,6 +20,11 @@ không đi qua máy chủ API — SDK tự đăng ký protocol `pmtiles://` trư
   khác. Hai nhãn này hiển thị từ zoom 4 trở lên, tức là ngay khi cả nước nằm trong khung hình.
 - Chủ quyền được bảo vệ ở ba tầng: vá dữ liệu OSM trước khi build, lớp nhãn riêng trong style, và
   bước QA trong pipeline chặn phát hành nếu tiles hoặc style không đạt.
+- **POI trên hai quần đảo.** Các đảo, bãi, đá ở Hoàng Sa và Trường Sa tìm được bằng tên tiếng Việt
+  (Đảo Phú Lâm, Đảo Song Tử Tây, Đá Chữ Thập…); ở Trường Sa còn có trường, chùa, hải đăng, âu tàu
+  trên các đảo do Việt Nam quản lý. Dòng phụ là Đặc khu Hoàng Sa, Đà Nẵng và Đặc khu Trường Sa,
+  Khánh Hòa. Dữ liệu hai quần đảo lấy từ một bản OSM đã lọc và duyệt tên: chỉ giữ tên tiếng Việt, bỏ
+  tên chữ Hán và tên nước ngoài; bản đồ nền dùng cùng luật tên.
 
 ## 2. Lớp POI — 182 loại trong 14 nhóm
 

@@ -289,7 +289,7 @@ Gợi ý khi người dùng đang gõ. Trộn ba loại kết quả: POI, tên �
 
 `near` không lọc theo bán kính, chỉ dùng để cộng điểm cho kết quả ở gần. Kết quả loại `address` chỉ xuất hiện khi câu truy vấn phân tích được thành số nhà kèm tên đường.
 
-`secondary` của kết quả `poi` là `đường, phường/xã, tỉnh/thành` theo **đơn vị hành chính hiện hành (2025)** suy từ toạ độ POI qua ranh giới OSM, không phải địa chỉ nguyên văn của nguồn — nhờ vậy hai quán cùng con đường luôn hiện cùng một hệ tên phường, và POI mà nguồn không ghi địa chỉ vẫn có dòng phụ. Địa chỉ gốc của nguồn (có thể là quận/phường cũ) vẫn nằm ở `address.text` của `GET /v1/places/{id}`. POI người dùng vừa tạo, chưa qua lần chạy pipeline hằng tuần, tạm dùng phường/tỉnh do người tạo nhập.
+`secondary` của kết quả `poi` là `đường, phường/xã, tỉnh/thành` theo **đơn vị hành chính hiện hành (2025)** suy từ toạ độ POI qua ranh giới OSM (riêng Đặc khu Hoàng Sa, Đà Nẵng và Đặc khu Trường Sa, Khánh Hòa dựng từ vùng biển hai quần đảo vì OSM không có ranh giới dùng được), không phải địa chỉ nguyên văn của nguồn — nhờ vậy hai quán cùng con đường luôn hiện cùng một hệ tên phường, và POI mà nguồn không ghi địa chỉ vẫn có dòng phụ. Địa chỉ gốc của nguồn (có thể là quận/phường cũ) vẫn nằm ở `address.text` của `GET /v1/places/{id}`. POI người dùng vừa tạo, chưa qua lần chạy pipeline hằng tuần, tạm dùng phường/tỉnh do người tạo nhập.
 
 Cách khớp tên (từ 05/09/2026): tiền tố (`name_norm LIKE 'q%'`) **hoặc** `word_similarity(q, name_norm)` của pg_trgm vượt ngưỡng 0,5 — tức là so truy vấn với từng đoạn từ liên tục trong tên, không so cả chuỗi. Nhờ đó lỗi gõ 1–2 ký tự, truy vấn ngắn hơn tên và đảo thứ tự từ vẫn khớp. `GET /v1/search` và bước khớp đường của `GET /v1/geocode` dùng cùng cách khớp này.
 

@@ -4123,3 +4123,22 @@ khi bắt tay TCP từ VN mất ~330 ms — curl cùng mạng vẫn xanh nên d�
 
 **Còn nợ:** địa danh lớn còn hai bản do conflate chỉ ghép trong 150 m;
 `deleteOutsideVn` theo Natural Earth xoá nhầm POI trên đảo/bờ biển; POI cơ quan cấp huyện đã giải thể.
+
+## 37. Trường Sa / Hoàng Sa vào kho POI — 26/09/2026
+
+PHONG chốt: Hoàng Sa chỉ tên đảo theo danh sách duyệt; Trường Sa ta giữ nhận mọi đảo và cơ sở tên tiếng Việt; đảo
+nước khác chiếm chỉ tên đảo tiếng Việt; một luật tên cho cả bản đồ nền lẫn POI (evidence
+`docs/evidence/poi-sources/2026-09-26-quan-dao.md`).
+
+Hai bài học. **`name:vi` của OSM ở vùng này không phải tên Việt**: ở Hoàng Sa và các đá TQ chiếm, nó phần lớn là
+phiên âm tên Trung Quốc ("Đảo Triệu Thuật" = Đảo Cây, "Đá Vĩnh Thử" = Đá Chữ Thập), kèm bản dịch cơ quan TQ — nên
+tên đảo phải ghi đè từ danh sách duyệt, và luật "chỉ nhận tên Việt/Latin" ban đầu đã để lọt. **"Có dấu" không có
+nghĩa là tiếng Việt**: dấu sắc/huyền dùng chung với pinyin và tiếng Pháp, còn đòi chữ riêng tiếng Việt thì chặn nhầm
+"Chùa Vinh Phúc"; luật đúng là mọi từ phải là một âm tiết tiếng Việt.
+
+Thiết kế giữ `vn_boundary` nguyên (bảng nạp một lần, nuôi bootstrap Khánh Hòa); hai quần đảo đi qua một đa giác đọc
+lại mỗi lần chạy, một ảnh chụp OSM đã lọc commit trong repo (máy Windows dựng y hệt), và hai đơn vị L8 tổng hợp —
+`admin_area` giờ đủ 3.321 đơn vị cấp xã. Dựng thử toàn quốc: 128 POI quần đảo, 0 thiếu tỉnh, 0 chữ Hán.
+
+**Còn nợ:** M4 trên hai quần đảo chưa qua luật tên; vài tên đảo chưa chắc để ngoài; đảo ven bờ vẫn bị ranh giới
+Natural Earth xoá.

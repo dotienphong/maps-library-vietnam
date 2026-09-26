@@ -58,8 +58,9 @@ w1559928547,Đá Len Đao,,VN,Lansdowne Reef (đảo nổi không tên trong OSM
 w159002343,Đá Thị,,VN,Petley Reef (đảo nổi không tên trong OSM)
 w704074552,Đá Ba Kè,,VN,Bombay Castle
 # --- Trường Sa — sửa tên cơ sở ta giữ (danh sách này ghi đè tên của MỌI đối tượng, không chỉ đảo)
-w614161313,Chùa Sơn Linh,,VN,đảo Sơn Ca; OSM ghi "Chùa Sơn inh" (lỗi chính tả) — CẦN PHONG xác nhận tên
-n2647317689,Sân bay Trường Sa,,VN,OSM ghi operator = People's Army of Vietnam nên luật quân sự sẽ loại; giữ vì PHONG chọn phương án có sân bay — CẦN PHONG xác nhận
+w614161313,Chùa Sơn Linh,,VN,đảo Sơn Ca; OSM ghi "Chùa Sơn inh" (lỗi chính tả) — PHONG xác nhận 26/09/2026
+n2647317689,Sân bay Trường Sa,,VN,OSM ghi operator = People's Army of Vietnam nên luật quân sự sẽ loại; PHONG quyết giữ 26/09/2026 (cùng Nhà ga Hàng không và Bệnh xá Đảo Song Tử Tây)
+n5809817490,,,VN,Bia chủ quyền của VNCH năm 1956 (Nam Yết) — PHONG quyết bỏ 26/09/2026
 # --- Trường Sa — đảo/đá nước khác đang chiếm giữ: chỉ tên đảo tiếng Việt, không nhận cơ sở
 r12651740,Đảo Thị Tứ,,PH,Thitu / Pag-asa
 w332539799,Đảo Song Tử Đông,,PH,Northeast Cay / Parola
