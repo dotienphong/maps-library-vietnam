@@ -60,7 +60,7 @@ quốc — kết quả thô ở scratchpad phiên 26/09 (`do-lai/A..D`), số ch
   `hours` chữ tự do; internal miễn kiểm với khoá web; phiếu của khoá đã thu hồi).
 - [x] Commit `1d5e3ce`: danh sách trắng + cú pháp opening_hours + lọc khoá đã thu hồi; itest 142/142
   (5 ca mới đỏ trên `595878d`), unit API 873/873, docs `/dong-gop/` + spec 6.5.
-- [ ] Push hai commit này RIÊNG, trước khi có migration 0025 (cổng `check:migration` chặn Deploy API
+- [x] Push hai commit này RIÊNG, trước khi có migration 0025 (cổng `check:migration` chặn Deploy API
   khi repo có migration production chưa áp). Kiểm Deploy API xanh + `/healthz/db`.
 
 Việc treo từ review (không chặn): `apply_poi_edit` gắn nhãn `auto:consensus` cho phiếu trùng kể cả
@@ -71,7 +71,7 @@ cache KV auth (300 s); rà các edit đã tự duyệt trước 26/09 (PHONG ch�
 
 **Files:** Create `db/migrations/0025_fsq_quality_columns.sql`, `db/migrations/0025_fsq_quality_columns.down.sql`, `pipelines/poi/src/lib/fsq-flags.mjs`, `pipelines/poi/tests/fsq-flags.test.mjs`; Modify `pipelines/poi/src/ingest/fsq.mjs`, `pipelines/poi/src/records.mjs`, `db/schema.dbtest.mjs` (nếu kiểm cột).
 
-- [ ] **Step 1: test đỏ cho `fsqFlagDecision`**
+- [x] **Step 1: test đỏ cho `fsqFlagDecision`**
 
 ```js
 import { describe, expect, it } from 'vitest';
@@ -97,8 +97,8 @@ describe('fsqFlagDecision (unresolved_flags của FSQ OS Places)', () => {
 });
 ```
 
-- [ ] **Step 2:** `pnpm exec vitest run pipelines/poi/tests/fsq-flags.test.mjs` → FAIL (module chưa có).
-- [ ] **Step 3: cài đặt**
+- [x] **Step 2:** `pnpm exec vitest run pipelines/poi/tests/fsq-flags.test.mjs` → FAIL (module chưa có).
+- [x] **Step 3: cài đặt**
 
 ```js
 // pipelines/poi/src/lib/fsq-flags.mjs
@@ -122,8 +122,8 @@ export function fsqFlagDecision(raw) {
 }
 ```
 
-- [ ] **Step 4:** chạy lại test → PASS.
-- [ ] **Step 5: migration**
+- [x] **Step 4:** chạy lại test → PASS.
+- [x] **Step 5: migration**
 
 ```sql
 -- 0025_fsq_quality_columns.sql — cột chất lượng FSQ OS Places (plan 2026-09-26). Chỉ pipeline đọc;
@@ -140,26 +140,26 @@ ALTER TABLE src_fsq_place DROP COLUMN IF EXISTS date_refreshed;
 ALTER TABLE src_fsq_place DROP COLUMN IF EXISTS date_created;
 ```
 
-- [ ] **Step 6: ingest** — `fsq.mjs` SELECT thêm `NULLIF(date_created,'')`, `NULLIF(date_refreshed,'')`, `unresolved_flags`; COPY thêm 3 cột (mảng qua `pgArray`).
-- [ ] **Step 7: records** — `fsqRows` SELECT thêm `unresolved_flags`; `fsqFlagDecision` → `drop` thì `continue`, `closed: r.date_closed !== null || decision.closed`.
-- [ ] **Step 8:** `pnpm exec vitest run pipelines/poi` + `pnpm typecheck` → xanh; `pnpm test:db` (đầy đủ, memory `dbtest-local-thieu-file`) — ghi rõ `pipeline-fixture` đỏ vì thiếu tippecanoe nếu vẫn đỏ.
-- [ ] **Step 9:** commit `feat(pipeline): FSQ lưu date_refreshed/unresolved_flags, bỏ bản ghi bị báo không tồn tại/riêng tư, đóng bản ghi bị báo đóng`.
+- [x] **Step 6: ingest** — `fsq.mjs` SELECT thêm `NULLIF(date_created,'')`, `NULLIF(date_refreshed,'')`, `unresolved_flags`; COPY thêm 3 cột (mảng qua `pgArray`).
+- [x] **Step 7: records** — `fsqRows` SELECT thêm `unresolved_flags`; `fsqFlagDecision` → `drop` thì `continue`, `closed: r.date_closed !== null || decision.closed`.
+- [x] **Step 8:** `pnpm exec vitest run pipelines/poi` + `pnpm typecheck` → xanh; `pnpm test:db` (đầy đủ, memory `dbtest-local-thieu-file`) — ghi rõ `pipeline-fixture` đỏ vì thiếu tippecanoe nếu vẫn đỏ.
+- [x] **Step 9:** commit `feat(pipeline): FSQ lưu date_refreshed/unresolved_flags, bỏ bản ghi bị báo không tồn tại/riêng tư, đóng bản ghi bị báo đóng`.
 
 ### Task 3: Tên OSM — tên thay thế, tách `;`, tên dự phòng, email
 
 **Files:** Create `pipelines/poi/src/lib/osm-names.mjs`, `pipelines/poi/src/lib/vn-banks.mjs`, `pipelines/poi/tests/osm-names.test.mjs`; Modify `pipelines/poi/src/records.mjs`, `apps/docs/src/content/docs/api.md` (contact.email).
 
-- [ ] **Step 1: test đỏ** — các ca (mỗi ca một `it`):
+- [x] **Step 1: test đỏ** — các ca (mỗi ca một `it`):
   - `splitNames('A;B; C')` → `['A','B','C']`.
   - `osmNameAlt(tags, name)` gồm `name:en`, `alt_name`, `old_name`, `official_name`, `name:vi`, `short_name`, `loc_name`, `int_name`, đã tách `;`, bỏ phần tử bằng `name`.
   - `osmFallbackName(tags, cat)`: có `name:vi` → dùng; chỉ `name:en` → dùng; `name:en` chung chung (`'atm'`, `'Local food'`, `'mechanic'`) hoặc mô tả (> 40 ký tự / có `!?` / ≥ 7 từ) → `null`; chỉ `name:zh` → `null`.
   - ATM: `{amenity:'atm', operator:'Vietcombank'}` → `'ATM Vietcombank'`; `operator:'MHB'` → `null` (đã sáp nhập); `operator:'Maritime Bank'` → `'ATM MSB'` (đổi tên); `operator:'BIDV - May Pos - ATM'` → `null` (POS); `operator:'comfeed'` → `null` (không phải ngân hàng); có `name` thật thì hàm không được gọi.
   - `osmEmails(tags)`: `email` + `contact:email`, tách `;`, bỏ miền miễn phí (`a@gmail.com` bị bỏ, `info@hotel.vn` giữ), chỉ nhận chuỗi có dạng email.
-- [ ] **Step 2:** chạy → FAIL.
-- [ ] **Step 3:** cài đặt `osm-names.mjs` + `vn-banks.mjs` (bảng: tên chuẩn, bí danh chuẩn hoá bằng `normalizeVi`, trạng thái `active` | `renamed:<tên mới>` | `gone`). Nhóm `gone`: Southern Bank, ANZ, MHB, Habubank, TrustBank/Đại Tín, Western Bank, Ficombank, TinNghiaBank, Mekong Development Bank, DongA/EAB, OceanBank, GPBank, CB/Construction Bank (chuyển giao bắt buộc 2024–2025 — thương hiệu ATM không còn chắc chắn). `renamed`: Maritime Bank → MSB, LienVietPostBank → LPBank, Navibank → NCB.
-- [ ] **Step 4:** chạy → PASS.
-- [ ] **Step 5: records** — `osmRows`: `name = r.name ?? osmFallbackName(t, cat0)`; nếu vẫn không có → nhánh UNNAMED_OK cũ; POI UNNAMED_OK có `name:vi`/`name:en` thật thì dùng tên đó; `nameAlt: osmNameAlt(t, name)`; `emails: osmEmails(t)` → `contact.email` (chỉ khi mảng không rỗng, để POI khác giữ nguyên JSON cũ).
-- [ ] **Step 6:** test `records.test.mjs` thêm ca `buildRow` có `emails` → `contact.email`; typecheck; commit `feat(pipeline): tên thay thế/tên dự phòng/email từ tag OSM`.
+- [x] **Step 2:** chạy → FAIL.
+- [x] **Step 3:** cài đặt `osm-names.mjs` + `vn-banks.mjs` (bảng: tên chuẩn, bí danh chuẩn hoá bằng `normalizeVi`, trạng thái `active` | `renamed:<tên mới>` | `gone`). Nhóm `gone`: Southern Bank, ANZ, MHB, Habubank, TrustBank/Đại Tín, Western Bank, Ficombank, TinNghiaBank, Mekong Development Bank, DongA/EAB, OceanBank, GPBank, CB/Construction Bank (chuyển giao bắt buộc 2024–2025 — thương hiệu ATM không còn chắc chắn). `renamed`: Maritime Bank → MSB, LienVietPostBank → LPBank, Navibank → NCB.
+- [x] **Step 4:** chạy → PASS.
+- [x] **Step 5: records** — `osmRows`: `name = r.name ?? osmFallbackName(t, cat0)`; nếu vẫn không có → nhánh UNNAMED_OK cũ; POI UNNAMED_OK có `name:vi`/`name:en` thật thì dùng tên đó; `nameAlt: osmNameAlt(t, name)`; `emails: osmEmails(t)` → `contact.email` (chỉ khi mảng không rỗng, để POI khác giữ nguyên JSON cũ).
+- [x] **Step 6:** test `records.test.mjs` thêm ca `buildRow` có `emails` → `contact.email`; typecheck; commit `feat(pipeline): tên thay thế/tên dự phòng/email từ tag OSM`.
 
 ### Task 4: Mở rộng bộ lọc tag OSM
 
@@ -175,7 +175,7 @@ POI OSM). Trùng FSQ thấp (1,3 % trong 150 m). Tăng mạnh nhất: Lai Châu 
 | `place=neighbourhood,quarter` | `neighbourhood` (Khu phố) | `place` |
 | `place=locality` | `locality` (Địa danh) | `place` |
 | `landuse=residential` | `residential_area` (Khu dân cư) | `place` |
-| `landuse=industrial` | `industrial_zone` (Khu công nghiệp) | `place` |
+| `landuse=industrial` | `industrial_zone` (Khu công nghiệp, nhà máy) | `place` |
 | `landuse=commercial,retail` | `commercial_area` (Khu thương mại) | `place` |
 | `place=square` | `square` (Quảng trường) | `culture_tourism` |
 | `place=island,islet` | `island` (Đảo) | `culture_tourism` |
@@ -209,29 +209,29 @@ vẽ nhãn nơi chốn/mặt nước; nút giao chỉ để tìm kiếm) — áp
 đang xoá nhầm 556 POI OSM + ~929 FSQ trên đảo/bờ biển (Bãi Cháy, Cù Lao Chàm, Lý Sơn…) và giữ 339 POI
 ngoài mọi tỉnh; conflate cho vật thể lớn (bán kính theo loại, FSQ trong polygon).
 
-- [ ] Step 1: test taxonomy (khoá mới, thứ tự ưu tiên natural trước place, giá trị lạ/military → null).
-- [ ] Step 2: test `osm-extended.mjs` (CJK, tên số, mẫu junction, khớp tên hành chính).
-- [ ] Step 3: dbtest gom trùng cùng tên 1 km.
-- [ ] Step 4: cài đặt `category.json`, `category_map_osm.csv`, `taxonomy.mjs`, `ingest/osm.mjs`, `records.mjs`, `poi-filter.mjs` (tiles).
-- [ ] Step 5: unit + `test:db` đầy đủ + typecheck; commit `feat(pipeline): mở rộng bộ lọc tag OSM — thôn/ấp, núi, hồ, đảo, thác, hang, trạm thu phí, cửa khẩu, nút giao`.
+- [x] Step 1: test taxonomy (khoá mới, thứ tự ưu tiên natural trước place, giá trị lạ/military → null).
+- [x] Step 2: test `osm-extended.mjs` (CJK, tên số, mẫu junction, khớp tên hành chính).
+- [x] Step 3: dbtest gom trùng cùng tên 1 km.
+- [x] Step 4: cài đặt `category.json`, `category_map_osm.csv`, `taxonomy.mjs`, `ingest/osm.mjs`, `records.mjs`, `poi-filter.mjs` (tiles).
+- [x] Step 5: unit + `test:db` đầy đủ + typecheck; commit `feat(pipeline): mở rộng bộ lọc tag OSM — thôn/ấp, núi, hồ, đảo, thác, hang, trạm thu phí, cửa khẩu, nút giao`.
 
 ### Task 5: Báo cáo độ phủ tỉnh × nhóm × nguồn
 
 **Files:** Modify `pipelines/poi/src/report.mjs`; Create `pipelines/poi/src/lib/coverage.mjs`, `pipelines/poi/tests/coverage.test.mjs`.
 
-- [ ] **Step 1: test đỏ** — `nestCoverage(rows)` nhận `[{province, group_code, source, n}]` → `{ [province]: { total, bySource: {osm, fsq, user}, byGroup: {[group]: n} } }`, tỉnh `null` gom vào `'(không rõ)'`, sắp theo `total` giảm dần khi `Object.keys`.
-- [ ] **Step 2:** FAIL → **Step 3:** cài đặt → **Step 4:** PASS.
-- [ ] **Step 5:** `report.mjs` thêm truy vấn `SELECT coalesce(p.admin_province, p.province) AS province, c.group_code, coalesce(p.primary_source, 'user') AS source, count(*)::int AS n FROM poi p JOIN category c ON c.code = p.category WHERE p.status = 'active' GROUP BY 1,2,3` và trường `byProvince` trong JSON; console in 10 tỉnh ít POI nhất.
-- [ ] **Step 6:** commit `feat(pipeline): báo cáo POI theo tỉnh × nhóm × nguồn`.
+- [x] **Step 1: test đỏ** — `nestCoverage(rows)` nhận `[{province, group_code, source, n}]` → `{ [province]: { total, bySource: {osm, fsq, user}, byGroup: {[group]: n} } }`, tỉnh `null` gom vào `'(không rõ)'`, sắp theo `total` giảm dần khi `Object.keys`.
+- [x] **Step 2:** FAIL → **Step 3:** cài đặt → **Step 4:** PASS.
+- [x] **Step 5:** `report.mjs` thêm truy vấn `SELECT p.admin_province AS province, c.group_code, coalesce(p.primary_source, 'user') AS source, count(*)::int AS n FROM poi p JOIN category c ON c.code = p.category WHERE p.status = 'active' GROUP BY 1,2,3` và trường `byProvince` trong JSON; console in 10 tỉnh ít POI nhất.
+- [x] **Step 6:** commit `feat(pipeline): báo cáo POI theo tỉnh × nhóm × nguồn`.
 
 ### Task 6: Dựng thử toàn quốc cục bộ + đo
 
-- [ ] DB dev cô lập (không phải production): chạy `ingest/osm.mjs` trên `vietnam-260925`, `ingest/fsq.mjs` release 2026-09-15, `taxonomy.mjs load`, `records.mjs`, `conflate.mjs`, `publish.mjs`, `report.mjs` — trước và sau thay đổi (checkout `7c0889a` cho "trước").
-- [ ] So `bySource`, `byGroup`, `byProvince`, số POI đóng; mẫu tay 50 POI mới mỗi loại (tên dự phòng, ATM, place/natural).
-- [ ] Bộ mờ `scripts/fixtures/fuzzy-queries.txt` + bộ 20 biến thể qua API dev trỏ DB đó: hit@3 không được giảm.
+- [x] DB dev cô lập (không phải production): chạy `ingest/osm.mjs` trên `vietnam-260925`, `ingest/fsq.mjs` release 2026-09-15, `taxonomy.mjs load`, `records.mjs`, `conflate.mjs`, `publish.mjs`, `report.mjs` — trước và sau thay đổi (checkout `7c0889a` cho "trước").
+- [x] So `bySource`, `byGroup`, `byProvince`, số POI đóng; mẫu tay 50 POI mới mỗi loại (tên dự phòng, ATM, place/natural).
+- [x] Bộ mờ `scripts/fixtures/fuzzy-queries.txt` + bộ 20 biến thể qua API dev trỏ DB đó: hit@3 không được giảm.
 
 ### Task 7: Tài liệu, evidence, lệnh cho PHONG
 
-- [ ] `pipelines/poi/README.md` (bộ lọc mới, cờ FSQ, tên dự phòng), `docs/evidence/poi-sources/2026-09-26-lam-giau-lam-ngay.md` (số đo trước/sau), DEVLOG.
-- [ ] Lệnh cho PHONG trên máy chủ, đúng thứ tự: `pnpm server:migrate` (0025) → `pnpm image:build && pnpm image:smoke` → recreate `pipeline backup` → `data:update --poi --force --skip-routing` → kiểm `/healthz/db`, autocomplete vài truy vấn (Hồ Tây, Núi Bà Đen, ATM Vietcombank …).
-- [ ] Truy vấn chỉ đọc rà edit đã tự duyệt trước 26/09 (khoá web/mobile hoặc đổi contact/name).
+- [x] `pipelines/poi/README.md` (bộ lọc mới, cờ FSQ, tên dự phòng), `docs/evidence/poi-sources/2026-09-26-lam-giau-lam-ngay.md` (số đo trước/sau), DEVLOG.
+- [ ] (PHONG) Trên máy chủ: `pnpm server:update` (git pull + image GHCR mới + migration 0025) → kiểm `/healthz/db` → rerun Deploy API đang bị `check:migration` chặn → `data:update --poi --skip-routing` → kiểm autocomplete — lệnh đầy đủ ở evidence mục 7.
+- [ ] (PHONG) Truy vấn chỉ đọc rà edit đã tự duyệt trước 26/09 — câu SQL ở evidence mục 7.

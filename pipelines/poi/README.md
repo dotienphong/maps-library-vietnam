@@ -76,7 +76,8 @@ Exporter in một dòng JSON gồm `activeRead`, `selected`, `thinned`, `byMinZo
 `invalidCoordinates`. Có tọa độ lỗi thì job dừng trước Tippecanoe. POI bị `thinned` chỉ bị ẩn khỏi
 nền bản đồ; bản ghi `poi.status='active'` vẫn nguyên và vẫn tìm được qua Search/Nearby.
 
-Taxonomy (Task 6): 164 mã lá (12 nhóm + `other`), 2 CSV ánh xạ (OSM 296, FSQ 279).
+Taxonomy (Task 6): 164 mã lá (12 nhóm + `other`), 2 CSV ánh xạ (OSM 296, FSQ 279). Từ 26/09/2026:
+182 mã (13 nhóm + `other`, thêm nhóm `place`), OSM 332 dòng — xem mục "Làm giàu 26/09/2026" dưới đây.
 Độ phủ đo trên dữ liệu VN thật: **thiếu ánh xạ** OSM 0,4 %, FSQ 0 % (ngưỡng 2 %).
 Phần rơi vào `<nhóm>_other` **có chủ đích** (nhóm cha chung chung của nguồn, không thể chi tiết hơn):
 OSM 7,5 %, FSQ 11,8 %; con số này giảm ở bảng `poi` sau gộp vì OSM phân loại chi tiết hơn (Task 7).
@@ -142,3 +143,22 @@ address_anchor**, trong đó Nguyễn Lâm 174. Parent theo tên/chạm dùng ge
 rồi geography exact ≤300/15 m. Anchor gộp connected-components theo geography exact ≤30 m
 đến khi hội tụ, ưu tiên source theo confidence; không còn cặp trùng, street mang tên hẻm số,
 hay bảng staging (`*_new`, raw/edge/merge).
+
+## Làm giàu 26/09/2026 (plan `docs/superpowers/plans/2026-09-26-lam-giau-poi-lam-ngay.md`)
+
+- **Khoá OSM mở rộng** (`ingest/osm.mjs`, `taxonomy.mjs` `STRICT_OSM_KEYS`): natural, waterway, place,
+  landuse, man_made, barrier, highway, junction — chỉ giá trị có dòng trong `category_map_osm.csv`
+  mới thành POI; giá trị lạ (place=town/suburb, landuse=military…) không rơi về `other`. Ingest bỏ
+  đối tượng chỉ mang khoá mở rộng mà không có tag tên. Luật chặn ở `lib/osm-extended.mjs`: quân sự,
+  ngoài mọi xã/phường hiện hành, tên CJK, tên "Thôn 3/Khu phố 4", place trùng tên xã/phường chứa nó,
+  junction không khớp mẫu tên. `records.mjs` gom bản ghi OSM cùng tên + cùng mã trong 1 km và cho bản
+  ghi mở rộng nhường POI OSM cũ cùng tên (`dedupeSameName`). Nhóm `place` và lake/river/island/junction
+  không vào POI tiles (`tileVisibleSql`).
+- **Tên OSM** (`lib/osm-names.mjs`, `lib/vn-banks.mjs`): tên thay thế thêm name:vi/short_name/loc_name/
+  int_name, tách `;`; tên dự phòng name:vi → name:en → brand (→ operator cho cây xăng/ngân hàng); ATM
+  qua bảng ngân hàng; POI không tên loại `*_other` bị bỏ; email tên miền riêng vào `contact.email`.
+- **FSQ** (`lib/fsq-flags.mjs`, migration 0025): lưu `date_created`, `date_refreshed`,
+  `unresolved_flags`; bỏ bản ghi doesnt_exist/delete/inappropriate/privatevenue; cờ `closed` →
+  `closed_reported`, chỉ đóng cụm khi mọi thành viên đều đóng/bị báo đóng (`clusterClosed`).
+- **Report**: `byProvince` (tỉnh hiện hành × nhóm × nguồn).
+

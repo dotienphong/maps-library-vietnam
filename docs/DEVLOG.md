@@ -4058,3 +4058,46 @@ catalog; docs chèn OG/JSON-LD qua route middleware của Starlight, `llms*.txt`
 
 **Còn nợ:** việc tay của PHONG ở evidence mục "Việc của PHONG"; metadata npm chỉ lên npm ở lần
 `pnpm sdk:publish` tới.
+
+## 36. Làm giàu kho POI — nhóm "làm được ngay", và siết luật tự duyệt M4 — 26/09/2026
+
+Plan `2026-09-26-lam-giau-poi-lam-ngay.md`, evidence `docs/evidence/poi-sources/2026-09-26-lam-giau-lam-ngay.md`.
+Khởi đầu từ câu hỏi "có cách nào làm giàu nguồn POI": khảo sát 50 cách (65 nguồn bị loại, mỗi cách
+qua một vòng phản biện) cho kết luận đòn bẩy sạch và rẻ nhất là khai thác kỹ hơn OSM đang có, rồi dọn
+FSQ; nguồn nhà nước và chuỗi phần lớn phải xin phép. PHONG yêu cầu: sửa ngay luật tự duyệt M4, đo lại
+mọi số trên OSM mới nhất, làm các việc "làm được ngay".
+
+**M4 (đã lên production, `595878d` + `1d5e3ce`):** khoá web/mobile có `edits:write` là khoá công
+khai, Origin giả được ngoài trình duyệt — ai cầm là tự duyệt được đổi SĐT/website trên POI quality
+≥ 60. Bản đầu chặn contact/name; review độc lập tìm thêm: đồng thuận 2 tenant khoá server vẫn duyệt
+đóng/dời POI và sinh mốc geocode rooftop, `hours` chở được chữ tự do, internal được miễn kiểm cả với
+khoá web, phiếu của khoá đã thu hồi vẫn được tính. Bản hai chuyển sang danh sách trắng: ngoài internal
++ khoá server, chỉ update CHỈ đổi `hours` (đúng cú pháp opening_hours) bằng khoá server mới tự duyệt.
+
+**Đo lại** trên `vietnam-260925.osm.pbf` + FSQ 2026-09-15, 4 nhánh + 4 lượt kiểm chéo. Sửa khảo sát:
+mức tăng thật của bộ lọc mở rộng là ~24,8 nghìn (+19,7 %), không phải 30 nghìn; tên dự phòng
+~6,7–7,7 nghìn; POI chỉ có `addr:street` không mất tên đường.
+
+**Làm:** FSQ lưu cờ + bỏ/đóng theo cờ (`f5a1063`, migration 0025); tên OSM (`f09d2c3`); báo cáo theo
+tỉnh (`69fc620`); mở rộng bộ lọc tag theo danh sách trắng giá trị (`c304296`); hai luật chặn nhỏ từ mẫu
+kiểm tay (`f92a6d5`); sửa xếp hạng autocomplete (`340cb1f`).
+
+### Ba chỗ chỉ lộ ra khi chạy thật
+
+1. **1.000 node rác `office=religion`** không tên (Quảng Ngãi, 10/2025) thành 1.000 POI "Tôn giáo,
+   cộng đồng khác" vì nhóm religion_community được lấy nhãn loại làm tên — bản dựng thử cũ có 407 POI
+   như vậy sau gộp. Nay POI không tên loại `*_other` bị bỏ.
+2. **Cờ `closed` của FSQ lan sang cả cụm**: `conflate.mjs` đóng cụm khi một thành viên đóng, nên báo
+   cáo chưa xác minh của FSQ sẽ đóng cả POI mà OSM còn thấy mở. Tách `closed_reported`, chỉ đóng khi
+   mọi thành viên đều đóng/bị báo đóng.
+3. **Bậc nhanh cắt mất POI trùng tên chính xác**: dựng thử toàn quốc cho thấy "hồ tây" không ra Hồ
+   Tây — bể 200 ứng viên cắt thuần theo popularity, POI chỉ-OSM (1,0) thua POI chỉ-FSQ (1,5). Itest
+   đầu tiên tôi viết cũng sai theo kiểu khác: seed popularity 0,1 (không có thật) nên POI trùng tên
+   thua ở `rankScore`; sửa seed về 1,0/1,5 như pipeline thật mới đo đúng lỗi.
+
+**Dựng thử toàn quốc cục bộ** (2 DB cô lập trên Postgres dev, mã cũ qua git worktree): POI active
+377.677 → 402.547, OSM 118.462 → 147.172, 0 bước lỗi, hit@3 bộ mờ 37/40 và biến thể 11/19 không đổi.
+
+**Còn nợ:** PHONG chạy `pnpm server:update` trên máy chủ (áp 0025) rồi rerun Deploy API và
+`data:update --poi` (evidence mục 7); địa danh lớn còn hai bản do conflate chỉ ghép trong 150 m;
+`deleteOutsideVn` theo Natural Earth xoá nhầm POI trên đảo/bờ biển; POI cơ quan cấp huyện đã giải thể.
