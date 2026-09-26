@@ -30,6 +30,19 @@ const displayName = (parts: (string | undefined | null)[]) => parts.filter(Boole
 export const textArray = (sql: Sql, values: string[]) =>
   sql`ARRAY(SELECT json_array_elements_text(${JSON.stringify(values)}::text::json))`;
 
+/**
+ * "Duong"/"pho" gõ không dấu mơ hồ giữa tiền tố và tên riêng (Đường/Dương, Phố/Phổ). Chỉ khi tên gốc
+ * không có trong bảng street mà tên bỏ tiền tố có thì mới đổi — "Duong Ba Trac" vẫn là Dương Bá Trạc.
+ */
+async function pickStreetReading(sql: Sql, parsed: ParsedAddress): Promise<ParsedAddress> {
+  if (!parsed.streetNorm || !parsed.streetAlt || !parsed.streetNormAlt) return parsed;
+  const [row] = await sql<{ primary_ok: boolean; alt_ok: boolean }[]>`
+    SELECT EXISTS (SELECT 1 FROM street WHERE name_norm = ${parsed.streetNorm}) AS primary_ok,
+           EXISTS (SELECT 1 FROM street WHERE name_norm = ${parsed.streetNormAlt}) AS alt_ok`;
+  if (row?.primary_ok || !row?.alt_ok) return parsed;
+  return { ...parsed, street: parsed.streetAlt, streetNorm: parsed.streetNormAlt };
+}
+
 /** Thang 5 bước spec 6.3 — dừng ở bước đầu tiên có kết quả. */
 export async function geocode(
   sql: Sql,
@@ -37,7 +50,7 @@ export async function geocode(
   near: LatLng | null,
   limit: number,
 ): Promise<GeocodeItem[]> {
-  const parsed = parseAddress(query);
+  const parsed = await pickStreetReading(sql, parseAddress(query));
   const scope = await resolveAdminScope(sql, parsed);
   const context: GeocodeContext = { sql, parsed, near, limit, scope };
 

@@ -11,6 +11,9 @@ export interface ParsedAddress {
   alleyKeyword?: AlleyKeyword;
   street?: string;
   streetNorm?: string;
+  /** Phương án bỏ tiền tố khi "Duong"/"pho" gõ không dấu — mơ hồ Đường/Dương, Phố/Phổ; geocoder chọn theo bảng street. */
+  streetAlt?: string;
+  streetNormAlt?: string;
   ward?: string;
   district?: string;
   province?: string;
@@ -95,7 +98,11 @@ function parseStreetPart(orig: string, key: string, out: ParsedAddress): void {
   const [, hnRaw, alleyText = '', streetWord = '', rest0 = ''] = m;
   let rest = rest0;
   let restAt = key.length - rest0.length;
+  let altAt = -1;
   if (streetWord && !isStreetWord(orig, restAt - streetWord.length, streetWord)) {
+    // Gõ không dấu thì không biết là tiền tố hay tên riêng: giữ tên gốc, nhớ vị trí sau tiền tố.
+    const word = orig.slice(restAt - streetWord.length, restAt).trimEnd();
+    if (/^[A-Za-z]+$/.test(word)) altAt = restAt;
     rest = streetWord + rest0;
     restAt -= streetWord.length;
   }
@@ -112,12 +119,17 @@ function parseStreetPart(orig: string, key: string, out: ParsedAddress): void {
     out.streetNorm = normalizeVi(out.street);
     return;
   }
-  const street = cleanTail(
-    orig.slice(restAt).replace(/\s(?:[Kk]hóm|[Tt]ổ|[Ấấ]p|KP|[Kk]hu phố)\s+\d.*$/, ''),
-  );
+  const streetFrom = (at: number) =>
+    cleanTail(orig.slice(at).replace(/\s(?:[Kk]hóm|[Tt]ổ|[Ấấ]p|KP|[Kk]hu phố)\s+\d.*$/, ''));
+  const street = streetFrom(restAt);
   if (street) {
     out.street = street;
     out.streetNorm = normalizeVi(street);
+    const alt = altAt >= 0 ? streetFrom(altAt) : '';
+    if (alt) {
+      out.streetAlt = alt;
+      out.streetNormAlt = normalizeVi(alt);
+    }
   }
   const alleys = [...alleyText.matchAll(RE_ALLEY_EACH)];
   const alleyNums = alleys
