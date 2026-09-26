@@ -215,4 +215,12 @@ describe('validateEditBody', () => {
       expect(() => hoursEdit(h), h).toThrowError(ApiError);
     }
   });
+
+  it('contact.email: nhận email hợp lệ (tối đa 5), chữ thường; từ chối chuỗi không phải email', () => {
+    expect(contactEdit({ email: ['Info@Hotel.vn'] }).changes.contact).toEqual({
+      email: ['info@hotel.vn'],
+    });
+    expect(() => contactEdit({ email: ['not-an-email'] })).toThrowError(ApiError);
+    expect(() => contactEdit({ email: ['javascript:alert(1)@x.vn'] })).toThrowError(ApiError);
+  });
 });

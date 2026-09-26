@@ -110,7 +110,7 @@ export interface EditChanges {
   ward?: string;
   province?: string;
   address_text?: string;
-  contact?: { phone?: string[]; website?: string[]; facebook?: string };
+  contact?: { phone?: string[]; website?: string[]; facebook?: string; email?: string[] };
   /** Chuỗi opening_hours OSM hoặc {osm: chuỗi}. */
   hours?: string | { osm: string };
 }

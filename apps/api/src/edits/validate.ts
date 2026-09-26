@@ -108,6 +108,9 @@ export function isOpeningHours(value: string): boolean {
   );
 }
 
+/** Cùng luật với osmEmails() của pipeline: phần cục bộ và tên miền chỉ ký tự email thông dụng. */
+const EMAIL = /^[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}$/;
+
 /** Facebook lưu được cả handle trần (`xvn`) lẫn URL đầy đủ — chặn mọi thứ còn lại. */
 const FACEBOOK_HANDLE = /^[A-Za-z0-9._-]{1,100}$/;
 /** Chữ số, dấu cách và các ký tự định dạng số điện thoại. Không chữ, không dấu hai chấm. */
@@ -143,9 +146,16 @@ function validateChanges(kind: EditKind, raw: Record<string, unknown>): EditChan
     const facebook = optionalString(contact.facebook, 'contact.facebook', 200);
     if (facebook !== undefined && !FACEBOOK_HANDLE.test(facebook) && !isHttpUrl(facebook))
       bad('contact.facebook phải là handle hoặc URL http/https');
+    // Pipeline ghi contact.email từ OSM (26/09/2026); duyệt một sửa contact THAY nguyên contact, nên
+    // khách đọc–sửa–ghi phải gửi lại được email, không thì email mất vĩnh viễn.
+    const email = stringArray(contact.email, 'contact.email', {
+      ok: (value) => EMAIL.test(value.toLowerCase()),
+      reason: 'phải là địa chỉ email hợp lệ',
+    });
     if (phone) clean.phone = phone;
     if (website) clean.website = website;
     if (facebook) clean.facebook = facebook;
+    if (email) clean.email = email.map((value) => value.toLowerCase());
     if (Object.keys(clean).length === 0) bad('changes.contact rỗng');
     out.contact = clean;
   }
