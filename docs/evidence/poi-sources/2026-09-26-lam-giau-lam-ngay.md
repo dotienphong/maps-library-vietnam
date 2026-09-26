@@ -196,3 +196,41 @@ Không có `near` thì "hồ tây" hoà điểm với "Ho Tay Hotel".
       AND NOT (k.kind = 'server' AND e.kind = 'update'
                AND (SELECT array_agg(x) FROM jsonb_object_keys(e.changes) x) <@ ARRAY['hours'])
     ORDER BY e.created_at;`
+
+## 8. Kết quả trên production (26/09/2026, máy chủ MacBook)
+
+Lần chuyển chạy trên **MacBook** chứ không phải Ubuntu: Ubuntu đã tắt, DB MacBook phục hồi từ backup
+Ubuntu rồi áp 0025. Deploy API chạy lại (run `36212437389`, lần 2) xanh, Worker `63a65283`,
+`/healthz/db` báo `0025_fsq_quality_columns.sql`.
+
+Hai chặn gặp trên đường, đều đã sửa và có test:
+
+| Chặn | Gốc | Sửa |
+|---|---|---|
+| `records.mjs`: `must be owner of table poi_work_pair` | backup có bảng làm việc tạm của pipeline; restore `--no-owner` để chúng thuộc superuser, `PERMISSIONS_SQL` chỉ trả lại bảng gọi đích danh | `20ec573`: trả `poi_work_*`, `*_new`, `*_keys_stage` + 4 bảng tạm geocode về `pipeline`; `db/permissions.dbtest.mjs` đỏ đúng lỗi trên mã cũ |
+| `detectSources`: `fetch failed … ETIMEDOUT` cả 4 IP Geofabrik | Node 22 bỏ từng IP sau 250 ms, bắt tay TCP tới Geofabrik đo 316–372 ms; curl cùng mạng Docker vẫn 200 | `58b8db0`: `--network-family-autoselection-attempt-timeout=2000` trong `NODE_OPTIONS` của container pipeline (cả cron) |
+
+`data-update --poi --skip-routing --force` (md5 OSM/FSQ chưa đổi nên phải `--force`) xanh trong 25 phút:
+
+| Chỉ số | Production | Dựng thử §6b |
+|---|---|---|
+| POI active | 402.397 | 402.396 |
+| Tổng / đóng | 411.320 / 8.923 | — |
+| Đa nguồn | 2,4 % | — |
+| Snapshot tile | 383.460 dòng, 95.763 feature (26,5 MB) | — |
+| Manifest | `poi-20260926-155651-48c875a8` (+ `poi-osm-…`, `poi-fsq-…`), smoke tile đạt | — |
+
+Publish in `trước đó 402396`: `poi` đã có bộ dữ liệu mã mới ngay trước lần chạy này, dù sau restore đo
+376.468 — có một lần chạy xen giữa không để lại log mà tôi thấy. Kết quả hai lần lệch 1 POI.
+
+Autocomplete production qua `getAndAck` (ACK từng receipt, không lượt nào `ackFailed`):
+
+| Truy vấn | Top 1 | Kiểm cái gì |
+|---|---|---|
+| `hồ tây` gần 21.05,105.82 | Hồ Tây (West Lake) | nhóm Địa danh (`natural=water`); "Hồ Tây" thứ 2 là bản trùng — §5 |
+| `highlands` | Highlands Coffee | bể ứng viên bậc nhanh không hồi quy |
+| `cửa khẩu hữu nghị` | Cửa khẩu Hữu Nghị | tag mở rộng `border_control` |
+| `ngã tư sở` gần 21.00,105.82 | Ngã tư Sở | `junction` |
+| `atm vietcombank` gần 21.03,105.85 | ATM Vietcombank (cả top 3) | tên dự phòng theo ngân hàng |
+
+Bước 6 (rà edit tự duyệt theo luật cũ): 0 dòng — `poi_edit` production đang trống.

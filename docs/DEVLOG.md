@@ -4115,6 +4115,11 @@ lần chuyển production** trên DB sao từ bản mã cũ với mã cuối, đ
 `--force`: POI active 377.677 → 402.396, 99,0 % POI cũ giữ ID, 0 bước lỗi, hit@3 bộ mờ 37/40 và biến
 thể 11/19 không đổi.
 
-**Còn nợ:** PHONG chạy `pnpm server:update` trên máy chủ (áp 0025) rồi rerun Deploy API và
-`data:update --poi` (evidence mục 7); địa danh lớn còn hai bản do conflate chỉ ghép trong 150 m;
+**Lên production cùng ngày, trên MacBook** (Ubuntu tắt, DB phục hồi từ backup Ubuntu): active 402.397,
+khớp diễn tập; năm truy vấn nghiệm thu đều đúng top 1 (evidence mục 8). Hai chặn trên đường đều là lỗi
+vận hành cũ chỉ lộ ra khi chuyển máy: restore để bảng làm việc tạm `poi_work_*` thuộc superuser nên
+`records.mjs` không DROP được (`20ec573`), và `fetch` của Node 22 bỏ từng IP Geofabrik sau 250 ms trong
+khi bắt tay TCP từ VN mất ~330 ms — curl cùng mạng vẫn xanh nên dễ tưởng mạng chập chờn (`58b8db0`).
+
+**Còn nợ:** địa danh lớn còn hai bản do conflate chỉ ghép trong 150 m;
 `deleteOutsideVn` theo Natural Earth xoá nhầm POI trên đảo/bờ biển; POI cơ quan cấp huyện đã giải thể.
