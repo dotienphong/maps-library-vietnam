@@ -1,3 +1,5 @@
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { describe, expect, it, vi } from 'vitest';
 import { detectSources, fetchWithRetry, latestFsqRelease } from './sources.mjs';
 
@@ -57,5 +59,25 @@ describe('fetchWithRetry', () => {
     expect(await response.text()).toBe('ok');
     expect(fetchFn).toHaveBeenCalledTimes(2);
     expect(sleepFn).toHaveBeenCalledWith(1000);
+  });
+});
+
+describe('container pipeline trên máy chủ', () => {
+  it('nới ngưỡng happy eyeballs của Node: 250 ms mặc định < RTT tới Geofabrik', () => {
+    // Node 22 bỏ từng IP sau 250 ms; từ máy chủ ở VN, bắt tay TCP tới Geofabrik (Phần Lan) mất
+    // 316–372 ms, nên cả 4 IP đều ETIMEDOUT và data:update chết ngay ở detectSources — curl
+    // cùng mạng vẫn 200 (26/09/2026). NODE_OPTIONS đi xuống mọi tiến trình node con của
+    // data:update và cron, nên phải đặt ở compose chứ không chỉ ở sources.mjs.
+    const compose = readFileSync(
+      resolve(import.meta.dirname, '../../infra/server/compose.yml'),
+      'utf8',
+    );
+    const pipeline = compose.slice(
+      compose.indexOf('\n  pipeline:'),
+      compose.indexOf('\n  valhalla:'),
+    );
+    expect(pipeline).toMatch(
+      /NODE_OPTIONS: .*--network-family-autoselection-attempt-timeout=(\d{4,})/,
+    );
   });
 });

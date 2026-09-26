@@ -71,7 +71,8 @@ services:
       POSTGRES_DB: mapslibvn
       POSTGRES_SSL: require
       JAVA_OPTS: -Xmx4g
-      NODE_OPTIONS: --max-old-space-size=4096
+      # Node bỏ từng IP sau 250 ms (happy eyeballs); bắt tay TCP từ VN tới Geofabrik ~330 ms → ETIMEDOUT
+      NODE_OPTIONS: --max-old-space-size=4096 --network-family-autoselection-attempt-timeout=2000
     command: ["node", "scripts/cron.mjs"]
     volumes:
       - pipeline-work:/app/work
